@@ -258,6 +258,8 @@ ROOF_SECTION_SCHEMA = vol.Schema(
         vol.Required("base"): _HEIGHT,
         vol.Optional("overhang", default=None): vol.Any(None, vol.All(vol.Coerce(float), vol.Range(min=0, max=2))),
         vol.Optional("flip", default=False): bool,
+        # a flat roof as a free shape: its footprint polygon (x0 … z1 hold the bounding box)
+        vol.Optional("points", default=None): vol.Any(None, vol.All([_POINT], vol.Length(min=3, max=MAX_POINTS))),
         vol.Optional("locked", default=False): bool,
         # a canopy (terrace roof, carport): posts instead of walls, a see-through roof
         vol.Optional("open", default=False): bool,

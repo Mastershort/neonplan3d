@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { emptyBuilding, newFloor, type Room, type RoofSection } from "./model.ts";
-import { ridgeHeight, roofSectionsFromRooms, sectionFrame, sectionOverhang, sectionProfile, wallTopUnder } from "./roof-sections.ts";
+import { floorOutline, offsetPolygon, polygonBox, ridgeHeight, roofSectionsFromRooms, roofUnderAt, sectionFrame, sectionOverhang, sectionPolygon, sectionProfile, wallTopUnder } from "./roof-sections.ts";
 import { buildRoof } from "./viewer/roof.ts";
 
 const near = (a: number, b: number, eps = 1e-6) => assert.ok(Math.abs(a - b) < eps, `${a} != ${b}`);
@@ -124,4 +124,30 @@ test("a canopy over a terrace draws see-through panels and posts instead of wall
   near(Math.min(...ys), 0);
   // the side at the house wall has no overhang
   assert.equal(sectionOverhang(b, canopy, 0.15).b, 0);
+});
+
+test("a flat roof as a free shape: the floor's outline, grown by the wall thickness, covers the rooms only", () => {
+  // an L-shaped floor: a 8×6 house with a 4×4 wing
+  const outline = floorOutline([rect("a", 0, 0, 8, 6), rect("b", 8, 0, 12, 4)], [], 0.24, 0.12)!;
+  assert.ok(outline, "an outline");
+  assert.equal(outline.length, 6, "six corners, none in the middle of a straight run");
+  const box = polygonBox(outline);
+  near(box.x0, -0.24);
+  near(box.z0, -0.24);
+  near(box.x1, 12.24);
+  near(box.z1, 6.24);
+  // the inner corner of the L lies at (8, 4): grown outwards it moves to (8.24, 4.24)
+  assert.ok(outline.some(([x, z]) => Math.abs(x - 8.24) < 1e-6 && Math.abs(z - 4.24) < 1e-6), "inner corner");
+  // a section with that shape covers the house but not the empty corner of its bounding box
+  const sec = section({ shape: "flat", eave_a: 5.3, eave_b: 5.3, base: 5.3, points: outline, ...box });
+  const b = { settings: { roof: { type: "custom" as const, pitch: 35, overhang: 0.4, sections: [sec] } } };
+  assert.ok(roofUnderAt(b, 4, 3) !== null, "over the house");
+  assert.equal(roofUnderAt(b, 11, 5.5), null, "not over the empty corner");
+  // the overhang grows the polygon all round
+  const grown = sectionPolygon(sec, 0.4);
+  near(polygonBox(grown).x1, 12.64);
+  // offsetPolygon keeps the orientation and grows a square by d on every side
+  const sq = offsetPolygon([[0, 0], [2, 0], [2, 2], [0, 2]], 0.5);
+  near(polygonBox(sq).x0, -0.5);
+  near(polygonBox(sq).z1, 2.5);
 });

@@ -9,6 +9,7 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 ### New
 
 - **Roof slopes with knee walls:** when a roof section's top of walls lies below the ceiling of the floor underneath, that floor's walls end under the roof – knee walls at the eaves, gables up to the ridge, inner walls cut by the slope; windows stay below it. Dashed headroom lines (1.5 m, 2 m) in the plan editor (mindmonk's description in [PR #66](https://github.com/Mastershort/neonplan3d/pull/66), discussions #64, #75).
+- **Flat roof as a free shape:** "Take the floor's outline" gives a flat section the outline of the floor's rooms (L, Z, U …) as one surface; its corners can be dragged (#108 by rolandarends).
 - **Split a wall:** ✂ in the wall heights box cuts a wall at a point of your own, so one wall in line can have two heights (2.5 m next to 1.7 m); the split point can be moved and removed (#109 by rolandarends).
 
 ## 1.9.2

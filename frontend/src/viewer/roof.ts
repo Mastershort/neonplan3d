@@ -5,7 +5,7 @@
 
 import { Color } from "three";
 import type { Building, Floor, RoofSection, SolarField } from "../model.ts";
-import { sectionFrame, sectionOverhang, sectionProfile, type SectionOverhang } from "../roof-sections.ts";
+import { sectionPolygon, sectionFrame, sectionOverhang, sectionProfile, type SectionOverhang } from "../roof-sections.ts";
 import { DEG, GeoBuffer, LineBuffer, pushPrism, shade } from "./geo.ts";
 import { fieldModules, roofFaces, windowCorners, type RoofFace } from "../solar.ts";
 
@@ -265,11 +265,12 @@ export function pushSection(solid: GeoBuffer, lines: LineBuffer, s: RoofSection,
   const ridges: [Q, Q][] = [];
   if (s.shape === "flat") {
     const y = s.eave_a;
-    const poly = [fr.at(U0, -oa), fr.at(U1, -oa), fr.at(U1, w + ob), fr.at(U0, w + ob)];
+    // a free shape takes its polygon (grown by the overhang), a plain section its rectangle
+    const poly = s.points && s.points.length >= 3 ? sectionPolygon(s, Math.max(0, Math.min(ov.a, ov.b, ov.u0, ov.u1))) : [fr.at(U0, -oa), fr.at(U1, -oa), fr.at(U1, w + ob), fr.at(U0, w + ob)];
     pushPrism(solid, poly, y - yOff, y - yOff + 0.25, ROOF, ROOF_TOP, { bottom: true });
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < poly.length; i++) {
       const a = poly[i];
-      const c = poly[(i + 1) % 4];
+      const c = poly[(i + 1) % poly.length];
       lines.seg([a[0], y - yOff + 0.252, a[1]], [c[0], y - yOff + 0.252, c[1]], RIDGE);
       lines.seg([a[0], y - yOff, a[1]], [c[0], y - yOff, c[1]], EAVE);
     }

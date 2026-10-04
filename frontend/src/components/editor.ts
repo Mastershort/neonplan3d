@@ -14,7 +14,7 @@ import { SHOW_PRESENCE } from "../flags.ts";
 import { hasFeature, manualUrl, shopUrl } from "../features.ts";
 import { deviceSensors, energySummary, flowSegments, gridPoint, proposeEnergySensors, type EnergyPrefs, type FlowSegment } from "../energy.ts";
 import { isStatusSensor, robotRoomSensor, TOGGLE_KINDS } from "../devices.ts";
-import { headroomLines, ridgeHeight, roofSectionsFromRooms, sectionFrame, sectionProfile, wallTopUnder } from "../roof-sections.ts";
+import { floorOutline, polygonBox, headroomLines, ridgeHeight, roofSectionsFromRooms, sectionFrame, sectionProfile, wallTopUnder } from "../roof-sections.ts";
 import { bestFace, clampField, faceAt, faceCompass, fieldFace, fieldModules, GROUND, pointOnFace, proposeField, proposeGroundField, proposeWindow, proposeWallField, roofFaces, rowCounts, turnGroundField, fieldCenter, wallFaces, windowAsField, windowCorners, onFace, onField, rayOnFace, type RoofFace } from "../solar.ts";
 import type { SurfaceGrab, SurfaceRay } from "../viewer/viewer3d.ts";
 import { storedImageIds } from "../transfer.ts";
@@ -115,6 +115,7 @@ type Drag =
   | { kind: "solarmove"; id: string; start: Vec2; startScreen: [number, number]; base: Building; moved: boolean; grab: { du: number; ds: number } | null; win?: boolean }
   | { kind: "outvertex"; id: string; index: number; base: Building; moved: boolean }
   | { kind: "roofcorner"; id: string; corner: [0 | 1, 0 | 1]; base: Building; moved: boolean }
+  | { kind: "roofvertex"; id: string; index: number; base: Building; moved: boolean }
   | { kind: "cablept"; id: string; index: number; base: Building; moved: boolean }
   | { kind: "freewall"; start: Vec2; end: Vec2 }
   | { kind: "wallmove"; id: string; end: "a" | "b" | null; start: Vec2; startScreen: [number, number]; base: Building; moved: boolean }
@@ -128,7 +129,7 @@ interface Guides {
 }
 
 /** Drags that change the document live (restored when cancelled, recorded in the history when done). */
-const EDIT_DRAGS = new Set(["vertex", "room", "device", "opening", "furniture", "rotate", "resize", "outdoor", "roofmove", "roofcorner", "outvertex", "solarmove", "solarturn", "cablept"]);
+const EDIT_DRAGS = new Set(["vertex", "room", "device", "opening", "furniture", "rotate", "resize", "outdoor", "roofmove", "roofcorner", "roofvertex", "outvertex", "solarmove", "solarturn", "cablept"]);
 
 const HISTORY = 100;
 const SNAP_PX = 10;
@@ -961,6 +962,7 @@ export class Fp3dEditor extends LitElement {
     }
     if (this._tool === "roof" || this._tool === "energy") {
       const corner = target.closest("[data-roof-corner]")?.getAttribute("data-roof-corner");
+      const vertex = target.closest("[data-roof-vertex]")?.getAttribute("data-roof-vertex");
       const body = target.closest("[data-roof]")?.getAttribute("data-roof");
       const marker = this._tool === "energy" ? target.closest("[data-energy-device]")?.getAttribute("data-energy-device") : null;
       if (marker) {
@@ -1086,7 +1088,10 @@ export class Fp3dEditor extends LitElement {
         this.drag = { kind: "pan", last: local };
         return;
       }
-      if (corner && this.isAdmin) {
+      if (vertex && this.isAdmin) {
+        const [id, idx] = vertex.split(":");
+        this.drag = { kind: "roofvertex", id, index: Number(idx), base: this._doc, moved: false };
+      } else if (corner && this.isAdmin) {
         const [id, cx, cz] = corner.split(":");
         this.drag = { kind: "roofcorner", id, corner: [cx === "1" ? 1 : 0, cz === "1" ? 1 : 0], base: this._doc, moved: false };
       } else if (body) {
@@ -1341,7 +1346,9 @@ export class Fp3dEditor extends LitElement {
         this.change(
           (doc) => {
             const sec = doc.settings.roof.sections?.find((x) => x.id === drag.id);
-            if (sec) Object.assign(sec, { x0: round(src.x0 + dx), x1: round(src.x1 + dx), z0: round(src.z0 + dz), z1: round(src.z1 + dz) });
+            if (!sec) return;
+            Object.assign(sec, { x0: round(src.x0 + dx), x1: round(src.x1 + dx), z0: round(src.z0 + dz), z1: round(src.z1 + dz) });
+            if (src.points) sec.points = src.points.map(([x, z]) => [round(x + dx), round(z + dz)] as Vec2);
           },
           drag.base,
           false,
@@ -1451,6 +1458,21 @@ export class Fp3dEditor extends LitElement {
           (doc) => {
             const c = doc.settings.roof.cables?.find((x) => x.id === drag.id);
             if (c && c.points[drag.index]) c.points[drag.index] = [round(p[0]), round(p[1])];
+          },
+          drag.base,
+          false,
+        );
+        break;
+      }
+      case "roofvertex": {
+        drag.moved = true;
+        const p = this.snap(world, undefined, e.altKey);
+        this.change(
+          (doc) => {
+            const sec = doc.settings.roof.sections?.find((x) => x.id === drag.id);
+            if (!sec?.points || drag.index >= sec.points.length) return;
+            sec.points[drag.index] = [round(p[0]), round(p[1])];
+            Object.assign(sec, polygonBox(sec.points));
           },
           drag.base,
           false,
@@ -1617,6 +1639,7 @@ export class Fp3dEditor extends LitElement {
       case "solarturn":
       case "roofmove":
       case "roofcorner":
+      case "roofvertex":
       case "cablept":
         if (drag.moved) this.pushHistory(drag.base);
         break;
@@ -2198,6 +2221,17 @@ export class Fp3dEditor extends LitElement {
     this._roofId = sec.id;
   }
 
+  /** A flat section takes the outline of the floor shown (its rooms at the outer wall faces) as its shape. */
+  private takeRoofOutline(): void {
+    const floor = this.floor;
+    const id = this._roofId;
+    if (!floor || !id || !this.isAdmin) return;
+    const outline = floorOutline(floor.rooms, floor.walls ?? [], this._doc.settings.wall_exterior, this._doc.settings.wall_interior);
+    if (!outline) return;
+    const points = outline.map(([x, z]) => [round(x), round(z)] as Vec2);
+    this.updateRoofSection({ shape: "flat", points, ...polygonBox(points) });
+  }
+
   private updateRoofSection(patch: Partial<RoofSection>): void {
     const id = this._roofId;
     if (!id || !this.isAdmin) return;
@@ -2230,7 +2264,8 @@ export class Fp3dEditor extends LitElement {
       const sel = sec.id === this._roofId;
       const fr = sectionFrame(sec);
       const pr = sectionProfile(sec);
-      const pts = [fr.at(fr.u0, 0), fr.at(fr.u1, 0), fr.at(fr.u1, fr.w), fr.at(fr.u0, fr.w)].map((p) => this.toScreen(p));
+      const shape = sec.shape === "flat" && sec.points && sec.points.length >= 3 ? sec.points : null;
+      const pts = (shape ?? [fr.at(fr.u0, 0), fr.at(fr.u1, 0), fr.at(fr.u1, fr.w), fr.at(fr.u0, fr.w)]).map((p) => this.toScreen(p));
       const line = (a: Vec2, b: Vec2) => {
         const [ax, ay] = this.toScreen(a);
         const [bx, by] = this.toScreen(b);
@@ -2251,7 +2286,13 @@ export class Fp3dEditor extends LitElement {
           <g class="fp3d-roof-ridge">${ridge}</g>
           <text x=${cx} y=${cy - 14}>${label}</text>
         </g>
-        ${sel && this.isAdmin && !this.roofFixed(sec)
+        ${sel && this.isAdmin && !this.roofFixed(sec) && shape
+          ? shape.map((p, k) => {
+              const [x, y] = this.toScreen(p);
+              return svg`<g class="fp3d-vertex" data-roof-vertex=${`${sec.id}:${k}`}><circle cx=${x} cy=${y} r="16" class="fp3d-hit" /><circle cx=${x} cy=${y} r="6" /></g>`;
+            })
+          : nothing}
+        ${sel && this.isAdmin && !this.roofFixed(sec) && !shape
           ? ([[0, 0], [1, 0], [1, 1], [0, 1]] as const).map(([kx, kz]) => {
               const [x, y] = this.toScreen([kx ? Math.max(sec.x0, sec.x1) : Math.min(sec.x0, sec.x1), kz ? Math.max(sec.z0, sec.z1) : Math.min(sec.z0, sec.z1)]);
               return svg`<g class="fp3d-vertex" data-roof-corner=${`${sec.id}:${kx}:${kz}`}><circle cx=${x} cy=${y} r="16" class="fp3d-hit" /><circle cx=${x} cy=${y} r="6" /></g>`;
@@ -3240,6 +3281,13 @@ export class Fp3dEditor extends LitElement {
           <p class="fp3d-sub fp3d-wide">${this.t("roof_base_hint")}</p>
           ${num(this.t("roof_overhang"), sec.overhang ?? this._doc.settings.roof.overhang, (v) => set({ overhang: Math.min(2, v) }), 0.05, 0)}
         </div>
+        ${flat && admin
+          ? html`<div class="fp3d-actions">
+              <button class="fp3d-btn" title=${this.t("roof_outline_hint")} @click=${() => this.takeRoofOutline()}>${this.t("roof_outline")}</button>
+              ${sec.points ? html`<button class="fp3d-btn" @click=${() => set({ points: null })}>${this.t("roof_rect")}</button>` : nothing}
+            </div>
+            <p class="fp3d-sub">${this.t(sec.points ? "roof_points_hint" : "roof_outline_hint")}</p>`
+          : nothing}
         <p class="fp3d-sub">${this.t("roof_ridge_height")}: ${formatNumber(this.hass, ridgeHeight(sec), 2)} m · ${this.t("roof_section_hint")}</p>
         ${admin
           ? html`<div class="fp3d-actions">

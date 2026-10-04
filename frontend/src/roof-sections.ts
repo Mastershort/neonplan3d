@@ -1,8 +1,9 @@
 // Roof sections: the plain geometry of a section (frame and profile across its ridge) and the
 // proposal of sections from the rooms. No three.js here: the editor uses it as well.
 
-import type { Building, Room, RoofSection, Vec2 } from "./model.ts";
-import { pointInPolygon } from "./model.ts";
+import type { Building, FreeWall, Room, RoofSection, Vec2 } from "./model.ts";
+import { pointInPolygon, polygonArea } from "./model.ts";
+import { generateWalls } from "./geometry/walls.ts";
 
 const DEG = Math.PI / 180;
 
@@ -73,6 +74,8 @@ export function roofUnderAt(b: RoofHolder, x: number, z: number): number | null 
     const z0 = Math.min(s.z0, s.z1);
     const z1 = Math.max(s.z0, s.z1);
     if (x < x0 - 1e-6 || x > x1 + 1e-6 || z < z0 - 1e-6 || z > z1 + 1e-6) continue;
+    // a free-shaped flat roof covers its polygon only
+    if (s.points && s.points.length >= 3 && !pointInPolygon([x, z], s.points)) continue;
     const v = s.axis === "x" ? (s.flip ? z1 - z : z - z0) : s.flip ? x1 - x : x - x0;
     const y = sectionProfile(s).y(v) - ROOF_THICK;
     best = best === null ? y : Math.min(best, y);
@@ -104,6 +107,104 @@ export function headroomLines(b: RoofHolder, level: number, headroom: number): [
     }
   }
   return out;
+}
+
+/** A polygon grown outwards by `d` (mitred corners); works for simple polygons either way round. */
+export function offsetPolygon(points: readonly Vec2[], d: number): Vec2[] {
+  const n = points.length;
+  if (n < 3 || Math.abs(d) < 1e-9) return points.map((p) => [p[0], p[1]]);
+  // outward is to the right of a counter-clockwise edge (z down the plan), the left of a clockwise one
+  const sign = polygonArea(points) >= 0 ? 1 : -1;
+  const out: Vec2[] = [];
+  for (let i = 0; i < n; i++) {
+    const p = points[(i + n - 1) % n];
+    const q = points[i];
+    const r = points[(i + 1) % n];
+    const d1 = unitOf([q[0] - p[0], q[1] - p[1]]);
+    const d2 = unitOf([r[0] - q[0], r[1] - q[1]]);
+    const n1: Vec2 = [d1[1] * sign, -d1[0] * sign];
+    const n2: Vec2 = [d2[1] * sign, -d2[0] * sign];
+    // the mitre: the bisector of the two edge normals, scaled so both edges move by d
+    const bx = n1[0] + n2[0];
+    const bz = n1[1] + n2[1];
+    const bl = Math.hypot(bx, bz);
+    if (bl < 1e-6) {
+      out.push([q[0] + n1[0] * d, q[1] + n1[1] * d]);
+      continue;
+    }
+    const cos = (bx * n1[0] + bz * n1[1]) / bl;
+    const k = Math.min(4, 1 / Math.max(0.25, cos));
+    out.push([q[0] + (bx / bl) * d * k, q[1] + (bz / bl) * d * k]);
+  }
+  return out;
+}
+
+function unitOf(p: Vec2): Vec2 {
+  const l = Math.hypot(p[0], p[1]) || 1;
+  return [p[0] / l, p[1] / l];
+}
+
+/** The footprint of a section with its overhang: the free polygon, or the rectangle. */
+export function sectionPolygon(s: Pick<RoofSection, "x0" | "z0" | "x1" | "z1" | "points">, overhang: number): Vec2[] {
+  if (s.points && s.points.length >= 3) return offsetPolygon(s.points, overhang);
+  const x0 = Math.min(s.x0, s.x1) - overhang;
+  const x1 = Math.max(s.x0, s.x1) + overhang;
+  const z0 = Math.min(s.z0, s.z1) - overhang;
+  const z1 = Math.max(s.z0, s.z1) + overhang;
+  return [[x0, z0], [x1, z0], [x1, z1], [x0, z1]];
+}
+
+/** The bounding box of a polygon as the section's x0 … z1. */
+export function polygonBox(points: readonly Vec2[]): Pick<RoofSection, "x0" | "z0" | "x1" | "z1"> {
+  const xs = points.map((p) => p[0]);
+  const zs = points.map((p) => p[1]);
+  return { x0: Math.min(...xs), z0: Math.min(...zs), x1: Math.max(...xs), z1: Math.max(...zs) };
+}
+
+/**
+ * The outline of a floor's rooms at the outer wall faces: the exterior walls chained into a loop (the
+ * largest one, for a house with a courtyard), grown by the wall thickness. Null without rooms.
+ */
+export function floorOutline(rooms: readonly Room[], free: readonly FreeWall[], exterior: number, interior: number): Vec2[] | null {
+  const walls = generateWalls(rooms, { exterior, interior }, free).walls.filter((w) => w.exterior && !w.free);
+  if (!walls.length) return null;
+  // walls are not all drawn the same way round, so the loop is walked by shared end points
+  const key = (p: Vec2) => `${Math.round(p[0] * 1000)}:${Math.round(p[1] * 1000)}`;
+  type Seg = { a: Vec2; b: Vec2 };
+  const at = new Map<string, Seg[]>();
+  const segs: Seg[] = walls.map((w) => ({ a: w.a, b: w.b }));
+  for (const w of segs) for (const p of [w.a, w.b]) at.set(key(p), [...(at.get(key(p)) ?? []), w]);
+  const used = new Set<Seg>();
+  let best: Vec2[] | null = null;
+  for (const start of segs) {
+    if (used.has(start)) continue;
+    used.add(start);
+    const loop: Vec2[] = [start.a, start.b];
+    let cur: Vec2 = start.b;
+    for (;;) {
+      const next = (at.get(key(cur)) ?? []).find((w) => !used.has(w));
+      if (!next) break;
+      used.add(next);
+      cur = key(next.a) === key(cur) ? next.b : next.a;
+      if (key(cur) === key(loop[0])) break;
+      loop.push(cur);
+    }
+    // closed when the walk came back to the first point
+    if (loop.length >= 3 && key(cur) === key(loop[0])) {
+      if (!best || Math.abs(polygonArea(loop)) > Math.abs(polygonArea(best))) best = loop;
+    }
+  }
+  if (!best) return null;
+  // collinear corners (a room edge split by its neighbour) go, so the roof keeps its clean corners
+  const clean: Vec2[] = [];
+  for (let i = 0; i < best.length; i++) {
+    const p = best[(i + best.length - 1) % best.length];
+    const q = best[i];
+    const r = best[(i + 1) % best.length];
+    const cross = (q[0] - p[0]) * (r[1] - q[1]) - (q[1] - p[1]) * (r[0] - q[0]);
+    if (Math.abs(cross) > 1e-6) clean.push(q);
+  }
+  return clean.length >= 3 ? offsetPolygon(clean, exterior) : null;
 }
 
 /** Overhang per edge of a section: along the ridge at both ends (u0, u1) and across at both sides (a, b). */

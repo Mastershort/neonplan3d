@@ -260,6 +260,11 @@ export interface RoofSection {
   overhang?: number | null;
   /** Sides a and b swapped: side a is the high coordinate (a pent roof then rises the other way). */
   flip?: boolean;
+  /**
+   * A flat roof as a free shape: its footprint polygon (plan coordinates at the outer wall faces, the
+   * overhang comes on top); x0 … z1 then hold the polygon's bounding box.
+   */
+  points?: Vec2[] | null;
   /** Fixed: cannot be moved or resized by accident (the plan lock fixes every section too). */
   locked?: boolean;
   /** A canopy (terrace roof, carport): posts and beams instead of walls, a see-through roof. */
