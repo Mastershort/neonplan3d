@@ -5204,6 +5204,12 @@ export class Fp3dEditor extends LitElement {
               power,
               (v) => this.updateFurniture({ power: v }),
             )}
+        ${hasFeature("energy_pro") && !lamp && !["grid_point", "meter", "inverter", "home_battery"].includes(f.type)
+          ? html`<label class="fp3d-check fp3d-wide" title=${this.t("furn_holo_hint")}
+              ><input type="checkbox" .checked=${!!f.holo} ?disabled=${!this.isAdmin} @change=${(ev: Event) => this.updateFurniture({ holo: (ev.target as HTMLInputElement).checked })} />
+              ${this.t("furn_holo")}</label
+            >`
+          : nothing}
       </div>
       ${f.type === "meter"
         ? html`<div class="fp3d-form fp3d-links">

@@ -364,7 +364,7 @@ DEMO_BUILDING.floors[0].furniture = [
   item("bathtub", 5.6, 7.6, 1.7, 0.75, 0.58, 180),
   item("wc", 4.72, 5.35, 0.38, 0.6, 0.8, 270),
   item("washbasin", 6.55, 5.3, 0.6, 0.46, 0.85, 90),
-  item("washer", 6.47, 6.45, 0.6, 0.6, 0.85, 90),
+  { ...item("washer", 6.47, 6.45, 0.6, 0.6, 0.85, 90), holo: true },
   item("coffee_table", 2.4, 2.4, 1.1, 0.6, 0.42),
   item("stairs", 9.42, 6.3, 1.0, 3.2, 2.75),
   item("wardrobe", 7.1, 6.4, 1.2, 0.4, 2.0, 270),

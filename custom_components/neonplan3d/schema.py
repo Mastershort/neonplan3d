@@ -155,6 +155,8 @@ FURNITURE_SCHEMA = vol.Schema(
         vol.Optional("charge", default=None): vol.Any(None, vol.All(str, vol.Length(max=255))),
         # meter: a separate export power sensor when the power sensor only reports import
         vol.Optional("export", default=None): vol.Any(None, vol.All(str, vol.Length(max=255))),
+        # Energie Pro: a hologram card over the device (power now, today's kWh, day curve)
+        vol.Optional("holo", default=False): bool,
         vol.Optional("status", default=None): vol.Any(None, vol.All(str, vol.Length(max=255))),
         # robot vacuum: sensor naming the room it cleans right now (None = automatic)
         vol.Optional("room_sensor", default=None): vol.Any(None, vol.All(str, vol.Length(max=255))),

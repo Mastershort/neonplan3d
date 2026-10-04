@@ -609,7 +609,11 @@ The modules get a glowing cell structure with a band of light sweeping towards t
 
 In the house view a glass hologram hangs on the largest solar field (beside the house without one), joined by a glowing line. It shows PV now, today's yield and peak, the day curve since midnight (from the statistics of your PV sensor), with several plants a line per inverter, the battery with an arrow, grid, house, wallbox and the self-sufficiency bar. It keeps its size in the world, so it shrinks as you zoom out; from behind you see it mirrored. A tap folds it down to the big number. In the **Hologram** section you choose its field, size and offset.
 
-**Wall tablet:** on the tablet level the hologram runs without the glass effect and the cables at half the frame rate.
+**Device holograms**
+
+Also without a solar system: every device with a power sensor (TV, washing machine, fridge, heat pump, PC, wallbox) can carry a small glass card over itself – power now, today's consumption and the day curve from its sensor's statistics. Tick **Hologram over the device** in the furniture form. The cards show in the house view and on the device's floor; a tap folds them. Ten cards cost less than one cable, on the wall tablet too.
+
+**Wall tablet:** on the tablet level the holograms run without the glass effect and the cables at half the frame rate.
 
 **When something is missing:** the Setup list at the top of the tool shows what does not fit yet. No hologram usually means: no sensor on the inverter, or not the house view (floor and room views have none). No cable to a device: the device has no power sensor.
 

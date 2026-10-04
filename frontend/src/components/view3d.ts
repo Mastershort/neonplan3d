@@ -27,9 +27,9 @@ import { deviceSensors, energySummary, fetchSolarRows, fieldLevels, fieldPowers,
 import { fieldFace, fieldSize } from "../solar.ts";
 import { DEFAULT_HOLOGRAM, type SolarField } from "../model.ts";
 
-/** A hologram card: the house's balance on the main plant, or one plant (a balcony plant) on its own. */
+/** A hologram card: the house's balance on the main plant, one plant (a balcony plant) on its own, or a device. */
 interface HoloCard {
-  kind: "main" | "plant";
+  kind: "main" | "plant" | "device";
   name: string;
   /** The plant's power now (W); null on the main card (it shows the house). */
   w: number | null;
@@ -613,9 +613,9 @@ export class Fp3dView3d extends LitElement {
       const sv = f.v + fd / 2 + up;
       const c: [number, number, number] = [face.o[0] + face.eu[0] * u + face.es[0] * sv, face.o[1] + face.eu[1] * u + face.es[1] * sv, face.o[2] + face.eu[2] * u + face.es[2] * sv];
       const floorId = face.wall?.floorId ?? (face.unbounded ? (b.floors.find((f) => f.elevation === Math.min(...b.floors.map((x) => x.elevation)))?.id ?? b.floors[0].id) : [...b.floors].sort((p, q) => q.elevation - p.elevation)[0].id);
-      return { p: [c[0] + face.n[0] * 0.05, c[1] + face.n[1] * 0.05, c[2] + face.n[2] * 0.05] as [number, number, number], n: [face.n[0], face.n[1], face.n[2]] as [number, number, number], floorId, size };
+      return { p: [c[0] + face.n[0] * 0.05, c[1] + face.n[1] * 0.05, c[2] + face.n[2] * 0.05] as [number, number, number], n: [face.n[0], face.n[1], face.n[2]] as [number, number, number], floorId, size, roof: true, views: "house" as const };
     };
-    const anchors: { p: [number, number, number]; n: [number, number, number]; floorId: string; size: number }[] = [];
+    const anchors: { p: [number, number, number]; n: [number, number, number]; floorId: string; size: number; roof: boolean; views: "house" | "all" }[] = [];
     const cards: HoloCard[] = [];
     const anyEnergy = summary.grid !== null || summary.battery !== null || summary.solar !== null;
     const first = pro && summary.solar !== null ? (fields.find((f) => f.id === holo.field) ?? fields[0]) : undefined;
@@ -643,7 +643,7 @@ export class Fp3dView3d extends LitElement {
           topFloor = f;
         }
       }
-      anchors.push({ p: [x1 + 0.6, top + 0.4, (z0 + z1) / 2], n: [1, 0, 0], floorId: topFloor.id, size: holo.size });
+      anchors.push({ p: [x1 + 0.6, top + 0.4, (z0 + z1) / 2], n: [1, 0, 0], floorId: topFloor.id, size: holo.size, roof: true, views: "house" });
       cards.push({ kind: "main", name: translate(hass, "holo_title"), w: null, dayIds: solarIds, battery: null });
     }
     if (pro && first) {
@@ -667,6 +667,26 @@ export class Fp3dView3d extends LitElement {
             w: Math.max(0, readPower(hass.states[sensor]) ?? 0),
             dayIds: [sensor],
             battery: bat ? { soc: Number.isFinite(socRaw) ? socRaw : null, w: devicePower.get(bat.id) ?? null } : null,
+          });
+        }
+      }
+    }
+    // device holograms: a small card over every device the editor marked, on its floor and in the house view
+    if (pro) {
+      for (const floor of b.floors) {
+        for (const f of floor.furniture) {
+          if (!f.holo) continue;
+          const sensor = this.furnitureLinks?.get(f.id)?.power ?? null;
+          const c = consumers.find((k) => k.id === f.id);
+          if (!sensor && !c) continue;
+          const top = mountBase(floor, f) + f.h;
+          anchors.push({ p: [f.x, top + 0.1, f.z], n: [0, 1, 0], floorId: floor.id, size: holo.size * 0.7, roof: false, views: "all" });
+          cards.push({
+            kind: "device",
+            name: f.name || furnitureName(hass, f.type),
+            w: c?.power ?? (sensor ? readPower(hass.states[sensor]) : null),
+            dayIds: sensor ? [sensor] : [],
+            battery: null,
           });
         }
       }
@@ -794,11 +814,12 @@ export class Fp3dView3d extends LitElement {
   private placeHolo(index: number, x: number, y: number, on: boolean, scale: number, facing: boolean): void {
     const el = this.renderRoot.querySelector<HTMLElement>(`.fp3d-holo[data-holo="${index}"]`);
     const link = this.renderRoot.querySelector<SVGSVGElement>(`.fp3d-holo-link[data-holo="${index}"]`);
+    const main = this._holos[index]?.kind === "main";
     if (!el) {
-      if (index === 0 && this._holoOn) this._holoOn = false;
+      if (main && this._holoOn) this._holoOn = false;
       return;
     }
-    if (index === 0 && on !== this._holoOn) this._holoOn = on;
+    if (main && on !== this._holoOn) this._holoOn = on;
     const hidden = !on;
     if (el.hidden !== hidden) el.hidden = hidden;
     if (link && link.hasAttribute("hidden") !== hidden) link.toggleAttribute("hidden", hidden);
@@ -822,11 +843,49 @@ export class Fp3dView3d extends LitElement {
     }
   }
 
-  /** Energie Pro: the glass holograms – the house's balance on the main field, one card per further plant. */
+  /**
+   * Energie Pro: the glass holograms – the house's balance on the main field and one card per further
+   * plant (house view), and the device cards (house and floor view). The viewer hides every card whose
+   * anchor is not in view, so every card renders, in the anchors' order.
+   */
   private renderHologram() {
     const e = this._energy;
-    if (!hasFeature("energy_pro") || !e || (e.solar === null && e.grid === null && e.battery === null) || this.roomId || this.floorId !== null || !this.showEnergy) return nothing;
-    return this._holos.map((card, i) => this.renderHoloCard(card, i, e));
+    if (!hasFeature("energy_pro") || this.roomId || !this.showEnergy) return nothing;
+    const plants = !!e && (e.solar !== null || e.grid !== null || e.battery !== null) && this.floorId === null;
+    return this._holos.map((card, i) => (card.kind === "device" ? this.renderDeviceCard(card, i) : plants ? this.renderHoloCard(card, i, e!) : nothing));
+  }
+
+  /** A device's card: its power now, today's consumption and the day curve from its sensor's statistics. */
+  private renderDeviceCard(card: HoloCard, index: number) {
+    const hass = this.hass;
+    const t = (k: Parameters<typeof translate>[1]) => translate(hass, k);
+    const open = !this.holoFolded.has(index);
+    const day = this.dayOf(card);
+    const curve = day && day.curve.length > 1 ? solarCurvePath(day.curve, day.peak) : null;
+    const toggle = () => {
+      if (this.holoFolded.has(index)) this.holoFolded.delete(index);
+      else this.holoFolded.add(index);
+      this.requestUpdate();
+    };
+    return html`<svg class="fp3d-holo-link" data-holo=${index} hidden aria-hidden="true"><line x1="0" y1="0" x2="0" y2="0" /><circle cx="0" cy="0" r="3" /></svg>
+      <div class="fp3d-holo fp3d-holo-dev ${open ? "" : "fp3d-holo-min"} ${this._low ? "fp3d-holo-plain" : ""}" data-holo=${index} hidden role="button" tabindex="0" aria-label=${card.name} @click=${toggle}>
+      <div class="fp3d-holo-sheen"></div>
+      <div class="fp3d-holo-scan"></div>
+      <div class="fp3d-holo-body">
+        <div class="fp3d-holo-head"><span>⚡ ${card.name}</span><span class="fp3d-holo-live">● ${t("holo_live")}</span></div>
+        <div class="fp3d-holo-big"><b>${formatPower(hass, card.w ?? 0)}</b><span>${t("holo_dev_now")}</span></div>
+        ${open && day ? html`<div class="fp3d-holo-sub">${t("holo_today")} <b>${formatNumber(hass, day.kwh, 1)} kWh</b> · ${t("holo_peak")} <b>${formatPower(hass, day.peak)}</b></div>` : nothing}
+        ${open && curve
+          ? svg`<svg class="fp3d-holo-curve" viewBox="0 0 220 44" width="156" height="30">
+              <defs><linearGradient id="fp3dHoloG${index}" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#7fe8ff" stop-opacity=".5"/><stop offset="1" stop-color="#7fe8ff" stop-opacity="0"/></linearGradient></defs>
+              <path d="${curve.area}" fill="url(#fp3dHoloG${index})"/>
+              <path d="${curve.line}" fill="none" stroke="#a8f0ff" stroke-width="2"/>
+              <circle cx="${curve.endX}" cy="${curve.endY}" r="3.5" fill="#fff" stroke="#7fe8ff" stroke-width="2"/>
+              <line x1="0" y1="43.5" x2="220" y2="43.5" stroke="rgba(160,240,255,.35)"/>
+            </svg>`
+          : nothing}
+      </div>
+    </div>`;
   }
 
   /** Today's curve of a card from the fetched statistics of its sensors. */
@@ -2375,6 +2434,11 @@ export class Fp3dView3d extends LitElement {
       .fp3d-holo[hidden],
       .fp3d-holo-link[hidden] {
         display: none;
+      }
+      /* a device's card: smaller than the plant's */
+      .fp3d-holo-dev {
+        width: 184px;
+        padding: 10px 12px 9px;
       }
       /* tablet level: no blur and no sheen, the glass is painted */
       .fp3d-holo-plain {

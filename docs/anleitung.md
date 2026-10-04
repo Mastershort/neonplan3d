@@ -611,7 +611,11 @@ Die Module bekommen eine leuchtende Zellstruktur, über die ein Lichtband Richtu
 
 In der Hausansicht hängt ein Hologramm aus Glas am größten Solarfeld (ohne Feld neben dem Haus), verbunden durch einen Leuchtstrich. Es zeigt PV jetzt, Ertrag heute und Spitze, die Tageskurve seit Mitternacht (aus den Statistiken deines PV-Sensors), bei mehreren Anlagen eine Zeile je Wechselrichter, Akku mit Pfeil, Netz, Haus, Wallbox und den Autarkie-Balken. Es behält seine Größe in der Welt, wird beim Rauszoomen also kleiner; von hinten siehst du es gespiegelt. Antippen klappt es auf die große Zahl zusammen. Im Abschnitt **Hologramm** wählst du Feld, Größe und Versatz.
 
-**Wandtablet:** Auf der Tablet-Stufe läuft das Hologramm ohne Glaseffekt, die Leitungen mit halber Bildrate.
+**Geräte-Hologramme**
+
+Auch ohne Solaranlage: Jedes Gerät mit Leistungssensor (Fernseher, Waschmaschine, Kühlschrank, Wärmepumpe, PC, Wallbox) kann eine kleine Glaskarte über sich tragen – Leistung jetzt, Verbrauch heute und die Tageskurve aus den Statistiken seines Sensors. Im Möbelformular den Haken **Hologramm über dem Gerät** setzen. Die Karten zeigen sich in der Hausansicht und auf der Etage des Geräts; Antippen klappt sie zusammen. Zehn Karten kosten weniger als eine Leitung, auch auf dem Wandtablet.
+
+**Wandtablet:** Auf der Tablet-Stufe laufen die Hologramme ohne Glaseffekt, die Leitungen mit halber Bildrate.
 
 **Wenn etwas fehlt:** Die Einrichtung oben im Werkzeug zeigt, was noch nicht passt. Kein Hologramm bedeutet meist: kein Sensor am Wechselrichter oder keine Hausansicht (Etagen- und Raumansichten haben keins). Keine Leitung zu einem Gerät: Das Gerät hat keinen Leistungssensor.
 
