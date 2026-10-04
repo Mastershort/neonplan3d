@@ -129,6 +129,19 @@ export function generateWalls(rooms: readonly Room[], options: WallOptions, free
 
   // free walls: their ends are vertices too, so a room edge they touch is split there (T-junction)
   const freeIds = freeWalls.map((w) => [vertexId(w.a), vertexId(w.b)] as const);
+  // split points set by hand on room edges: vertices as well, and the wall never merges back across them
+  const splitNodes = new Set<number>();
+  for (const room of rooms) {
+    const pts = room.points;
+    if (pts.length < 3) continue;
+    (room.wall_splits ?? []).forEach((list, i) => {
+      if (!list || i >= pts.length) return;
+      const a = pts[i];
+      const d = sub(pts[(i + 1) % pts.length], a);
+      const l = len(d);
+      for (const t of list) if (t > eps && t < l - eps) splitNodes.add(vertexId(add(a, mul(d, t / l))));
+    });
+  }
 
   // 3. split edges at vertices lying on them
   const segments: Segment[] = [];
@@ -236,8 +249,8 @@ export function generateWalls(rooms: readonly Room[], options: WallOptions, free
     drafts.push({ free: w.id, a: ia, b: ib, left: half, right: half, exterior: false, roomLeft: room, roomRight: room, sources: [], height });
   });
 
-  // 5. merge collinear runs through nodes where nothing else meets
-  drafts = mergeCollinear(drafts, verts);
+  // 5. merge collinear runs through nodes where nothing else meets (never across a split point)
+  drafts = mergeCollinear(drafts, verts, splitNodes);
 
   // 6. mitred footprints
   const corners = computeCorners(drafts, verts);
@@ -276,7 +289,7 @@ function flip(w: Draft): Draft {
   return { ...w, a: w.b, b: w.a, left: w.right, right: w.left, roomLeft: w.roomRight, roomRight: w.roomLeft };
 }
 
-function mergeCollinear(drafts: Draft[], verts: Vec2[]): Draft[] {
+function mergeCollinear(drafts: Draft[], verts: Vec2[], fixed: ReadonlySet<number> = new Set()): Draft[] {
   const list = drafts.slice();
   let merged = true;
   while (merged) {
@@ -290,7 +303,7 @@ function mergeCollinear(drafts: Draft[], verts: Vec2[]): Draft[] {
       }
     });
     for (const [node, ids] of incident) {
-      if (ids.length !== 2) continue;
+      if (ids.length !== 2 || fixed.has(node)) continue;
       let w1 = list[ids[0]];
       let w2 = list[ids[1]];
       if (w1.b !== node) w1 = flip(w1);

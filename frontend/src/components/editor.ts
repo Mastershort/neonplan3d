@@ -3814,6 +3814,7 @@ export class Fp3dEditor extends LitElement {
               ${floor && this._tool === "select" ? this.renderDevices(floor) : nothing}
               ${this.room && this.isAdmin && this._tool === "select" && !this._openingId && !this._furnitureId && !this.isFixedItem("room", this.room.id) ? this.renderHandles(this.room) : nothing}
               ${floor ? this.renderOutdoorHandles(floor) : nothing}
+              ${this.room && this._tool === "select" ? this.renderSplitMarks(this.room) : nothing}
               ${floor ? this.renderHeadroom(floor) : nothing}
               ${this._tool === "roof" ? svg`${this.renderRoofSections()}${this.renderRoofWindows()}` : this._tool === "energy" ? svg`${this.renderRoofSections()}${this.renderSolarFields()}${this.renderCables()}${this.renderEnergyMarkers()}` : nothing} ${this.renderDraft()} ${this.renderGuides()}
             </svg>
@@ -3929,6 +3930,83 @@ export class Fp3dEditor extends LitElement {
     });
   }
 
+  /** Cut a wall (or one part of it) in the middle: a split point of its own, the new part keeps the height. */
+  private splitEdge(room: Room, edge: number, part: number | undefined): void {
+    if (!this.isAdmin) return;
+    const pts = room.points;
+    const len = Math.hypot(pts[(edge + 1) % pts.length][0] - pts[edge][0], pts[(edge + 1) % pts.length][1] - pts[edge][1]);
+    const starts = this.edgeParts(room, edge);
+    const s0 = part === undefined ? 0 : starts[part];
+    const s1 = part === undefined ? len : (starts[part + 1] ?? len);
+    if (s1 - s0 < 0.4) return;
+    const at = Math.round(((s0 + s1) / 2) * 100) / 100;
+    this.change((_, f) => {
+      const r = f.rooms.find((x) => x.id === room.id);
+      if (!r) return;
+      const splits = (r.wall_splits ?? []).slice(0, r.points.length);
+      while (splits.length < r.points.length) splits.push(null);
+      splits[edge] = [...(splits[edge] ?? []), at].sort((a, b) => a - b);
+      r.wall_splits = splits;
+      // a per-part height list grows by the new part, which starts with the height of the one it was cut from
+      const cur = r.wall_heights?.[edge];
+      if (Array.isArray(cur)) {
+        const k = part ?? 0;
+        cur.splice(k + 1, 0, cur[k] ?? null);
+      }
+    });
+  }
+
+  /** Move a split point along its edge (kept clear of the ends and of other stops). */
+  private moveSplit(room: Room, edge: number, from: number, to: number): void {
+    const pts = room.points;
+    const len = Math.hypot(pts[(edge + 1) % pts.length][0] - pts[edge][0], pts[(edge + 1) % pts.length][1] - pts[edge][1]);
+    const others = this.edgeParts(room, edge).filter((s) => Math.abs(s - from) > 1e-3 && s > 0);
+    let at = Math.max(0.1, Math.min(len - 0.1, Math.round(to * 100) / 100));
+    if (others.some((s) => Math.abs(s - at) < 0.1)) at = from;
+    this.change((_, f) => {
+      const r = f.rooms.find((x) => x.id === room.id);
+      const list = r?.wall_splits?.[edge];
+      if (!list) return;
+      const k = list.findIndex((d) => Math.abs(d - from) < 1e-3);
+      if (k >= 0) list[k] = at;
+      list.sort((a, b) => a - b);
+    });
+  }
+
+  /** Remove a split point: the part behind it joins the one before (whose height stays). */
+  private joinSplit(room: Room, edge: number, at: number, part: number): void {
+    this.change((_, f) => {
+      const r = f.rooms.find((x) => x.id === room.id);
+      if (!r?.wall_splits?.[edge]) return;
+      const list = r.wall_splits[edge]!.filter((d) => Math.abs(d - at) > 1e-3);
+      r.wall_splits[edge] = list.length ? list : null;
+      if (r.wall_splits.every((l) => !l)) r.wall_splits = undefined;
+      const cur = r.wall_heights?.[edge];
+      if (Array.isArray(cur)) {
+        cur.splice(part, 1);
+        if (cur.every((h) => h === cur[0])) r.wall_heights![edge] = cur[0] ?? null;
+      }
+    });
+  }
+
+  /** Marks on the selected room's edges where a wall is split by hand. */
+  private renderSplitMarks(room: Room) {
+    const pts = room.points;
+    return svg`${(room.wall_splits ?? []).flatMap((list, i) => {
+      if (!list || i >= pts.length) return [];
+      const a = pts[i];
+      const b = pts[(i + 1) % pts.length];
+      const l = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1;
+      const ux = (b[0] - a[0]) / l;
+      const uz = (b[1] - a[1]) / l;
+      return list.map((d) => {
+        const [x, y] = this.toScreen([a[0] + ux * d, a[1] + uz * d]);
+        // a short tick across the wall
+        return svg`<line class="fp3d-split-mark" x1=${x - uz * 7} y1=${y + ux * 7} x2=${x + uz * 7} y2=${y - ux * 7} />`;
+      });
+    })}`;
+  }
+
   /** Height list per wall of a room in the room form (always open); hovering a row lights the wall up. */
   private renderEdgeHeights(room: Room) {
     const H = this.floor!.height;
@@ -3965,6 +4043,13 @@ export class Fp3dEditor extends LitElement {
               : this.num(this.t("wall_height"), h ?? H, (v) => set(v >= H - 0.005 ? null : Math.max(0.05, v)), 0.05, 0.05)}
             ${this.isAdmin && h !== null ? html`<button class="fp3d-btn" title=${this.t("wall_height_full")} @click=${() => set(null)}>↥</button>` : nothing}
             ${this.isAdmin && h !== 0 ? html`<button class="fp3d-btn" title=${this.t("wall_none_hint")} @click=${() => set(0)}>${this.t("wall_none")}</button>` : nothing}
+            ${this.isAdmin && partLen >= 0.4 ? html`<button class="fp3d-btn" title=${this.t("wall_split_hint")} @click=${() => this.splitEdge(room, i, part)}>✂</button>` : nothing}
+            ${part !== undefined && part > 0 && (room.wall_splits?.[i] ?? []).some((d) => Math.abs(d - starts[part]) < 1e-3)
+              ? html`<span class="fp3d-wide fp3d-split-row"
+                  >${this.num(this.t("wall_split_at"), starts[part], (v) => this.moveSplit(room, i, starts[part], v), 0.05, 0.1)}
+                  ${this.isAdmin ? html`<button class="fp3d-btn" title=${this.t("wall_join_hint")} @click=${() => this.joinSplit(room, i, starts[part], part)}>⨉</button>` : nothing}</span
+                >`
+              : nothing}
           </div>`;
         });
       })}
@@ -5115,10 +5200,12 @@ export class Fp3dEditor extends LitElement {
     if (!sections.some((s) => !s.open && s.base < ceiling - 0.05 && s.base > floor.elevation - 0.05)) return nothing;
     const b = { settings: this._doc.settings };
     return svg`${[1.5, 2].map((h) =>
-      headroomLines(b, floor.elevation, h).map(
-        ([p, q]) => svg`<line class="fp3d-headroom" x1=${p[0]} y1=${p[1]} x2=${q[0]} y2=${q[1]} />
-          <text class="fp3d-headroom-label" x=${(p[0] + q[0]) / 2} y=${(p[1] + q[1]) / 2 - 0.08}>${formatNumber(this.hass, h, 1)} m</text>`,
-      ),
+      headroomLines(b, floor.elevation, h).map(([p, q]) => {
+        const [x1, y1] = this.toScreen(p);
+        const [x2, y2] = this.toScreen(q);
+        return svg`<line class="fp3d-headroom" x1=${x1} y1=${y1} x2=${x2} y2=${y2} />
+          <text class="fp3d-headroom-label" x=${(x1 + x2) / 2} y=${(y1 + y2) / 2 - 4}>${formatNumber(this.hass, h, 1)} m</text>`;
+      }),
     )}`;
   }
 
@@ -7191,14 +7278,19 @@ export class Fp3dEditor extends LitElement {
       }
       .fp3d-headroom {
         stroke: rgba(255, 214, 90, 0.55);
-        stroke-width: 0.02;
-        stroke-dasharray: 0.12 0.08;
+        stroke-width: 1;
+        stroke-dasharray: 6 4;
         pointer-events: none;
       }
       .fp3d-headroom-label {
-        font-size: 0.16px;
-        fill: rgba(255, 214, 90, 0.7);
+        font-size: 10px;
+        fill: rgba(255, 214, 90, 0.75);
         text-anchor: middle;
+        pointer-events: none;
+      }
+      .fp3d-split-mark {
+        stroke: rgba(55, 224, 255, 0.9);
+        stroke-width: 2;
         pointer-events: none;
       }
       .fp3d-floor-menu {

@@ -41,6 +41,11 @@ ROOM_SCHEMA = vol.Schema(
         vol.Required("floor_material"): vol.All(str, vol.Length(max=32)),
         # entities shown in the room's panel although they are not in the plan
         vol.Optional("panel", default=list): vol.All([vol.All(str, vol.Length(max=255))], vol.Length(max=100)),
+        # split points on each edge (metres from the edge's start) that cut the wall into parts of their own
+        vol.Optional("wall_splits"): vol.All(
+            [vol.Any(None, vol.All([vol.All(vol.Coerce(float), vol.Range(min=0.05, max=200))], vol.Length(max=16)))],
+            vol.Length(max=MAX_POINTS),
+        ),
         # height of the wall on each edge (None = full floor height, 0 = no wall), aligned with the points;
         # a split edge may carry one height per part instead
         vol.Optional("wall_heights"): vol.All(

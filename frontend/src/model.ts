@@ -31,6 +31,11 @@ export interface Room {
    * wall. An edge that other rooms split into parts may carry a list instead: one height per part, in order.
    */
   wall_heights?: WallHeight[];
+  /**
+   * Split points on each edge (index = edge): distances in metres from points[i] where the wall is cut
+   * into parts of their own (each with its own height), e.g. a 2.5 m wall next to a 1.7 m one in line.
+   */
+  wall_splits?: (number[] | null)[];
 }
 
 export type OpeningType = "door" | "window" | "garage";

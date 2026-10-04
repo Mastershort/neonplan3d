@@ -200,3 +200,20 @@ test("a split edge can carry one height per part; rooms joined by no wall are re
   assert.deepEqual(open.open, [["a", "c"]]);
   assert.ok(open.walls.some((w) => !w.exterior && [w.roomLeft, w.roomRight].includes("b") && [w.roomLeft, w.roomRight].includes("a")));
 });
+
+test("a split point cuts a wall into parts that keep apart, each with its own height", () => {
+  const room = (id: string, x0: number, z0: number, x1: number, z1: number, extra: Partial<Room> = {}): Room => ({ id, name: id, area_id: null, points: [[x0, z0], [x1, z0], [x1, z1], [x0, z1]], floor_material: "wood", ...extra });
+  // edge 0 of the room runs from (0,0) to (6,0): split at 2 m, the first part 1.7 m high, the rest full height
+  const split = generateWalls([room("a", 0, 0, 6, 4, { wall_splits: [[2], null, null, null], wall_heights: [[1.7, null], null, null, null] })], { exterior: 0.24, interior: 0.12 }).walls;
+  const along = split.filter((w) => Math.abs(w.a[1]) < 1e-6 && Math.abs(w.b[1]) < 1e-6).sort((p, q) => Math.min(p.a[0], p.b[0]) - Math.min(q.a[0], q.b[0]));
+  assert.equal(along.length, 2, "two walls in line");
+  assert.equal(along[0].height, 1.7);
+  assert.equal(along[1].height, undefined);
+  assert.ok(Math.abs(Math.max(along[0].a[0], along[0].b[0]) - 2) < 1e-6, "cut at 2 m");
+  // the same heights on both parts: the split still keeps them apart (so a height can be set later)
+  const same = generateWalls([room("a", 0, 0, 6, 4, { wall_splits: [[2], null, null, null] })], { exterior: 0.24, interior: 0.12 }).walls;
+  assert.equal(same.filter((w) => Math.abs(w.a[1]) < 1e-6 && Math.abs(w.b[1]) < 1e-6).length, 2);
+  // without the split the edge is one wall
+  const plain = generateWalls([room("a", 0, 0, 6, 4)], { exterior: 0.24, interior: 0.12 }).walls;
+  assert.equal(plain.filter((w) => Math.abs(w.a[1]) < 1e-6 && Math.abs(w.b[1]) < 1e-6).length, 1);
+});
