@@ -5197,6 +5197,8 @@ export class Fp3dEditor extends LitElement {
               this.entityOptions((id) => id.startsWith("sensor.") && (hass.states[id]?.attributes.device_class === "battery" || hass.states[id]?.attributes.unit_of_measurement === "%")),
               (v) => this.updateFurniture({ soc: v === "none" ? null : v }),
             )}
+            ${this.entitySelect(this.t("furn_charge"), f.charge ?? null, undefined, power, (v) => this.updateFurniture({ charge: v === "none" ? null : v }))}
+            <p class="fp3d-sub fp3d-wide">${this.t("furn_charge_hint")}</p>
           </div>`
         : nothing}
       ${f.type === "wallbox"

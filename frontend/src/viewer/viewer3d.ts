@@ -465,9 +465,9 @@ export class FloorplanViewer {
   /** The roof: one group with a part per floor it sits on (each part follows its floor). */
   private roof: { group: Group; parts: { group: Group; floorId: string; base: number }[]; solid: MeshBasicMaterial; lines: LineBasicMaterial; glass: MeshBasicMaterial; live: MeshBasicMaterial; lives: SolarLive[] } | null = null;
   /** The hologram's anchor: a point on the solar field (building coordinates) and the field's normal. */
-  private anchor: { p: [number, number, number]; n: [number, number, number]; floorId: string; size: number } | null = null;
+  private anchors: { p: [number, number, number]; n: [number, number, number]; floorId: string; size: number }[] = [];
   /** Told where the anchor lies on screen after every frame, how large the hologram should be and whether its front faces the camera. */
-  private anchorCb: ((x: number, y: number, visible: boolean, scale: number, facing: boolean) => void) | null = null;
+  private anchorCb: ((index: number, x: number, y: number, visible: boolean, scale: number, facing: boolean) => void) | null = null;
   /** Energie Pro: production level (0..1) per solar field; the overlays animate while any is above zero. */
   private solarLevels = new Map<string, number>();
   private solarActive = false;
@@ -768,14 +768,15 @@ export class FloorplanViewer {
 
   /** Energy cables; the stripes run while any cable carries power. */
   /** The hologram hangs on a solar field: the callback gets the anchor's screen position after every frame. */
-  setAnchorCallback(cb: ((x: number, y: number, visible: boolean, scale: number, facing: boolean) => void) | null): void {
+  setAnchorCallback(cb: ((index: number, x: number, y: number, visible: boolean, scale: number, facing: boolean) => void) | null): void {
     this.anchorCb = cb;
     this.labelsDirty = true;
     this.invalidate();
   }
 
-  setAnchor(anchor: { p: [number, number, number]; n: [number, number, number]; floorId: string; size: number } | null): void {
-    this.anchor = anchor;
+  /** The holograms' anchors (one per plant): points on the solar fields with their normals. */
+  setAnchors(anchors: { p: [number, number, number]; n: [number, number, number]; floorId: string; size: number }[]): void {
+    this.anchors = anchors;
     this.labelsDirty = true;
     this.invalidate();
   }
@@ -3239,10 +3240,13 @@ export class FloorplanViewer {
     }
     for (const p of placed) this.place(p.fv.label, `translate(${p.left}px, ${p.y}px) translate(0, -50%)`);
     if (this.anchorCb) {
-      // the anchor rides with its floor (pulled apart or stacked); the hologram shows in the house view only
-      const a = this.anchor;
-      const fv = a ? this.floorMap.get(a.floorId) : undefined;
-      if (a && this.floorId === null) {
+      // every anchor rides with its floor (pulled apart or stacked); the holograms show in the house view only
+      this.anchors.forEach((a, i) => {
+        const fv = this.floorMap.get(a.floorId);
+        if (this.floorId !== null) {
+          this.anchorCb!(i, 0, 0, false, 1, true);
+          return;
+        }
         // the roof lifts and fades when the camera comes close: the anchor rides up with it
         const p = new Vector3(a.p[0], a.p[1] + (fv?.y ?? 0) + (1 - this.roofO) * 2.2, a.p[2]);
         const toCamera = this.camera.position.clone().sub(p);
@@ -3252,8 +3256,8 @@ export class FloorplanViewer {
         const off = v.z > 1 || Math.abs(v.x) > 1.3 || Math.abs(v.y) > 1.3;
         // a fixed size in the world: it grows when the camera comes close and shrinks when it moves away
         const scale = Math.min(1.6, Math.max(0.25, 15 / Math.max(1, dist))) * a.size;
-        this.anchorCb(((v.x + 1) / 2) * w, ((1 - v.y) / 2) * h, !off, scale, facing);
-      } else this.anchorCb(0, 0, false, 1, true);
+        this.anchorCb!(i, ((v.x + 1) / 2) * w, ((1 - v.y) / 2) * h, !off, scale, facing);
+      });
     }
     this.updateDevicePins(w, h);
     for (const fv of this.floors) {

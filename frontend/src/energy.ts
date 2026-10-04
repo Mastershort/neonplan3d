@@ -61,6 +61,8 @@ export interface DeviceSensors {
   grid: string | null;
   solar: string[];
   battery: string[];
+  /** Separate charging power sensors (batteries whose power sensor only reports discharging). */
+  charge: string[];
   soc: string[];
 }
 
@@ -71,7 +73,7 @@ const ref = (v: string | null | undefined) => (v && v !== "none" ? v : null);
  * the one found on its device). Several inverters add up.
  */
 export function deviceSensors(building: Building, power: (f: Furniture) => string | null = (f) => ref(f.power)): DeviceSensors {
-  const out: DeviceSensors = { grid: null, solar: [], battery: [], soc: [] };
+  const out: DeviceSensors = { grid: null, solar: [], battery: [], charge: [], soc: [] };
   for (const floor of building.floors) {
     for (const f of floor.furniture) {
       const p = power(f);
@@ -79,6 +81,8 @@ export function deviceSensors(building: Building, power: (f: Furniture) => strin
       else if (f.type === "inverter" && p && !out.solar.includes(p)) out.solar.push(p);
       else if (f.type === "home_battery") {
         if (p && !out.battery.includes(p)) out.battery.push(p);
+        const charge = ref(f.charge);
+        if (charge && !out.charge.includes(charge)) out.charge.push(charge);
         const soc = ref(f.soc);
         if (soc && !out.soc.includes(soc)) out.soc.push(soc);
       }
@@ -198,6 +202,11 @@ export function energySummary(hass: HomeAssistant, building: Building, consumers
   if (!e.battery && devices.battery.length) {
     const values = devices.battery.map((id) => readPower(hass.states[id], e.battery_invert)).filter((v): v is number => v !== null);
     battery = values.length ? values.reduce((a, b) => a + b, 0) : null;
+    // with separate charging sensors the power sensors count as discharging only, the charging is taken off
+    if (battery !== null && devices.charge.length) {
+      const charging = devices.charge.map((id) => readPower(hass.states[id])).filter((v): v is number => v !== null);
+      battery = Math.max(0, battery) - charging.reduce((a, b) => a + Math.max(0, b), 0);
+    }
   }
   // several batteries: their charge is averaged
   const socIds = e.battery_soc ? [e.battery_soc] : devices.soc;
@@ -877,6 +886,12 @@ export function solarDayFromStats(rows: Record<string, StatRow[]>, now = new Dat
 
 /** Fetch today's solar statistics (five-minute means) from the recorder. */
 export async function fetchSolarDay(hass: HomeAssistant, ids: string[]): Promise<SolarDay | null> {
+  const rows = await fetchSolarRows(hass, ids);
+  return rows ? solarDayFromStats(rows) : null;
+}
+
+/** Today's five-minute statistics of the given sensors from the recorder (null when the recorder has none). */
+export async function fetchSolarRows(hass: HomeAssistant, ids: string[]): Promise<Record<string, StatRow[]> | null> {
   const midnight = new Date();
   midnight.setHours(0, 0, 0, 0);
   try {
@@ -887,7 +902,7 @@ export async function fetchSolarDay(hass: HomeAssistant, ids: string[]): Promise
       period: "5minute",
       types: ["mean"],
     });
-    return solarDayFromStats(rows ?? {});
+    return rows ?? {};
   } catch {
     return null;
   }

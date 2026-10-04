@@ -23,9 +23,21 @@ import {
 } from "../devices.ts";
 import { alertColor, alertEntities, alertSources, alertText, findAlerts, type Alert, type AlertSources } from "../alerts.ts";
 import { iconPath, iconSvg, mdiIcon } from "../icons.ts";
-import { deviceSensors, energySummary, fetchSolarDay, fieldLevels, fieldPowers, findConsumers, flowColor, flowSegments, gridPoint, powerSensorFor, readPower, solarCurvePath, type Consumer, type EnergySummary, type SolarDay } from "../energy.ts";
+import { deviceSensors, energySummary, fetchSolarRows, fieldLevels, fieldPowers, findConsumers, flowColor, flowSegments, gridPoint, powerSensorFor, readPower, solarCurvePath, solarDayFromStats, type Consumer, type EnergySummary, type StatRow } from "../energy.ts";
 import { fieldFace, fieldSize } from "../solar.ts";
-import { DEFAULT_HOLOGRAM } from "../model.ts";
+import { DEFAULT_HOLOGRAM, type SolarField } from "../model.ts";
+
+/** A hologram card: the house's balance on the main plant, or one plant (a balcony plant) on its own. */
+interface HoloCard {
+  kind: "main" | "plant";
+  name: string;
+  /** The plant's power now (W); null on the main card (it shows the house). */
+  w: number | null;
+  /** Sensors whose statistics give today's curve. */
+  dayIds: string[];
+  /** A battery of this plant (the nearest one on its floor). */
+  battery: { soc: number | null; w: number | null } | null;
+}
 
 /** The pin at the street end of the grid cable. */
 const GRID_ICON = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg>';
@@ -85,7 +97,8 @@ export class Fp3dView3d extends LitElement {
     _stats: { state: true },
     _error: { state: true },
     _energy: { state: true },
-    _holo: { state: true },
+    _holos: { state: true },
+    _rows: { state: true },
     _holoOpen: { state: true },
     _wallboxW: { state: true },
     _plants: { state: true },
@@ -160,7 +173,9 @@ export class Fp3dView3d extends LitElement {
   private declare _error: string | null;
   private declare _energy: EnergySummary | null;
   /** Energie Pro: today's solar statistics for the hologram (kWh, peak and the day curve). */
-  private declare _holo: SolarDay | null;
+  /** The hologram cards (main plant first) and today's statistics rows of their sensors. */
+  private declare _holos: HoloCard[];
+  private declare _rows: Record<string, StatRow[]> | null;
   private declare _holoOpen: boolean;
   /** Power of the wallboxes in the plan (W), for the hologram. */
   private declare _wallboxW: number | null;
@@ -169,7 +184,8 @@ export class Fp3dView3d extends LitElement {
   /** The hologram is on screen (then the energy bar keeps only its switch). */
   private declare _holoOn: boolean;
   private holoTimer: ReturnType<typeof setInterval> | undefined;
-  private holoEl: HTMLElement | null = null;
+  /** Which hologram cards are folded to their big number. */
+  private holoFolded = new Set<number>();
   private holoIds = "";
   /** The start view last handed to the viewer (JSON), to notice a new one. */
   private shownStartView: string | undefined;
@@ -275,7 +291,8 @@ export class Fp3dView3d extends LitElement {
     this._stats = null;
     this._error = null;
     this._energy = null;
-    this._holo = null;
+    this._holos = [];
+    this._rows = null;
     this._holoOpen = true;
     this._wallboxW = null;
     this._plants = [];
@@ -383,7 +400,7 @@ export class Fp3dView3d extends LitElement {
       this.viewer.setFurnishMode(this.furnish);
       this.viewer.setSurfaceGrab(this.surfaceGrab ?? null);
       this.viewer.setFurnishTypes(this.furnishTypes ?? null);
-      this.viewer.setAnchorCallback((x, y, on, scale, facing) => this.placeHolo(x, y, on, scale, facing));
+      this.viewer.setAnchorCallback((i, x, y, on, scale, facing) => this.placeHolo(i, x, y, on, scale, facing));
       this.viewer.setFloorStack(this.floorStack);
       this.viewer.setStats(this.showStats);
       this.viewer.setAutoOrbit(this.autoOrbit ? 0.06 : 0);
@@ -484,7 +501,7 @@ export class Fp3dView3d extends LitElement {
       const presence = b.presence.flatMap((p) => [p.person, p.sensor]);
       const lights = b.floors.flatMap((f) => f.rooms.flatMap((r) => areaEntities(hass, r.area_id).filter((id) => kindOf(id) === "light")));
       const furniture = [...this.furnitureLinks.values()].flatMap((l) => [l.entity, l.power]);
-      const doors = b.floors.flatMap((f) => f.furniture.flatMap((m) => [m.door_left ?? null, m.door_right ?? null, m.soc ?? null, m.status ?? null]));
+      const doors = b.floors.flatMap((f) => f.furniture.flatMap((m) => [m.door_left ?? null, m.door_right ?? null, m.soc ?? null, m.status ?? null, m.charge ?? null]));
       const roofWindowIds = (b.settings.roof?.windows ?? []).flatMap((w) => [w.cover, w.contact, w.tilt]).filter((x): x is string => !!x && x !== "none");
       // the solar fields' and strings' sensors feed the roof cables
       const solarIds = [...(b.settings.roof?.solar ?? []).map((f) => f.entity), ...(b.settings.roof?.strings ?? []).map((s) => s.entity)].filter((x): x is string => !!x && x !== "none");
@@ -574,13 +591,33 @@ export class Fp3dView3d extends LitElement {
       b.floors.flatMap((f) => f.furniture.filter((m) => m.type === "home_battery").map((m) => ({ floorId: f.id, x: m.x, z: m.z })))[0] ??
       (b.energy.battery ? b.floors.flatMap((f) => f.placements.filter((p) => p.entity_id === b.energy.battery).map((p) => ({ floorId: f.id, x: p.x, z: p.z })))[0] : null);
     const powers = pro ? fieldPowers(hass, b, summary.solar) : null;
-    // the hologram hangs over the middle of the chosen (else the biggest) solar field, moved as set up
+    // the holograms: the main one hangs over the chosen (else the biggest) solar field, moved as set up, and
+    // every further plant (an inverter with fields of its own, say a balcony plant) gets a card over its field
     const holo = b.settings.roof.hologram ?? DEFAULT_HOLOGRAM;
     const fields = [...(b.settings.roof.solar ?? [])].sort((p, q) => q.rows * q.cols - p.rows * p.cols);
-    const first = pro && summary.solar !== null ? (fields.find((f) => f.id === holo.field) ?? fields[0]) : undefined;
-    const face = first ? fieldFace(b, first) : null;
+    const strings = b.settings.roof.strings ?? [];
+    const inverterOf = (f: SolarField) => (f.string ? strings.find((x) => x.id === f.string)?.inverter : null) ?? null;
+    const anchorOn = (f: SolarField, right: number, up: number, size: number) => {
+      const face = fieldFace(b, f);
+      if (!face) return null;
+      const [fw, fd] = fieldSize(face, f);
+      const u = f.u + fw / 2 + right;
+      const sv = f.v + fd / 2 + up;
+      const c: [number, number, number] = [face.o[0] + face.eu[0] * u + face.es[0] * sv, face.o[1] + face.eu[1] * u + face.es[1] * sv, face.o[2] + face.eu[2] * u + face.es[2] * sv];
+      const floorId = face.wall?.floorId ?? (face.unbounded ? (b.floors.find((f) => f.elevation === Math.min(...b.floors.map((x) => x.elevation)))?.id ?? b.floors[0].id) : [...b.floors].sort((p, q) => q.elevation - p.elevation)[0].id);
+      return { p: [c[0] + face.n[0] * 0.05, c[1] + face.n[1] * 0.05, c[2] + face.n[2] * 0.05] as [number, number, number], n: [face.n[0], face.n[1], face.n[2]] as [number, number, number], floorId, size };
+    };
+    const anchors: { p: [number, number, number]; n: [number, number, number]; floorId: string; size: number }[] = [];
+    const cards: HoloCard[] = [];
     const anyEnergy = summary.grid !== null || summary.battery !== null || summary.solar !== null;
-    if (!(first && face) && pro && anyEnergy && b.floors.some((f) => f.rooms.length)) {
+    const first = pro && summary.solar !== null ? (fields.find((f) => f.id === holo.field) ?? fields[0]) : undefined;
+    const mainAnchor = first ? anchorOn(first, holo.right, holo.up, holo.size) : null;
+    const devicePower = this.devicePowers(hass, b);
+    const solarIds = pro && summary.solar !== null ? (b.energy.solar ? [b.energy.solar] : deviceSensors(b, (f) => this.furnitureLinks?.get(f.id)?.power ?? null).solar) : [];
+    if (mainAnchor) {
+      anchors.push(mainAnchor);
+      cards.push({ kind: "main", name: translate(hass, "holo_title"), w: null, dayIds: solarIds, battery: null });
+    } else if (pro && anyEnergy && b.floors.some((f) => f.rooms.length)) {
       // no solar field in the plan (a meter and a battery only): the hologram hangs beside the house
       let x1 = -Infinity;
       let z0 = Infinity;
@@ -598,15 +635,36 @@ export class Fp3dView3d extends LitElement {
           topFloor = f;
         }
       }
-      v.setAnchor({ p: [x1 + 0.6, top + 0.4, (z0 + z1) / 2], n: [1, 0, 0], floorId: topFloor.id, size: holo.size });
-    } else if (first && face) {
-      const [fw, fd] = fieldSize(face, first);
-      const u = first.u + fw / 2 + holo.right;
-      const sv = first.v + fd / 2 + holo.up;
-      const c: [number, number, number] = [face.o[0] + face.eu[0] * u + face.es[0] * sv, face.o[1] + face.eu[1] * u + face.es[1] * sv, face.o[2] + face.eu[2] * u + face.es[2] * sv];
-      const floorId = face.wall?.floorId ?? (face.unbounded ? (b.floors.find((f) => f.elevation === Math.min(...b.floors.map((x) => x.elevation)))?.id ?? b.floors[0].id) : [...b.floors].sort((p, q) => q.elevation - p.elevation)[0].id);
-      v.setAnchor({ p: [c[0] + face.n[0] * 0.05, c[1] + face.n[1] * 0.05, c[2] + face.n[2] * 0.05], n: [face.n[0], face.n[1], face.n[2]], floorId, size: holo.size });
-    } else v.setAnchor(null);
+      anchors.push({ p: [x1 + 0.6, top + 0.4, (z0 + z1) / 2], n: [1, 0, 0], floorId: topFloor.id, size: holo.size });
+      cards.push({ kind: "main", name: translate(hass, "holo_title"), w: null, dayIds: solarIds, battery: null });
+    }
+    if (pro && first) {
+      const mainInverter = inverterOf(first);
+      const seen = new Set<string>();
+      for (const floor of b.floors) {
+        for (const inv of floor.furniture.filter((m) => m.type === "inverter")) {
+          if (inv.id === mainInverter || seen.has(inv.id)) continue;
+          seen.add(inv.id);
+          const own = fields.filter((f) => inverterOf(f) === inv.id);
+          const sensor = this.furnitureLinks?.get(inv.id)?.power ?? null;
+          const anchor = own.length ? anchorOn(own[0], 0, 0, holo.size * 0.85) : null;
+          if (!anchor || !sensor) continue;
+          // its battery: the nearest one on the same floor
+          const bat = floor.furniture.filter((m) => m.type === "home_battery").sort((p, q) => Math.hypot(p.x - inv.x, p.z - inv.z) - Math.hypot(q.x - inv.x, q.z - inv.z))[0];
+          const socRaw = bat?.soc && bat.soc !== "none" ? Number(hass.states[bat.soc]?.state) : NaN;
+          anchors.push(anchor);
+          cards.push({
+            kind: "plant",
+            name: inv.name || furnitureName(hass, inv.type),
+            w: Math.max(0, readPower(hass.states[sensor]) ?? 0),
+            dayIds: [sensor],
+            battery: bat ? { soc: Number.isFinite(socRaw) ? socRaw : null, w: devicePower.get(bat.id) ?? null } : null,
+          });
+        }
+      }
+    }
+    v.setAnchors(anchors);
+    if (JSON.stringify(cards) !== JSON.stringify(this._holos)) this._holos = cards;
     // the modules live with their production (at night, and without Pro, they rest)
     v.setSolarLevels(powers && !this.dimmed ? fieldLevels(b, powers) : new Map());
     v.setFlows(
@@ -655,9 +713,8 @@ export class Fp3dView3d extends LitElement {
       .filter((p): p is { name: string; w: number } => !!p);
     if (JSON.stringify(plants) !== JSON.stringify(this._plants)) this._plants = plants;
     if (wallboxW !== this._wallboxW) this._wallboxW = wallboxW;
-    // the hologram's day curve: the solar sensors' statistics, fetched now and then while the sun is watched
-    const solarIds = pro && summary.solar !== null ? (b.energy.solar ? [b.energy.solar] : deviceSensors(b, (f) => this.furnitureLinks?.get(f.id)?.power ?? null).solar) : [];
-    this.watchSolarDay(solarIds);
+    // the holograms' day curves: the sensors' statistics, fetched now and then while the sun is watched
+    this.watchSolarDay([...new Set(cards.flatMap((c) => c.dayIds))]);
   }
 
   /** The inverters' and batteries' own power (W, a battery positive = discharging) by furniture id. */
@@ -667,7 +724,11 @@ export class Fp3dView3d extends LitElement {
       for (const f of floor.furniture) {
         if (f.type !== "inverter" && f.type !== "home_battery") continue;
         const sensor = this.furnitureLinks?.get(f.id)?.power;
-        const p = sensor ? readPower(hass.states[sensor], f.type === "home_battery" && b.energy.battery_invert) : null;
+        let p = sensor ? readPower(hass.states[sensor], f.type === "home_battery" && b.energy.battery_invert) : null;
+        // a battery with a separate charging sensor: the power sensor is its discharging, the charging is taken off
+        const charge = f.type === "home_battery" && f.charge && f.charge !== "none" ? readPower(hass.states[f.charge]) : null;
+        if (p !== null && charge !== null) p = Math.max(0, p) - Math.max(0, charge);
+        else if (p === null && charge !== null) p = -Math.max(0, charge);
         if (p !== null) out.set(f.id, p);
       }
     }
@@ -704,31 +765,31 @@ export class Fp3dView3d extends LitElement {
     clearInterval(this.holoTimer);
     this.holoTimer = undefined;
     if (!ids.length) {
-      this._holo = null;
+      this._rows = null;
       return;
     }
     const fetch = async () => {
       if (!this.hass || document.hidden) return;
-      const day = await fetchSolarDay(this.hass, ids);
-      if (this.holoIds === key) this._holo = day;
+      const rows = await fetchSolarRows(this.hass, ids);
+      if (this.holoIds === key) this._rows = rows;
     };
     void fetch();
     this.holoTimer = setInterval(() => void fetch(), 300000);
   }
 
   /**
-   * Hangs the hologram on its anchor (called by the viewer after every frame): a thin line rises from the
-   * solar field to the card's lower left corner; the card keeps its size in the world and, seen from behind
-   * the field, shows its back (mirrored).
+   * Hangs a hologram card on its anchor (called by the viewer after every frame): a thin line rises from
+   * the solar field to the card's lower left corner; the card keeps its size in the world and, seen from
+   * behind the field, shows its back (mirrored).
    */
-  private placeHolo(x: number, y: number, on: boolean, scale: number, facing: boolean): void {
-    const el = (this.holoEl ??= this.renderRoot.querySelector<HTMLElement>(".fp3d-holo"));
-    const link = this.renderRoot.querySelector<SVGSVGElement>(".fp3d-holo-link");
+  private placeHolo(index: number, x: number, y: number, on: boolean, scale: number, facing: boolean): void {
+    const el = this.renderRoot.querySelector<HTMLElement>(`.fp3d-holo[data-holo="${index}"]`);
+    const link = this.renderRoot.querySelector<SVGSVGElement>(`.fp3d-holo-link[data-holo="${index}"]`);
     if (!el) {
-      if (this._holoOn) this._holoOn = false;
+      if (index === 0 && this._holoOn) this._holoOn = false;
       return;
     }
-    if (on !== this._holoOn) this._holoOn = on;
+    if (index === 0 && on !== this._holoOn) this._holoOn = on;
     const hidden = !on;
     if (el.hidden !== hidden) el.hidden = hidden;
     if (link && link.hasAttribute("hidden") !== hidden) link.toggleAttribute("hidden", hidden);
@@ -752,29 +813,45 @@ export class Fp3dView3d extends LitElement {
     }
   }
 
-  /** Energie Pro: the glass hologram beside the house with the solar and energy balance of the moment. */
+  /** Energie Pro: the glass holograms – the house's balance on the main field, one card per further plant. */
   private renderHologram() {
     const e = this._energy;
-    if (!hasFeature("energy_pro") || !e || (e.solar === null && e.grid === null && e.battery === null) || this.roomId || this.floorId !== null || !this.showEnergy) {
-      this.holoEl = null;
-      return nothing;
-    }
+    if (!hasFeature("energy_pro") || !e || (e.solar === null && e.grid === null && e.battery === null) || this.roomId || this.floorId !== null || !this.showEnergy) return nothing;
+    return this._holos.map((card, i) => this.renderHoloCard(card, i, e));
+  }
+
+  /** Today's curve of a card from the fetched statistics of its sensors. */
+  private dayOf(card: HoloCard) {
+    if (!this._rows || !card.dayIds.length) return null;
+    const rows = Object.fromEntries(card.dayIds.filter((id) => this._rows![id]).map((id) => [id, this._rows![id]]));
+    return Object.keys(rows).length ? solarDayFromStats(rows) : null;
+  }
+
+  private renderHoloCard(card: HoloCard, index: number, e: EnergySummary) {
     const hass = this.hass;
     const t = (k: Parameters<typeof translate>[1]) => translate(hass, k);
-    const open = this._holoOpen;
-    const day = this._holo;
-    const autarky = e.consumption !== null && e.consumption > 0 ? Math.round(Math.min(100, Math.max(0, (1 - Math.max(0, e.grid ?? 0) / e.consumption) * 100))) : null;
+    const open = !this.holoFolded.has(index);
+    const day = this.dayOf(card);
+    const main = card.kind === "main";
+    const autarky = main && e.consumption !== null && e.consumption > 0 ? Math.round(Math.min(100, Math.max(0, (1 - Math.max(0, e.grid ?? 0) / e.consumption) * 100))) : null;
     const curve = day && day.curve.length > 1 ? solarCurvePath(day.curve, day.peak) : null;
     const nowX = ((new Date().getHours() + new Date().getMinutes() / 60) / 24) * 220;
-    return html`<svg class="fp3d-holo-link" hidden aria-hidden="true"><line x1="0" y1="0" x2="0" y2="0" /><circle cx="0" cy="0" r="3" /></svg>
-      <div class="fp3d-holo ${open ? "" : "fp3d-holo-min"} ${this._low ? "fp3d-holo-plain" : ""}" hidden role="button" tabindex="0" aria-label=${t("holo_title")} @click=${() => (this._holoOpen = !this._holoOpen)}>
+    const toggle = () => {
+      if (this.holoFolded.has(index)) this.holoFolded.delete(index);
+      else this.holoFolded.add(index);
+      this.requestUpdate();
+    };
+    const big = main ? (e.solar ?? e.consumption ?? 0) : (card.w ?? 0);
+    const bat = main ? (e.battery !== null || e.soc !== null ? { soc: e.soc, w: e.battery } : null) : card.battery;
+    return html`<svg class="fp3d-holo-link" data-holo=${index} hidden aria-hidden="true"><line x1="0" y1="0" x2="0" y2="0" /><circle cx="0" cy="0" r="3" /></svg>
+      <div class="fp3d-holo ${open ? "" : "fp3d-holo-min"} ${this._low ? "fp3d-holo-plain" : ""}" data-holo=${index} hidden role="button" tabindex="0" aria-label=${card.name} @click=${toggle}>
       <div class="fp3d-holo-sheen"></div>
       <div class="fp3d-holo-scan"></div>
       <div class="fp3d-holo-body">
-        <div class="fp3d-holo-head"><span>☀ ${t("holo_title")}</span><span class="fp3d-holo-live">● ${t("holo_live")}</span></div>
-        <div class="fp3d-holo-big"><b>${formatPower(hass, e.solar ?? e.consumption ?? 0)}</b><span>${t(e.solar !== null ? "holo_pv_now" : "holo_house_now")}</span></div>
+        <div class="fp3d-holo-head"><span>☀ ${card.name}</span><span class="fp3d-holo-live">● ${t("holo_live")}</span></div>
+        <div class="fp3d-holo-big"><b>${formatPower(hass, big)}</b><span>${t(main && e.solar === null ? "holo_house_now" : "holo_pv_now")}</span></div>
         ${open
-          ? html`${this._plants.length > 1
+          ? html`${main && this._plants.length > 1
                 ? html`<div class="fp3d-holo-plants">${this._plants.map((p) => html`<span>${p.name}</span><b>${formatPower(hass, p.w)}</b>`)}</div>`
                 : nothing}
               ${day
@@ -782,8 +859,8 @@ export class Fp3dView3d extends LitElement {
                 : nothing}
               ${curve
                 ? svg`<svg class="fp3d-holo-curve" viewBox="0 0 220 44" width="208" height="38">
-                    <defs><linearGradient id="fp3dHoloG" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#ffd75a" stop-opacity=".5"/><stop offset="1" stop-color="#ffd75a" stop-opacity="0"/></linearGradient></defs>
-                    <path d="${curve.area}" fill="url(#fp3dHoloG)"/>
+                    <defs><linearGradient id="fp3dHoloG${index}" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#ffd75a" stop-opacity=".5"/><stop offset="1" stop-color="#ffd75a" stop-opacity="0"/></linearGradient></defs>
+                    <path d="${curve.area}" fill="url(#fp3dHoloG${index})"/>
                     <path d="${curve.line}" fill="none" stroke="#ffe27a" stroke-width="2"/>
                     <circle cx="${curve.endX}" cy="${curve.endY}" r="3.5" fill="#fff" stroke="#ffd75a" stroke-width="2"/>
                     <line x1="0" y1="43.5" x2="220" y2="43.5" stroke="rgba(160,240,255,.35)"/>
@@ -791,19 +868,19 @@ export class Fp3dView3d extends LitElement {
                   </svg>`
                 : nothing}
               <div class="fp3d-holo-grid">
-                ${e.battery !== null || e.soc !== null
+                ${bat
                   ? html`<div class="fp3d-holo-cell fp3d-holo-bat">
-                      ${t("holo_battery")}<br /><b>${e.soc !== null ? `${Math.round(e.soc)} %` : formatPower(hass, Math.abs(e.battery ?? 0))}</b>
-                      ${e.battery !== null && Math.abs(e.battery) >= 5 ? html`<span>${e.battery < 0 ? "▲" : "▼"} ${formatPower(hass, Math.abs(e.battery))}</span>` : nothing}
+                      ${t("holo_battery")}<br /><b>${bat.soc !== null ? `${Math.round(bat.soc)} %` : formatPower(hass, Math.abs(bat.w ?? 0))}</b>
+                      ${bat.w !== null && Math.abs(bat.w) >= 5 ? html`<span>${bat.w < 0 ? "▲" : "▼"} ${formatPower(hass, Math.abs(bat.w))}</span>` : nothing}
                     </div>`
                   : nothing}
-                ${e.grid !== null
+                ${main && e.grid !== null
                   ? html`<div class="fp3d-holo-cell ${e.grid < -5 ? "fp3d-holo-exp" : "fp3d-holo-imp"}">
                       ${t("holo_grid")}<br /><b>${formatPower(hass, Math.abs(e.grid))}</b> <span>${Math.abs(e.grid) < 5 ? "" : t(e.grid < 0 ? "energy_grid_export" : "energy_grid_import")}</span>
                     </div>`
                   : nothing}
-                ${e.consumption !== null ? html`<div class="fp3d-holo-cell fp3d-holo-house">${t("holo_house")}<br /><b>${formatPower(hass, e.consumption)}</b></div>` : nothing}
-                ${this._wallboxW !== null ? html`<div class="fp3d-holo-cell fp3d-holo-wb">${t("holo_wallbox")}<br /><b>${formatPower(hass, this._wallboxW)}</b></div>` : nothing}
+                ${main && e.consumption !== null ? html`<div class="fp3d-holo-cell fp3d-holo-house">${t("holo_house")}<br /><b>${formatPower(hass, e.consumption)}</b></div>` : nothing}
+                ${main && this._wallboxW !== null ? html`<div class="fp3d-holo-cell fp3d-holo-wb">${t("holo_wallbox")}<br /><b>${formatPower(hass, this._wallboxW)}</b></div>` : nothing}
               </div>
               ${autarky !== null
                 ? html`<div class="fp3d-holo-bar"><div style="width:${autarky}%"></div></div>

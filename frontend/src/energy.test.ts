@@ -141,7 +141,7 @@ test("the placed devices bring their sensors: meter = grid, inverters add up, ba
     { id: "i2", type: "inverter", x: 3, z: 0.2, rotation: 0, w: 0.5, d: 0.2, h: 0.65, variant: null, power: "sensor.pv2" },
     { id: "bat", type: "home_battery", x: 3, z: 1, rotation: 0, w: 0.6, d: 0.25, h: 1.1, variant: null, power: "sensor.bat", soc: "sensor.soc" },
   );
-  assert.deepEqual(deviceSensors(b), { grid: "sensor.grid", solar: ["sensor.pv1", "sensor.pv2"], battery: ["sensor.bat"], soc: ["sensor.soc"] });
+  assert.deepEqual(deviceSensors(b), { grid: "sensor.grid", solar: ["sensor.pv1", "sensor.pv2"], battery: ["sensor.bat"], charge: [], soc: ["sensor.soc"] });
   assert.deepEqual(meterPosition(b), { floor_id: "eg", x: 1, z: 0.2 });
   const hass = hassWith([power("sensor.grid", "-300"), power("sensor.pv1", "800"), power("sensor.pv2", "400"), power("sensor.bat", "-250"), st("sensor.soc", "64", { device_class: "battery" }), power("sensor.house", "1000")]);
   const s = energySummary(hass, b, []);
@@ -277,4 +277,17 @@ test("today's solar statistics add up over the sensors: energy, peak and the cur
   assert.ok(path.line.startsWith("M0.0 42.0"));
   assert.ok(path.area.endsWith("L0 44 Z"));
   assert.ok(path.endX > 110 && path.endX < 115);
+});
+
+test("a battery with separate charging and discharging sensors: the charging is taken off", () => {
+  const b = house();
+  b.energy = { ...b.energy, meter: null, grid: null, solar: null };
+  b.floors[0].furniture.push({ id: "bat", type: "home_battery", x: 3, z: 1, rotation: 0, w: 0.6, d: 0.25, h: 1.1, variant: null, power: "sensor.discharge", charge: "sensor.charge", soc: "sensor.soc" });
+  const hass = hassWith([power("sensor.discharge", "0"), power("sensor.charge", "800"), st("sensor.soc", "40", { device_class: "battery" })]);
+  assert.deepEqual(deviceSensors(b).charge, ["sensor.charge"]);
+  // charging with 800 W: negative battery power
+  assert.equal(energySummary(hass, b, []).battery, -800);
+  hass.states["sensor.charge"] = power("sensor.charge", "0");
+  hass.states["sensor.discharge"] = power("sensor.discharge", "500");
+  assert.equal(energySummary(hass, b, []).battery, 500);
 });
