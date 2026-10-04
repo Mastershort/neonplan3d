@@ -231,7 +231,7 @@ export interface FreeWall {
 export type RoofType = "none" | "flat" | "gable" | "custom";
 
 /** Shapes of a roof section. */
-export const ROOF_SHAPES = ["gable", "hip", "pent", "flat"] as const;
+export const ROOF_SHAPES = ["gable", "hip", "halfhip", "pyramid", "mansard", "pent", "flat", "parapet"] as const;
 export type RoofShape = (typeof ROOF_SHAPES)[number];
 
 /**

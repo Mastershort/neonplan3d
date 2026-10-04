@@ -180,14 +180,15 @@ function sectionFaces(s: RoofSection, ov: { u0: number; u1: number; a: number; b
   const U0 = fr.u0 - Math.max(0, ov.u0);
   const U1 = fr.u1 + Math.max(0, ov.u1);
   const lu = U1 - U0;
-  if (s.shape === "flat") {
+  if (s.shape === "flat" || s.shape === "parapet") {
     const a = fr.at(U0, -oa);
     const c = fr.at(U1, fr.w + ob);
     return [flatFace(s.id, s.id, Math.min(a[0], c[0]), Math.min(a[1], c[1]), Math.max(a[0], c[0]), Math.max(a[1], c[1]), s.eave_a + FLAT_SLAB)];
   }
   if (s.shape === "pent") return [slopeFace(`${s.id}:a`, s.id, "a", P(U0, -oa, pr.y(-oa)), P(U1, -oa, pr.y(-oa)), P(U0, fr.w + ob, pr.y(fr.w + ob)), s.pitch_a, () => [0, lu])];
-  const hip = s.shape === "hip";
-  const d = hip ? Math.min((fr.u1 - fr.u0) / 2, Math.min(pr.vr, fr.w - pr.vr) || fr.w / 2) : 0;
+  // a pyramid is a hip whose ridge has no length; half-hip and mansard place their modules like a gable
+  const hip = s.shape === "hip" || s.shape === "pyramid";
+  const d = s.shape === "pyramid" ? (fr.u1 - fr.u0) / 2 : hip ? Math.min((fr.u1 - fr.u0) / 2, Math.min(pr.vr, fr.w - pr.vr) || fr.w / 2) : 0;
   // a hip slope narrows from the full eave (with the overhang) to the ridge, which starts d in from the walls
   const in0 = hip ? fr.u0 + d - U0 : 0;
   const in1 = hip ? U1 - (fr.u1 - d) : 0;

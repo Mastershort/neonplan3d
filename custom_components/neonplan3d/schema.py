@@ -249,7 +249,9 @@ ROOF_SECTION_SCHEMA = vol.Schema(
         vol.Required("z0"): _COORD,
         vol.Required("x1"): _COORD,
         vol.Required("z1"): _COORD,
-        vol.Optional("shape", default="gable"): vol.In(["gable", "hip", "pent", "flat"]),
+        vol.Optional("shape", default="gable"): vol.In(
+            ["gable", "hip", "halfhip", "pyramid", "mansard", "pent", "flat", "parapet"]
+        ),
         vol.Optional("axis", default="x"): vol.In(["x", "z"]),
         vol.Required("eave_a"): _HEIGHT,
         vol.Required("eave_b"): _HEIGHT,

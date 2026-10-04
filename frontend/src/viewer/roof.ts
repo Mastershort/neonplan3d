@@ -4,8 +4,9 @@
 // it out when the camera zooms in.
 
 import { Color } from "three";
-import type { Building, Floor, RoofSection, SolarField } from "../model.ts";
-import { sectionPolygon, sectionFrame, sectionOverhang, sectionProfile, type SectionOverhang } from "../roof-sections.ts";
+import type { Building, Floor, RoofSection, SolarField, Vec2 } from "../model.ts";
+import { polygonArea } from "../model.ts";
+import { offsetPolygon, sectionGeometry, sectionPolygon, sectionFrame, sectionOverhang, sectionProfile, type Q, type SectionOverhang } from "../roof-sections.ts";
 import { DEG, GeoBuffer, LineBuffer, pushPrism, shade } from "./geo.ts";
 import { fieldModules, roofFaces, windowCorners, type RoofFace } from "../solar.ts";
 
@@ -257,16 +258,21 @@ export function pushSection(solid: GeoBuffer, lines: LineBuffer, s: RoofSection,
   const fan = (pts: number[][], col: Color) => {
     for (let i = 1; i + 1 < pts.length; i++) solid.tri(pts[0], pts[i], pts[i + 1], col);
   };
-  // the roof planes: corners as (u, v) with the height from the profile, the ridge points at its height
-  type Q = [number, number, number];
-  const at = (u: number, v: number): Q => [u, v, pr.y(v)];
-  let faces: Q[][];
-  let rim: Q[];
-  const ridges: [Q, Q][] = [];
-  if (s.shape === "flat") {
+  // the roof planes as polygons in (u, v, height), the rim and the ridge lines; a flat roof is a slab
+  let faces: Q[][] = [];
+  let rim: Q[] = [];
+  let ridges: [Q, Q][] = [];
+  let gableProfile: [number, number][] | null = null;
+  if (s.shape === "flat" || s.shape === "parapet") {
     const y = s.eave_a;
-    // a free shape takes its polygon (grown by the overhang), a plain section its rectangle
-    const poly = s.points && s.points.length >= 3 ? sectionPolygon(s, Math.max(0, Math.min(ov.a, ov.b, ov.u0, ov.u1))) : [fr.at(U0, -oa), fr.at(U1, -oa), fr.at(U1, w + ob), fr.at(U0, w + ob)];
+    const parapet = s.shape === "parapet";
+    // a free shape takes its polygon (grown by the overhang), a plain section its rectangle; a parapet roof has no overhang
+    const poly =
+      s.points && s.points.length >= 3
+        ? sectionPolygon(s, parapet ? 0 : Math.max(0, Math.min(ov.a, ov.b, ov.u0, ov.u1)))
+        : parapet
+          ? [fr.at(fr.u0, 0), fr.at(fr.u1, 0), fr.at(fr.u1, w), fr.at(fr.u0, w)]
+          : [fr.at(U0, -oa), fr.at(U1, -oa), fr.at(U1, w + ob), fr.at(U0, w + ob)];
     pushPrism(solid, poly, y - yOff, y - yOff + 0.25, ROOF, ROOF_TOP, { bottom: true });
     for (let i = 0; i < poly.length; i++) {
       const a = poly[i];
@@ -274,43 +280,25 @@ export function pushSection(solid: GeoBuffer, lines: LineBuffer, s: RoofSection,
       lines.seg([a[0], y - yOff + 0.252, a[1]], [c[0], y - yOff + 0.252, c[1]], RIDGE);
       lines.seg([a[0], y - yOff, a[1]], [c[0], y - yOff, c[1]], EAVE);
     }
-    faces = [];
-    rim = [];
-  } else if (s.shape === "pent") {
-    const c = [at(U0, -oa), at(U1, -oa), at(U1, w + ob), at(U0, w + ob)];
-    faces = [c];
-    rim = c;
-    ridges.push([c[2], c[3]]);
-  } else if (s.shape === "hip") {
-    // hips rise from the corners: the ridge is shorter by the run of the slopes at both ends
-    const d = Math.min((fr.u1 - fr.u0) / 2, Math.min(pr.vr, w - pr.vr) || w / 2);
-    const rs: Q = [fr.u0 + d, pr.vr, pr.rh];
-    const re: Q = [fr.u1 - d, pr.vr, pr.rh];
-    const a0 = at(U0, -oa);
-    const a1 = at(U1, -oa);
-    const b1 = at(U1, w + ob);
-    const b0 = at(U0, w + ob);
-    faces = [
-      [a0, a1, re, rs],
-      [rs, re, b1, b0],
-      [b0, a0, rs],
-      [a1, b1, re],
-    ];
-    rim = [a0, a1, b1, b0];
-    ridges.push([rs, re], [a0, rs], [b0, rs], [a1, re], [b1, re]);
+    if (parapet) {
+      // the parapet: a 0.4 m wall ring along the edge, 0.2 m thick, on the slab
+      const ccw = (p: Vec2[]) => (polygonArea(p) >= 0 ? p : [...p].reverse());
+      const outer = ccw(poly);
+      const inner = offsetPolygon(outer, -0.2);
+      const n = outer.length;
+      for (let i = 0; i < n; i++) {
+        const strip = ccw([outer[i], outer[(i + 1) % n], inner[(i + 1) % n], inner[i]]);
+        pushPrism(solid, strip, y - yOff + 0.25, y - yOff + 0.65, ROOF, ROOF_TOP);
+        lines.seg([outer[i][0], y - yOff + 0.652, outer[i][1]], [outer[(i + 1) % n][0], y - yOff + 0.652, outer[(i + 1) % n][1]], RIDGE);
+        lines.seg([inner[i][0], y - yOff + 0.652, inner[i][1]], [inner[(i + 1) % n][0], y - yOff + 0.652, inner[(i + 1) % n][1]], RIDGE);
+      }
+    }
   } else {
-    const r0: Q = [U0, pr.vr, pr.rh];
-    const r1: Q = [U1, pr.vr, pr.rh];
-    const a0 = at(U0, -oa);
-    const a1 = at(U1, -oa);
-    const b1 = at(U1, w + ob);
-    const b0 = at(U0, w + ob);
-    faces = [
-      [a0, a1, r1, r0],
-      [r0, r1, b1, b0],
-    ];
-    rim = [a0, a1, r1, b1, b0, r0];
-    ridges.push([r0, r1]);
+    const geom = sectionGeometry(s, ov);
+    faces = geom.faces;
+    rim = geom.rim;
+    ridges = geom.ridges;
+    gableProfile = geom.gable;
   }
   // a canopy has thin see-through panels; a closed roof its tiles with their thickness below
   const open = !!s.open;
@@ -338,13 +326,12 @@ export function pushSection(solid: GeoBuffer, lines: LineBuffer, s: RoofSection,
   // walls up under the roof, from the section's base: the gable ends (not under a hip) …
   const base = s.base;
   if (attic) return;
-  if (s.shape === "gable" || s.shape === "pent") {
-    const profile: [number, number][] = s.shape === "pent" ? [[0, pr.y(0)], [w, pr.y(w)]] : [[0, pr.y(0)], [pr.vr, pr.rh], [w, pr.y(w)]];
-    const poly = above(profile, base - THICK);
+  if (gableProfile) {
+    const poly = above(gableProfile, base - THICK);
     if (poly.length >= 3) for (const u of [fr.u0, fr.u1]) fan(poly.map(([v, y]) => P(u, v, y)), g);
   }
   // … and the knee walls along the eaves where the roof starts above the walls (a high back wall of a pent roof)
-  if (s.shape !== "flat") {
+  if (s.shape !== "flat" && s.shape !== "parapet") {
     for (const v of [0, w]) {
       const y = pr.y(v) - THICK;
       if (y > base + 0.02) fan([P(fr.u0, v, base), P(fr.u1, v, base), P(fr.u1, v, y), P(fr.u0, v, y)], g);

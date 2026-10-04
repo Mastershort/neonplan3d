@@ -46,8 +46,13 @@ export function sectionProfile(s: Pick<RoofSection, "x0" | "z0" | "x1" | "z1" | 
   const eb = s.eave_b;
   const ta = Math.tan(Math.min(80, Math.max(0, s.pitch_a)) * DEG);
   const tb = Math.tan(Math.min(80, Math.max(0, s.pitch_b)) * DEG);
-  if (s.shape === "flat") return { vr: w / 2, rh: ea, y: () => ea };
+  if (s.shape === "flat" || s.shape === "parapet") return { vr: w / 2, rh: ea, y: () => ea };
   if (s.shape === "pent") return { vr: w, rh: ea + w * ta, y: (v) => ea + v * ta };
+  if (s.shape === "mansard") {
+    // two slopes a side: the steep lower one (the pitch set) up to the break, a 30° upper one to the ridge
+    const m = mansardParts(w, ea, eb, ta, tb);
+    return { vr: m.vr, rh: m.rh, y: m.y };
+  }
   // the slopes meet where they are equally high: a lower eave or a flatter slope moves the ridge
   const vr = ta + tb > 1e-6 ? Math.min(w, Math.max(0, (eb - ea + w * tb) / (ta + tb))) : w / 2;
   const rh = ea + vr * ta;
@@ -55,7 +60,7 @@ export function sectionProfile(s: Pick<RoofSection, "x0" | "z0" | "x1" | "z1" | 
 }
 
 /** Anything that carries roof sections: a building, or just its settings in a test. */
-export type RoofHolder = { settings: { roof: { sections?: readonly RoofSection[] | null } } };
+export type RoofHolder = { settings: { roof: { sections?: readonly RoofSection[] | null; overhang?: number } } };
 
 /** Thickness of the roof slab (the walls under it end this far below the profile). */
 export const ROOF_THICK = 0.14;
@@ -77,7 +82,12 @@ export function roofUnderAt(b: RoofHolder, x: number, z: number): number | null 
     // a free-shaped flat roof covers its polygon only
     if (s.points && s.points.length >= 3 && !pointInPolygon([x, z], s.points)) continue;
     const v = s.axis === "x" ? (s.flip ? z1 - z : z - z0) : s.flip ? x1 - x : x - x0;
-    const y = sectionProfile(s).y(v) - ROOF_THICK;
+    const u = s.axis === "x" ? x : z;
+    // hipped ends and broken slopes: the planes decide, the profile across is the fallback
+    const flat = s.shape === "flat" || s.shape === "parapet";
+    const o = Math.max(0, s.overhang ?? b.settings.roof.overhang ?? 0);
+    const planes = flat ? null : sectionHeightAt(sectionGeometry(s, { u0: o, u1: o, a: o, b: o }), u, v);
+    const y = (planes ?? sectionProfile(s).y(v)) - ROOF_THICK;
     best = best === null ? y : Math.min(best, y);
   }
   return best;
@@ -90,7 +100,7 @@ export function roofUnderAt(b: RoofHolder, x: number, z: number): number | null 
 export function headroomLines(b: RoofHolder, level: number, headroom: number): [Vec2, Vec2][] {
   const out: [Vec2, Vec2][] = [];
   for (const s of b.settings.roof.sections ?? []) {
-    if (s.open || s.shape === "flat") continue;
+    if (s.open || s.shape === "flat" || s.shape === "parapet" || s.shape === "mansard") continue;
     const fr = sectionFrame(s);
     const pr = sectionProfile(s);
     const target = level + headroom + ROOF_THICK;
@@ -205,6 +215,148 @@ export function floorOutline(rooms: readonly Room[], free: readonly FreeWall[], 
     if (Math.abs(cross) > 1e-6) clean.push(q);
   }
   return clean.length >= 3 ? offsetPolygon(clean, exterior) : null;
+}
+
+const MANSARD_UPPER = Math.tan(30 * DEG);
+
+/** A mansard profile: the lower slopes reach their break at 2.4 m of rise or 30 % of the width, the upper ones meet at the ridge. */
+function mansardParts(w: number, ea: number, eb: number, ta: number, tb: number) {
+  const vla = Math.min(w * 0.3, ta > 1e-6 ? 2.4 / ta : w * 0.3);
+  const vlb = Math.min(w * 0.3, tb > 1e-6 ? 2.4 / tb : w * 0.3);
+  const yla = ea + vla * ta;
+  const ylb = eb + vlb * tb;
+  // the upper slopes meet where they are equally high
+  const vr = Math.min(w - vlb, Math.max(vla, (ylb - yla + MANSARD_UPPER * (w - vlb + vla)) / (2 * MANSARD_UPPER)));
+  const rh = yla + (vr - vla) * MANSARD_UPPER;
+  const y = (v: number) => (v <= vla ? ea + v * ta : v <= vr ? yla + (v - vla) * MANSARD_UPPER : v <= w - vlb ? ylb + (w - vlb - v) * MANSARD_UPPER : eb + (w - v) * tb);
+  return { vla, vlb, yla, ylb, vr, rh, y };
+}
+
+/** A point of a roof plane: along the ridge (u), across (v) and its height. */
+export type Q = [number, number, number];
+
+/** The planes of a sloped section, its outer edge and its ridge lines; the profile of its gable ends (null when hipped). */
+export interface SectionGeometry {
+  faces: Q[][];
+  rim: Q[];
+  ridges: [Q, Q][];
+  gable: [number, number][] | null;
+}
+
+/**
+ * The roof planes of a section as polygons in (u, v, height), with the overhang per edge: what the
+ * viewer builds, the editor draws the ridges of, and the attic walls end under.
+ */
+export function sectionGeometry(s: RoofSection, ov: SectionOverhang): SectionGeometry {
+  const fr = sectionFrame(s);
+  const pr = sectionProfile(s);
+  const w = fr.w;
+  const oa = Math.max(0, ov.a);
+  const ob = Math.max(0, ov.b);
+  const U0 = fr.u0 - Math.max(0, ov.u0);
+  const U1 = fr.u1 + Math.max(0, ov.u1);
+  const at = (u: number, v: number): Q => [u, v, pr.y(v)];
+  const a0 = at(U0, -oa);
+  const a1 = at(U1, -oa);
+  const b1 = at(U1, w + ob);
+  const b0 = at(U0, w + ob);
+  const ta = Math.tan(Math.min(80, Math.max(0, s.pitch_a)) * DEG);
+  const tb = Math.tan(Math.min(80, Math.max(0, s.pitch_b)) * DEG);
+  if (s.shape === "pent") {
+    const c = [a0, a1, b1, b0];
+    return { faces: [c], rim: c, ridges: [[b1, b0]], gable: [[0, pr.y(0)], [w, pr.y(w)]] };
+  }
+  if (s.shape === "hip" || s.shape === "pyramid") {
+    // hips rise from the corners: the ridge is shorter by the run of the slopes at both ends (a pyramid has none left)
+    const d = s.shape === "pyramid" ? (fr.u1 - fr.u0) / 2 : Math.min((fr.u1 - fr.u0) / 2, Math.min(pr.vr, w - pr.vr) || w / 2);
+    const rs: Q = [fr.u0 + d, pr.vr, pr.rh];
+    const re: Q = [fr.u1 - d, pr.vr, pr.rh];
+    const faces = s.shape === "pyramid" ? [[a0, a1, rs], [a1, b1, rs], [b1, b0, rs], [b0, a0, rs]] : [[a0, a1, re, rs], [rs, re, b1, b0], [b0, a0, rs], [a1, b1, re]];
+    const ridges: [Q, Q][] = s.shape === "pyramid" ? [[a0, rs], [b0, rs], [a1, rs], [b1, rs]] : [[rs, re], [a0, rs], [b0, rs], [a1, re], [b1, re]];
+    return { faces, rim: [a0, a1, b1, b0], ridges, gable: null };
+  }
+  if (s.shape === "halfhip") {
+    // a gable whose top is hipped: the hip starts at 55 % of the gable's height and slopes like side a
+    const low = Math.min(pr.y(0), pr.y(w));
+    const yh = low + (pr.rh - low) * 0.55;
+    const vah = ta > 1e-6 ? Math.min(pr.vr, (yh - s.eave_a) / ta) : pr.vr;
+    const vbh = tb > 1e-6 ? Math.max(pr.vr, w - (yh - s.eave_b) / tb) : pr.vr;
+    const dh = Math.min((fr.u1 - fr.u0) / 2 - 0.1, (pr.rh - yh) / Math.max(0.2, ta));
+    const r0: Q = [fr.u0 + dh, pr.vr, pr.rh];
+    const r1: Q = [fr.u1 - dh, pr.vr, pr.rh];
+    const ha0: Q = [U0, vah, yh];
+    const hb0: Q = [U0, vbh, yh];
+    const ha1: Q = [U1, vah, yh];
+    const hb1: Q = [U1, vbh, yh];
+    return {
+      faces: [
+        [a0, a1, ha1, r1, r0, ha0],
+        [r0, r1, hb1, b1, b0, hb0],
+        [hb0, ha0, r0],
+        [ha1, hb1, r1],
+      ],
+      rim: [a0, a1, ha1, hb1, b1, b0, hb0, ha0],
+      ridges: [[r0, r1], [ha0, r0], [hb0, r0], [ha1, r1], [hb1, r1]],
+      gable: [[0, pr.y(0)], [vah, yh], [vbh, yh], [w, pr.y(w)]],
+    };
+  }
+  if (s.shape === "mansard") {
+    const m = mansardParts(w, s.eave_a, s.eave_b, ta, tb);
+    const la0: Q = [U0, m.vla, m.yla];
+    const la1: Q = [U1, m.vla, m.yla];
+    const lb0: Q = [U0, w - m.vlb, m.ylb];
+    const lb1: Q = [U1, w - m.vlb, m.ylb];
+    const r0: Q = [U0, m.vr, m.rh];
+    const r1: Q = [U1, m.vr, m.rh];
+    return {
+      faces: [
+        [a0, a1, la1, la0],
+        [la0, la1, r1, r0],
+        [r0, r1, lb1, lb0],
+        [lb0, lb1, b1, b0],
+      ],
+      rim: [a0, a1, la1, r1, lb1, b1, b0, lb0, r0, la0],
+      ridges: [[r0, r1], [la0, la1], [lb0, lb1]],
+      gable: [[0, pr.y(0)], [m.vla, m.yla], [m.vr, m.rh], [w - m.vlb, m.ylb], [w, pr.y(w)]],
+    };
+  }
+  // gable
+  const r0: Q = [U0, pr.vr, pr.rh];
+  const r1: Q = [U1, pr.vr, pr.rh];
+  return {
+    faces: [
+      [a0, a1, r1, r0],
+      [r0, r1, b1, b0],
+    ],
+    rim: [a0, a1, r1, b1, b0, r0],
+    ridges: [[r0, r1]],
+    gable: [[0, pr.y(0)], [pr.vr, pr.rh], [w, pr.y(w)]],
+  };
+}
+
+/** The height of a section's roof planes at (u, v): the lowest plane over the point, null outside every plane. */
+export function sectionHeightAt(geom: SectionGeometry, u: number, v: number): number | null {
+  let best: number | null = null;
+  for (const f of geom.faces) {
+    if (!pointInPolygon([u, v], f.map((q) => [q[0], q[1]] as Vec2))) continue;
+    // the plane through three corners that are not in a line
+    const [p0, p1] = f;
+    const p2 = f.slice(2).find((q) => Math.abs((p1[0] - p0[0]) * (q[1] - p0[1]) - (p1[1] - p0[1]) * (q[0] - p0[0])) > 1e-9);
+    if (!p2) continue;
+    const ax = p1[0] - p0[0];
+    const ay = p1[2] - p0[2];
+    const az = p1[1] - p0[1];
+    const bx = p2[0] - p0[0];
+    const by = p2[2] - p0[2];
+    const bz = p2[1] - p0[1];
+    const nx = ay * bz - az * by;
+    const ny = az * bx - ax * bz;
+    const nz = ax * by - ay * bx;
+    if (Math.abs(ny) < 1e-9) continue;
+    const y = p0[2] - (nx * (u - p0[0]) + nz * (v - p0[1])) / ny;
+    best = best === null ? y : Math.min(best, y);
+  }
+  return best;
 }
 
 /** Overhang per edge of a section: along the ridge at both ends (u0, u1) and across at both sides (a, b). */

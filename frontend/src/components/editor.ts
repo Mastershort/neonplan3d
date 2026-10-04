@@ -14,7 +14,7 @@ import { SHOW_PRESENCE } from "../flags.ts";
 import { hasFeature, manualUrl, shopUrl } from "../features.ts";
 import { deviceSensors, energySummary, flowSegments, gridPoint, proposeEnergySensors, type EnergyPrefs, type FlowSegment } from "../energy.ts";
 import { isStatusSensor, robotRoomSensor, TOGGLE_KINDS } from "../devices.ts";
-import { floorOutline, polygonBox, headroomLines, ridgeHeight, roofSectionsFromRooms, sectionFrame, sectionProfile, wallTopUnder } from "../roof-sections.ts";
+import { sectionGeometry, floorOutline, polygonBox, headroomLines, ridgeHeight, roofSectionsFromRooms, sectionFrame, wallTopUnder } from "../roof-sections.ts";
 import { bestFace, clampField, faceAt, faceCompass, fieldFace, fieldModules, GROUND, pointOnFace, proposeField, proposeGroundField, proposeWindow, proposeWallField, roofFaces, rowCounts, turnGroundField, fieldCenter, wallFaces, windowAsField, windowCorners, onFace, onField, rayOnFace, type RoofFace } from "../solar.ts";
 import type { SurfaceGrab, SurfaceRay } from "../viewer/viewer3d.ts";
 import { storedImageIds } from "../transfer.ts";
@@ -2263,7 +2263,6 @@ export class Fp3dEditor extends LitElement {
     return svg`<g class="fp3d-roof-layer">${sections.map((sec, i) => {
       const sel = sec.id === this._roofId;
       const fr = sectionFrame(sec);
-      const pr = sectionProfile(sec);
       const shape = sec.shape === "flat" && sec.points && sec.points.length >= 3 ? sec.points : null;
       const pts = (shape ?? [fr.at(fr.u0, 0), fr.at(fr.u1, 0), fr.at(fr.u1, fr.w), fr.at(fr.u0, fr.w)]).map((p) => this.toScreen(p));
       const line = (a: Vec2, b: Vec2) => {
@@ -2271,14 +2270,8 @@ export class Fp3dEditor extends LitElement {
         const [bx, by] = this.toScreen(b);
         return svg`<line x1=${ax} y1=${ay} x2=${bx} y2=${by} />`;
       };
-      let ridge;
-      if (sec.shape === "hip") {
-        const d = Math.min((fr.u1 - fr.u0) / 2, Math.min(pr.vr, fr.w - pr.vr) || fr.w / 2);
-        const rs = fr.at(fr.u0 + d, pr.vr);
-        const re = fr.at(fr.u1 - d, pr.vr);
-        ridge = svg`${line(rs, re)}${line(fr.at(fr.u0, 0), rs)}${line(fr.at(fr.u0, fr.w), rs)}${line(fr.at(fr.u1, 0), re)}${line(fr.at(fr.u1, fr.w), re)}`;
-      } else if (sec.shape === "gable") ridge = line(fr.at(fr.u0, pr.vr), fr.at(fr.u1, pr.vr));
-      else if (sec.shape === "pent") ridge = line(fr.at(fr.u0, fr.w), fr.at(fr.u1, fr.w));
+      const geom = sec.shape === "flat" || sec.shape === "parapet" ? null : sectionGeometry(sec, { u0: 0, u1: 0, a: 0, b: 0 });
+      const ridge = geom ? svg`${geom.ridges.map(([p, q]) => line(fr.at(p[0], p[1]), fr.at(q[0], q[1])))}` : nothing;
       const [cx, cy] = this.toScreen(fr.at((fr.u0 + fr.u1) / 2, fr.w / 2));
       const label = `${this.roofFixed(sec) ? "🔒 " : ""}${i + 1} · ${sec.open ? this.t("roof_open_short") : this.t(`roof_shape_${sec.shape}` as I18nKey)} · ${formatNumber(this.hass, ridgeHeight(sec), 1)} m`;
       return svg`<g data-roof=${sec.id} class=${`fp3d-roof-sec${sel ? " fp3d-roof-sel" : ""}`}>
@@ -3239,7 +3232,7 @@ export class Fp3dEditor extends LitElement {
     // side a is the top (ridge across the plan) or the left (ridge up and down the plan)
     const sides = sec.axis === "x" ? [this.t("roof_side_top"), this.t("roof_side_bottom")] : [this.t("roof_side_left"), this.t("roof_side_right")];
     const [sideA, sideB] = sec.flip ? [sides[1], sides[0]] : sides;
-    const flat = sec.shape === "flat";
+    const flat = sec.shape === "flat" || sec.shape === "parapet";
     const pent = sec.shape === "pent";
     const n = (sections: RoofSection[]) => sections.findIndex((x) => x.id === sec.id) + 1;
     const num = (label: string, value: number, apply: (v: number) => void, step = 0.05, min = 0) => this.num(label, value, (v) => apply(Math.max(min, round(v))), step, min);

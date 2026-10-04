@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { emptyBuilding, newFloor, type Room, type RoofSection } from "./model.ts";
-import { floorOutline, offsetPolygon, polygonBox, ridgeHeight, roofSectionsFromRooms, roofUnderAt, sectionFrame, sectionOverhang, sectionPolygon, sectionProfile, wallTopUnder } from "./roof-sections.ts";
+import { emptyBuilding, newFloor, ROOF_SHAPES, type Room, type RoofSection } from "./model.ts";
+import { floorOutline, offsetPolygon, polygonBox, ridgeHeight, roofSectionsFromRooms, roofUnderAt, sectionFrame, sectionGeometry, sectionHeightAt, sectionOverhang, sectionPolygon, sectionProfile, wallTopUnder } from "./roof-sections.ts";
 import { buildRoof } from "./viewer/roof.ts";
 
 const near = (a: number, b: number, eps = 1e-6) => assert.ok(Math.abs(a - b) < eps, `${a} != ${b}`);
@@ -83,7 +83,7 @@ test("sections proposed from an L-shaped house and a single-storey part", () => 
 test("every shape builds geometry", () => {
   const b = emptyBuilding();
   b.floors = [{ ...newFloor("eg", "EG", 0), rooms: [rect("a", 0, 0, 12, 8)] }];
-  for (const shape of ["gable", "hip", "pent", "flat"] as const) {
+  for (const shape of ROOF_SHAPES) {
     b.settings.roof = { type: "custom", pitch: 40, overhang: 0.4, sections: [section({ shape, base: 2.5, eave_a: 2.5, eave_b: 2.5 })] };
     const [part] = buildRoof(b);
     assert.ok(part.solid.count > 0, shape);
@@ -91,7 +91,8 @@ test("every shape builds geometry", () => {
     const sec = section({ shape, eave_a: 2.5, eave_b: 2.5 });
     const top = Math.max(ridgeHeight(sec), sectionProfile(sec).y(8 + 0.4));
     const ys = part.solid.p.filter((_, i) => i % 3 === 1);
-    assert.ok(Math.max(...ys) <= top + 0.26, shape);
+    // a parapet roof carries its 0.4 m wall ring on the slab
+    assert.ok(Math.max(...ys) <= top + (shape === "parapet" ? 0.66 : 0.26), shape);
   }
 });
 
@@ -150,4 +151,30 @@ test("a flat roof as a free shape: the floor's outline, grown by the wall thickn
   const sq = offsetPolygon([[0, 0], [2, 0], [2, 2], [0, 2]], 0.5);
   near(polygonBox(sq).x0, -0.5);
   near(polygonBox(sq).z1, 2.5);
+});
+
+test("pyramid, half-hip and mansard: apex, shortened ridge and broken slopes; the planes know the hipped ends", () => {
+  const ov = { u0: 0, u1: 0, a: 0, b: 0 };
+  // a 12 × 8 section, 40° both sides: the ridge is 4 m in from each eave
+  const pyramid = sectionGeometry(section({ shape: "pyramid", pitch_a: 40, pitch_b: 40 }), ov);
+  assert.equal(pyramid.faces.length, 4);
+  assert.ok(pyramid.ridges.every(([, q]) => Math.abs(q[0] - 6) < 1e-9 && Math.abs(q[1] - 4) < 1e-9), "all hips meet at the centre");
+  const gable = sectionGeometry(section({ shape: "gable", pitch_a: 40, pitch_b: 40 }), ov);
+  const half = sectionGeometry(section({ shape: "halfhip", pitch_a: 40, pitch_b: 40 }), ov);
+  const ridgeLen = (g: ReturnType<typeof sectionGeometry>) => Math.abs(g.ridges[0][1][0] - g.ridges[0][0][0]);
+  assert.ok(ridgeLen(half) < ridgeLen(gable) && ridgeLen(half) > 6, "the half-hip ridge is shorter but keeps most of its length");
+  assert.ok(half.gable && half.gable.length === 4, "the gable wall ends under the hip");
+  // under the hipped end the roof is lower than the profile across says
+  const prof = sectionProfile(section({ shape: "halfhip", pitch_a: 40, pitch_b: 40 }));
+  const atEnd = sectionHeightAt(half, 0.2, 4)!;
+  assert.ok(atEnd < prof.rh - 0.5, `hipped end ${atEnd} below the ridge ${prof.rh}`);
+  near(sectionHeightAt(half, 6, 4)!, prof.rh);
+  const mansard = sectionGeometry(section({ shape: "mansard", pitch_a: 70, pitch_b: 70 }), ov);
+  assert.equal(mansard.faces.length, 4, "two slopes a side");
+  const mp = sectionProfile(section({ shape: "mansard", pitch_a: 70, pitch_b: 70 }));
+  // steep at the eave, flatter above the break
+  assert.ok(mp.y(0.5) - mp.y(0) > mp.y(3.5) - mp.y(3), "the lower slope is the steep one");
+  near(mp.y(mp.vr), mp.rh);
+  // the parapet roof is flat
+  near(sectionProfile(section({ shape: "parapet", eave_a: 3, eave_b: 3 })).y(5), 3);
 });
