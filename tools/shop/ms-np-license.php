@@ -40,8 +40,10 @@ const MS_NP_MAX_INSTANCES = 3;
 const MS_NP_BINDINGS_PER_YEAR = 5;
 /** Meta key of the log of new bindings (timestamps), so moves are counted even after the oldest binding dropped out. */
 const MS_NP_BIND_LOG_META = '_ms_np_bind_log';
-/** Requests per hour and IP before the API answers 429. */
-const MS_NP_RATE_LIMIT = 120;
+/** Requests per hour before the API answers 429: per licence key (one customer), and per client address
+ *  (many customers may share one address behind a provider's NAT or a proxy, so this one is generous). */
+const MS_NP_RATE_LIMIT = 300;
+const MS_NP_RATE_LIMIT_IP = 3000;
 const MS_NP_SHOP_PAGE = 'https://mastershort.de/neonplan3d/';
 /** Loyalty discount in percent on further purchases, and the meta key of the customer's coupon code. */
 const MS_NP_LOYALTY_PERCENT = 10;
@@ -571,16 +573,22 @@ add_action('rest_api_init', function (): void {
 /** Validates key and instance of a request; returns [owner, key, instance] or a WP_Error. */
 function ms_np_rest_auth(WP_REST_Request $req)
 {
-    $ip = (string) ($_SERVER['REMOTE_ADDR'] ?? '');
-    $bucket = 'ms_np_rate_' . md5($ip);
-    $count = (int) get_transient($bucket);
-    if ($count >= MS_NP_RATE_LIMIT) {
-        return new WP_Error('ms_np_rate_limit', 'Too many requests', ['status' => 429]);
-    }
-    set_transient($bucket, $count + 1, HOUR_IN_SECONDS);
-
     $key = strtoupper(trim((string) $req->get_param('key')));
     $instance = strtolower(trim((string) $req->get_param('instance')));
+    // the client's own address, also behind a proxy (first address of X-Forwarded-For)
+    $ip = (string) ($_SERVER['REMOTE_ADDR'] ?? '');
+    $fwd = (string) ($_SERVER['HTTP_X_FORWARDED_FOR'] ?? '');
+    if ($fwd !== '') {
+        $ip = trim(explode(',', $fwd)[0]);
+    }
+    // counted per licence key (one customer) and, more generously, per address
+    foreach ([['ms_np_rate_key_' . md5($key), MS_NP_RATE_LIMIT], ['ms_np_rate_' . md5($ip), MS_NP_RATE_LIMIT_IP]] as [$bucket, $limit]) {
+        $count = (int) get_transient($bucket);
+        if ($count >= $limit) {
+            return new WP_Error('ms_np_rate_limit', 'Too many requests', ['status' => 429]);
+        }
+        set_transient($bucket, $count + 1, HOUR_IN_SECONDS);
+    }
     if (!preg_match('/^NP(-[A-Z0-9]{4}){4}$/', $key) || !preg_match('/^[0-9a-f]{16}$/', $instance)) {
         return new WP_Error('ms_np_invalid_key', 'Unknown key', ['status' => 404]);
     }
