@@ -354,6 +354,8 @@
  "card_flows_switch": "Schakelaar in de kaart",
  "card_flows_on": "Altijd aan",
  "card_flows_off": "Altijd uit",
+ "holos": "Hologrammen",
+ "holos_hint": "De hologrammen van de installatie en de apparaten tonen of verbergen",
  "card_energy": "Energiewaarden bovenaan tonen",
  "card_room_panel": "Kamerdetails bij een tik",
  "card_room_panel_hint": "De lichten, rolluiken en camera's van de kamer in een zijpaneel",

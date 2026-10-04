@@ -206,6 +206,7 @@ export class Floorplan3dCard extends LitElement {
               .theme=${this._config?.theme ?? "neon"}
               .showEnergy=${this._config?.energy ?? true}
               .flows=${this._config?.flows ?? null}
+              .holograms=${this._config?.holograms ?? null}
               .floorThumbs=${this.thumbs}
               .roomLabels=${c?.room_names !== false}
               .floorStack=${c?.floor_stack ?? "dim"}

@@ -354,6 +354,8 @@
  "card_flows_switch": "Conmutador en la tarjeta",
  "card_flows_on": "Siempre activado",
  "card_flows_off": "Siempre desactivado",
+ "holos": "Hologramas",
+ "holos_hint": "Mostrar u ocultar los hologramas de la instalación y de los aparatos",
  "card_energy": "Mostrar valores de energía arriba",
  "card_room_panel": "Detalles de la habitación al tocar",
  "card_room_panel_hint": "Las luces, persianas y cámaras de la habitación en un panel lateral",

@@ -615,6 +615,8 @@ In der Hausansicht hängt ein Hologramm aus Glas am größten Solarfeld (ohne Fe
 
 Auch ohne Solaranlage: Jedes Gerät mit Leistungssensor (Fernseher, Waschmaschine, Kühlschrank, Wärmepumpe, PC, Wallbox) kann eine kleine Glaskarte über sich tragen – Leistung jetzt, Verbrauch heute und die Tageskurve aus den Statistiken seines Sensors. Im Möbelformular den Haken **Hologramm über dem Gerät** setzen. Die Karten zeigen sich in der Hausansicht und auf der Etage des Geräts; Antippen klappt sie zusammen. Zehn Karten kosten weniger als eine Leitung, auch auf dem Wandtablet.
 
+Der Knopf **Hologramme** in der Energieleiste (neben ⚡) blendet alle Karten aus und wieder ein – praktisch, wenn viele Geräte eine tragen. In der Karte gibt es den Knopf ebenfalls, oder du legst es mit `holograms` fest.
+
 **Wandtablet:** Auf der Tablet-Stufe laufen die Hologramme ohne Glaseffekt, die Leitungen mit halber Bildrate.
 
 **Wenn etwas fehlt:** Die Einrichtung oben im Werkzeug zeigt, was noch nicht passt. Kein Hologramm bedeutet meist: kein Sensor am Wechselrichter oder keine Hausansicht (Etagen- und Raumansichten haben keins). Keine Leitung zu einem Gerät: Das Gerät hat keinen Leistungssensor.
@@ -723,6 +725,7 @@ scenes: true
 motion_trail: false     # Pro: Kamera-Cockpit
 weather: true           # Pro: Wetter draußen
 weather_entity: weather.home
+holograms: true         # Pro: Hologramme immer an/aus; weglassen = Schalter in der Karte
 start_view: { theta: 0.8, phi: 1.0, radius: 20 }   # eigene Startansicht dieser Karte; die Zeile steht im Editor unter Startansicht (weglassen = die des Plans)
 idle_return: 0          # Sekunden ohne Berührung bis zur Startansicht
 night: "off"            # off | sun | "22:00-06:00"

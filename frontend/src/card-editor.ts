@@ -75,7 +75,7 @@ export class Floorplan3dCardEditor extends LitElement {
     return translate(this.hass, key, vars);
   }
 
-  private get value(): Required<Omit<CardConfig, "floor" | "flows">> & Pick<CardConfig, "floor" | "flows"> {
+  private get value(): Required<Omit<CardConfig, "floor" | "flows" | "holograms">> & Pick<CardConfig, "floor" | "flows" | "holograms"> {
     return { ...(DEFAULTS as Required<CardConfig>), ...this._config };
   }
 
@@ -230,6 +230,7 @@ export class Floorplan3dCardEditor extends LitElement {
     if (this.hass && !languageReady(this.hass.language)) return nothing;
     const v = this.value;
     const flows = v.flows === undefined ? "switch" : v.flows ? "on" : "off";
+    const holos = v.holograms === undefined ? "switch" : v.holograms ? "on" : "off";
     return html`
       <h3>${this.t("card_section_view")}</h3>
       <div class="grid">
@@ -283,6 +284,17 @@ export class Floorplan3dCardEditor extends LitElement {
             <option value="switch" ?selected=${flows === "switch"}>${this.t("card_flows_switch")}</option>
             <option value="on" ?selected=${flows === "on"}>${this.t("card_flows_on")}</option>
             <option value="off" ?selected=${flows === "off"}>${this.t("card_flows_off")}</option>
+          </select>
+        </label>
+        <label class="field wide"
+          >${this.t("holos")}
+          <select @change=${(e: Event) => {
+            const c = (e.target as HTMLSelectElement).value;
+            this.set("holograms", c === "switch" ? undefined : c === "on");
+          }}>
+            <option value="switch" ?selected=${holos === "switch"}>${this.t("card_flows_switch")}</option>
+            <option value="on" ?selected=${holos === "on"}>${this.t("card_flows_on")}</option>
+            <option value="off" ?selected=${holos === "off"}>${this.t("card_flows_off")}</option>
           </select>
         </label>
       </div>

@@ -613,6 +613,8 @@ In the house view a glass hologram hangs on the largest solar field (beside the 
 
 Also without a solar system: every device with a power sensor (TV, washing machine, fridge, heat pump, PC, wallbox) can carry a small glass card over itself – power now, today's consumption and the day curve from its sensor's statistics. Tick **Hologram over the device** in the furniture form. The cards show in the house view and on the device's floor; a tap folds them. Ten cards cost less than one cable, on the wall tablet too.
 
+The **Holograms** button in the energy bar (next to ⚡) hides all cards and shows them again – handy when many devices carry one. The card has the button too, or you fix it with `holograms`.
+
 **Wall tablet:** on the tablet level the holograms run without the glass effect and the cables at half the frame rate.
 
 **When something is missing:** the Setup list at the top of the tool shows what does not fit yet. No hologram usually means: no sensor on the inverter, or not the house view (floor and room views have none). No cable to a device: the device has no power sensor.
@@ -721,6 +723,7 @@ scenes: true
 motion_trail: false     # Pro: camera cockpit
 weather: true           # Pro: weather outside
 weather_entity: weather.home
+holograms: true         # Pro: holograms always on/off; leave out = a switch in the card
 start_view: { theta: 0.8, phi: 1.0, radius: 20 }   # a start view of this card's own; the line is shown in the editor under Start view (leave out = the plan's)
 idle_return: 0          # seconds without a touch until the start view
 night: "off"            # off | sun | "22:00-06:00"

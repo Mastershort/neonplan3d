@@ -81,6 +81,7 @@ export class Fp3dView3d extends LitElement {
     packs: { attribute: false },
     showEnergy: { attribute: false },
     flows: { attribute: false },
+    holograms: { attribute: false },
     furnish: { type: Boolean },
     surfaceGrab: { attribute: false },
     furnishTypes: { attribute: false },
@@ -104,6 +105,7 @@ export class Fp3dView3d extends LitElement {
     _plants: { state: true },
     _holoOn: { state: true },
     _flows: { state: true },
+    _holoShow: { state: true },
     _swipe: { state: true },
     _menu: { state: true },
     _through: { state: true },
@@ -141,6 +143,9 @@ export class Fp3dView3d extends LitElement {
   declare showEnergy: boolean;
   /** Power flow lines fixed on or off (cards); null: the viewer's own toggle decides. */
   declare flows: boolean | null;
+  /** Energie Pro holograms always on or off (card option); null = the bar's own switch. */
+  declare holograms: boolean | null;
+  private declare _holoShow: boolean;
   /** Furnishing: furniture and lamps are dragged in 3D (admins, panel only). */
   declare furnish: boolean;
   /** Editor: moves solar fields and roof windows with rays from the camera (null: none). */
@@ -320,10 +325,13 @@ export class Fp3dView3d extends LitElement {
     this.dimmed = false;
     this.autoOrbit = false;
     this.startView = null;
+    this.holograms = null;
     try {
       this._flows = localStorage.getItem("neonplan3d.flows") === "1";
+      this._holoShow = localStorage.getItem("neonplan3d.holos") !== "0";
     } catch {
       this._flows = false;
+      this._holoShow = true;
     }
   }
 
@@ -850,7 +858,7 @@ export class Fp3dView3d extends LitElement {
    */
   private renderHologram() {
     const e = this._energy;
-    if (!hasFeature("energy_pro") || this.roomId || !this.showEnergy) return nothing;
+    if (!hasFeature("energy_pro") || this.roomId || !this.showEnergy || !this.holoVisible()) return nothing;
     const plants = !!e && (e.solar !== null || e.grid !== null || e.battery !== null) && this.floorId === null;
     return this._holos.map((card, i) => (card.kind === "device" ? this.renderDeviceCard(card, i) : plants ? this.renderHoloCard(card, i, e!) : nothing));
   }
@@ -1731,6 +1739,20 @@ export class Fp3dView3d extends LitElement {
     this.dispatchEvent(new CustomEvent(type, { detail, bubbles: true, composed: true }));
   }
 
+  /** Hide or show every hologram (the plants' and the devices'): with many devices the view gets crowded. */
+  private toggleHolos(): void {
+    this._holoShow = !this._holoShow;
+    try {
+      localStorage.setItem("neonplan3d.holos", this._holoShow ? "1" : "0");
+    } catch {
+      // private mode: the choice lasts for this page only
+    }
+  }
+
+  private holoVisible(): boolean {
+    return this.holograms ?? this._holoShow;
+  }
+
   private toggleFlows(): void {
     this._flows = !this._flows;
     try {
@@ -1763,6 +1785,11 @@ export class Fp3dView3d extends LitElement {
         ? nothing
         : html`<button class="fp3d-energy-item fp3d-flow-toggle" aria-pressed=${this._flows} title=${`${t("flows_hint")} (${t(this._flows ? "flow_on" : "flow_off")})`} aria-label=${t("flows")} @click=${() => this.toggleFlows()}>
         <span>${t("flows")}</span><b>⚡</b>
+      </button>`}
+      ${this.holograms !== null || !this._holos.length
+        ? nothing
+        : html`<button class="fp3d-energy-item fp3d-flow-toggle" aria-pressed=${this._holoShow} title=${t("holos_hint")} aria-label=${t("holos")} @click=${() => this.toggleHolos()}>
+        <span>${t("holos")}</span><b>◫</b>
       </button>`}
     </div>`;
   }

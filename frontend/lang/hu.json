@@ -354,6 +354,8 @@
  "card_flows_switch": "Kapcsoló a kártyán",
  "card_flows_on": "Mindig be",
  "card_flows_off": "Mindig ki",
+ "holos": "Hologramok",
+ "holos_hint": "A rendszer és a készülékek hologramjainak megjelenítése vagy elrejtése",
  "card_energy": "Energiaértékek mutatása fent",
  "card_room_panel": "Helyiség részletei koppintásra",
  "card_room_panel_hint": "A helyiség fényei, redőnyei és kamerái egy oldalsó panelen",

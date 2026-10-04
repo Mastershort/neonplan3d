@@ -354,6 +354,8 @@
  "card_flows_switch": "Interruttore nella card",
  "card_flows_on": "Sempre attivo",
  "card_flows_off": "Sempre disattivato",
+ "holos": "Ologrammi",
+ "holos_hint": "Mostra o nascondi gli ologrammi dell'impianto e dei dispositivi",
  "card_energy": "Mostra i valori di energia in alto",
  "card_room_panel": "Dettagli della stanza al tocco",
  "card_room_panel_hint": "Luci, tapparelle e telecamere della stanza in un pannello laterale",

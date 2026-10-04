@@ -354,6 +354,8 @@
  "card_flows_switch": "Commutateur dans la carte",
  "card_flows_on": "Toujours activé",
  "card_flows_off": "Toujours désactivé",
+ "holos": "Hologrammes",
+ "holos_hint": "Afficher ou masquer les hologrammes de l'installation et des appareils",
  "card_energy": "Afficher les valeurs d'énergie en haut",
  "card_room_panel": "Détails de la pièce à l'appui",
  "card_room_panel_hint": "Les lumières, volets et caméras de la pièce dans un panneau latéral",

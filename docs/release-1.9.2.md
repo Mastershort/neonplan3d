@@ -10,7 +10,7 @@
 - **Karte:** `start_view` gibt einer Karte eine eigene Startansicht, etwa für eine kleine Übersicht in einem anderen Dashboard; der Abschnitt Startansicht im Editor zeigt die Zeile zum Kopieren (Diskussion #89 von karli4711).
 - Französisch, Spanisch, Niederländisch, Italienisch: die 43 seit 1.9.0 neuen Texte (Energie-Einrichtung, Kippwinkel, Icons, Hilfe) sind übersetzt; sie erschienen bisher auf Englisch.
 - **Ungarisch** als fünfte Zusatzsprache (Korrektur: kopaszsop, #51).
-- **Energie Pro – Geräte-Hologramme:** Jedes Gerät mit Leistungssensor (Fernseher, Waschmaschine, Wärmepumpe …) kann eine kleine Glaskarte tragen – Leistung jetzt, Verbrauch heute, Tageskurve – in der Hausansicht und auf seiner Etage. Haken „Hologramm über dem Gerät“ im Möbelformular. Das erste kostenlose Update des Packs, auch ohne Solaranlage nützlich.
+- **Energie Pro – Geräte-Hologramme:** Jedes Gerät mit Leistungssensor (Fernseher, Waschmaschine, Wärmepumpe …) kann eine kleine Glaskarte tragen – Leistung jetzt, Verbrauch heute, Tageskurve – in der Hausansicht und auf seiner Etage. Haken „Hologramm über dem Gerät“ im Möbelformular; der Knopf **Hologramme** in der Energieleiste blendet alle Karten aus (Karten-Option `holograms`). Das erste kostenlose Update des Packs, auch ohne Solaranlage nützlich.
 
 ---
 
@@ -26,4 +26,4 @@
 - **Card:** `start_view` gives a card a start view of its own, e.g. for a small overview on another dashboard; the editor's start view section shows the line to copy (discussion #89 by karli4711).
 - French, Spanish, Dutch and Italian: the 43 texts added since 1.9.0 are translated now; they showed in English.
 - **Hungarian** as the fifth extra language (proofread by kopaszsop, #51).
-- **Energy Pro – device holograms:** every device with a power sensor (TV, washing machine, heat pump …) can carry a small glass card – power now, today's kWh, day curve – in the house view and on its floor. Tick "Hologram over the device" in the furniture form. The first free update of the pack, useful without a solar system too.
+- **Energy Pro – device holograms:** every device with a power sensor (TV, washing machine, heat pump …) can carry a small glass card – power now, today's kWh, day curve – in the house view and on its floor. Tick "Hologram over the device" in the furniture form; a **Holograms** button in the energy bar hides all cards (card option `holograms`). The first free update of the pack, useful without a solar system too.
