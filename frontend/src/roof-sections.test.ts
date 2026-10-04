@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { emptyBuilding, newFloor, ROOF_SHAPES, type Room, type RoofSection } from "./model.ts";
-import { floorOutline, offsetPolygon, polygonBox, ridgeHeight, roofSectionsFromRooms, roofUnderAt, sectionFrame, sectionGeometry, sectionHeightAt, sectionOverhang, sectionPolygon, sectionProfile, wallTopUnder } from "./roof-sections.ts";
+import { cutHole, dormerHole, dormerParent, floorOutline, offsetPolygon, polygonBox, proposeDormer, ridgeHeight, roofSectionsFromRooms, roofUnderAt, sectionFrame, sectionGeometry, sectionHeightAt, sectionOverhang, sectionPolygon, sectionProfile, wallTopUnder } from "./roof-sections.ts";
 import { buildRoof } from "./viewer/roof.ts";
 
 const near = (a: number, b: number, eps = 1e-6) => assert.ok(Math.abs(a - b) < eps, `${a} != ${b}`);
@@ -177,4 +177,32 @@ test("pyramid, half-hip and mansard: apex, shortened ridge and broken slopes; th
   near(mp.y(mp.vr), mp.rh);
   // the parapet roof is flat
   near(sectionProfile(section({ shape: "parapet", eave_a: 3, eave_b: 3 })).y(5), 3);
+});
+
+test("a dormer sits on a side of its section, opens the slope under it and lifts the ceiling there", () => {
+  // the 12 × 8 gable, ridge along x, eaves 2.5 m, 45°: a dormer on side a (the low-z side)
+  const parent = section({ eave_a: 2.5, eave_b: 2.5, base: 2.5 });
+  const d = proposeDormer(parent, "a", "d");
+  assert.ok(d.dormer && d.axis === "z" && d.shape === "gable");
+  near(d.x1 - d.x0, 2);
+  near(d.z0, 0, 1e-6);
+  near(d.eave_a, 3.9);
+  // its ridge (3.9 + tan35) meets the 45° slope that far in
+  const ridge = 3.9 + Math.tan((35 * Math.PI) / 180);
+  near(d.z1, Math.round((ridge - 2.5) * 100) / 100, 0.011);
+  assert.equal(dormerParent([parent, d], d), parent);
+  const hole = dormerHole(parent, d)!;
+  near(hole.u0, 5);
+  near(hole.u1, 7);
+  near(hole.v0, 0);
+  // the slope with the hole falls into pieces around it, none of them over the hole
+  const geom = sectionGeometry(parent, { u0: 0, u1: 0, a: 0, b: 0 });
+  const pieces = cutHole(geom.faces[0], hole);
+  assert.ok(pieces.length >= 3, `${pieces.length} pieces`);
+  assert.ok(pieces.every((p) => !p.some(([u, v]) => u > hole.u0 + 0.01 && u < hole.u1 - 0.01 && v > hole.v0 + 0.01 && v < hole.v1 - 0.01)), "no corner inside the hole");
+  // under the dormer the ceiling is the dormer's roof, beside it the slope
+  const b = { settings: { roof: { type: "custom" as const, pitch: 35, overhang: 0, sections: [parent, d] } } };
+  const underDormer = roofUnderAt(b, 6, 0.5)!;
+  const beside = roofUnderAt(b, 3, 0.5)!;
+  assert.ok(underDormer > beside + 0.5, `dormer ${underDormer} above slope ${beside}`);
 });

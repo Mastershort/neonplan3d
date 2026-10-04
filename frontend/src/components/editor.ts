@@ -14,7 +14,7 @@ import { SHOW_PRESENCE } from "../flags.ts";
 import { hasFeature, manualUrl, shopUrl } from "../features.ts";
 import { deviceSensors, energySummary, flowSegments, gridPoint, proposeEnergySensors, type EnergyPrefs, type FlowSegment } from "../energy.ts";
 import { isStatusSensor, robotRoomSensor, TOGGLE_KINDS } from "../devices.ts";
-import { sectionGeometry, floorOutline, polygonBox, headroomLines, ridgeHeight, roofSectionsFromRooms, sectionFrame, wallTopUnder } from "../roof-sections.ts";
+import { proposeDormer, sectionGeometry, floorOutline, polygonBox, headroomLines, ridgeHeight, roofSectionsFromRooms, sectionFrame, wallTopUnder } from "../roof-sections.ts";
 import { bestFace, clampField, faceAt, faceCompass, fieldFace, fieldModules, GROUND, pointOnFace, proposeField, proposeGroundField, proposeWindow, proposeWallField, roofFaces, rowCounts, turnGroundField, fieldCenter, wallFaces, windowAsField, windowCorners, onFace, onField, rayOnFace, type RoofFace } from "../solar.ts";
 import type { SurfaceGrab, SurfaceRay } from "../viewer/viewer3d.ts";
 import { storedImageIds } from "../transfer.ts";
@@ -64,6 +64,7 @@ import {
   type FurnitureType,
   type LampMount,
   type RoofSection,
+  type RoofShape,
   type SolarField,
   type SolarString,
   type RoofWindow,
@@ -2232,6 +2233,17 @@ export class Fp3dEditor extends LitElement {
     this.updateRoofSection({ shape: "flat", points, ...polygonBox(points) });
   }
 
+  /** A dormer on a side of the selected section, in its middle; then the dormer is selected. */
+  private addDormer(side: "a" | "b"): void {
+    const parent = this.roofSection;
+    if (!parent || !this.isAdmin) return;
+    const d = proposeDormer(parent, side, uid("roof"));
+    this.change((doc) => {
+      doc.settings.roof.sections = [...(doc.settings.roof.sections ?? []), d];
+    });
+    this._roofId = d.id;
+  }
+
   private updateRoofSection(patch: Partial<RoofSection>): void {
     const id = this._roofId;
     if (!id || !this.isAdmin) return;
@@ -2273,7 +2285,7 @@ export class Fp3dEditor extends LitElement {
       const geom = sec.shape === "flat" || sec.shape === "parapet" ? null : sectionGeometry(sec, { u0: 0, u1: 0, a: 0, b: 0 });
       const ridge = geom ? svg`${geom.ridges.map(([p, q]) => line(fr.at(p[0], p[1]), fr.at(q[0], q[1])))}` : nothing;
       const [cx, cy] = this.toScreen(fr.at((fr.u0 + fr.u1) / 2, fr.w / 2));
-      const label = `${this.roofFixed(sec) ? "🔒 " : ""}${i + 1} · ${sec.open ? this.t("roof_open_short") : this.t(`roof_shape_${sec.shape}` as I18nKey)} · ${formatNumber(this.hass, ridgeHeight(sec), 1)} m`;
+      const label = `${this.roofFixed(sec) ? "🔒 " : ""}${i + 1} · ${sec.dormer ? this.t("roof_dormer") : sec.open ? this.t("roof_open_short") : this.t(`roof_shape_${sec.shape}` as I18nKey)} · ${formatNumber(this.hass, ridgeHeight(sec), 1)} m`;
       return svg`<g data-roof=${sec.id} class=${`fp3d-roof-sec${sel ? " fp3d-roof-sel" : ""}`}>
           <polygon points=${pts.map((p) => p.join(",")).join(" ")} />
           <g class="fp3d-roof-ridge">${ridge}</g>
@@ -2432,7 +2444,7 @@ export class Fp3dEditor extends LitElement {
             >${this.t("solar_face")}
             <select ?disabled=${!admin} @change=${(e: Event) => {
               const next = faces.find((x) => x.key === (e.target as HTMLSelectElement).value);
-              if (next) set({ ...proposeWindow(next, w.id), w: w.w, h: w.h, cover: w.cover, contact: w.contact, tilt: w.tilt });
+              if (next) set({ ...proposeWindow(next, w.id), w: w.w, h: w.h, cover: w.cover, contact: w.contact, tilt: w.tilt, window: w.window, name: w.name });
             }}>
               ${faces.map((x) => html`<option value=${x.key} ?selected=${x.key === w.face}>${this.faceLabel(x)}</option>`)}
             </select></label
@@ -2444,7 +2456,13 @@ export class Fp3dEditor extends LitElement {
           ${this.entitySelect(this.t("cover_entity"), w.cover ?? null, undefined, covers, (v) => set({ cover: v === "none" ? null : v }))}
           ${this.entitySelect(this.t("contact_entity"), w.contact ?? null, undefined, contacts, (v) => set({ contact: v === "none" ? null : v }))}
           ${this.entitySelect(this.t("roof_window_tilt"), w.tilt ?? null, undefined, contacts, (v) => set({ tilt: v === "none" ? null : v }))}
+          ${this.entitySelect(this.t("roof_window_motor"), w.window ?? null, undefined, covers, (v) => set({ window: v === "none" ? null : v }))}
+          <label class="fp3d-field fp3d-wide"
+            >${this.t("roof_window_name")}
+            <input .value=${w.name ?? ""} ?disabled=${!admin} maxlength="64" @change=${(e: Event) => set({ name: (e.target as HTMLInputElement).value.trim() || null })}
+          /></label>
         </div>
+        <p class="fp3d-sub">${this.t("roof_window_motor_hint")}</p>
         <p class="fp3d-sub">${this.t("roof_window_hint")}</p>
         ${admin ? html`<div class="fp3d-actions"><button class="fp3d-btn fp3d-danger" @click=${() => this.deleteRoofWindow()}>${this.t("delete")}</button></div>` : nothing}
       </section>`;
@@ -2976,7 +2994,7 @@ export class Fp3dEditor extends LitElement {
               ${sections.map(
                 (x, i) => html`<div class="fp3d-row">
                   <button class="fp3d-dev-name" @click=${() => (this._roofId = x.id)}>
-                    <span>${i + 1} · ${this.t(`roof_shape_${x.shape}` as I18nKey)} · ${formatNumber(this.hass, Math.abs(x.x1 - x.x0), 1)} × ${formatNumber(this.hass, Math.abs(x.z1 - x.z0), 1)} m · ${this.t("roof_ridge_height")} ${formatNumber(this.hass, ridgeHeight(x), 1)} m</span>
+                    <span>${i + 1} · ${x.dormer ? this.t("roof_dormer") : this.t(`roof_shape_${x.shape}` as I18nKey)} · ${formatNumber(this.hass, Math.abs(x.x1 - x.x0), 1)} × ${formatNumber(this.hass, Math.abs(x.z1 - x.z0), 1)} m · ${this.t("roof_ridge_height")} ${formatNumber(this.hass, ridgeHeight(x), 1)} m</span>
                   </button>
                 </div>`,
               )}
@@ -3241,7 +3259,7 @@ export class Fp3dEditor extends LitElement {
       <section>
         ${this.renderRoofFloors()}
         <div class="fp3d-h3row">
-          <h3>${this.t("roof_section")} ${n(this._doc.settings.roof.sections ?? [])}</h3>
+          <h3>${sec.dormer ? this.t("roof_dormer") : this.t("roof_section")} ${n(this._doc.settings.roof.sections ?? [])}</h3>
           ${admin
             ? planLocked
               ? html`<button class="fp3d-btn fp3d-fix" aria-pressed="true" title=${this.t("lock_plan_hint")} @click=${() => this.toggleLockPlan()}>🔒 ${this.t("plan_locked")}</button>`
@@ -3250,9 +3268,12 @@ export class Fp3dEditor extends LitElement {
                 </button>`
             : nothing}
         </div>
-        <div class="fp3d-seg fp3d-dev-source">
-          ${ROOF_SHAPES.map((shape) => html`<button aria-pressed=${sec.shape === shape} ?disabled=${!admin} @click=${() => set({ shape })}>${this.t(`roof_shape_${shape}` as I18nKey)}</button>`)}
-        </div>
+        <label class="fp3d-field fp3d-wide"
+          >${this.t("roof_shape")}
+          <select ?disabled=${!admin} @change=${(e: Event) => set({ shape: (e.target as HTMLSelectElement).value as RoofShape })}>
+            ${ROOF_SHAPES.map((shape) => html`<option value=${shape} ?selected=${sec.shape === shape}>${this.t(`roof_shape_${shape}` as I18nKey)}</option>`)}
+          </select>
+        </label>
         ${flat
           ? nothing
           : html`<div class="fp3d-seg fp3d-dev-source">
@@ -3287,6 +3308,10 @@ export class Fp3dEditor extends LitElement {
               ${flat
                 ? nothing
                 : html`<button class="fp3d-btn" title=${this.t("roof_swap_hint")} @click=${() => set({ flip: !sec.flip })}>⇅ ${this.t("roof_swap")}</button>`}
+              ${!flat && !sec.dormer && !sec.open
+                ? html`<button class="fp3d-btn" title=${this.t("roof_dormer_hint")} @click=${() => this.addDormer("a")}>+ ${this.t("roof_dormer")} ${sideA}</button>
+                  ${pent ? nothing : html`<button class="fp3d-btn" title=${this.t("roof_dormer_hint")} @click=${() => this.addDormer("b")}>+ ${this.t("roof_dormer")} ${sideB}</button>`}`
+                : nothing}
               <button class="fp3d-btn" @click=${() => this.duplicateRoofSection()}>${this.t("duplicate")}</button>
               <button class="fp3d-btn fp3d-danger" @click=${() => this.deleteRoofSection()}>${this.t("delete")}</button>
             </div>`

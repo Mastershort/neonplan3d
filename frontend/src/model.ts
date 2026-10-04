@@ -265,6 +265,8 @@ export interface RoofSection {
    * overhang comes on top); x0 … z1 then hold the polygon's bounding box.
    */
   points?: Vec2[] | null;
+  /** A dormer: a small section on the slope of another one, open towards that slope at its rear. */
+  dormer?: boolean;
   /** Fixed: cannot be moved or resized by accident (the plan lock fixes every section too). */
   locked?: boolean;
   /** A canopy (terrace roof, carport): posts and beams instead of walls, a see-through roof. */
@@ -379,6 +381,9 @@ export interface RoofWindow {
   cover?: EntityRef;
   contact?: EntityRef;
   tilt?: EntityRef;
+  /** A window motor (a cover whose position opens the sash that far). */
+  window?: EntityRef;
+  name?: string | null;
   /** Fixed: cannot be moved by accident. */
   locked?: boolean;
 }

@@ -262,6 +262,8 @@ ROOF_SECTION_SCHEMA = vol.Schema(
         vol.Optional("flip", default=False): bool,
         # a flat roof as a free shape: its footprint polygon (x0 … z1 hold the bounding box)
         vol.Optional("points", default=None): vol.Any(None, vol.All([_POINT], vol.Length(min=3, max=MAX_POINTS))),
+        # a dormer on the slope of another section
+        vol.Optional("dormer", default=False): bool,
         vol.Optional("locked", default=False): bool,
         # a canopy (terrace roof, carport): posts instead of walls, a see-through roof
         vol.Optional("open", default=False): bool,
@@ -331,6 +333,9 @@ ROOF_WINDOW_SCHEMA = vol.Schema(
         vol.Optional("cover", default=None): _ENTITY_REF,
         vol.Optional("contact", default=None): _ENTITY_REF,
         vol.Optional("tilt", default=None): _ENTITY_REF,
+        # a window motor: a cover whose position opens the sash that far
+        vol.Optional("window", default=None): _ENTITY_REF,
+        vol.Optional("name", default=None): vol.Any(None, vol.All(str, vol.Length(max=64))),
         vol.Optional("locked", default=False): bool,
     },
     extra=vol.ALLOW_EXTRA,

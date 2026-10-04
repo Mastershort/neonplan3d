@@ -72,8 +72,19 @@ export const ROOF_THICK = 0.14;
  */
 export function roofUnderAt(b: RoofHolder, x: number, z: number): number | null {
   let best: number | null = null;
+  const o = Math.max(0, b.settings.roof.overhang ?? 0);
+  // a dormer lifts the ceiling over its footprint above the slope it sits on
   for (const s of b.settings.roof.sections ?? []) {
-    if (s.open) continue;
+    if (!s.dormer || s.open) continue;
+    const box = polygonBoxOf(s);
+    if (x < box.x0 || x > box.x1 || z < box.z0 || z > box.z1) continue;
+    const [u, v] = sectionUV(s, x, z);
+    const y = sectionHeightAt(sectionGeometry(s, { u0: 0, u1: 0, a: 0, b: 0 }), u, v);
+    if (y !== null) best = best === null ? y - ROOF_THICK : Math.max(best, y - ROOF_THICK);
+  }
+  if (best !== null) return best;
+  for (const s of b.settings.roof.sections ?? []) {
+    if (s.open || s.dormer) continue;
     const x0 = Math.min(s.x0, s.x1);
     const x1 = Math.max(s.x0, s.x1);
     const z0 = Math.min(s.z0, s.z1);
@@ -81,12 +92,11 @@ export function roofUnderAt(b: RoofHolder, x: number, z: number): number | null 
     if (x < x0 - 1e-6 || x > x1 + 1e-6 || z < z0 - 1e-6 || z > z1 + 1e-6) continue;
     // a free-shaped flat roof covers its polygon only
     if (s.points && s.points.length >= 3 && !pointInPolygon([x, z], s.points)) continue;
-    const v = s.axis === "x" ? (s.flip ? z1 - z : z - z0) : s.flip ? x1 - x : x - x0;
-    const u = s.axis === "x" ? x : z;
+    const [u, v] = sectionUV(s, x, z);
     // hipped ends and broken slopes: the planes decide, the profile across is the fallback
     const flat = s.shape === "flat" || s.shape === "parapet";
-    const o = Math.max(0, s.overhang ?? b.settings.roof.overhang ?? 0);
-    const planes = flat ? null : sectionHeightAt(sectionGeometry(s, { u0: o, u1: o, a: o, b: o }), u, v);
+    const so = Math.max(0, s.overhang ?? o);
+    const planes = flat ? null : sectionHeightAt(sectionGeometry(s, { u0: so, u1: so, a: so, b: so }), u, v);
     const y = (planes ?? sectionProfile(s).y(v)) - ROOF_THICK;
     best = best === null ? y : Math.min(best, y);
   }
@@ -357,6 +367,111 @@ export function sectionHeightAt(geom: SectionGeometry, u: number, v: number): nu
     best = best === null ? y : Math.min(best, y);
   }
   return best;
+}
+
+/** A plan point in a section's frame: along the ridge (u) and across from side a (v). */
+export function sectionUV(s: Pick<RoofSection, "x0" | "z0" | "x1" | "z1" | "axis" | "flip">, x: number, z: number): [number, number] {
+  const x0 = Math.min(s.x0, s.x1);
+  const x1 = Math.max(s.x0, s.x1);
+  const z0 = Math.min(s.z0, s.z1);
+  const z1 = Math.max(s.z0, s.z1);
+  return s.axis === "x" ? [x, s.flip ? z1 - z : z - z0] : [z, s.flip ? x1 - x : x - x0];
+}
+
+function polygonBoxOf(s: Pick<RoofSection, "x0" | "z0" | "x1" | "z1">) {
+  return { x0: Math.min(s.x0, s.x1), x1: Math.max(s.x0, s.x1), z0: Math.min(s.z0, s.z1), z1: Math.max(s.z0, s.z1) };
+}
+
+/** The section a dormer sits on: the sloped one that holds the dormer's centre (null when none). */
+export function dormerParent(sections: readonly RoofSection[], d: RoofSection): RoofSection | null {
+  const cx = (d.x0 + d.x1) / 2;
+  const cz = (d.z0 + d.z1) / 2;
+  let best: RoofSection | null = null;
+  for (const s of sections) {
+    if (s === d || s.dormer || s.open || s.shape === "flat" || s.shape === "parapet") continue;
+    const box = polygonBoxOf(s);
+    if (cx < box.x0 || cx > box.x1 || cz < box.z0 || cz > box.z1) continue;
+    if (!best || Math.abs((s.x1 - s.x0) * (s.z1 - s.z0)) < Math.abs((best.x1 - best.x0) * (best.z1 - best.z0))) best = s;
+  }
+  return best;
+}
+
+/** A dormer's footprint in its parent's frame (u along the parent ridge, v across), or null when it lies outside. */
+export function dormerHole(parent: RoofSection, d: RoofSection): { u0: number; u1: number; v0: number; v1: number } | null {
+  const box = polygonBoxOf(d);
+  const corners: [number, number][] = [sectionUV(parent, box.x0, box.z0), sectionUV(parent, box.x1, box.z1)];
+  const u0 = Math.min(corners[0][0], corners[1][0]);
+  const u1 = Math.max(corners[0][0], corners[1][0]);
+  const v0 = Math.min(corners[0][1], corners[1][1]);
+  const v1 = Math.max(corners[0][1], corners[1][1]);
+  return u1 - u0 < 0.1 || v1 - v0 < 0.1 ? null : { u0, u1, v0, v1 };
+}
+
+/**
+ * A new dormer on a side of a section: 2 m wide, its front flush with the eave wall, its eaves 1.4 m
+ * above the section's eave, 35° gable; as deep as its ridge needs to meet the slope.
+ */
+export function proposeDormer(parent: RoofSection, side: "a" | "b", id: string, along?: number): RoofSection {
+  const fr = sectionFrame(parent);
+  const pr = sectionProfile(parent);
+  const W = 2;
+  const u = Math.max(fr.u0 + 0.3, Math.min(fr.u1 - W - 0.3, (along ?? (fr.u0 + fr.u1) / 2) - W / 2));
+  const eave = side === "a" ? parent.eave_a : parent.eave_b;
+  const pitch = side === "a" ? parent.pitch_a : parent.pitch_b;
+  const dEave = eave + 1.4;
+  const rise = (W / 2) * Math.tan(35 * DEG);
+  const ridge = dEave + rise;
+  // the dormer's ridge meets the slope this far in from the eave
+  const run = Math.max(0.8, Math.min(fr.w / 2 - 0.2, (ridge - eave) / Math.max(0.15, Math.tan(Math.min(80, pitch) * DEG))));
+  const v0 = side === "a" ? 0 : fr.w - run;
+  const v1 = side === "a" ? run : fr.w;
+  const p = fr.at(u, v0);
+  const q = fr.at(u + W, v1);
+  return {
+    id,
+    x0: Math.round(Math.min(p[0], q[0]) * 100) / 100,
+    z0: Math.round(Math.min(p[1], q[1]) * 100) / 100,
+    x1: Math.round(Math.max(p[0], q[0]) * 100) / 100,
+    z1: Math.round(Math.max(p[1], q[1]) * 100) / 100,
+    shape: "gable",
+    // the dormer's ridge runs into the slope: across the parent's ridge
+    axis: parent.axis === "x" ? "z" : "x",
+    eave_a: Math.round(dEave * 100) / 100,
+    eave_b: Math.round(dEave * 100) / 100,
+    pitch_a: 35,
+    pitch_b: 35,
+    base: Math.round(pr.y(side === "a" ? 0 : fr.w) * 100) / 100,
+    overhang: 0.15,
+    dormer: true,
+  };
+}
+
+/** A polygon in (u, v, y) cut by an axis-aligned half-plane; heights follow the edges (the polygon is planar). */
+function clipUV(poly: Q[], axis: 0 | 1, limit: number, keepBelow: boolean): Q[] {
+  const inside = (p: Q) => (keepBelow ? p[axis] <= limit + 1e-9 : p[axis] >= limit - 1e-9);
+  const out: Q[] = [];
+  for (let i = 0; i < poly.length; i++) {
+    const p = poly[i];
+    const q = poly[(i + 1) % poly.length];
+    const pi = inside(p);
+    const qi = inside(q);
+    if (pi) out.push(p);
+    if (pi !== qi) {
+      const t = (limit - p[axis]) / (q[axis] - p[axis]);
+      out.push([p[0] + (q[0] - p[0]) * t, p[1] + (q[1] - p[1]) * t, p[2] + (q[2] - p[2]) * t]);
+    }
+  }
+  return out;
+}
+
+/** A roof plane with a rectangular hole (a dormer's footprint): up to four pieces around the hole. */
+export function cutHole(face: Q[], h: { u0: number; u1: number; v0: number; v1: number }): Q[][] {
+  const left = clipUV(face, 0, h.u0, true);
+  const right = clipUV(face, 0, h.u1, false);
+  const middle = clipUV(clipUV(face, 0, h.u0, false), 0, h.u1, true);
+  const below = clipUV(middle, 1, h.v0, true);
+  const above = clipUV(middle, 1, h.v1, false);
+  return [left, right, below, above].filter((p) => p.length >= 3 && Math.abs(polygonArea(p.map((q) => [q[0], q[1]] as Vec2))) > 1e-6);
 }
 
 /** Overhang per edge of a section: along the ridge at both ends (u0, u1) and across at both sides (a, b). */
