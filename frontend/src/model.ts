@@ -124,6 +124,8 @@ export interface Furniture {
   soc?: EntityRef;
   /** Home battery: a separate sensor with the charging power (W) when the power sensor only reports discharging. */
   charge?: EntityRef;
+  /** Meter: a separate sensor with the export power (W) when the power sensor only reports import. */
+  export?: EntityRef;
   status?: EntityRef;
   /** Robot vacuum: sensor naming the room it cleans right now (null = automatic, "none" = the dock's room). */
   room_sensor?: EntityRef;

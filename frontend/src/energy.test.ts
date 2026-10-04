@@ -141,7 +141,7 @@ test("the placed devices bring their sensors: meter = grid, inverters add up, ba
     { id: "i2", type: "inverter", x: 3, z: 0.2, rotation: 0, w: 0.5, d: 0.2, h: 0.65, variant: null, power: "sensor.pv2" },
     { id: "bat", type: "home_battery", x: 3, z: 1, rotation: 0, w: 0.6, d: 0.25, h: 1.1, variant: null, power: "sensor.bat", soc: "sensor.soc" },
   );
-  assert.deepEqual(deviceSensors(b), { grid: "sensor.grid", solar: ["sensor.pv1", "sensor.pv2"], battery: ["sensor.bat"], charge: [], batteries: [{ power: "sensor.bat", charge: null }], soc: ["sensor.soc"] });
+  assert.deepEqual(deviceSensors(b), { grid: "sensor.grid", gridExport: null, solar: ["sensor.pv1", "sensor.pv2"], battery: ["sensor.bat"], charge: [], batteries: [{ power: "sensor.bat", charge: null }], soc: ["sensor.soc"] });
   assert.deepEqual(meterPosition(b), { floor_id: "eg", x: 1, z: 0.2 });
   const hass = hassWith([power("sensor.grid", "-300"), power("sensor.pv1", "800"), power("sensor.pv2", "400"), power("sensor.bat", "-250"), st("sensor.soc", "64", { device_class: "battery" }), power("sensor.house", "1000")]);
   const s = energySummary(hass, b, []);
@@ -290,4 +290,15 @@ test("a battery with separate charging and discharging sensors: the charging is 
   hass.states["sensor.charge"] = power("sensor.charge", "0");
   hass.states["sensor.discharge"] = power("sensor.discharge", "500");
   assert.equal(energySummary(hass, b, []).battery, 500);
+});
+
+test("a meter with separate import and export sensors: the export is taken off", () => {
+  const b = house();
+  b.energy = { ...b.energy, meter: null, grid: null, solar: null };
+  b.floors[0].furniture.push({ id: "m", type: "meter", x: 1, z: 0.2, rotation: 0, w: 0.55, d: 0.21, h: 1.1, variant: null, power: "sensor.import", export: "sensor.export" });
+  const hass = hassWith([power("sensor.import", "0"), power("sensor.export", "900")]);
+  assert.equal(energySummary(hass, b, []).grid, -900);
+  hass.states["sensor.export"] = power("sensor.export", "0");
+  hass.states["sensor.import"] = power("sensor.import", "420");
+  assert.equal(energySummary(hass, b, []).grid, 420);
 });

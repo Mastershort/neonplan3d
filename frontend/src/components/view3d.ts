@@ -501,7 +501,7 @@ export class Fp3dView3d extends LitElement {
       const presence = b.presence.flatMap((p) => [p.person, p.sensor]);
       const lights = b.floors.flatMap((f) => f.rooms.flatMap((r) => areaEntities(hass, r.area_id).filter((id) => kindOf(id) === "light")));
       const furniture = [...this.furnitureLinks.values()].flatMap((l) => [l.entity, l.power]);
-      const doors = b.floors.flatMap((f) => f.furniture.flatMap((m) => [m.door_left ?? null, m.door_right ?? null, m.soc ?? null, m.status ?? null, m.charge ?? null]));
+      const doors = b.floors.flatMap((f) => f.furniture.flatMap((m) => [m.door_left ?? null, m.door_right ?? null, m.soc ?? null, m.status ?? null, m.charge ?? null, m.export ?? null]));
       const roofWindowIds = (b.settings.roof?.windows ?? []).flatMap((w) => [w.cover, w.contact, w.tilt]).filter((x): x is string => !!x && x !== "none");
       // the solar fields' and strings' sensors feed the roof cables
       const solarIds = [...(b.settings.roof?.solar ?? []).map((f) => f.entity), ...(b.settings.roof?.strings ?? []).map((s) => s.entity)].filter((x): x is string => !!x && x !== "none");
@@ -1015,8 +1015,12 @@ export class Fp3dView3d extends LitElement {
         targets.set(f.id, id);
         const st = link.entity ? hass.states[link.entity] : undefined;
         // the meter's sensor is the grid (+ = import), the battery's can point the other way as well
-        const invert = f.type === "meter" ? b.energy.grid_invert : f.type === "home_battery" ? b.energy.battery_invert : false;
-        const power = link.power ? readPower(hass.states[link.power], invert) : null;
+        const invert = f.type === "meter" ? b.energy.grid_invert && !f.export : f.type === "home_battery" ? b.energy.battery_invert && !f.charge : false;
+        let power = link.power ? readPower(hass.states[link.power], invert) : null;
+        // separate second sensors: a battery's charging, a meter's export (then the first one is unsigned)
+        const second = (f.type === "home_battery" && f.charge && f.charge !== "none" ? f.charge : f.type === "meter" && f.export && f.export !== "none" ? f.export : null) as string | null;
+        const secondW = second ? readPower(hass.states[second]) : null;
+        if (secondW !== null) power = Math.max(0, power ?? 0) - Math.max(0, secondW);
         if (link.power && power !== null && !consumerSensors.has(link.power)) {
           consumerSensors.add(link.power);
           consumers.push({ id, powerEntity: link.power, floorId: floor.id, x: f.x, z: f.z, power: Math.max(0, power), wallbox: f.type === "wallbox" || undefined });

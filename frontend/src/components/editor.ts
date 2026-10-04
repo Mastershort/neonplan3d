@@ -2758,7 +2758,7 @@ export class Fp3dEditor extends LitElement {
     const n = face ? fieldModules(face, f).length : 0;
     const counts = rowCounts(f);
     const total = counts.reduce((a, b) => a + b, 0) - (f.skip?.length ?? 0);
-    const power = this.entityOptions((id) => id.startsWith("sensor.") && this.hass?.states[id]?.attributes.device_class === "power");
+    const power = this.entityOptions((id) => this.isPowerSensor(id));
     const set = (patch: Partial<SolarField>) => this.updateSolar(patch);
     const index = (this._doc.settings.roof.solar ?? []).findIndex((x) => x.id === f.id) + 1;
     return html`<button class="fp3d-btn fp3d-back" @click=${() => (this._solarId = null)}>‹ ${this.t("solar_fields")}</button>
@@ -2987,6 +2987,13 @@ export class Fp3dEditor extends LitElement {
         ${this.num(this.t("holo_up"), h.up, (v) => set({ up: Math.min(30, Math.max(-30, round(v))) }), 0.25)}
       </div>
     </section>`;
+  }
+
+  /** A power sensor: device class power, or a plain sensor in W or kW (templates, MQTT, many meters have no class). */
+  private isPowerSensor(id: string): boolean {
+    if (!id.startsWith("sensor.")) return false;
+    const a = this.hass?.states[id]?.attributes;
+    return a?.device_class === "power" || a?.unit_of_measurement === "W" || a?.unit_of_measurement === "kW";
   }
 
   /** The power sensor of an energy device: set by hand, or the one found on its Home Assistant device. */
@@ -5043,7 +5050,7 @@ export class Fp3dEditor extends LitElement {
     const e = this._doc.energy;
     const admin = this.isAdmin;
     const attr = (id: string, key: string) => this.hass?.states[id]?.attributes[key] as string | undefined;
-    const power = this.entityOptions((id) => id.startsWith("sensor.") && attr(id, "device_class") === "power");
+    const power = this.entityOptions((id) => this.isPowerSensor(id));
     const soc = this.entityOptions((id) => id.startsWith("sensor.") && attr(id, "device_class") === "battery");
     const tariff = this.entityOptions(
       (id) => id.startsWith("sensor.") && (attr(id, "device_class") === "monetary" || /\/(kWh|MWh)$/.test(attr(id, "unit_of_measurement") ?? "")),
@@ -5170,7 +5177,7 @@ export class Fp3dEditor extends LitElement {
               : // or a status sensor (a 3D printer's print status: running, idle, finish …)
                 /^(switch|media_player|fan|input_boolean|climate)\./.test(id) || isStatusSensor(hass.states[id]),
     );
-    const power = this.entityOptions((id) => id.startsWith("sensor.") && hass.states[id]?.attributes.device_class === "power");
+    const power = this.entityOptions((id) => this.isPowerSensor(id));
     const doorSensors = f.type === "fridge_smart" ? this.entityOptions((id) => id.startsWith("binary_sensor.")) : [];
     return html`<div class="fp3d-form fp3d-links">
         ${f.type === "grid_point"
@@ -5188,6 +5195,12 @@ export class Fp3dEditor extends LitElement {
               (v) => this.updateFurniture({ power: v }),
             )}
       </div>
+      ${f.type === "meter"
+        ? html`<div class="fp3d-form fp3d-links">
+            ${this.entitySelect(this.t("furn_export"), f.export ?? null, undefined, power, (v) => this.updateFurniture({ export: v === "none" ? null : v }))}
+            <p class="fp3d-sub fp3d-wide">${this.t("furn_export_hint")}</p>
+          </div>`
+        : nothing}
       ${f.type === "home_battery"
         ? html`<div class="fp3d-form fp3d-links">
             ${this.entitySelect(

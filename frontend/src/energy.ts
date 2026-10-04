@@ -59,6 +59,8 @@ type V3 = [number, number, number];
 /** Power sensors the placed energy devices bring along (meter = grid, inverters = solar, battery). */
 export interface DeviceSensors {
   grid: string | null;
+  /** The meter's separate export sensor (its power sensor then reports import only). */
+  gridExport: string | null;
   solar: string[];
   battery: string[];
   /** Separate charging power sensors (batteries whose power sensor only reports discharging). */
@@ -75,11 +77,14 @@ const ref = (v: string | null | undefined) => (v && v !== "none" ? v : null);
  * the one found on its device). Several inverters add up.
  */
 export function deviceSensors(building: Building, power: (f: Furniture) => string | null = (f) => ref(f.power)): DeviceSensors {
-  const out: DeviceSensors = { grid: null, solar: [], battery: [], charge: [], batteries: [], soc: [] };
+  const out: DeviceSensors = { grid: null, gridExport: null, solar: [], battery: [], charge: [], batteries: [], soc: [] };
   for (const floor of building.floors) {
     for (const f of floor.furniture) {
       const p = power(f);
-      if (f.type === "meter") out.grid ??= p;
+      if (f.type === "meter") {
+        out.grid ??= p;
+        out.gridExport ??= ref(f.export);
+      }
       else if (f.type === "inverter" && p && !out.solar.includes(p)) out.solar.push(p);
       else if (f.type === "home_battery") {
         if (p && !out.battery.includes(p)) out.battery.push(p);
@@ -195,7 +200,12 @@ export function energySummary(hass: HomeAssistant, building: Building, consumers
   const e = building.energy;
   // the balance sensors win; without them the placed devices bring theirs (the meter, the inverters, the battery)
   const gridId = e.grid ?? devices.grid;
-  const grid = gridId ? readPower(hass.states[gridId], e.grid_invert) : null;
+  let grid = gridId ? readPower(hass.states[gridId], e.grid_invert) : null;
+  // a meter with a separate export sensor: the power sensor is its import, the export is taken off
+  if (!e.grid && devices.gridExport) {
+    const exp = Math.max(0, readPower(hass.states[devices.gridExport]) ?? 0);
+    grid = Math.max(0, grid ?? 0) - exp;
+  }
   let solar: number | null = e.solar ? readPower(hass.states[e.solar]) : null;
   if (!e.solar && devices.solar.length) {
     const values = devices.solar.map((id) => readPower(hass.states[id])).filter((v): v is number => v !== null);
