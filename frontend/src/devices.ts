@@ -575,10 +575,6 @@ export function openingState(
   // the second leaf of a double door or window stays closed without a sensor; it tilts like the first
   const tilted2 = on(e.tilt2) || pos(e.tilt2) === "tilted" || pos(e.contact2) === "tilted";
   const open2 = pos(e.contact2) === "open" && !tilted2 ? 1 : 0;
-  if (type === "door") {
-    const p = pos(e.contact);
-    return { open: p === null ? (e.shut ? 0 : DOOR_DEFAULT_OPEN) : p === "closed" ? 0 : 1, open2: pos(e.contact2) === "open" ? 1 : 0, tilt: 0, tilt2: 0, cover: null, sensed: p !== null };
-  }
   // a separate tilt sensor, or a handle sensor that reports "tilted" itself
   let tilted = on(e.tilt) || pos(e.tilt) === "tilted" || pos(e.contact) === "tilted";
   // a tilt angle sensor tilts the sash as far as it reports (a share of the angle that counts as fully tilted)
@@ -600,6 +596,11 @@ export function openingState(
     if (typeof pos === "number") cover = 1 - Math.min(100, Math.max(0, pos)) / 100;
     else cover = c.state === "closed" ? 1 : c.state === "opening" || c.state === "closing" ? 0.5 : 0;
   } else if (e.cover) cover = 0;
+  if (type === "door") {
+    // a door with a roller shutter (front door, French window, sliding door): the blind comes down over it
+    const p = pos(e.contact);
+    return { open: p === null ? (e.shut ? 0 : DOOR_DEFAULT_OPEN) : p === "closed" ? 0 : 1, open2: pos(e.contact2) === "open" ? 1 : 0, tilt: 0, tilt2: 0, cover, sensed: p !== null || cover !== null };
+  }
   if (type === "garage") {
     // a garage door without a cover shows its contact: open or closed
     const sensed = cover !== null || known(e.contact);

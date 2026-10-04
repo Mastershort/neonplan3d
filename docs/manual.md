@@ -123,7 +123,7 @@ Next to them are **Undo**, **Redo**, **Show all** and **3D beside**. A short hin
 Without a selection, the sidebar shows the floors:
 
 - **Add floor** creates a floor. Home Assistant floors that are still missing are offered.
-- **Name**, **height above the ground** and **ceiling height** set where the floor sits in the 3D house and how tall its walls are.
+- **Name**, **height above the ground** and **ceiling height** set where the floor sits in the 3D house and how tall its walls are. **Shift the floor** moves everything on the floor (rooms, furniture, devices, outdoor areas, free walls, background image) by X and Z when a floor sits offset against the others; roof sections and cables stay.
 - **Floor in Home Assistant** links the floor to an HA floor. Then **"Add … rooms from HA areas"** offers the areas of that floor as rooms.
 - **Move up** and **Move down** change the order, **Delete floor** removes it with its rooms.
 - **Close gaps** joins rooms that are up to 60 cm apart. This helps when you measured inside dimensions. The gap becomes the interior wall thickness.
@@ -199,7 +199,7 @@ Every opening has:
 
 | Field | Effect in 3D |
 |---|---|
-| **Cover** | The blind moves in front of the window with the cover's position |
+| **Cover** | The blind moves in front of the window – or of a door (front door, French window, sliding door) – with the cover's position |
 | **Position sensor** | For blinds whose position comes from a separate sensor, e.g. Homematic. Can be inverted |
 | **Ask before switching** | Open, close and positions ask first in the quick menu and the room panel, and a swipe on the marker no longer moves the blind (it turns the view instead). Stop never asks. Good for tablets where blinds or the garage door would otherwise move by accident |
 | **Contact** | The door swings open, the window opens |

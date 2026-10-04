@@ -4,7 +4,7 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 [releases page](https://github.com/Mastershort/neonplan3d/releases). Ideas and votes:
 [Discussions → Ideas](https://github.com/Mastershort/neonplan3d/discussions/categories/ideas).
 
-## 1.10.0 (unreleased)
+## 1.10.0
 
 ### New
 
@@ -14,6 +14,8 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 - **Dormers and cross gables:** "+ Dormer" in a section's form puts a dormer on a slope (gable or pent); its depth ends where its ridge meets the slope, the slope opens only where the dormer's roof lies above it (valleys), the cheeks close it, the attic wall rises up to it for the dormer window. A wide dormer with its eaves on the top of walls is a cross gable (a three-gable house). Where sections overlap, the higher roof is the ceiling (discussion #75, PR #66 by mindmonk).
 - **Roof shapes:** half-hip, pyramid, mansard and flat with parapet join gable, hip, pent and flat; attic walls end under hipped ends and broken slopes as well (discussions #90, #74, #47).
 - **Flat roof as a free shape:** "Take the floor's outline" gives a flat section the outline of the floor's rooms (L, Z, U …) as one surface; its corners can be dragged (#108 by rolandarends).
+- **Roller shutters on doors:** a front door, French window or sliding door takes a cover too; the blind comes down over it and can be moved like a window's (#114 by denisb88).
+- **Shift a floor:** "Shift the floor" in the floor form moves everything on the floor by X and Z (#25 by morbidos123).
 - **Split a wall:** ✂ in the wall heights box cuts a wall at a point of your own, so one wall in line can have two heights (2.5 m next to 1.7 m); the split point can be moved and removed (#109 by rolandarends).
 
 ## 1.9.2

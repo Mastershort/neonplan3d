@@ -496,3 +496,13 @@ test("a tilt angle sensor tilts the sash as far as it reports, with max, offset 
   assert.equal(s.tilt, 0);
   assert.equal(s.sensed, true);
 });
+
+test("a door with a roller shutter shows the blind at the cover's position", () => {
+  const hass = hassWith();
+  hass.states["cover.haustuer"] = { entity_id: "cover.haustuer", state: "open", attributes: { current_position: 30, device_class: "shutter" } } as HomeAssistant["states"][string];
+  const st = openingState(hass, { cover: "cover.haustuer", contact: null, tilt: null }, "door");
+  assert.ok(Math.abs((st.cover ?? -1) - 0.7) < 1e-9, `closed fraction ${st.cover}`);
+  assert.ok(st.sensed);
+  // without a cover a door has no blind
+  assert.equal(openingState(hass, { cover: null, contact: null, tilt: null }, "door").cover, null);
+});

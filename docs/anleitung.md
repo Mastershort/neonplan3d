@@ -125,7 +125,7 @@ Daneben stehen **Rückgängig**, **Wiederholen**, **Alles zeigen** und **3D dane
 Ohne Auswahl zeigt die Seitenleiste die Etagen:
 
 - **Etage hinzufügen** legt eine neue Etage an. Gibt es in Home Assistant Etagen, die noch fehlen, erscheinen sie zur Auswahl.
-- **Name**, **Höhe über Boden** und **Raumhöhe** bestimmen, wo die Etage im 3D-Haus liegt und wie hoch ihre Wände sind.
+- **Name**, **Höhe über Boden** und **Raumhöhe** bestimmen, wo die Etage im 3D-Haus liegt und wie hoch ihre Wände sind. **Etage verschieben** rückt alles auf der Etage (Räume, Möbel, Geräte, Außenflächen, freie Wände, Hintergrundbild) um X und Z, wenn eine Etage gegenüber den anderen versetzt sitzt; Dachflächen und Leitungen bleiben.
 - **Etage in Home Assistant** verknüpft die Etage mit einer HA-Etage. Dann bietet **„… Räume aus HA-Bereichen anlegen“** die Bereiche dieser Etage als Räume an.
 - **Nach oben** und **Nach unten** ändern die Reihenfolge, **Etage löschen** entfernt sie samt Räumen.
 - **Lücken schließen** führt Räume zusammen, die bis zu 60 cm auseinanderliegen. Das ist praktisch, wenn du Innenmaße gemessen hast. Der Abstand wird zur Innenwandstärke.
@@ -201,7 +201,7 @@ Jede Öffnung hat:
 
 | Feld | Wirkung in 3D |
 |---|---|
-| **Rollladen** | Der Rollladen fährt vor dem Fenster mit der Position der Cover-Entität |
+| **Rollladen** | Der Rollladen fährt vor dem Fenster – oder vor einer Tür (Haustür, Terrassentür, Schiebetür) – mit der Position der Cover-Entität |
 | **Positions-Sensor** | Für Rollläden, deren Position über einen eigenen Sensor kommt, etwa bei Homematic. Bei Bedarf umkehrbar |
 | **Vor dem Schalten nachfragen** | Auf, Zu und Positionen fragen im Schnellmenü und im Raumfenster erst nach, und Wischen über das Symbol bewegt den Rollladen nicht mehr (es dreht dann die Ansicht). Stopp fragt nie. Gut für Tablets, auf denen Rollläden oder das Garagentor sonst versehentlich fahren |
 | **Kontakt** | Die Tür schwingt auf, das Fenster öffnet sich |

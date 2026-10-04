@@ -141,6 +141,8 @@ const ARROWS: Record<string, [number, number]> = { ArrowLeft: [-1, 0], ArrowRigh
 
 export class Fp3dEditor extends LitElement {
   static properties = {
+    _shiftX: { state: true },
+    _shiftZ: { state: true },
     hass: { attribute: false },
     building: { attribute: false },
     narrow: { type: Boolean },
@@ -256,6 +258,8 @@ export class Fp3dEditor extends LitElement {
   /** Selected room wall (id from generateWalls), to set its height. */
   /** Edge of the selected room highlighted from the wall height list. */
   private declare _edgeHi: number | null;
+  private declare _shiftX: number;
+  private declare _shiftZ: number;
   /** Open context menu (right-click, long press) at a plan point, for one item. */
   private declare _ctx: { x: number; y: number; kind: FixKind; id: string } | null;
   /** A drag on a fixed item was turned into panning: the hint line says why. */
@@ -326,6 +330,8 @@ export class Fp3dEditor extends LitElement {
     this._outdoorId = null;
     this._wallId = null;
     this._edgeHi = null;
+    this._shiftX = 0;
+    this._shiftZ = 0;
     this._floorMenu = false;
     this._openingPreset = "door";
     let split = false;
@@ -3757,6 +3763,34 @@ export class Fp3dEditor extends LitElement {
     this._vertex = null;
   }
 
+  /** Move everything on the floor by (dx, dz): rooms, furniture, devices, outdoor areas, free walls and the background. */
+  private shiftFloor(dx: number, dz: number): void {
+    if (!this.isAdmin || (!dx && !dz)) return;
+    const mv = (p: Vec2): Vec2 => [round(p[0] + dx), round(p[1] + dz)];
+    this.change((_, floor) => {
+      for (const r of floor.rooms) r.points = r.points.map(mv);
+      for (const f of floor.furniture) {
+        f.x = round(f.x + dx);
+        f.z = round(f.z + dz);
+      }
+      for (const p of floor.placements) {
+        p.x = round(p.x + dx);
+        p.z = round(p.z + dz);
+      }
+      for (const a of floor.outdoor) a.points = a.points.map(mv);
+      for (const w of floor.walls ?? []) {
+        w.a = mv(w.a);
+        w.b = mv(w.b);
+      }
+      if (floor.background) {
+        floor.background.x = round(floor.background.x + dx);
+        floor.background.z = round(floor.background.z + dz);
+      }
+    });
+    this._shiftX = 0;
+    this._shiftZ = 0;
+  }
+
   private updateFloor(patch: Partial<Floor>): void {
     this.change((_, floor) => Object.assign(floor, patch));
   }
@@ -4647,6 +4681,14 @@ export class Fp3dEditor extends LitElement {
                 <input .value=${floor.name} ?disabled=${!admin} @change=${(e: Event) => this.updateFloor({ name: (e.target as HTMLInputElement).value })}
               /></label>
               ${this.num(this.t("elevation"), floor.elevation, (v) => this.updateFloor({ elevation: v }))}
+              ${admin
+                ? html`<div class="fp3d-field fp3d-wide fp3d-shift" title=${this.t("floor_shift_hint")}>
+                    <span>${this.t("floor_shift")}</span>
+                    <input type="number" step="0.05" .value=${String(this._shiftX)} aria-label="X" @change=${(e: Event) => (this._shiftX = Number((e.target as HTMLInputElement).value) || 0)} />
+                    <input type="number" step="0.05" .value=${String(this._shiftZ)} aria-label="Z" @change=${(e: Event) => (this._shiftZ = Number((e.target as HTMLInputElement).value) || 0)} />
+                    <button class="fp3d-btn" ?disabled=${!this._shiftX && !this._shiftZ} @click=${() => this.shiftFloor(this._shiftX, this._shiftZ)}>${this.t("floor_shift_apply")}</button>
+                  </div>`
+                : nothing}
               ${this.num(this.t("height"), floor.height, (v) => this.updateFloor({ height: Math.max(1, v) }), 0.05, 1)}
               ${Object.keys(this.hass?.floors ?? {}).length
                 ? html`<label class="fp3d-field fp3d-wide"
@@ -5055,8 +5097,8 @@ export class Fp3dEditor extends LitElement {
             <option value="right" ?selected=${o.hinge === "right"}>${this.t("hinge_right")}</option>
           </select></label
         >`}
-        ${window || garage ? this.entitySelect(this.t("cover_entity"), o.cover, autoPick("cover"), covers, (v) => this.updateOpening({ cover: v })) : nothing}
-        ${(window || garage) && o.cover !== "none"
+        ${window || garage || door ? this.entitySelect(this.t("cover_entity"), o.cover, autoPick("cover"), covers, (v) => this.updateOpening({ cover: v })) : nothing}
+        ${(window || garage || door) && o.cover !== "none"
           ? html`${this.entitySelect(this.t("cover_position_entity"), o.position ?? null, undefined, positions, (v) => this.updateOpening({ position: v === "none" ? null : v }))}
               ${o.position
                 ? html`<label class="fp3d-check fp3d-wide"
@@ -7345,6 +7387,15 @@ export class Fp3dEditor extends LitElement {
         background: rgba(127, 127, 127, 0.12);
         user-select: all;
         word-break: break-all;
+      }
+      .fp3d-shift {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-wrap: wrap;
+      }
+      .fp3d-shift input {
+        width: 5.5em;
       }
       .fp3d-headroom {
         stroke: rgba(255, 214, 90, 0.55);
