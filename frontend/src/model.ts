@@ -13,6 +13,9 @@ export interface RoomClimate {
   co2?: string | null;
 }
 
+/** A wall height on a room edge, or one per part of a split edge. */
+export type WallHeight = number | null | (number | null)[];
+
 export interface Room {
   /** Room temperature, humidity and CO2: chosen sensors instead of the automatic pick. */
   climate?: RoomClimate | null;
@@ -23,8 +26,11 @@ export interface Room {
   floor_material: string;
   /** Entities shown in the room's panel although they are not in the plan. */
   panel?: string[];
-  /** Height of the wall on each edge (index = edge points[i] -> points[i + 1]); null = full floor height, 0 = no wall. */
-  wall_heights?: (number | null)[];
+  /**
+   * Height of the wall on each edge (index = edge points[i] -> points[i + 1]); null = full floor height, 0 = no
+   * wall. An edge that other rooms split into parts may carry a list instead: one height per part, in order.
+   */
+  wall_heights?: WallHeight[];
 }
 
 export type OpeningType = "door" | "window" | "garage";
@@ -65,6 +71,12 @@ export interface Opening {
   position?: string | null;
   /** The position sensor counts the other way round (0 = open). */
   position_inverted?: boolean;
+  /** Windows: a sensor with the sash's tilt angle (degrees); the sash tilts in 3D as far as it reports. */
+  tilt_angle?: EntityRef;
+  /** Angle that counts as fully tilted (default 15°), an offset the sensor reports when closed, and the other sign. */
+  tilt_max?: number | null;
+  tilt_offset?: number | null;
+  tilt_invert?: boolean;
   /** Highlight in 3D while open (null, default) or while closed (a WC or a child's room door). */
   mark?: "closed" | null;
   /** Ask before moving the blind or garage door; it then does not follow a swipe either. */
@@ -99,6 +111,8 @@ export interface Furniture {
   variant: string | null;
   /** Own name (e.g. "Wechselrichter Nord"); null = the type's name. */
   name?: string | null;
+  /** An own symbol for the marker: a Material Design icon name without "mdi:" (null = by kind). */
+  icon?: string | null;
   /** Linked entity, e.g. the TV's media player (null = automatic, "none" = none). */
   entity?: EntityRef;
   /** Power sensor (null = automatic: the linked entity's device or a matching name). */
@@ -157,6 +171,10 @@ export interface Placement {
   confirm?: boolean;
   /** Its marker in 3D: automatic (null), always shown, shown without watts, or hidden. */
   marker?: MarkerShow | null;
+  /** An own symbol for the marker: a Material Design icon name without "mdi:" (null = by kind). */
+  icon?: string | null;
+  /** Cameras: show the field-of-view wedge on the floor (null = yes). */
+  cone?: boolean | null;
 }
 
 export interface Background {

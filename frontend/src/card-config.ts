@@ -34,6 +34,9 @@ export interface CardConfig {
   floor_stack?: "dim" | "stacked" | "single";
   /** A button for full screen (hides the dashboard around the card). */
   fullscreen_button?: boolean;
+  /** A button that opens another dashboard or view (its path, e.g. "/lovelace/home"), with an optional label. */
+  dashboard?: string;
+  dashboard_label?: string;
   /** Small pictures of the floors to switch between them (default: on without a start floor). */
   floor_thumbs?: boolean;
   /** Warnings (smoke, water, alarm, window in the rain) as pulsing rooms and a banner (default true). */

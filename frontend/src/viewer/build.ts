@@ -79,6 +79,8 @@ export interface FloorGeometry {
   buckets: (Vec2 | null)[];
   openings: OpeningInfo[];
   walls2d: Wall[];
+  /** Room pairs joined by "no wall": one space, also for the light. */
+  openRooms: [string, string][];
   /** Fold bucket of each wall in walls2d. */
   wallBuckets: number[];
   /** Triangle ranges of furniture in `walls`, for tapping furniture in 3D. */
@@ -107,7 +109,7 @@ export function buildFloorGeometry(
   /** Solar fields standing in this floor's garden, with their ground. */
   solar: { face: RoofFace; field: SolarField }[] = [],
 ): FloorGeometry {
-  const { walls } = generateWalls(floor.rooms, { exterior: wallExterior, interior: wallInterior }, floor.walls ?? []);
+  const { walls, open: openRooms } = generateWalls(floor.rooms, { exterior: wallExterior, interior: wallInterior }, floor.walls ?? []);
 
   // ---------------------------------------------------------------- floors (with stair holes)
   const floorBuf = new GeoBuffer(true, true);
@@ -230,15 +232,25 @@ export function buildFloorGeometry(
     const ax = unit([wall.b[0] - wall.a[0], wall.b[1] - wall.a[1]]);
     const list = (spans.get(wall) ?? []).sort((p, q) => p.s0 - q.s0);
     const H = wallHeight(wall, floor.height);
-    // pieces along the axis: solid between openings, sill and lintel inside them
+    // pieces along the axis, cut at every opening edge: each piece leaves out all the openings above it
+    // (two windows one above the other, a window over a door), the wall fills what remains
     const pieces: { t0: number; t1: number; ranges: [number, number][] }[] = [];
-    let t = -Infinity;
-    for (const sp of list) {
-      if (sp.s0 > t) pieces.push({ t0: t, t1: sp.s0, ranges: [[-SLAB, H]] });
-      pieces.push({ t0: Math.max(t, sp.s0), t1: sp.s1, ranges: [[-SLAB, sp.sill], [sp.top, H]] });
-      t = Math.max(t, sp.s1);
+    const stops = [-Infinity, ...new Set(list.flatMap((sp) => [sp.s0, sp.s1])).values(), Infinity].sort((a, b) => a - b);
+    for (let i = 0; i + 1 < stops.length; i++) {
+      const t0 = stops[i];
+      const t1 = stops[i + 1];
+      if (t1 - t0 < 1e-6) continue;
+      const mid = Number.isFinite(t0) && Number.isFinite(t1) ? (t0 + t1) / 2 : Number.isFinite(t0) ? t0 + 1 : t1 - 1;
+      const covering = list.filter((sp) => sp.s0 < mid && sp.s1 > mid).map((sp) => [sp.sill, sp.top] as [number, number]).sort((a, b) => a[0] - b[0]);
+      const ranges: [number, number][] = [];
+      let y = -SLAB;
+      for (const [a, b] of covering) {
+        if (a > y + 1e-4) ranges.push([y, a]);
+        y = Math.max(y, b);
+      }
+      if (H > y + 1e-4) ranges.push([y, H]);
+      pieces.push({ t0, t1, ranges });
     }
-    pieces.push({ t0: t, t1: Infinity, ranges: [[-SLAB, H]] });
     for (const piece of pieces) {
       const poly = clipAlong(wall.footprint, wall.a, ax, piece.t0, piece.t1);
       if (poly.length < 3) continue;
@@ -305,6 +317,7 @@ export function buildFloorGeometry(
     buckets,
     openings,
     walls2d: walls,
+    openRooms,
     wallBuckets: walls.map((w) => wallBucket.get(w)!),
     furnitureTris,
   };

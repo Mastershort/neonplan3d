@@ -22,7 +22,7 @@ import {
   isStatusSensor,
 } from "../devices.ts";
 import { alertColor, alertEntities, alertSources, alertText, findAlerts, type Alert, type AlertSources } from "../alerts.ts";
-import { iconPath, iconSvg } from "../icons.ts";
+import { iconPath, iconSvg, mdiIcon } from "../icons.ts";
 import { deviceSensors, energySummary, fetchSolarDay, fieldLevels, fieldPowers, findConsumers, flowColor, flowSegments, gridPoint, powerSensorFor, readPower, solarCurvePath, type Consumer, type EnergySummary, type SolarDay } from "../energy.ts";
 import { fieldFace, fieldSize } from "../solar.ts";
 import { DEFAULT_HOLOGRAM } from "../model.ts";
@@ -472,7 +472,7 @@ export class Fp3dView3d extends LitElement {
       this.furnitureLinks = furnitureEntities(hass, b.floors);
       this.linkedRegistry = hass.entities;
       this.findIndex = null;
-      const links = [...this.openingLinks.values()].flatMap((e) => [e.cover, e.contact, e.tilt, e.contact2 ?? null, e.tilt2 ?? null, e.position ?? null]);
+      const links = [...this.openingLinks.values()].flatMap((e) => [e.cover, e.contact, e.tilt, e.contact2 ?? null, e.tilt2 ?? null, e.position ?? null, e.tiltAngle ?? null]);
       const placed = placedEntities(b);
       const cameraSensors = placed.filter((id) => kindOf(id) === "camera").flatMap((id) => cameraMotionSensors(hass, id));
       const power = placed.map((id) => powerSensorFor(hass, id));
@@ -946,7 +946,7 @@ export class Fp3dView3d extends LitElement {
           x: f.x,
           z: f.z,
           y: markerHeight(f) + mountBase(floor, f),
-          icon: iconSvg(kind ?? "switch"),
+          icon: f.icon ? mdiIcon(f.icon) : iconSvg(kind ?? "switch"),
           name: f.name || (link.entity ? entityName(hass, link.entity) : furnitureName(hass, f.type)),
           text:
             f.type === "home_battery"

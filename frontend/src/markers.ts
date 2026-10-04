@@ -3,7 +3,7 @@
 
 import { defaultHeight, entityName, isActive, isUnavailable, kindOf, lightGlow, tempUnit } from "./devices.ts";
 import { formatNumber, translate, type I18nKey } from "./i18n.ts";
-import { iconSvg } from "./icons.ts";
+import { iconSvg, mdiIcon } from "./icons.ts";
 import type { Building } from "./model.ts";
 import { pointInPolygon } from "./model.ts";
 import type { HassEntity, HomeAssistant } from "./types.ts";
@@ -86,7 +86,8 @@ export function buildMarkers(hass: HomeAssistant, building: Building): DeviceMar
         reach: pl.reach ?? undefined,
         tilt: pl.tilt ?? undefined,
         rotation: pl.rotation ?? 0,
-        icon: iconSvg(kind),
+        icon: pl.icon ? mdiIcon(pl.icon) : iconSvg(kind),
+        cone: kind === "camera" && pl.cone === false ? false : undefined,
         name: entityName(hass, pl.entity_id, areaName),
         text: stateText(hass, st),
         active: isActive(st),

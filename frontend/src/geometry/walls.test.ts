@@ -182,3 +182,21 @@ test("a wall height of 0 leaves the wall out: two rooms share one open space", (
   assert.ok(!open.some((w) => !w.exterior && w.roomLeft && w.roomRight), "no shared wall");
   assert.equal(open.filter((w) => w.exterior).length, closed.filter((w) => w.exterior).length);
 });
+
+test("a split edge can carry one height per part; rooms joined by no wall are reported as open", () => {
+  const room = (id: string, x0: number, z0: number, x1: number, z1: number, wall_heights?: (number | null | (number | null)[])[]) => ({ id, name: id, area_id: null, points: [[x0, z0], [x1, z0], [x1, z1], [x0, z1]] as [number, number][], floor_material: "wood", wall_heights });
+  // room a's edge 1 (x = 4, z 0..6) is split by rooms b (z 0..3) and c (z 3..6): the lower part a parapet
+  const a = room("a", 0, 0, 4, 6, [null, [1.0, null], null, null]);
+  const res = generateWalls([a, room("b", 4, 0, 8, 3), room("c", 4, 3, 8, 6)], { exterior: 0.24, interior: 0.12 });
+  const shared = res.walls.filter((w) => !w.exterior && w.roomLeft && w.roomRight);
+  assert.equal(shared.length, 3, "a-b, a-c and b-c");
+  const ab = shared.find((w) => [w.roomLeft, w.roomRight].includes("b") && [w.roomLeft, w.roomRight].includes("a"))!;
+  const ac = shared.find((w) => [w.roomLeft, w.roomRight].includes("c") && [w.roomLeft, w.roomRight].includes("a"))!;
+  assert.equal(ab.height, 1.0);
+  assert.equal(ac.height, undefined);
+  assert.deepEqual(res.open, []);
+  // no wall between a and c: reported as open, the a-b wall stays
+  const open = generateWalls([room("a", 0, 0, 4, 6, [null, [null, 0], null, null]), room("b", 4, 0, 8, 3), room("c", 4, 3, 8, 6)], { exterior: 0.24, interior: 0.12 });
+  assert.deepEqual(open.open, [["a", "c"]]);
+  assert.ok(open.walls.some((w) => !w.exterior && [w.roomLeft, w.roomRight].includes("b") && [w.roomLeft, w.roomRight].includes("a")));
+});

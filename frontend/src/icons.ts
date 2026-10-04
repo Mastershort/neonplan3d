@@ -21,6 +21,12 @@ export function iconPath(kind: DeviceKind): string {
   return ICONS[kind];
 }
 
+/** Markup for an own symbol: Home Assistant's icon element with a Material Design icon name. */
+export function mdiIcon(name: string): string {
+  const clean = name.replace(/^mdi:/, "").replace(/[^a-z0-9-]/gi, "");
+  return `<ha-icon icon="mdi:${clean}" style="--mdc-icon-size:18px"></ha-icon>`;
+}
+
 /** Markup for an inline SVG icon (static strings only). */
 export function iconSvg(kind: DeviceKind): string {
   return `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${ICONS[kind]}"/></svg>`;

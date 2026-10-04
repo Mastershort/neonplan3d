@@ -467,6 +467,11 @@ export interface OpeningEntities {
   /** A sensor with the blind's position while it moves (0–100 % or 0–1, open = high). */
   position?: string | null;
   positionInverted?: boolean;
+  /** A sensor with the sash's tilt angle (degrees), with the angle that counts as fully tilted, an offset and the sign. */
+  tiltAngle?: string | null;
+  tiltMax?: number | null;
+  tiltOffset?: number | null;
+  tiltInvert?: boolean;
 }
 
 /** Pairs openings with entities in order; with `shared`, a single entity serves all openings. */
@@ -515,6 +520,10 @@ export function openingEntities(hass: HomeAssistant, floors: readonly Floor[]): 
           tilt2: o.leaves === 2 && o.tilt2 && o.tilt2 !== "none" ? o.tilt2 : null,
           position: o.position && o.position !== "none" ? o.position : null,
           positionInverted: !!o.position_inverted,
+          tiltAngle: o.tilt_angle && o.tilt_angle !== "none" ? o.tilt_angle : null,
+          tiltMax: o.tilt_max ?? null,
+          tiltOffset: o.tilt_offset ?? null,
+          tiltInvert: !!o.tilt_invert,
         });
       }
     }
@@ -567,7 +576,16 @@ export function openingState(
     return { open: p === null ? DOOR_DEFAULT_OPEN : p === "closed" ? 0 : 1, open2: pos(e.contact2) === "open" ? 1 : 0, tilt: 0, tilt2: 0, cover: null, sensed: p !== null };
   }
   // a separate tilt sensor, or a handle sensor that reports "tilted" itself
-  const tilted = on(e.tilt) || pos(e.tilt) === "tilted" || pos(e.contact) === "tilted";
+  let tilted = on(e.tilt) || pos(e.tilt) === "tilted" || pos(e.contact) === "tilted";
+  // a tilt angle sensor tilts the sash as far as it reports (a share of the angle that counts as fully tilted)
+  let tiltFrac = tilted ? 1 : 0;
+  const angleRaw = e.tiltAngle ? Number(hass.states[e.tiltAngle]?.state) : NaN;
+  if (Number.isFinite(angleRaw)) {
+    const angle = (angleRaw - (e.tiltOffset ?? 0)) * (e.tiltInvert ? -1 : 1);
+    tiltFrac = Math.min(1, Math.max(0, angle / (e.tiltMax || 15)));
+    if (tiltFrac < 0.08) tiltFrac = 0;
+    tilted = tiltFrac > 0;
+  }
   const open = pos(e.contact) === "open" && !tilted ? 1 : 0;
   let cover: number | null = null;
   const c = e.cover ? hass.states[e.cover] : undefined;
@@ -584,7 +602,7 @@ export function openingState(
     if (cover === null) cover = known(e.contact) ? (on(e.contact) ? 0 : 1) : 1;
     return { open: 0, open2: 0, tilt: 0, tilt2: 0, cover, sensed };
   }
-  return { open, open2, tilt: tilted ? 1 : 0, tilt2: tilted2 ? 1 : 0, cover, sensed: known(e.contact) || known(e.tilt) };
+  return { open, open2, tilt: tiltFrac, tilt2: tilted2 ? 1 : 0, cover, sensed: known(e.contact) || known(e.tilt) || Number.isFinite(angleRaw) };
 }
 
 /**

@@ -187,7 +187,18 @@ export class Floorplan3dCardEditor extends LitElement {
           : nothing}
       </div>
       <p class="hint">${this.t("card_idle_hint")}</p>
-      ${this.toggle("idle_orbit", "card_idle_orbit", "card_idle_orbit_hint")}`;
+      ${this.toggle("idle_orbit", "card_idle_orbit", "card_idle_orbit_hint")}
+      <div class="grid">
+        <label class="field wide"
+          >${this.t("card_dashboard")}
+          <input type="text" placeholder="/lovelace/home" .value=${v.dashboard ?? ""} @change=${(e: Event) => this.set("dashboard", (e.target as HTMLInputElement).value.trim() || undefined)} />
+        </label>
+        <label class="field wide"
+          >${this.t("card_dashboard_label")}
+          <input type="text" .value=${v.dashboard_label ?? ""} @change=${(e: Event) => this.set("dashboard_label", (e.target as HTMLInputElement).value.trim() || undefined)} />
+        </label>
+      </div>
+      <p class="hint">${this.t("card_dashboard_hint")}</p>`;
   }
 
   /** Warnings, scenes and the Pro add-ons (motion trail, weather with its entity). */

@@ -1,6 +1,7 @@
 // 2D editor: floors, rooms (rectangles and free shapes), snapping, undo, background template.
 
 import { css, html, LitElement, nothing, svg, type PropertyValues, type TemplateResult } from "lit";
+import { unsafeHTML } from "lit/directives/unsafe-html.js";
 import { fetchImage, listHistory, restoreSnapshot, storeImage, takeSnapshot, type Snapshot } from "../api.ts";
 import { download, exportFile, parseExport } from "../transfer.ts";
 import { areaEntities, autoPlace, CLIMATE_CLASSES, defaultHeight, entityName, entityAreaId, furnitureEntities, groupByDevice, hasScreen, isMediaFurniture, isPlaceable, isRoomClimateSensor, kindOf, openingEntities, otherAreaEntities, pictureRuleMatches, roomClimateSensors, unassignedEntities, windowPosition, type ClimateKey } from "../devices.ts";
@@ -3797,9 +3798,35 @@ export class Fp3dEditor extends LitElement {
   }
 
   /** Sets the height of one edge of a room, and of every wall piece shared with it. */
-  private setEdgeHeight(room: Room, edge: number, height: number | null): void {
+  /** The parts another room splits an edge into (start distances along the edge), in order; one part when whole. */
+  private edgeParts(room: Room, edge: number): number[] {
+    const floor = this.floor;
+    if (!floor) return [0];
+    const walls = generateWalls(floor.rooms, { exterior: this._doc.settings.wall_exterior, interior: this._doc.settings.wall_interior }, floor.walls ?? []).walls;
+    const starts = walls.flatMap((w) => w.sources.filter((s) => s.room_id === room.id && s.edge === edge).map((s) => s.t0));
+    return starts.length ? [...new Set(starts)].sort((a, b) => a - b) : [0];
+  }
+
+  /** Set a wall height on a room edge (and on the rooms sharing it), or on one part of a split edge only. */
+  private setEdgeHeight(room: Room, edge: number, height: number | null, part?: number): void {
     const floor = this.floor;
     if (!floor || !this.isAdmin) return;
+    if (part !== undefined) {
+      const n = this.edgeParts(room, edge).length;
+      this.change((_, f) => {
+        const r = f.rooms.find((x) => x.id === room.id);
+        if (!r) return;
+        const list = (r.wall_heights ?? []).slice(0, r.points.length);
+        while (list.length < r.points.length) list.push(null);
+        const cur = list[edge];
+        const parts: (number | null)[] = Array.isArray(cur) ? [...cur] : new Array<number | null>(n).fill(typeof cur === "number" ? cur : null);
+        while (parts.length < n) parts.push(null);
+        parts[part] = height;
+        list[edge] = parts.every((h) => h === parts[0]) ? parts[0] : parts;
+        r.wall_heights = list.every((h) => h === null) ? undefined : list;
+      });
+      return;
+    }
     const walls = generateWalls(floor.rooms, { exterior: this._doc.settings.wall_exterior, interior: this._doc.settings.wall_interior }, floor.walls ?? []).walls;
     const sources = walls.filter((w) => w.sources.some((s) => s.room_id === room.id && s.edge === edge)).flatMap((w) => w.sources);
     if (!sources.some((s) => s.room_id === room.id && s.edge === edge)) sources.push({ room_id: room.id, edge, t0: 0, t1: 0 });
@@ -3821,30 +3848,38 @@ export class Fp3dEditor extends LitElement {
     const n = room.points.length;
     return html`<div class="fp3d-edge-box">
       <h4>${this.t("wall_heights")}</h4>
-      ${room.points.map((a, i) => {
+      ${room.points.flatMap((a, i) => {
         const b = room.points[(i + 1) % n];
         const len = Math.hypot(b[0] - a[0], b[1] - a[1]);
-        const h = room.wall_heights?.[i] ?? null;
+        const entry = room.wall_heights?.[i] ?? null;
         const on = () => (this._edgeHi = i);
         const off = () => (this._edgeHi = null);
-        return html`<div
-          class="fp3d-edge-height${i === this._edgeHi ? " fp3d-edge-on" : ""}${h !== null ? " fp3d-edge-low" : ""}"
-          @mouseenter=${on}
-          @mouseleave=${off}
-          @focusin=${on}
-          @focusout=${off}
-        >
-          <span><b>${this.t("wall_n", { a: i + 1, b: ((i + 1) % n) + 1 })}</b><br /><span class="fp3d-muted">${formatNumber(this.hass, len, 2)} m</span></span>
-          ${h === 0
-            ? html`<span class="fp3d-muted">${this.t("wall_none")}</span>`
-            : this.num(this.t("wall_height"), h ?? H, (v) => this.setEdgeHeight(room, i, v >= H - 0.005 ? null : Math.max(0.05, v)), 0.05, 0.05)}
-          ${this.isAdmin && h !== null
-            ? html`<button class="fp3d-btn" title=${this.t("wall_height_full")} @click=${() => this.setEdgeHeight(room, i, null)}>↥</button>`
-            : nothing}
-          ${this.isAdmin && h !== 0
-            ? html`<button class="fp3d-btn" title=${this.t("wall_none_hint")} @click=${() => this.setEdgeHeight(room, i, 0)}>${this.t("wall_none")}</button>`
-            : nothing}
-        </div>`;
+        // an edge another room splits: one row per part, each with its own height (#77)
+        const starts = this.edgeParts(room, i);
+        const parts = starts.length > 1 ? starts.map((_, k) => k) : [undefined];
+        return parts.map((part) => {
+          const h = part === undefined ? (Array.isArray(entry) ? (entry[0] ?? null) : entry) : Array.isArray(entry) ? (entry[part] ?? null) : entry;
+          const partLen = part === undefined ? len : (starts[part + 1] ?? len) - starts[part];
+          const set = (v: number | null) => this.setEdgeHeight(room, i, v, part);
+          return html`<div
+            class="fp3d-edge-height${i === this._edgeHi ? " fp3d-edge-on" : ""}${h !== null ? " fp3d-edge-low" : ""}"
+            @mouseenter=${on}
+            @mouseleave=${off}
+            @focusin=${on}
+            @focusout=${off}
+          >
+            <span
+              ><b>${this.t("wall_n", { a: i + 1, b: ((i + 1) % n) + 1 })}${part === undefined ? "" : ` · ${this.t("wall_part", { n: part + 1 })}`}</b><br /><span class="fp3d-muted"
+                >${formatNumber(this.hass, partLen, 2)} m</span
+              ></span
+            >
+            ${h === 0
+              ? html`<span class="fp3d-muted">${this.t("wall_none")}</span>`
+              : this.num(this.t("wall_height"), h ?? H, (v) => set(v >= H - 0.005 ? null : Math.max(0.05, v)), 0.05, 0.05)}
+            ${this.isAdmin && h !== null ? html`<button class="fp3d-btn" title=${this.t("wall_height_full")} @click=${() => set(null)}>↥</button>` : nothing}
+            ${this.isAdmin && h !== 0 ? html`<button class="fp3d-btn" title=${this.t("wall_none_hint")} @click=${() => set(0)}>${this.t("wall_none")}</button>` : nothing}
+          </div>`;
+        });
       })}
       <p class="fp3d-sub">${this.t("room_wall_hint")}</p>
     </div>`;
@@ -4579,6 +4614,18 @@ export class Fp3dEditor extends LitElement {
     </div>`;
   }
 
+  /** An own symbol for the marker (a Material Design icon name), with a preview. */
+  private iconInput(value: string | null | undefined, onChange: (v: string | null) => void) {
+    const name = value ? (value.startsWith("mdi:") ? value : `mdi:${value}`) : "";
+    return html`<label class="fp3d-field fp3d-wide" title=${this.t("marker_icon_hint")}
+      >${this.t("marker_icon")}
+      <span class="fp3d-icon-row">
+        <input type="text" placeholder="mdi:thermometer" .value=${value ?? ""} ?disabled=${!this.isAdmin} @change=${(e: Event) => onChange((e.target as HTMLInputElement).value.trim().replace(/^mdi:/, "") || null)} />
+        ${name ? unsafeHTML(`<ha-icon icon="${name.replace(/[^a-z0-9:-]/gi, "")}"></ha-icon>`) : nothing}
+      </span></label
+    >`;
+  }
+
   /** How the marker of a device or furniture item shows in 3D. */
   private markerSelect(value: MarkerShow | null, onChange: (v: MarkerShow | null) => void) {
     return html`<label class="fp3d-field fp3d-wide" title=${this.t("marker_show_hint")}
@@ -4681,6 +4728,7 @@ export class Fp3dEditor extends LitElement {
       const tilt = main ? o.tilt : (o.tilt2 ?? null);
       const contact = main ? o.contact : o.contact2;
       const kind: Kind = (main ? o.sensor : o.sensor2) ?? (tilt && tilt !== "none" ? "contact_tilt" : "contact");
+      const door = o.type === "door";
       const setContact = (v: string | null) => this.updateOpening(main ? { contact: v } : { contact2: v === "none" ? null : v });
       return html`<label class="fp3d-field fp3d-wide"
           >${this.t("sensor_kind")}
@@ -4700,6 +4748,17 @@ export class Fp3dEditor extends LitElement {
           : this.entitySelect(this.t("contact_entity"), contact, main ? autoPick("contact") : undefined, plainContacts, setContact)}
         ${kind === "contact_tilt"
           ? this.entitySelect(this.t("tilt_entity"), tilt, undefined, contacts, (v) => this.updateOpening(main ? { tilt: v === "none" ? null : v } : { tilt2: v === "none" ? null : v }))
+          : nothing}
+        ${main && !door
+          ? html`${this.entitySelect(this.t("tilt_angle_entity"), o.tilt_angle ?? null, undefined, this.entityOptions((id) => id.startsWith("sensor.")), (v) => this.updateOpening({ tilt_angle: v === "none" ? null : v }))}
+            ${o.tilt_angle && o.tilt_angle !== "none"
+              ? html`${this.num(this.t("tilt_angle_max"), o.tilt_max ?? 15, (v) => this.updateOpening({ tilt_max: Math.min(90, Math.max(1, v)) }), 1, 1)}
+                ${this.num(this.t("tilt_angle_offset"), o.tilt_offset ?? 0, (v) => this.updateOpening({ tilt_offset: v }), 0.5)}
+                <label class="fp3d-check fp3d-wide"
+                  ><input type="checkbox" .checked=${!!o.tilt_invert} ?disabled=${!admin} @change=${(ev: Event) => this.updateOpening({ tilt_invert: (ev.target as HTMLInputElement).checked })} />
+                  ${this.t("tilt_angle_invert")}</label
+                >`
+              : nothing}`
           : nothing}`;
     };
     const preset = openingPreset(o);
@@ -5050,7 +5109,7 @@ export class Fp3dEditor extends LitElement {
             ><input type="checkbox" .checked=${!!f.confirm} ?disabled=${!this.isAdmin} @change=${(ev: Event) => this.updateFurniture({ confirm: (ev.target as HTMLInputElement).checked })} />
             ${this.t("device_confirm")}</label
           >
-          <div class="fp3d-form">${this.markerSelect(f.marker ?? null, (v) => this.updateFurniture({ marker: v }))}</div>`
+          <div class="fp3d-form">${this.markerSelect(f.marker ?? null, (v) => this.updateFurniture({ marker: v }))}${this.iconInput(f.icon, (v) => this.updateFurniture({ icon: v }))}</div>`
         : nothing}
       ${f.type === "robot_vacuum"
         ? html`<div class="fp3d-form fp3d-links">
@@ -5458,6 +5517,10 @@ export class Fp3dEditor extends LitElement {
           ? html`${this.num(this.t("camera_fov"), pl.fov ?? (pl.mount === "ceiling" ? 360 : 90), (v) => this.updateDevice({ fov: Math.min(360, Math.max(10, v)) }), 5, 10)}
             ${this.num(this.t("camera_reach"), pl.reach ?? (pl.mount === "ceiling" ? 3 : 4.5), (v) => this.updateDevice({ reach: Math.min(50, Math.max(0.5, v)) }), 0.5, 0.5)}
             ${this.num(this.t("camera_tilt"), pl.tilt ?? (pl.mount === "ceiling" ? 65 : 20), (v) => this.updateDevice({ tilt: Math.min(90, Math.max(0, v)) }), 5, 0)}
+            <label class="fp3d-check fp3d-wide"
+              ><input type="checkbox" .checked=${pl.cone !== false} ?disabled=${!admin} @change=${(ev: Event) => this.updateDevice({ cone: (ev.target as HTMLInputElement).checked ? null : false })} />
+              ${this.t("camera_cone")}</label
+            >
             <p class="fp3d-sub fp3d-wide">${this.t("camera_aim_hint")}</p>`
           : nothing}
         ${kind && TOGGLE_KINDS.has(kind)
@@ -5467,6 +5530,7 @@ export class Fp3dEditor extends LitElement {
             >`
           : nothing}
         ${this.markerSelect(pl.marker ?? null, (v) => this.updateDevice({ marker: v }))}
+        ${this.iconInput(pl.icon, (v) => this.updateDevice({ icon: v }))}
       </div>
       ${admin
         ? html`<div class="fp3d-actions">
@@ -6931,9 +6995,28 @@ export class Fp3dEditor extends LitElement {
         padding: 10px;
         border-radius: 12px;
         background: rgba(127, 127, 127, 0.1);
+        max-width: 100%;
+        box-sizing: border-box;
+      }
+      .fp3d-icon-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .fp3d-icon-row input {
+        flex: 1;
+        min-width: 0;
+      }
+      .fp3d-icon-row ha-icon {
+        --mdc-icon-size: 22px;
+        color: var(--fp3d-accent);
       }
       .fp3d-floor-menu .fp3d-btn {
         text-align: left;
+        width: 100%;
+        min-width: 0;
+        white-space: normal;
+        overflow-wrap: anywhere;
       }
       .fp3d-rotate line {
         stroke: var(--fp3d-accent);

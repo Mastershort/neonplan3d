@@ -50,6 +50,8 @@ export interface WallResult {
   walls: Wall[];
   /** Room pairs that overlap along an edge in the same direction (rooms drawn on top of each other). */
   warnings: string[];
+  /** Room pairs whose shared wall is left out ("no wall"): they form one space, also for the light. */
+  open: [string, string][];
 }
 
 interface Segment {
@@ -165,15 +167,26 @@ export function generateWalls(rooms: readonly Room[], options: WallOptions, free
     g.push(s);
   }
   const src = (s: Segment): WallSource => ({ room_id: s.room, edge: s.edge, t0: s.t0, t1: s.t1 });
+  // the height set on a segment's edge; a split edge may carry one height per part (in order along the edge)
+  const partsOf = new Map<string, number[]>();
+  for (const s of segments) {
+    const key = `${s.room}:${s.edge}`;
+    partsOf.set(key, [...(partsOf.get(key) ?? []), s.t0].sort((a, b) => a - b));
+  }
+  const heightSet = (s: Segment): number | null | undefined => {
+    const h = rooms.find((r) => r.id === s.room)?.wall_heights?.[s.edge];
+    if (!Array.isArray(h)) return h;
+    const parts = partsOf.get(`${s.room}:${s.edge}`) ?? [];
+    return h[parts.indexOf(s.t0)] ?? null;
+  };
   // a wall's own height: the lowest one set on its room edges (shared walls take the lower setting)
   const heightOf = (list: Segment[]): number | undefined => {
-    const hs = list
-      .map((s) => rooms.find((r) => r.id === s.room)?.wall_heights?.[s.edge])
-      .filter((h): h is number => typeof h === "number" && h > 0);
+    const hs = list.map(heightSet).filter((h): h is number => typeof h === "number" && h > 0);
     return hs.length ? Math.min(...hs) : undefined;
   };
   // a height of 0 on an edge: no wall there at all (an open floor plan whose rooms share one space)
-  const noWall = (list: Segment[]): boolean => list.some((s) => rooms.find((r) => r.id === s.room)?.wall_heights?.[s.edge] === 0);
+  const noWall = (list: Segment[]): boolean => list.some((s) => heightSet(s) === 0);
+  const open: [string, string][] = [];
   let drafts: Draft[] = [];
   for (const g of groups.values()) {
     const first = g[0];
@@ -181,7 +194,10 @@ export function generateWalls(rooms: readonly Room[], options: WallOptions, free
     for (const s of g) {
       if (s !== first && s !== partner && s.room !== first.room) warnings.push(`overlap:${first.room}:${s.room}`);
     }
-    if (noWall(partner ? [first, partner] : [first])) continue;
+    if (noWall(partner ? [first, partner] : [first])) {
+      if (partner) open.push([first.room, partner.room]);
+      continue;
+    }
     if (partner) {
       drafts.push({
         a: first.u,
@@ -247,7 +263,7 @@ export function generateWalls(rooms: readonly Room[], options: WallOptions, free
       ...(w.height !== undefined ? { height: w.height } : {}),
     };
   });
-  return { walls, warnings: [...new Set(warnings)] };
+  return { walls, warnings: [...new Set(warnings)], open };
 }
 
 function wallId(a: Vec2, b: Vec2): string {

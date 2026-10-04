@@ -122,10 +122,10 @@ test("doors and windows get blinds and contacts of their room's area, or the one
   };
   const links = openingEntities(hass, [floor]);
   // the only blind of the area serves every window without its own choice; sensors go one per window
-  assert.deepEqual(links.get("w1"), { cover: "cover.rollo", contact: "binary_sensor.f1", tilt: null, contact2: null, tilt2: null, position: null, positionInverted: false });
-  assert.deepEqual(links.get("w2"), { cover: "cover.rollo", contact: "binary_sensor.f2", tilt: null, contact2: null, tilt2: null, position: null, positionInverted: false });
-  assert.deepEqual(links.get("w3"), { cover: null, contact: "binary_sensor.tuer", tilt: null, contact2: null, tilt2: null, position: null, positionInverted: false });
-  assert.deepEqual(links.get("d"), { cover: null, contact: "binary_sensor.tuer", tilt: null, contact2: null, tilt2: null, position: null, positionInverted: false });
+  assert.deepEqual(links.get("w1"), { cover: "cover.rollo", contact: "binary_sensor.f1", tilt: null, contact2: null, tilt2: null, position: null, positionInverted: false, tiltAngle: null, tiltMax: null, tiltOffset: null, tiltInvert: false });
+  assert.deepEqual(links.get("w2"), { cover: "cover.rollo", contact: "binary_sensor.f2", tilt: null, contact2: null, tilt2: null, position: null, positionInverted: false, tiltAngle: null, tiltMax: null, tiltOffset: null, tiltInvert: false });
+  assert.deepEqual(links.get("w3"), { cover: null, contact: "binary_sensor.tuer", tilt: null, contact2: null, tilt2: null, position: null, positionInverted: false, tiltAngle: null, tiltMax: null, tiltOffset: null, tiltInvert: false });
+  assert.deepEqual(links.get("d"), { cover: null, contact: "binary_sensor.tuer", tilt: null, contact2: null, tilt2: null, position: null, positionInverted: false, tiltAngle: null, tiltMax: null, tiltOffset: null, tiltInvert: false });
 });
 
 test("a position sensor drives the blind live, as a percentage or a fraction", () => {
@@ -479,4 +479,18 @@ test("an entity without a registry entry (a USB camera from YAML) is offered as 
   assert.ok(ids.includes("camera.usb_kamera_1"));
   assert.ok(ids.includes("light.a"));
   assert.ok(!ids.includes("sun.sun"));
+});
+
+test("a tilt angle sensor tilts the sash as far as it reports, with max, offset and sign", () => {
+  const hass = { states: { "sensor.angle": { entity_id: "sensor.angle", state: "7.5", attributes: {} } } } as unknown as HomeAssistant;
+  const base = { cover: null, contact: null, tilt: null, tiltAngle: "sensor.angle" };
+  assert.equal(openingState(hass, { ...base, tiltMax: 15 }, "window").tilt, 0.5);
+  // an offset the sensor reports while closed, and the other sign
+  assert.equal(openingState(hass, { ...base, tiltMax: 10, tiltOffset: 2.5 }, "window").tilt, 0.5);
+  assert.equal(openingState(hass, { ...base, tiltMax: 15, tiltInvert: true }, "window").tilt, 0);
+  // below a small threshold the window counts as closed; the angle makes the state "sensed"
+  hass.states["sensor.angle"] = { entity_id: "sensor.angle", state: "0.5", attributes: {} };
+  const s = openingState(hass, { ...base, tiltMax: 15 }, "window");
+  assert.equal(s.tilt, 0);
+  assert.equal(s.sensed, true);
 });

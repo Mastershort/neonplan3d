@@ -83,6 +83,12 @@ export class Floorplan3dCard extends LitElement {
     if (this._config?.idle_orbit) this._orbit = true;
   }
 
+  /** Opens another dashboard or view the way Home Assistant's own links do (no page reload). */
+  private openDashboard(path: string): void {
+    history.pushState(null, "", path);
+    window.dispatchEvent(new CustomEvent("location-changed", { bubbles: true, composed: true, detail: { replace: false } }));
+  }
+
   private readonly onFullscreen = () => (this._fullscreen = !!document.fullscreenElement && this.shadowRoot?.contains(document.fullscreenElement) === true);
 
   connectedCallback(): void {
@@ -273,6 +279,11 @@ export class Floorplan3dCard extends LitElement {
               ${this._fullscreen ? "✕" : "⛶"}
             </button>`
           : nothing}
+        ${c?.dashboard && !(this._roomId && c.room_panel !== false)
+          ? html`<button class="fp3d-card-full fp3d-card-dash ${c.fullscreen_button ? "fp3d-card-dash-2" : ""}" title=${c.dashboard_label || c.dashboard} aria-label=${c.dashboard_label || c.dashboard} @click=${() => this.openDashboard(c.dashboard!)}>
+              ${c.dashboard_label ? html`<span>${c.dashboard_label}</span>` : "⌂"}
+            </button>`
+          : nothing}
       </div>
     </ha-card>`;
   }
@@ -294,6 +305,16 @@ export class Floorplan3dCard extends LitElement {
       }
       .fp3d-card-controls > * {
         pointer-events: auto;
+      }
+      .fp3d-card-dash {
+        width: auto;
+        min-width: 38px;
+        padding: 0 12px;
+        font-size: 14px;
+        font-weight: 600;
+      }
+      .fp3d-card-dash-2 {
+        right: 56px;
       }
       .fp3d-card-full {
         position: absolute;

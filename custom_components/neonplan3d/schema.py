@@ -41,9 +41,17 @@ ROOM_SCHEMA = vol.Schema(
         vol.Required("floor_material"): vol.All(str, vol.Length(max=32)),
         # entities shown in the room's panel although they are not in the plan
         vol.Optional("panel", default=list): vol.All([vol.All(str, vol.Length(max=255))], vol.Length(max=100)),
-        # height of the wall on each edge (None = full floor height, 0 = no wall), aligned with the points
+        # height of the wall on each edge (None = full floor height, 0 = no wall), aligned with the points;
+        # a split edge may carry one height per part instead
         vol.Optional("wall_heights"): vol.All(
-            [vol.Any(None, vol.All(vol.Coerce(float), vol.Range(min=0, max=20)))], vol.Length(max=MAX_POINTS)
+            [
+                vol.Any(
+                    None,
+                    vol.All(vol.Coerce(float), vol.Range(min=0, max=20)),
+                    vol.All([vol.Any(None, vol.All(vol.Coerce(float), vol.Range(min=0, max=20)))], vol.Length(max=32)),
+                )
+            ],
+            vol.Length(max=MAX_POINTS),
         ),
     },
     extra=vol.ALLOW_EXTRA,
@@ -84,6 +92,14 @@ OPENING_SCHEMA = vol.Schema(
         vol.Optional("position", default=None): vol.Any(None, vol.All(str, vol.Length(max=255))),
         # the position sensor counts the other way round (0 = open)
         vol.Optional("position_inverted", default=False): bool,
+        # windows: a sensor with the sash's tilt angle (degrees), the angle that counts as fully tilted,
+        # an offset the sensor reports when closed, and the other sign
+        vol.Optional("tilt_angle", default=None): _ENTITY_REF,
+        vol.Optional("tilt_max", default=None): vol.Any(None, vol.All(vol.Coerce(float), vol.Range(min=1, max=90))),
+        vol.Optional("tilt_offset", default=None): vol.Any(
+            None, vol.All(vol.Coerce(float), vol.Range(min=-360, max=360))
+        ),
+        vol.Optional("tilt_invert", default=False): bool,
         # highlight in 3D while open (None) or while closed ("closed": a WC or a child's room door)
         vol.Optional("mark", default=None): vol.Any(None, vol.In(["closed"])),
         # ask before moving the blind or garage door (no moving by a swipe then)
@@ -140,6 +156,8 @@ FURNITURE_SCHEMA = vol.Schema(
         vol.Optional("confirm", default=False): bool,
         # its marker in 3D: None = automatic, always, without watts, or hidden
         vol.Optional("marker", default=None): vol.Any(None, vol.In(["always", "no_power", "never"])),
+        # an own symbol for the marker: a Material Design icon name without "mdi:"
+        vol.Optional("icon", default=None): vol.Any(None, vol.All(str, vol.Length(max=64))),
         # parking spots: the vehicle shown (a pack item type) while the entity reports a car, its size
         # factor, and a sensor naming the kind of vehicle with a state -> vehicle mapping
         # height of the bottom edge above the floor (None = default: the floor, a pack item's mount)
@@ -175,6 +193,10 @@ PLACEMENT_SCHEMA = vol.Schema(
         vol.Optional("confirm", default=False): bool,
         # its marker in 3D: None = automatic, always, without watts, or hidden
         vol.Optional("marker", default=None): vol.Any(None, vol.In(["always", "no_power", "never"])),
+        # an own symbol for the marker: a Material Design icon name without "mdi:"
+        vol.Optional("icon", default=None): vol.Any(None, vol.All(str, vol.Length(max=64))),
+        # cameras: show the field-of-view wedge on the floor (None = yes)
+        vol.Optional("cone", default=None): vol.Any(None, bool),
         # fixed against moving by accident
         vol.Optional("locked", default=None): vol.Any(None, bool),
     },

@@ -118,6 +118,8 @@ export interface DeviceMarker {
   text: string;
   active: boolean;
   unavailable: boolean;
+  /** Cameras: no field-of-view wedge on the floor (false); default on. */
+  cone?: boolean;
   /** Light cone on the floor for lights that are on. */
   glow: { color: [number, number, number]; level: number } | null;
   /** Power drawn (W) when the device reports it. */
@@ -322,6 +324,8 @@ interface FloorView {
   /** Room lighting on floors and wall faces (see lighting.ts). */
   glowMesh: Mesh;
   lightSurface: LightSurface | null;
+  /** Light zone per room index (rooms joined by "no wall" share one); null when every room is its own. */
+  lightZones: number[] | null;
   framesMesh: Mesh;
   glassMesh: Mesh;
   blindsMesh: Mesh;
@@ -1289,6 +1293,19 @@ export class FloorplanViewer {
   private buildLightSurface(fv: FloorView): void {
     const cell = this.lowQuality ? 0.5 : 0.25;
     const surface = buildLightSurface(fv.floor, fv.geo.walls2d, fv.geo.wallBuckets, fv.geo.openings, cell, fv.geo.holes);
+    // rooms joined by "no wall" form one zone: a lamp lights the open neighbour as if it stood in the same room
+    const zones = lightZonesOf(fv.floor, fv.geo.openRooms);
+    fv.lightZones = zones.some((z, i) => z !== i) ? zones : null;
+    if (fv.lightZones) {
+      for (let i = 0; i < surface.room.length; i++) {
+        const r = surface.room[i];
+        if (r >= 0 && r < zones.length) surface.room[i] = zones[r];
+      }
+      for (const door of surface.doors) {
+        if (door.a >= 0 && door.a < zones.length) door.a = zones[door.a];
+        if (door.b >= 0 && door.b < zones.length) door.b = zones[door.b];
+      }
+    }
     fv.lightSurface = surface;
     const g = new Geometry();
     g.setAttribute("position", new Float32BufferAttribute(surface.pos, 3));
@@ -1313,7 +1330,8 @@ export class FloorplanViewer {
     for (const d of this.devices) {
       const glow = this.glowOf(d);
       if (d.floorId !== fv.floor.id || !glow) continue;
-      const room = roomIndexAt(fv.floor, d.x, d.z);
+      const ri = roomIndexAt(fv.floor, d.x, d.z);
+      const room = ri >= 0 && fv.lightZones ? fv.lightZones[ri] : ri;
       const [w, , h] = d.size ?? (d.lamp ? LAMP_SIZE[d.lamp] : [0.3, 0.3, 0.3]);
       const base = d.base ?? 0;
       const kinds: Record<LampModel, [number, LightKind]> = {
@@ -1581,6 +1599,7 @@ export class FloorplanViewer {
         patternMesh: pattern,
         glowMesh,
         lightSurface: null,
+        lightZones: null,
         framesMesh,
         glassMesh,
         blindsMesh,
@@ -2061,6 +2080,7 @@ export class FloorplanViewer {
     for (const d of this.devices) {
       if (d.model && d.floorId === fv.floor.id) {
         if (d.model === "camera_ceiling" && this.wallMode === "cut") continue;
+        if (d.cone === false) continue;
         // the camera's field of view on the floor: a faint wedge, red while it sees motion
         const a = (d.rotation ?? 0) * DEG;
         const dir: [number, number] = [-Math.sin(a), Math.cos(a)];
@@ -2071,7 +2091,27 @@ export class FloorplanViewer {
         const far = new Color(0, 0, 0);
         const n = Math.max(4, Math.round(half / 0.15));
         const y = 0.015;
-        const rim = (t: number) => [d.x + (dir[0] * Math.cos(t) - dir[1] * Math.sin(t)) * reach, y, d.z + (dir[1] * Math.cos(t) + dir[0] * Math.sin(t)) * reach];
+        // the wedge ends at the first wall in each direction: a camera does not see through walls
+        const walls = fv.geo.walls2d;
+        const reachAt = (t: number): number => {
+          const rx = dir[0] * Math.cos(t) - dir[1] * Math.sin(t);
+          const rz = dir[1] * Math.cos(t) + dir[0] * Math.sin(t);
+          let best = reach;
+          for (const w of walls) {
+            const ex = w.b[0] - w.a[0];
+            const ez = w.b[1] - w.a[1];
+            const den = rx * ez - rz * ex;
+            if (Math.abs(den) < 1e-9) continue;
+            const s = ((w.a[0] - d.x) * ez - (w.a[1] - d.z) * ex) / den;
+            const u = ((w.a[0] - d.x) * rz - (w.a[1] - d.z) * rx) / den;
+            if (s > 0.15 && s < best && u >= 0 && u <= 1) best = s;
+          }
+          return best;
+        };
+        const rim = (t: number) => {
+          const r = reachAt(t);
+          return [d.x + (dir[0] * Math.cos(t) - dir[1] * Math.sin(t)) * r, y, d.z + (dir[1] * Math.cos(t) + dir[0] * Math.sin(t)) * r];
+        };
         const start = cones.count;
         for (let i = 0; i < n; i++) cones.tri([d.x, y, d.z], rim(-half + (2 * half * (i + 1)) / n), rim(-half + (2 * half * i) / n), near, far, far);
         coneTris.push({ id: d.id, start, end: cones.count });
@@ -2389,10 +2429,12 @@ export class FloorplanViewer {
     this.controls.maxRadius = Math.max(40, radius * 3);
     center.y = box.min.y + size.y * (this.houseView ? 0.45 : 0.3);
     if (this.floorId === null) this.houseRadius = radius;
-    // the house view opens as set up (from the garden side, closer …); floors and rooms keep the fitted view
-    const start = this.floorId === null ? this.startView : null;
-    if (start) this.controls.maxRadius = Math.max(this.controls.maxRadius, start.radius * 1.5);
-    this.controls.flyTo(start ? { target: center, radius: start.radius, phi: start.phi, theta: start.theta } : { target: center, radius, phi: 0.85, theta: -0.6 }, duration);
+    // the house view opens as set up (from the garden side, closer …); an opened floor keeps the fitted
+    // distance but looks from the same side, so the house never turns round when a floor is opened
+    const start = this.startView;
+    const house = this.floorId === null;
+    if (start && house) this.controls.maxRadius = Math.max(this.controls.maxRadius, start.radius * 1.5);
+    this.controls.flyTo({ target: center, radius: start && house ? start.radius : radius, phi: start ? start.phi : 0.85, theta: start ? start.theta : -0.6 }, duration);
   }
 
   /** The ground grid lies under the lowest floor and reaches well beyond the building. */
@@ -3460,6 +3502,21 @@ function flowMaterial(time: { value: number }): MeshBasicMaterial {
   };
   m.customProgramCacheKey = () => "fp3d-flow";
   return m;
+}
+
+/** Zone per room index: rooms joined by "no wall" (pairs of room ids) share the lowest index among them. */
+function lightZonesOf(floor: Floor, open: [string, string][]): number[] {
+  const zone = floor.rooms.map((_, i) => i);
+  const find = (i: number): number => (zone[i] === i ? i : (zone[i] = find(zone[i])));
+  for (const [a, b] of open) {
+    const ia = floor.rooms.findIndex((r) => r.id === a);
+    const ib = floor.rooms.findIndex((r) => r.id === b);
+    if (ia < 0 || ib < 0) continue;
+    const ra = find(ia);
+    const rb = find(ib);
+    if (ra !== rb) zone[Math.max(ra, rb)] = Math.min(ra, rb);
+  }
+  return zone.map((_, i) => find(i));
 }
 
 /** Soft round glow for the halos around lamps. */
