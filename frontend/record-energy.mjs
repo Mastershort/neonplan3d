@@ -106,9 +106,9 @@ await sleep(600);
 
 const A = { theta: 1.1, phi: 0.9, radius: 26 };
 const B = { theta: 1.9, phi: 0.95, radius: 24 };
-const C = { theta: 1.15, phi: 0.8, radius: 20 };
-const D = { theta: 2.6, phi: 1.05, radius: 21 };
-const E = { theta: 1.35, phi: 0.6, radius: 19.5 };
+const C = { theta: 1.2, phi: 0.65, radius: 24 };
+const D = { theta: 2.6, phi: 1.0, radius: 25 };
+const E = { theta: 1.4, phi: 0.55, radius: 24 };
 await view(A);
 await sleep(1500);
 caption(T[0]);

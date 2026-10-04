@@ -868,6 +868,7 @@
  "solar_name_hint": "p. ex. chaîne 1 sud",
  "solar_module_w": "Largeur du module (m)",
  "solar_module_h": "Hauteur du module (m)",
+ "solar_wp": "Puissance d'un module (Wc)",
  "solar_string": "Chaîne",
  "solar_strings": "Chaînes",
  "solar_string_none": "Aucune chaîne",

@@ -66,7 +66,9 @@ test("kinds, active states and light glow", () => {
   assert.ok(isActive(hass.states["cover.rollo"]));
   assert.ok(!isActive(hass.states["light.stehlampe"]));
   const glow = lightGlow(hass.states["light.decke"])!;
-  assert.ok(Math.abs(glow.level - 128 / 255) < 1e-9);
+  // a perceptual curve: half brightness glows at 0.2 + 0.8 * sqrt(0.5), a lamp at 10 % still clearly "on"
+  assert.ok(Math.abs(glow.level - (0.2 + 0.8 * Math.sqrt(128 / 255))) < 1e-9);
+  assert.ok(lightGlow({ ...hass.states["light.decke"], attributes: { ...hass.states["light.decke"].attributes, brightness: 26 } })!.level > 0.4);
   assert.ok(glow.color[0] > glow.color[2], "2700 K is warm");
   assert.equal(lightGlow(hass.states["light.stehlampe"]), null);
 });

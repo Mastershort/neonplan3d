@@ -949,7 +949,7 @@ export const MODULE_PEAK_W = 400;
 export function fieldLevels(building: Building, powers: ReadonlyMap<string, number>): Map<string, number> {
   const out = new Map<string, number>();
   for (const f of building.settings.roof.solar ?? []) {
-    const share = Math.min(1, (powers.get(f.id) ?? 0) / (modulesOf(f) * MODULE_PEAK_W));
+    const share = Math.min(1, (powers.get(f.id) ?? 0) / (modulesOf(f) * (f.wp ?? MODULE_PEAK_W)));
     out.set(f.id, share > 0.003 ? Math.pow(share, 0.6) : 0);
   }
   return out;

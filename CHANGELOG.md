@@ -10,6 +10,10 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 
 - Pack furniture that lights but is not "electric" (mirror with light, bedside lamp, aquarium, fire bowl, star ceiling, LED niche, light cove, workshop light, night light) had no light field in the editor and a tap sent an invalid entity id to Home Assistant (#46 by StevenKRT and N4IR0, #88 by wh1tetiger).
 - The lit wall face left a misaligned dark rectangle over windows on low floors: the light cells now break at every sill, top and side of an opening (#87 by newbeehome).
+- The plan editor stayed in English for French, Spanish, Dutch, Italian (and Hungarian): its bundle never fetched the language file (#96 by denisb88).
+- A TV that only reports "on" (Samsung, LG) glows now; before, only "playing" lit the screen (#98 by newbeehome).
+- Dimmed lights looked switched off: the glow follows a perceptual curve now, a lamp at 10 % still reads as on (#103 by newbeehome).
+- Free-standing walls (a garden wall) take wall-mounted solar fields, on both sides (#105 by rolandarends).
 - An LED strip outside the house sits on the ground again (lawn, terrace) instead of a slab's thickness above it (#70 by domodial).
 
 ### New
@@ -18,6 +22,8 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 - **Card:** `start_view` gives a card a start view of its own, e.g. for a small overview on another dashboard; the editor's start view section shows the line to copy (discussion #89 by karli4711).
 - French, Spanish, Dutch and Italian: the 43 texts added since 1.9.0 (energy setup, tilt angle, icons, help) are translated now; they showed in English.
 - **Hungarian** as the fifth extra language (proofread by kopaszsop, [#51](https://github.com/Mastershort/neonplan3d/issues/51)).
+- **Module power (Wp)** per solar field instead of the fixed 400 W, for the kWp of fields and strings and the living modules (#99 by denisb88).
+- **Floors apart** lifts the roof off the top floor as well (#101 by rolandarends).
 - **Energy Pro – device holograms:** every device with a power sensor can carry a small glass card (power now, today's kWh, day curve), in the house view and on its floor; "Hologram over the device" in the furniture form; a **Holograms** button in the energy bar hides all cards (card option `holograms`). The first free update of the pack.
 
 ## 1.9.1

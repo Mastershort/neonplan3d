@@ -287,6 +287,8 @@ SOLAR_FIELD_SCHEMA = vol.Schema(
         # module size in portrait (None = 1.13 x 1.72 m) and the string the field belongs to
         vol.Optional("module_w", default=None): vol.Any(None, vol.All(vol.Coerce(float), vol.Range(min=0.3, max=3))),
         vol.Optional("module_h", default=None): vol.Any(None, vol.All(vol.Coerce(float), vol.Range(min=0.3, max=3))),
+        # peak power of one module in Wp (None = 400)
+        vol.Optional("wp", default=None): vol.Any(None, vol.All(vol.Coerce(float), vol.Range(min=50, max=1500))),
         vol.Optional("string", default=None): vol.Any(None, _ID),
         # garden fields (face "ground"): rotation of the rows in the plan
         vol.Optional("rotation", default=None): vol.Any(None, vol.All(vol.Coerce(float), vol.Range(min=-360, max=360))),

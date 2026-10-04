@@ -1116,7 +1116,9 @@ export class Fp3dView3d extends LitElement {
           const live = hasFeature("screens");
           // a light (an aquarium, a lit panel) glows in its own colour, other entities in the neon cyan
           const lit = kindOf(st.entity_id) === "light" ? lightGlow(st) : null;
-          const color = live && kindOf(st.entity_id) === "media" ? appColor(st) : lit ? lit.color : isActive(st) || st.state === "playing" ? ([0.22, 0.88, 1] as [number, number, number]) : null;
+          // many TV integrations (Samsung, LG) only report "on", never "playing": on is lit, dimmed
+          const tvOn = kindOf(st.entity_id) === "media" && ["playing", "on", "paused", "idle"].includes(st.state);
+          const color = live && kindOf(st.entity_id) === "media" ? appColor(st) : lit ? lit.color : isActive(st) || tvOn ? ([0.22, 0.88, 1] as [number, number, number]) : null;
           const picture = live && kindOf(st.entity_id) === "media" ? ((st.attributes.entity_picture as string | undefined) ?? null) : null;
           if (color) screens.set(f.id, { color, level: st.state === "playing" ? 1 : 0.6, picture });
         }

@@ -25,7 +25,7 @@ import { DEFAULT_WEATHER_EFFECTS, WEATHER_EFFECTS,
 } from "../model.ts";
 import { furnishRoom, PACKAGES, type PackageId } from "../packages.ts";
 import { generateWalls, locateOpening, openingHost, pointOnRoomEdge, type Wall } from "../geometry/walls.ts";
-import { formatNumber, translate, type I18nKey } from "../i18n.ts";
+import { formatNumber, languageReady, loadLanguage, translate, type I18nKey } from "../i18n.ts";
 import { iconPath } from "../icons.ts";
 import {
   bounds,
@@ -384,8 +384,9 @@ export class Fp3dEditor extends LitElement {
   }
 
   protected willUpdate(changed: PropertyValues): void {
-    // this bundle keeps its own pack registry
+    // this bundle keeps its own pack registry – and its own language table, so it fetches the language itself
     if (changed.has("packs")) setPacks(this.packs ?? []);
+    if (changed.has("hass") && this.hass && !languageReady(this.hass.language)) void loadLanguage(this.hass.language).then(() => this.requestUpdate());
     if (changed.has("_doc") && this._split) this.queue3d();
     if (changed.has("_split") && this._split) this._doc3d = this._doc;
     if (changed.has("_tool") && this.houseTool && !this._split && !this.narrow) this._split = true;
@@ -2727,7 +2728,7 @@ export class Fp3dEditor extends LitElement {
                   class="fp3d-dev-name"
                   @click=${() => this.selectSolar(f.id)}
                 >
-                  <span>${f.name || `${this.t("solar_field")} ${i + 1}`} · ${face ? this.faceLabel(face) : this.t("solar_face_gone")} · ${this.t("solar_summary", { n, kwp: formatNumber(this.hass, n * 0.4, 1) })}</span>
+                  <span>${f.name || `${this.t("solar_field")} ${i + 1}`} · ${face ? this.faceLabel(face) : this.t("solar_face_gone")} · ${this.t("solar_summary", { n, kwp: formatNumber(this.hass, (n * (f.wp ?? 400)) / 1000, 1) })}</span>
                 </button>
               </div>`;
             })}
@@ -2742,8 +2743,10 @@ export class Fp3dEditor extends LitElement {
         ? html`<h4 class="fp3d-lib-head">${this.t("solar_strings")}</h4>
             ${(this._doc.settings.roof.strings ?? []).map((st) => {
               const own = fields.filter((f) => f.string === st.id);
-              const n = own.reduce((a, f) => a + (faces.get(f.id) ? fieldModules(faces.get(f.id)!, f).length : 0), 0);
-              return html`<p class="fp3d-sub">🔗 <b>${st.name}</b> · ${this.t("solar_string_sum", { fields: own.length, n, kwp: formatNumber(this.hass, n * 0.4, 1) })}</p>`;
+              const counts = own.map((f) => (faces.get(f.id) ? fieldModules(faces.get(f.id)!, f).length : 0));
+              const n = counts.reduce((a, b) => a + b, 0);
+              const kwp = own.reduce((a, f, k) => a + (counts[k] * (f.wp ?? 400)) / 1000, 0);
+              return html`<p class="fp3d-sub">🔗 <b>${st.name}</b> · ${this.t("solar_string_sum", { fields: own.length, n, kwp: formatNumber(this.hass, kwp, 1) })}</p>`;
             })}`
         : nothing}
     </section>`;
@@ -2788,7 +2791,7 @@ export class Fp3dEditor extends LitElement {
               ?disabled=${!admin}
               @change=${(e: Event) => {
                 const key = (e.target as HTMLSelectElement).value;
-                const keep = { portrait: f.portrait, look: f.look, name: f.name, string: f.string, entity: f.entity, module_w: f.module_w, module_h: f.module_h };
+                const keep = { portrait: f.portrait, look: f.look, name: f.name, string: f.string, entity: f.entity, module_w: f.module_w, module_h: f.module_h, wp: f.wp };
                 // on another face the field starts again from a proposal that fits it
                 if (key === GROUND) set({ ...proposeGroundField(this._doc, f.id), ...keep });
                 const next = faces.find((x) => x.key === key);
@@ -2844,6 +2847,7 @@ export class Fp3dEditor extends LitElement {
         <div class="fp3d-form">
           ${this.num(this.t("solar_module_w"), f.module_w ?? 1.13, (v) => set({ module_w: Math.max(0.3, Math.min(3, round(v))) }), 0.01, 0.3)}
           ${this.num(this.t("solar_module_h"), f.module_h ?? 1.72, (v) => set({ module_h: Math.max(0.3, Math.min(3, round(v))) }), 0.01, 0.3)}
+          ${this.num(this.t("solar_wp"), f.wp ?? 400, (v) => set({ wp: Math.max(50, Math.min(1500, Math.round(v))) }), 5, 50)}
         </div>
         <div class="fp3d-actions">
           <button class="fp3d-btn" aria-pressed=${this._solarPick} ?disabled=${!admin} @click=${() => (this._solarPick = !this._solarPick)}>${this._solarPick ? "✓ " : ""}${this.t("solar_pick")}</button>
@@ -2875,7 +2879,7 @@ export class Fp3dEditor extends LitElement {
             : nothing}
         </div>
         <p class="fp3d-sub">
-          ${this.t("solar_summary", { n, kwp: formatNumber(this.hass, n * 0.4, 1) })}${n < total ? html` · <b>${this.t("solar_partial", { n, total })}</b>` : nothing}
+          ${this.t("solar_summary", { n, kwp: formatNumber(this.hass, (n * (f.wp ?? 400)) / 1000, 1) })}${n < total ? html` · <b>${this.t("solar_partial", { n, total })}</b>` : nothing}
         </p>
         <h4 class="fp3d-lib-head">🔗 ${this.t("solar_string")}</h4>
         <div class="fp3d-form">

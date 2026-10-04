@@ -868,6 +868,7 @@
  "solar_name_hint": "es. stringa 1 sud",
  "solar_module_w": "Larghezza del modulo (m)",
  "solar_module_h": "Altezza del modulo (m)",
+ "solar_wp": "Potenza del modulo (Wp)",
  "solar_string": "Stringa",
  "solar_strings": "Stringhe",
  "solar_string_none": "Nessuna stringa",

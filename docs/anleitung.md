@@ -388,6 +388,7 @@ Felder lassen sich im Grundriss und in der **3D-Ansicht daneben** mit der Maus v
 | **Module einzeln an/aus** | Im Grundriss einzelne Module wegtippen oder wieder dazunehmen, etwa um einen Schornstein oder ein Dachfenster herum |
 | **Full Black** / **Blau** | Optik der Module: ganz schwarz (Standard) oder klassisch blau |
 | **Modulbreite** / **Modulhöhe** | Größe eines Moduls im Hochformat, Standard 1,13 × 1,72 m |
+| **Modulleistung (Wp)** | Spitzenleistung eines Moduls, Standard 400 – bestimmt die kWp des Feldes und des Strangs und wie hell die lebenden Module (Energie Pro) leuchten |
 | **Strang** | Felder, die zusammen verschaltet sind, auch auf verschiedenen Dächern: etwa 5 Module auf dem Haus und 5 auf der Garage in „Strang 1“. Der Strang hat einen Namen, einen PV-Sensor und einen Wechselrichter (unter **Geräte** angelegt) |
 | **PV-Leistung dieses Feldes** | Der Leistungssensor seines Strangs, für die kommende Pro-Erweiterung |
 | **Hochformat** / **Querformat** | Lage der Module (1,13 × 1,72 m) |

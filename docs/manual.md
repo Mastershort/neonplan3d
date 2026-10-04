@@ -386,6 +386,7 @@ Drag fields in the plan and in the **3D view beside it**, also onto another roof
 | **Modules on/off one by one** | Tap single modules in the plan to take them away or put them back, e.g. around a chimney or a roof window |
 | **Full black** / **Blue** | Look of the modules: all black (default) or classic blue |
 | **Module width** / **Module height** | Size of one module in portrait, 1.13 × 1.72 m by default |
+| **Module power (Wp)** | Peak power of one module, 400 by default – sets the kWp of the field and its string and how bright the living modules (Energy Pro) glow |
 | **String** | Fields wired together, also on different roofs: e.g. 5 modules on the house and 5 on the garage in "String 1". A string has a name, a PV sensor and an inverter (added under **Devices**) |
 | **PV power of this field** | The power sensor of its string, for the coming Pro add-on |
 | **Portrait** / **Landscape** | How the modules (1.13 × 1.72 m) lie |

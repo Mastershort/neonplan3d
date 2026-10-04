@@ -868,6 +868,7 @@
  "solar_name_hint": "pl. 1. string dél",
  "solar_module_w": "Modulszélesség (m)",
  "solar_module_h": "Modulmagasság (m)",
+ "solar_wp": "Modulteljesítmény (Wp)",
  "solar_string": "String",
  "solar_strings": "Stringek",
  "solar_string_none": "Nincs string",

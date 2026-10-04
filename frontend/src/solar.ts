@@ -54,7 +54,8 @@ export function wallFaces(b: Building, floorId?: string): RoofFace[] {
     if (floorId && floor.id !== floorId) continue;
     const { walls } = generateWalls(floor.rooms, { exterior: b.settings.wall_exterior, interior: b.settings.wall_interior }, floor.walls ?? []);
     for (const w of walls) {
-      if (!w.exterior || w.free) continue;
+      // exterior walls: the outer face; free-standing walls (a garden wall, a fence wall): both faces
+      if (!w.exterior && !w.free) continue;
       const dx = w.b[0] - w.a[0];
       const dz = w.b[1] - w.a[1];
       const l = Math.hypot(dx, dz);
@@ -62,24 +63,12 @@ export function wallFaces(b: Building, floorId?: string): RoofFace[] {
       // exterior walls have their room on the left: the outer face lies on the right
       const nx = dz / l;
       const nz = -dx / l;
-      const o: V3 = [w.a[0] + nx * w.right, floor.elevation, w.a[1] + nz * w.right];
       const height = Math.min(floor.height, w.height ?? floor.height);
-      out.push({
-        key: `wall:${floor.id}:${w.id}`,
-        section: null,
-        side: "top",
-        flat: false,
-        o,
-        eu: [dx / l, 0, dz / l],
-        es: [0, 1, 0],
-        n: [nx, 0, nz],
-        lu: l,
-        ls: height,
-        pitch: 90,
-        span: () => [0, l],
-        facing: [nx, nz],
-        wall: { floorId: floor.id },
-      });
+      const face = (key: string, o: V3, eu: V3, n: V3) =>
+        out.push({ key, section: null, side: "top", flat: false, o, eu, es: [0, 1, 0], n, lu: l, ls: height, pitch: 90, span: () => [0, l], facing: [n[0], n[2]], wall: { floorId: floor.id } });
+      face(`wall:${floor.id}:${w.id}`, [w.a[0] + nx * w.right, floor.elevation, w.a[1] + nz * w.right], [dx / l, 0, dz / l], [nx, 0, nz]);
+      // the back of a free wall runs the other way, so its modules face outwards too
+      if (w.free) face(`wall:${floor.id}:${w.id}:back`, [w.b[0] - nx * w.left, floor.elevation, w.b[1] - nz * w.left], [-dx / l, 0, -dz / l], [-nx, 0, -nz]);
     }
   }
   return out;

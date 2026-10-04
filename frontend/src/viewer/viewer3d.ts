@@ -251,6 +251,8 @@ export interface ViewerStats {
 
 /** Extra gap between floors in the pulled-apart house view (metres). */
 const EXPLODE_GAP = 2.4;
+/** How far the roof lifts off the top floor while the floors are pulled apart. */
+const ROOF_GAP = 1.4;
 /** Opacity of the floors below the selected one. */
 const BELOW_OPACITY = 0.22;
 /** Time constant of the floor animation (ms); about 700 ms until settled. */
@@ -1734,7 +1736,10 @@ export class FloorplanViewer {
     // each part rides on its floor (pulled apart or stacked), lifted while it fades in or out
     for (const part of roof.parts) {
       const fv = this.floorMap.get(part.floorId);
-      if (fv) part.group.position.y = fv.floor.elevation + fv.y + part.base + (1 - this.roofO) * 2.2;
+      if (!fv) continue;
+      // floors pulled apart: the roof lifts off its floor the same way (it follows the floor's own glide)
+      const apart = fv.ty > 0 ? Math.min(1, fv.y / fv.ty) : this.explode && this.floorId === null ? 1 : 0;
+      part.group.position.y = fv.floor.elevation + fv.y + part.base + (1 - this.roofO) * 2.2 + apart * ROOF_GAP;
     }
     roof.solid.opacity = this.roofO;
     roof.solid.depthWrite = this.roofO > 0.9;

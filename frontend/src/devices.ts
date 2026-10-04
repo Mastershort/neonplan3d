@@ -332,7 +332,8 @@ export function isActive(st: HassEntity | undefined): boolean {
 export function lightGlow(st: HassEntity | undefined): { color: [number, number, number]; level: number } | null {
   if (!st || st.state !== "on") return null;
   const a = st.attributes;
-  const level = typeof a.brightness === "number" ? Math.max(0.08, a.brightness / 255) : 1;
+  // a perceptual curve: a lamp at 10 % still reads as "on" (0.45), full brightness stays 1
+  const level = typeof a.brightness === "number" ? 0.2 + 0.8 * Math.sqrt(Math.min(1, Math.max(0, a.brightness / 255))) : 1;
   const rgb = a.rgb_color as [number, number, number] | undefined;
   let color: [number, number, number];
   if (rgb && a.color_mode !== "color_temp" && a.color_mode !== "brightness" && a.color_mode !== "onoff") {

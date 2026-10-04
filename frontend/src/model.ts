@@ -316,6 +316,8 @@ export interface SolarField {
   /** Module size in portrait, width × height in metres (null = 1.13 × 1.72). */
   module_w?: number | null;
   module_h?: number | null;
+  /** Peak power of one module (Wp); null = 400. */
+  wp?: number | null;
   /** The string the field belongs to (see RoofSettings.strings); fields on several roofs can share one. */
   string?: string | null;
   /** Free-standing fields (face "ground"): rotation of the rows in the plan, degrees. */

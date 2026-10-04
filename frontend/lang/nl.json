@@ -868,6 +868,7 @@
  "solar_name_hint": "bijv. string 1 zuid",
  "solar_module_w": "Paneelbreedte (m)",
  "solar_module_h": "Paneelhoogte (m)",
+ "solar_wp": "Vermogen per paneel (Wp)",
  "solar_string": "String",
  "solar_strings": "Strings",
  "solar_string_none": "Geen string",

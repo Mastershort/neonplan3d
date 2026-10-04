@@ -868,6 +868,7 @@
  "solar_name_hint": "p. ej. cadena 1 sur",
  "solar_module_w": "Ancho del módulo (m)",
  "solar_module_h": "Alto del módulo (m)",
+ "solar_wp": "Potencia del módulo (Wp)",
  "solar_string": "Cadena",
  "solar_strings": "Cadenas",
  "solar_string_none": "Sin cadena",
