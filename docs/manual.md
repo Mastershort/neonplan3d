@@ -592,7 +592,7 @@ At the top of the **Energy** tool sits the **Setup** list: it ticks off what is 
 4. **Check the signs:** if the meter reports "export" at night or the battery charges without sun, a sensor counts the other way round. The energy balance says so and offers **Flip the sign**.
 5. **Grid connection** (optional): the grid cable runs there, e.g. to the end of the driveway. Without it the cable ends at the edge of your outdoor areas.
 
-Several plants (roof and balcony) work: a second inverter, a second battery, each with its own sensor; the balcony field as a solar field on the wall or free-standing, assigned to a string with that inverter.
+Several plants (roof and balcony) work: a second inverter, a second battery, each with its own sensor; the balcony field as a solar field on the wall or free-standing, assigned to a string with that inverter. Every further plant then gets its own hologram over its field. Batteries that report charging and discharging in two sensors (e.g. Anker Solix) take the discharging sensor as **Power** and the charging sensor as **Charging power**. Put a solar sensor into the energy balance only if it reports the whole production – otherwise it overrides the sum of the inverters.
 
 **Cables**
 
