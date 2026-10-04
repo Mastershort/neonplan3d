@@ -141,7 +141,7 @@ test("the placed devices bring their sensors: meter = grid, inverters add up, ba
     { id: "i2", type: "inverter", x: 3, z: 0.2, rotation: 0, w: 0.5, d: 0.2, h: 0.65, variant: null, power: "sensor.pv2" },
     { id: "bat", type: "home_battery", x: 3, z: 1, rotation: 0, w: 0.6, d: 0.25, h: 1.1, variant: null, power: "sensor.bat", soc: "sensor.soc" },
   );
-  assert.deepEqual(deviceSensors(b), { grid: "sensor.grid", solar: ["sensor.pv1", "sensor.pv2"], battery: ["sensor.bat"], charge: [], soc: ["sensor.soc"] });
+  assert.deepEqual(deviceSensors(b), { grid: "sensor.grid", solar: ["sensor.pv1", "sensor.pv2"], battery: ["sensor.bat"], charge: [], batteries: [{ power: "sensor.bat", charge: null }], soc: ["sensor.soc"] });
   assert.deepEqual(meterPosition(b), { floor_id: "eg", x: 1, z: 0.2 });
   const hass = hassWith([power("sensor.grid", "-300"), power("sensor.pv1", "800"), power("sensor.pv2", "400"), power("sensor.bat", "-250"), st("sensor.soc", "64", { device_class: "battery" }), power("sensor.house", "1000")]);
   const s = energySummary(hass, b, []);

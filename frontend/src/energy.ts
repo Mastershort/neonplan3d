@@ -63,6 +63,8 @@ export interface DeviceSensors {
   battery: string[];
   /** Separate charging power sensors (batteries whose power sensor only reports discharging). */
   charge: string[];
+  /** Every battery with its own sensors: a signed power sensor, or discharging plus a separate charging sensor. */
+  batteries: { power: string | null; charge: string | null }[];
   soc: string[];
 }
 
@@ -73,7 +75,7 @@ const ref = (v: string | null | undefined) => (v && v !== "none" ? v : null);
  * the one found on its device). Several inverters add up.
  */
 export function deviceSensors(building: Building, power: (f: Furniture) => string | null = (f) => ref(f.power)): DeviceSensors {
-  const out: DeviceSensors = { grid: null, solar: [], battery: [], charge: [], soc: [] };
+  const out: DeviceSensors = { grid: null, solar: [], battery: [], charge: [], batteries: [], soc: [] };
   for (const floor of building.floors) {
     for (const f of floor.furniture) {
       const p = power(f);
@@ -83,6 +85,7 @@ export function deviceSensors(building: Building, power: (f: Furniture) => strin
         if (p && !out.battery.includes(p)) out.battery.push(p);
         const charge = ref(f.charge);
         if (charge && !out.charge.includes(charge)) out.charge.push(charge);
+        if (p || charge) out.batteries.push({ power: p, charge });
         const soc = ref(f.soc);
         if (soc && !out.soc.includes(soc)) out.soc.push(soc);
       }
@@ -199,14 +202,20 @@ export function energySummary(hass: HomeAssistant, building: Building, consumers
     solar = values.length ? values.reduce((a, b) => a + b, 0) : null;
   }
   let battery: number | null = e.battery ? readPower(hass.states[e.battery], e.battery_invert) : null;
-  if (!e.battery && devices.battery.length) {
-    const values = devices.battery.map((id) => readPower(hass.states[id], e.battery_invert)).filter((v): v is number => v !== null);
+  if (!e.battery && devices.batteries.length) {
+    // every battery on its own: a signed sensor (+ = discharging, inverted on request), or discharging and a
+    // separate charging sensor (then the signs do not matter)
+    const values = devices.batteries
+      .map((bat) => {
+        if (bat.charge) {
+          const out = bat.power ? Math.max(0, readPower(hass.states[bat.power]) ?? 0) : 0;
+          const inp = Math.max(0, readPower(hass.states[bat.charge]) ?? 0);
+          return out - inp;
+        }
+        return bat.power ? readPower(hass.states[bat.power], e.battery_invert) : null;
+      })
+      .filter((v): v is number => v !== null);
     battery = values.length ? values.reduce((a, b) => a + b, 0) : null;
-    // with separate charging sensors the power sensors count as discharging only, the charging is taken off
-    if (battery !== null && devices.charge.length) {
-      const charging = devices.charge.map((id) => readPower(hass.states[id])).filter((v): v is number => v !== null);
-      battery = Math.max(0, battery) - charging.reduce((a, b) => a + Math.max(0, b), 0);
-    }
   }
   // several batteries: their charge is averaged
   const socIds = e.battery_soc ? [e.battery_soc] : devices.soc;

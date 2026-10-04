@@ -724,9 +724,10 @@ export class Fp3dView3d extends LitElement {
       for (const f of floor.furniture) {
         if (f.type !== "inverter" && f.type !== "home_battery") continue;
         const sensor = this.furnitureLinks?.get(f.id)?.power;
-        let p = sensor ? readPower(hass.states[sensor], f.type === "home_battery" && b.energy.battery_invert) : null;
-        // a battery with a separate charging sensor: the power sensor is its discharging, the charging is taken off
+        // a battery with a separate charging sensor: the power sensor is its discharging, the charging is taken
+        // off and the signs do not matter; a single signed sensor is inverted on request
         const charge = f.type === "home_battery" && f.charge && f.charge !== "none" ? readPower(hass.states[f.charge]) : null;
+        let p = sensor ? readPower(hass.states[sensor], f.type === "home_battery" && b.energy.battery_invert && charge === null) : null;
         if (p !== null && charge !== null) p = Math.max(0, p) - Math.max(0, charge);
         else if (p === null && charge !== null) p = -Math.max(0, charge);
         if (p !== null) out.set(f.id, p);
