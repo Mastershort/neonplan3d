@@ -14,7 +14,7 @@ import { SHOW_PRESENCE } from "../flags.ts";
 import { hasFeature, manualUrl, shopUrl } from "../features.ts";
 import { deviceSensors, energySummary, flowSegments, gridPoint, proposeEnergySensors, type EnergyPrefs, type FlowSegment } from "../energy.ts";
 import { isStatusSensor, robotRoomSensor, TOGGLE_KINDS } from "../devices.ts";
-import { proposeDormer, sectionGeometry, floorOutline, polygonBox, headroomLines, ridgeHeight, roofSectionsFromRooms, sectionFrame, wallTopUnder } from "../roof-sections.ts";
+import { dormerParent, effectiveDormer, proposeDormer, sectionGeometry, floorOutline, polygonBox, headroomLines, ridgeHeight, roofSectionsFromRooms, sectionFrame, wallTopUnder } from "../roof-sections.ts";
 import { bestFace, clampField, faceAt, faceCompass, fieldFace, fieldModules, GROUND, pointOnFace, proposeField, proposeGroundField, proposeWindow, proposeWallField, roofFaces, rowCounts, turnGroundField, fieldCenter, wallFaces, windowAsField, windowCorners, onFace, onField, rayOnFace, type RoofFace } from "../solar.ts";
 import type { SurfaceGrab, SurfaceRay } from "../viewer/viewer3d.ts";
 import { storedImageIds } from "../transfer.ts";
@@ -2277,7 +2277,10 @@ export class Fp3dEditor extends LitElement {
       const sel = sec.id === this._roofId;
       const fr = sectionFrame(sec);
       const shape = sec.shape === "flat" && sec.points && sec.points.length >= 3 ? sec.points : null;
-      const pts = (shape ?? [fr.at(fr.u0, 0), fr.at(fr.u1, 0), fr.at(fr.u1, fr.w), fr.at(fr.u0, fr.w)]).map((p) => this.toScreen(p));
+      // a dormer or cross gable shows as deep as it is drawn (its ridge meets the slope there)
+      const parent = dormerParent(sections, sec);
+      const dfr = parent ? sectionFrame(effectiveDormer(parent, sec)) : fr;
+      const pts = (shape ?? [dfr.at(dfr.u0, 0), dfr.at(dfr.u1, 0), dfr.at(dfr.u1, dfr.w), dfr.at(dfr.u0, dfr.w)]).map((p) => this.toScreen(p));
       const line = (a: Vec2, b: Vec2) => {
         const [ax, ay] = this.toScreen(a);
         const [bx, by] = this.toScreen(b);

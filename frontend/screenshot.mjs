@@ -51,6 +51,7 @@ const PACK_SCRIPT = `
 // (catslide), and a lean-to with a pent roof in front of the barn; roof sections at their own heights
 const ATTIC_SCRIPT = "e.useRoofSections(); setTimeout(() => { const secs = e._doc.settings.roof.sections; const big = [...secs].sort((p, q) => Math.abs((q.x1 - q.x0) * (q.z1 - q.z0)) - Math.abs((p.x1 - p.x0) * (p.z1 - p.z0)))[0]; e._tool = 'roof'; e._roofId = big.id; e.updateRoofSection({ base: 3.7, eave_a: 3.7, eave_b: 3.7, pitch_a: 40, pitch_b: 40 }); }, 600);";
 const DORMER_SCRIPT = ATTIC_SCRIPT + " setTimeout(() => { e.addDormer('b'); e.addDormer('a'); }, 900);";
+const CROSS_SCRIPT = ATTIC_SCRIPT + " setTimeout(() => { e.addDormer('a'); const d = e._doc.settings.roof.sections.find((s) => s.dormer); e._roofId = d.id; const cx = (d.x0 + d.x1) / 2; const cz = (d.z0 + d.z1) / 2; const deep = Math.abs(d.z1 - d.z0) > Math.abs(d.x1 - d.x0); const patch = deep ? { x0: cx - 1.7, x1: cx + 1.7 } : { z0: cz - 1.7, z1: cz + 1.7 }; e.updateRoofSection({ ...patch, eave_a: 3.7, eave_b: 3.7, base: 3.7 }); }, 900);";
 const FARM_SCRIPT = `
   const b = structuredClone(e._doc);
   const eg = b.floors[0];
@@ -167,6 +168,9 @@ const shots = [
   { name: "view-dormer", query: "", width: 1280, height: 800, editor: true, editorScript: DORMER_SCRIPT, afterWait: 2200, then3d: "Alle Etagen", then3dAlso: ["Gestapelt"], camera: { theta: 0.75, phi: 1.05, radius: 24 } },
   { name: "view-dormer-floor", query: "", width: 1280, height: 800, editor: true, editorScript: DORMER_SCRIPT, afterWait: 2200, then3d: "Obergeschoss", camera: { theta: 0.5, phi: 1.0, radius: 14 } },
   { name: "editor-dormer", query: "", width: 1400, height: 900, editor: true, editorScript: DORMER_SCRIPT + " setTimeout(() => e.fit(), 1300);", afterWait: 2600 },
+  { name: "view-cross-gable", query: "", width: 1280, height: 800, editor: true, editorScript: CROSS_SCRIPT, afterWait: 2200, then3d: "Alle Etagen", then3dAlso: ["Gestapelt", "Dach bleibt"], camera: { theta: 3.9, phi: 1.15, radius: 17 } },
+  { name: "view-cross-gable-b", query: "", width: 1280, height: 800, editor: true, editorScript: CROSS_SCRIPT, afterWait: 2200, then3d: "Alle Etagen", then3dAlso: ["Gestapelt", "Dach bleibt"], camera: { theta: 2.6, phi: 1.2, radius: 15 } },
+  { name: "editor-cross-gable", query: "", width: 1400, height: 900, editor: true, editorScript: CROSS_SCRIPT + " setTimeout(() => e.fit(), 1400);", afterWait: 2600 },
   { name: "view-attic", query: "", width: 1280, height: 800, editor: true, editorScript: ATTIC_SCRIPT, afterWait: 1500, then3d: "Alle Etagen", then3dAlso: ["Gestapelt"], camera: { theta: 0.7, phi: 1.05, radius: 24 } },
   { name: "view-attic-floor", query: "", width: 1280, height: 800, editor: true, editorScript: ATTIC_SCRIPT, afterWait: 1500, then3d: "Obergeschoss", camera: { theta: 0.5, phi: 1.0, radius: 14 } },
   { name: "editor-attic", query: "", width: 1400, height: 900, editor: true, editorScript: ATTIC_SCRIPT + " setTimeout(() => { e._floorId = 'og'; e._tool = 'select'; e._roofId = null; e.fit(); }, 1200);", afterWait: 2500 },

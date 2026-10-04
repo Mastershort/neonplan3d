@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { emptyBuilding, newFloor, ROOF_SHAPES, type Room, type RoofSection } from "./model.ts";
-import { cutHole, dormerHole, dormerParent, floorOutline, offsetPolygon, polygonBox, proposeDormer, ridgeHeight, roofSectionsFromRooms, roofUnderAt, sectionFrame, sectionGeometry, sectionHeightAt, sectionOverhang, sectionPolygon, sectionProfile, wallTopUnder } from "./roof-sections.ts";
+import { cutHole, dormerHole, dormerHoles, dormerParent, floorOutline, offsetPolygon, polygonBox, proposeDormer, ridgeHeight, roofSectionsFromRooms, roofUnderAt, sectionFrame, sectionGeometry, sectionHeightAt, sectionOverhang, sectionPolygon, sectionProfile, wallTopUnder } from "./roof-sections.ts";
 import { buildRoof } from "./viewer/roof.ts";
 
 const near = (a: number, b: number, eps = 1e-6) => assert.ok(Math.abs(a - b) < eps, `${a} != ${b}`);
@@ -200,6 +200,12 @@ test("a dormer sits on a side of its section, opens the slope under it and lifts
   const pieces = cutHole(geom.faces[0], hole);
   assert.ok(pieces.length >= 3, `${pieces.length} pieces`);
   assert.ok(pieces.every((p) => !p.some(([u, v]) => u > hole.u0 + 0.01 && u < hole.u1 - 0.01 && v > hole.v0 + 0.01 && v < hole.v1 - 0.01)), "no corner inside the hole");
+  // the opening under the dormer is the dormer's full width at the front and narrows towards the rear (the valleys)
+  const strips = dormerHoles(parent, d);
+  assert.ok(strips.length >= 3, `${strips.length} strips`);
+  const width = (h: { u0: number; u1: number }) => h.u1 - h.u0;
+  assert.ok(width(strips[0]) > 1.9, `front strip ${width(strips[0])}`);
+  assert.ok(width(strips[strips.length - 1]) < width(strips[0]) - 0.3, "narrower at the rear");
   // under the dormer the ceiling is the dormer's roof, beside it the slope
   const b = { settings: { roof: { type: "custom" as const, pitch: 35, overhang: 0, sections: [parent, d] } } };
   const underDormer = roofUnderAt(b, 6, 0.5)!;

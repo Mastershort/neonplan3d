@@ -6,7 +6,7 @@
 import { Color } from "three";
 import type { Building, Floor, RoofSection, SolarField, Vec2 } from "../model.ts";
 import { polygonArea } from "../model.ts";
-import { cutHole, dormerHole, dormerParent, offsetPolygon, sectionGeometry, sectionHeightAt, sectionPolygon, sectionFrame, sectionOverhang, sectionProfile, sectionUV, type Q, type SectionOverhang } from "../roof-sections.ts";
+import { cutHole, dormerHoles, dormerParent, effectiveDormer, offsetPolygon, sectionGeometry, sectionHeightAt, sectionPolygon, sectionFrame, sectionOverhang, sectionProfile, sectionUV, type Q, type SectionOverhang } from "../roof-sections.ts";
 import { DEG, GeoBuffer, LineBuffer, pushPrism, shade } from "./geo.ts";
 import { fieldModules, roofFaces, windowCorners, type RoofFace } from "../solar.ts";
 
@@ -234,9 +234,11 @@ function buildSections(b: Building, sections: readonly RoofSection[], overhang: 
     part.sections!.push(sec.id);
     // an attic: the floor's walls rise above the section's base, so they end under the slopes
     // themselves (knee walls, gables) and the roof draws none of its own; a dormer keeps its cheeks
-    const attic = floor.elevation + floor.height > sec.base + 0.05 && !sec.dormer;
-    // the slope opens under every dormer sitting on this section, and under its roof windows
-    const holes = sections.filter((d) => d.dormer && dormerParent(sections, d) === sec).map((d) => dormerHole(sec, d)).filter((h): h is NonNullable<typeof h> => !!h);
+    // a dormer or a cross gable (a smaller section on a bigger one) keeps its cheeks and front gable
+    const parent = dormerParent(sections, sec);
+    const attic = floor.elevation + floor.height > sec.base + 0.05 && !sec.dormer && !parent;
+    // the slope opens under every dormer and cross gable sitting on this section, and under its roof windows
+    const holes = sections.filter((d) => d !== sec && dormerParent(sections, d) === sec).flatMap((d) => dormerHoles(sec, d));
     for (const w of b.settings.roof.windows ?? []) {
       const face = faceMap.get(w.face);
       const corners = face && face.section === sec.id ? windowCorners(face, w) : null;
@@ -245,10 +247,11 @@ function buildSections(b: Building, sections: readonly RoofSection[], overhang: 
       holes.push({ u0: Math.min(...uv.map((q) => q[0])), u1: Math.max(...uv.map((q) => q[0])), v0: Math.min(...uv.map((q) => q[1])), v1: Math.max(...uv.map((q) => q[1])) });
     }
     // a dormer's rear runs into the slope: no gable there, only at its front (the lower end of the slope)
-    const parent = sec.dormer ? dormerParent(sections, sec) : null;
+    // a dormer only as deep as its ridge needs to meet the slope
+    const drawn = parent ? effectiveDormer(parent, sec) : sec;
     let frontEnd: 0 | 1 | null = null;
-    if (sec.dormer && parent) {
-      const fr = sectionFrame(sec);
+    if (parent) {
+      const fr = sectionFrame(drawn);
       const pg = sectionGeometry(parent, { u0: 0, u1: 0, a: 0, b: 0 });
       const h = (u: number) => {
         const [x, z] = fr.at(u, fr.w / 2);
@@ -257,7 +260,7 @@ function buildSections(b: Building, sections: readonly RoofSection[], overhang: 
       };
       frontEnd = h(fr.u0) <= h(fr.u1) ? 0 : 1;
     }
-    pushSection(part.solid, part.lines, sec, sectionOverhang(b, sec, sec.overhang ?? overhang), floor.elevation, part.glass, attic, holes, frontEnd);
+    pushSection(part.solid, part.lines, drawn, sectionOverhang(b, drawn, drawn.overhang ?? overhang), floor.elevation, part.glass, attic, holes, frontEnd);
   }
   return [...parts.values()];
 }
