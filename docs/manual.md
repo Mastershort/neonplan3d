@@ -359,6 +359,7 @@ A simple house gets a flat or gable roof over the whole top floor under **Settin
 - Each section has a **shape** (gable, hip, pent, flat) and a **ridge direction** (↔ or ↕).
 - **Eave** and **pitch** are set for both sides separately. All heights count from the ground. A side with a lower eave reaches further down, e.g. a catslide over a low extension. A pent roof rises from the first side; **Swap sides** turns it round.
 - **Top of walls** is the height where the walls below the roof end. A new section takes it from the rooms below, whatever floor the plan shows. Gables and knee walls are built from there up under the roof, so the space under a pent roof is closed too.
+- **Roof slopes (knee walls):** if the top of walls lies below the ceiling height of the floor underneath – say 0.9 m above the attic floor – that floor's walls end under the roof: knee walls at the eaves, gables up to the ridge, inner walls cut by the slope. Windows then only fit where the wall is tall enough (in the gable); on the eave side use roof windows. Dashed lines in the plan show where 1.5 m and 2 m of headroom remain under the slope.
 - Where a section meets a taller part of the house, e.g. a pent roof against the house wall, the overhang is left out there; the roof ends at the wall.
 - The **ridge height** is shown at the bottom of the form. Sections may overlap: the lower roof runs under the higher one, as with a real extension.
 - **Create again from the rooms** replaces all sections with a new proposal, **Back to one roof** switches to the simple roof.

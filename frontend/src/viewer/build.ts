@@ -108,8 +108,29 @@ export function buildFloorGeometry(
   holes: Vec2[][] = [],
   /** Solar fields standing in this floor's garden, with their ground. */
   solar: { face: RoofFace; field: SolarField }[] = [],
+  /**
+   * The roof's underside above a plan point, relative to this floor (null = no roof there). Walls end
+   * there: knee walls at the eaves, gables up to the ridge, inner walls cut by the slope.
+   */
+  roofUnder?: (x: number, z: number) => number | null,
 ): FloorGeometry {
   const { walls, open: openRooms } = generateWalls(floor.rooms, { exterior: wallExterior, interior: wallInterior }, floor.walls ?? []);
+  // the top of a wall at a point: its own height, or the roof above when that is lower
+  const topAt = (x: number, z: number, H: number): number => {
+    const r = roofUnder ? roofUnder(x, z) : null;
+    return r === null ? H : Math.max(0.05, Math.min(H, r));
+  };
+  // the lowest wall top along a stretch of a wall (sampled), for openings and the top edge line
+  const lowestTop = (a: Vec2, ax: Vec2, s0: number, s1: number, H: number): number => {
+    if (!roofUnder) return H;
+    let lo = H;
+    const n = Math.max(2, Math.ceil((s1 - s0) / 0.25) + 1);
+    for (let i = 0; i < n; i++) {
+      const s = s0 + ((s1 - s0) * i) / (n - 1);
+      lo = Math.min(lo, topAt(a[0] + ax[0] * s, a[1] + ax[1] * s, H));
+    }
+    return lo;
+  };
 
   // ---------------------------------------------------------------- floors (with stair holes)
   const floorBuf = new GeoBuffer(true, true);
@@ -199,7 +220,7 @@ export function buildFloorGeometry(
     const roomLeft = wall.free ? ax[0] * (hp[1][0] - hp[0][0]) + ax[1] * (hp[1][1] - hp[0][1]) > 0 : wall.roomLeft === o.room_id;
     const nLeft: Vec2 = [-ax[1], ax[0]];
     const toRoom: Vec2 = roomLeft ? nLeft : [-nLeft[0], -nLeft[1]];
-    const top = Math.min(wallHeight(wall, floor.height) - 0.02, o.sill + o.height);
+    const top = Math.min(lowestTop(wall.a, ax, s0, s0 + width, wallHeight(wall, floor.height)) - 0.02, o.sill + o.height);
     const sill = Math.max(0, Math.min(o.sill, top - 0.1));
     // looking at the wall from the room, "right" is (toRoom.z, -toRoom.x)
     const right: Vec2 = [toRoom[1], -toRoom[0]];
@@ -251,18 +272,35 @@ export function buildFloorGeometry(
       if (H > y + 1e-4) ranges.push([y, H]);
       pieces.push({ t0, t1, ranges });
     }
-    for (const piece of pieces) {
+    // under a roof the pieces are cut into short steps, so each step's top lies in one roof plane
+    const len = Math.hypot(wall.b[0] - wall.a[0], wall.b[1] - wall.a[1]);
+    const underRoof = roofUnder && lowestTop(wall.a, ax, 0, len, H) < H - 1e-3;
+    const steps = underRoof
+      ? pieces.flatMap((piece) => {
+          const t0 = Math.max(piece.t0, -0.5);
+          const t1 = Math.min(piece.t1, len + 0.5);
+          const n = Math.max(1, Math.ceil((t1 - t0) / 0.3));
+          return Array.from({ length: n }, (_, i) => ({ t0: i === 0 ? piece.t0 : t0 + ((t1 - t0) * i) / n, t1: i === n - 1 ? piece.t1 : t0 + ((t1 - t0) * (i + 1)) / n, ranges: piece.ranges }));
+        })
+      : pieces;
+    for (const piece of steps) {
       const poly = clipAlong(wall.footprint, wall.a, ax, piece.t0, piece.t1);
       if (poly.length < 3) continue;
-      for (const [y0, y1] of piece.ranges) {
-        if (y1 - y0 < 1e-4) continue;
+      // the roof over this step: the lowest point of its footprint decides what is left of each range
+      const roofTop = underRoof ? Math.min(...poly.map(([x, z]) => topAt(x, z, H))) : H;
+      for (const [y0, y1raw] of piece.ranges) {
+        const y1 = Math.min(y1raw, underRoof ? Math.max(...poly.map(([x, z]) => topAt(x, z, H))) : y1raw);
+        if (y1 - y0 < 1e-4 || roofTop - y0 < 0.01) continue;
         const lintel = y0 > 0.01;
+        const sloped = underRoof && y1raw > roofTop;
+        const topOf = (x: number, z: number) => Math.min(y1raw, topAt(x, z, H));
         if (y0 < cut - 1e-6) {
           // the top face at the cut height is only seen while the wall is cut
           const topFold = y1 > cut + 1e-6 ? CAP_OFFSET + b : LOWER_OFFSET + b;
-          pushPrism(wallBuf, poly, y0, Math.min(y1, cut), NEON.wall, NEON.wallTop, { aoFrom: 0, bottom: lintel, fold: LOWER_OFFSET + b, topFold });
+          const capped = sloped && roofTop < cut ? (x: number, z: number) => Math.min(cut, topOf(x, z)) : Math.min(y1, cut);
+          pushPrism(wallBuf, poly, y0, capped, NEON.wall, NEON.wallTop, { aoFrom: 0, bottom: lintel, fold: LOWER_OFFSET + b, topFold });
         }
-        if (y1 > cut + 1e-6) pushPrism(wallBuf, poly, Math.max(y0, cut), y1, NEON.wall, NEON.wallTop, { aoFrom: 0, fold: b, bottom: lintel && y0 >= cut });
+        if (y1 > cut + 1e-6 && roofTop > cut + 1e-6) pushPrism(wallBuf, poly, Math.max(y0, cut), sloped ? topOf : y1, NEON.wall, NEON.wallTop, { aoFrom: 0, fold: b, bottom: lintel && y0 >= cut });
       }
     }
   }
@@ -281,14 +319,26 @@ export function buildFloorGeometry(
     for (const [p, q] of subtractSpans(e, spansOf(e.wall, (sp) => sp.sill <= 0.005))) lines.seg([p[0], 0.004, p[1]], [q[0], 0.004, q[1]], EDGE_BASE);
     // cut line: not where an opening crosses the cut height
     for (const [p, q] of subtractSpans(e, spansOf(e.wall, (sp) => sp.sill < cut && sp.top > cut))) lines.seg([p[0], cut, p[1]], [q[0], cut, q[1]], EDGE_CUT, CUT_OFFSET + b);
-    // top line: not where an opening reaches the top; a wall below the cut height keeps its top line
+    // top line: not where an opening reaches the top; a wall below the cut height keeps its top line;
+    // under a roof it follows the slope in short steps
     const H = wallHeight(e.wall, floor.height);
     for (const [p, q] of subtractSpans(e, spansOf(e.wall, (sp) => sp.top >= H - 0.021))) {
-      lines.seg([p[0], H, p[1]], [q[0], H, q[1]], EDGE_TOP, H <= cut + 1e-6 ? LOWER_OFFSET + b : b);
+      if (!roofUnder) {
+        lines.seg([p[0], H, p[1]], [q[0], H, q[1]], EDGE_TOP, H <= cut + 1e-6 ? LOWER_OFFSET + b : b);
+        continue;
+      }
+      const n = Math.max(1, Math.ceil(Math.hypot(q[0] - p[0], q[1] - p[1]) / 0.3));
+      for (let i = 0; i < n; i++) {
+        const a: Vec2 = [p[0] + ((q[0] - p[0]) * i) / n, p[1] + ((q[1] - p[1]) * i) / n];
+        const c: Vec2 = [p[0] + ((q[0] - p[0]) * (i + 1)) / n, p[1] + ((q[1] - p[1]) * (i + 1)) / n];
+        const ya = topAt(a[0], a[1], H);
+        const yc = topAt(c[0], c[1], H);
+        lines.seg([a[0], ya, a[1]], [c[0], yc, c[1]], EDGE_TOP, Math.max(ya, yc) <= cut + 1e-6 ? LOWER_OFFSET + b : b);
+      }
     }
   }
   for (const c of outline.corners) {
-    const H = wallHeight(c.wall, floor.height);
+    const H = topAt(c.p[0], c.p[1], wallHeight(c.wall, floor.height));
     lines.segSplit([c.p[0], 0.004, c.p[1]], [c.p[0], H, c.p[1]], EDGE_SOFT, Math.min(cut, H), wallBucket.get(c.wall)!);
   }
   for (const list of spans.values()) for (const sp of list) pushOpeningLines(lines, sp, cut);

@@ -45,6 +45,7 @@ import {
 import type { Building, Floor, Furniture, Room } from "../model.ts";
 import { recolorLamps, SHADE_SENTINEL, shadeFactors } from "./lamp-colors.ts";
 import { centroid, pointInPolygon, openingStyle, WALL_LAMP_Y } from "../model.ts";
+import { roofUnderAt } from "../roof-sections.ts";
 import { buildFloorGeometry, SLAB, stairHoles, type FloorGeometry } from "./build.ts";
 import { OrbitControls, type OrbitView } from "./controls.ts";
 import { makeFoldable, type FoldMasks } from "./fold.ts";
@@ -1489,7 +1490,15 @@ export class FloorplanViewer {
           if (face) garden.push({ field, face });
         }
       }
-      const geo = buildFloorGeometry(withVehicles(floor, this.parked), b.settings.wall_exterior, b.settings.wall_interior, stairHoles(b.floors, floor), garden);
+      // an attic floor: its walls end under the roof sections above it
+      const sloped = (b.settings.roof.sections ?? []).some((s) => !s.open && s.base < floor.elevation + floor.height - 0.05 && s.base > floor.elevation - 0.05);
+      const roofUnder = sloped
+        ? (x: number, z: number) => {
+            const y = roofUnderAt(b, x, z);
+            return y === null ? null : y - floor.elevation;
+          }
+        : undefined;
+      const geo = buildFloorGeometry(withVehicles(floor, this.parked), b.settings.wall_exterior, b.settings.wall_interior, stairHoles(b.floors, floor), garden, roofUnder);
       const mask: FoldMasks = { standing: { value: 0xffff }, glass: { value: 0 } };
       const materials = this.makeMaterials(mask);
       const group = new Group();

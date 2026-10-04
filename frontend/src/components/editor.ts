@@ -14,7 +14,7 @@ import { SHOW_PRESENCE } from "../flags.ts";
 import { hasFeature, manualUrl, shopUrl } from "../features.ts";
 import { deviceSensors, energySummary, flowSegments, gridPoint, proposeEnergySensors, type EnergyPrefs, type FlowSegment } from "../energy.ts";
 import { isStatusSensor, robotRoomSensor, TOGGLE_KINDS } from "../devices.ts";
-import { ridgeHeight, roofSectionsFromRooms, sectionFrame, sectionProfile, wallTopUnder } from "../roof-sections.ts";
+import { headroomLines, ridgeHeight, roofSectionsFromRooms, sectionFrame, sectionProfile, wallTopUnder } from "../roof-sections.ts";
 import { bestFace, clampField, faceAt, faceCompass, fieldFace, fieldModules, GROUND, pointOnFace, proposeField, proposeGroundField, proposeWindow, proposeWallField, roofFaces, rowCounts, turnGroundField, fieldCenter, wallFaces, windowAsField, windowCorners, onFace, onField, rayOnFace, type RoofFace } from "../solar.ts";
 import type { SurfaceGrab, SurfaceRay } from "../viewer/viewer3d.ts";
 import { storedImageIds } from "../transfer.ts";
@@ -3237,6 +3237,7 @@ export class Fp3dEditor extends LitElement {
               ${num(`${this.t("roof_pitch_short")} ${pent ? "" : sideA}`, sec.pitch_a, (v) => set({ pitch_a: Math.min(75, v) }), 1, 0)}
               ${pent ? nothing : num(`${this.t("roof_pitch_short")} ${sideB}`, sec.pitch_b, (v) => set({ pitch_b: Math.min(75, v) }), 1, 0)}`}
           ${num(this.t("roof_base"), sec.base, (v) => set({ base: v }))}
+          <p class="fp3d-sub fp3d-wide">${this.t("roof_base_hint")}</p>
           ${num(this.t("roof_overhang"), sec.overhang ?? this._doc.settings.roof.overhang, (v) => set({ overhang: Math.min(2, v) }), 0.05, 0)}
         </div>
         <p class="fp3d-sub">${this.t("roof_ridge_height")}: ${formatNumber(this.hass, ridgeHeight(sec), 2)} m · ${this.t("roof_section_hint")}</p>
@@ -3813,6 +3814,7 @@ export class Fp3dEditor extends LitElement {
               ${floor && this._tool === "select" ? this.renderDevices(floor) : nothing}
               ${this.room && this.isAdmin && this._tool === "select" && !this._openingId && !this._furnitureId && !this.isFixedItem("room", this.room.id) ? this.renderHandles(this.room) : nothing}
               ${floor ? this.renderOutdoorHandles(floor) : nothing}
+              ${floor ? this.renderHeadroom(floor) : nothing}
               ${this._tool === "roof" ? svg`${this.renderRoofSections()}${this.renderRoofWindows()}` : this._tool === "energy" ? svg`${this.renderRoofSections()}${this.renderSolarFields()}${this.renderCables()}${this.renderEnergyMarkers()}` : nothing} ${this.renderDraft()} ${this.renderGuides()}
             </svg>
             ${this.renderContext()}
@@ -5104,6 +5106,20 @@ export class Fp3dEditor extends LitElement {
       ${this._energyNote ? html`<p class="fp3d-sub">${this._energyNote}</p>` : nothing}
       <p class="fp3d-sub">${this.t("energy_hint")}</p>
     </section>`;
+  }
+
+  /** Attic floors: dashed lines where the roof slope leaves 1.5 m and 2 m of headroom, with labels. */
+  private renderHeadroom(floor: Floor) {
+    const ceiling = floor.elevation + floor.height;
+    const sections = this._doc.settings.roof.sections ?? [];
+    if (!sections.some((s) => !s.open && s.base < ceiling - 0.05 && s.base > floor.elevation - 0.05)) return nothing;
+    const b = { settings: this._doc.settings };
+    return svg`${[1.5, 2].map((h) =>
+      headroomLines(b, floor.elevation, h).map(
+        ([p, q]) => svg`<line class="fp3d-headroom" x1=${p[0]} y1=${p[1]} x2=${q[0]} y2=${q[1]} />
+          <text class="fp3d-headroom-label" x=${(p[0] + q[0]) / 2} y=${(p[1] + q[1]) / 2 - 0.08}>${formatNumber(this.hass, h, 1)} m</text>`,
+      ),
+    )}`;
   }
 
   /** The camera the house opens with: the editor's 3D pane as it stands right now, or the default. */
@@ -7172,6 +7188,18 @@ export class Fp3dEditor extends LitElement {
         background: rgba(127, 127, 127, 0.12);
         user-select: all;
         word-break: break-all;
+      }
+      .fp3d-headroom {
+        stroke: rgba(255, 214, 90, 0.55);
+        stroke-width: 0.02;
+        stroke-dasharray: 0.12 0.08;
+        pointer-events: none;
+      }
+      .fp3d-headroom-label {
+        font-size: 0.16px;
+        fill: rgba(255, 214, 90, 0.7);
+        text-anchor: middle;
+        pointer-events: none;
       }
       .fp3d-floor-menu {
         display: flex;

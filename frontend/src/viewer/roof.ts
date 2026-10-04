@@ -226,7 +226,10 @@ function buildSections(b: Building, sections: readonly RoofSection[], overhang: 
     let part = parts.get(floor.id);
     if (!part) parts.set(floor.id, (part = { floor, base: 0, solid: new GeoBuffer(), lines: new LineBuffer(), glass: new GeoBuffer(), sections: [] }));
     part.sections!.push(sec.id);
-    pushSection(part.solid, part.lines, sec, sectionOverhang(b, sec, sec.overhang ?? overhang), floor.elevation, part.glass);
+    // an attic: the floor's walls rise above the section's base, so they end under the slopes
+    // themselves (knee walls, gables) and the roof draws none of its own
+    const attic = floor.elevation + floor.height > sec.base + 0.05;
+    pushSection(part.solid, part.lines, sec, sectionOverhang(b, sec, sec.overhang ?? overhang), floor.elevation, part.glass, attic);
   }
   return [...parts.values()];
 }
@@ -235,7 +238,7 @@ function buildSections(b: Building, sections: readonly RoofSection[], overhang: 
  * One section: its slopes with their thickness and rim, the ridge (and hips), and the walls from the
  * section's base up under the roof (gable ends and knee walls). `yOff` is the level of its floor.
  */
-export function pushSection(solid: GeoBuffer, lines: LineBuffer, s: RoofSection, overhang: SectionOverhang | number, yOff: number, glass: GeoBuffer = solid): void {
+export function pushSection(solid: GeoBuffer, lines: LineBuffer, s: RoofSection, overhang: SectionOverhang | number, yOff: number, glass: GeoBuffer = solid, attic = false): void {
   const fr = sectionFrame(s);
   const pr = sectionProfile(s);
   const ov = typeof overhang === "number" ? { u0: overhang, u1: overhang, a: overhang, b: overhang } : overhang;
@@ -333,6 +336,7 @@ export function pushSection(solid: GeoBuffer, lines: LineBuffer, s: RoofSection,
   for (const [[ua, va, ya], [ub, vb, yb]] of ridges) lines.seg(P(ua, va, ya + 0.004), P(ub, vb, yb + 0.004), RIDGE);
   // walls up under the roof, from the section's base: the gable ends (not under a hip) …
   const base = s.base;
+  if (attic) return;
   if (s.shape === "gable" || s.shape === "pent") {
     const profile: [number, number][] = s.shape === "pent" ? [[0, pr.y(0)], [w, pr.y(w)]] : [[0, pr.y(0)], [pr.vr, pr.rh], [w, pr.y(w)]];
     const poly = above(profile, base - THICK);

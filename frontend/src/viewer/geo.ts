@@ -178,11 +178,14 @@ export function pushPrism(
   buf: GeoBuffer,
   poly: Vec2[],
   y0: number,
-  y1: number,
+  y1: number | ((x: number, z: number) => number),
   side: number,
   top: number,
   opts: { aoFrom?: number; fold?: number; topFold?: number; bottom?: boolean; topFace?: boolean } = {},
 ): void {
+  // a top that follows a height function (a wall ending under a roof slope): planar for a wall piece
+  // within one roof plane, so the top quad and the vertical sides stay flat
+  const topY = typeof y1 === "number" ? () => y1 : (p: Vec2) => Math.max(y0 + 0.002, y1(p[0], p[1]));
   const aoFrom = opts.aoFrom ?? y0;
   const fold = opts.fold ?? ALWAYS;
   const k = (y: number) => 0.5 + 0.5 * Math.min(1, Math.max(0, (y - aoFrom) / 1.6));
@@ -194,7 +197,7 @@ export function pushPrism(
       const a = poly[i];
       const b = poly[j];
       const c = poly[l];
-      buf.tri([a[0], y1, a[1]], [c[0], y1, c[1]], [b[0], y1, b[1]], topC, topC, topC, undefined, opts.topFold ?? fold);
+      buf.tri([a[0], topY(a), a[1]], [c[0], topY(c), c[1]], [b[0], topY(b), b[1]], topC, topC, topC, undefined, opts.topFold ?? fold);
     }
   }
   if (opts.bottom) {
@@ -215,10 +218,13 @@ export function pushPrism(
     if (l < 1e-6) continue;
     const facing = ((dz / l) * LIGHT[0] - (dx / l) * LIGHT[1] + 1) / 2;
     const dir = 0.8 + 0.28 * facing;
+    const ya = topY(a);
+    const yb = topY(b);
     const lo = shade(side, k(y0) * dir);
-    const hi = shade(side, k(y1) * dir);
-    buf.tri([a[0], y0, a[1]], [a[0], y1, a[1]], [b[0], y1, b[1]], lo, hi, hi, undefined, fold);
-    buf.tri([a[0], y0, a[1]], [b[0], y1, b[1]], [b[0], y0, b[1]], lo, hi, lo, undefined, fold);
+    const hiA = shade(side, k(ya) * dir);
+    const hiB = shade(side, k(yb) * dir);
+    buf.tri([a[0], y0, a[1]], [a[0], ya, a[1]], [b[0], yb, b[1]], lo, hiA, hiB, undefined, fold);
+    buf.tri([a[0], y0, a[1]], [b[0], yb, b[1]], [b[0], y0, b[1]], lo, hiB, lo, undefined, fold);
   }
 }
 

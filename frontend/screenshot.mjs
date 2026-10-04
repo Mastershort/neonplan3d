@@ -49,6 +49,7 @@ const PACK_SCRIPT = `
 
 // a farmhouse like a user's: a two-storey house, a long barn whose front slope sweeps down lower
 // (catslide), and a lean-to with a pent roof in front of the barn; roof sections at their own heights
+const ATTIC_SCRIPT = "e.useRoofSections(); setTimeout(() => { const secs = e._doc.settings.roof.sections; const big = [...secs].sort((p, q) => Math.abs((q.x1 - q.x0) * (q.z1 - q.z0)) - Math.abs((p.x1 - p.x0) * (p.z1 - p.z0)))[0]; e._tool = 'roof'; e._roofId = big.id; e.updateRoofSection({ base: 3.7, eave_a: 3.7, eave_b: 3.7, pitch_a: 40, pitch_b: 40 }); }, 600);";
 const FARM_SCRIPT = `
   const b = structuredClone(e._doc);
   const eg = b.floors[0];
@@ -155,6 +156,9 @@ const shots = [
   { name: "editor-solar-flat", query: "", width: 1500, height: 900, editor: true, editorScript: "e.change((d) => { d.settings.roof.type = 'flat'; d.settings.roof.solar = []; }); setTimeout(() => { e._tool = 'energy'; e.addSolarField(); }, 500); setTimeout(() => e.fit(), 900);", afterWait: 2000 },
   { name: "editor-roof-overview", query: "", width: 1280, height: 900, editor: true, editorScript: FARM_SCRIPT + "e._floorId = e._doc.floors[0].id; e._tool = 'roof'; e._roofId = null; setTimeout(() => e.fit(), 300);" },
   { name: "view-roof-proposal", query: "", width: 1280, height: 800, editor: true, editorScript: FARM_SCRIPT + "setTimeout(() => { e._doc.settings.roof.sections = []; e.useRoofSections(); }, 300);", then3d: "Alle Etagen", then3dAlso: "Gestapelt", camera: { theta: 2.3, phi: 0.95, radius: 52 } },
+  { name: "view-attic", query: "", width: 1280, height: 800, editor: true, editorScript: ATTIC_SCRIPT, afterWait: 1500, then3d: "Alle Etagen", then3dAlso: ["Gestapelt"], camera: { theta: 0.7, phi: 1.05, radius: 24 } },
+  { name: "view-attic-floor", query: "", width: 1280, height: 800, editor: true, editorScript: ATTIC_SCRIPT, afterWait: 1500, then3d: "Obergeschoss", camera: { theta: 0.5, phi: 1.0, radius: 14 } },
+  { name: "editor-attic", query: "", width: 1400, height: 900, editor: true, editorScript: ATTIC_SCRIPT + " setTimeout(() => { e._floorId = 'og'; e._tool = 'select'; e._roofId = null; e.fit(); }, 1200);", afterWait: 2500 },
   { name: "promo-roof-day", query: "", width: 1280, height: 800, editor: true, editorScript: FARM_SCRIPT, then3d: "Alle Etagen", then3dAlso: ["Gestapelt", "Tag"], camera: { theta: 2.3, phi: 0.95, radius: 52 } },
   { name: "promo-parapet", query: "", width: 1280, height: 800, click: "Obergeschoss", then: "Kinderzimmer" },
   { name: "editor-outdoor-handles", query: "", width: 1280, height: 800, editor: true, editorScript: "const a = e._doc.floors[0].outdoor.find((x) => x.type === 'terrace'); e._tool = 'select'; e._outdoorId = a.id; e._roomId = null;" },

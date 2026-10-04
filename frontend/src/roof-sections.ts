@@ -53,6 +53,56 @@ export function sectionProfile(s: Pick<RoofSection, "x0" | "z0" | "x1" | "z1" | 
   return { vr, rh, y: (v) => (v <= vr ? ea + v * ta : eb + (w - v) * tb) };
 }
 
+/** Thickness of the roof slab (the walls under it end this far below the profile). */
+export const ROOF_THICK = 0.14;
+
+/**
+ * The underside of the roof above a plan point (absolute height): the lowest covered section, or
+ * null outside every section (canopies do not count, and neither does a single roof: it sits on
+ * the top floor's walls anyway).
+ */
+export function roofUnderAt(b: Pick<Building, "settings">, x: number, z: number): number | null {
+  let best: number | null = null;
+  for (const s of b.settings.roof.sections ?? []) {
+    if (s.open) continue;
+    const x0 = Math.min(s.x0, s.x1);
+    const x1 = Math.max(s.x0, s.x1);
+    const z0 = Math.min(s.z0, s.z1);
+    const z1 = Math.max(s.z0, s.z1);
+    if (x < x0 - 1e-6 || x > x1 + 1e-6 || z < z0 - 1e-6 || z > z1 + 1e-6) continue;
+    const v = s.axis === "x" ? (s.flip ? z1 - z : z - z0) : s.flip ? x1 - x : x - x0;
+    const y = sectionProfile(s).y(v) - ROOF_THICK;
+    best = best === null ? y : Math.min(best, y);
+  }
+  return best;
+}
+
+/**
+ * Where a sloped section leaves `headroom` metres above a floor at `level`: lines across the section
+ * (in plan coordinates), one per slope that crosses that height – the editor draws them in attic rooms.
+ */
+export function headroomLines(b: Pick<Building, "settings">, level: number, headroom: number): [Vec2, Vec2][] {
+  const out: [Vec2, Vec2][] = [];
+  for (const s of b.settings.roof.sections ?? []) {
+    if (s.open || s.shape === "flat") continue;
+    const fr = sectionFrame(s);
+    const pr = sectionProfile(s);
+    const target = level + headroom + ROOF_THICK;
+    const vs: number[] = [];
+    const ta = Math.tan(Math.min(80, Math.max(0, s.pitch_a)) * DEG);
+    const tb = Math.tan(Math.min(80, Math.max(0, s.pitch_b)) * DEG);
+    if (ta > 1e-6) vs.push((target - s.eave_a) / ta);
+    if (s.shape === "gable" && tb > 1e-6) vs.push(fr.w - (target - s.eave_b) / tb);
+    for (const v of vs) {
+      // only where the line really runs under the slope (between the eave and the ridge)
+      if (v <= 0.01 || v >= fr.w - 0.01) continue;
+      if (s.shape === "gable" && Math.abs(pr.y(v) - target) > 1e-6) continue;
+      out.push([fr.at(fr.u0, v), fr.at(fr.u1, v)]);
+    }
+  }
+  return out;
+}
+
 /** Overhang per edge of a section: along the ridge at both ends (u0, u1) and across at both sides (a, b). */
 export interface SectionOverhang {
   u0: number;
