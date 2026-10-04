@@ -44,6 +44,8 @@ const MS_NP_BIND_LOG_META = '_ms_np_bind_log';
  *  (many customers may share one address behind a provider's NAT or a proxy, so this one is generous). */
 const MS_NP_RATE_LIMIT = 300;
 const MS_NP_RATE_LIMIT_IP = 3000;
+/** Addresses of reverse proxies in front of the site (none today); only behind one of them X-Forwarded-For is believed. */
+const MS_NP_TRUSTED_PROXIES = [];
 const MS_NP_SHOP_PAGE = 'https://mastershort.de/neonplan3d/';
 /** Loyalty discount in percent on further purchases, and the meta key of the customer's coupon code. */
 const MS_NP_LOYALTY_PERCENT = 10;
@@ -575,19 +577,23 @@ function ms_np_rest_auth(WP_REST_Request $req)
 {
     $key = strtoupper(trim((string) $req->get_param('key')));
     $instance = strtolower(trim((string) $req->get_param('instance')));
-    // the client's own address, also behind a proxy (first address of X-Forwarded-For)
+    // the client's address; X-Forwarded-For counts only when a known proxy stands in front of the site
+    // (otherwise any client could claim any address)
     $ip = (string) ($_SERVER['REMOTE_ADDR'] ?? '');
     $fwd = (string) ($_SERVER['HTTP_X_FORWARDED_FOR'] ?? '');
-    if ($fwd !== '') {
+    if ($fwd !== '' && in_array($ip, MS_NP_TRUSTED_PROXIES, true)) {
         $ip = trim(explode(',', $fwd)[0]);
     }
-    // counted per licence key (one customer) and, more generously, per address
-    foreach ([['ms_np_rate_key_' . md5($key), MS_NP_RATE_LIMIT], ['ms_np_rate_' . md5($ip), MS_NP_RATE_LIMIT_IP]] as [$bucket, $limit]) {
+    $limited = function (string $bucket, int $limit): bool {
         $count = (int) get_transient($bucket);
         if ($count >= $limit) {
-            return new WP_Error('ms_np_rate_limit', 'Too many requests', ['status' => 429]);
+            return true;
         }
         set_transient($bucket, $count + 1, HOUR_IN_SECONDS);
+        return false;
+    };
+    if ($limited('ms_np_rate_' . md5($ip), MS_NP_RATE_LIMIT_IP)) {
+        return new WP_Error('ms_np_rate_limit', 'Too many requests', ['status' => 429]);
     }
     if (!preg_match('/^NP(-[A-Z0-9]{4}){4}$/', $key) || !preg_match('/^[0-9a-f]{16}$/', $instance)) {
         return new WP_Error('ms_np_invalid_key', 'Unknown key', ['status' => 404]);
@@ -595,6 +601,10 @@ function ms_np_rest_auth(WP_REST_Request $req)
     $owner = ms_np_find_license($key);
     if (!$owner) {
         return new WP_Error('ms_np_invalid_key', 'Unknown key', ['status' => 404]);
+    }
+    // counted per licence key only once the key is known, so made-up keys leave no counters behind
+    if ($limited('ms_np_rate_key_' . md5($key), MS_NP_RATE_LIMIT)) {
+        return new WP_Error('ms_np_rate_limit', 'Too many requests', ['status' => 429]);
     }
     if (!ms_np_bind_instance($owner, $instance)) {
         return new WP_Error('ms_np_activation_limit', 'This key is already bound to the allowed number of installations', ['status' => 403]);
