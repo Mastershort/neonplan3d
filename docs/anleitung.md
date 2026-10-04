@@ -157,7 +157,9 @@ Wände entstehen automatisch: Jede gemeinsame Kante zweier Räume wird eine Inne
 
 **Wandhöhe:** Jede Wand kann niedriger sein als der Raum, etwa als Brüstung oder Theke. Bei einer einzelnen Wand stellst du die **Höhe** im Formular ein. Bei Räumen (Rechteck und freie Form) wählst du den Raum aus; im Formular steht der Kasten **Wandhöhen** mit jeder Wand des Raums, benannt nach ihren Eckpunkten (z. B. „Wand 2–3“, die Nummern stehen im Plan an den Ecken) und mit ihrer Länge. Fährst du über eine Zeile oder tippst in ihr Feld, leuchtet die Wand im Plan auf. ↥ setzt sie auf volle Raumhöhe zurück. Teilen sich zwei Räume die Wand, gilt die niedrigere Einstellung. Fenster und Türen in einer niedrigen Wand enden an der Wandhöhe. Niedrige Wände erscheinen im Plan heller.
 
-**Keine Wand:** Bei offenen Grundrissen gehören Flur, Küche und Wohnzimmer baulich zusammen, sind in Home Assistant aber getrennte Bereiche. Dafür hat jede Zeile im Kasten **Wandhöhen** den Knopf **Keine Wand**: Die Wand fällt im Grundriss und in 3D ganz weg, auch wenn der Nachbarraum sie teilt. ↥ holt sie zurück.
+**Keine Wand:** Bei offenen Grundrissen gehören Flur, Küche und Wohnzimmer baulich zusammen, sind in Home Assistant aber getrennte Bereiche. Dafür hat jede Zeile im Kasten **Wandhöhen** den Knopf **Keine Wand**: Die Wand fällt im Grundriss und in 3D ganz weg, auch wenn der Nachbarraum sie teilt. ↥ holt sie zurück. Das Licht folgt dem: Eine Lampe leuchtet durch die weggelassene Wand in den Nachbarraum, als wäre es ein Raum.
+
+**Geteilte Wände:** Teilt ein Nachbarraum eine Wand in mehrere Stücke (etwa zwei kleine Räume an einer langen Wand), bekommt jedes Stück eine eigene Zeile „Wand 2–3 · Teil 1“, „… Teil 2“ mit seiner Länge, und jedes Stück kann seine eigene Höhe haben oder wegfallen.
 
 ### 4.5 Einstellungen
 
@@ -171,7 +173,7 @@ Unten in der Seitenleiste klappt **Einstellungen** auf:
 | **Dach** | Kein Dach, Flachdach oder Satteldach, mit Dachneigung und Dachüberstand. Beim Satteldach legt **First** fest, ob der First entlang der langen oder der kurzen Seite läuft (z. B. Reihenhaus). **Dachflächen (frei)** baut das Dach aus mehreren Teilen, siehe [4.19](#419-dach) |
 | **Wetter-Entität** | Welche Wetter-Entität das Wetter draußen liefert, siehe [6.2](#62-wetter-draußen) |
 | **Wetter-Effekte in 3D** | Welche Effekte gezeigt werden |
-| **Startansicht** | Drehe und zoome das Haus in der 3D-Ansicht rechts so, wie es sich öffnen soll (zum Beispiel von der Gartenseite), und drücke **Aktuelle 3D-Ansicht als Start merken**. 3D-Ansicht, Karte und Kiosk öffnen das Haus dann so; **Standard** setzt zurück |
+| **Startansicht** | Drehe und zoome das Haus in der 3D-Ansicht rechts so, wie es sich öffnen soll (zum Beispiel von der Gartenseite), und drücke **Aktuelle 3D-Ansicht als Start merken**. 3D-Ansicht, Karte und Kiosk öffnen das Haus dann so, und auch eine geöffnete Etage wird von derselben Seite gezeigt; **Standard** setzt zurück |
 
 ### 4.6 Grundriss-Bild als Vorlage
 
@@ -203,6 +205,7 @@ Jede Öffnung hat:
 | **Vor dem Schalten nachfragen** | Auf, Zu und Positionen fragen im Schnellmenü und im Raumfenster erst nach, und Wischen über das Symbol bewegt den Rollladen nicht mehr (es dreht dann die Ansicht). Stopp fragt nie. Gut für Tablets, auf denen Rollläden oder das Garagentor sonst versehentlich fahren |
 | **Kontakt** | Die Tür schwingt auf, das Fenster öffnet sich |
 | **Kippkontakt** | Ein zweiter Sensor, der „gekippt“ meldet |
+| **Kippwinkel-Sensor** | Optional: ein Sensor, der den Kippwinkel in Grad liefert (z. B. „Rotation“ eines Shelly BLU Door/Window). Der Flügel kippt in 3D genau so weit; **Winkel für „ganz gekippt“** (Standard 15°), ein **Offset** für den Wert bei geschlossenem Fenster und **andersherum zählen** passen ihn an die Montage an. Ab einem kleinen Winkel gilt das Fenster als gekippt, auch für die Regenwarnung |
 | **Kontakt zweiter Flügel** | Für zweiflügelige Fenster und Türen |
 | **Garagentor** | Ein Garagentor folgt einer Cover-Entität oder einem Kontakt. Der offene Teil liegt dann unter der Decke |
 
@@ -259,6 +262,7 @@ Ein ausgewähltes Gerät hat:
 - **Höhe des Symbols**, **Drehung** und bei Lichtern die **Montage**: Decke, Boden, Tisch oder Wand.
 - **Vor dem Schalten nachfragen:** Beim Antippen in 3D, im Schnellmenü und im Raumfenster erscheint erst eine Rückfrage. Das schützt etwa den Server-Schalter vor einem versehentlichen Tipp. Ein Doppeltipp auf den Raum lässt dieses Gerät aus.
 - **Symbol in 3D:** *Automatisch* folgt dem Schalter Keine / Wichtige / Alle der 3D-Ansicht. *Immer zeigen* zeigt das Symbol auch bei „Wichtige“, etwa für einen Temperatursensor. *Ohne Watt* lässt die Leistung weg, etwa an einer Steckdose. *Ausblenden* zeigt nie ein Symbol. Bei „Keine“ bleiben alle Symbole aus.
+- **Eigenes Symbol:** Der Name eines Material-Design-Icons wie in Home Assistant, etwa `mdi:thermometer` oder `mdi:water-alert`, ersetzt das Symbol nach Geräteart im Pin. Leer lassen = Standard. Gilt genauso für elektrische Möbel.
 - **In Raummitte** und **Entfernen**.
 
 ### 4.11 Leuchten
@@ -296,6 +300,7 @@ Kameras platzierst du wie jedes Gerät. Danach:
 - **Montage:** Wand mit Blickrichtung oder Decke als Dome, der rundum schaut.
 - Im Plan zeigt ein **Kegel**, wohin die Kamera schaut. Der **Griff an der Spitze** dreht die Kamera und setzt zugleich die Reichweite.
 - **Sichtwinkel (°)**, **Reichweite (m)** und **Neigung nach unten (°)** stellst du auch als Zahl ein.
+- **Sichtkegel in 3D zeigen** lässt sich je Kamera abschalten. In 3D endet der Kegel an der ersten Wand: Eine Innenkamera sieht nicht durch die Wand in den Nachbarraum.
 
 In 3D hängt die Kamera als kleines Modell an der Wand oder Decke, ihr Sichtfeld liegt als Kegel auf dem Boden. Meldet ein Bewegungs- oder Präsenzsensor der Kamera Bewegung, wird der Kegel rot.
 
@@ -668,6 +673,8 @@ room_names: true
 controls: true          # Schalter in der Karte, oder eine Liste: walls, floors, temperature, humidity, co2
 floor_thumbs: true
 fullscreen_button: false
+dashboard: /lovelace/home   # Knopf oben rechts, der dieses Dashboard öffnet (weglassen = kein Knopf)
+dashboard_label: Start      # Beschriftung des Knopfs; ohne Beschriftung zeigt er ⌂
 stats: false
 alerts: true
 alert_jump: false       # bei einer neuen Warnung in den Raum springen

@@ -155,7 +155,9 @@ Walls are created automatically: every shared edge of two rooms becomes an inter
 
 **Wall height:** Any wall can be lower than the room, e.g. a parapet or a counter. For a single wall you set its **Height** in the form. For rooms (rectangle and free shape) select the room; the form shows the **Wall heights** box with every wall of the room, named by its corners (e.g. "Wall 2–3", the numbers are shown at the corners in the plan) and with its length. Hovering a row or tapping its field lights the wall up in the plan. ↥ resets it to full room height. If two rooms share the wall, the lower setting applies. Windows and doors in a low wall end at the wall height. Low walls look lighter in the plan.
 
-**No wall:** In open floor plans the hall, kitchen and living room are one space, yet separate areas in Home Assistant. For that, every row in the **Wall heights** box has a **No wall** button: the wall is left out in the plan and in 3D, even when the neighbouring room shares it. ↥ brings it back.
+**No wall:** In open floor plans the hall, kitchen and living room are one space, yet separate areas in Home Assistant. For that, every row in the **Wall heights** box has a **No wall** button: the wall is left out in the plan and in 3D, even when the neighbouring room shares it. ↥ brings it back. The light follows: a lamp shines through the left-out wall into the neighbouring room as if it were one room.
+
+**Split walls:** When a neighbouring room splits a wall into several parts (say two small rooms along one long wall), every part gets a row of its own, "Wall 2–3 · part 1", "… part 2", with its length, and every part can have its own height or be left out.
 
 ### 4.5 Settings
 
@@ -169,7 +171,7 @@ Walls are created automatically: every shared edge of two rooms becomes an inter
 | **Roof** | No roof, flat roof or gable roof, with pitch and overhang. For a gable roof, **Ridge** sets whether the ridge runs along the long or the short side (e.g. terraced house). **Roof sections (custom)** builds the roof from several parts, see [4.19](#419-roof) |
 | **Weather entity** | Which weather entity drives the weather outside, see [6.2](#62-weather-outside) |
 | **Weather effects in 3D** | Which effects are shown |
-| **Start view** | Turn and zoom the house in the 3D pane on the right the way it should open (e.g. from the garden side) and press **Remember the current 3D view as the start**. The 3D view, the card and the kiosk then open the house like that; **Default** resets it |
+| **Start view** | Turn and zoom the house in the 3D pane on the right the way it should open (e.g. from the garden side) and press **Remember the current 3D view as the start**. The 3D view, the card and the kiosk then open the house like that, and an opened floor is shown from the same side as well; **Default** resets it |
 
 ### 4.6 Floor plan image as a template
 
@@ -201,6 +203,7 @@ Every opening has:
 | **Ask before switching** | Open, close and positions ask first in the quick menu and the room panel, and a swipe on the marker no longer moves the blind (it turns the view instead). Stop never asks. Good for tablets where blinds or the garage door would otherwise move by accident |
 | **Contact** | The door swings open, the window opens |
 | **Tilt contact** | A second sensor that reports "tilted" |
+| **Tilt angle sensor** | Optional: a sensor reporting the tilt angle in degrees (e.g. the "Rotation" of a Shelly BLU Door/Window). The sash tilts exactly that far in 3D; **Angle that counts as fully tilted** (15° by default), an **Offset** for the value while closed and **counts the other way round** adapt it to the mounting. Above a small angle the window counts as tilted, also for the rain warning |
 | **Contact second leaf** | For double windows and doors |
 | **Garage door** | A garage door follows a cover entity or a contact. Its open part lies under the ceiling |
 
@@ -257,6 +260,7 @@ A selected device has:
 - **Marker height**, **rotation** and, for lights, the **mount**: ceiling, floor, table or wall.
 - **Ask before switching:** A tap in 3D, the quick menu and the room panel ask first. This protects, for example, a server switch from an accidental tap. A double tap on the room leaves this device out.
 - **Marker in 3D:** *Automatic* follows the None / Important / All switch of the 3D view. *Always show* shows the marker with "Important" too, e.g. for a temperature sensor. *Without watts* leaves out the power, e.g. on a smart plug. *Hide* never shows a marker. With "None" all markers stay off.
+- **Own symbol:** the name of a Material Design icon as in Home Assistant, e.g. `mdi:thermometer` or `mdi:water-alert`, replaces the symbol of the device kind in the pin. Leave it empty for the default. Works for electric furniture just the same.
 - **To room centre** and **Remove**.
 
 ### 4.11 Lamps
@@ -293,6 +297,7 @@ Place cameras like any device. Then:
 
 - **Mount:** wall, looking along its rotation, or ceiling as a dome that sees all round.
 - In the plan a **wedge** shows where the camera looks. The **handle at its tip** turns the camera and sets its reach at the same time.
+- **Show the field of view in 3D** can be switched off per camera. In 3D the wedge ends at the first wall: an indoor camera does not see through the wall into the next room.
 - **Field of view (°)**, **Reach (m)** and **Tilt down (°)** can be typed in as numbers.
 
 In 3D the camera hangs as a small model on the wall or ceiling, its field of view lies on the floor as a wedge. When a motion or presence sensor of the camera reports motion, the wedge turns red.
@@ -666,6 +671,8 @@ room_names: true
 controls: true          # switches in the card, or a list: walls, floors, temperature, humidity, co2
 floor_thumbs: true
 fullscreen_button: false
+dashboard: /lovelace/home   # a button at the top right that opens this dashboard (leave out = no button)
+dashboard_label: Home       # label of the button; without one it shows ⌂
 stats: false
 alerts: true
 alert_jump: false       # jump into the room of a new warning
