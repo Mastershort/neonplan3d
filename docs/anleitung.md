@@ -799,6 +799,9 @@ Unter Einstellungen die **Nordrichtung** prüfen: Grad im Uhrzeigersinn von „o
 **Die Shop-Verbindung meldet „Limit erreicht“.**
 Der Schlüssel war in den letzten zwölf Monaten mit mehr als fünf neuen Installationen verbunden. Melde dich bei uns, wir helfen.
 
+**Die Aktivierung meldet „Der Shop ist gerade ausgelastet“ oder „HTTP 429“.**
+Der Webhoster des Shops bremst zu viele Anfragen von einer Adresse. NeonPlan versucht es seit 1.9.1 selbst noch zweimal mit Pause; wenn es danach immer noch hakt, eine Minute warten und noch einmal auf **Aktivieren** klicken. Ältere Versionen vor 1.9.1 wurden vom Hoster an ihrem Browserkennzeichen abgewiesen – dort hilft nur das Update.
+
 **Der Shop ist nicht erreichbar.**
 Installierte Packs und Pro-Erweiterungen funktionieren weiter. Updates kommen, sobald der Shop wieder antwortet.
 

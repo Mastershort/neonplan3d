@@ -11,6 +11,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.setup import async_setup_component
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
+from pytest_homeassistant_custom_component.test_util.aiohttp import AiohttpClientMockResponse
 
 from custom_components.neonplan3d import license as lic
 from custom_components.neonplan3d import packs
@@ -146,6 +147,24 @@ async def test_activate_install_and_update(hass: HomeAssistant, hass_ws_client, 
     assert [(u["id"], u["release"]) for u in status["updates"]] == [("shop.living", 2)]
     assert status["offers"][0]["image"] is None and status["offers"][0]["kind"] == "pack"
     assert status["loyalty"] == {"code": "NP-TREUE-AB12CD", "percent": 10}
+
+    # the request carries our own User-Agent (the host blocks aiohttp's default one)
+    assert aioclient_mock.mock_calls[-1][3]["User-Agent"].startswith("NeonPlan3D/")
+
+    # the host throttles with a bare 429: the request is repeated after a pause and then goes through
+    monkeypatch.setattr(lic, "RETRY_WAITS", (0.0, 0.0))
+    aioclient_mock.clear_requests()
+    answers = iter([(429, "<html>Too Many Requests</html>"), (200, json.dumps(catalog))])
+
+    async def throttled(method, url, data):
+        status, text = next(answers)
+        return AiohttpClientMockResponse(method, url, status=status, text=text)
+
+    aioclient_mock.post(f"{lic.SHOP_API}/catalog", side_effect=throttled)
+    await client.send_json_auto_id({"type": "neonplan3d/license/refresh"})
+    result = await client.receive_json()
+    assert result["success"] and result["result"]["licensee"] == "Max Muster"
+    assert aioclient_mock.call_count == 2
 
     # the shop refuses a key: the error comes through with the shop's code
     aioclient_mock.clear_requests()

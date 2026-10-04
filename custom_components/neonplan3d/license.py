@@ -9,6 +9,7 @@ and new purchases, checked once a day.
 
 from __future__ import annotations
 
+import asyncio
 from datetime import timedelta
 import json
 import logging
@@ -20,7 +21,9 @@ import aiohttp
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import instance_id
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.loader import async_get_integration
 
+from .const import DOMAIN
 from .packs import PackError, fingerprint, parts_of, verify_pack
 from .storage import FloorplanData
 
@@ -36,6 +39,12 @@ FIRST_CHECK_DELAY = (300, 6 * 3600)
 MIN_CHECK_AGE = 20 * 3600
 KEY_PATTERN = re.compile(r"^NP(-[A-Z0-9]{4}){4}$")
 _TIMEOUT = aiohttp.ClientTimeout(total=30)
+# HTTP 429 (the shop's host throttles, or our own limiter): wait and try again this often, in seconds
+RETRY_WAITS = (5.0, 15.0)
+RETRY_AFTER_MAX = 60.0
+# a pause between the pack downloads of the daily check, so they never arrive as a burst
+PACK_PAUSE = 2.0
+_user_agent: str | None = None
 
 
 class LicenseError(Exception):
@@ -63,23 +72,59 @@ async def async_instance_fingerprint(hass: HomeAssistant) -> str:
     return fingerprint(await instance_id.async_get(hass))
 
 
+async def _user_agent_of(hass: HomeAssistant) -> str:
+    """Our own User-Agent. Home Assistant's default names aiohttp, and the shop's web host answers
+    every request with that word in the User-Agent with HTTP 429 before WordPress sees it."""
+    global _user_agent
+    if _user_agent is None:
+        try:
+            version = (await async_get_integration(hass, DOMAIN)).version
+        except Exception:
+            version = None
+        _user_agent = f"NeonPlan3D/{version or 'dev'} (Home Assistant; +https://github.com/Mastershort/neonplan3d)"
+    return _user_agent
+
+
+def _retry_wait(res: aiohttp.ClientResponse, attempt: int) -> float | None:
+    """How long to wait before trying again after a 429, None when the attempts are used up."""
+    if attempt >= len(RETRY_WAITS):
+        return None
+    wait = RETRY_WAITS[attempt]
+    after = res.headers.get("Retry-After")
+    if after and after.isdigit():
+        wait = max(wait, min(float(after), RETRY_AFTER_MAX))
+    return wait
+
+
 async def _post(hass: HomeAssistant, path: str, body: dict[str, Any]) -> Any:
-    """One request to the shop; errors become LicenseErrors with the shop's code when it sent one."""
+    """One request to the shop; errors become LicenseErrors with the shop's code when it sent one.
+    A 429 is retried a few times with a pause (the host throttles bursts from one address)."""
     session = async_get_clientsession(hass)
+    headers = {"User-Agent": await _user_agent_of(hass)}
+    attempt = 0
     try:
-        async with session.post(f"{SHOP_API}/{path}", json=body, timeout=_TIMEOUT) as res:
-            text = await res.text()
-            if res.status >= 400:
-                code, detail = "shop_error", f"HTTP {res.status}"
-                try:
-                    err = await res.json(content_type=None)
-                    if isinstance(err, dict) and isinstance(err.get("code"), str):
-                        code = err["code"].removeprefix("ms_np_")
-                        detail = str(err.get("message") or detail)
-                except ValueError:
-                    pass
-                raise LicenseError(code, detail)
-            return text
+        while True:
+            async with session.post(f"{SHOP_API}/{path}", json=body, headers=headers, timeout=_TIMEOUT) as res:
+                text = await res.text()
+                if res.status == 429:
+                    wait = _retry_wait(res, attempt)
+                    if wait is not None:
+                        _LOGGER.debug("Shop answered 429 for %s, trying again in %.0f s", path, wait)
+                        attempt += 1
+                        await asyncio.sleep(wait)
+                        continue
+                    raise LicenseError("rate_limit", "HTTP 429")
+                if res.status >= 400:
+                    code, detail = "shop_error", f"HTTP {res.status}"
+                    try:
+                        err = await res.json(content_type=None)
+                        if isinstance(err, dict) and isinstance(err.get("code"), str):
+                            code = err["code"].removeprefix("ms_np_")
+                            detail = str(err.get("message") or detail)
+                    except ValueError:
+                        pass
+                    raise LicenseError(code, detail)
+                return text
     except (TimeoutError, aiohttp.ClientError, OSError) as err:
         raise LicenseError("shop_unreachable", str(err)) from err
 
@@ -277,9 +322,13 @@ async def async_refresh(hass: HomeAssistant, data: FloorplanData, install_update
     )
     if install_updates:
         installed = {p["id"]: int(p.get("release") or 1) for p in data.packs}
+        fetched = 0
         for p in catalog["packs"]:
             if p["id"] in installed and p["release"] > installed[p["id"]]:
                 try:
+                    if fetched:
+                        await asyncio.sleep(PACK_PAUSE)
+                    fetched += 1
                     await async_install(hass, data, p["id"])
                     _LOGGER.info("Updated pack %s to release %s", p["id"], p["release"])
                 except LicenseError as err:

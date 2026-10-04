@@ -388,6 +388,7 @@
  "license_error_not_owned": "Questo pack non è in questo account.",
  "license_error_no_key": "Inserisci prima la chiave di licenza.",
  "license_error_wrong_instance": "Il negozio ha firmato il pack per un'altra installazione.",
+ "license_error_rate_limit": "Lo shop è molto occupato in questo momento. Riprova tra un minuto.",
  "license_error_other": "Non ha funzionato: {detail}",
  "pack_import": "Importa pack di mobili …",
  "pack_imported": "«{name}» di {publisher} importato: {n} pezzi",

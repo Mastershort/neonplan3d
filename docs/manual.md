@@ -797,6 +797,9 @@ Check **North** under Settings: degrees clockwise from "up" in the plan.
 **The shop connection reports "limit reached".**
 The key was connected to more than five new installations in the last twelve months. Contact us, we will help.
 
+**Activation says "The shop is busy right now" or "HTTP 429".**
+The shop's web host throttles too many requests from one address. Since 1.9.1 NeonPlan retries twice with a pause by itself; if it still fails, wait a minute and click **Activate** again. Versions before 1.9.1 were turned away by the host because of their user agent – there only the update helps.
+
 **The shop cannot be reached.**
 Installed packs and Pro add-ons keep working. Updates arrive as soon as the shop answers again.
 

@@ -388,6 +388,7 @@
  "license_error_not_owned": "Dit pack zit niet in dit account.",
  "license_error_no_key": "Voer eerst de licentiesleutel in.",
  "license_error_wrong_instance": "De winkel heeft het pack voor een andere installatie ondertekend.",
+ "license_error_rate_limit": "De shop is op dit moment druk bezet. Probeer het over een minuut opnieuw.",
  "license_error_other": "Dat is niet gelukt: {detail}",
  "pack_import": "Meubelpacks importeren …",
  "pack_imported": "“{name}” van {publisher} geïmporteerd – {n} stukken",
