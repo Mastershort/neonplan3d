@@ -89,6 +89,7 @@ export class Fp3dView3d extends LitElement {
     _holoOpen: { state: true },
     _wallboxW: { state: true },
     _plants: { state: true },
+    _holoOn: { state: true },
     _flows: { state: true },
     _swipe: { state: true },
     _menu: { state: true },
@@ -165,6 +166,8 @@ export class Fp3dView3d extends LitElement {
   private declare _wallboxW: number | null;
   /** The inverters with their own sensors (name and W), for the hologram when there are several plants. */
   private declare _plants: { name: string; w: number }[];
+  /** The hologram is on screen (then the energy bar keeps only its switch). */
+  private declare _holoOn: boolean;
   private holoTimer: ReturnType<typeof setInterval> | undefined;
   private holoEl: HTMLElement | null = null;
   private holoIds = "";
@@ -276,6 +279,7 @@ export class Fp3dView3d extends LitElement {
     this._holoOpen = true;
     this._wallboxW = null;
     this._plants = [];
+    this._holoOn = false;
     this._swipe = null;
     this._menu = null;
     this._through = null;
@@ -575,7 +579,27 @@ export class Fp3dView3d extends LitElement {
     const fields = [...(b.settings.roof.solar ?? [])].sort((p, q) => q.rows * q.cols - p.rows * p.cols);
     const first = pro && summary.solar !== null ? (fields.find((f) => f.id === holo.field) ?? fields[0]) : undefined;
     const face = first ? fieldFace(b, first) : null;
-    if (first && face) {
+    const anyEnergy = summary.grid !== null || summary.battery !== null || summary.solar !== null;
+    if (!(first && face) && pro && anyEnergy && b.floors.some((f) => f.rooms.length)) {
+      // no solar field in the plan (a meter and a battery only): the hologram hangs beside the house
+      let x1 = -Infinity;
+      let z0 = Infinity;
+      let z1 = -Infinity;
+      let top = 0;
+      let topFloor = b.floors[0];
+      for (const f of b.floors) {
+        for (const r of f.rooms) for (const [x, z] of r.points) {
+          x1 = Math.max(x1, x);
+          z0 = Math.min(z0, z);
+          z1 = Math.max(z1, z);
+        }
+        if (f.rooms.length && f.elevation + f.height > top) {
+          top = f.elevation + f.height;
+          topFloor = f;
+        }
+      }
+      v.setAnchor({ p: [x1 + 0.6, top + 0.4, (z0 + z1) / 2], n: [1, 0, 0], floorId: topFloor.id, size: holo.size });
+    } else if (first && face) {
       const [fw, fd] = fieldSize(face, first);
       const u = first.u + fw / 2 + holo.right;
       const sv = first.v + fd / 2 + holo.up;
@@ -700,7 +724,11 @@ export class Fp3dView3d extends LitElement {
   private placeHolo(x: number, y: number, on: boolean, scale: number, facing: boolean): void {
     const el = (this.holoEl ??= this.renderRoot.querySelector<HTMLElement>(".fp3d-holo"));
     const link = this.renderRoot.querySelector<SVGSVGElement>(".fp3d-holo-link");
-    if (!el) return;
+    if (!el) {
+      if (this._holoOn) this._holoOn = false;
+      return;
+    }
+    if (on !== this._holoOn) this._holoOn = on;
     const hidden = !on;
     if (el.hidden !== hidden) el.hidden = hidden;
     if (link && link.hasAttribute("hidden") !== hidden) link.toggleAttribute("hidden", hidden);
@@ -727,7 +755,7 @@ export class Fp3dView3d extends LitElement {
   /** Energie Pro: the glass hologram beside the house with the solar and energy balance of the moment. */
   private renderHologram() {
     const e = this._energy;
-    if (!hasFeature("energy_pro") || !e || e.solar === null || this.roomId || this.floorId !== null || !this.showEnergy) {
+    if (!hasFeature("energy_pro") || !e || (e.solar === null && e.grid === null && e.battery === null) || this.roomId || this.floorId !== null || !this.showEnergy) {
       this.holoEl = null;
       return nothing;
     }
@@ -739,12 +767,12 @@ export class Fp3dView3d extends LitElement {
     const curve = day && day.curve.length > 1 ? solarCurvePath(day.curve, day.peak) : null;
     const nowX = ((new Date().getHours() + new Date().getMinutes() / 60) / 24) * 220;
     return html`<svg class="fp3d-holo-link" hidden aria-hidden="true"><line x1="0" y1="0" x2="0" y2="0" /><circle cx="0" cy="0" r="3" /></svg>
-      <div class="fp3d-holo ${open ? "" : "fp3d-holo-min"}" hidden role="button" tabindex="0" aria-label=${t("holo_title")} @click=${() => (this._holoOpen = !this._holoOpen)}>
+      <div class="fp3d-holo ${open ? "" : "fp3d-holo-min"} ${this._low ? "fp3d-holo-plain" : ""}" hidden role="button" tabindex="0" aria-label=${t("holo_title")} @click=${() => (this._holoOpen = !this._holoOpen)}>
       <div class="fp3d-holo-sheen"></div>
       <div class="fp3d-holo-scan"></div>
       <div class="fp3d-holo-body">
         <div class="fp3d-holo-head"><span>☀ ${t("holo_title")}</span><span class="fp3d-holo-live">● ${t("holo_live")}</span></div>
-        <div class="fp3d-holo-big"><b>${formatPower(hass, e.solar)}</b><span>${t("holo_pv_now")}</span></div>
+        <div class="fp3d-holo-big"><b>${formatPower(hass, e.solar ?? e.consumption ?? 0)}</b><span>${t(e.solar !== null ? "holo_pv_now" : "holo_house_now")}</span></div>
         ${open
           ? html`${this._plants.length > 1
                 ? html`<div class="fp3d-holo-plants">${this._plants.map((p) => html`<span>${p.name}</span><b>${formatPower(hass, p.w)}</b>`)}</div>`
@@ -1571,7 +1599,7 @@ export class Fp3dView3d extends LitElement {
     }
     if (e.tariff) items.push({ cls: "tariff", label: t("energy_tariff"), value: `${formatNumber(this.hass, e.tariff.value, 3)} ${e.tariff.unit}`.trim() });
     return html`<div class="fp3d-energy" aria-live="off">
-      ${items.map((i) => html`<div class="fp3d-energy-item fp3d-energy-${i.cls}"><span>${i.label}</span><b>${i.value}</b></div>`)}
+      ${this._holoOn ? nothing : items.map((i) => html`<div class="fp3d-energy-item fp3d-energy-${i.cls}"><span>${i.label}</span><b>${i.value}</b></div>`)}
       ${this.flows !== null
         ? nothing
         : html`<button class="fp3d-energy-item fp3d-flow-toggle" aria-pressed=${this._flows} title=${`${t("flows_hint")} (${t(this._flows ? "flow_on" : "flow_off")})`} aria-label=${t("flows")} @click=${() => this.toggleFlows()}>
@@ -2246,6 +2274,16 @@ export class Fp3dView3d extends LitElement {
       }
       .fp3d-holo[hidden],
       .fp3d-holo-link[hidden] {
+        display: none;
+      }
+      /* tablet level: no blur and no sheen, the glass is painted */
+      .fp3d-holo-plain {
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
+        background: rgba(12, 26, 50, 0.9);
+      }
+      .fp3d-holo-plain .fp3d-holo-sheen,
+      .fp3d-holo-plain .fp3d-holo-scan {
         display: none;
       }
       /* the thin line from the solar field up to the card, with a dot on the field */

@@ -578,6 +578,42 @@ Without this add-on a TV only glows while it is on. With it:
 
 ---
 
+### 6.4 Energy Pro
+
+Energy Pro turns the Energy tool into a living picture of your plant: power visibly flows through the house, the solar modules live with the sun, and a glass hologram shows the balance. Everything you set up for it is free and described in [4.20](#420-energy-solar-fields); Pro unlocks the display. Gas, water and heat follow as updates of the same pack.
+
+**Set up in five minutes**
+
+At the top of the **Energy** tool sits the **Setup** list: it ticks off what is in place and jumps to the right spot when tapped.
+
+1. **Solar field:** + Solar field puts modules on the sunniest roof face (4.20).
+2. **Devices:** add the meter, inverter, home battery, wallbox and grid connection. They land in the garage or utility room by themselves and can be dragged in the plan.
+3. **Sensors:** easiest with **Take over from the energy dashboard** (Energy balance section): NeonPlan takes the statistics of your energy dashboard, finds the power sensor of the same device for each and puts it on the meter (grid), the inverter (PV) and the battery (power, charge). Missing devices are created. Otherwise pick the sensors in each device's form by hand: meter = grid power in watts (+ = import), inverter = PV power, battery = power (+ = discharging) and charge in percent, wallbox = power and status.
+4. **Check the signs:** if the meter reports "export" at night or the battery charges without sun, a sensor counts the other way round. The energy balance says so and offers **Flip the sign**.
+5. **Grid connection** (optional): the grid cable runs there, e.g. to the end of the driveway. Without it the cable ends at the edge of your outdoor areas.
+
+Several plants (roof and balcony) work: a second inverter, a second battery, each with its own sensor; the balcony field as a solar field on the wall or free-standing, assigned to a string with that inverter.
+
+**Cables**
+
+In the 3D view the ⚡ button of the energy bar switches the cables on. Thin cables with moving light dots show where the power flows right now; the dots are comets, so the direction is clear even on a still picture. Yellow solar (from the field through the roof, down the wall inside to the inverter), green battery (the direction turns between charging and discharging), blue wallbox, light blue the consumers in the house, cyan export and red-violet import, from the meter to the grid connection with a pin showing the value. More power means faster and denser dots.
+
+Every cable finds its own way (dashed in the plan). To route it differently, say along the facade outside or under the ceiling: pick it in the **Cables** section and press **Lay by hand**, or just grab the dashed cable in the plan. Then you drag points, a click on the cable adds a point, a double click removes it, and **Height above the floor** sets where it runs. Several cables can run side by side to the meter this way. **Fix** protects a finished cable, **Automatic again** removes your way.
+
+**Living modules**
+
+The modules get a glowing cell structure with a band of light sweeping towards the eave, brighter and faster with more power. At night they rest. The power per field comes from the field's sensor, else from its string (shared by module count), else as a share of the total.
+
+**Hologram**
+
+In the house view a glass hologram hangs on the largest solar field (beside the house without one), joined by a glowing line. It shows PV now, today's yield and peak, the day curve since midnight (from the statistics of your PV sensor), with several plants a line per inverter, the battery with an arrow, grid, house, wallbox and the self-sufficiency bar. It keeps its size in the world, so it shrinks as you zoom out; from behind you see it mirrored. A tap folds it down to the big number. In the **Hologram** section you choose its field, size and offset.
+
+**Wall tablet:** on the tablet level the hologram runs without the glass effect and the cables at half the frame rate.
+
+**When something is missing:** the Setup list at the top of the tool shows what does not fit yet. No hologram usually means: no sensor on the inverter, or not the house view (floor and room views have none). No cable to a device: the device has no power sensor.
+
+---
+
 ## 7. Extensions, shop and furniture packs
 
 ![Extensions](images/extensions.jpg)
@@ -731,6 +767,8 @@ Home Assistant's own backup includes NeonPlan 3D completely as well.
 ---
 
 ## 12. FAQ and troubleshooting
+
+**Help and feedback:** report a bug as an [issue on GitHub](https://github.com/Mastershort/neonplan3d/issues/new/choose) and an idea as a [discussion](https://github.com/Mastershort/neonplan3d/discussions/categories/ideas). Nothing gets lost, everyone sees the state, and you are credited in the release notes once it is built. The two buttons for it are also at the bottom of the editor's sidebar and on the Extensions page.
 
 **"Restart needed" appears at the top.**
 After an update the old version still runs in the background. Restart Home Assistant.

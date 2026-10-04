@@ -6,6 +6,8 @@
 - **Dashboard-Knopf** in der Karte: `dashboard` und `dashboard_label` öffnen ein anderes Dashboard oder eine Ansicht (Diskussion #48).
 - **Wandhöhe je Teilstück** einer Wand, die ein Nachbarraum teilt (#77).
 - **Licht durch offene Wände:** Bei „Keine Wand“ leuchtet eine Lampe in den Nachbarraum, als wäre es ein Raum (Idee und Fork von Thundras, Diskussion #68).
+- **Energie-Werkzeug leichter einzurichten:** oben eine Einrichtungs-Checkliste, die zu dem springt, was fehlt; „Aus dem Energie-Dashboard übernehmen“ füllt jetzt die Geräte und legt fehlende an; ein Hinweis mit Ein-Klick-Lösung, wenn Netz- oder Speichersensor andersherum zählen; das Hologramm auch ohne Solarfeld (neben dem Haus); die Energieleiste tritt zurück, solange das Hologramm zu sehen ist; schlichtes Hologramm auf der Tablet-Stufe.
+- **Hilfe und Rückmeldung:** Knöpfe für ein GitHub-Issue (Problem) und eine Diskussion (Idee) in den Editor-Einstellungen und auf der Seite Erweiterungen; Kapitel 6.4 der Anleitung beschreibt Energie Pro.
 
 ### Behoben
 
@@ -25,6 +27,8 @@ Läuft wie immer auch auf alten, schwachen Wandtablets.
 - **Dashboard button** on the card: `dashboard` and `dashboard_label` open another dashboard or view (discussion #48).
 - **Wall heights per part** of a wall that a neighbouring room splits (#77).
 - **Light through open walls:** with "No wall" a lamp lights the neighbouring room as if it were one room (idea and fork by Thundras, discussion #68).
+- **Energy tool, easier to set up:** a setup checklist at the top that jumps to what is missing; "Take over from the energy dashboard" now fills the devices (and creates missing ones); a hint with a one-tap fix when a grid or battery sensor counts the other way round; the hologram also without a solar field (beside the house); the energy bar steps back while the hologram shows; a plain hologram on the tablet level.
+- **Help and feedback:** buttons for a GitHub issue (problem) and a discussion (idea) in the editor's settings and on the Extensions page; manual chapter 6.4 describes Energy Pro.
 
 ### Fixed
 

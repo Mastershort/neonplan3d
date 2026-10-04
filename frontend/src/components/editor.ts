@@ -12,7 +12,7 @@ import { holeInRoom } from "../geometry/holes.ts";
 import { weatherEntity } from "../weather.ts";
 import { SHOW_PRESENCE } from "../flags.ts";
 import { hasFeature, manualUrl, shopUrl } from "../features.ts";
-import { deviceSensors, flowSegments, gridPoint, proposeEnergySensors, type EnergyPrefs, type FlowSegment } from "../energy.ts";
+import { deviceSensors, energySummary, flowSegments, gridPoint, proposeEnergySensors, type EnergyPrefs, type FlowSegment } from "../energy.ts";
 import { isStatusSensor, robotRoomSensor, TOGGLE_KINDS } from "../devices.ts";
 import { ridgeHeight, roofSectionsFromRooms, sectionFrame, sectionProfile, wallTopUnder } from "../roof-sections.ts";
 import { bestFace, clampField, faceAt, faceCompass, fieldFace, fieldModules, GROUND, pointOnFace, proposeField, proposeGroundField, proposeWindow, proposeWallField, roofFaces, rowCounts, turnGroundField, fieldCenter, wallFaces, windowAsField, windowCorners, onFace, onField, rayOnFace, type RoofFace } from "../solar.ts";
@@ -2960,7 +2960,7 @@ export class Fp3dEditor extends LitElement {
       return html`<button class="fp3d-btn fp3d-back" @click=${() => this.selectItem("furniture", null)}>‹ ${this.t("tool_energy")}</button>
         ${this.renderFurnitureForm(device)}`;
     const pro = hasFeature("energy_pro");
-    return html`${this.renderSolarList()}${this.renderEnergyDevices()}${this.renderEnergyBalance()}${pro ? this.renderCableSettings() : nothing}${pro ? this.renderHologramSettings() : nothing}${this.renderSolarProTeaser()}`;
+    return html`${this.renderEnergyChecklist()}${this.renderSolarList()}${this.renderEnergyDevices()}${this.renderEnergyBalance()}${pro ? this.renderCableSettings() : nothing}${pro ? this.renderHologramSettings() : nothing}${this.renderProCard()}`;
   }
 
   /** Energie Pro: which solar field the hologram hangs on, how big it is and where exactly. */
@@ -2989,11 +2989,84 @@ export class Fp3dEditor extends LitElement {
     </section>`;
   }
 
-  /** The coming Pro add-on: a picture and what it will do. */
-  private renderSolarProTeaser() {
+  /** The power sensor of an energy device: set by hand, or the one found on its Home Assistant device. */
+  private devicePower(m: Furniture, links: Map<string, { power: string | null }>): string | null {
+    return m.power && m.power !== "none" ? m.power : (links.get(m.id)?.power ?? null);
+  }
+
+  /** What the energy tool still needs, ticked off live; every row jumps to the right place. */
+  private renderEnergyChecklist() {
+    const doc = this._doc;
+    const links = this.hass ? furnitureEntities(this.hass, doc.floors) : new Map<string, { power: string | null }>();
+    const all = doc.floors.flatMap((fl) => fl.furniture.map((m) => ({ m, fl })));
+    const of = (type: string) => all.filter((x) => x.m.type === type);
+    const goTo = (x: (typeof all)[number]) => {
+      this._floorId = x.fl.id;
+      this._solarId = null;
+      this.selectItem("furniture", x.m.id);
+      this.showPoint(x.m.x, x.m.z);
+    };
+    const fields = doc.settings.roof.solar ?? [];
+    const meters = of("meter");
+    const inverters = of("inverter");
+    const batteries = of("home_battery");
+    const grid = of("grid_point");
+    const meterOk = !!doc.energy.grid || meters.some((x) => this.devicePower(x.m, links));
+    const inverterOk = !!doc.energy.solar || (inverters.length > 0 && inverters.every((x) => this.devicePower(x.m, links)));
+    const batteryOk = batteries.every((x) => this.devicePower(x.m, links) && x.m.soc && x.m.soc !== "none") || !!doc.energy.battery;
+    const pro = hasFeature("energy_pro");
+    type Row = { state: "ok" | "todo" | "opt"; label: string; action?: () => void; href?: string };
+    const rows: Row[] = [
+      { state: fields.length ? "ok" : "todo", label: this.t(fields.length ? "chk_solar" : "chk_solar_add"), action: fields.length ? () => (this._solarId = fields[0].id) : () => this.addSolarField() },
+      meters.length
+        ? { state: meterOk ? "ok" : "todo", label: this.t(meterOk ? "chk_meter" : "chk_meter_sensor"), action: () => goTo(meters[0]) }
+        : { state: "todo", label: this.t("chk_meter_add"), action: () => this.addEnergyDevice("meter") },
+      inverters.length
+        ? { state: inverterOk ? "ok" : "todo", label: this.t(inverterOk ? "chk_inverter" : "chk_inverter_sensor"), action: () => goTo(inverters.find((x) => !this.devicePower(x.m, links)) ?? inverters[0]) }
+        : { state: "todo", label: this.t("chk_inverter_add"), action: () => this.addEnergyDevice("inverter") },
+      batteries.length
+        ? { state: batteryOk ? "ok" : "todo", label: this.t(batteryOk ? "chk_battery" : "chk_battery_sensor"), action: () => goTo(batteries[0]) }
+        : { state: "opt", label: this.t("chk_battery_opt"), action: () => this.addEnergyDevice("home_battery") },
+      grid.length ? { state: "ok", label: this.t("chk_grid"), action: () => goTo(grid[0]) } : { state: "opt", label: this.t("chk_grid_opt"), action: () => this.addEnergyDevice("grid_point") },
+      pro ? { state: "ok", label: this.t("chk_pro_active") } : { state: "opt", label: this.t("chk_pro_get"), href: shopUrl(this.hass?.language) },
+    ];
+    const done = rows.filter((r) => r.state === "ok").length;
+    return html`<section class="fp3d-checklist">
+      <h3>☑ ${this.t("chk_title")} <span class="fp3d-sub">${done}/${rows.length}</span></h3>
+      <p class="fp3d-sub">${this.t("chk_hint")}</p>
+      ${rows.map((r) =>
+        r.href
+          ? html`<a class="fp3d-chk fp3d-chk-${r.state}" href=${r.href} target="_blank" rel="noopener"><span>${r.state === "ok" ? "✓" : r.state === "todo" ? "○" : "·"}</span>${r.label}</a>`
+          : html`<button class="fp3d-chk fp3d-chk-${r.state}" ?disabled=${!this.isAdmin && !!r.action && r.state !== "ok"} @click=${r.action}><span>${r.state === "ok" ? "✓" : r.state === "todo" ? "○" : "·"}</span>${r.label}</button>`,
+      )}
+    </section>`;
+  }
+
+  /** Where to report a problem and where to propose an idea. */
+  private renderHelpLinks() {
+    return html`<section class="fp3d-help">
+      <h3>${this.t("help_title")}</h3>
+      <p class="fp3d-sub">${this.t("help_hint")}</p>
+      <div class="fp3d-actions">
+        <a class="fp3d-btn" href="https://github.com/Mastershort/neonplan3d/issues/new/choose" target="_blank" rel="noopener">🐞 ${this.t("help_issue")}</a>
+        <a class="fp3d-btn" href="https://github.com/Mastershort/neonplan3d/discussions/categories/ideas" target="_blank" rel="noopener">💡 ${this.t("help_idea")}</a>
+      </div>
+    </section>`;
+  }
+
+  /** The Pro add-on: active (with the manual), or what it brings and where to get it. */
+  private renderProCard() {
+    const lang = this.hass?.language;
+    if (hasFeature("energy_pro")) {
+      return html`<section class="fp3d-teaser fp3d-teaser-on">
+        <div class="fp3d-teaser-head"><b>✓ ${this.t("energy_pro_active")}</b></div>
+        <p class="fp3d-sub">${this.t("energy_pro_active_hint")}</p>
+        <div class="fp3d-actions"><a class="fp3d-btn" href=${manualUrl(lang, "energy_pro")} target="_blank" rel="noopener">📖 ${this.t("manual")}</a></div>
+      </section>`;
+    }
     const picture = new URL("./images/solar-pro.jpg", import.meta.url).href;
     return html`<section class="fp3d-teaser">
-      <div class="fp3d-teaser-head"><b>☀ ${this.t("solar_pro_title")}</b><span class="fp3d-teaser-soon">${this.t("solar_pro_soon")}</span></div>
+      <div class="fp3d-teaser-head"><b>⚡ ${this.t("pro_name_energy_pro")}</b><a class="fp3d-btn fp3d-primary" href=${shopUrl(lang)} target="_blank" rel="noopener">${this.t("pro_unlock")}</a></div>
       <img src=${picture} alt=${this.t("solar_pro_title")} loading="lazy" />
       <ul>
         <li>${this.t("solar_pro_1")}</li>
@@ -3002,6 +3075,7 @@ export class Fp3dEditor extends LitElement {
         <li>${this.t("solar_pro_4")}</li>
       </ul>
       <p class="fp3d-sub">${this.t("solar_pro_free")}</p>
+      <div class="fp3d-actions"><a class="fp3d-btn" href=${manualUrl(lang, "energy_pro")} target="_blank" rel="noopener">📖 ${this.t("manual")}</a></div>
     </section>`;
   }
 
@@ -4458,6 +4532,7 @@ export class Fp3dEditor extends LitElement {
               ? this.renderRoomList(floor)
               : nothing}
       ${admin ? this.renderStartView() : nothing}
+      ${this.renderHelpLinks()}
       ${admin && SHOW_PRESENCE ? this.renderPresenceSettings() : nothing}
       ${floor && admin ? this.renderBackgroundForm(floor) : nothing} ${admin ? this.renderSettings() : nothing}
       ${admin ? this.renderBackup() : nothing}
@@ -4936,11 +5011,30 @@ export class Fp3dEditor extends LitElement {
       return;
     }
     const found = proposeEnergySensors(this.hass, prefs);
+    // the sensors go to the devices in the plan (meter, inverter, battery), which are created when missing;
     // only empty fields are filled: what the user chose stays
-    const e = this._doc.energy;
-    const patch = Object.fromEntries(Object.entries(found).filter(([k]) => e[k as keyof typeof e] == null));
-    const n = Object.keys(patch).length;
-    if (n) this.setEnergy(patch);
+    let n = 0;
+    const find = (type: string) => this._doc.floors.flatMap((f) => f.furniture).find((m) => m.type === type);
+    const put = (type: string, key: "power" | "soc", value: string | null | undefined) => {
+      if (!value) return;
+      let m = find(type);
+      if (!m && this.floor) {
+        this.addEnergyDevice(type);
+        m = find(type);
+      }
+      if (!m || (m[key] && m[key] !== "none")) return;
+      const id = m.id;
+      this.change((d) => {
+        const x = d.floors.flatMap((f) => f.furniture).find((y) => y.id === id);
+        if (x) x[key] = value;
+      });
+      n++;
+    };
+    put("meter", "power", found.grid);
+    put("inverter", "power", found.solar);
+    put("home_battery", "power", found.battery);
+    put("home_battery", "soc", found.battery_soc);
+    this.selectItem("furniture", null);
     this._energyNote = n ? this.t("energy_import_done", { n }) : this.t("energy_import_none");
   }
 
@@ -4955,10 +5049,22 @@ export class Fp3dEditor extends LitElement {
       (id) => id.startsWith("sensor.") && (attr(id, "device_class") === "monetary" || /\/(kWh|MWh)$/.test(attr(id, "unit_of_measurement") ?? "")),
     );
     const pick = (key: "grid" | "solar" | "battery" | "battery_soc" | "consumption" | "tariff") => (v: string | null) => this.setEnergy({ [key]: v === "none" ? null : v });
-    const devices = deviceSensors(this._doc);
+    const links = this.hass ? furnitureEntities(this.hass, this._doc.floors) : new Map<string, { power: string | null }>();
+    const devices = deviceSensors(this._doc, (f) => this.devicePower(f, links));
+    // the usual trap: a sign the wrong way round – exporting without any sun, or a battery charging at night
+    const sum = this.hass ? energySummary(this.hass, this._doc, [], devices) : null;
+    const night = !!sum && (sum.solar ?? 0) < 20;
+    const gridWrong = night && sum!.grid !== null && sum!.grid < -50;
+    const batteryWrong = night && sum!.battery !== null && sum!.battery < -50 && (sum!.grid ?? 0) <= 0;
     return html`<section>
       <h3>⚖ ${this.t("energy_balance")}</h3>
       <p class="fp3d-sub">${this.t("energy_balance_hint")}</p>
+      ${gridWrong
+        ? html`<p class="fp3d-sub fp3d-pack-error">${this.t("energy_sign_grid")} <button class="fp3d-btn" ?disabled=${!admin} @click=${() => this.setEnergy({ grid_invert: !e.grid_invert })}>${this.t("energy_sign_flip")}</button></p>`
+        : nothing}
+      ${batteryWrong
+        ? html`<p class="fp3d-sub fp3d-pack-error">${this.t("energy_sign_battery")} <button class="fp3d-btn" ?disabled=${!admin} @click=${() => this.setEnergy({ battery_invert: !e.battery_invert })}>${this.t("energy_sign_flip")}</button></p>`
+        : nothing}
       <div class="fp3d-form">
         ${this.entitySelect(this.t("energy_grid"), e.grid, devices.grid, power, pick("grid"))}
         <label class="fp3d-check fp3d-wide"
@@ -6670,6 +6776,42 @@ export class Fp3dEditor extends LitElement {
       }
       .fp3d-energy-marker {
         cursor: move;
+      }
+      .fp3d-checklist .fp3d-chk {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        width: 100%;
+        margin: 2px 0;
+        padding: 6px 8px;
+        border: 0;
+        border-radius: 8px;
+        background: transparent;
+        color: inherit;
+        font: inherit;
+        text-align: left;
+        text-decoration: none;
+        cursor: pointer;
+      }
+      .fp3d-checklist .fp3d-chk:hover {
+        background: rgba(127, 127, 127, 0.12);
+      }
+      .fp3d-checklist .fp3d-chk span {
+        width: 18px;
+        text-align: center;
+        font-weight: 700;
+      }
+      .fp3d-chk-ok span {
+        color: #59ff8c;
+      }
+      .fp3d-chk-todo span {
+        color: #ffc633;
+      }
+      .fp3d-chk-opt {
+        opacity: 0.75;
+      }
+      .fp3d-teaser-on {
+        border-color: rgba(89, 255, 140, 0.5);
       }
       .fp3d-teaser {
         margin-top: 12px;

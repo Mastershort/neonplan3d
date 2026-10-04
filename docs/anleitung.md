@@ -580,6 +580,42 @@ Ohne diese Erweiterung leuchtet ein Fernseher nur, solange er an ist. Mit ihr:
 
 ---
 
+### 6.4 Energie Pro
+
+Energie Pro macht aus dem Energie-Werkzeug ein lebendiges Bild deiner Anlage: Strom fließt sichtbar durchs Haus, die Solarmodule leben mit der Sonne, und ein Hologramm aus Glas zeigt die Bilanz. Alles, was du dafür einrichtest, ist kostenlos und steht in [4.20](#420-energie-solarfelder); Pro schaltet die Darstellung frei. Gas, Wasser und Wärme folgen als Updates im selben Pack.
+
+**In fünf Minuten eingerichtet**
+
+Oben im Werkzeug **Energie** steht die **Einrichtung**: eine Liste, die abhakt, was schon da ist, und beim Antippen an die richtige Stelle springt.
+
+1. **Solarfeld:** + Solarfeld legt Module auf die sonnigste Dachfläche (4.20).
+2. **Geräte:** Stromzähler, Wechselrichter, Stromspeicher, Wallbox und Netzanschluss anlegen. Sie kommen von selbst in Garage oder Technikraum und lassen sich im Grundriss verschieben.
+3. **Sensoren:** Am einfachsten **Aus dem Energie-Dashboard übernehmen** (Abschnitt Energiebilanz): NeonPlan nimmt die Statistiken deines Energie-Dashboards, sucht zu jeder den Leistungssensor desselben Geräts und trägt ihn beim Zähler (Netz), Wechselrichter (PV) und Speicher (Leistung, Ladestand) ein. Fehlende Geräte werden dabei angelegt. Sonst wählst du die Sensoren im Formular jedes Geräts von Hand: Zähler = Netzleistung in Watt (+ = Bezug), Wechselrichter = PV-Leistung, Speicher = Leistung (+ = Entladen) und Ladestand in Prozent, Wallbox = Leistung und Status.
+4. **Vorzeichen prüfen:** Meldet der Zähler nachts „Einspeisung“ oder lädt der Speicher ohne Sonne, zählt ein Sensor andersherum. Die Energiebilanz sagt das und bietet **Vorzeichen umkehren** an.
+5. **Netzanschluss** (optional): Dorthin läuft die Netzleitung, zum Beispiel ans Ende der Einfahrt. Ohne ihn endet sie am Rand deiner Außenflächen.
+
+Mehrere Anlagen (Dach und Balkonkraftwerk) gehen: zweiter Wechselrichter, zweiter Speicher, jeder mit eigenem Sensor; das Balkonfeld als Solarfeld an der Wand oder frei aufgeständert und einem Strang mit diesem Wechselrichter zugeordnet.
+
+**Leitungen**
+
+In der 3D-Ansicht schaltet der ⚡-Knopf der Energieleiste die Leitungen ein. Dünne Leitungen mit wandernden Lichtpunkten zeigen, wohin der Strom gerade fließt; die Punkte sind Kometen, die Richtung ist auch im Stillstand klar. Gelb Solar (vom Feld durch das Dach, innen an der Wand hinunter zum Wechselrichter), grün Speicher (die Richtung dreht beim Laden und Entladen), blau Wallbox, hellblau die Verbraucher im Haus, cyan Einspeisung und rot-violett Netzbezug, vom Zähler bis zum Netzanschluss mit einem Pin, der den Wert zeigt. Je mehr Leistung, desto schneller und dichter die Punkte.
+
+Jede Leitung findet ihren Weg von selbst (gestrichelt im Grundriss). Willst du sie anders führen, etwa außen an der Fassade oder unter der Decke: im Abschnitt **Leitungen** auswählen und **Selbst verlegen**, oder die gestrichelte Leitung im Grundriss einfach anfassen. Dann ziehst du Punkte, ein Klick auf die Leitung fügt einen Punkt ein, ein Doppelklick entfernt ihn, und **Höhe über dem Boden** legt fest, wo sie läuft. Mehrere Leitungen lassen sich so nebeneinander zum Zähler führen. **Fixieren** schützt eine fertige Leitung, **Wieder automatisch** löscht deinen Weg.
+
+**Lebende Module**
+
+Die Module bekommen eine leuchtende Zellstruktur, über die ein Lichtband Richtung Traufe wandert, je mehr Leistung, desto heller und schneller. Nachts ruhen sie. Die Leistung je Feld kommt vom Sensor des Feldes, sonst vom Strang (nach Modulzahl verteilt), sonst anteilig aus der Gesamtleistung.
+
+**Hologramm**
+
+In der Hausansicht hängt ein Hologramm aus Glas am größten Solarfeld (ohne Feld neben dem Haus), verbunden durch einen Leuchtstrich. Es zeigt PV jetzt, Ertrag heute und Spitze, die Tageskurve seit Mitternacht (aus den Statistiken deines PV-Sensors), bei mehreren Anlagen eine Zeile je Wechselrichter, Akku mit Pfeil, Netz, Haus, Wallbox und den Autarkie-Balken. Es behält seine Größe in der Welt, wird beim Rauszoomen also kleiner; von hinten siehst du es gespiegelt. Antippen klappt es auf die große Zahl zusammen. Im Abschnitt **Hologramm** wählst du Feld, Größe und Versatz.
+
+**Wandtablet:** Auf der Tablet-Stufe läuft das Hologramm ohne Glaseffekt, die Leitungen mit halber Bildrate.
+
+**Wenn etwas fehlt:** Die Einrichtung oben im Werkzeug zeigt, was noch nicht passt. Kein Hologramm bedeutet meist: kein Sensor am Wechselrichter oder keine Hausansicht (Etagen- und Raumansichten haben keins). Keine Leitung zu einem Gerät: Das Gerät hat keinen Leistungssensor.
+
+---
+
 ## 7. Erweiterungen, Shop und Möbel-Packs
 
 ![Erweiterungen](images/extensions.jpg)
@@ -733,6 +769,8 @@ Das normale Backup von Home Assistant sichert NeonPlan 3D ebenfalls vollständig
 ---
 
 ## 12. Häufige Fragen und Fehlerbehebung
+
+**Hilfe und Rückmeldung:** Einen Fehler meldest du am besten als [Issue auf GitHub](https://github.com/Mastershort/neonplan3d/issues/new/choose), eine Idee als [Diskussion](https://github.com/Mastershort/neonplan3d/discussions/categories/ideas). So geht nichts verloren, alle sehen den Stand, und du wirst in den Release-Notizen genannt, wenn es umgesetzt ist. Die beiden Knöpfe dafür stehen auch im Editor unten in der Seitenleiste und auf der Seite Erweiterungen.
 
 **Oben steht „Neustart nötig“.**
 Nach einem Update läuft im Hintergrund noch die alte Version. Home Assistant neu starten.
