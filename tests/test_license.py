@@ -163,7 +163,7 @@ async def test_activate_install_and_update(hass: HomeAssistant, hass_ws_client, 
     aioclient_mock.post(f"{lic.SHOP_API}/catalog", side_effect=throttled)
     await client.send_json_auto_id({"type": "neonplan3d/license/refresh"})
     result = await client.receive_json()
-    assert result["success"] and result["result"]["licensee"] == "Max Muster"
+    assert result["success"] and result["result"]["licensee"] == "Anna"
     assert aioclient_mock.call_count == 2
 
     # the shop refuses a key: the error comes through with the shop's code
