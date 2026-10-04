@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { buildMarkers, stateText } from "./markers.ts";
+import { detectionKind, buildMarkers, stateText } from "./markers.ts";
 import type { Building } from "./model.ts";
 import { emptyBuilding, newFloor } from "./model.ts";
 import type { HassEntity, HomeAssistant } from "./types.ts";
@@ -75,4 +75,12 @@ test("a placement's marker setting reaches the marker", () => {
   const [t, s] = buildMarkers(hass, b);
   assert.equal(t.show, "always");
   assert.equal(s.show, undefined);
+});
+
+test("a camera's detection sensors are told apart by what they detect", () => {
+  const hass = { states: { "binary_sensor.einfahrt_car_occupancy": { entity_id: "binary_sensor.einfahrt_car_occupancy", state: "on", attributes: {} }, "binary_sensor.x": { entity_id: "binary_sensor.x", state: "on", attributes: { friendly_name: "Terrasse Hund erkannt" } } } } as unknown as Parameters<typeof detectionKind>[0];
+  assert.equal(detectionKind(hass, "binary_sensor.haustuer_person_occupancy"), "person");
+  assert.equal(detectionKind(hass, "binary_sensor.einfahrt_car_occupancy"), "car");
+  assert.equal(detectionKind(hass, "binary_sensor.x"), "pet");
+  assert.equal(detectionKind(hass, "binary_sensor.flur_motion"), "motion");
 });

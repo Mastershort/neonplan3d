@@ -11,6 +11,8 @@ export interface CardConfig {
   walls?: WallMode;
   /** Pull floors apart in the house view (default true). */
   explode?: boolean;
+  /** A "Cameras" button that opens the camera wall, every camera's live picture (Pro: camera cockpit). */
+  camera_wall?: boolean;
   /** The roof lifts and fades while zooming in (default true); false keeps it on the house. */
   roof_fade?: boolean;
   quality?: Quality;

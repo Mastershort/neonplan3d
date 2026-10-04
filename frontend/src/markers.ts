@@ -101,6 +101,18 @@ export function buildMarkers(hass: HomeAssistant, building: Building): DeviceMar
   return out;
 }
 
+/** What a camera's detection sensor reports: a person, a vehicle, an animal or plain motion (by its id and name). */
+export type DetectionKind = "person" | "car" | "pet" | "motion";
+
+export function detectionKind(hass: HomeAssistant, sensorId: string): DetectionKind {
+  // ids join their words with underscores: "einfahrt_car_occupancy"
+  const text = `${sensorId} ${String(hass.states[sensorId]?.attributes.friendly_name ?? "")}`.toLowerCase().replace(/[_.-]/g, " ");
+  if (/person|people|human|pedestrian/.test(text)) return "person";
+  if (/\bcar\b|vehicle|truck|bus|motorcycle|bicycle|fahrzeug|auto\b/.test(text)) return "car";
+  if (/\bdog\b|\bcat\b|\bpet\b|animal|bird|hund|katze|tier/.test(text)) return "pet";
+  return "motion";
+}
+
 /** Whether a camera's device reports motion or a person right now (its motion/occupancy sensors). */
 export function cameraMotion(hass: HomeAssistant, cameraId: string): boolean {
   return cameraMotionSensors(hass, cameraId).some((id) => hass.states[id]?.state === "on");

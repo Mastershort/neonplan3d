@@ -66,6 +66,7 @@ export class Floorplan3dPanel extends LitElement {
     _floorStack: { state: true },
     _roomNames: { state: true },
     _trail: { state: true },
+    _cameraWall: { state: true },
     _weather: { state: true },
   };
 
@@ -98,6 +99,7 @@ export class Floorplan3dPanel extends LitElement {
   private declare _roomNames: boolean;
   /** Motion trail of the last half hour in 3D. */
   private declare _trail: boolean;
+  private declare _cameraWall: boolean;
   /** Weather outside the house in 3D. */
   private declare _weather: boolean;
 
@@ -131,6 +133,7 @@ export class Floorplan3dPanel extends LitElement {
     this._floorStack = stack === "stacked" || stack === "single" ? stack : "dim";
     this._roomNames = prefs.get("room_names") !== "0";
     this._trail = prefs.get("trail") === "1";
+    this._cameraWall = false;
     this._weather = prefs.get("weather") !== "0";
   }
 
@@ -601,6 +604,8 @@ export class Floorplan3dPanel extends LitElement {
           .floorStack=${this._floorStack}
           .roomLabels=${this._roomNames}
           ?trail=${this._trail}
+          .cameraWall=${this._cameraWall}
+          @camera-wall-close=${() => (this._cameraWall = false)}
           ?weather=${this._weather}
           .panelOpen=${!!this._roomId}
           .floorId=${b.floors.length > 1 ? this._floorId : (b.floors[0]?.id ?? null)}
@@ -704,6 +709,14 @@ export class Floorplan3dPanel extends LitElement {
             }}
           >
             ${hasFeature("camera_cockpit") ? "" : "🔒 "}${this.t("trail_short")}
+          </button>
+          <button
+            class="fp3d-chip"
+            aria-pressed=${this._cameraWall}
+            title=${this.t("camera_wall_hint")}
+            @click=${() => (this._cameraWall = !this._cameraWall)}
+          >
+            ${hasFeature("camera_cockpit") ? "" : "🔒 "}${this.t("cameras_short")}
           </button>
           <button
             class="fp3d-chip"

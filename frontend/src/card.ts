@@ -25,6 +25,7 @@ export class Floorplan3dCard extends LitElement {
     _heat: { state: true },
     _explode: { state: true },
     _fullscreen: { state: true },
+    _cameraWall: { state: true },
     _night: { state: true },
     _orbit: { state: true },
   };
@@ -39,6 +40,7 @@ export class Floorplan3dCard extends LitElement {
   private declare _heat: HeatMode | null;
   private declare _explode: boolean | null;
   private declare _fullscreen: boolean;
+  private declare _cameraWall: boolean;
   /** Kiosk: the night dimming is active; the screensaver turn runs (after an idle return). */
   private declare _night: boolean;
   private declare _orbit: boolean;
@@ -55,6 +57,7 @@ export class Floorplan3dCard extends LitElement {
     this._heat = null;
     this._explode = null;
     this._fullscreen = false;
+    this._cameraWall = false;
     this._night = false;
     this._orbit = false;
   }
@@ -216,6 +219,8 @@ export class Floorplan3dCard extends LitElement {
               .alertJump=${!!c?.alert_jump}
               .scenes=${c?.scenes !== false}
               ?trail=${!!c?.motion_trail}
+              .cameraWall=${this._cameraWall}
+              @camera-wall-close=${() => (this._cameraWall = false)}
               ?weather=${c?.weather !== false}
               .weatherEntityId=${c?.weather_entity ?? null}
               .dimmed=${this._night}
@@ -253,6 +258,7 @@ export class Floorplan3dCard extends LitElement {
         ${bar && b
           ? html`<div class="fp3d-card-controls">
               ${canGoBack ? html`<button class="fp3d-chip" @click=${() => this.back()}>${t("back")}</button>` : nothing}
+              ${c?.camera_wall ? html`<button class="fp3d-chip" aria-pressed=${this._cameraWall} title=${t("camera_wall_hint")} @click=${() => (this._cameraWall = !this._cameraWall)}>${t("cameras_short")}</button>` : nothing}
               ${shows("walls")
                 ? html`<div class="fp3d-seg">
                     <button aria-pressed=${walls === "auto"} @click=${() => (this._walls = "auto")}>${t("walls_auto")}</button>

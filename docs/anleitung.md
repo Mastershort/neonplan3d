@@ -549,6 +549,10 @@ Pro-Erweiterungen sind kostenpflichtige Zusatzfunktionen, einzeln im Shop erhäl
 
 ![Bewegungsspur](images/view-trail.jpg)
 
+**Erkennungs-Pins:** Meldet ein Sensor der Kamera gerade eine Erkennung (Frigate, UniFi Protect, Reolink und ähnliche liefern je Objekt einen Sensor: Person, Fahrzeug, Tier, Bewegung), steht vor der Kamera ein Pin mit Symbol, Art und Uhrzeit – „Person · 18:42“. Antippen öffnet den Sensor. Mehrere Objekte zugleich ergeben mehrere Pins übereinander.
+
+**Kamera-Wand:** Der Schalter **Kameras** unten (in der Karte die Option `camera_wall: true`) legt alle Livebilder deiner platzierten Kameras als Wand über die Szene, alle paar Sekunden aufgefrischt. Eine Kamera, die gerade Bewegung sieht, bekommt einen roten Rahmen; eine, die aufnimmt, einen roten Punkt. Antippen schaut durch die Kamera, ✕ schließt die Wand.
+
 ### 6.2 Wetter draußen
 
 ![Regen](images/view-weather-rain.jpg)
@@ -734,6 +738,7 @@ motion_trail: false     # Pro: Kamera-Cockpit
 weather: true           # Pro: Wetter draußen
 weather_entity: weather.home
 holograms: true         # Pro: Hologramme immer an/aus; weglassen = Schalter in der Karte
+camera_wall: false      # Pro: Knopf „Kameras“ unten in der Karte öffnet die Kamera-Wand
 roof_fade: true         # false: Dach bleibt beim Heranzoomen auf dem Haus
 start_view: { theta: 0.8, phi: 1.0, radius: 20 }   # eigene Startansicht dieser Karte; die Zeile steht im Editor unter Startansicht (weglassen = die des Plans)
 idle_return: 0          # Sekunden ohne Berührung bis zur Startansicht

@@ -171,6 +171,8 @@ const shots = [
   { name: "view-cross-gable", query: "", width: 1280, height: 800, editor: true, editorScript: CROSS_SCRIPT, afterWait: 2200, then3d: "Alle Etagen", then3dAlso: ["Gestapelt", "Dach bleibt"], camera: { theta: 3.9, phi: 1.15, radius: 17 } },
   { name: "view-cross-gable-b", query: "", width: 1280, height: 800, editor: true, editorScript: CROSS_SCRIPT, afterWait: 2200, then3d: "Alle Etagen", then3dAlso: ["Gestapelt", "Dach bleibt"], camera: { theta: 2.6, phi: 1.2, radius: 15 } },
   { name: "editor-cross-gable", query: "", width: 1400, height: 900, editor: true, editorScript: CROSS_SCRIPT + " setTimeout(() => e.fit(), 1400);", afterWait: 2600 },
+  { name: "view-camera-detect", query: "", width: 1280, height: 800, click: "Erdgeschoss", then: "Wohnzimmer" },
+  { name: "view-camera-wall", query: "", width: 1280, height: 800, click: "Erdgeschoss", then: "Kameras" },
   { name: "view-attic", query: "", width: 1280, height: 800, editor: true, editorScript: ATTIC_SCRIPT, afterWait: 1500, then3d: "Alle Etagen", then3dAlso: ["Gestapelt"], camera: { theta: 0.7, phi: 1.05, radius: 24 } },
   { name: "view-attic-floor", query: "", width: 1280, height: 800, editor: true, editorScript: ATTIC_SCRIPT, afterWait: 1500, then3d: "Obergeschoss", camera: { theta: 0.5, phi: 1.0, radius: 14 } },
   { name: "editor-attic", query: "", width: 1400, height: 900, editor: true, editorScript: ATTIC_SCRIPT + " setTimeout(() => { e._floorId = 'og'; e._tool = 'select'; e._roofId = null; e.fit(); }, 1200);", afterWait: 2500 },

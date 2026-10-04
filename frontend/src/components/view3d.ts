@@ -39,6 +39,14 @@ interface HoloCard {
   battery: { soc: number | null; w: number | null } | null;
 }
 
+/** Pins of what a camera detects (Frigate and the like): a person, a vehicle, an animal, motion. */
+const DETECT_ICONS: Record<string, string> = {
+  person: '<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true"><path d="M12 2a3 3 0 1 1 0 6 3 3 0 0 1 0-6m-3 7h6a2 2 0 0 1 2 2v6h-2v6H9v-6H7v-6a2 2 0 0 1 2-2"/></svg>',
+  car: '<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true"><path d="M5 11l1.5-4.5A2 2 0 0 1 8.4 5h7.2a2 2 0 0 1 1.9 1.5L19 11a2 2 0 0 1 2 2v5h-2v2h-3v-2H8v2H5v-2H3v-5a2 2 0 0 1 2-2m1.1 0h11.8l-1-3H7.1zM6.5 13a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3m11 0a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3"/></svg>',
+  pet: '<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true"><path d="M8.3 3.5a2 1.6 0 1 1 0 3.2 2 1.6 0 0 1 0-3.2m7.4 0a2 1.6 0 1 1 0 3.2 2 1.6 0 0 1 0-3.2M4.5 8a1.8 1.5 0 1 1 0 3 1.8 1.5 0 0 1 0-3m15 0a1.8 1.5 0 1 1 0 3 1.8 1.5 0 0 1 0-3M12 10c2.5 0 4.6 1.9 5.3 4.3.6 2 .2 3.7-1.3 4.5-1.4.8-2.6-.2-4-.2s-2.6 1-4 .2c-1.5-.8-1.9-2.5-1.3-4.5C7.4 11.9 9.5 10 12 10"/></svg>',
+  motion: '<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true"><path d="M13.5 5.5a2 2 0 1 0 0-4 2 2 0 0 0 0 4M9.8 8.9 7 23h2.1l1.8-8 2.1 2v6h2v-7.5l-2.1-2 .6-3c1.3 1.5 3.3 2.5 5.5 2.5v-2c-1.9 0-3.5-1-4.3-2.4l-1-1.6c-.4-.6-1-1-1.7-1-.3 0-.5.1-.8.1L6 8.3V13h2V9.6z"/></svg>',
+};
+
 /** The pin at the street end of the grid cable. */
 const GRID_ICON = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg>';
 import { STAGE, type Theme } from "../themes.ts";
@@ -56,7 +64,7 @@ import { searchIndex, searchItems, type SearchItem } from "../search.ts";
 import { coverPositionable, lightAbilities } from "./quick-menu.ts";
 import "./quick-menu.ts";
 import { load3d } from "../load3d.ts";
-import { buildMarkers, cameraMotionSensors, openMoreInfo, placedEntities, stateText, toggleEntity } from "../markers.ts";
+import { detectionKind, buildMarkers, cameraMotionSensors, openMoreInfo, placedEntities, stateText, toggleEntity } from "../markers.ts";
 import { furnitureFootprint, isLamp, LAMP_MODEL, outdoorGround, pointInPolygon, surfaceHeight, type Building, type Furniture, type StartView } from "../model.ts";
 import { floorCounts, floorInfoText, personsInRooms } from "../presence.ts";
 import { controls, tokens } from "../styles.ts";
@@ -87,6 +95,7 @@ export class Fp3dView3d extends LitElement {
     surfaceGrab: { attribute: false },
     furnishTypes: { attribute: false },
     trail: { type: Boolean },
+    cameraWall: { attribute: false },
     weather: { type: Boolean },
     weatherEntityId: { attribute: false },
     _flash: { state: true },
@@ -157,6 +166,8 @@ export class Fp3dView3d extends LitElement {
   declare furnishTypes: readonly string[] | null;
   /** Motion trail: where motion was reported in the last half hour, with times. */
   declare trail: boolean;
+  /** The camera wall: every placed camera's live picture at once (Pro). */
+  declare cameraWall: boolean;
   /** Weather outside: rain, snow, fog and clouds from a weather entity, sun and moon from sun.sun. */
   declare weather: boolean;
   /** The weather entity to use (null: the first one). */
@@ -329,6 +340,7 @@ export class Fp3dView3d extends LitElement {
     this.dimmed = false;
     this.autoOrbit = false;
     this.startView = null;
+    this.cameraWall = false;
     this.holograms = null;
     try {
       this._flows = localStorage.getItem("neonplan3d.flows") === "1";
@@ -566,6 +578,8 @@ export class Fp3dView3d extends LitElement {
       }),
       // Energie Pro: the street end of the grid cable carries a pin with what comes in or goes out
       ...(pro && (this.flows ?? this._flows) && !this.dimmed && summary.grid !== null ? [this.gridPin(hass, b, summary.grid)] : []).filter((m): m is NonNullable<typeof m> => !!m),
+      // Kamera-Cockpit: what a camera detects right now stands in front of it as a pin
+      ...(hasFeature("camera_cockpit") && !this.dimmed ? this.detectionPins(hass, deviceMarkers) : []),
       // trail spots carry a pin with the time of the motion; the same sensor again stacks its pins
       ...trail.map((p, i) => ({
         id: `trail:${i}`,
@@ -780,6 +794,49 @@ export class Fp3dView3d extends LitElement {
         if (p !== null && charge !== null) p = Math.max(0, p) - Math.max(0, charge);
         else if (p === null && charge !== null) p = -Math.max(0, charge);
         if (p !== null) out.set(f.id, p);
+      }
+    }
+    return out;
+  }
+
+  /**
+   * Kamera-Cockpit: a pin in front of every camera for each detection its sensors report right now
+   * (a person, a vehicle, an animal, motion – Frigate, UniFi Protect, Reolink and the like), with the time.
+   */
+  private detectionPins(hass: HomeAssistant, markers: DeviceMarker[]) {
+    const out: (DeviceMarker & { pin: boolean })[] = [];
+    for (const cam of markers) {
+      if (!cam.model?.startsWith("camera")) continue;
+      const active = cameraMotionSensors(hass, cam.id).filter((id) => hass.states[id]?.state === "on");
+      // one pin per kind (a person and a car at the same time), the plain motion only when nothing else is seen
+      const kinds = new Map<string, string>();
+      for (const id of active) {
+        const kind = detectionKind(hass, id);
+        if (!kinds.has(kind)) kinds.set(kind, id);
+      }
+      if (kinds.size > 1) kinds.delete("motion");
+      const a = ((cam.rotation ?? 0) * Math.PI) / 180;
+      const dir: [number, number] = [-Math.sin(a), Math.cos(a)];
+      const dome = cam.model === "camera_ceiling";
+      let n = 0;
+      for (const [kind, id] of kinds) {
+        const st = hass.states[id];
+        const since = st?.last_changed ? trailTime(hass, Date.parse(st.last_changed)) : "";
+        out.push({
+          id: `detect:${id}`,
+          floorId: cam.floorId,
+          roomId: cam.roomId,
+          x: cam.x + (dome ? 0 : dir[0] * 1.1),
+          z: cam.z + (dome ? 0 : dir[1] * 1.1),
+          y: 1.4 + 0.4 * n++,
+          icon: DETECT_ICONS[kind] ?? DETECT_ICONS.motion,
+          name: entityName(hass, id),
+          text: `${translate(hass, `detect_${kind}` as I18nKey)}${since ? ` · ${since}` : ""}`,
+          active: true,
+          unavailable: false,
+          glow: null,
+          pin: true,
+        });
       }
     }
     return out;
@@ -1188,7 +1245,7 @@ export class Fp3dView3d extends LitElement {
         if (picture) screens.set(f.id, { color: bg, level: 1, picture, plain: true });
       }
     }
-    this.watchCameras(this.cameraScreens > 0 || !!this._through);
+    this.watchCameras(this.cameraScreens > 0 || !!this._through || this.cameraWall);
     return { markers, consumers, screens, targets };
   }
 
@@ -1245,7 +1302,7 @@ export class Fp3dView3d extends LitElement {
         if (document.hidden) return;
         this.cameraTick++;
         this.syncDevices(true);
-        if (this._through) this.requestUpdate();
+        if (this._through || this.cameraWall) this.requestUpdate();
       }, this._low ? 10000 : 5000);
     } else if (!on && this.cameraTimer) {
       clearInterval(this.cameraTimer);
@@ -1676,6 +1733,36 @@ export class Fp3dView3d extends LitElement {
     </div>`;
   }
 
+  /** Kamera-Cockpit: the camera wall – every placed camera's picture, refreshed every few seconds; a tap looks through it. */
+  private renderCameraWall() {
+    if (!this.cameraWall || !this.hass || !this.building) return nothing;
+    const hass = this.hass;
+    const close = () => this.dispatchEvent(new CustomEvent("camera-wall-close", { bubbles: true, composed: true }));
+    if (!hasFeature("camera_cockpit")) {
+      return html`<div class="fp3d-wall">
+        <div class="fp3d-wall-head"><span>${translate(hass, "camera_wall_title")}</span><button class="fp3d-chip" @click=${close}>✕</button></div>
+        <p class="fp3d-wall-pro">🔒 ${translate(hass, "pro_feature_camera_cockpit")}</p>
+      </div>`;
+    }
+    const cameras = [...new Set(this.building.floors.flatMap((f) => f.placements.map((p) => p.entity_id)).filter((id) => kindOf(id) === "camera"))];
+    this.watchCameras(true);
+    return html`<div class="fp3d-wall">
+      <div class="fp3d-wall-head"><span>${translate(hass, "camera_wall_title")} · ${cameras.length}</span><button class="fp3d-chip" aria-label="✕" @click=${close}>✕</button></div>
+      <div class="fp3d-wall-grid">
+        ${cameras.map((id) => {
+          const st = hass.states[id];
+          const picture = st?.attributes.entity_picture as string | undefined;
+          const src = picture && st && !isUnavailable(st) ? (picture.startsWith("data:") ? picture : `${picture}${picture.includes("?") ? "&" : "?"}fp3d=${this.cameraTick}`) : null;
+          const seen = cameraMotionSensors(hass, id).some((s) => hass.states[s]?.state === "on");
+          return html`<button class="fp3d-wall-cam ${seen ? "fp3d-wall-seen" : ""}" title=${translate(hass, "through_camera")} @click=${() => this.lookThrough(id)}>
+            ${src ? html`<img src=${src} alt="" />` : html`<div class="fp3d-wall-none">${translate(hass, "state_unavailable")}</div>`}
+            <span class="fp3d-wall-name">${entityName(hass, id)}${st?.state === "recording" ? html` <b>● ${translate(hass, "state_recording")}</b>` : nothing}</span>
+          </button>`;
+        })}
+      </div>
+    </div>`;
+  }
+
   private renderThrough() {
     const t = this._through;
     if (!t || !this.hass) return nothing;
@@ -1723,6 +1810,11 @@ export class Fp3dView3d extends LitElement {
   private onDeviceTap(entityId: string, x = 0, y = 0): void {
     // trail pins and lamps without a light are drawn, but nothing of Home Assistant stands behind them
     if (entityId.startsWith("trail:") || entityId.startsWith("lamp:")) return;
+    // a detection pin opens its sensor
+    if (entityId.startsWith("detect:")) {
+      openMoreInfo(this, entityId.slice(7));
+      return;
+    }
     const kind = kindOf(entityId);
     // blinds have no single on/off: a tap opens their quick menu (up, positions, stop, down); a camera shows its picture
     if (kind === "cover" || kind === "camera") {
@@ -1863,7 +1955,7 @@ export class Fp3dView3d extends LitElement {
       style=${style}
     >
       ${this._error ? html`<p class="fp3d-error">${this._error}</p>` : nothing} ${this.renderEnergy()} ${this.renderHologram()} ${this.renderLegend()}
-      ${this.renderAlerts()} ${this.renderThumbs()} ${this.renderScenes()} ${this.renderFind()} ${this.renderSwipe()} ${this.renderThrough()} ${this.renderProHint()} ${this.renderMenu()}
+      ${this.renderAlerts()} ${this.renderThumbs()} ${this.renderScenes()} ${this.renderFind()} ${this.renderSwipe()} ${this.renderThrough()} ${this.renderCameraWall()} ${this.renderProHint()} ${this.renderMenu()}
       ${this.showStats && this._stats
         ? html`<span class="fp3d-stats"
             ><b>${this._stats.fps ? translate(this.hass, "stats_fps", { fps: this._stats.fps, ms: this._stats.worstMs }) : translate(this.hass, "stats_idle")}</b>
@@ -2339,6 +2431,76 @@ export class Fp3dView3d extends LitElement {
         inset: 0;
         z-index: 4;
         pointer-events: none;
+      }
+      /* the camera wall: a glass sheet over the scene with every camera's picture */
+      .fp3d-wall {
+        position: absolute;
+        inset: 56px 12px calc(var(--fp3d-bottom-inset, 0px) + 12px);
+        z-index: 5;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        padding: 10px 12px;
+        border-radius: 16px;
+        background: rgba(8, 16, 34, 0.86);
+        border: 1px solid rgba(160, 240, 255, 0.4);
+        box-shadow: 0 0 28px rgba(55, 224, 255, 0.25);
+        overflow: auto;
+      }
+      .fp3d-wall-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-weight: 600;
+        color: #e6fbff;
+      }
+      .fp3d-wall-pro {
+        margin: 0;
+        color: #ffd75a;
+      }
+      .fp3d-wall-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+        gap: 10px;
+      }
+      .fp3d-wall-cam {
+        position: relative;
+        padding: 0;
+        border: 1px solid rgba(160, 240, 255, 0.3);
+        border-radius: 12px;
+        overflow: hidden;
+        background: #0a1426;
+        cursor: pointer;
+        aspect-ratio: 16 / 9;
+      }
+      .fp3d-wall-cam img,
+      .fp3d-wall-none {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #8aa;
+      }
+      .fp3d-wall-seen {
+        border-color: rgba(255, 80, 90, 0.9);
+        box-shadow: 0 0 14px rgba(255, 60, 70, 0.5);
+      }
+      .fp3d-wall-name {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        padding: 4px 8px;
+        font-size: 12px;
+        text-align: left;
+        color: #e6fbff;
+        background: linear-gradient(transparent, rgba(0, 0, 0, 0.7));
+      }
+      .fp3d-wall-name b {
+        color: #ff6b6b;
+        font-weight: 600;
       }
       .fp3d-pro {
         position: absolute;

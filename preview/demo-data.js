@@ -179,6 +179,7 @@ const DEVICES = [
   entity("binary_sensor.kuehlschrank_tuer", "kueche", "off", { friendly_name: "Kühlschrank Tür", device_class: "door" }),
   entity("binary_sensor.gefrierfach_tuer", "kueche", "on", { friendly_name: "Gefrierfach Tür", device_class: "door" }),
   entity("binary_sensor.wohnzimmer_kamera_bewegung", "wohnzimmer", "on", { friendly_name: "Wohnzimmer Kamera Bewegung", device_class: "motion" }),
+  entity("binary_sensor.wohnzimmer_kamera_person", "wohnzimmer", "on", { friendly_name: "Wohnzimmer Kamera Person", device_class: "occupancy" }),
   entity("binary_sensor.haustuer", "flur", "off", { friendly_name: "Haustür", device_class: "door" }),
   entity("cover.garagentor", "garage", "open", { friendly_name: "Garagentor", device_class: "garage", current_position: 60, supported_features: 15 }),
   entity("binary_sensor.wohnzimmer_terrasse", "wohnzimmer", "on", { friendly_name: "Terrassentür", device_class: "opening" }),
@@ -227,6 +228,7 @@ for (const [suffix, name] of [
 for (const [id, device] of [
   ["camera.wohnzimmer", "d_cam"],
   ["binary_sensor.wohnzimmer_kamera_bewegung", "d_cam"],
+  ["binary_sensor.wohnzimmer_kamera_person", "d_cam"],
   ["media_player.fernseher", "d_tv"],
   ["sensor.fernseher_leistung", "d_tv"],
   ["switch.kaffeemaschine", "d_kaffee"],

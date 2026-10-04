@@ -547,6 +547,10 @@ Pro add-ons are paid extra features, sold singly in the shop. Without an add-on,
 
 ![Motion trail](images/view-trail.jpg)
 
+**Detection pins:** when one of a camera's sensors reports a detection right now (Frigate, UniFi Protect, Reolink and the like give one sensor per object: person, vehicle, animal, motion), a pin stands in front of the camera with a symbol, the kind and the time – "Person · 18:42". A tap opens the sensor. Several objects at once give several pins on top of each other.
+
+**Camera wall:** the **Cameras** switch at the bottom (in the card the option `camera_wall: true`) lays every placed camera's live picture over the scene as a wall, refreshed every few seconds. A camera that sees motion right now gets a red frame; one that records, a red dot. A tap looks through the camera, ✕ closes the wall.
+
 ### 6.2 Weather outside
 
 ![Rain](images/view-weather-rain.jpg)
@@ -732,6 +736,7 @@ motion_trail: false     # Pro: camera cockpit
 weather: true           # Pro: weather outside
 weather_entity: weather.home
 holograms: true         # Pro: holograms always on/off; leave out = a switch in the card
+camera_wall: false      # Pro: a "Cameras" button at the bottom of the card opens the camera wall
 roof_fade: true         # false: the roof stays on the house while zooming in
 start_view: { theta: 0.8, phi: 1.0, radius: 20 }   # a start view of this card's own; the line is shown in the editor under Start view (leave out = the plan's)
 idle_return: 0          # seconds without a touch until the start view
