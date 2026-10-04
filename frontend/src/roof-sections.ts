@@ -53,6 +53,9 @@ export function sectionProfile(s: Pick<RoofSection, "x0" | "z0" | "x1" | "z1" | 
   return { vr, rh, y: (v) => (v <= vr ? ea + v * ta : eb + (w - v) * tb) };
 }
 
+/** Anything that carries roof sections: a building, or just its settings in a test. */
+export type RoofHolder = { settings: { roof: { sections?: readonly RoofSection[] | null } } };
+
 /** Thickness of the roof slab (the walls under it end this far below the profile). */
 export const ROOF_THICK = 0.14;
 
@@ -61,7 +64,7 @@ export const ROOF_THICK = 0.14;
  * null outside every section (canopies do not count, and neither does a single roof: it sits on
  * the top floor's walls anyway).
  */
-export function roofUnderAt(b: Pick<Building, "settings">, x: number, z: number): number | null {
+export function roofUnderAt(b: RoofHolder, x: number, z: number): number | null {
   let best: number | null = null;
   for (const s of b.settings.roof.sections ?? []) {
     if (s.open) continue;
@@ -81,7 +84,7 @@ export function roofUnderAt(b: Pick<Building, "settings">, x: number, z: number)
  * Where a sloped section leaves `headroom` metres above a floor at `level`: lines across the section
  * (in plan coordinates), one per slope that crosses that height – the editor draws them in attic rooms.
  */
-export function headroomLines(b: Pick<Building, "settings">, level: number, headroom: number): [Vec2, Vec2][] {
+export function headroomLines(b: RoofHolder, level: number, headroom: number): [Vec2, Vec2][] {
   const out: [Vec2, Vec2][] = [];
   for (const s of b.settings.roof.sections ?? []) {
     if (s.open || s.shape === "flat") continue;
