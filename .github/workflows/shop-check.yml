@@ -1,0 +1,38 @@
+# Watches the shop's licence API the way the integration talks to it. A well-formed unknown key must
+# come back as WordPress' own JSON 404 – anything else (the host's 429 page, a WordPress error, a timeout)
+# fails the run, and GitHub mails the maintainer. Found the hard way: the host once turned away every
+# request carrying Home Assistant's default User-Agent, and nobody could activate for days.
+name: Shop check
+
+on:
+  schedule:
+    - cron: "17 */6 * * *"
+  workflow_dispatch:
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Catalog and pack endpoints answer like WordPress
+        run: |
+          set -u
+          ua="NeonPlan3D/check (Home Assistant; +https://github.com/Mastershort/neonplan3d)"
+          ok=1
+          for path in catalog pack; do
+            body=$(curl -sS --max-time 30 -o /tmp/body -w "%{http_code}" -X POST \
+              "https://mastershort.de/wp-json/neonplan/v1/$path" -A "$ua" \
+              -H "Content-Type: application/json" \
+              -d '{"key":"NP-0000-0000-0000-0000","instance":"0000000000000000","pack":"living"}') || body="000"
+            if [ "$body" = "404" ] && grep -q '"ms_np_invalid_key"' /tmp/body; then
+              echo "ok   $path -> 404 ms_np_invalid_key"
+            else
+              echo "FAIL $path -> HTTP $body"; head -c 300 /tmp/body; echo; ok=0
+            fi
+          done
+          # the default Home Assistant User-Agent: only informative, so an old installation's fate is visible
+          code=$(curl -sS --max-time 30 -o /dev/null -w "%{http_code}" -X POST \
+            "https://mastershort.de/wp-json/neonplan/v1/catalog" -A "HomeAssistant/2025.10.1 aiohttp/3.12.15 Python/3.13" \
+            -H "Content-Type: application/json" -d '{"key":"NP-0000-0000-0000-0000","instance":"0000000000000000"}') || code="000"
+          echo "info default Home Assistant User-Agent -> HTTP $code (404 = host no longer blocks aiohttp)"
+          [ "$ok" = "1" ]
