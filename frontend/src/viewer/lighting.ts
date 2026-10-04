@@ -111,7 +111,6 @@ export function buildLightSurface(floor: Floor, walls: Wall[], wallBuckets: numb
     // rows of light cells up to the wall's own height
     const H = Math.min(floor.height, w.height ?? floor.height);
     const c = Math.min(cut, H - 0.02);
-    const rows = [0.02, c, (c + H) / 2, H - 0.02].filter((y, i, a) => i === 0 || y > a[i - 1] + 0.005);
     const dx = w.b[0] - w.a[0];
     const dz = w.b[1] - w.a[1];
     const len = Math.hypot(dx, dz);
@@ -120,6 +119,12 @@ export function buildLightSurface(floor: Floor, walls: Wall[], wallBuckets: numb
     const nLeft: Vec2 = [-u[1], u[0]];
     const bucket = wallBuckets[wi];
     const gaps = openingSpans(w, u, len, openings);
+    // the cells break at the cut and at every sill, top and side of an opening, so the hole a window
+    // leaves in the lit face matches the window (a cell is lit or dark as a whole)
+    const marks = (vals: number[], lo: number, hi: number) =>
+      [lo, hi, ...vals.filter((v) => v > lo + 0.005 && v < hi - 0.005)].sort((a, b) => a - b).filter((v, i, a) => i === 0 || v > a[i - 1] + 0.005);
+    const rows = marks([c, (c + H) / 2, ...gaps.flatMap((g) => [g.y0 + 0.01, g.y1 - 0.01])], 0.02, H - 0.02);
+    const cols = marks(gaps.flatMap((g) => [g.s0, g.s1]), 0, len);
     for (const side of [1, -1] as const) {
       const roomId = side > 0 ? w.roomLeft : w.roomRight;
       // the outer face of an exterior wall belongs to the outside zone (facade lighting)
@@ -128,19 +133,22 @@ export function buildLightSurface(floor: Floor, walls: Wall[], wallBuckets: numb
       const face = (side > 0 ? w.left : w.right) + FACE_GAP;
       const n: Vec2 = [nLeft[0] * side, nLeft[1] * side];
       const at = (s: number, y: number) => [w.a[0] + u[0] * s + n[0] * face, y, w.a[1] + u[1] * s + n[1] * face];
-      const steps = Math.max(1, Math.ceil(len / cell));
-      for (let k = 0; k < steps; k++) {
-        const s0 = (len / steps) * k;
-        const s1 = (len / steps) * (k + 1);
-        const sm = (s0 + s1) / 2;
-        for (let h = 0; h < rows.length - 1; h++) {
-          const y0 = rows[h];
-          const y1 = rows[h + 1];
-          if (y1 - y0 < 0.01) continue;
-          const ym = (y0 + y1) / 2;
-          if (gaps.some((g) => sm > g.s0 && sm < g.s1 && ym > g.y0 && ym < g.y1)) continue;
-          const f = y0 >= cut - 1e-6 ? bucket : LOWER_OFFSET + bucket;
-          quad(at(s0, y0), at(s1, y0), at(s1, y1), at(s0, y1), [n[0], 0, n[1]], ri, f);
+      for (let p = 0; p < cols.length - 1; p++) {
+        const span = cols[p + 1] - cols[p];
+        const steps = Math.max(1, Math.ceil(span / cell));
+        for (let k = 0; k < steps; k++) {
+          const s0 = cols[p] + (span / steps) * k;
+          const s1 = cols[p] + (span / steps) * (k + 1);
+          const sm = (s0 + s1) / 2;
+          for (let h = 0; h < rows.length - 1; h++) {
+            const y0 = rows[h];
+            const y1 = rows[h + 1];
+            if (y1 - y0 < 0.01) continue;
+            const ym = (y0 + y1) / 2;
+            if (gaps.some((g) => sm > g.s0 && sm < g.s1 && ym > g.y0 && ym < g.y1)) continue;
+            const f = y0 >= cut - 1e-6 ? bucket : LOWER_OFFSET + bucket;
+            quad(at(s0, y0), at(s1, y0), at(s1, y1), at(s0, y1), [n[0], 0, n[1]], ri, f);
+          }
         }
       }
     }

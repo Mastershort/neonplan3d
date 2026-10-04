@@ -886,6 +886,8 @@
  "lock_plan_hint": "Bloquear el plano: habitaciones, paredes, puertas, ventanas y zonas exteriores ya no pueden moverse por accidente. Muebles y dispositivos quedan libres.",
  "start_view": "Vista inicial",
  "start_view_hint": "La vista 3D, la tarjeta y el quiosco abren la casa con esta vista, p. ej. desde el jardín. Gira y acerca la casa en la vista 3D de la derecha hasta que encaje y memorízala.",
+ "start_view_card": "Si una tarjeta debe abrirse con otra vista, pon esta línea en su configuración YAML.",
+ "door_shut": "Mostrar cerrada sin sensor",
  "start_view_set": "Memorizar la vista 3D actual como inicio",
  "start_view_reset": "Predeterminada",
  "start_view_saved": "Hay una vista inicial propia guardada.",

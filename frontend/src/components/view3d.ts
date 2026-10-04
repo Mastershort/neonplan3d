@@ -57,7 +57,7 @@ import { coverPositionable, lightAbilities } from "./quick-menu.ts";
 import "./quick-menu.ts";
 import { load3d } from "../load3d.ts";
 import { buildMarkers, cameraMotionSensors, openMoreInfo, placedEntities, stateText, toggleEntity } from "../markers.ts";
-import { furnitureFootprint, isLamp, LAMP_MODEL, outdoorGround, pointInPolygon, surfaceHeight, type Building, type Furniture } from "../model.ts";
+import { furnitureFootprint, isLamp, LAMP_MODEL, outdoorGround, pointInPolygon, surfaceHeight, type Building, type Furniture, type StartView } from "../model.ts";
 import { floorCounts, floorInfoText, personsInRooms } from "../presence.ts";
 import { controls, tokens } from "../styles.ts";
 import type { HassEntity, HomeAssistant } from "../types.ts";
@@ -119,6 +119,7 @@ export class Fp3dView3d extends LitElement {
     scenes: { attribute: false },
     dimmed: { attribute: false },
     autoOrbit: { attribute: false },
+    startView: { attribute: false },
     _low: { state: true },
     _narrowStage: { state: true },
     _alerts: { state: true },
@@ -227,6 +228,8 @@ export class Fp3dView3d extends LitElement {
   declare dimmed: boolean;
   /** Screensaver: the view turns slowly by itself. */
   declare autoOrbit: boolean;
+  /** A start view of the card's own (YAML `start_view`); else the one remembered in the editor. */
+  declare startView: StartView | null;
   /** Search index (rooms and devices), built when the search opens and reused while it is open. */
   private findIndex: SearchItem[] | null = null;
   /** Room colours (heatmap) as last sent to the viewer. */
@@ -316,6 +319,7 @@ export class Fp3dView3d extends LitElement {
     this._sceneFired = null;
     this.dimmed = false;
     this.autoOrbit = false;
+    this.startView = null;
     try {
       this._flows = localStorage.getItem("neonplan3d.flows") === "1";
     } catch {
@@ -408,8 +412,8 @@ export class Fp3dView3d extends LitElement {
       this.viewer.setPacks([...getPacks()]);
       this.shownPacks = packsVersion();
       if (this.building) {
-        this.shownStartView = JSON.stringify(this.building.settings.start_view ?? null);
-        this.viewer.setStartView(this.building.settings.start_view ?? null);
+        this.shownStartView = JSON.stringify(this.startViewOf());
+        this.viewer.setStartView(this.startViewOf());
         this.viewer.setBuilding(this.building);
       }
       this.scheduleThumbs();
@@ -442,12 +446,16 @@ export class Fp3dView3d extends LitElement {
     }
     if (changed.has("building") && this.building) {
       // a new start view (just remembered in the editor) shows right away in the house view
-      const start = JSON.stringify(this.building.settings.start_view ?? null);
+      const start = JSON.stringify(this.startViewOf());
       const startChanged = this.shownStartView !== undefined && this.shownStartView !== start;
       this.shownStartView = start;
-      v.setStartView(this.building.settings.start_view ?? null);
+      v.setStartView(this.startViewOf());
       v.setBuilding(this.building);
       if (startChanged && this.floorId === null) v.resetView();
+    }
+    if (changed.has("startView") && changed.get("startView") !== undefined) {
+      v.setStartView(this.startViewOf());
+      if (this.floorId === null) v.resetView();
     }
     if (changed.has("building") || changed.has("theme") || changed.has("floorThumbs") || changed.has("packs")) this.scheduleThumbs();
     const forced = ["building", "markerMode", "heatMode", "flows", "alerts", "dimmed"].some((k) => changed.has(k));
@@ -1260,8 +1268,12 @@ export class Fp3dView3d extends LitElement {
     const st = entity ? hass.states[entity] : undefined;
     const item = packItem(f.type);
     const model = LAMP_MODEL[f.type] ?? item?.light ?? "floor";
-    // a height above the floor set by hand wins (a table lamp on a shelf, a floor lamp on a platform)
-    const base = f.mount_y != null && !item
+    // a height above the floor set by hand wins (a table lamp on a shelf, a floor lamp on a platform);
+    // an LED strip outside the house counts from the ground there (a path light flush with the lawn)
+    const inRoom = floor.rooms.some((r) => r.points.length >= 3 && pointInPolygon([f.x, f.z], r.points));
+    const base = model === "strip" && !inRoom
+      ? outdoorGround(floor, f.x, f.z) + (f.mount_y ?? 0)
+      : f.mount_y != null && !item
       ? f.mount_y
       : item || model === "wall" || model === "strip"
       ? mountBase(floor, f)
@@ -1627,7 +1639,8 @@ export class Fp3dView3d extends LitElement {
   }
 
   private onDeviceTap(entityId: string, x = 0, y = 0): void {
-    if (entityId.startsWith("trail:")) return;
+    // trail pins and lamps without a light are drawn, but nothing of Home Assistant stands behind them
+    if (entityId.startsWith("trail:") || entityId.startsWith("lamp:")) return;
     const kind = kindOf(entityId);
     // blinds have no single on/off: a tap opens their quick menu (up, positions, stop, down); a camera shows its picture
     if (kind === "cover" || kind === "camera") {
@@ -1638,6 +1651,11 @@ export class Fp3dView3d extends LitElement {
       if (this.confirmSet.has(entityId) && !confirm(translate(this.hass, "confirm_switch", { name: entityName(this.hass, entityId) }))) return;
       void toggleEntity(this.hass, entityId);
     } else openMoreInfo(this, entityId);
+  }
+
+  /** The start view: the card's own, else the one remembered in the editor. */
+  private startViewOf(): StartView | null {
+    return this.startView ?? this.building?.settings.start_view ?? null;
   }
 
   /** The camera as it stands (for "remember this view as the start"). */

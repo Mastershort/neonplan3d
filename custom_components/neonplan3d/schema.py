@@ -100,6 +100,8 @@ OPENING_SCHEMA = vol.Schema(
             None, vol.All(vol.Coerce(float), vol.Range(min=-360, max=360))
         ),
         vol.Optional("tilt_invert", default=False): bool,
+        # a door without a sensor is drawn closed instead of half open
+        vol.Optional("shut", default=False): bool,
         # highlight in 3D while open (None) or while closed ("closed": a WC or a child's room door)
         vol.Optional("mark", default=None): vol.Any(None, vol.In(["closed"])),
         # ask before moving the blind or garage door (no moving by a swipe then)

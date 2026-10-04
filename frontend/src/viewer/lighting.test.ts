@@ -116,7 +116,28 @@ test("a spot lights a small circle, a ceiling light a wide area", () => {
 
 test("wall light leaves out windows", () => {
   const win: Opening = { id: "w", room_id: "a", edge: 0, offset: 2, width: 1.2, type: "window", sill: 0.9, height: 1.3, hinge: "left", leaves: 1, swing: "in", cover: null, contact: null, contact2: null, tilt: null };
-  const plain = surfaceOf({ ...newFloor("f", "F", 0), rooms: [rect("a", 0, 0, 4, 3)] });
-  const withWindow = surfaceOf({ ...newFloor("f", "F", 0), rooms: [rect("a", 0, 0, 4, 3)], openings: [win] });
-  assert.ok(withWindow.room.length < plain.room.length);
+  const floor = { ...newFloor("f", "F", 0), rooms: [rect("a", 0, 0, 4, 3)], openings: [win] };
+  const s = surfaceOf(floor);
+  // centres of the lit cells on the window's wall (edge 0 runs along z = 0)
+  const centres: [number, number][] = [];
+  for (let q = 0; q < s.pos.length / 18; q++) {
+    let x = 0;
+    let y = 0;
+    let z = 0;
+    for (let v = 0; v < 6; v++) {
+      x += s.pos[q * 18 + v * 3] / 6;
+      y += s.pos[q * 18 + v * 3 + 1] / 6;
+      z += s.pos[q * 18 + v * 3 + 2] / 6;
+    }
+    if (y > 0.05 && Math.abs(z) < 0.2) centres.push([x, y]);
+  }
+  // the offset is the window's centre: it spans x 1.4–2.6
+  const inWindow = (x: number) => x > 1.45 && x < 2.55;
+  // the hole matches the window: nothing over the glass, cells right below the sill and above the top
+  assert.equal(centres.filter(([x, y]) => inWindow(x) && y > 0.92 && y < 2.18).length, 0);
+  assert.ok(centres.some(([x, y]) => inWindow(x) && y > 0.3 && y < 0.88), "cells below the sill");
+  assert.ok(centres.some(([x, y]) => inWindow(x) && y > 2.22 && y < floor.height - 0.02), "cells above the top");
+  // the columns end at the window's sides: a cell right beside the frame, none across it
+  assert.ok(centres.some(([x, y]) => x > 1.2 && x < 1.4 && y > 1 && y < 2), "cell beside the window");
+  assert.equal(centres.filter(([x, y]) => x > 1.3 && x < 1.5 && y > 1 && y < 2 && x > 1.4).length, 0);
 });

@@ -472,6 +472,8 @@ export interface OpeningEntities {
   tiltMax?: number | null;
   tiltOffset?: number | null;
   tiltInvert?: boolean;
+  /** A door without a sensor is drawn closed. */
+  shut?: boolean;
 }
 
 /** Pairs openings with entities in order; with `shared`, a single entity serves all openings. */
@@ -524,6 +526,7 @@ export function openingEntities(hass: HomeAssistant, floors: readonly Floor[]): 
           tiltMax: o.tilt_max ?? null,
           tiltOffset: o.tilt_offset ?? null,
           tiltInvert: !!o.tilt_invert,
+          shut: !!o.shut,
         });
       }
     }
@@ -573,7 +576,7 @@ export function openingState(
   const open2 = pos(e.contact2) === "open" && !tilted2 ? 1 : 0;
   if (type === "door") {
     const p = pos(e.contact);
-    return { open: p === null ? DOOR_DEFAULT_OPEN : p === "closed" ? 0 : 1, open2: pos(e.contact2) === "open" ? 1 : 0, tilt: 0, tilt2: 0, cover: null, sensed: p !== null };
+    return { open: p === null ? (e.shut ? 0 : DOOR_DEFAULT_OPEN) : p === "closed" ? 0 : 1, open2: pos(e.contact2) === "open" ? 1 : 0, tilt: 0, tilt2: 0, cover: null, sensed: p !== null };
   }
   // a separate tilt sensor, or a handle sensor that reports "tilted" itself
   let tilted = on(e.tilt) || pos(e.tilt) === "tilted" || pos(e.contact) === "tilted";

@@ -137,7 +137,8 @@ export function furnitureSize(type: string): [number, number, number] {
 
 /** Whether a type can be linked with entities (power sensor, switch …). */
 export function isElectric(type: string): boolean {
-  return ELECTRIC_FURNITURE.has(type) || !!packItem(type)?.electric;
+  // a pack item that only lights (a mirror with light, an aquarium) links a light like any lamp
+  return ELECTRIC_FURNITURE.has(type) || !!packItem(type)?.electric || !!packItem(type)?.light;
 }
 
 /** Name of a pack item in a language (English, then the first name as fallback). */

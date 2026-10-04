@@ -886,6 +886,8 @@
  "lock_plan_hint": "Plattegrond vergrendelen: kamers, muren, deuren, ramen en buitenruimtes kunnen niet meer per ongeluk worden verplaatst. Meubels en apparaten blijven vrij.",
  "start_view": "Startweergave",
  "start_view_hint": "De 3D-weergave, de kaart en de kiosk openen het huis met deze weergave, bijv. vanaf de tuinkant. Draai en zoom het huis in de 3D-weergave rechts tot het goed staat, en onthoud het dan.",
+ "start_view_card": "Moet een kaart met een andere weergave openen, zet dan deze regel in zijn YAML-configuratie.",
+ "door_shut": "Zonder sensor gesloten tonen",
  "start_view_set": "Huidige 3D-weergave als start onthouden",
  "start_view_reset": "Standaard",
  "start_view_saved": "Er is een eigen startweergave opgeslagen.",

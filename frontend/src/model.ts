@@ -77,6 +77,8 @@ export interface Opening {
   tilt_max?: number | null;
   tilt_offset?: number | null;
   tilt_invert?: boolean;
+  /** Door: drawn closed when no sensor says otherwise (default: half open, so the door is seen). */
+  shut?: boolean;
   /** Highlight in 3D while open (null, default) or while closed (a WC or a child's room door). */
   mark?: "closed" | null;
   /** Ask before moving the blind or garage door; it then does not follow a swipe either. */

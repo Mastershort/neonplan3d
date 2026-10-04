@@ -886,6 +886,8 @@
  "lock_plan_hint": "Blocca la planimetria: stanze, pareti, porte, finestre e aree esterne non possono più essere spostate per sbaglio. Mobili e dispositivi restano liberi.",
  "start_view": "Vista iniziale",
  "start_view_hint": "La vista 3D, la card e il chiosco aprono la casa con questa vista, es. dal lato giardino. Ruota e zooma la casa nella vista 3D a destra finché va bene, poi memorizzala.",
+ "start_view_card": "Se una scheda deve aprirsi con un'altra vista, inserisci questa riga nella sua configurazione YAML.",
+ "door_shut": "Mostra chiusa senza sensore",
  "start_view_set": "Memorizza la vista 3D attuale come iniziale",
  "start_view_reset": "Predefinita",
  "start_view_saved": "È salvata una vista iniziale personalizzata.",

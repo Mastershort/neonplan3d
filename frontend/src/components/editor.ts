@@ -4831,6 +4831,12 @@ export class Fp3dEditor extends LitElement {
         ${kind === "contact_tilt"
           ? this.entitySelect(this.t("tilt_entity"), tilt, undefined, contacts, (v) => this.updateOpening(main ? { tilt: v === "none" ? null : v } : { tilt2: v === "none" ? null : v }))
           : nothing}
+        ${main && door
+          ? html`<label class="fp3d-check fp3d-wide"
+              ><input type="checkbox" .checked=${!!o.shut} ?disabled=${!admin} @change=${(ev: Event) => this.updateOpening({ shut: (ev.target as HTMLInputElement).checked })} />
+              ${this.t("door_shut")}</label
+            >`
+          : nothing}
         ${main && !door
           ? html`${this.entitySelect(this.t("tilt_angle_entity"), o.tilt_angle ?? null, undefined, this.entityOptions((id) => id.startsWith("sensor.")), (v) => this.updateOpening({ tilt_angle: v === "none" ? null : v }))}
             ${o.tilt_angle && o.tilt_angle !== "none"
@@ -5112,7 +5118,11 @@ export class Fp3dEditor extends LitElement {
         <button class="fp3d-btn fp3d-primary" @click=${remember}>${this.t("start_view_set")}</button>
         ${set ? html`<button class="fp3d-btn" @click=${() => this.change((d) => (d.settings.start_view = null))}>${this.t("start_view_reset")}</button>` : nothing}
       </div>
-      ${set ? html`<p class="fp3d-sub">${this.t("start_view_saved")}</p>` : nothing}
+      ${set
+        ? html`<p class="fp3d-sub">${this.t("start_view_saved")}</p>
+            <p class="fp3d-sub">${this.t("start_view_card")}</p>
+            <code class="fp3d-code">start_view: { theta: ${set.theta}, phi: ${set.phi}, radius: ${set.radius} }</code>`
+        : nothing}
     </details>`;
   }
 
@@ -7143,6 +7153,15 @@ export class Fp3dEditor extends LitElement {
         fill: var(--fp3d-accent);
         stroke: #0b1222;
         stroke-width: 1.5;
+      }
+      .fp3d-code {
+        display: block;
+        font: 12px/1.4 ui-monospace, Menlo, Consolas, monospace;
+        padding: 6px 8px;
+        border-radius: 8px;
+        background: rgba(127, 127, 127, 0.12);
+        user-select: all;
+        word-break: break-all;
       }
       .fp3d-floor-menu {
         display: flex;

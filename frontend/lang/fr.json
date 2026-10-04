@@ -886,6 +886,8 @@
  "lock_plan_hint": "Verrouiller le plan : pièces, murs, portes, fenêtres et surfaces extérieures ne peuvent plus être déplacés par accident. Meubles et appareils restent libres.",
  "start_view": "Vue de départ",
  "start_view_hint": "La vue 3D, la carte et le kiosque ouvrent la maison avec cette vue, p. ex. côté jardin. Tourne et zoome la maison dans la vue 3D à droite jusqu'à ce que ça convienne, puis mémorise-la.",
+ "start_view_card": "Si une carte doit s'ouvrir avec une autre vue, mets cette ligne dans sa configuration YAML.",
+ "door_shut": "Afficher fermée sans capteur",
  "start_view_set": "Mémoriser la vue 3D actuelle comme départ",
  "start_view_reset": "Par défaut",
  "start_view_saved": "Une vue de départ personnelle est enregistrée.",
