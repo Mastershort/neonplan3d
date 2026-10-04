@@ -11,6 +11,8 @@ export interface CardConfig {
   walls?: WallMode;
   /** Pull floors apart in the house view (default true). */
   explode?: boolean;
+  /** The roof lifts and fades while zooming in (default true); false keeps it on the house. */
+  roof_fade?: boolean;
   quality?: Quality;
   /** Show the performance display (frames per second, draw calls). */
   stats?: boolean;

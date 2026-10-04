@@ -475,6 +475,8 @@ export class FloorplanViewer {
   private solarLevels = new Map<string, number>();
   private solarActive = false;
   private roofO = 0;
+  /** The roof stays put while the camera comes close (no lift, no fade): the editor's roof tool, or a choice of the viewer. */
+  private keepRoof = false;
   /** Robot vacuums: their info from Home Assistant, how they move, and their meshes. */
   private robots = new Map<string, { info: RobotInfo; motion: RobotMotion; group: Group; led: MeshBasicMaterial }>();
   private robotGeo: BufferGeometry | null = null;
@@ -661,6 +663,12 @@ export class FloorplanViewer {
     if (mode === this.floorStack) return;
     this.floorStack = mode;
     this.applyTargets(false);
+  }
+
+  setKeepRoof(on: boolean): void {
+    if (on === this.keepRoof) return;
+    this.keepRoof = on;
+    this.invalidate();
   }
 
   setExplode(explode: boolean): void {
@@ -1735,7 +1743,7 @@ export class FloorplanViewer {
   private placeRoof(dt = 1000): boolean {
     const roof = this.roof;
     if (!roof) return false;
-    const zoom = Math.min(1, Math.max(0, (this.controls.view.radius / this.houseRadius - 0.62) / 0.3));
+    const zoom = this.keepRoof ? 1 : Math.min(1, Math.max(0, (this.controls.view.radius / this.houseRadius - 0.62) / 0.3));
     const target = this.floorId === null && this.wallMode !== "cut" ? 0.94 * zoom : 0;
     const k = 1 - Math.exp(-dt / FLOOR_TAU);
     const before = this.roofO;

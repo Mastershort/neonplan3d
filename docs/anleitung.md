@@ -439,6 +439,7 @@ Die 3D-Ansicht hat drei Ebenen:
 |---|---|
 | **Wände hoch** / **Schnitt** | Wände in voller Höhe, die vorderen als getöntes Glas, oder alle Wände in Hüfthöhe geschnitten |
 | **Auseinander** / **Gestapelt** | In der Hausansicht: Etagen auseinandergezogen oder aufeinander |
+| **Dach bleibt** | In der Hausansicht: Das Dach bleibt beim Heranzoomen liegen, statt sich zu heben und auszublenden (im Editor gilt das im Werkzeug Dach und Energie immer) |
 | **Abgedunkelt** / **Gestapelt** / **Einzeln** | Bei einer offenen Etage: Was mit den Etagen darunter passiert |
 | **Normal** / **Temp.** / **Feuchte** / **CO₂** | Heatmap: Böden in der Farbe des Raumwerts |
 | **Raumnamen** | Namen der Räume ein- oder ausblenden |
@@ -732,6 +733,7 @@ motion_trail: false     # Pro: Kamera-Cockpit
 weather: true           # Pro: Wetter draußen
 weather_entity: weather.home
 holograms: true         # Pro: Hologramme immer an/aus; weglassen = Schalter in der Karte
+roof_fade: true         # false: Dach bleibt beim Heranzoomen auf dem Haus
 start_view: { theta: 0.8, phi: 1.0, radius: 20 }   # eigene Startansicht dieser Karte; die Zeile steht im Editor unter Startansicht (weglassen = die des Plans)
 idle_return: 0          # Sekunden ohne Berührung bis zur Startansicht
 night: "off"            # off | sun | "22:00-06:00"

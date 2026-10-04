@@ -654,6 +654,7 @@ export class Fp3dEditor extends LitElement {
         .roomId=${null}
         .wallMode=${this.houseTool ? "auto" : this._wall3d}
         .explode=${false}
+        .keepRoof=${this._tool === "roof" || this._tool === "energy"}
         .markerMode=${"important"}
         .heatMode=${"none"}
         .theme=${"neon"}

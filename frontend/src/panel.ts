@@ -54,6 +54,7 @@ export class Floorplan3dPanel extends LitElement {
     _roomId: { state: true },
     _wallMode: { state: true },
     _explode: { state: true },
+    _keepRoof: { state: true },
     _quality: { state: true },
     _stats: { state: true },
     _markers: { state: true },
@@ -82,6 +83,7 @@ export class Floorplan3dPanel extends LitElement {
   private declare _roomId: string | null;
   private declare _wallMode: WallMode;
   private declare _explode: boolean;
+  private declare _keepRoof: boolean;
   private declare _quality: Quality;
   /** Performance display (per device; also switched on by ?fp3d_stats in the URL). */
   private declare _stats: boolean;
@@ -112,6 +114,7 @@ export class Floorplan3dPanel extends LitElement {
     this._roomId = null;
     this._wallMode = "auto";
     this._explode = prefs.get("explode") !== "0";
+    this._keepRoof = prefs.get("roof") === "1";
     const quality = prefs.get("quality");
     this._quality = quality === "low" || quality === "high" ? quality : "auto";
     this._stats = prefs.get("stats") === "1" || new URLSearchParams(location.search).has("fp3d_stats");
@@ -166,6 +169,11 @@ export class Floorplan3dPanel extends LitElement {
     }
     if (!roomId) return;
     this._roomId = roomId === this._roomId ? null : roomId;
+  }
+
+  private setKeepRoof(on: boolean): void {
+    this._keepRoof = on;
+    prefs.set("roof", on ? "1" : "0");
   }
 
   private setExplode(explode: boolean): void {
@@ -599,6 +607,7 @@ export class Floorplan3dPanel extends LitElement {
           .roomId=${this._roomId}
           .wallMode=${this._wallMode}
           .explode=${this._explode}
+          .keepRoof=${this._keepRoof}
           .markerMode=${this._markers}
           .heatMode=${this._heat}
           .theme=${this._theme}
@@ -638,6 +647,11 @@ export class Floorplan3dPanel extends LitElement {
             ? html`<div class="fp3d-seg">
                 <button aria-pressed=${this._explode} @click=${() => this.setExplode(true)}>${this.t("floors_apart")}</button>
                 <button aria-pressed=${!this._explode} @click=${() => this.setExplode(false)}>${this.t("floors_stacked")}</button>
+              </div>`
+            : nothing}
+          ${!this._floorId && b.settings.roof.type !== "none"
+            ? html`<div class="fp3d-seg">
+                <button aria-pressed=${this._keepRoof} title=${this.t("roof_keep_hint")} @click=${() => this.setKeepRoof(!this._keepRoof)}>${this.t("roof_keep")}</button>
               </div>`
             : nothing}
           ${b.floors.length > 1 && this._floorId

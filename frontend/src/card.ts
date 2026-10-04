@@ -199,6 +199,7 @@ export class Floorplan3dCard extends LitElement {
               .roomId=${this._roomId}
               .wallMode=${walls}
               .explode=${explode}
+              .keepRoof=${c?.roof_fade === false}
               .quality=${this._config?.quality ?? "auto"}
               ?showStats=${this._config?.stats ?? false}
               .markerMode=${this._config?.markers ?? "important"}

@@ -75,6 +75,7 @@ export class Fp3dView3d extends LitElement {
     roomId: { attribute: false },
     wallMode: { attribute: false },
     explode: { type: Boolean },
+    keepRoof: { attribute: false },
     markerMode: { attribute: false },
     heatMode: { attribute: false },
     theme: { attribute: false },
@@ -134,6 +135,8 @@ export class Fp3dView3d extends LitElement {
   declare roomId: string | null;
   declare wallMode: WallMode;
   declare explode: boolean;
+  /** The roof stays while zooming in (no lift, no fade). */
+  declare keepRoof: boolean;
   declare markerMode: MarkerMode;
   declare heatMode: HeatMode;
   /** Imported furniture packs (a new list rebuilds pack furniture). */
@@ -280,6 +283,7 @@ export class Fp3dView3d extends LitElement {
     this.roomId = null;
     this.wallMode = "auto";
     this.explode = true;
+    this.keepRoof = false;
     this.markerMode = "important";
     this.heatMode = "none";
     this.theme = "neon";
@@ -416,6 +420,7 @@ export class Fp3dView3d extends LitElement {
       this.viewer.setFloorStack(this.floorStack);
       this.viewer.setStats(this.showStats);
       this.viewer.setAutoOrbit(this.autoOrbit ? 0.06 : 0);
+      this.viewer.setKeepRoof(this.keepRoof);
       this._low = this.viewer.low;
       this.viewer.setPacks([...getPacks()]);
       this.shownPacks = packsVersion();
@@ -474,6 +479,7 @@ export class Fp3dView3d extends LitElement {
     if (changed.has("roomId") && (this.roomId || changed.get("roomId"))) v.selectRoom(this.roomId);
     if (changed.has("wallMode")) v.setWallMode(this.wallMode);
     if (changed.has("explode")) v.setExplode(this.explode);
+    if (changed.has("keepRoof")) v.setKeepRoof(this.keepRoof);
     if (changed.has("floorStack")) v.setFloorStack(this.floorStack);
     if (changed.has("theme")) v.setTheme(this.theme);
     if (changed.has("surfaceGrab")) v.setSurfaceGrab(this.surfaceGrab ?? null);

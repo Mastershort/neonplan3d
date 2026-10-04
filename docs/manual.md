@@ -437,6 +437,7 @@ The 3D view has three levels:
 |---|---|
 | **Tall walls** / **Cut** | Walls at full height, the front ones as tinted glass, or all walls cut at hip height |
 | **Apart** / **Stacked** | In the house view: floors pulled apart or on top of each other |
+| **Roof stays** | In the house view: the roof stays while zooming in instead of lifting and fading (in the editor's roof and energy tools it always stays) |
 | **Dimmed** / **Stacked** / **Alone** | With an open floor: what happens to the floors below |
 | **Normal** / **Temp.** / **Humidity** / **CO₂** | Heatmap: floors coloured by the room's value |
 | **Room names** | Show or hide the room names |
@@ -730,6 +731,7 @@ motion_trail: false     # Pro: camera cockpit
 weather: true           # Pro: weather outside
 weather_entity: weather.home
 holograms: true         # Pro: holograms always on/off; leave out = a switch in the card
+roof_fade: true         # false: the roof stays on the house while zooming in
 start_view: { theta: 0.8, phi: 1.0, radius: 20 }   # a start view of this card's own; the line is shown in the editor under Start view (leave out = the plan's)
 idle_return: 0          # seconds without a touch until the start view
 night: "off"            # off | sun | "22:00-06:00"
