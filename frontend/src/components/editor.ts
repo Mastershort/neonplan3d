@@ -48,6 +48,7 @@ import {
   BUTTON_ACTIONS,
   type ButtonAction,
   type CustomButton,
+  type MediaPreset,
   outdoorStanding,
   SLOPE_DIRS,
   type SlopeDir,
@@ -3716,6 +3717,69 @@ export class Fp3dEditor extends LitElement {
     this._openingId = null;
   }
 
+  /** Furniture that can stand for a placed device of this kind (a speaker for a media player, a lamp for a light …). */
+  private furnitureFor(entityId: string): { type: string; label: string }[] {
+    const kind = kindOf(entityId);
+    const lang = this.hass?.language ?? "en";
+    const all = [
+      ...FURNITURE_TYPES.map((t) => ({ type: t as string, label: this.t(`furn_${t}` as I18nKey) })),
+      ...(this.packs ?? []).flatMap((p) => p.items.map((it) => ({ type: packType(p.id, it.id), label: `${packItemName(it, lang)} · ${p.name}` }))),
+    ];
+    const speakerish = /speaker|sound|subwoofer|receiver|smart_|display|tv|media|turntable|projector|console/;
+    const fits = (t: string): boolean => {
+      if (kind === "light") return isLamp(t);
+      if (kind === "climate") return t === "radiator";
+      if (entityId.startsWith("vacuum.")) return t === "robot_vacuum";
+      if (kind === "media") return hasScreen(t) || (isElectric(t) && speakerish.test(t));
+      return isElectric(t) && !isLamp(t);
+    };
+    return all.filter((x) => fits(x.type)).sort((a, b) => a.label.localeCompare(b.label));
+  }
+
+  /** Replace a placed device by a furniture item linked to it, where the pin stood (one undo step). */
+  private deviceToFurniture(pl: Placement, type: string): void {
+    if (!this.isAdmin) return;
+    const [w, d, h] = furnitureSize(type);
+    const item: Furniture = { id: uid("furniture"), type, x: pl.x, z: pl.z, rotation: pl.rotation ?? 0, w, d, h, variant: null, entity: pl.entity_id, name: pl.name ?? null, ...(pl.locked ? { locked: true } : {}) };
+    this.change((_, f) => {
+      f.placements = f.placements.filter((p) => p.entity_id !== pl.entity_id);
+      f.furniture.push(item);
+    });
+    this._deviceId = null;
+    this.selectItem("furniture", item.id);
+  }
+
+  /** Turn a furniture item linked by hand back into a plain device pin at its place. */
+  private furnitureToDevice(f: Furniture): void {
+    const id = f.entity;
+    if (!this.isAdmin || !id || id === "none") return;
+    const pl: Placement = { entity_id: id, x: f.x, z: f.z, y: null, rotation: f.rotation, ...(f.name ? { name: f.name } : {}) };
+    this.change((_, floor) => {
+      floor.furniture = floor.furniture.filter((m) => m.id !== f.id);
+      if (!floor.placements.some((p) => p.entity_id === id)) floor.placements.push(pl);
+    });
+    this._furnitureId = null;
+    this.selectItem("device", id);
+  }
+
+  private renderAsFurniture(pl: Placement) {
+    if (!this.isAdmin) return nothing;
+    const options = this.furnitureFor(pl.entity_id);
+    if (!options.length) return nothing;
+    return html`<label class="fp3d-field fp3d-wide" title=${this.t("as_furniture_hint")}
+      >${this.t("as_furniture")}
+      <select
+        @change=${(e: Event) => {
+          const v = (e.target as HTMLSelectElement).value;
+          if (v) this.deviceToFurniture(pl, v);
+        }}
+      >
+        <option value="" selected>${this.t("as_furniture_pick")}</option>
+        ${options.map((o) => html`<option value=${o.type}>${o.label}</option>`)}
+      </select></label
+    >`;
+  }
+
   private addFurniture(type: string): void {
     const floor = this.floor;
     if (!floor || !this.isAdmin) return;
@@ -5536,6 +5600,7 @@ export class Fp3dEditor extends LitElement {
         ? html`<div class="fp3d-actions">
             <button class="fp3d-btn" @click=${() => this.rotateFurniture(-90)}>${this.t("rotate_left")}</button>
             <button class="fp3d-btn" @click=${() => this.rotateFurniture(90)}>${this.t("rotate_right")}</button>
+            ${f.entity && f.entity !== "none" && f.type !== "parking" ? html`<button class="fp3d-btn" title=${this.t("as_device_hint")} @click=${() => this.furnitureToDevice(f)}>${this.t("as_device")}</button>` : nothing}
             <button class="fp3d-btn" @click=${() => this.duplicateFurniture()}>${this.t("duplicate")}</button>
             <button class="fp3d-btn fp3d-danger" @click=${() => this.deleteFurniture()}>${this.t("delete")}</button>
           </div>`
@@ -5684,8 +5749,44 @@ export class Fp3dEditor extends LitElement {
             })}
           </div>`
         : nothing}
-      ${this.renderOwnButtons()}
+      ${this.renderOwnButtons()} ${this.renderMediaPresets()}
     </details>`;
+  }
+
+  /** Klang & Kino: stations and playlists to start on a speaker from its quick menu. */
+  private renderMediaPresets() {
+    const list = this._doc.settings.media_presets ?? [];
+    const set = (next: MediaPreset[]) => this.change((d) => (d.settings.media_presets = next.length ? next : undefined));
+    const upd = (i: number, patch: Partial<MediaPreset>) => set(list.map((p, j) => (j === i ? { ...p, ...patch } : p)));
+    return html`<h4>${this.t("presets")}</h4>
+      <p class="fp3d-sub">${this.t("presets_hint")}</p>
+      <datalist id="fp3d-preset-types">
+        ${["music", "url", "playlist", "SPOTIFY", "AMAZON_MUSIC", "TUNEIN", "APPLE_MUSIC"].map((t) => html`<option value=${t}></option>`)}
+      </datalist>
+      ${list.map(
+        (p, i) => html`<div class="fp3d-form fp3d-own-button">
+          <label class="fp3d-field"
+            >${this.t("own_button_label")}
+            <input type="text" maxlength="60" .value=${p.label} @change=${(e: Event) => upd(i, { label: (e.target as HTMLInputElement).value.trim() || "Radio" })}
+          /></label>
+          <label class="fp3d-field" title=${this.t("preset_type_hint")}
+            >${this.t("preset_type")}
+            <input type="text" list="fp3d-preset-types" .value=${p.type} @change=${(e: Event) => upd(i, { type: (e.target as HTMLInputElement).value.trim() || "music" })}
+          /></label>
+          <label class="fp3d-field fp3d-wide" title=${this.t("preset_content_hint")}
+            >${this.t("preset_content")}
+            <input type="text" .value=${p.content} placeholder="https://… · spotify:playlist:… · Rock Antenne" @change=${(e: Event) => upd(i, { content: (e.target as HTMLInputElement).value.trim() })}
+          /></label>
+          <div class="fp3d-actions fp3d-wide">
+            <button class="fp3d-btn fp3d-danger" @click=${() => set(list.filter((_, j) => j !== i))}>${this.t("delete")}</button>
+          </div>
+        </div>`,
+      )}
+      ${list.length < 30
+        ? html`<div class="fp3d-actions">
+            <button class="fp3d-btn" @click=${() => set([...list, { id: uid("preset"), label: "Radio", type: "music", content: "" }])}>+ ${this.t("preset_add")}</button>
+          </div>`
+        : nothing}`;
   }
 
   /** Own buttons of the central menu (D143): label, icon, action, target and data. */
@@ -6414,6 +6515,7 @@ export class Fp3dEditor extends LitElement {
         ? html`<div class="fp3d-actions">
             <button class="fp3d-btn" @click=${() => this.centreDevice()}>${this.t("device_centre")}</button>
             ${pl.y !== null ? html`<button class="fp3d-btn" @click=${() => this.updateDevice({ y: null })}>${this.t("height_auto")}</button>` : nothing}
+            ${this.renderAsFurniture(pl)}
             <button
               class="fp3d-btn fp3d-danger"
               @click=${() => {

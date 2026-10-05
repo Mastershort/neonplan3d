@@ -1200,5 +1200,18 @@
  "own_target_service": "Servizio (dominio.servizio)",
  "own_data": "Dati (JSON)",
  "own_data_hint": "Dati del servizio o contenuto dell'evento.",
- "own_data_bad": "Non è un oggetto JSON valido."
+ "own_data_bad": "Non è un oggetto JSON valido.",
+ "presets": "Stazioni e playlist (Suono & Cinema)",
+ "presets_hint": "Compaiono nel menu rapido di ogni altoparlante sotto «Riproduci». Per un Echo: tipo SPOTIFY, AMAZON_MUSIC o TUNEIN e ciò che diresti. Per gli altri: music o url con un indirizzo o un URI.",
+ "preset_type": "Tipo",
+ "preset_type_hint": "media_content_type di play_media",
+ "preset_content": "Contenuto",
+ "preset_content_hint": "media_content_id: URL, URI o, per Alexa, una ricerca",
+ "preset_add": "Stazione o playlist",
+ "media_play_head": "Riproduci",
+ "as_furniture": "Mostra come mobile",
+ "as_furniture_hint": "Sostituisce il segnaposto con un mobile collegato nello stesso punto. Ctrl+Z annulla.",
+ "as_furniture_pick": "Scegli un mobile …",
+ "as_device": "Torna a segnaposto",
+ "as_device_hint": "Sostituisce il mobile con il segnaposto del dispositivo."
 }

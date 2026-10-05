@@ -1200,5 +1200,18 @@
  "own_target_service": "Szolgáltatás (domain.service)",
  "own_data": "Adatok (JSON)",
  "own_data_hint": "A szolgáltatás adatai vagy az esemény tartalma.",
- "own_data_bad": "Nem érvényes JSON objektum."
+ "own_data_bad": "Nem érvényes JSON objektum.",
+ "presets": "Állomások és lejátszási listák (Hang & Mozi)",
+ "presets_hint": "Minden hangszóró gyorsmenüjében a „Lejátszás” alatt. Echo esetén: SPOTIFY, AMAZON_MUSIC vagy TUNEIN típus és amit mondanál. Másoknál: music vagy url címmel vagy URI-val.",
+ "preset_type": "Típus",
+ "preset_type_hint": "a play_media media_content_type értéke",
+ "preset_content": "Tartalom",
+ "preset_content_hint": "media_content_id: URL, URI vagy Alexánál keresőkifejezés",
+ "preset_add": "Állomás vagy lista",
+ "media_play_head": "Lejátszás",
+ "as_furniture": "Megjelenítés bútorként",
+ "as_furniture_hint": "A jelölőt ugyanott egy összekapcsolt bútorra cseréli. Ctrl+Z visszavonja.",
+ "as_furniture_pick": "Bútor választása …",
+ "as_device": "Vissza jelölőnek",
+ "as_device_hint": "A bútort az eszköz jelölőjére cseréli."
 }

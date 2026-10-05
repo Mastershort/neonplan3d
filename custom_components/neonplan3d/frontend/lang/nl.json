@@ -1200,5 +1200,18 @@
  "own_target_service": "Dienst (domein.dienst)",
  "own_data": "Gegevens (JSON)",
  "own_data_hint": "Gegevens van de dienst of inhoud van het event.",
- "own_data_bad": "Geen geldig JSON-object."
+ "own_data_bad": "Geen geldig JSON-object.",
+ "presets": "Zenders en playlists (Geluid & Bioscoop)",
+ "presets_hint": "Verschijnen in het snelmenu van elke speaker onder ‘Afspelen’. Voor een Echo: type SPOTIFY, AMAZON_MUSIC of TUNEIN en wat je zou zeggen. Voor andere: music of url met een adres of URI.",
+ "preset_type": "Type",
+ "preset_type_hint": "media_content_type van play_media",
+ "preset_content": "Inhoud",
+ "preset_content_hint": "media_content_id: URL, URI of bij Alexa een zoekterm",
+ "preset_add": "Zender of playlist",
+ "media_play_head": "Afspelen",
+ "as_furniture": "Als meubel tonen",
+ "as_furniture_hint": "Vervangt de pin door een gekoppeld meubel op dezelfde plek. Ctrl+Z maakt het ongedaan.",
+ "as_furniture_pick": "Meubel kiezen …",
+ "as_device": "Terug naar pin",
+ "as_device_hint": "Vervangt het meubel door de pin van het apparaat."
 }

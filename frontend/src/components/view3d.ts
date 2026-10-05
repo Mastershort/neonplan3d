@@ -637,7 +637,9 @@ export class Fp3dView3d extends LitElement {
         const marker = { ...m, power, powerText: power === null ? undefined : formatPower(hass, power), effect: this.dimmed ? false : m.effect };
         // the own name under the pin: per device, or for every named device (card option marker_names)
         const caption = m.ownName && (m.showName || this.markerNames) ? m.ownName : "";
-        return { ...marker, pin: this.showPin(marker), full: m.show === "always", caption };
+        // Klang & Kino: while a card floats over the speaker, its pin steps aside (it comes back when the music stops)
+        const carded = hasFeature("sound") && this.mediaCardUp(hass, m.id);
+        return { ...marker, pin: this.showPin(marker) && !carded, full: m.show === "always", caption };
       }),
       // Energie Pro: the street end of the grid cable carries a pin with what comes in or goes out
       ...(pro && (this.flows ?? this._flows) && !this.dimmed && summary.grid !== null ? [this.gridPin(hass, b, summary.grid)] : []).filter((m): m is NonNullable<typeof m> => !!m),
@@ -1444,6 +1446,13 @@ export class Fp3dView3d extends LitElement {
         } else if ((f.type === "washer" || f.type === "dryer" || f.type === "dishwasher") && running) {
           screens.set(f.id, { color: [0.3, 0.85, 1], level: 0.8 });
         }
+        const packed = packItem(f.type);
+        const ringed = !!packed && !packed.light && packed.parts.some((p) => p.glow);
+        if (st && ringed && hasFeature("sound") && kindOf(st.entity_id) === "media" && st.state === "playing" && !hasScreen(f.type)) {
+          // Klang & Kino: a speaker without a screen lights its ring in the app's colour while it plays
+          const vol = typeof st.attributes.volume_level === "number" ? st.attributes.volume_level : 0.5;
+          screens.set(f.id, { color: appColor(st) ?? [0.22, 0.88, 1], level: 0.5 + 0.5 * vol, ring: true, plain: true });
+        }
         if (st && hasScreen(f.type)) {
           // without the "screens" feature a screen is only lit or dark: no app colour, no picture
           const live = hasFeature("screens");
@@ -1453,7 +1462,7 @@ export class Fp3dView3d extends LitElement {
           const tvOn = kindOf(st.entity_id) === "media" && ["playing", "on", "paused", "idle"].includes(st.state);
           const color = live && kindOf(st.entity_id) === "media" ? appColor(st) : lit ? lit.color : isActive(st) || tvOn ? ([0.22, 0.88, 1] as [number, number, number]) : null;
           const picture = live && kindOf(st.entity_id) === "media" ? ((st.attributes.entity_picture as string | undefined) ?? null) : null;
-          if (color) screens.set(f.id, { color, level: st.state === "playing" ? 1 : 0.6, picture });
+          if (color) screens.set(f.id, { color, level: st.state === "playing" ? 1 : 0.6, picture, ring: ringed && hasFeature("sound") && st.state === "playing" });
         }
         if (taken.has(id)) continue;
         taken.add(id);
@@ -2095,6 +2104,15 @@ export class Fp3dView3d extends LitElement {
       </div>`;
   }
 
+  /** Whether a media player shows a now-playing card (playing, or paused with something to show, or within its grace time). */
+  private mediaCardUp(hass: HomeAssistant, id: string): boolean {
+    const st = hass.states[id];
+    if (!st || kindOf(id) !== "media") return false;
+    if ((this.mediaGrace.get(id)?.until ?? 0) > Date.now() && isUnavailable(st)) return true;
+    const label = [st.attributes.media_title, st.attributes.app_name, st.attributes.source].some((v) => typeof v === "string" && !!v.trim());
+    return !isUnavailable(st) && (st.state === "playing" || (st.state === "paused" && label));
+  }
+
   /** The eye: one tap hides every bar and overlay so only the stage remains, the next brings them back. */
   private renderEye() {
     if (!this.cleanButton || !this.hass) return nothing;
@@ -2318,6 +2336,7 @@ export class Fp3dView3d extends LitElement {
         .hass=${this.hass}
         .entity=${m.entity}
         .car=${m.car ?? null}
+        .presets=${hasFeature("sound") ? (this.building?.settings.media_presets ?? []) : []}
         ?confirmSwitch=${this.confirmSet.has(m.entity)}
         ?pro=${hasFeature("camera_cockpit")}
         @close=${() => (this._menu = null)}

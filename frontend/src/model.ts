@@ -462,7 +462,21 @@ export interface CustomButton {
   data?: Record<string, unknown> | null;
 }
 
+/**
+ * Something to play on a speaker from its quick menu (Klang & Kino): media_player.play_media with this
+ * content type and id – a radio stream URL, a Music Assistant or Sonos URI, or for an Echo (Alexa Media
+ * Player) the type SPOTIFY / AMAZON_MUSIC / TUNEIN with what you would say ("Rock Antenne").
+ */
+export interface MediaPreset {
+  id: string;
+  label: string;
+  type: string;
+  content: string;
+}
+
 export interface BuildingSettings {
+  /** Stations and playlists for the speakers' quick menu (Klang & Kino). */
+  media_presets?: MediaPreset[];
   /** Favourites of the house: scenes, scripts, automations, buttons and switches in the central menu of the 3D view (#145). */
   favorites?: string[];
   /** Own buttons in the central menu (D143). */

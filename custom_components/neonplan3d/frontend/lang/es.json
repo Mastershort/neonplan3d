@@ -1200,5 +1200,18 @@
  "own_target_service": "Servicio (dominio.servicio)",
  "own_data": "Datos (JSON)",
  "own_data_hint": "Datos del servicio o contenido del evento.",
- "own_data_bad": "No es un objeto JSON válido."
+ "own_data_bad": "No es un objeto JSON válido.",
+ "presets": "Emisoras y listas (Sonido y Cine)",
+ "presets_hint": "Aparecen en el menú rápido de cada altavoz en «Reproducir». Para un Echo: tipo SPOTIFY, AMAZON_MUSIC o TUNEIN y lo que dirías. Para otros: music o url con una dirección o URI.",
+ "preset_type": "Tipo",
+ "preset_type_hint": "media_content_type de play_media",
+ "preset_content": "Contenido",
+ "preset_content_hint": "media_content_id: URL, URI o, en Alexa, una búsqueda",
+ "preset_add": "Emisora o lista",
+ "media_play_head": "Reproducir",
+ "as_furniture": "Mostrar como mueble",
+ "as_furniture_hint": "Sustituye el pin por un mueble vinculado en el mismo sitio. Ctrl+Z lo deshace.",
+ "as_furniture_pick": "Elegir mueble …",
+ "as_device": "Volver a pin",
+ "as_device_hint": "Sustituye el mueble por el pin de su dispositivo."
 }

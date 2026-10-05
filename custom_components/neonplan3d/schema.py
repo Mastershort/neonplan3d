@@ -495,6 +495,21 @@ SETTINGS_SCHEMA = vol.Schema(
         vol.Optional("north", default=0): vol.All(vol.Coerce(float), vol.Range(min=-360, max=360)),
         # plan lock: rooms, walls, doors, windows and outdoor areas cannot be moved by accident
         vol.Optional("lock_plan", default=False): bool,
+        # stations and playlists for the speakers' quick menu (media_player.play_media type + content id)
+        vol.Optional("media_presets", default=list): vol.All(
+            [
+                vol.Schema(
+                    {
+                        vol.Required("id"): vol.All(str, vol.Length(min=1, max=64)),
+                        vol.Required("label"): vol.All(str, vol.Length(max=60)),
+                        vol.Required("type"): vol.All(str, vol.Length(max=40)),
+                        vol.Required("content"): vol.All(str, vol.Length(max=500)),
+                    },
+                    extra=vol.ALLOW_EXTRA,
+                )
+            ],
+            vol.Length(max=30),
+        ),
         # own buttons in the central menu: navigate, more-info, a service or a DOM event (browser_mod popup)
         vol.Optional("buttons", default=list): vol.All(
             [

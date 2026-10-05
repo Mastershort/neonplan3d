@@ -43,6 +43,7 @@ export class Fp3dQuickMenu extends LitElement {
     hass: { attribute: false },
     entity: { attribute: false },
     car: { attribute: false },
+    presets: { attribute: false },
     confirmSwitch: { type: Boolean },
     pro: { type: Boolean },
     low: { type: Boolean, reflect: true },
@@ -53,6 +54,8 @@ export class Fp3dQuickMenu extends LitElement {
   declare entity: string;
   /** Auto Pro: the car behind a parking spot's pin – its menu replaces the entity's. */
   declare car: CarState | null;
+  /** Klang & Kino: stations and playlists to start on a speaker. */
+  declare presets: { id: string; label: string; type: string; content: string }[];
   /** Ask before the power button switches. */
   declare confirmSwitch: boolean;
   /** The camera cockpit is unlocked (otherwise the look-through button shows a lock). */
@@ -287,7 +290,28 @@ export class Fp3dQuickMenu extends LitElement {
             aria-label=${this.t("volume")}
             @change=${(e: Event) => this.call("media_player", "volume_set", { volume_level: Number((e.target as HTMLInputElement).value) / 100 })}
           />`
-        : nothing}`;
+        : nothing}
+      ${this.renderPlay(st)}`;
+  }
+
+  /** Klang & Kino: start something – the player's own sources (Sonos favourites, inputs) and the plan's stations. */
+  private renderPlay(st: HassEntity) {
+    if (!hasFeature("sound")) return nothing;
+    const sources = Array.isArray(st.attributes.source_list) ? (st.attributes.source_list as string[]).slice(0, 10) : [];
+    const presets = this.presets ?? [];
+    if (!sources.length && !presets.length) return nothing;
+    const current = st.attributes.source;
+    return html`<p class="qm-play-head">${this.t("media_play_head")}</p>
+      <div class="qm-play">
+        ${presets.map(
+          (p) => html`<button class="qm-chip" @click=${() => this.call("media_player", "play_media", { media_content_type: p.type, media_content_id: p.content })}>
+            ▶ ${p.label}
+          </button>`,
+        )}
+        ${sources.map(
+          (src) => html`<button class="qm-chip ${src === current ? "qm-chip-on" : ""}" @click=${() => this.call("media_player", "select_source", { source: src })}>${src}</button>`,
+        )}
+      </div>`;
   }
 
   private renderToggle(st: HassEntity) {
@@ -332,6 +356,34 @@ export class Fp3dQuickMenu extends LitElement {
   static styles = [
     tokens,
     css`
+    .qm-play-head {
+      margin: 10px 0 4px;
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      opacity: 0.7;
+    }
+    .qm-play {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      max-height: 110px;
+      overflow-y: auto;
+    }
+    .qm-chip {
+      border: 1px solid rgba(160, 240, 255, 0.35);
+      border-radius: 999px;
+      padding: 5px 10px;
+      background: rgba(8, 16, 34, 0.55);
+      color: inherit;
+      font: inherit;
+      font-size: 12.5px;
+      cursor: pointer;
+    }
+    .qm-chip-on {
+      border-color: var(--fp3d-accent, #37e0ff);
+      color: var(--fp3d-accent, #37e0ff);
+    }
       .qm-camera {
         display: block;
         width: 100%;

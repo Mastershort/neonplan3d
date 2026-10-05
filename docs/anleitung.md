@@ -269,6 +269,7 @@ Ein ausgewähltes Gerät hat:
 - **Vor dem Schalten nachfragen:** Beim Antippen in 3D, im Schnellmenü und im Raumfenster erscheint erst eine Rückfrage. Das schützt etwa den Server-Schalter vor einem versehentlichen Tipp. Ein Doppeltipp auf den Raum lässt dieses Gerät aus.
 - **Symbol in 3D:** *Automatisch* folgt dem Schalter Keine / Wichtige / Alle der 3D-Ansicht. *Immer zeigen* zeigt das Symbol auch bei „Wichtige“, etwa für einen Temperatursensor. *Ohne Watt* lässt die Leistung weg, etwa an einer Steckdose. *Ausblenden* zeigt nie ein Symbol. Bei „Keine“ bleiben alle Symbole aus.
 - **Eigenes Symbol:** Der Name eines Material-Design-Icons wie in Home Assistant, etwa `mdi:thermometer` oder `mdi:water-alert`, ersetzt das Symbol nach Geräteart im Pin. Leer lassen = Standard. Gilt genauso für elektrische Möbel.
+- **Als Möbel darstellen:** Ersetzt den Pin durch ein passendes Möbel an derselben Stelle, schon mit dem Gerät verknüpft – ein Lautsprecher oder Smart Display für einen Media Player, eine Leuchte für ein Licht, ein Heizkörper für ein Thermostat, der Saugroboter für einen Sauger. Die Liste zeigt nur Möbel, die zur Geräteart passen. Im Möbelformular holt **Wieder als Geräte-Pin** den einfachen Pin zurück; Strg+Z nimmt beides zurück.
 - **Eigener Name** und **Name unter dem Symbol in 3D zeigen:** Mit Haken steht der eigene Name klein unter dem Pin – drei Thermometer im Garten („Pool Wasser“, „Pool Luft“, „Gewächshaus“) bleiben so unterscheidbar. Der Haken erscheint, sobald ein eigener Name eingetragen ist; Möbel mit eigenem Namen haben ihn genauso. Die Karten-Option `marker_names: true` zeigt die Namen aller Geräte mit eigenem Namen.
 - **In Raummitte** und **Entfernen**.
 
@@ -657,7 +658,9 @@ Klang & Kino bringt die Musik ins 3D-Haus. Voraussetzung ist ein Lautsprecher im
 
 **Multiroom-Gruppen:** Spielen Lautsprecher als Gruppe (Sonos, HA-Gruppen, alles mit `group_members`), verbindet eine leuchtende Linie die Mitglieder auf derselben Etage.
 
-**Schnellmenü:** Lange drücken auf einen Media Player öffnet jetzt Cover mit Abspielen/Pause in der Mitte, Zurück und Weiter daneben, Lautstärke darunter – statt nur An/Aus. Fernseher und Bildschirme bekommen ihre Farben und Bilder weiter über **Bildschirme live** (6.3).
+**Schnellmenü:** Lange drücken auf einen Media Player öffnet jetzt Cover mit Abspielen/Pause in der Mitte, Zurück und Weiter daneben, Lautstärke darunter – statt nur An/Aus. Darunter steht **Abspielen**: deine Sender und Playlists (im Editor unter **Favoriten → Sender und Playlists** angelegt) und die Quellen des Players, etwa Sonos-Favoriten oder die Eingänge eines Receivers. Ein Sender ist ein `media_player.play_media` mit Art und Inhalt: für einen Echo die Art `SPOTIFY`, `AMAZON_MUSIC` oder `TUNEIN` und als Inhalt, was du sagen würdest („Rock Antenne“); für Sonos, Music Assistant und andere `music` oder `url` mit einer Stream-Adresse oder URI.
+
+**Smart Speaker und Displays:** Das Pack **Heimkino & Hi-Fi** hat ab Release 2 Smart Speaker als Kugel, Zylinder, Puck, Pod, hoch und oval, einen Kompakt- und einen tragbaren Multiroom-Lautsprecher, eine Premium-Soundbar und Smart Displays mit 5″, 7″, 8″ und 15″ (Wand) – passend für Echo, Nest, HomePod, Sonos und Co. Mit Klang & Kino leuchtet ihr Lichtring in der App-Farbe, solange sie spielen, und die Displays zeigen das Cover. Solange die Karte über einem Lautsprecher schwebt, tritt sein Pin zur Seite und kommt wieder, wenn die Musik endet. Fernseher und Bildschirme bekommen ihre Farben und Bilder weiter über **Bildschirme live** (6.3).
 
 **Wandtablet:** Auf der Tablet-Stufe laufen die Ringe mit halber Bildrate, die Karten ohne Glaseffekt.
 
@@ -733,7 +736,7 @@ Die mittlere Kachelreihe zeigt die drei Pro-Erweiterungen. Aktive tragen ein ✓
 | Kinderzimmer, Büro & Gaming, Garten & Terrasse, Garage & Werkstatt, Fitness, Smart-Home & Technik | Möbel und Geräte für den jeweiligen Bereich |
 | Fahrzeuge | Autos, Transporter, Motorräder und mehr für Stellplätze |
 | Treppen & Geländer | Gerade, L- und U-Treppen, Wendeltreppe, Raumspartreppe, Außentreppe, Podest, Geländer aus Metall, Glas und Holz |
-| Heimkino & Hi-Fi | Leinwand, Beamer, Lautsprecher, Subwoofer, AV-Receiver, Plattenspieler, Kinosessel – Geräte leuchten beim Abspielen |
+| Heimkino & Hi-Fi | Leinwand, Beamer, Lautsprecher, Subwoofer, AV-Receiver, Plattenspieler, Kinosessel, Smart Speaker und Smart Displays – Geräte leuchten beim Abspielen |
 | Hauswirtschaft & Haustechnik | Therme, Wärmepumpe, Pufferspeicher, Lüftung, Zählerschrank, Wasserenthärter, Gefriertruhe, Bügelstation |
 | Haustiere | Kratzbaum, Hundebett, Futterautomat, Trinkbrunnen, Katzenklo, Käfige, Aquarium und Terrarium mit Licht |
 | Architektur & Ausbau | Säulen, Balken, Schornstein, Kamin, Glastrennwand, Schiebewand, Lichtvoute, LED-Nische, Podest |

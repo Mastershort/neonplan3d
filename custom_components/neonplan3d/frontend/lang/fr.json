@@ -1200,5 +1200,18 @@
  "own_target_service": "Service (domaine.service)",
  "own_data": "Données (JSON)",
  "own_data_hint": "Données du service ou contenu de l'événement.",
- "own_data_bad": "Pas un objet JSON valide."
+ "own_data_bad": "Pas un objet JSON valide.",
+ "presets": "Stations et playlists (Son & Cinéma)",
+ "presets_hint": "Affichées dans le menu rapide de chaque enceinte sous « Lire ». Pour un Echo : type SPOTIFY, AMAZON_MUSIC ou TUNEIN et ce que tu dirais. Pour les autres : music ou url avec une adresse ou une URI.",
+ "preset_type": "Type",
+ "preset_type_hint": "media_content_type de play_media",
+ "preset_content": "Contenu",
+ "preset_content_hint": "media_content_id : URL, URI ou, pour Alexa, une recherche",
+ "preset_add": "Station ou playlist",
+ "media_play_head": "Lire",
+ "as_furniture": "Afficher comme meuble",
+ "as_furniture_hint": "Remplace le repère par un meuble lié au même endroit. Ctrl+Z annule.",
+ "as_furniture_pick": "Choisir un meuble …",
+ "as_device": "Revenir au repère",
+ "as_device_hint": "Remplace le meuble par le repère de son appareil."
 }

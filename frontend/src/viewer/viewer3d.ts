@@ -50,7 +50,7 @@ import { roofUnderAt } from "../roof-sections.ts";
 import { buildFloorGeometry, SLAB, stairHoles, type FloorGeometry } from "./build.ts";
 import { OrbitControls, type OrbitView } from "./controls.ts";
 import { makeFoldable, type FoldMasks } from "./fold.ts";
-import { pushCameraModel, pushPackLamp, screenRect, pushFridgeDoors } from "./furniture.ts";
+import { pushCameraModel, pushPackGlow, pushPackLamp, screenRect, pushFridgeDoors } from "./furniture.ts";
 import { mountBase, packItem, setPacks, type FurniturePack } from "../packs.ts";
 import { withVehicles } from "../parking.ts";
 import { buildRoof, type RoofWindowState } from "./roof.ts";
@@ -226,6 +226,8 @@ export interface SoundSource {
 }
 
 export interface ScreenState {
+  /** Light the item's glowing pack parts too (a smart speaker's ring while it plays). */
+  ring?: boolean;
   color: [number, number, number];
   level: number;
   /** Picture of what is running (app icon or cover art from the media player), if any. */
@@ -2425,6 +2427,12 @@ export class FloorplanViewer {
           }
         }
         continue;
+      }
+      // a pack item that is no lamp lights its glowing parts (a smart speaker's ring) in the screen's colour
+      const packed = packItem(f.type);
+      if (packed && !packed.light && st.ring && packed.parts.some((p) => p.glow)) {
+        const ring = new Color(...st.color.map((v) => Math.min(1, v * (0.45 + 0.55 * st.level))) as [number, number, number]);
+        pushPackGlow(buf, packed, f, mountBase(fv.floor, f), ring.getHex());
       }
       const r = screenRect(f, fv.floor);
       if (!r) continue;
