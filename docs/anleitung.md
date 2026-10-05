@@ -829,6 +829,9 @@ Der Webhoster des Shops bremst zu viele Anfragen von einer Adresse. NeonPlan ver
 **Die Meldung „Diese Seite zeigt noch NeonPlan 3D x.y, Home Assistant hat schon …“ bleibt.**
 Browser oder Companion-App halten noch ein altes NeonPlan-Bundle. Auf **Neu laden** tippen; in der Companion-App unter Einstellungen → Companion-App → **Frontend-Cache zurücksetzen**, dann die App ganz schließen und neu öffnen. Ein Neustart von Home Assistant hilft hier nicht. Dasselbe gilt, wenn eine gekaufte Pro-Erweiterung unter den Packs „braucht eine neuere NeonPlan-Version“ meldet.
 
+**Am Dach hängen zwei Hologramme (Energie Pro).**
+Das ist gewollt: Das große ist die **Hausbilanz** (Solar & Energie), das kleinere die **Anlagenkarte** des Wechselrichters, dessen Feld das ist – bei mehreren Anlagen hat jede ihre eigene. Zu viel? Im Abschnitt **Hologramm** die Hausbilanz **Frei im Plan** hängen (Griff ◈), oder im Wechselrichter-Formular den Haken **Anlagenkarte zeigen** rausnehmen. Eine kleine Karte, die scheinbar am Dach klebt, ist oft das Geräte-Hologramm eines Geräts im Raum darunter – Kamera etwas drehen.
+
 **Der Shop ist nicht erreichbar.**
 Installierte Packs und Pro-Erweiterungen funktionieren weiter. Updates kommen, sobald der Shop wieder antwortet.
 

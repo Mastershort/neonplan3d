@@ -827,6 +827,9 @@ The shop's web host throttles too many requests from one address. Since 1.9.1 Ne
 **The notice "This page still shows NeonPlan 3D x.y, Home Assistant already has …" stays.**
 The browser or the companion app still holds an old NeonPlan bundle. Tap **Reload**; in the companion app go to Settings → Companion app → **Reset frontend cache**, then close the app completely and open it again. Restarting Home Assistant does not help here. The same applies when a bought Pro add-on says "needs a newer NeonPlan version" under the packs.
 
+**Two holograms hang on the roof (Energy Pro).**
+That is intended: the big one is the **house balance** (Solar & Energy), the smaller one the **plant card** of the inverter whose field that is – with several plants each has its own. Too much? In the **Hologram** section hang the house balance **Free in the plan** (handle ◈), or untick **Show the plant card** in the inverter form. A small card that seems to stick to the roof is often the device hologram of a device in the room below – turn the camera a little.
+
 **The shop cannot be reached.**
 Installed packs and Pro add-ons keep working. Updates arrive as soon as the shop answers again.
 
