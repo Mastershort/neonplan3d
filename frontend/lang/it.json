@@ -363,6 +363,8 @@
  "card_control_co2": "CO₂",
  "card_controls_hint": "Pareti alte/sezione, piani separati e temperatura, umidità, CO₂ da commutare",
  "controls_hide": "Nascondi i comandi: resta solo la vista 3D",
+ "nav_wrap": "Barra su più righe: tutti i piani e le stanze",
+ "nav_row": "Barra su una riga (scorrimento laterale)",
  "controls_show": "Mostra di nuovo i comandi",
  "card_controls_hidden": "Avvia con i comandi nascosti",
  "card_controls_hidden_hint": "Solo la vista 3D; un occhio in basso a sinistra riporta barre, valori e pulsanti",

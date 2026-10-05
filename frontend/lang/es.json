@@ -363,6 +363,8 @@
  "card_control_co2": "CO₂",
  "card_controls_hint": "Paredes altas/corte, plantas separadas y temperatura, humedad, CO₂ para conmutar",
  "controls_hide": "Ocultar los controles: solo queda la vista 3D",
+ "nav_wrap": "Barra en varias líneas: todas las plantas y habitaciones",
+ "nav_row": "Barra en una línea (desplazamiento lateral)",
  "controls_show": "Mostrar los controles de nuevo",
  "card_controls_hidden": "Empezar con los controles ocultos",
  "card_controls_hidden_hint": "Solo la vista 3D; un ojo abajo a la izquierda devuelve barras, valores y botones",

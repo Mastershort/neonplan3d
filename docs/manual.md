@@ -444,6 +444,7 @@ The 3D view has three levels:
 | **Room names** | Show or hide the room names |
 | **Trail** | Motion trail, Pro, see [6.1](#61-camera-cockpit) |
 | **Weather** | Weather outside, Pro, see [6.2](#62-weather-outside) |
+| **≡ / ↔** (right end of the floor and room bar) | Wrap the bar at the top onto several lines when many rooms do not fit in one, or back to one line; in one line it scrolls sideways, on a PC with the mouse wheel too. In the house view the rooms of every floor follow its name |
 | **Eye** (bottom left, next to the magnifier) | Hides everything that is not the 3D view: header, floor and room bar, energy values, floor pictures, switches. The stage alone remains – half a screen more on a phone. A tap on the eye brings it all back; rooms can still be tapped. The device remembers the choice |
 
 ![Cut view](images/view-cut.jpg)

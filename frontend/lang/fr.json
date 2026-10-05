@@ -363,6 +363,8 @@
  "card_control_co2": "CO₂",
  "card_controls_hint": "Murs hauts/coupe, étages écartés et température, humidité, CO₂ à commuter",
  "controls_hide": "Masquer les commandes – seule la vue 3D reste",
+ "nav_wrap": "Barre sur plusieurs lignes : tous les étages et pièces",
+ "nav_row": "Barre sur une ligne (défilement latéral)",
  "controls_show": "Afficher à nouveau les commandes",
  "card_controls_hidden": "Démarrer avec les commandes masquées",
  "card_controls_hidden_hint": "Seulement la vue 3D ; un œil en bas à gauche ramène barres, valeurs et boutons",

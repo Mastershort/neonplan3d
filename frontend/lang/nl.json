@@ -363,6 +363,8 @@
  "card_control_co2": "CO₂",
  "card_controls_hint": "Hoge muren/doorsnede, verdiepingen uit elkaar en temperatuur, luchtvochtigheid, CO₂ om te schakelen",
  "controls_hide": "Bediening verbergen – alleen de 3D-weergave blijft",
+ "nav_wrap": "Balk over meerdere regels: alle verdiepingen en kamers",
+ "nav_row": "Balk op één regel (zijwaarts scrollen)",
  "controls_show": "Bediening weer tonen",
  "card_controls_hidden": "Starten met verborgen bediening",
  "card_controls_hidden_hint": "Alleen de 3D-weergave; een oog linksonder haalt balken, waarden en knoppen terug",

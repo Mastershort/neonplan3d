@@ -363,6 +363,8 @@
  "card_control_co2": "CO₂",
  "card_controls_hint": "Magas falak/metszet, szintek széthúzva, valamint hőmérséklet, páratartalom, CO₂ kapcsolók",
  "controls_hide": "Kezelőelemek elrejtése – csak a 3D nézet marad",
+ "nav_wrap": "Sáv több sorban: minden szint és helyiség",
+ "nav_row": "Sáv egy sorban (oldalra görgethető)",
  "controls_show": "Kezelőelemek újra megjelenítése",
  "card_controls_hidden": "Indítás elrejtett kezelőelemekkel",
  "card_controls_hidden_hint": "Csak a 3D nézet; a bal alsó szem visszahozza a sávokat, értékeket és kapcsolókat",

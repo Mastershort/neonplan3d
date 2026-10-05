@@ -68,6 +68,7 @@ export class Floorplan3dPanel extends LitElement {
     _trail: { state: true },
     _cameraWall: { state: true },
     _clean: { state: true },
+    _navWrap: { state: true },
     _weather: { state: true },
   };
 
@@ -103,6 +104,8 @@ export class Floorplan3dPanel extends LitElement {
   private declare _cameraWall: boolean;
   /** Clean view (the eye): only the stage, remembered on this device. */
   private declare _clean: boolean;
+  /** The floor and room bar wraps onto several lines instead of scrolling sideways (remembered on this device). */
+  private declare _navWrap: boolean;
   /** Weather outside the house in 3D. */
   private declare _weather: boolean;
 
@@ -138,6 +141,7 @@ export class Floorplan3dPanel extends LitElement {
     this._trail = prefs.get("trail") === "1";
     this._cameraWall = false;
     this._clean = prefs.get("clean") === "1";
+    this._navWrap = prefs.get("nav_wrap") === "1";
     this._weather = prefs.get("weather") !== "0";
   }
 
@@ -562,6 +566,15 @@ export class Floorplan3dPanel extends LitElement {
     ></fp3d-editor>`;
   }
 
+  /** A single-row bar scrolls sideways with the mouse wheel (a desktop has no swipe). */
+  private readonly onNavWheel = (e: WheelEvent) => {
+    if (this._navWrap || !e.deltaY || e.deltaX) return;
+    const nav = e.currentTarget as HTMLElement;
+    if (nav.scrollWidth <= nav.clientWidth) return;
+    nav.scrollLeft += e.deltaY;
+    e.preventDefault();
+  };
+
   private renderView(b: Building) {
     if (!b.floors.length || !b.floors.some((f) => f.rooms.length)) {
       return html`<div class="fp3d-empty">
@@ -572,7 +585,7 @@ export class Floorplan3dPanel extends LitElement {
     const floor = b.floors.find((f) => f.id === this._floorId);
     const roomFloors = floor ? [floor] : b.floors;
     return html`
-      ${this._clean ? nothing : html`<nav class="fp3d-nav">
+      ${this._clean ? nothing : html`<nav class="fp3d-nav ${this._navWrap ? "fp3d-nav-wrap" : ""}" @wheel=${this.onNavWheel}>
         ${b.floors.length > 1
           ? html`<button class="fp3d-chip" aria-pressed=${this._floorId === null} @click=${() => {
                 this._floorId = null;
@@ -594,8 +607,10 @@ export class Floorplan3dPanel extends LitElement {
               )}
               <span class="fp3d-sep"></span>`
           : nothing}
-        ${roomFloors.flatMap((f) =>
-          f.rooms.map(
+        ${roomFloors.flatMap((f) => [
+          // in the house view the rooms of every floor follow a small floor label
+          roomFloors.length > 1 && f.rooms.length ? html`<span class="fp3d-nav-floor">${f.name}</span>` : nothing,
+          ...f.rooms.map(
             (r) => html`<button
               class="fp3d-chip fp3d-room-chip"
               aria-pressed=${r.id === this._roomId}
@@ -607,7 +622,19 @@ export class Floorplan3dPanel extends LitElement {
               ${r.name}
             </button>`,
           ),
-        )}
+        ])}
+        <button
+          class="fp3d-chip fp3d-nav-toggle"
+          title=${this.t(this._navWrap ? "nav_row" : "nav_wrap")}
+          aria-label=${this.t(this._navWrap ? "nav_row" : "nav_wrap")}
+          aria-pressed=${this._navWrap}
+          @click=${() => {
+            this._navWrap = !this._navWrap;
+            prefs.set("nav_wrap", this._navWrap ? "1" : "0");
+          }}
+        >
+          ${this._navWrap ? "\u2194" : "\u2261"}
+        </button>
       </nav>`}
       <div class="fp3d-stage-wrap ${this._roomId ? "fp3d-room-open" : ""}">
         <fp3d-view3d
@@ -918,11 +945,41 @@ export class Floorplan3dPanel extends LitElement {
       }
       .fp3d-nav {
         display: flex;
+        align-items: center;
         gap: 6px;
         padding: 10px 14px;
         overflow-x: auto;
         scrollbar-width: none;
         flex: none;
+      }
+      /* a desktop shows a thin scrollbar while the pointer rests on the bar */
+      .fp3d-nav:hover {
+        scrollbar-width: thin;
+      }
+      /* wrapped: several lines, at most about three before the bar itself scrolls */
+      .fp3d-nav-wrap {
+        flex-wrap: wrap;
+        overflow-x: visible;
+        overflow-y: auto;
+        max-height: 132px;
+      }
+      .fp3d-nav-floor {
+        flex: none;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: var(--fp3d-muted);
+        margin-left: 6px;
+      }
+      .fp3d-nav-toggle {
+        flex: none;
+        margin-left: auto;
+        position: sticky;
+        right: 0;
+        min-width: 34px;
+        padding-left: 8px;
+        padding-right: 8px;
       }
       .fp3d-nav .fp3d-chip {
         box-shadow: none;

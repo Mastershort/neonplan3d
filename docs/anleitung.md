@@ -446,6 +446,7 @@ Die 3D-Ansicht hat drei Ebenen:
 | **Raumnamen** | Namen der Räume ein- oder ausblenden |
 | **Spur** | Bewegungsspur, Pro, siehe [6.1](#61-kamera-cockpit) |
 | **Wetter** | Wetter draußen, Pro, siehe [6.2](#62-wetter-draußen) |
+| **≡ / ↔** (rechts in der Etagen- und Raumleiste) | Die Leiste oben auf mehrere Zeilen umbrechen, wenn viele Räume nicht in eine Zeile passen, oder zurück in eine Zeile; in einer Zeile scrollt sie seitlich, am PC auch mit dem Mausrad. In der Hausansicht steht vor den Räumen jeder Etage ihr Name |
 | **Auge** (unten links, neben der Lupe) | Blendet alles aus, was nicht die 3D-Ansicht ist: Kopfzeile, Etagen- und Raumleiste, Energiewerte, Etagenbilder, Schalter. Übrig bleibt die Bühne – auf dem Handy die halbe Bildschirmhöhe mehr. Ein Tipp aufs Auge holt alles zurück; ein Raum lässt sich weiter antippen. Das Gerät merkt sich die Wahl |
 
 ![Schnittansicht](images/view-cut.jpg)
