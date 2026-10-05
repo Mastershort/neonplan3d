@@ -1217,5 +1217,7 @@
  "roof_on_floor": "Ezen a szinten ül",
  "roof_on_floor_hint": "A szakaszt ennek a szintnek a falaira teszi.",
  "style_glass_wall": "Üvegfal (fix)",
- "preset_glass_wall": "Üvegfal"
+ "preset_glass_wall": "Üvegfal",
+ "vehicle_to_spot": "Parkolóhellyé alakítás",
+ "vehicle_to_spot_hint": "Parkolóhelyként csak akkor jelenik meg, ha egy érzékelő jelzi az autót; ott állítható az Auto Pro."
 }

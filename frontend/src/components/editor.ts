@@ -3755,6 +3755,18 @@ export class Fp3dEditor extends LitElement {
     return all.filter((x) => fits(x.type)).sort((a, b) => a.label.localeCompare(b.label));
   }
 
+  /** A vehicle placed as plain furniture becomes a parking spot with this vehicle (presence and Auto Pro live there). */
+  private vehicleToSpot(f: Furniture): void {
+    if (!this.isAdmin) return;
+    const [w, d, h] = furnitureSize("parking");
+    const spot: Furniture = { id: uid("furniture"), type: "parking", x: f.x, z: f.z, rotation: f.rotation, w: Math.max(w, round(f.w + 0.5)), d: Math.max(d, round(f.d + 0.4)), h, variant: null, vehicle: f.type, ...(f.name ? { name: f.name } : {}) };
+    this.change((_, floor) => {
+      floor.furniture = floor.furniture.filter((m) => m.id !== f.id);
+      floor.furniture.push(spot);
+    });
+    this.selectItem("furniture", spot.id);
+  }
+
   /** Replace a placed device by a furniture item linked to it, where the pin stood (one undo step). */
   private deviceToFurniture(pl: Placement, type: string): void {
     if (!this.isAdmin) return;
@@ -5615,6 +5627,12 @@ export class Fp3dEditor extends LitElement {
           </div>`
         : nothing}
       ${isElectric(f.type) ? this.renderFurnitureLinks(f) : nothing} ${f.type === "parking" ? this.renderParkingForm(f) : nothing}
+      ${f.type.startsWith("pack:mastershort.vehicles:") && this.isAdmin
+        ? html`<section>
+            <p class="fp3d-sub">${this.t("vehicle_to_spot_hint")}</p>
+            <div class="fp3d-actions"><button class="fp3d-btn fp3d-primary" @click=${() => this.vehicleToSpot(f)}>🅿 ${this.t("vehicle_to_spot")}</button></div>
+          </section>`
+        : nothing}
       ${admin
         ? html`<div class="fp3d-actions">
             <button class="fp3d-btn" @click=${() => this.rotateFurniture(-90)}>${this.t("rotate_left")}</button>

@@ -1217,5 +1217,7 @@
  "roof_on_floor": "Ligt op verdieping",
  "roof_on_floor_hint": "Zet de sectie op de muren van deze verdieping.",
  "style_glass_wall": "Glazen wand (vast)",
- "preset_glass_wall": "Glazen wand"
+ "preset_glass_wall": "Glazen wand",
+ "vehicle_to_spot": "Omzetten naar parkeerplaats",
+ "vehicle_to_spot_hint": "Als parkeerplaats verschijnt het alleen als een sensor de auto meldt; daar stel je Auto Pro in."
 }

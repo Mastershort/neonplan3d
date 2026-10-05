@@ -1217,5 +1217,7 @@
  "roof_on_floor": "Sobre la planta",
  "roof_on_floor_hint": "Coloca la sección sobre los muros de esta planta.",
  "style_glass_wall": "Pared de vidrio (fija)",
- "preset_glass_wall": "Pared de vidrio"
+ "preset_glass_wall": "Pared de vidrio",
+ "vehicle_to_spot": "Convertir en plaza de aparcamiento",
+ "vehicle_to_spot_hint": "Como plaza aparece solo cuando un sensor detecta el coche; allí se configura Auto Pro."
 }
