@@ -38,10 +38,13 @@ export function pushOutdoor(buf: GeoBuffer, lines: LineBuffer, floor: Floor): vo
   const g = groundLevel(floor);
   for (const a of floor.outdoor ?? []) {
     if (a.points.length < 3) continue;
-    const look = { ...LOOKS[a.type], top: OUTDOOR_TOP[a.type] };
+    // hedges and fences take their own height; the outline can be switched off per area
+    const own = (a.type === "hedge" || a.type === "fence") && a.height ? a.height : OUTDOOR_TOP[a.type];
+    const look = { ...LOOKS[a.type], top: own };
     const poly = ccw(a.points);
     const edge = shade(look.edge, look.edgeAlpha);
     const outline = (y: number) => {
+      if (a.outline === false) return;
       for (let i = 0; i < poly.length; i++) {
         const p = poly[i];
         const q = poly[(i + 1) % poly.length];

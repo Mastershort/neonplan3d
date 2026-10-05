@@ -19,7 +19,7 @@ import { dormerParent, effectiveDormer, proposeDormer, sectionGeometry, floorOut
 import { bestFace, clampField, faceAt, faceCompass, fieldFace, fieldModules, GROUND, pointOnFace, proposeField, proposeGroundField, proposeWindow, proposeWallField, roofFaces, rowCounts, turnGroundField, fieldCenter, wallFaces, windowAsField, windowCorners, onFace, onField, rayOnFace, type RoofFace } from "../solar.ts";
 import type { SurfaceGrab, SurfaceRay } from "../viewer/viewer3d.ts";
 import { storedImageIds } from "../transfer.ts";
-import { sidelightLayout, DEFAULT_WEATHER_EFFECTS, WEATHER_EFFECTS,
+import { OUTDOOR_TOP, sidelightLayout, DEFAULT_WEATHER_EFFECTS, WEATHER_EFFECTS,
   normalizeBuilding,
   furnitureFootprint,
   type FreeWall,
@@ -4312,6 +4312,13 @@ export class Fp3dEditor extends LitElement {
           ? html`${this.num(this.t("x"), b.x0, (v) => setRect("x", v))} ${this.num(this.t("z"), b.z0, (v) => setRect("z", v))}
             ${this.num(this.t("width"), b.x1 - b.x0, (v) => setRect("w", v), 0.01, 0.1)} ${this.num(this.t("depth"), b.z1 - b.z0, (v) => setRect("d", v), 0.01, 0.1)}`
           : nothing}
+        ${a.type === "hedge" || a.type === "fence"
+          ? this.num(this.t("outdoor_height"), a.height ?? OUTDOOR_TOP[a.type], (v) => this.updateOutdoor({ height: Math.min(6, Math.max(0.1, round(v))) }), 0.05, 0.1)
+          : nothing}
+        <label class="fp3d-check fp3d-wide" title=${this.t("outdoor_outline_hint")}
+          ><input type="checkbox" .checked=${a.outline !== false} ?disabled=${!admin} @change=${(ev: Event) => this.updateOutdoor({ outline: (ev.target as HTMLInputElement).checked ? undefined : false })} />
+          ${this.t("outdoor_outline")}</label
+        >
       </div>
       <p class="fp3d-sub">${this.t("outdoor_hint")}</p>
       ${admin

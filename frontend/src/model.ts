@@ -497,6 +497,10 @@ export interface OutdoorArea {
   id: string;
   type: OutdoorType;
   points: Vec2[];
+  /** Hedges and fences: their height in m (null = 1.2 m / 1.0 m). */
+  height?: number | null;
+  /** False hides the neon outline (a plot of several lawns without lines crossing it). */
+  outline?: boolean;
 }
 
 /** Energy flow: meter position and power sensors (W). Grid positive = import, battery positive = discharging. */

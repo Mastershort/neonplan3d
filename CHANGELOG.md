@@ -8,6 +8,8 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 
 ### New
 
+- **Hedges and fences take a height** of their own, and every outdoor area can hide its neon outline (#141 and #144 by denisb88).
+- The card option for the energy values at the top says that it belongs to Energy Pro (discussion #104).
 - **The eye – a clean view:** a button at the bottom left of the 3D view hides every bar, chip row, thumbnail, value and switch so only the stage remains (half a screen more on a phone); the next tap brings them back, and the device remembers the choice. Card options `controls_hidden` and `controls_hide_after` (seconds without a touch) (#131 by denisb88).
 - The installed version stands at the right end of the panel header (hover it for the integration's version).
 - **Accent colour of your own:** a colour well beside the look (and the card option `accent`) recolours the neon lines and glowing edges, the buttons and the pins – amber, green, purple, whatever fits the wall (discussions #32 by hohenpul and #102 by MrSideline).
