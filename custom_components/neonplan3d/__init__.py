@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 from pathlib import Path
 import random
 
@@ -38,9 +39,27 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     return True
 
 
+_MAIN_URL = f"{DOMAIN}_main_url"
+
+
+def _bundle_hash() -> str:
+    """A short hash of the main bundle: a rebuilt bundle gets a new URL even when the version stays."""
+    path = Path(__file__).parent / "frontend" / MAIN_BUNDLE
+    try:
+        return hashlib.sha256(path.read_bytes()).hexdigest()[:10]
+    except OSError:
+        return "0"
+
+
 async def _async_main_url(hass: HomeAssistant) -> str:
+    # computed once per run, so adding and removing the script use the same URL
+    if url := hass.data.get(_MAIN_URL):
+        return url
     integration = await async_get_integration(hass, DOMAIN)
-    return f"{URL_BASE}/{MAIN_BUNDLE}?v={integration.version}"
+    digest = await hass.async_add_executor_job(_bundle_hash)
+    url = f"{URL_BASE}/{MAIN_BUNDLE}?v={integration.version}-{digest}"
+    hass.data[_MAIN_URL] = url
+    return url
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
