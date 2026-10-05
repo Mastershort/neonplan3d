@@ -12,6 +12,7 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 
 ### Fixed
 
+- A camera mounted just inside an outer wall and looking out had its wedge cut by that wall (20 cm long); the wall the camera hangs on no longer counts (reported by the maintainer's own driveway camera).
 - The version notice now tells which side is behind: an old bundle in the browser or the companion app gets "reload the page" with a Reload button (and the cache hint for the companion app) instead of "restart Home Assistant"; both versions are shown. A pack with a Pro feature this frontend does not know yet says so instead of looking like a furniture pack (support case of a French customer).
 
 ## 1.10.0

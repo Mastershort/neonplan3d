@@ -4,6 +4,7 @@
 
 ### Behoben
 
+- Eine Kamera knapp innerhalb einer Außenwand, die nach draußen schaut, bekam ihren Sichtkegel von dieser Wand abgeschnitten (20 cm lang); die Wand, an der die Kamera hängt, zählt jetzt nicht mehr.
 - Die Versionsmeldung sagt jetzt, welche Seite hinterherhinkt: Ein altes Bundle im Browser oder in der Companion-App bekommt „Seite neu laden“ mit Knopf (und dem Cache-Hinweis für die Companion-App) statt „Home Assistant neu starten“; beide Versionen werden genannt. Ein Pack mit einer Pro-Funktion, die dieses Frontend noch nicht kennt, sagt das, statt wie ein Möbel-Pack auszusehen (Support-Fall).
 
 ---
@@ -14,4 +15,5 @@
 
 ### Fixed
 
+- A camera mounted just inside an outer wall and looking out had its wedge cut by that wall; the wall the camera hangs on no longer counts.
 - The version notice now tells which side is behind: an old bundle in the browser or the companion app gets "reload the page" with a Reload button (and the cache hint for the companion app) instead of "restart Home Assistant"; both versions are shown. A pack with a Pro feature this frontend does not know yet says so instead of looking like a furniture pack (support case).

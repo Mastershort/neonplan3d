@@ -2130,7 +2130,8 @@ export class FloorplanViewer {
             if (Math.abs(den) < 1e-9) continue;
             const s = ((w.a[0] - d.x) * ez - (w.a[1] - d.z) * ex) / den;
             const u = ((w.a[0] - d.x) * rz - (w.a[1] - d.z) * rx) / den;
-            if (s > 0.15 && s < best && u >= 0 && u <= 1) best = s;
+            // the wall the camera hangs on (a camera just inside an outer wall looks out through it) does not count
+            if (s > 0.45 && s < best && u >= 0 && u <= 1) best = s;
           }
           return best;
         };
