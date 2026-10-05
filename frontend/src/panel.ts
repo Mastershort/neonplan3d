@@ -67,6 +67,7 @@ export class Floorplan3dPanel extends LitElement {
     _roomNames: { state: true },
     _trail: { state: true },
     _cameraWall: { state: true },
+    _clean: { state: true },
     _weather: { state: true },
   };
 
@@ -100,6 +101,8 @@ export class Floorplan3dPanel extends LitElement {
   /** Motion trail of the last half hour in 3D. */
   private declare _trail: boolean;
   private declare _cameraWall: boolean;
+  /** Clean view (the eye): only the stage, remembered on this device. */
+  private declare _clean: boolean;
   /** Weather outside the house in 3D. */
   private declare _weather: boolean;
 
@@ -134,6 +137,7 @@ export class Floorplan3dPanel extends LitElement {
     this._roomNames = prefs.get("room_names") !== "0";
     this._trail = prefs.get("trail") === "1";
     this._cameraWall = false;
+    this._clean = prefs.get("clean") === "1";
     this._weather = prefs.get("weather") !== "0";
   }
 
@@ -409,8 +413,8 @@ export class Floorplan3dPanel extends LitElement {
     const b = this.data.building;
     const saveState = this.data.saveState;
     return html`
-      <div class="fp3d-app">
-        <header class="fp3d-header">
+      <div class="fp3d-app ${this._clean && this._mode === "view" ? "fp3d-clean" : ""}">
+        ${this._clean && this._mode === "view" ? nothing : html`<header class="fp3d-header">
           <ha-menu-button .hass=${this.hass} .narrow=${this.narrow}></ha-menu-button>
           <h1>NeonPlan 3D</h1>
           ${this.isAdmin
@@ -474,8 +478,8 @@ export class Floorplan3dPanel extends LitElement {
           ${this._mode === "editor" && saveState !== "idle"
             ? html`<span class="fp3d-save fp3d-save-${saveState}">${this.t(saveState === "saving" ? "saving" : saveState === "saved" ? "saved" : "save_error")}</span>`
             : nothing}
-        </header>
-        ${this.renderNotices()}
+        </header>`}
+        ${this._clean && this._mode === "view" ? nothing : this.renderNotices()}
         ${this.data.error && !b ? html`<p class="fp3d-message">${this.t("load_error")}: ${this.data.error}</p>` : nothing}
         ${!b && !this.data.error ? html`<p class="fp3d-message">${this.t("loading")}</p>` : nothing}
         ${b
@@ -568,7 +572,7 @@ export class Floorplan3dPanel extends LitElement {
     const floor = b.floors.find((f) => f.id === this._floorId);
     const roomFloors = floor ? [floor] : b.floors;
     return html`
-      <nav class="fp3d-nav">
+      ${this._clean ? nothing : html`<nav class="fp3d-nav">
         ${b.floors.length > 1
           ? html`<button class="fp3d-chip" aria-pressed=${this._floorId === null} @click=${() => {
                 this._floorId = null;
@@ -604,7 +608,7 @@ export class Floorplan3dPanel extends LitElement {
             </button>`,
           ),
         )}
-      </nav>
+      </nav>`}
       <div class="fp3d-stage-wrap ${this._roomId ? "fp3d-room-open" : ""}">
         <fp3d-view3d
           class="fp3d-body"
@@ -617,6 +621,12 @@ export class Floorplan3dPanel extends LitElement {
           .cameraWall=${this._cameraWall}
           @camera-wall-close=${() => (this._cameraWall = false)}
           @camera-wall-open=${() => (this._cameraWall = true)}
+          .clean=${this._clean}
+          .cleanButton=${true}
+          @clean-toggle=${() => {
+            this._clean = !this._clean;
+            prefs.set("clean", this._clean ? "1" : "0");
+          }}
           ?weather=${this._weather}
           .panelOpen=${!!this._roomId}
           .floorId=${b.floors.length > 1 ? this._floorId : (b.floors[0]?.id ?? null)}
@@ -654,7 +664,7 @@ export class Floorplan3dPanel extends LitElement {
               @close=${() => (this._roomId = null)}
             ></fp3d-room-panel>`
           : nothing}
-        <div class="fp3d-overlay">
+        ${this._clean ? nothing : html`<div class="fp3d-overlay">
           <div class="fp3d-seg">
             <button aria-pressed=${this._wallMode === "auto"} @click=${() => (this._wallMode = "auto")}>${this.t("walls_auto")}</button>
             <button aria-pressed=${this._wallMode === "cut"} @click=${() => (this._wallMode = "cut")}>${this.t("walls_cut")}</button>
@@ -743,7 +753,7 @@ export class Floorplan3dPanel extends LitElement {
           ${this._roomId || (this._floorId && b.floors.length > 1)
             ? html`<button class="fp3d-chip" @click=${() => this.back()}>${this.t("back")}</button>`
             : nothing}
-        </div>
+        </div>`}
         ${this._furnish
           ? html`<div class="fp3d-furnish-bar">
               ${this._selFurniture
@@ -949,6 +959,9 @@ export class Floorplan3dPanel extends LitElement {
       /* the switches sit at the bottom (as in the card), where they never meet the energy values or warnings */
       fp3d-view3d {
         --fp3d-bottom-inset: 52px;
+      }
+      .fp3d-clean fp3d-view3d {
+        --fp3d-bottom-inset: 0px;
       }
       .fp3d-furnish-bar {
         bottom: 68px;

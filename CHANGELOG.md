@@ -8,6 +8,7 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 
 ### New
 
+- **The eye – a clean view:** a button at the bottom left of the 3D view hides every bar, chip row, thumbnail, value and switch so only the stage remains (half a screen more on a phone); the next tap brings them back, and the device remembers the choice. Card options `controls_hidden` and `controls_hide_after` (seconds without a touch) (#131 by denisb88).
 - **LED strips tilt and stand upright:** a tilt about the strip's length lays it against a roof slope or turns it sideways; "Upright" stands it on end from its mount height – along a door frame, as a light column (#123 by RobertSorgenfrei, discussion #122 by idaho).
 
 ## 1.10.2

@@ -446,6 +446,7 @@ Die 3D-Ansicht hat drei Ebenen:
 | **Raumnamen** | Namen der Räume ein- oder ausblenden |
 | **Spur** | Bewegungsspur, Pro, siehe [6.1](#61-kamera-cockpit) |
 | **Wetter** | Wetter draußen, Pro, siehe [6.2](#62-wetter-draußen) |
+| **Auge** (unten links, neben der Lupe) | Blendet alles aus, was nicht die 3D-Ansicht ist: Kopfzeile, Etagen- und Raumleiste, Energiewerte, Etagenbilder, Schalter. Übrig bleibt die Bühne – auf dem Handy die halbe Bildschirmhöhe mehr. Ein Tipp aufs Auge holt alles zurück; ein Raum lässt sich weiter antippen. Das Gerät merkt sich die Wahl |
 
 ![Schnittansicht](images/view-cut.jpg)
 
@@ -727,6 +728,8 @@ heatmap: none           # none | temperature | humidity | co2
 room_panel: true        # Raum antippen öffnet das Raumfenster
 room_names: true
 controls: true          # Schalter in der Karte, oder eine Liste: walls, floors, temperature, humidity, co2
+controls_hidden: false  # true: mit ausgeblendeten Bedienelementen starten (nur die 3D-Ansicht), ein Auge unten links holt sie zurück
+controls_hide_after: 0  # Sekunden ohne Berührung, nach denen die Bedienelemente verschwinden (0 = nie); eine Berührung zeigt sie wieder
 floor_thumbs: true
 fullscreen_button: false
 dashboard: /lovelace/home   # Knopf oben rechts, der dieses Dashboard öffnet (weglassen = kein Knopf)

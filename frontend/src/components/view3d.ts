@@ -127,6 +127,8 @@ export class Fp3dView3d extends LitElement {
     _find: { state: true },
     _thumbs: { state: true },
     floorThumbs: { attribute: false },
+    clean: { attribute: false },
+    cleanButton: { attribute: false },
     roomLabels: { attribute: false },
     floorStack: { attribute: false },
     panelOpen: { attribute: false },
@@ -229,6 +231,10 @@ export class Fp3dView3d extends LitElement {
   private declare _blend: number;
   /** Floor switcher with small pictures of the floors (panel and card; off with a fixed floor). */
   declare floorThumbs: boolean;
+  /** Clean view: only the stage – no energy values, thumbnails, legend, scene chips or search (the host hides its own bars). */
+  declare clean: boolean;
+  /** Show the eye button that toggles the clean view (the host listens for "clean-toggle"). */
+  declare cleanButton: boolean;
   /** Room names in 3D (cards can switch them off). */
   declare roomLabels: boolean;
   /** Floors below an opened floor: dimmed, stacked (the house up to it) or hidden. */
@@ -338,6 +344,8 @@ export class Fp3dView3d extends LitElement {
     this._find = null;
     this._thumbs = [];
     this.floorThumbs = true;
+    this.clean = false;
+    this.cleanButton = false;
     this.roomLabels = true;
     this.floorStack = "dim";
     this._low = false;
@@ -1733,6 +1741,23 @@ export class Fp3dView3d extends LitElement {
     </div>`;
   }
 
+  /** The eye: one tap hides every bar and overlay so only the stage remains, the next brings them back. */
+  private renderEye() {
+    if (!this.cleanButton || !this.hass) return nothing;
+    const label = translate(this.hass, this.clean ? "controls_show" : "controls_hide");
+    return html`<button
+      class="fp3d-eye ${this.clean ? "fp3d-eye-clean" : ""}"
+      title=${label}
+      aria-label=${label}
+      aria-pressed=${this.clean}
+      @click=${() => this.dispatchEvent(new CustomEvent("clean-toggle", { bubbles: true, composed: true }))}
+    >
+      ${this.clean
+        ? svg`<svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M12 6a9.8 9.8 0 0 1 9 6 9.8 9.8 0 0 1-9 6 9.8 9.8 0 0 1-9-6 9.8 9.8 0 0 1 9-6m0 2a4 4 0 1 0 0 8 4 4 0 0 0 0-8m0 2a2 2 0 1 1 0 4 2 2 0 0 1 0-4" /></svg>`
+        : svg`<svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M2.4 3.8 3.8 2.4l17.8 17.8-1.4 1.4-3.3-3.3A10.5 10.5 0 0 1 12 19a9.8 9.8 0 0 1-9-6 10.3 10.3 0 0 1 3.6-4.3L2.4 3.8M12 7a4 4 0 0 1 4 4c0 .5-.1 1-.3 1.5l-5.2-5.2c.5-.2 1-.3 1.5-.3m-4 4a4 4 0 0 0 5.5 3.7l-5.2-5.2c-.2.5-.3 1-.3 1.5m4-7a9.8 9.8 0 0 1 9 6 10 10 0 0 1-2.6 3.6l-1.4-1.4A8 8 0 0 0 18.8 12 8 8 0 0 0 9.6 7.2L8 5.6A10.3 10.3 0 0 1 12 4" /></svg>`}
+    </button>`;
+  }
+
   private renderSwipe() {
     const s = this._swipe;
     if (!s || !this.hass) return nothing;
@@ -2092,8 +2117,9 @@ export class Fp3dView3d extends LitElement {
       class="fp3d-stage ${this.roomLabels ? "" : "fp3d-no-room-names"} ${this._low ? "fp3d-low" : ""} ${this.panelOpen ? "fp3d-panel-open" : ""} ${this._alerts.length ? "fp3d-has-alerts" : ""} ${this._through ? "fp3d-through-on" : ""} ${this._flash ? "fp3d-flash" : ""}"
       style=${style}
     >
-      ${this._error ? html`<p class="fp3d-error">${this._error}</p>` : nothing} ${this.renderEnergy()} ${this.renderHologram()} ${this.renderLegend()}
-      ${this.renderAlerts()} ${this.renderThumbs()} ${this.renderScenes()} ${this.renderFind()} ${this.renderSwipe()} ${this.renderThrough()} ${this.renderCameraWall()} ${this.renderProHint()} ${this.renderMenu()}
+      ${this._error ? html`<p class="fp3d-error">${this._error}</p>` : nothing} ${this.clean ? nothing : this.renderEnergy()} ${this.renderHologram()} ${this.clean ? nothing : this.renderLegend()}
+      ${this.renderAlerts()} ${this.clean ? nothing : html`${this.renderThumbs()} ${this.renderScenes()} ${this.renderFind()}`} ${this.renderSwipe()} ${this.renderThrough()} ${this.renderCameraWall()}
+      ${this.clean ? nothing : this.renderProHint()} ${this.renderMenu()} ${this.renderEye()}
       ${this.showStats && this._stats
         ? html`<span class="fp3d-stats"
             ><b>${this._stats.fps ? translate(this.hass, "stats_fps", { fps: this._stats.fps, ms: this._stats.worstMs }) : translate(this.hass, "stats_idle")}</b>
@@ -2431,6 +2457,31 @@ export class Fp3dView3d extends LitElement {
         color: var(--fp3d-text);
         box-shadow: var(--fp3d-shadow);
         cursor: pointer;
+      }
+      /* the eye sits beside the search button; alone in the corner once the view is clean */
+      .fp3d-eye {
+        position: absolute;
+        left: 56px;
+        bottom: calc(10px + var(--fp3d-bottom-inset, 0px));
+        width: 36px;
+        height: 36px;
+        display: grid;
+        place-items: center;
+        padding: 0;
+        border-radius: 50%;
+        border: 1px solid rgba(160, 240, 255, 0.35);
+        background: rgba(8, 16, 34, 0.7);
+        color: var(--fp3d-text);
+        cursor: pointer;
+        z-index: 4;
+      }
+      .fp3d-eye-clean {
+        left: 12px;
+        opacity: 0.55;
+      }
+      .fp3d-eye:hover,
+      .fp3d-eye-clean:hover {
+        opacity: 1;
       }
       .fp3d-find {
         position: absolute;

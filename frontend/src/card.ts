@@ -26,6 +26,7 @@ export class Floorplan3dCard extends LitElement {
     _explode: { state: true },
     _fullscreen: { state: true },
     _cameraWall: { state: true },
+    _clean: { state: true },
     _night: { state: true },
     _orbit: { state: true },
   };
@@ -43,6 +44,9 @@ export class Floorplan3dCard extends LitElement {
   private declare _explode: boolean | null;
   private declare _fullscreen: boolean;
   private declare _cameraWall: boolean;
+  /** Clean view: only the stage (card option controls_hidden, the eye, or the hide-after timer). */
+  private declare _clean: boolean;
+  private cleanTimer: ReturnType<typeof setTimeout> | undefined;
   /** Kiosk: the night dimming is active; the screensaver turn runs (after an idle return). */
   private declare _night: boolean;
   private declare _orbit: boolean;
@@ -60,6 +64,7 @@ export class Floorplan3dCard extends LitElement {
     this._explode = null;
     this._fullscreen = false;
     this._cameraWall = false;
+    this._clean = false;
     this._night = false;
     this._orbit = false;
   }
@@ -68,7 +73,17 @@ export class Floorplan3dCard extends LitElement {
   private readonly touch = () => {
     if (this._orbit) this._orbit = false;
     this.armIdle();
+    this.armClean(true);
   };
+
+  /** controls_hide_after: the bars come back on a touch and go again after the quiet spell. */
+  private armClean(touched = false): void {
+    clearTimeout(this.cleanTimer);
+    const s = this._config?.controls_hide_after ?? 0;
+    if (!(s > 0)) return;
+    if (touched && this._clean) this._clean = false;
+    this.cleanTimer = setTimeout(() => (this._clean = true), s * 1000);
+  }
 
   private armIdle(): void {
     clearTimeout(this.idleTimer);
@@ -107,7 +122,8 @@ export class Floorplan3dCard extends LitElement {
   disconnectedCallback(): void {
     super.disconnectedCallback();
     document.removeEventListener("fullscreenchange", this.onFullscreen);
-    clearTimeout(this.idleTimer);
+clearTimeout(this.cleanTimer);
+        clearTimeout(this.idleTimer);
     clearInterval(this.nightTimer);
   }
 
@@ -135,6 +151,8 @@ export class Floorplan3dCard extends LitElement {
     this._explode = null;
     this._orbit = false;
     this._night = nightActive(config.night, this.hass);
+    this._clean = config.controls_hidden === true;
+    this.armClean();
     this.armIdle();
   }
 
@@ -196,7 +214,8 @@ export class Floorplan3dCard extends LitElement {
     // full screen, the screen below the dashboard header, or a fixed height
     const size = this._fullscreen ? "100vh" : c?.fill ? "calc(100vh - var(--header-height, 56px) - 16px)" : `${height}px`;
     // the bar of switches at the bottom (the back button belongs to it)
-    const bar = !!b && (canGoBack || (!!c?.controls && !(this._roomId && c.room_panel !== false)));
+    const bar = !!b && !this._clean && (canGoBack || (!!c?.controls && !(this._roomId && c.room_panel !== false)));
+    const eye = c?.controls_hidden !== undefined || (c?.controls_hide_after ?? 0) > 0;
     const t = (k: Parameters<typeof translate>[1]) => translate(this.hass, k);
     return html`<ha-card class=${this._night ? "fp3d-night" : ""} @pointerdown=${this.touch} @keydown=${this.touch} @wheel=${this.touch}>
       <div class="fp3d-card-body" style="height:${size}">
@@ -229,6 +248,13 @@ export class Floorplan3dCard extends LitElement {
               .cameraWall=${this._cameraWall}
               @camera-wall-close=${() => (this._cameraWall = false)}
               @camera-wall-open=${() => (this._cameraWall = true)}
+              .clean=${this._clean}
+              .cleanButton=${eye}
+              @clean-toggle=${() => {
+                this._clean = !this._clean;
+                if (!this._clean) this.armClean();
+                else clearTimeout(this.cleanTimer);
+              }}
               ?weather=${c?.weather !== false}
               .weatherEntityId=${c?.weather_entity ?? null}
               .dimmed=${this._night}
@@ -291,12 +317,12 @@ export class Floorplan3dCard extends LitElement {
                 : nothing}
             </div>`
           : nothing}
-        ${c?.fullscreen_button && !(this._roomId && c.room_panel !== false)
+        ${c?.fullscreen_button && !this._clean && !(this._roomId && c.room_panel !== false)
           ? html`<button class="fp3d-card-full" title=${t(this._fullscreen ? "fullscreen_exit" : "fullscreen")} aria-label=${t(this._fullscreen ? "fullscreen_exit" : "fullscreen")} @click=${() => this.toggleFullscreen()}>
               ${this._fullscreen ? "✕" : "⛶"}
             </button>`
           : nothing}
-        ${c?.dashboard && !(this._roomId && c.room_panel !== false)
+        ${c?.dashboard && !this._clean && !(this._roomId && c.room_panel !== false)
           ? html`<button class="fp3d-card-full fp3d-card-dash ${c.fullscreen_button ? "fp3d-card-dash-2" : ""}" title=${c.dashboard_label || c.dashboard} aria-label=${c.dashboard_label || c.dashboard} @click=${() => this.openDashboard(c.dashboard!)}>
               ${c.dashboard_label ? html`<span>${c.dashboard_label}</span>` : "⌂"}
             </button>`

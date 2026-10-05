@@ -32,6 +32,8 @@ const DEFAULTS: Partial<CardConfig> = {
   motion_trail: false,
   weather: true,
   idle_return: 0,
+  controls_hidden: false,
+  controls_hide_after: 0,
   night: "off",
   idle_orbit: false,
 };
@@ -134,9 +136,21 @@ export class Floorplan3dCardEditor extends LitElement {
     const on = !!c && (c === true || c.length > 0);
     const list: CardControl[] = c === true ? [...CARD_CONTROLS] : Array.isArray(c) ? c : [];
     const setList = (next: CardControl[]) => this.set("controls", next.length === CARD_CONTROLS.length ? true : next.length ? next : undefined);
+    const v = this.value;
+    const hideAfter = [0, 10, 30, 60, 120];
     return html`<label class="toggle">
         <input type="checkbox" .checked=${on} @change=${(e: Event) => this.set("controls", (e.target as HTMLInputElement).checked ? true : undefined)} />
         <span>${this.t("card_controls")}<small>${this.t("card_controls_hint")}</small></span>
+      </label>
+      <label class="toggle">
+        <input type="checkbox" .checked=${v.controls_hidden} @change=${(e: Event) => this.set("controls_hidden", (e.target as HTMLInputElement).checked ? true : undefined)} />
+        <span>${this.t("card_controls_hidden")}<small>${this.t("card_controls_hidden_hint")}</small></span>
+      </label>
+      <label class="field"
+        >${this.t("card_controls_hide_after")}
+        <select @change=${(e: Event) => this.set("controls_hide_after", Number((e.target as HTMLSelectElement).value) || undefined)}>
+          ${hideAfter.map((n) => html`<option value=${n} ?selected=${v.controls_hide_after === n}>${n ? this.t("card_hide_after_s", { n }) : this.t("card_idle_off")}</option>`)}
+        </select>
       </label>
       ${on
         ? html`<div class="sub">

@@ -38,6 +38,10 @@ export interface CardConfig {
   fill?: boolean;
   /** Switches in the card: all (true) or a list of walls, floors, temperature, humidity, co2. */
   controls?: boolean | CardControl[];
+  /** Start with every bar and overlay hidden (the eye button brings them back); false shows the eye, hidden by default. */
+  controls_hidden?: boolean;
+  /** Hide every bar and overlay after this many seconds without a touch; a touch shows them again. */
+  controls_hide_after?: number;
   /** Room names in 3D (default true). */
   room_names?: boolean;
   /** An opened floor with the floors below it dimmed (default), stacked, or on its own. */

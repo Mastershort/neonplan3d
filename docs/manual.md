@@ -444,6 +444,7 @@ The 3D view has three levels:
 | **Room names** | Show or hide the room names |
 | **Trail** | Motion trail, Pro, see [6.1](#61-camera-cockpit) |
 | **Weather** | Weather outside, Pro, see [6.2](#62-weather-outside) |
+| **Eye** (bottom left, next to the magnifier) | Hides everything that is not the 3D view: header, floor and room bar, energy values, floor pictures, switches. The stage alone remains – half a screen more on a phone. A tap on the eye brings it all back; rooms can still be tapped. The device remembers the choice |
 
 ![Cut view](images/view-cut.jpg)
 
@@ -725,6 +726,8 @@ heatmap: none           # none | temperature | humidity | co2
 room_panel: true        # tapping a room opens the room panel
 room_names: true
 controls: true          # switches in the card, or a list: walls, floors, temperature, humidity, co2
+controls_hidden: false  # true: start with the controls hidden (only the 3D view); an eye at the bottom left brings them back
+controls_hide_after: 0  # seconds without a touch after which the controls disappear (0 = never); a touch shows them again
 floor_thumbs: true
 fullscreen_button: false
 dashboard: /lovelace/home   # a button at the top right that opens this dashboard (leave out = no button)
