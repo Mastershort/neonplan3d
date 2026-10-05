@@ -6134,7 +6134,7 @@ export class Fp3dEditor extends LitElement {
     const car = f.car ?? {};
     const auto = carEntities(hass, { entity: f.entity, car: { device: car.device } });
     const set = (patch: Partial<CarLinks>) => this.updateFurniture({ car: { ...car, ...patch } });
-    const any = this.entityOptions((id) => /^(sensor|binary_sensor|lock|climate|switch|device_tracker|number|select)\./.test(id));
+    const any = this.entityOptions((id) => /^(sensor|binary_sensor|lock|climate|switch|device_tracker|number|select|input_number|input_boolean)\./.test(id));
     const role = (key: keyof CarLinks & keyof CarEntities, label: I18nKey, options: { id: string; label: string }[]) =>
       this.entitySelect(this.t(label), car[key] ?? null, auto[key], options, (v) => set({ [key]: v === "none" ? "none" : v }));
     return html`<section>
@@ -6144,10 +6144,10 @@ export class Fp3dEditor extends LitElement {
         ${this.entitySelect(this.t("car_device"), car.device ?? null, undefined, any, (v) => set({ device: v === "none" ? null : v }))}
         ${role("soc", "car_soc", this.entityOptions((id) => numberish(id)))}
         ${role("range", "car_range", this.entityOptions((id) => numberish(id)))}
-        ${role("charging", "car_charging", this.entityOptions((id) => /^(sensor|binary_sensor|switch)\./.test(id)))}
-        ${role("plugged", "car_plugged", this.entityOptions((id) => id.startsWith("binary_sensor.")))}
-        ${role("lock", "car_lock", this.entityOptions((id) => /^(lock|binary_sensor)\./.test(id)))}
-        ${role("climate", "car_climate", this.entityOptions((id) => /^(climate|switch|binary_sensor)\./.test(id)))}
+        ${role("charging", "car_charging", this.entityOptions((id) => /^(sensor|binary_sensor|switch|input_boolean|input_number|number)\./.test(id)))}
+        ${role("plugged", "car_plugged", this.entityOptions((id) => binaryish(id)))}
+        ${role("lock", "car_lock", this.entityOptions((id) => /^(lock|binary_sensor|input_boolean|switch)\./.test(id)))}
+        ${role("climate", "car_climate", this.entityOptions((id) => /^(climate|switch|binary_sensor|input_boolean)\./.test(id)))}
         ${role("tracker", "car_tracker", this.entityOptions((id) => id.startsWith("device_tracker.")))}
       </div>
     </section>`;
