@@ -87,6 +87,14 @@ OPENING_SCHEMA = vol.Schema(
         vol.Optional("swing", default="in"): vol.In(["in", "out"]),
         # look: None = automatic (front door in an exterior wall, room door inside; plain window)
         vol.Optional("style", default=None): vol.Any(None, vol.In(_OPENING_STYLES)),
+        # front doors with sidelights: one on the hinge side, and the widths (None = automatic)
+        vol.Optional("sidelight_hinge", default=False): bool,
+        vol.Optional("sidelight_width", default=None): vol.Any(
+            None, vol.All(vol.Coerce(float), vol.Range(min=0.1, max=3))
+        ),
+        vol.Optional("sidelight_width2", default=None): vol.Any(
+            None, vol.All(vol.Coerce(float), vol.Range(min=0.1, max=3))
+        ),
         vol.Optional("contact2", default=None): vol.Any(None, vol.All(str, vol.Length(max=255))),
         # windows: a plain contact, a handle sensor (open / tilted / closed), or a contact and a tilt sensor
         vol.Optional("sensor", default=None): vol.Any(None, vol.In(["contact", "handle", "contact_tilt"])),

@@ -1,6 +1,27 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { emptyBuilding, floorElevation, newFloor, openingPreset, openingStyle, normalizeBuilding, outdoorGround, resizeFurniture, roomTiles, spotGrid, surfaceHeight, type Furniture } from "./model.ts";
+import { emptyBuilding, floorElevation, newFloor, openingPreset, openingStyle, normalizeBuilding, outdoorGround, resizeFurniture, roomTiles, sidelightLayout, spotGrid, surfaceHeight, type Furniture } from "./model.ts";
+
+test("a sidelight sits opposite the hinge, on the hinge side when asked, and keeps the leaf at least half a metre", () => {
+  const none = {};
+  // hinge at the start: the panel at the end, the leaf from the start
+  let l = sidelightLayout(1.6, "sidelight", true, none)!;
+  assert.equal(l.panels.length, 1);
+  assert.ok(l.panels[0][0] > 0.8 && Math.abs(l.panels[0][1] - 1.58) < 1e-9);
+  assert.equal(l.x0, 0.02);
+  // on the hinge side instead
+  l = sidelightLayout(1.6, "sidelight", true, { sidelight_hinge: true })!;
+  assert.equal(l.panels[0][0], 0.02);
+  assert.ok(l.x0 > 0.3);
+  // own widths, left and right, with two sidelights
+  l = sidelightLayout(2.4, "sidelights", false, { sidelight_width: 0.3, sidelight_width2: 0.6 })!;
+  assert.ok(Math.abs(l.panels[0][1] - 0.32) < 1e-9 && Math.abs(l.panels[1][0] - 1.78) < 1e-9);
+  assert.ok(Math.abs(l.x1 - l.x0 - (2.4 - 0.04 - 0.9)) < 1e-9);
+  // too wide: both shrink so the leaf keeps 0.5 m
+  l = sidelightLayout(1.4, "sidelights", false, { sidelight_width: 1, sidelight_width2: 1 })!;
+  assert.ok(Math.abs(l.x1 - l.x0 - 0.5) < 1e-9);
+  assert.equal(sidelightLayout(1.0, "front", true, none), null);
+});
 
 test("a door without a style is a front door in an exterior wall and a room door inside", () => {
   assert.equal(openingStyle({ type: "door", style: null }, true), "front");

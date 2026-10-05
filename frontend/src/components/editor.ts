@@ -19,7 +19,7 @@ import { dormerParent, effectiveDormer, proposeDormer, sectionGeometry, floorOut
 import { bestFace, clampField, faceAt, faceCompass, fieldFace, fieldModules, GROUND, pointOnFace, proposeField, proposeGroundField, proposeWindow, proposeWallField, roofFaces, rowCounts, turnGroundField, fieldCenter, wallFaces, windowAsField, windowCorners, onFace, onField, rayOnFace, type RoofFace } from "../solar.ts";
 import type { SurfaceGrab, SurfaceRay } from "../viewer/viewer3d.ts";
 import { storedImageIds } from "../transfer.ts";
-import { DEFAULT_WEATHER_EFFECTS, WEATHER_EFFECTS,
+import { sidelightLayout, DEFAULT_WEATHER_EFFECTS, WEATHER_EFFECTS,
   normalizeBuilding,
   furnitureFootprint,
   type FreeWall,
@@ -4448,15 +4448,12 @@ export class Fp3dEditor extends LitElement {
         let l0 = p0;
         let l1 = p1;
         let panes: [Vec2, Vec2][] = [];
-        if (style === "sidelight" || style === "sidelights") {
-          const both = style === "sidelights";
-          const lw0 = Math.min(1.05, Math.max(0.6, o.width - 0.04 - (both ? 0.6 : 0.3)));
-          const side = (o.width - 0.04 - lw0) / (both ? 2 : 1);
-          const at = (k: number): Vec2 => pointOnRoomEdge(room, edge, o.offset - o.width / 2 + k);
-          const start = both || !hingeAtP0 ? 0.02 + side : 0.02;
-          l0 = at(start);
-          l1 = at(start + lw0);
-          panes = both ? [[p0, at(0.02 + side)], [at(o.width - 0.02 - side), p1]] : hingeAtP0 ? [[at(o.width - 0.02 - side), p1]] : [[p0, at(0.02 + side)]];
+        const lights = sidelightLayout(o.width, style, hingeAtP0, o);
+        if (lights) {
+          const at = (k: number): Vec2 => (k <= 0.02 ? p0 : k >= o.width - 0.02 ? p1 : pointOnRoomEdge(room, edge, o.offset - o.width / 2 + k));
+          l0 = at(lights.x0);
+          l1 = at(lights.x1);
+          panes = lights.panels.map(([a, b]) => [at(a), at(b)]);
         }
         const midP: Vec2 = [(l0[0] + l1[0]) / 2, (l0[1] + l1[1]) / 2];
         const leafW = (two ? 0.5 : 1) * Math.hypot(l1[0] - l0[0], l1[1] - l0[1]);
@@ -5069,6 +5066,37 @@ export class Fp3dEditor extends LitElement {
   }
 
   /** The look of a door or window: automatic (by wall), or one of the built-in styles. */
+  /** Front doors with sidelights: which side the single one sits on, and the widths (empty = automatic). */
+  private renderSidelightFields(o: Opening) {
+    if (o.type !== "door") return nothing;
+    const style = openingStyle(o, this.openingIsExterior(o));
+    if (style !== "sidelight" && style !== "sidelights") return nothing;
+    const admin = this.isAdmin;
+    const width = (key: "sidelight_width" | "sidelight_width2", label: I18nKey) => html`<label class="fp3d-field"
+      >${this.t(label)}
+      <input
+        type="number"
+        step="0.05"
+        min="0.1"
+        max="3"
+        placeholder=${this.t("sidelight_auto")}
+        .value=${o[key] == null ? "" : String(o[key])}
+        ?disabled=${!admin}
+        @change=${(e: Event) => {
+          const v = Number((e.target as HTMLInputElement).value);
+          this.updateOpening({ [key]: Number.isFinite(v) && v > 0 ? Math.min(3, Math.max(0.1, Math.round(v * 100) / 100)) : null });
+        }}
+      />
+    </label>`;
+    return style === "sidelight"
+      ? html`<label class="fp3d-check" title=${this.t("sidelight_hinge_hint")}
+            ><input type="checkbox" .checked=${!!o.sidelight_hinge} ?disabled=${!admin} @change=${(ev: Event) => this.updateOpening({ sidelight_hinge: (ev.target as HTMLInputElement).checked })} />
+            ${this.t("sidelight_hinge")}</label
+          >
+          ${width("sidelight_width", "sidelight_width")}`
+      : html`${width("sidelight_width", "sidelight_width_left")} ${width("sidelight_width2", "sidelight_width_right")}`;
+  }
+
   private renderStyleSelect(o: Opening) {
     const styles: readonly OpeningStyle[] = o.type === "door" ? DOOR_STYLES : WINDOW_STYLES;
     const auto = openingStyle({ type: o.type, style: null }, this.openingIsExterior(o));
@@ -5177,6 +5205,7 @@ export class Fp3dEditor extends LitElement {
         ${window ? this.num(this.t("sill"), o.sill, (v) => this.updateOpening({ sill: Math.max(0, v) }), 0.01, 0) : nothing}
         ${this.num(this.t("opening_height"), o.height, (v) => this.updateOpening({ height: Math.max(0.3, v) }), 0.01, 0.3)}
         ${garage ? nothing : this.renderStyleSelect(o)}
+        ${this.renderSidelightFields(o)}
         <label class="fp3d-field fp3d-wide" title=${this.t("opening_mark_hint")}
           >${this.t("opening_mark")}
           <select ?disabled=${!this.isAdmin} @change=${(e: Event) => this.updateOpening({ mark: (e.target as HTMLSelectElement).value === "closed" ? "closed" : null })}>

@@ -4,7 +4,7 @@
 // so all windows of a floor stay three draw calls: frames, glass and blinds.
 
 import { Color, type BufferGeometry } from "three";
-import { isFrontDoor, openingStyle } from "../model.ts";
+import { sidelightLayout, isFrontDoor, openingStyle } from "../model.ts";
 import type { OpeningInfo } from "./build.ts";
 import { ALWAYS, GeoBuffer, shade } from "./geo.ts";
 
@@ -156,19 +156,16 @@ export function buildOpeningParts(infos: readonly OpeningInfo[], states: Readonl
       // fixed glass beside the leaf (one sidelight opposite the hinge, or one on each side)
       let x0 = 0.02;
       let x1 = W - 0.02;
-      if (style === "sidelight" || style === "sidelights") {
-        const both = style === "sidelights";
-        const lw0 = Math.min(1.05, Math.max(0.6, W - 0.04 - (both ? 0.6 : 0.3)));
-        const side = (W - 0.04 - lw0) / (both ? 2 : 1);
-        const panels: [number, number][] = both ? [[0.02, 0.02 + side], [W - 0.02 - side, W - 0.02]] : info.hingeAtStart ? [[W - 0.02 - side, W - 0.02]] : [[0.02, 0.02 + side]];
-        for (const [a, b] of panels) {
+      const lights = sidelightLayout(W, style, info.hingeAtStart, info.opening);
+      if (lights) {
+        for (const [a, b] of lights.panels) {
           splitBox(frames, tf, a, a + 0.04, mid - 0.03, mid + 0.03, 0.02, T - 0.02, frameC, frameTop, cut, bucket);
           splitBox(frames, tf, b - 0.04, b, mid - 0.03, mid + 0.03, 0.02, T - 0.02, frameC, frameTop, cut, bucket);
           splitBox(frames, tf, a, b, mid - 0.03, mid + 0.03, 0.02, 0.1, frameC, frameTop, cut, bucket);
           panel(glass, tf, a + 0.04, b - 0.04, mid, 0.1, T - 0.02, GLASS, cut, bucket);
         }
-        x0 = both || !info.hingeAtStart ? 0.02 + side : 0.02;
-        x1 = x0 + lw0;
+        x0 = lights.x0;
+        x1 = lights.x1;
       }
       const lw = two ? (x1 - x0) / 2 - 0.004 : x1 - x0;
       const thick = front ? 0.06 : 0.04;

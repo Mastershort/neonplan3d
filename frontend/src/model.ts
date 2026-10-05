@@ -65,6 +65,11 @@ export interface Opening {
   swing: "in" | "out";
   /** Look of the door or window (null = automatic: a front door in an exterior wall, else a room door). */
   style?: OpeningStyle | null;
+  /** One sidelight: on the hinge side instead of opposite the hinge. */
+  sidelight_hinge?: boolean;
+  /** Width of the sidelight(s) in m (null = automatic); with two, `sidelight_width2` is the right one (seen from the room). */
+  sidelight_width?: number | null;
+  sidelight_width2?: number | null;
   /** Contact of the second leaf (null = none). */
   contact2: string | null;
   /** Windows: which sensors report the sash (null: a contact, plus a tilt sensor when one is set). */
@@ -906,6 +911,38 @@ export type OpeningStyle = (typeof DOOR_STYLES)[number] | (typeof WINDOW_STYLES)
 export function openingStyle(o: Pick<Opening, "type" | "style">, exterior: boolean): OpeningStyle {
   if (o.type === "door") return o.style && (DOOR_STYLES as readonly string[]).includes(o.style) ? o.style : exterior ? "front" : "interior";
   return o.style && (WINDOW_STYLES as readonly string[]).includes(o.style) ? o.style : "standard";
+}
+
+/**
+ * Where the fixed glass beside a front door's leaf sits, along the opening (0 … W, 2 cm margins): the
+ * panels and the leaf's span. One sidelight sits opposite the hinge unless `sidelight_hinge`; the widths
+ * come from the opening (null = automatic) and shrink together so the leaf keeps at least 0.5 m.
+ */
+export function sidelightLayout(
+  W: number,
+  style: OpeningStyle,
+  hingeAtStart: boolean,
+  o: Pick<Opening, "sidelight_hinge" | "sidelight_width" | "sidelight_width2">,
+): { panels: [number, number][]; x0: number; x1: number } | null {
+  if (style !== "sidelight" && style !== "sidelights") return null;
+  const both = style === "sidelights";
+  const total = W - 0.04;
+  const autoLeaf = Math.min(1.05, Math.max(0.6, total - (both ? 0.6 : 0.3)));
+  const autoSide = (total - autoLeaf) / (both ? 2 : 1);
+  let s1 = o.sidelight_width ?? autoSide;
+  let s2 = both ? (o.sidelight_width2 ?? o.sidelight_width ?? autoSide) : 0;
+  s1 = Math.max(0.1, s1);
+  s2 = both ? Math.max(0.1, s2) : 0;
+  const room = total - 0.5;
+  if (s1 + s2 > room) {
+    const k = Math.max(0, room) / (s1 + s2);
+    s1 *= k;
+    s2 *= k;
+  }
+  if (both) return { panels: [[0.02, 0.02 + s1], [W - 0.02 - s2, W - 0.02]], x0: 0.02 + s1, x1: W - 0.02 - s2 };
+  // one panel: at the start when the hinge is at the end (opposite), or at the hinge when asked for
+  const atStart = hingeAtStart ? !!o.sidelight_hinge : !o.sidelight_hinge;
+  return atStart ? { panels: [[0.02, 0.02 + s1]], x0: 0.02 + s1, x1: W - 0.02 } : { panels: [[W - 0.02 - s1, W - 0.02]], x0: 0.02, x1: W - 0.02 - s1 };
 }
 
 /** A front door look (thick leaf, threshold, light above it). */
