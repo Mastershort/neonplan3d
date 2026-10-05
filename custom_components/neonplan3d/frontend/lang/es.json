@@ -1183,5 +1183,6 @@
  "favorites_add": "Añadir favorito",
  "edge_thickness": "Grosor (m)",
  "wall_thickness_hint": "Grosor de esta pared; una pared entre dos habitaciones toma el valor más grueso.",
- "wall_thickness_reset": "Grosor como en la casa"
+ "wall_thickness_reset": "Grosor como en la casa",
+ "view_options": "Vista: calidad, aspecto, símbolos, FPS"
 }

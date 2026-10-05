@@ -1183,5 +1183,6 @@
  "favorites_add": "Favoriet toevoegen",
  "edge_thickness": "Dikte (m)",
  "wall_thickness_hint": "Dikte van deze muur; een muur tussen twee kamers krijgt de dikste waarde.",
- "wall_thickness_reset": "Dikte zoals voor het huis"
+ "wall_thickness_reset": "Dikte zoals voor het huis",
+ "view_options": "Weergave: kwaliteit, stijl, symbolen, FPS"
 }

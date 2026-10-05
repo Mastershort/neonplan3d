@@ -69,6 +69,7 @@ export class Floorplan3dPanel extends LitElement {
     _cameraWall: { state: true },
     _clean: { state: true },
     _navWrap: { state: true },
+    _optsOpen: { state: true },
     _accent: { state: true },
     _weather: { state: true },
   };
@@ -107,6 +108,8 @@ export class Floorplan3dPanel extends LitElement {
   private declare _clean: boolean;
   /** The floor and room bar wraps onto several lines instead of scrolling sideways (remembered on this device). */
   private declare _navWrap: boolean;
+  /** Phones: the view options (quality, look, markers, FPS) folded behind ⚙ (#131). */
+  private declare _optsOpen: boolean;
   /** Accent colour of the user's choice ("#rrggbb"), null for the stock cyan; remembered on this device. */
   private declare _accent: string | null;
   /** Weather outside the house in 3D. */
@@ -147,6 +150,7 @@ export class Floorplan3dPanel extends LitElement {
     this._cameraWall = false;
     this._clean = prefs.get("clean") === "1";
     this._navWrap = prefs.get("nav_wrap") === "1";
+    this._optsOpen = false;
     this._weather = prefs.get("weather") !== "0";
   }
 
@@ -437,7 +441,17 @@ export class Floorplan3dPanel extends LitElement {
             : nothing}
           <span class="fp3d-grow"></span>
           ${this._mode === "view" && b?.floors.some((f) => f.rooms.length)
-            ? html`<div class="fp3d-seg fp3d-quality" role="group" aria-label=${this.t("quality")}>
+            ? html`<button
+                  class="fp3d-opts-btn"
+                  aria-expanded=${this._optsOpen}
+                  title=${this.t("view_options")}
+                  aria-label=${this.t("view_options")}
+                  @click=${() => (this._optsOpen = !this._optsOpen)}
+                >
+                  ⚙
+                </button>
+                <div class="fp3d-view-opts ${this._optsOpen ? "fp3d-opts-open" : ""}">
+                <div class="fp3d-seg fp3d-quality" role="group" aria-label=${this.t("quality")}>
                 ${(["auto", "low", "high"] as Quality[]).map(
                   (q) => html`<button aria-pressed=${this._quality === q} @click=${() => this.setQuality(q)}>${this.t(`quality_${q}`)}</button>`,
                 )}
@@ -506,6 +520,7 @@ export class Floorplan3dPanel extends LitElement {
                 >
                   ${this.t("fps")}
                 </button>
+              </div>
               </div>`
             : nothing}
           ${this._mode === "editor" && saveState !== "idle"
@@ -967,6 +982,48 @@ export class Floorplan3dPanel extends LitElement {
       .fp3d-save {
         font-size: 12.5px;
         color: var(--fp3d-muted);
+      }
+      .fp3d-view-opts {
+        display: contents;
+      }
+      .fp3d-opts-btn {
+        display: none;
+      }
+      /* phones: the view options fold behind ⚙ (one header row instead of three) */
+      @media (max-width: 700px) {
+        .fp3d-opts-btn {
+          display: grid;
+          place-items: center;
+          order: 3;
+          width: 36px;
+          height: 36px;
+          border: 1px solid var(--fp3d-line);
+          border-radius: 10px;
+          background: transparent;
+          color: var(--fp3d-text);
+          font-size: 17px;
+          cursor: pointer;
+        }
+        .fp3d-opts-btn[aria-expanded="true"] {
+          color: var(--fp3d-accent);
+          border-color: var(--fp3d-accent);
+        }
+        .fp3d-view-opts {
+          display: none;
+        }
+        .fp3d-view-opts.fp3d-opts-open {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+          order: 5;
+          width: 100%;
+        }
+        .fp3d-version {
+          order: 4;
+        }
+        .fp3d-header .fp3d-grow {
+          display: none;
+        }
       }
       /* the installed version, at the far right of the header */
       .fp3d-version {

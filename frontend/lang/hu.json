@@ -1183,5 +1183,6 @@
  "favorites_add": "Kedvenc hozzáadása",
  "edge_thickness": "Vastagság (m)",
  "wall_thickness_hint": "Ennek a falnak a vastagsága; két szoba közös fala a vastagabb értéket kapja.",
- "wall_thickness_reset": "Vastagság a ház beállítása szerint"
+ "wall_thickness_reset": "Vastagság a ház beállítása szerint",
+ "view_options": "Nézet: minőség, megjelenés, jelölők, FPS"
 }

@@ -1183,5 +1183,6 @@
  "favorites_add": "Ajouter un favori",
  "edge_thickness": "Épaisseur (m)",
  "wall_thickness_hint": "Épaisseur de ce mur ; un mur entre deux pièces prend la valeur la plus épaisse.",
- "wall_thickness_reset": "Épaisseur comme pour la maison"
+ "wall_thickness_reset": "Épaisseur comme pour la maison",
+ "view_options": "Vue : qualité, style, symboles, FPS"
 }
