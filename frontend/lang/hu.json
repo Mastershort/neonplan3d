@@ -1184,5 +1184,21 @@
  "edge_thickness": "Vastagság (m)",
  "wall_thickness_hint": "Ennek a falnak a vastagsága; két szoba közös fala a vastagabb értéket kapja.",
  "wall_thickness_reset": "Vastagság a ház beállítása szerint",
- "view_options": "Nézet: minőség, megjelenés, jelölők, FPS"
+ "view_options": "Nézet: minőség, megjelenés, jelölők, FPS",
+ "own_buttons": "Saját gombok",
+ "own_buttons_hint": "A központi menüben (csillag) jelennek meg: útvonal megnyitása, részletek, szolgáltatás hívása vagy browser_mod felugró ablak.",
+ "own_button_label": "Felirat",
+ "own_button_action": "Művelet",
+ "own_button_new": "Új gomb",
+ "own_button_add": "Saját gomb",
+ "own_action_navigate": "Útvonal megnyitása",
+ "own_action_more_info": "Entitás részletei",
+ "own_action_service": "Szolgáltatás hívása",
+ "own_action_fire_dom_event": "fire-dom-event (browser_mod)",
+ "own_target_navigate": "Útvonal",
+ "own_target_more_info": "Entitás",
+ "own_target_service": "Szolgáltatás (domain.service)",
+ "own_data": "Adatok (JSON)",
+ "own_data_hint": "A szolgáltatás adatai vagy az esemény tartalma.",
+ "own_data_bad": "Nem érvényes JSON objektum."
 }

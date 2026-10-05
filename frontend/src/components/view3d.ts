@@ -22,12 +22,13 @@ import { carState, carWatched, type CarState, roomClimateValue,
   isStatusSensor,
   floorControls,
   favoriteCall,
+  runButton,
 } from "../devices.ts";
 import { alertColor, alertEntities, alertSources, alertText, findAlerts, type Alert, type AlertSources } from "../alerts.ts";
 import { iconPath, iconSvg, mdiIcon } from "../icons.ts";
 import { deviceSensors, energySummary, fetchSolarRows, fieldLevels, fieldPowers, findConsumers, flowColor, flowSegments, gridPoint, powerSensorFor, readPower, solarCurvePath, solarDayFromStats, type Consumer, type EnergySummary, type StatRow } from "../energy.ts";
 import { fieldFace, fieldSize } from "../solar.ts";
-import { type EntityRef, DEFAULT_HOLOGRAM, type SolarField } from "../model.ts";
+import { type CustomButton, type EntityRef, DEFAULT_HOLOGRAM, type SolarField } from "../model.ts";
 
 /** A hologram card: the house's balance on the main plant, one plant (a balcony plant) on its own, or a device. */
 interface HoloCard {
@@ -134,6 +135,7 @@ export class Fp3dView3d extends LitElement {
     _central: { state: true },
     _armed: { state: true },
     central: { attribute: false },
+    buttons: { attribute: false },
     _thumbs: { state: true },
     floorThumbs: { attribute: false },
     clean: { attribute: false },
@@ -295,6 +297,8 @@ export class Fp3dView3d extends LitElement {
   private armTimer: ReturnType<typeof setTimeout> | undefined;
   /** Show the star with the central menu (card option central; default on). */
   declare central: boolean;
+  /** Own buttons from the card's YAML (replace the house's buttons when set). */
+  declare buttons: CustomButton[] | null;
   private swipeSent = 0;
   private swipeTimer: ReturnType<typeof setTimeout> | undefined;
   /** Energy cables from the meter to the consumers (off unless switched on; kept per browser). */
@@ -366,6 +370,7 @@ export class Fp3dView3d extends LitElement {
     this._central = false;
     this._armed = null;
     this.central = true;
+    this.buttons = null;
     this._thumbs = [];
     this.floorThumbs = true;
     this.clean = false;
@@ -1978,6 +1983,7 @@ export class Fp3dView3d extends LitElement {
         ${this._armed === key ? t("central_sure") : t(label)}
       </button>`;
     const favorites = (b.settings.favorites ?? []).filter((id) => hass.states[id]);
+    const own = this.buttons ?? b.settings.buttons ?? [];
     return html`${star}
       <div class="fp3d-central" role="dialog" aria-label=${t("central")}>
         <b>${floor ? floor.name : t("central_house")}</b>
@@ -2014,7 +2020,24 @@ export class Fp3dView3d extends LitElement {
                 </button>`;
               })}
             </div>`
-          : html`<p class="fp3d-central-hint">${t("central_no_favorites")}</p>`}
+          : own.length
+            ? nothing
+            : html`<p class="fp3d-central-hint">${t("central_no_favorites")}</p>`}
+        ${own.length
+          ? html`<div class="fp3d-central-favs">
+              ${own.map(
+                (btn) => html`<button
+                  class="fp3d-chip fp3d-own-btn"
+                  @click=${(e: Event) => {
+                    runButton(hass, e.currentTarget as HTMLElement, btn);
+                    if (btn.action !== "service") this._central = false;
+                  }}
+                >
+                  ${btn.icon ? html`<ha-icon .icon=${btn.icon.startsWith("mdi:") ? btn.icon : `mdi:${btn.icon}`}></ha-icon>` : nothing}${btn.label}
+                </button>`,
+              )}
+            </div>`
+          : nothing}
       </div>`;
   }
 
@@ -2813,6 +2836,14 @@ export class Fp3dView3d extends LitElement {
         display: flex;
         flex-wrap: wrap;
         gap: 6px;
+      }
+      .fp3d-own-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .fp3d-own-btn ha-icon {
+        --mdc-icon-size: 18px;
       }
       .fp3d-central-hint {
         margin: 0;

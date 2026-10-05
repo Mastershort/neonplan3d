@@ -1184,5 +1184,21 @@
  "edge_thickness": "Épaisseur (m)",
  "wall_thickness_hint": "Épaisseur de ce mur ; un mur entre deux pièces prend la valeur la plus épaisse.",
  "wall_thickness_reset": "Épaisseur comme pour la maison",
- "view_options": "Vue : qualité, style, symboles, FPS"
+ "view_options": "Vue : qualité, style, symboles, FPS",
+ "own_buttons": "Boutons personnels",
+ "own_buttons_hint": "Affichés dans le menu central (étoile) : ouvrir un chemin, afficher les détails, appeler un service ou ouvrir une popup browser_mod.",
+ "own_button_label": "Libellé",
+ "own_button_action": "Action",
+ "own_button_new": "Nouveau bouton",
+ "own_button_add": "Bouton personnel",
+ "own_action_navigate": "Ouvrir un chemin",
+ "own_action_more_info": "Détails d'une entité",
+ "own_action_service": "Appeler un service",
+ "own_action_fire_dom_event": "fire-dom-event (browser_mod)",
+ "own_target_navigate": "Chemin",
+ "own_target_more_info": "Entité",
+ "own_target_service": "Service (domaine.service)",
+ "own_data": "Données (JSON)",
+ "own_data_hint": "Données du service ou contenu de l'événement.",
+ "own_data_bad": "Pas un objet JSON valide."
 }

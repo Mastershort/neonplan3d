@@ -175,7 +175,7 @@ Walls are created automatically: every shared edge of two rooms becomes an inter
 | **Weather entity** | Which weather entity drives the weather outside, see [6.2](#62-weather-outside) |
 | **Weather effects in 3D** | Which effects are shown |
 | **Start view** | Turn and zoom the house in the 3D pane on the right the way it should open (e.g. from the garden side) and press **Remember the current 3D view as the start**. The 3D view, the card and the kiosk then open the house like that, and an opened floor is shown from the same side as well; **Default** resets it |
-| **Favourites** | Scenes, scripts, automations, buttons and switches for the central menu (star) of the 3D view: party, presence simulation, shading, watering. Pick them with the search, order them with ↑ ↓, ✕ removes one |
+| **Favourites** | Scenes, scripts, automations, buttons and switches for the central menu (star) of the 3D view: party, presence simulation, shading, watering. Pick them with the search, order them with ↑ ↓, ✕ removes one. Below them **Own buttons** with a label, an icon and an action: **Open a path** (e.g. `/lovelace/blinds`), **Entity details**, **Call a service** (`domain.service` with data as JSON) or **fire-dom-event** – with it a button opens a browser_mod popup with your own card, e.g. `{"browser_mod": {"service": "browser_mod.popup", "data": {"title": "Blinds", "content": {"type": "custom:my-blind-card"}}}}` |
 
 ### 4.6 Floor plan image as a template
 
@@ -764,6 +764,11 @@ accent: "#ff8a00"       # an accent colour of your own (neon lines, buttons, pin
 markers: important      # none | important | all
 marker_names: false     # true: devices with an own name show it under their marker
 central: true           # the star with the central menu (all lights, blinds, favourites)
+buttons:                # own buttons for this card only (replace the ones from the editor)
+  - label: Blinds
+    icon: window-shutter
+    action: fire_dom_event   # navigate | more_info | service | fire_dom_event
+    data: { browser_mod: { service: browser_mod.popup, data: { title: Blinds, content: { type: "custom:my-blind-card" } } } }
 heatmap: none           # none | temperature | humidity | co2
 room_panel: true        # tapping a room opens the room panel
 room_names: true

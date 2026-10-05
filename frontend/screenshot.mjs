@@ -257,6 +257,7 @@ const shots = [
   { name: "view-central", query: "", width: 1280, height: 800, click: "Erdgeschoss", viewScript: "v._central = true;", wait: 1200 },
   { name: "view-central-phone", query: "", width: 430, height: 860, click: "Alle Etagen", viewScript: "v._central = true;", wait: 1200 },
   { name: "view-wall-unit", query: "", width: 1280, height: 800, editor: true, editorScript: "e.change((d) => { const f = d.floors.find((x) => x.id === 'og'); f.furniture.push({ id: 'wu1', type: 'pack:mastershort.living:wall_unit', x: 5.0, z: 4.52, w: 3.0, d: 0.45, h: 2.1, rotation: 0, variant: null, entity: 'light.garten' }, { id: 'wu2', type: 'pack:mastershort.living:wall_unit_tv', x: 8.3, z: 4.52, w: 3.0, d: 0.45, h: 2.1, rotation: 0, variant: null, entity: 'media_player.fernseher' }); }); e.fit();", then3d: "Obergeschoss", camera: { theta: 0.15, phi: 1.2, radius: 7, target: { x: 6.6, y: 3.9, z: 5.2 } } },
+  { name: "editor-own-buttons", query: "", width: 1280, height: 1000, editor: true, editorScript: "const d = e.renderRoot.querySelectorAll('details.fp3d-section'); for (const x of d) if (x.textContent.includes('Favoriten')) { x.open = true; x.scrollIntoView(); }", wait: 800 },
   { name: "view-auto", query: "", width: 1280, height: 800, click: "Erdgeschoss", then: "Garage" },
   { name: "view-sound", query: "", width: 1280, height: 800, click: "Erdgeschoss" },
   { name: "view-sound-locked", query: "?nopro", width: 1280, height: 800, click: "Erdgeschoss" },

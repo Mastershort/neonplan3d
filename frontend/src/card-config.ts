@@ -26,6 +26,8 @@ export interface CardConfig {
   marker_names?: boolean;
   /** The star with the central menu: all lights / blinds of the floor or house and the favourites (default true, #145). */
   central?: boolean;
+  /** Own buttons in the central menu (replace the ones set in the editor): label, icon, action, target, data (D143). */
+  buttons?: { label: string; icon?: string; action: "navigate" | "more_info" | "service" | "fire_dom_event"; target?: string; data?: Record<string, unknown> }[];
   /** Heatmap of the rooms: none | temperature | humidity | co2. */
   heatmap?: "none" | "temperature" | "humidity" | "co2";
   /** Look: neon | blueprint | day. */

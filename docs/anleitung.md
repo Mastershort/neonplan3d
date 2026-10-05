@@ -177,7 +177,7 @@ Unten in der Seitenleiste klappt **Einstellungen** auf:
 | **Wetter-Entität** | Welche Wetter-Entität das Wetter draußen liefert, siehe [6.2](#62-wetter-draußen) |
 | **Wetter-Effekte in 3D** | Welche Effekte gezeigt werden |
 | **Startansicht** | Drehe und zoome das Haus in der 3D-Ansicht rechts so, wie es sich öffnen soll (zum Beispiel von der Gartenseite), und drücke **Aktuelle 3D-Ansicht als Start merken**. 3D-Ansicht, Karte und Kiosk öffnen das Haus dann so, und auch eine geöffnete Etage wird von derselben Seite gezeigt; **Standard** setzt zurück |
-| **Favoriten** | Szenen, Skripte, Automationen, Tasten und Schalter für das Zentral-Menü (Stern) der 3D-Ansicht: Party, Anwesenheitssimulation, Verschattung, Bewässerung. Auswählen mit der Suche, Reihenfolge mit ↑ ↓, ✕ entfernt |
+| **Favoriten** | Szenen, Skripte, Automationen, Tasten und Schalter für das Zentral-Menü (Stern) der 3D-Ansicht: Party, Anwesenheitssimulation, Verschattung, Bewässerung. Auswählen mit der Suche, Reihenfolge mit ↑ ↓, ✕ entfernt. Darunter **Eigene Knöpfe** mit Beschriftung, Symbol und Aktion: **Seite öffnen** (Pfad wie `/lovelace/rollos`), **Details einer Entität**, **Dienst aufrufen** (`domain.service` mit Daten als JSON) oder **fire-dom-event** – damit öffnet ein Knopf ein browser_mod-Popup mit deiner eigenen Karte, z. B. `{"browser_mod": {"service": "browser_mod.popup", "data": {"title": "Rollos", "content": {"type": "custom:meine-rollo-karte"}}}}` |
 
 ### 4.6 Grundriss-Bild als Vorlage
 
@@ -766,6 +766,11 @@ accent: "#ff8a00"       # eigene Akzentfarbe (Linien im Neon-Look, Knöpfe, Pins
 markers: important      # none | important | all
 marker_names: false     # true: Geräte mit eigenem Namen zeigen ihn unter dem Symbol
 central: true           # der Stern mit dem Zentral-Menü (alle Lichter, Rollläden, Favoriten)
+buttons:                # eigene Knöpfe nur für diese Karte (ersetzen die aus dem Editor)
+  - label: Rollos
+    icon: window-shutter
+    action: fire_dom_event   # navigate | more_info | service | fire_dom_event
+    data: { browser_mod: { service: browser_mod.popup, data: { title: Rollos, content: { type: "custom:meine-rollo-karte" } } } }
 heatmap: none           # none | temperature | humidity | co2
 room_panel: true        # Raum antippen öffnet das Raumfenster
 room_names: true

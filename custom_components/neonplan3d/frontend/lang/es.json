@@ -1184,5 +1184,21 @@
  "edge_thickness": "Grosor (m)",
  "wall_thickness_hint": "Grosor de esta pared; una pared entre dos habitaciones toma el valor más grueso.",
  "wall_thickness_reset": "Grosor como en la casa",
- "view_options": "Vista: calidad, aspecto, símbolos, FPS"
+ "view_options": "Vista: calidad, aspecto, símbolos, FPS",
+ "own_buttons": "Botones propios",
+ "own_buttons_hint": "Aparecen en el menú central (estrella): abrir una ruta, ver detalles, llamar a un servicio o abrir un popup de browser_mod.",
+ "own_button_label": "Texto",
+ "own_button_action": "Acción",
+ "own_button_new": "Botón nuevo",
+ "own_button_add": "Botón propio",
+ "own_action_navigate": "Abrir ruta",
+ "own_action_more_info": "Detalles de entidad",
+ "own_action_service": "Llamar servicio",
+ "own_action_fire_dom_event": "fire-dom-event (browser_mod)",
+ "own_target_navigate": "Ruta",
+ "own_target_more_info": "Entidad",
+ "own_target_service": "Servicio (dominio.servicio)",
+ "own_data": "Datos (JSON)",
+ "own_data_hint": "Datos del servicio o contenido del evento.",
+ "own_data_bad": "No es un objeto JSON válido."
 }

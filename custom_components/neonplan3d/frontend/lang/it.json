@@ -1184,5 +1184,21 @@
  "edge_thickness": "Spessore (m)",
  "wall_thickness_hint": "Spessore di questo muro; un muro tra due stanze prende il valore più spesso.",
  "wall_thickness_reset": "Spessore come per la casa",
- "view_options": "Vista: qualità, aspetto, simboli, FPS"
+ "view_options": "Vista: qualità, aspetto, simboli, FPS",
+ "own_buttons": "Pulsanti propri",
+ "own_buttons_hint": "Appaiono nel menu centrale (stella): aprire un percorso, mostrare i dettagli, chiamare un servizio o aprire un popup browser_mod.",
+ "own_button_label": "Etichetta",
+ "own_button_action": "Azione",
+ "own_button_new": "Nuovo pulsante",
+ "own_button_add": "Pulsante proprio",
+ "own_action_navigate": "Apri percorso",
+ "own_action_more_info": "Dettagli entità",
+ "own_action_service": "Chiama servizio",
+ "own_action_fire_dom_event": "fire-dom-event (browser_mod)",
+ "own_target_navigate": "Percorso",
+ "own_target_more_info": "Entità",
+ "own_target_service": "Servizio (dominio.servizio)",
+ "own_data": "Dati (JSON)",
+ "own_data_hint": "Dati del servizio o contenuto dell'evento.",
+ "own_data_bad": "Non è un oggetto JSON valido."
 }

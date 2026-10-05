@@ -1029,3 +1029,22 @@ export function favoriteCall(entityId: string): [domain: string, service: string
   if (domain === "button" || domain === "input_button") return [domain, "press"];
   return ["homeassistant", "toggle"];
 }
+
+/**
+ * Run an own button (D143) from an element inside the dashboard: navigate, more-info, a service, or a
+ * DOM event – "ll-custom" is what Home Assistant's fire-dom-event sends, and browser_mod listens for it.
+ */
+export function runButton(hass: HomeAssistant, from: HTMLElement, b: { action: string; target?: string | null; data?: Record<string, unknown> | null }): void {
+  const target = b.target?.trim() ?? "";
+  if (b.action === "navigate" && target) {
+    history.pushState(null, "", target);
+    window.dispatchEvent(new CustomEvent("location-changed", { detail: { replace: false } }));
+  } else if (b.action === "more_info" && target) {
+    from.dispatchEvent(new CustomEvent("hass-more-info", { detail: { entityId: target }, bubbles: true, composed: true }));
+  } else if (b.action === "service" && target.includes(".")) {
+    const [domain, service] = target.split(".", 2);
+    void hass.callService(domain, service, b.data ?? {});
+  } else if (b.action === "fire_dom_event") {
+    from.dispatchEvent(new CustomEvent("ll-custom", { detail: b.data ?? {}, bubbles: true, composed: true }));
+  }
+}

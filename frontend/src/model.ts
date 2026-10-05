@@ -443,9 +443,30 @@ export interface SolarString {
   inverter?: string | null;
 }
 
+export const BUTTON_ACTIONS = ["navigate", "more_info", "service", "fire_dom_event"] as const;
+export type ButtonAction = (typeof BUTTON_ACTIONS)[number];
+
+/**
+ * An own button in the central menu (D143): opens a dashboard path, the more-info dialog of an entity,
+ * calls a service, or fires a DOM event (a browser_mod popup with your own card).
+ */
+export interface CustomButton {
+  id: string;
+  label: string;
+  /** Material Design icon name without "mdi:". */
+  icon?: string | null;
+  action: ButtonAction;
+  /** navigate: the path ("/lovelace/rollos"); more_info: the entity; service: "domain.service". */
+  target?: string | null;
+  /** service: its data; fire_dom_event: the event's detail (e.g. { browser_mod: { service, data } }). */
+  data?: Record<string, unknown> | null;
+}
+
 export interface BuildingSettings {
   /** Favourites of the house: scenes, scripts, automations, buttons and switches in the central menu of the 3D view (#145). */
   favorites?: string[];
+  /** Own buttons in the central menu (D143). */
+  buttons?: CustomButton[];
   wall_exterior: number;
   wall_interior: number;
   grid: number;

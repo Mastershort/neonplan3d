@@ -45,6 +45,9 @@ import {
   LAMP_MODEL,
   isAxisRect,
   OUTDOOR_TYPES,
+  BUTTON_ACTIONS,
+  type ButtonAction,
+  type CustomButton,
   outdoorStanding,
   SLOPE_DIRS,
   type SlopeDir,
@@ -5681,7 +5684,71 @@ export class Fp3dEditor extends LitElement {
             })}
           </div>`
         : nothing}
+      ${this.renderOwnButtons()}
     </details>`;
+  }
+
+  /** Own buttons of the central menu (D143): label, icon, action, target and data. */
+  private renderOwnButtons() {
+    const list = this._doc.settings.buttons ?? [];
+    const set = (next: CustomButton[]) => this.change((d) => (d.settings.buttons = next.length ? next : undefined));
+    const upd = (i: number, patch: Partial<CustomButton>) => set(list.map((b, j) => (j === i ? { ...b, ...patch } : b)));
+    const placeholder: Record<ButtonAction, string> = { navigate: "/lovelace/rollos", more_info: "cover.wohnzimmer", service: "script.turn_on", fire_dom_event: "" };
+    return html`<h4>${this.t("own_buttons")}</h4>
+      <p class="fp3d-sub">${this.t("own_buttons_hint")}</p>
+      ${list.map(
+        (b, i) => html`<div class="fp3d-form fp3d-own-button">
+          <label class="fp3d-field"
+            >${this.t("own_button_label")}
+            <input type="text" maxlength="60" .value=${b.label} @change=${(e: Event) => upd(i, { label: (e.target as HTMLInputElement).value.trim() || this.t("own_button_new") })}
+          /></label>
+          <label class="fp3d-field"
+            >${this.t("own_button_action")}
+            <select @change=${(e: Event) => upd(i, { action: (e.target as HTMLSelectElement).value as ButtonAction })}>
+              ${BUTTON_ACTIONS.map((a) => html`<option value=${a} ?selected=${a === b.action}>${this.t(`own_action_${a}` as I18nKey)}</option>`)}
+            </select></label
+          >
+          ${this.iconInput(b.icon ?? null, (v) => upd(i, { icon: v }))}
+          ${b.action !== "fire_dom_event"
+            ? html`<label class="fp3d-field fp3d-wide"
+                >${this.t(`own_target_${b.action}` as I18nKey)}
+                <input type="text" .value=${b.target ?? ""} placeholder=${placeholder[b.action]} @change=${(e: Event) => upd(i, { target: (e.target as HTMLInputElement).value.trim() || null })}
+              /></label>`
+            : nothing}
+          ${b.action === "service" || b.action === "fire_dom_event"
+            ? html`<label class="fp3d-field fp3d-wide" title=${this.t("own_data_hint")}
+                >${this.t("own_data")}
+                <textarea
+                  rows="4"
+                  spellcheck="false"
+                  placeholder=${b.action === "fire_dom_event" ? '{"browser_mod": {"service": "browser_mod.popup", "data": {"title": "Rollos", "content": {"type": "custom:my-cover-card"}}}}' : '{"entity_id": "script.party"}'}
+                  .value=${b.data ? JSON.stringify(b.data, null, 1) : ""}
+                  @change=${(e: Event) => {
+                    (e.target as HTMLTextAreaElement).setCustomValidity("");
+                    const raw = (e.target as HTMLTextAreaElement).value.trim();
+                    if (!raw) return upd(i, { data: null });
+                    try {
+                      const v = JSON.parse(raw);
+                      if (v && typeof v === "object" && !Array.isArray(v)) upd(i, { data: v });
+                    } catch {
+                      (e.target as HTMLTextAreaElement).setCustomValidity(this.t("own_data_bad"));
+                      (e.target as HTMLTextAreaElement).reportValidity();
+                    }
+                  }}
+                ></textarea></label
+              >`
+            : nothing}
+          <div class="fp3d-actions fp3d-wide">
+            <button class="fp3d-btn" ?disabled=${i === 0} @click=${() => set([...list.slice(0, i - 1), b, list[i - 1], ...list.slice(i + 1)])}>↑</button>
+            <button class="fp3d-btn fp3d-danger" @click=${() => set(list.filter((_, j) => j !== i))}>${this.t("delete")}</button>
+          </div>
+        </div>`,
+      )}
+      ${list.length < 20
+        ? html`<div class="fp3d-actions">
+            <button class="fp3d-btn" @click=${() => set([...list, { id: uid("btn"), label: this.t("own_button_new"), action: "navigate", target: null }])}>+ ${this.t("own_button_add")}</button>
+          </div>`
+        : nothing}`;
   }
 
   /** The camera the house opens with: the editor's 3D pane as it stands right now, or the default. */
@@ -8093,6 +8160,20 @@ export class Fp3dEditor extends LitElement {
       .fp3d-open-sel path,
       .fp3d-open-sel line {
         stroke-width: 2.4;
+      }
+      .fp3d-own-button {
+        padding: 10px 0;
+        border-top: 1px solid var(--fp3d-line);
+      }
+      .fp3d-own-button textarea {
+        font: 12px/1.4 ui-monospace, monospace;
+        width: 100%;
+        box-sizing: border-box;
+        padding: 6px 8px;
+        color: var(--fp3d-text);
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid var(--fp3d-line);
+        border-radius: 8px;
       }
       .fp3d-search {
         position: sticky;

@@ -495,6 +495,23 @@ SETTINGS_SCHEMA = vol.Schema(
         vol.Optional("north", default=0): vol.All(vol.Coerce(float), vol.Range(min=-360, max=360)),
         # plan lock: rooms, walls, doors, windows and outdoor areas cannot be moved by accident
         vol.Optional("lock_plan", default=False): bool,
+        # own buttons in the central menu: navigate, more-info, a service or a DOM event (browser_mod popup)
+        vol.Optional("buttons", default=list): vol.All(
+            [
+                vol.Schema(
+                    {
+                        vol.Required("id"): vol.All(str, vol.Length(min=1, max=64)),
+                        vol.Required("label"): vol.All(str, vol.Length(max=60)),
+                        vol.Optional("icon", default=None): vol.Any(None, vol.All(str, vol.Length(max=64))),
+                        vol.Required("action"): vol.In(["navigate", "more_info", "service", "fire_dom_event"]),
+                        vol.Optional("target", default=None): vol.Any(None, vol.All(str, vol.Length(max=255))),
+                        vol.Optional("data", default=None): vol.Any(None, dict),
+                    },
+                    extra=vol.ALLOW_EXTRA,
+                )
+            ],
+            vol.Length(max=20),
+        ),
         # favourites of the house in the central menu of the 3D view (scenes, scripts, switches …)
         vol.Optional("favorites", default=list): vol.All([vol.All(str, vol.Length(max=255))], vol.Length(max=40)),
         # the camera the house view opens with (None = fitted from the front left)

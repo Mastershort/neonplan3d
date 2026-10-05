@@ -1184,5 +1184,21 @@
  "edge_thickness": "Dikte (m)",
  "wall_thickness_hint": "Dikte van deze muur; een muur tussen twee kamers krijgt de dikste waarde.",
  "wall_thickness_reset": "Dikte zoals voor het huis",
- "view_options": "Weergave: kwaliteit, stijl, symbolen, FPS"
+ "view_options": "Weergave: kwaliteit, stijl, symbolen, FPS",
+ "own_buttons": "Eigen knoppen",
+ "own_buttons_hint": "Verschijnen in het centrale menu (ster): een pad openen, details tonen, een dienst aanroepen of een browser_mod-popup openen.",
+ "own_button_label": "Label",
+ "own_button_action": "Actie",
+ "own_button_new": "Nieuwe knop",
+ "own_button_add": "Eigen knop",
+ "own_action_navigate": "Pad openen",
+ "own_action_more_info": "Entiteitsdetails",
+ "own_action_service": "Dienst aanroepen",
+ "own_action_fire_dom_event": "fire-dom-event (browser_mod)",
+ "own_target_navigate": "Pad",
+ "own_target_more_info": "Entiteit",
+ "own_target_service": "Dienst (domein.dienst)",
+ "own_data": "Gegevens (JSON)",
+ "own_data_hint": "Gegevens van de dienst of inhoud van het event.",
+ "own_data_bad": "Geen geldig JSON-object."
 }
