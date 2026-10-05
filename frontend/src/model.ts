@@ -28,6 +28,8 @@ export interface Room {
   panel?: string[];
   /** Entities of the room's area kept out of the room panel. */
   hidden?: string[];
+  /** Entities whose state text the room panel leaves out (a cover that only reports "unknown", D154). */
+  no_state?: string[];
   /**
    * Height of the wall on each edge (index = edge points[i] -> points[i + 1]); null = full floor height, 0 = no
    * wall. An edge that other rooms split into parts may carry a list instead: one height per part, in order.
@@ -125,6 +127,8 @@ export interface Furniture {
   variant: string | null;
   /** Own name (e.g. "Wechselrichter Nord"); null = the type's name. */
   name?: string | null;
+  /** The own name shows as a small label under its marker in 3D. */
+  show_name?: boolean;
   /** An own symbol for the marker: a Material Design icon name without "mdi:" (null = by kind). */
   icon?: string | null;
   /** Linked entity, e.g. the TV's media player (null = automatic, "none" = none). */
@@ -212,6 +216,8 @@ export interface Placement {
   icon?: string | null;
   /** An own name in the plan (null = the entity's name), without renaming the entity in Home Assistant. */
   name?: string | null;
+  /** The own name shows as a small label under its marker in 3D. */
+  show_name?: boolean;
   /** Cameras: show the field-of-view wedge on the floor (null = yes). */
   cone?: boolean | null;
 }
@@ -329,7 +335,7 @@ export interface RoofSettings {
  */
 export interface SolarField {
   id: string;
-  /** Roof face: "main:a" / "main:b" / "main:top" (single roof) or "<section id>:a" / ":b" / ":top". */
+  /** Roof face: "main:a" / "main:b" / "main:top" (single roof) or "<section id>:a" / ":b" / ":top"; hip ends ":c" / ":d". */
   face: string;
   u: number;
   v: number;

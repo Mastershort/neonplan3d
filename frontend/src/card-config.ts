@@ -22,6 +22,8 @@ export interface CardConfig {
   stats?: boolean;
   /** HTML markers: none | important (default) | all. */
   markers?: "none" | "important" | "all";
+  /** Every device with an own name shows it under its marker (#156). */
+  marker_names?: boolean;
   /** Heatmap of the rooms: none | temperature | humidity | co2. */
   heatmap?: "none" | "temperature" | "humidity" | "co2";
   /** Look: neon | blueprint | day. */

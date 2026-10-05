@@ -1155,5 +1155,11 @@
  "presence": "Aanwezigheid",
  "presence_hint": "Kamersensor per persoon (bijv. ESPresense, Bermuda): de status noemt de kamer of ruimte.",
  "presence_sensor": "Kamersensor",
- "no_persons": "Er zijn geen personen in Home Assistant."
+ "no_persons": "Er zijn geen personen in Home Assistant.",
+ "show_name": "Naam onder het symbool in 3D tonen",
+ "card_marker_names": "Eigen namen bij de symbolen",
+ "card_marker_names_hint": "Elk apparaat met een eigen naam toont die klein onder zijn symbool.",
+ "furniture_search_none": "Niets gevonden. Probeer een ander woord.",
+ "panel_state_hide": "Status in het kamerpaneel verbergen",
+ "panel_state_show": "Status in het kamerpaneel weer tonen"
 }

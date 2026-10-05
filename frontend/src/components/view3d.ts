@@ -90,6 +90,7 @@ export class Fp3dView3d extends LitElement {
     explode: { type: Boolean },
     keepRoof: { attribute: false },
     markerMode: { attribute: false },
+    markerNames: { attribute: false },
     heatMode: { attribute: false },
     theme: { attribute: false },
     accent: { attribute: false },
@@ -156,6 +157,8 @@ export class Fp3dView3d extends LitElement {
   /** The roof stays while zooming in (no lift, no fade). */
   declare keepRoof: boolean;
   declare markerMode: MarkerMode;
+  /** Card option marker_names: every device with an own name shows it under its pin. */
+  declare markerNames: boolean;
   declare heatMode: HeatMode;
   /** Imported furniture packs (a new list rebuilds pack furniture). */
   declare packs: unknown;
@@ -604,7 +607,9 @@ export class Fp3dView3d extends LitElement {
         const power = m.show === "no_power" || ("energyDevice" in m && m.energyDevice) ? null : (byDevice.get(m.id) ?? null);
         // at night (kiosk) colour effects rest
         const marker = { ...m, power, powerText: power === null ? undefined : formatPower(hass, power), effect: this.dimmed ? false : m.effect };
-        return { ...marker, pin: this.showPin(marker), full: m.show === "always" };
+        // the own name under the pin: per device, or for every named device (card option marker_names)
+        const caption = m.ownName && (m.showName || this.markerNames) ? m.ownName : "";
+        return { ...marker, pin: this.showPin(marker), full: m.show === "always", caption };
       }),
       // Energie Pro: the street end of the grid cable carries a pin with what comes in or goes out
       ...(pro && (this.flows ?? this._flows) && !this.dimmed && summary.grid !== null ? [this.gridPin(hass, b, summary.grid)] : []).filter((m): m is NonNullable<typeof m> => !!m),
@@ -1389,6 +1394,8 @@ export class Fp3dView3d extends LitElement {
           y: markerHeight(f) + mountBase(floor, f),
           icon: f.icon ? mdiIcon(f.icon) : iconSvg(kind ?? "switch"),
           name: f.name || (link.entity ? entityName(hass, link.entity) : furnitureName(hass, f.type)),
+          ownName: f.name || undefined,
+          showName: !!f.show_name,
           text:
             car
               ? this.carText(hass, car, !!st && !PRESENT_STATES.has(st.state.toLowerCase()))
@@ -3399,6 +3406,27 @@ export class Fp3dView3d extends LitElement {
       }
       .fp3d-dev-full .fp3d-dev-text {
         display: inline;
+      }
+      .fp3d-dev-name:empty {
+        display: none;
+      }
+      .fp3d-dev-name {
+        position: absolute;
+        top: calc(100% + 3px);
+        left: 50%;
+        transform: translateX(-50%);
+        max-width: 140px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        padding: 1px 6px;
+        border-radius: 6px;
+        font-size: 10.5px;
+        font-weight: 600;
+        line-height: 1.35;
+        color: var(--fp3d-text);
+        background: rgba(10, 16, 32, 0.72);
+        pointer-events: none;
       }
       .fp3d-dev-sel {
         outline: 2px solid var(--fp3d-accent);

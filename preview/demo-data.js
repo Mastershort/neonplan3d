@@ -268,7 +268,7 @@ DEMO_BUILDING.floors[0].placements = [
 
   place("light.flur", 8.8, 6.9),
 ];
-DEMO_BUILDING.floors[0].placements.push(place("sensor.gaszaehler", 12.9, 4.6));
+DEMO_BUILDING.floors[0].placements.push({ ...place("sensor.gaszaehler", 12.9, 4.6), name: "Gas Garage", show_name: true });
 DEMO_BUILDING.floors[0].placements.push(
   place("sensor.kuehlschrank_leistung", 6.35, 0.8),
   place("sensor.waschmaschine_leistung", 6.4, 6.9),

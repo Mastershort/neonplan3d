@@ -215,7 +215,7 @@ NeonPlan 3D matches covers and contacts through the area automatically. You can 
 
 ![The furniture library](images/editor-library.jpg)
 
-The **Furniture** tool opens the library with 40 built-in models in the sections Lights, Living, Dining, Kitchen, Sleeping, Bath & laundry and Work & other. Your installed furniture packs follow below. The **Worktop** (Kitchen and Work & other) is a free top without a base, for gaps in the kitchen or a self-built desk; its **height** is the top edge, 91 cm by default. The search field filters all sections, sections fold open and closed. Hover over an entry for a small 3D preview.
+The **Furniture** tool opens the library with 40 built-in models in the sections Lights, Living, Dining, Kitchen, Sleeping, Bath & laundry and Work & other. Your installed furniture packs follow below. The **Worktop** (Kitchen and Work & other) is a free top without a base, for gaps in the kitchen or a self-built desk; its **height** is the top edge, 91 cm by default. The search field filters all sections and stays put while you scroll; it finds English and German names and the pack name, several words in any order ("corner sofa"), Escape clears it. Sections fold open and closed. Hover over an entry for a small 3D preview.
 
 **Symbols on the entries:**
 
@@ -253,7 +253,7 @@ Above the list you choose the source: **This area** (default), **Other areas** (
 
 - **Place** puts a device into the room. **Place all …** below the list puts all main devices in at once after asking; **Undo** (Ctrl+Z) takes them back in one step.
 - Lights are placed as lamps from the library, so they glow in 3D.
-- **☆** adds a device to the room panel of the 3D view without placing it. **👁** hides an entity of the area from the room panel (struck through in the list, 🙈 brings it back) – for entities that only clutter it.
+- **☆** adds a device to the room panel of the 3D view without placing it. **👁** hides an entity of the area from the room panel (struck through in the list, 🙈 brings it back) – for entities that only clutter it. **Aa** hides only a device's state in the room panel (∅ shows it again), e.g. for a cover without feedback; a bare "unknown" is left out for switches, covers and lights anyway.
 - Drag a placed device to its spot in the plan.
 
 ![A selected device](images/editor-device.jpg)
@@ -264,6 +264,7 @@ A selected device has:
 - **Ask before switching:** A tap in 3D, the quick menu and the room panel ask first. This protects, for example, a server switch from an accidental tap. A double tap on the room leaves this device out.
 - **Marker in 3D:** *Automatic* follows the None / Important / All switch of the 3D view. *Always show* shows the marker with "Important" too, e.g. for a temperature sensor. *Without watts* leaves out the power, e.g. on a smart plug. *Hide* never shows a marker. With "None" all markers stay off.
 - **Own symbol:** the name of a Material Design icon as in Home Assistant, e.g. `mdi:thermometer` or `mdi:water-alert`, replaces the symbol of the device kind in the pin. Leave it empty for the default. Works for electric furniture just the same.
+- **Own name** and **Show the name under the marker in 3D:** ticked, the own name sits small under the pin – three thermometers in the garden ("Pool water", "Pool air", "Greenhouse") stay apart. The tick appears as soon as an own name is set; furniture with an own name has it too. The card option `marker_names: true` shows the names of every device with an own name.
 - **To room centre** and **Remove**.
 
 ### 4.11 Lamps
@@ -385,7 +386,7 @@ Every roof window has a **name** (optional), a **blind**, a **contact** and a **
 
 In the **Energy** tool only solar fields and energy devices can be moved, in the plan and in 3D; rooms and furniture are locked there, as a note at the top of the plan says. The tool gathers everything about energy in the house, starting with the **solar fields** (meters, heating and heat pump will follow). **+ Solar field** puts a field on the sunniest free roof face, as large as fits. **+ Free-standing** puts a field on frames beside the house, e.g. in the garden or on a flat garage roof. **+ On a wall** hangs a row of modules on the sunniest outer wall of the floor shown (facade, balcony).
 
-Drag fields in the plan and in the **3D view beside it**, also onto another roof face or wall. Roof windows work the same way in the **Roof** tool. The modules lie in the slope of the face; on a flat roof they stand on frames. This works on the single gable and flat roof and on all roof sections (gable, hip, pent, flat).
+Drag fields in the plan and in the **3D view beside it**, also onto another roof face or wall. Roof windows work the same way in the **Roof** tool. The modules lie in the slope of the face; on a flat roof they stand on frames. This works on the single gable and flat roof and on all roof sections (gable, hip, pent, flat). On hip and pyramid roofs the two triangular **hip ends** are offered too, e.g. the south end of a hip roof with an east-west ridge; fields get narrower towards the tip.
 
 | Field | Effect |
 |---|---|
@@ -755,6 +756,7 @@ quality: auto           # auto | low | high
 theme: neon             # neon | blueprint | day
 accent: "#ff8a00"       # an accent colour of your own (neon lines, buttons, pins); leave out for cyan
 markers: important      # none | important | all
+marker_names: false     # true: devices with an own name show it under their marker
 heatmap: none           # none | temperature | humidity | co2
 room_panel: true        # tapping a room opens the room panel
 room_names: true

@@ -89,6 +89,8 @@ export function buildMarkers(hass: HomeAssistant, building: Building): DeviceMar
         icon: pl.icon ? mdiIcon(pl.icon) : iconSvg(kind),
         cone: kind === "camera" && pl.cone === false ? false : undefined,
         name: pl.name || entityName(hass, pl.entity_id, areaName),
+        ownName: pl.name || undefined,
+        showName: !!pl.show_name,
         text: stateText(hass, st),
         active: isActive(st),
         unavailable: isUnavailable(st),

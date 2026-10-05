@@ -186,3 +186,21 @@ test("a wall field in portrait fits after moving back, and tilts away from the w
   near(off(m.corners[3]) - off(m.corners[0]), 1.13 * Math.sin(Math.PI / 6), 1e-9);
   assert.equal(m.posts.length, 2);
 });
+
+test("a hip roof offers its two hip ends for modules too (D158)", () => {
+  const sec: RoofSection = { id: "h", x0: 0, z0: 0, x1: 10, z1: 8, shape: "hip", axis: "x", eave_a: 2.5, eave_b: 2.5, pitch_a: 30, pitch_b: 30, base: 2.5 };
+  const b = house({ type: "custom", pitch: 30, overhang: 0.4, sections: [sec] });
+  const faces = roofFaces(b);
+  assert.deepEqual(faces.map((f) => f.key), ["h:a", "h:b", "h:c", "h:d"]);
+  const [c, d] = faces.slice(2);
+  // symmetric hip: the ends slope like the sides, look along -x and +x, and narrow to a point
+  near(c.pitch, 30, 1e-4);
+  near(d.pitch, 30, 1e-4);
+  assert.ok(c.facing[0] < -0.99 && d.facing[0] > 0.99);
+  near(c.lu, 8.8);
+  const [l1, r1] = c.span(c.ls);
+  near(l1, r1);
+  const field = proposeField(c, "s");
+  assert.ok(field.rows * field.cols > 0);
+  assert.equal(fieldModules(c, field).length, field.rows * field.cols);
+});

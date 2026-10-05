@@ -6,8 +6,18 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 
 ## Unreleased
 
+### Fixed
+
+- Outdoor lamps lit nothing once two rooms of the floor were joined into one light zone (#160 by Thundras).
+- Mirrored furniture showed its inside faces; only lying cylinders and the contact shadow are rewound now, the smart fridge's doors and screen follow the mirror (#159 by Thundras).
+- The state picture of a screen furniture sat below the screen when a mount height was set, and changing only the mount height did not move the glow (#157 by Thundras).
+
 ### New
 
+- **Names under markers:** a device or furniture with an own name can show it small under its pin in 3D ("Show the name under the marker"), or every named device with the card option `marker_names: true` (#156 by denisb88).
+- **Solar on hip ends:** hip and pyramid roof sections offer their two triangular ends for solar fields and roof windows (discussions #158 by bert-MI4U and #134).
+- **Better furniture search:** several words in any order, German and English names and the pack name, a "nothing found" line, the field stays on top while scrolling, Escape clears it (discussion #155 by biancapascal).
+- **Hide a state in the room panel:** per device of a room ("Aa"), and a bare "unknown" of switches, covers and lights is left out anyway (discussion #154 by ggeudens).
 - **Outdoor round:** a **slope** per outdoor area (height difference and direction; fences, lamps and furniture on it follow, #148), **holes** – an area marked "cut out" becomes a hole in the areas beneath it (#144), a **pergola / frame** type with corner posts, beams, rafters and optional **X-bracing**, an **open** outline for fences and pergolas leaning against the house (#141), and a **wild patch** type (#142); all by denisb88.
 - **Garden & Terrace pack, release 3 (free for owners):** trees by species – oak, lime, birch, maple, fruit tree – conifers – spruce, pine, thuja – plus shrub, flowering shrub, brush for a wild patch and a group of three trees; the demo garden shows them (#142 by denisb88).
 - **Car Pro (Pro add-on, €5.90):** the car in its parking spot shows charge, range, charging, lock and climate from its integration – a light band in the charge colour, a warm glow while the climate runs, a pin with percent and kilometres, "away" with the tracker's zone, and a quick menu with lock/unlock (unlocking asks), climate and charging; one entity of the car is enough, the rest is found on its device (discussions #71 and #73, #16 by tomfischer98).

@@ -299,3 +299,11 @@ export function roomIndexAt(floor: Floor, x: number, z: number): number {
   const i = floor.rooms.findIndex((r) => r.points.length >= 3 && pointInPolygon([x, z], r.points));
   return i < 0 ? floor.rooms.length : i;
 }
+
+/**
+ * The light zone a room index belongs to. Indices past the zone list (the outside zone, rooms.length)
+ * and -1 keep their own number, so outdoor lamps still light the lawn when rooms are joined (#160).
+ */
+export function zoneOf(zones: number[] | null, room: number): number {
+  return zones && room >= 0 && room < zones.length ? zones[room] : room;
+}

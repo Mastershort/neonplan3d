@@ -233,6 +233,7 @@ clearTimeout(this.cleanTimer);
               .quality=${this._config?.quality ?? "auto"}
               ?showStats=${this._config?.stats ?? false}
               .markerMode=${this._config?.markers ?? "important"}
+              .markerNames=${this._config?.marker_names === true}
               .heatMode=${heat}
               .theme=${this._config?.theme ?? "neon"}
               .accent=${this._config?.accent ?? null}

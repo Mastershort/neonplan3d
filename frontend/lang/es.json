@@ -1155,5 +1155,11 @@
  "presence": "Presencia",
  "presence_hint": "Sensor de habitación por persona (p. ej. ESPresense, Bermuda): su estado nombra la habitación o el área.",
  "presence_sensor": "Sensor de habitación",
- "no_persons": "No hay personas en Home Assistant."
+ "no_persons": "No hay personas en Home Assistant.",
+ "show_name": "Mostrar el nombre bajo el símbolo en 3D",
+ "card_marker_names": "Nombres propios en los símbolos",
+ "card_marker_names_hint": "Cada dispositivo con nombre propio lo muestra pequeño bajo su símbolo.",
+ "furniture_search_none": "Nada encontrado. Prueba otra palabra.",
+ "panel_state_hide": "Ocultar el estado en el panel de la habitación",
+ "panel_state_show": "Volver a mostrar el estado en el panel de la habitación"
 }

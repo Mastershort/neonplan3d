@@ -1155,5 +1155,11 @@
  "presence": "Presenza",
  "presence_hint": "Sensore di stanza per persona (es. ESPresense, Bermuda): il suo stato nomina la stanza o l'area.",
  "presence_sensor": "Sensore di stanza",
- "no_persons": "Non ci sono persone in Home Assistant."
+ "no_persons": "Non ci sono persone in Home Assistant.",
+ "show_name": "Mostra il nome sotto il simbolo in 3D",
+ "card_marker_names": "Nomi propri ai simboli",
+ "card_marker_names_hint": "Ogni dispositivo con un nome proprio lo mostra in piccolo sotto il suo simbolo.",
+ "furniture_search_none": "Nessun risultato. Prova un'altra parola.",
+ "panel_state_hide": "Nascondi lo stato nel pannello della stanza",
+ "panel_state_show": "Mostra di nuovo lo stato nel pannello della stanza"
 }

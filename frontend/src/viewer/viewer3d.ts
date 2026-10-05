@@ -60,7 +60,7 @@ import { accentOnUniform, accentUniform, parseAccent, lineBlending, themed, them
 
 export type { Theme } from "./theme.ts";
 import { ALWAYS, DEG, GeoBuffer, LineBuffer, pushPrism } from "./geo.ts";
-import { buildLightSurface, lightColors, roomIndexAt, type LightKind, type LightSource, type LightSurface } from "./lighting.ts";
+import { buildLightSurface, lightColors, roomIndexAt, type LightKind, type LightSource, type LightSurface, zoneOf } from "./lighting.ts";
 import { buildOpeningParts, CLOSED, type OpeningState } from "./openings.ts";
 import { circlePath, cleaningPath, stepRobot, type RobotInfo, type RobotMotion } from "./robot.ts";
 
@@ -107,6 +107,12 @@ export interface ViewerOptions {
 export interface DeviceMarker {
   /** entity_id */
   id: string;
+  /** A small label under the pin (the device's own name, #156); empty = none. */
+  caption?: string;
+  /** The device's own name from the plan (the card option marker_names shows it as caption). */
+  ownName?: string;
+  /** The own name is shown under the pin (per device). */
+  showName?: boolean;
   floorId: string;
   roomId: string | null;
   x: number;
@@ -469,7 +475,7 @@ export class FloorplanViewer {
   private groundTexture: CanvasTexture | null = null;
   private devices: DeviceMarker[] = [];
   /** Device markers with the last written fields, so unchanged fields are not written again. */
-  private readonly devicePins = new Map<string, { el: HTMLButtonElement; icon: string; text: string; watt: string; label: string; active: boolean; unavailable: boolean; glow: string }>();
+  private readonly devicePins = new Map<string, { el: HTMLButtonElement; icon: string; text: string; watt: string; label: string; active: boolean; unavailable: boolean; glow: string; caption: string }>();
   private readonly ground: Mesh;
   private floors: FloorView[] = [];
   private building: Building | null = null;
@@ -744,7 +750,7 @@ export class FloorplanViewer {
       seen.add(d.id);
       let pin = this.devicePins.get(d.id);
       if (!pin) {
-        pin = { el: this.makeDevicePin(d.id), icon: "", text: "", watt: "", label: "", active: false, unavailable: false, glow: "" };
+        pin = { el: this.makeDevicePin(d.id), icon: "", text: "", watt: "", label: "", active: false, unavailable: false, glow: "", caption: "" };
         this.devicePins.set(d.id, pin);
         this.labels.append(pin.el);
       }
@@ -757,6 +763,11 @@ export class FloorplanViewer {
       if (pin.text !== d.text) {
         pin.text = d.text;
         el.querySelector(".fp3d-dev-text")!.textContent = d.text;
+      }
+      const caption = d.caption ?? "";
+      if (pin.caption !== caption) {
+        pin.caption = caption;
+        el.querySelector(".fp3d-dev-name")!.textContent = caption;
       }
       const watt = d.power !== null && d.power !== undefined && d.power >= 1 ? (d.powerText ?? `${Math.round(d.power)} W`) : "";
       if (pin.watt !== watt) {
@@ -1387,7 +1398,9 @@ export class FloorplanViewer {
     text.className = "fp3d-dev-text";
     const watt = document.createElement("span");
     watt.className = "fp3d-dev-watt";
-    pin.append(icon, text, watt);
+    const name = document.createElement("span");
+    name.className = "fp3d-dev-name";
+    pin.append(icon, text, watt, name);
     let timer: ReturnType<typeof setTimeout> | undefined;
     let held = false;
     pin.addEventListener("pointerdown", (e) => {
@@ -1478,7 +1491,7 @@ export class FloorplanViewer {
       const glow = this.glowOf(d);
       if (d.floorId !== fv.floor.id || !glow) continue;
       const ri = roomIndexAt(fv.floor, d.x, d.z);
-      const room = ri >= 0 && fv.lightZones ? fv.lightZones[ri] : ri;
+      const room = zoneOf(fv.lightZones, ri);
       const [w, , h] = d.size ?? (d.lamp ? LAMP_SIZE[d.lamp] : [0.3, 0.3, 0.3]);
       const base = d.base ?? 0;
       const kinds: Record<LampModel, [number, LightKind]> = {
@@ -2351,7 +2364,7 @@ export class FloorplanViewer {
   private buildScreens(fv: FloorView): void {
     // the vehicles in the parking spots count as furniture here too (Auto Pro lights a band on them)
     const items = withVehicles(fv.floor, this.parked).furniture.filter((f) => this.screens.has(f.id));
-    const sig = items.map((f) => `${f.id}:${f.x},${f.z},${f.rotation},${f.w},${f.d},${f.h}:${JSON.stringify(this.screens.get(f.id))}`).join(";");
+    const sig = items.map((f) => `${f.id}:${f.x},${f.z},${f.rotation},${f.w},${f.d},${f.h},${f.mount_y ?? ""},${f.mirror ? 1 : 0}:${JSON.stringify(this.screens.get(f.id))}`).join(";");
     // pictures follow the screens even when only they changed
     if (sig === fv.screenSig && fv.screenMesh.geometry.getAttribute("position")) return this.updateScreenPictures(fv, items);
     fv.screenSig = sig;
@@ -2449,7 +2462,7 @@ export class FloorplanViewer {
     }
     for (const [id, f] of wanted) {
       const st = this.screens.get(id)!;
-      const r = screenRect(f);
+      const r = screenRect(f, fv.floor);
       if (!r) continue;
       let pic = fv.screenPics.get(id);
       if (!pic) {

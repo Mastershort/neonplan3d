@@ -217,7 +217,7 @@ Rollläden und Kontakte ordnet NeonPlan 3D über den Bereich automatisch zu. Du 
 
 ![Die Möbelbibliothek](images/editor-library.jpg)
 
-Das Werkzeug **Möbel** öffnet rechts die Bibliothek mit 40 eingebauten Modellen in den Abschnitten Leuchten, Wohnen, Essen, Küche, Schlafen, Bad & Hauswirtschaft und Arbeiten & Sonstiges. Darunter folgen deine installierten Möbel-Packs. Die **Arbeitsplatte** (Küche sowie Arbeiten & Sonstiges) ist eine freie Platte ohne Unterbau, für Lücken in der Küche oder einen selbst gebauten Schreibtisch; ihre **Höhe** ist die Oberkante, voreingestellt 91 cm. Das Suchfeld oben filtert alle Abschnitte, die Abschnitte klappen auf und zu. Fährst du mit der Maus über einen Eintrag, zeigt eine kleine 3D-Vorschau das Möbel.
+Das Werkzeug **Möbel** öffnet rechts die Bibliothek mit 40 eingebauten Modellen in den Abschnitten Leuchten, Wohnen, Essen, Küche, Schlafen, Bad & Hauswirtschaft und Arbeiten & Sonstiges. Darunter folgen deine installierten Möbel-Packs. Die **Arbeitsplatte** (Küche sowie Arbeiten & Sonstiges) ist eine freie Platte ohne Unterbau, für Lücken in der Küche oder einen selbst gebauten Schreibtisch; ihre **Höhe** ist die Oberkante, voreingestellt 91 cm. Das Suchfeld oben filtert alle Abschnitte und bleibt beim Scrollen stehen; es findet deutsche und englische Namen und den Pack-Namen, mehrere Wörter in beliebiger Reihenfolge („sofa ecke“), Escape leert es. Die Abschnitte klappen auf und zu. Fährst du mit der Maus über einen Eintrag, zeigt eine kleine 3D-Vorschau das Möbel.
 
 **Symbole an den Einträgen:**
 
@@ -255,7 +255,7 @@ Sensoren erscheinen, wenn sie etwas für den Raum messen: Temperatur, Luftfeucht
 
 - **Platzieren** setzt ein Gerät in den Raum. **Alle … platzieren** unter der Liste setzt nach einer Rückfrage alle Hauptgeräte auf einmal; **Rückgängig** (Strg+Z) nimmt sie in einem Schritt zurück.
 - Lichter werden dabei als Leuchten aus der Bibliothek gesetzt, damit sie in 3D leuchten.
-- **☆** nimmt ein Gerät ins Raumfenster der 3D-Ansicht auf, ohne es in den Plan zu setzen. **👁** blendet ein Gerät des Bereichs im Raumfenster aus (durchgestrichen in der Liste, 🙈 holt es zurück) – für Entitäten, die dort nur stören.
+- **☆** nimmt ein Gerät ins Raumfenster der 3D-Ansicht auf, ohne es in den Plan zu setzen. **👁** blendet ein Gerät des Bereichs im Raumfenster aus (durchgestrichen in der Liste, 🙈 holt es zurück) – für Entitäten, die dort nur stören. **Aa** blendet nur den Zustand eines Geräts im Raumfenster aus (∅ zeigt ihn wieder), etwa bei einem Rollladen ohne Rückmeldung; ein reines „unbekannt“ lässt das Raumfenster bei Schaltern, Rollläden und Lampen ohnehin weg.
 - Ein platziertes Gerät ziehst du im Plan an seinen Platz.
 
 ![Ein Gerät ausgewählt](images/editor-device.jpg)
@@ -266,6 +266,7 @@ Ein ausgewähltes Gerät hat:
 - **Vor dem Schalten nachfragen:** Beim Antippen in 3D, im Schnellmenü und im Raumfenster erscheint erst eine Rückfrage. Das schützt etwa den Server-Schalter vor einem versehentlichen Tipp. Ein Doppeltipp auf den Raum lässt dieses Gerät aus.
 - **Symbol in 3D:** *Automatisch* folgt dem Schalter Keine / Wichtige / Alle der 3D-Ansicht. *Immer zeigen* zeigt das Symbol auch bei „Wichtige“, etwa für einen Temperatursensor. *Ohne Watt* lässt die Leistung weg, etwa an einer Steckdose. *Ausblenden* zeigt nie ein Symbol. Bei „Keine“ bleiben alle Symbole aus.
 - **Eigenes Symbol:** Der Name eines Material-Design-Icons wie in Home Assistant, etwa `mdi:thermometer` oder `mdi:water-alert`, ersetzt das Symbol nach Geräteart im Pin. Leer lassen = Standard. Gilt genauso für elektrische Möbel.
+- **Eigener Name** und **Name unter dem Symbol in 3D zeigen:** Mit Haken steht der eigene Name klein unter dem Pin – drei Thermometer im Garten („Pool Wasser“, „Pool Luft“, „Gewächshaus“) bleiben so unterscheidbar. Der Haken erscheint, sobald ein eigener Name eingetragen ist; Möbel mit eigenem Namen haben ihn genauso. Die Karten-Option `marker_names: true` zeigt die Namen aller Geräte mit eigenem Namen.
 - **In Raummitte** und **Entfernen**.
 
 ### 4.11 Leuchten
@@ -387,7 +388,7 @@ Zu jedem Dachfenster gehören ein **Name** (optional), **Rollladen**, **Kontakt*
 
 Im Werkzeug **Energie** lassen sich nur Solarfelder und Energiegeräte verschieben, im Grundriss wie in 3D; Räume und Möbel sind dort gesperrt, ein Hinweis oben im Grundriss sagt das. Das Werkzeug sammelt alles rund um Energie im Haus, zuerst die **Solarfelder** (Zähler, Heizung und Wärmepumpe folgen). **+ Solarfeld** legt ein Feld auf die sonnigste freie Dachfläche, so groß, wie es passt. **+ Frei aufgeständert** stellt ein Feld auf Gestellen neben das Haus, etwa in den Garten oder auf ein flaches Garagendach. **+ An der Wand** hängt eine Reihe Module an die sonnigste Außenwand der angezeigten Etage (Fassade, Balkon).
 
-Felder lassen sich im Grundriss und in der **3D-Ansicht daneben** mit der Maus verschieben, auch auf eine andere Dachfläche oder Wand. Dachfenster genauso, im Werkzeug **Dach**. Die Module liegen in der Neigung der Dachfläche, auf einem Flachdach stehen sie aufgeständert. Das klappt beim einfachen Sattel- und Flachdach und auf allen Dachabschnitten (Satteldach, Walmdach, Pultdach, Flachdach).
+Felder lassen sich im Grundriss und in der **3D-Ansicht daneben** mit der Maus verschieben, auch auf eine andere Dachfläche oder Wand. Dachfenster genauso, im Werkzeug **Dach**. Die Module liegen in der Neigung der Dachfläche, auf einem Flachdach stehen sie aufgeständert. Das klappt beim einfachen Sattel- und Flachdach und auf allen Dachabschnitten (Satteldach, Walmdach, Pultdach, Flachdach). Bei Walm- und Zeltdach stehen auch die beiden dreieckigen **Walmseiten** zur Wahl, etwa die Südseite eines Walmdachs mit Ost-West-First; die Felder werden zur Spitze hin schmaler.
 
 | Feld | Wirkung |
 |---|---|
@@ -757,6 +758,7 @@ quality: auto           # auto | low | high
 theme: neon             # neon | blueprint | day
 accent: "#ff8a00"       # eigene Akzentfarbe (Linien im Neon-Look, Knöpfe, Pins); weglassen = Cyan
 markers: important      # none | important | all
+marker_names: false     # true: Geräte mit eigenem Namen zeigen ihn unter dem Symbol
 heatmap: none           # none | temperature | humidity | co2
 room_panel: true        # Raum antippen öffnet das Raumfenster
 room_names: true

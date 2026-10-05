@@ -22,11 +22,11 @@ const LIFT = 0.07;
 const FLAT_SLAB = 0.25;
 
 export interface RoofFace {
-  /** "main:a" / "main:b" / "main:top" for the single roof, "<section id>:a" / ":b" / ":top" for sections. */
+  /** "main:a" / "main:b" / "main:top" for the single roof, "<section id>:a" / ":b" / ":top" for sections; the hip ends of a hip or pyramid roof are ":c" (start) and ":d" (end). */
   key: string;
   /** Section the face belongs to (null: the single roof). */
   section: string | null;
-  side: "a" | "b" | "top";
+  side: "a" | "b" | "c" | "d" | "top";
   flat: boolean;
   /** Eave corner (heights above the ground), unit vectors along the eave and up the slope, the normal. */
   o: V3;
@@ -202,7 +202,45 @@ function sectionFaces(s: RoofSection, ov: { u0: number; u1: number; a: number; b
     // side b: the eave at v = w + overhang, running the other way so the face looks outwards
     out.push(slopeFace(`${s.id}:b`, s.id, "b", P(U1, fr.w + ob, pr.y(fr.w + ob)), P(U0, fr.w + ob, pr.y(fr.w + ob)), P(U1, pr.vr, pr.rh), s.pitch_b, (t) => [in1 * (t / len), lu - in0 * (t / len)]));
   }
+  // the hip ends: triangles from the end eave up to where the ridge starts (D134, D158)
+  if (hip) {
+    const ya = pr.y(-oa);
+    const yb = pr.y(fr.w + ob);
+    const ends: [string, "c" | "d", V3, V3, V3][] = [
+      [`${s.id}:c`, "c", P(U0, fr.w + ob, yb), P(U0, -oa, ya), P(fr.u0 + d, pr.vr, pr.rh)],
+      [`${s.id}:d`, "d", P(U1, -oa, ya), P(U1, fr.w + ob, yb), P(fr.u1 - d, pr.vr, pr.rh)],
+    ];
+    for (const [key, side, o, e, apex] of ends) {
+      const face = triangleFace(key, s.id, side, o, e, apex);
+      if (face) out.push(face);
+    }
+  }
   return out;
+}
+
+/**
+ * A triangular roof face (a hip end): the eave from `o` to `eaveEnd`, rising to `apex`. The slope frame
+ * is the plane's own (s at right angles to the eave), the usable span narrows linearly towards the apex.
+ */
+function triangleFace(key: string, section: string, side: "c" | "d", o: V3, eaveEnd: V3, apex: V3): RoofFace | null {
+  const lu = len(sub(eaveEnd, o));
+  if (lu < 0.3) return null;
+  const eu = unit(sub(eaveEnd, o));
+  const ra = sub(apex, o);
+  const uf = ra[0] * eu[0] + ra[1] * eu[1] + ra[2] * eu[2];
+  const up: V3 = [ra[0] - eu[0] * uf, ra[1] - eu[1] * uf, ra[2] - eu[2] * uf];
+  const ls = len(up);
+  if (ls < 0.3) return null;
+  const es = unit(up);
+  let n = unit(cross(eu, es));
+  if (n[1] < 0) n = [-n[0], -n[1], -n[2]];
+  const down = unit([-es[0], 0, -es[2]]);
+  const pitch = Math.atan2(es[1], Math.hypot(es[0], es[2])) / DEG;
+  const span = (t: number): [number, number] => {
+    const k = Math.min(1, Math.max(0, t / ls));
+    return [uf * k, lu - (lu - uf) * k];
+  };
+  return { key, section, side, flat: false, o, eu, es, n, lu, ls, pitch, span, facing: [down[0], down[2]] };
 }
 
 function slopeFace(key: string, section: string | null, side: "a" | "b", o: V3, eaveEnd: V3, ridge: V3, pitch: number, span: (s: number) => [number, number]): RoofFace {

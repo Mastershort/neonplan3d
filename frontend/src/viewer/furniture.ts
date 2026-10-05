@@ -39,11 +39,14 @@ class Builder {
   private readonly buf: GeoBuffer;
   private readonly lines: LineBuffer;
   private readonly tf: Tf;
+  /** The transform mirrors (negative determinant): parts not wound by ccw() come out inside out. */
+  readonly mirrored: boolean;
 
   constructor(buf: GeoBuffer, lines: LineBuffer, tf: Tf) {
     this.buf = buf;
     this.lines = lines;
     this.tf = tf;
+    this.mirrored = tfMirrors(tf);
   }
 
   /** The same buffers with the local coordinates turned by `deg` around (cx, cz): turned parts of pack items. */
@@ -98,7 +101,9 @@ class Builder {
     const along = axis === "x" ? cx : cz;
     const across = axis === "x" ? cz : cx;
     const at = (a: number, c: number): Vec2 => (axis === "x" ? this.tf(a, c) : this.tf(c, a));
+    const p0 = this.buf.p.length;
     pushLyingCyl(this.buf, at, along - len / 2, along + len / 2, across, cy, r, side, cap, n);
+    if (this.mirrored) flipWinding(this.buf, p0);
     if (edges) {
       for (const a of [along - len / 2, along + len / 2]) {
         for (let i = 0; i < n; i++) {
@@ -138,6 +143,14 @@ class Builder {
       this.line(a, a, y0, y1, color);
     }
   }
+}
+
+/** Whether a plan transform mirrors (its determinant is negative). */
+function tfMirrors(tf: Tf): boolean {
+  const o = tf(0, 0);
+  const ex = tf(1, 0);
+  const ez = tf(0, 1);
+  return (ex[0] - o[0]) * (ez[1] - o[1]) - (ex[1] - o[1]) * (ez[0] - o[0]) < 0;
 }
 
 function ccw(poly: Vec2[]): Vec2[] {
@@ -330,11 +343,18 @@ export const FRIDGE_DOOR = 0.06;
  * outer hinge: the left one carries the water dispenser, the right one the screen. An open door turns
  * red – it should not stay open for long.
  */
-export function pushFridgeDoors(buf: GeoBuffer, f: Pick<Furniture, "x" | "z" | "rotation" | "w" | "d" | "h">, base: number, left: number, right: number): void {
+export function pushFridgeDoors(buf: GeoBuffer, f: Pick<Furniture, "x" | "z" | "rotation" | "w" | "d" | "h" | "mirror">, base: number, left: number, right: number): void {
+  const p0 = buf.p.length;
+  pushFridgeDoorsUnflipped(buf, f, base, left, right);
+  if (f.mirror) flipWinding(buf, p0);
+}
+
+function pushFridgeDoorsUnflipped(buf: GeoBuffer, f: Pick<Furniture, "x" | "z" | "rotation" | "w" | "d" | "h" | "mirror">, base: number, left: number, right: number): void {
   const a = f.rotation * DEG;
   const c = Math.cos(a);
   const s = Math.sin(a);
-  const tf = (lx: number, lz: number): [number, number] => [f.x + lx * c - lz * s, f.z + lx * s + lz * c];
+  const mx = f.mirror ? -1 : 1;
+  const tf = (lx: number, lz: number): [number, number] => [f.x + mx * lx * c - lz * s, f.z + mx * lx * s + lz * c];
   const y0 = base + 0.05;
   const y1 = base + f.h - 0.02;
   const red = new Color(0.75, 0.1, 0.14);
@@ -802,6 +822,11 @@ export const RADIATOR_Y = 0.12;
  * shown while the linked device is on. Null for furniture without a screen.
  */
 export function screenRect(f: Furniture, floor?: Floor): { x0: number; x1: number; y0: number; y1: number; z: number } | null {
+  const r = screenRectUnmirrored(f, floor);
+  return r && f.mirror ? { ...r, x0: -r.x1, x1: -r.x0 } : r;
+}
+
+function screenRectUnmirrored(f: Furniture, floor?: Floor): { x0: number; x1: number; y0: number; y1: number; z: number } | null {
   const w = Math.max(0.05, f.w);
   const d = Math.max(0.05, f.d);
   const h = Math.max(0.005, f.h);
@@ -856,6 +881,7 @@ function contactShadow(shadow: GeoBuffer, tf: Tf, w: number, d: number, strength
   const inner = [tf(-w / 2, -d / 2), tf(w / 2, -d / 2), tf(w / 2, d / 2), tf(-w / 2, d / 2)];
   const outer = [tf(-w / 2 - grow, -d / 2 - grow), tf(w / 2 + grow, -d / 2 - grow), tf(w / 2 + grow, d / 2 + grow), tf(-w / 2 - grow, d / 2 + grow)];
   const P = (p: Vec2) => [p[0], y, p[1]];
+  const s0 = shadow.p.length;
   shadow.tri(P(inner[0]), P(inner[1]), P(inner[2]), dark);
   shadow.tri(P(inner[0]), P(inner[2]), P(inner[3]), dark);
   for (let i = 0; i < 4; i++) {
@@ -863,21 +889,17 @@ function contactShadow(shadow: GeoBuffer, tf: Tf, w: number, d: number, strength
     shadow.tri(P(inner[i]), P(outer[i]), P(outer[j]), dark, clear, clear);
     shadow.tri(P(inner[i]), P(outer[j]), P(inner[j]), dark, clear, dark);
   }
+  if (tfMirrors(tf)) flipWinding(shadow, s0);
 }
 
 export function pushFurniture(buf: GeoBuffer, lines: LineBuffer, shadow: GeoBuffer, f: Furniture, base = 0): void {
-  const p0 = buf.p.length;
-  const s0 = shadow.p.length;
+  // a mirrored item needs no rewinding here: boxes, lofts and upright cylinders wind themselves (ccw),
+  // lying cylinders and the contact shadow rewind themselves when the transform mirrors (#159)
   pushUpright(buf, lines, shadow, f, base);
-  // a mirrored item is built with its x flipped, which turns every triangle inside out: wind them back
-  if (f.mirror) {
-    flipWinding(buf, p0);
-    flipWinding(shadow, s0);
-  }
 }
 
 /** Swap the second and third vertex of every triangle from `from` on (positions, colours, folds, uvs, tiles). */
-function flipWinding(buf: GeoBuffer, from: number): void {
+export function flipWinding(buf: GeoBuffer, from: number): void {
   const swap = (arr: number[] | null, start: number, n: number) => {
     if (!arr) return;
     for (let k = 0; k < n; k++) {

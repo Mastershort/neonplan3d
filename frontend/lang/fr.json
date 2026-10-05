@@ -1155,5 +1155,11 @@
  "presence": "Présence",
  "presence_hint": "Capteur de pièce par personne (p. ex. ESPresense, Bermuda) : son état nomme la pièce ou la zone.",
  "presence_sensor": "Capteur de pièce",
- "no_persons": "Il n'y a aucune personne dans Home Assistant."
+ "no_persons": "Il n'y a aucune personne dans Home Assistant.",
+ "show_name": "Afficher le nom sous le symbole en 3D",
+ "card_marker_names": "Noms propres sur les symboles",
+ "card_marker_names_hint": "Chaque appareil avec un nom propre l'affiche en petit sous son symbole.",
+ "furniture_search_none": "Rien trouvé. Essaie un autre mot.",
+ "panel_state_hide": "Masquer l'état dans le panneau de la pièce",
+ "panel_state_show": "Afficher à nouveau l'état dans le panneau de la pièce"
 }

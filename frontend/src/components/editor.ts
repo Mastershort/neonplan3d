@@ -5424,6 +5424,12 @@ export class Fp3dEditor extends LitElement {
           >${this.t("furn_name")}
           <input type="text" maxlength="60" .value=${f.name ?? ""} ?disabled=${!admin} placeholder=${this.t(`furn_${f.type}` as I18nKey) === `furn_${f.type}` ? "" : this.t(`furn_${f.type}` as I18nKey)} @change=${(e: Event) => this.updateFurniture({ name: (e.target as HTMLInputElement).value.trim() || null })} />
         </label>
+        ${f.name
+          ? html`<label class="fp3d-check fp3d-wide"
+              ><input type="checkbox" .checked=${!!f.show_name} ?disabled=${!admin} @change=${(ev: Event) => this.updateFurniture({ show_name: (ev.target as HTMLInputElement).checked || undefined })} />
+              ${this.t("show_name")}</label
+            >`
+          : nothing}
         <label class="fp3d-field fp3d-wide"
           >${this.t("furniture_type")}
           <select ?disabled=${!admin} @change=${(e: Event) => this.updateFurniture({ type: (e.target as HTMLSelectElement).value })}>
@@ -5913,14 +5919,33 @@ export class Fp3dEditor extends LitElement {
   }
 
   /** A section of the library: folded away unless open (or while a search shows its hits). */
-  private librarySection(key: string, title: string, items: { type: string; label: string }[], q: string) {
-    const hits = q ? items.filter((it) => it.label.toLowerCase().includes(q)) : items;
+  private librarySection(key: string, title: string, items: { type: string; label: string; search?: string }[], q: string) {
+    // every word of the query somewhere in the item's names, its id or its section's title (D155)
+    const words = fold(q).split(/\s+/).filter(Boolean);
+    const hits = words.length ? items.filter((it) => {
+      const hay = fold(`${it.label} ${it.search ?? ""} ${it.type.replace(/[_:.]/g, " ")} ${title}`);
+      return words.every((w) => hay.includes(w));
+    }) : items;
     if (q && !hits.length) return nothing;
     const open = q ? true : this._libOpen.has(key);
     return html`<button class="fp3d-lib-head fp3d-lib-toggle" aria-expanded=${open} @click=${() => this.toggleLibrary(key)}>
         <span class="fp3d-lib-caret">${open ? "▾" : "▸"}</span>${title} <span class="fp3d-lib-count">${hits.length}</span>
       </button>
       ${open ? html`<div class="fp3d-library">${hits.map((it) => this.libraryButton(it.type, it.label))}</div>` : nothing}`;
+  }
+
+  /** Whether the furniture library has any item for the query (else a "nothing found" line shows). */
+  private libraryHasHits(q: string): boolean {
+    const words = fold(q).split(/\s+/).filter(Boolean);
+    const lang = this.hass?.language ?? "en";
+    const all: string[] = [
+      ...Object.entries(FURNITURE_GROUPS).flatMap(([g, types]) => types.map((t) => `${this.t(`furn_${t}` as I18nKey)} ${translate(EN_HASS, `furn_${t}` as I18nKey)} ${t.replace(/_/g, " ")} ${this.t(`furn_group_${g}` as I18nKey)}`)),
+      ...(this.packs ?? []).flatMap((p) => p.items.map((it) => `${packItemName(it, lang)} ${Object.values(it.name).join(" ")} ${it.id.replace(/_/g, " ")} ${p.name}`)),
+    ];
+    return all.some((s) => {
+      const hay = fold(s);
+      return words.every((w) => hay.includes(w));
+    });
   }
 
   /** Ids of the stored pictures any screen of the plan uses (in order of first use). */
@@ -6118,13 +6143,17 @@ export class Fp3dEditor extends LitElement {
         placeholder=${this.t("furniture_search")}
         .value=${this._furnQuery}
         @input=${(e: Event) => (this._furnQuery = (e.target as HTMLInputElement).value)}
+        @keydown=${(e: KeyboardEvent) => {
+          if (e.key === "Escape") this._furnQuery = "";
+        }}
       />
+      ${q && !this.libraryHasHits(q) ? html`<p class="fp3d-sub">${this.t("furniture_search_none")}</p>` : nothing}
       ${Object.entries(FURNITURE_GROUPS).map(([group, types]) =>
         this.librarySection(
           `group:${group}`,
           this.t(`furn_group_${group}` as I18nKey),
           // the smart fridge is exclusive: only an installed pack with the feature "fridge_smart" offers it
-          [...types, ...(group === "kitchen" && hasFeature("fridge_smart") ? ["fridge_smart"] : [])].map((t) => ({ type: t, label: this.t(`furn_${t}` as I18nKey) })),
+          [...types, ...(group === "kitchen" && hasFeature("fridge_smart") ? ["fridge_smart"] : [])].map((t) => ({ type: t, label: this.t(`furn_${t}` as I18nKey), search: translate(EN_HASS, `furn_${t}` as I18nKey) })),
           q,
         ),
       )}
@@ -6132,7 +6161,7 @@ export class Fp3dEditor extends LitElement {
         this.librarySection(
           `pack:${pack.id}`,
           pack.name,
-          pack.items.map((it) => ({ type: packType(pack.id, it.id), label: packItemName(it, lang) })),
+          pack.items.map((it) => ({ type: packType(pack.id, it.id), label: packItemName(it, lang), search: Object.values(it.name).join(" ") })),
           q,
         ),
       )}
@@ -6246,6 +6275,12 @@ export class Fp3dEditor extends LitElement {
           >${this.t("device_name")}
           <input type="text" .value=${pl.name ?? ""} ?disabled=${!admin} maxlength="60" placeholder=${entityName(this.hass!, pl.entity_id)} @change=${(e: Event) => this.updateDevice({ name: (e.target as HTMLInputElement).value.trim() || null })}
         /></label>
+        ${pl.name
+          ? html`<label class="fp3d-check fp3d-wide"
+              ><input type="checkbox" .checked=${!!pl.show_name} ?disabled=${!admin} @change=${(ev: Event) => this.updateDevice({ show_name: (ev.target as HTMLInputElement).checked || undefined })} />
+              ${this.t("show_name")}</label
+            >`
+          : nothing}
         ${this.iconInput(pl.icon, (v) => this.updateDevice({ icon: v }))}
       </div>
       ${admin
@@ -6286,6 +6321,7 @@ export class Fp3dEditor extends LitElement {
     ).length;
     const pinned = new Set(room.panel ?? []);
     const hidden = new Set(room.hidden ?? []);
+    const noState = new Set(room.no_state ?? []);
     // where an entity from elsewhere is placed already (placing it here moves it)
     const placedIn = new Map<string, string>();
     for (const f of this._doc.floors)
@@ -6311,6 +6347,16 @@ export class Fp3dEditor extends LitElement {
               @click=${() => this.updateRoom({ hidden: hidden.has(id) ? [...hidden].filter((x) => x !== id) : [...hidden, id] })}
             >
               ${hidden.has(id) ? "🙈" : "👁"}
+            </button>`
+          : nothing}
+        ${admin && !extra && !hidden.has(id)
+          ? html`<button
+              class="fp3d-pin ${noState.has(id) ? "fp3d-pin-on" : ""}"
+              aria-pressed=${noState.has(id)}
+              title=${this.t(noState.has(id) ? "panel_state_show" : "panel_state_hide")}
+              @click=${() => this.updateRoom({ no_state: noState.has(id) ? [...noState].filter((x) => x !== id) : [...noState, id] })}
+            >
+              ${noState.has(id) ? "∅" : "Aa"}
             </button>`
           : nothing}
         ${admin && !placed
@@ -7989,6 +8035,10 @@ export class Fp3dEditor extends LitElement {
         stroke-width: 2.4;
       }
       .fp3d-search {
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        background-color: var(--fp3d-panel, #0d1424);
         width: 100%;
         box-sizing: border-box;
         font: inherit;
@@ -8177,3 +8227,11 @@ function distToSegment(p: Vec2, a: Vec2, b: Vec2): number {
   const t = Math.min(1, Math.max(0, ((p[0] - a[0]) * dx + (p[1] - a[1]) * dz) / l2));
   return Math.hypot(p[0] - a[0] - dx * t, p[1] - a[1] - dz * t);
 }
+
+/** Lower case without accents, so "kuche" finds "Küche" and "chaise" finds "Chaise longue". */
+function fold(s: string): string {
+  return s.toLowerCase().normalize("NFD").replace(/\p{M}/gu, "");
+}
+
+/** A stand-in hass for English names (the furniture search also matches the English name). */
+const EN_HASS = { language: "en" } as HomeAssistant;

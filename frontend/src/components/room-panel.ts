@@ -253,7 +253,7 @@ export class Fp3dRoomPanel extends LitElement {
     return html`<div class="fp3d-rp-row">
       <span class="fp3d-rp-icon ${on ? "fp3d-rp-on" : ""}">${icon("light")}</span>
       ${this.nameButton(id)}
-      <span class="fp3d-rp-state">${stateText(this.hass, st)}</span>
+      <span class="fp3d-rp-state">${this.stateOf(st)}</span>
       ${this.toggle(st, on, () => this.call("light", "toggle", { entity_id: id }))}
       ${on && dimmable
         ? html`<label class="fp3d-rp-slider"
@@ -301,7 +301,7 @@ export class Fp3dRoomPanel extends LitElement {
     return html`<div class="fp3d-rp-row">
       <span class="fp3d-rp-icon">${icon("cover")}</span>
       ${this.nameButton(id)}
-      <span class="fp3d-rp-state">${stateText(this.hass, st)}</span>
+      <span class="fp3d-rp-state">${this.stateOf(st)}</span>
       <div class="fp3d-rp-buttons">
         <button class="fp3d-btn fp3d-rp-small" ?disabled=${na} @click=${() => this.askFor(id) && this.call("cover", "open_cover", { entity_id: id })}>${this.t("cover_open")}</button>
         ${features & COVER_STOP
@@ -353,7 +353,7 @@ export class Fp3dRoomPanel extends LitElement {
     return html`<div class="fp3d-rp-row">
       <span class="fp3d-rp-icon ${a.hvac_action === "heating" ? "fp3d-rp-on" : ""}">${icon("climate")}</span>
       ${this.nameButton(id)}
-      <span class="fp3d-rp-state">${stateText(this.hass, st)}</span>
+      <span class="fp3d-rp-state">${this.stateOf(st)}</span>
       ${target !== null
         ? html`<div class="fp3d-rp-stepper fp3d-rp-wide">
             <button class="fp3d-btn" aria-label=${this.t("temp_down")} @click=${() => set(target - step)}>−</button>
@@ -377,6 +377,17 @@ export class Fp3dRoomPanel extends LitElement {
     </div>`;
   }
 
+  /**
+   * The state text of a row: left out when the room says so (D154) or when a device that is not a
+   * sensor only reports "unknown" (covers without position feedback).
+   */
+  private stateOf(st: HassEntity, text = stateText(this.hass, st)): string {
+    if (this.room?.no_state?.includes(st.entity_id)) return "";
+    const kind = kindOf(st.entity_id);
+    if (st.state === "unknown" && kind !== "sensor" && kind !== "binary") return "";
+    return text;
+  }
+
   private stateLabel(state: string): string {
     const key = `state_${state}` as I18nKey;
     const s = this.t(key);
@@ -391,7 +402,7 @@ export class Fp3dRoomPanel extends LitElement {
     return html`<div class="fp3d-rp-row">
       <span class="fp3d-rp-icon ${st.state === "playing" ? "fp3d-rp-on" : ""}">${icon("media")}</span>
       ${this.nameButton(id)}
-      <span class="fp3d-rp-state">${this.stateLabel(st.state)}</span>
+      <span class="fp3d-rp-state">${this.stateOf(st, this.stateLabel(st.state))}</span>
       ${title ? html`<p class="fp3d-rp-media fp3d-rp-wide">${title}</p>` : nothing}
       <div class="fp3d-rp-buttons fp3d-rp-wide">
         <button class="fp3d-btn fp3d-rp-small" aria-label=${this.t("previous")} ?disabled=${na} @click=${() => this.call("media_player", "media_previous_track", { entity_id: id })}>
@@ -427,7 +438,7 @@ export class Fp3dRoomPanel extends LitElement {
     return html`<div class="fp3d-rp-row">
       <span class="fp3d-rp-icon ${on ? "fp3d-rp-on" : ""}">${icon(kind)}</span>
       ${this.nameButton(id)}
-      <span class="fp3d-rp-state">${stateText(this.hass, st)}</span>
+      <span class="fp3d-rp-state">${this.stateOf(st)}</span>
       ${this.toggle(st, on, act)}
     </div>`;
   }
@@ -461,7 +472,7 @@ export class Fp3dRoomPanel extends LitElement {
     return html`<div class="fp3d-rp-row">
       <span class="fp3d-rp-icon ${warn ? "fp3d-rp-on" : ""}">${icon(kind)}</span>
       ${this.nameButton(st.entity_id)}
-      <span class="fp3d-rp-state">${stateText(this.hass, st)}</span>
+      <span class="fp3d-rp-state">${this.stateOf(st)}</span>
     </div>`;
   }
 

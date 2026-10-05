@@ -43,6 +43,8 @@ ROOM_SCHEMA = vol.Schema(
         vol.Optional("panel", default=list): vol.All([vol.All(str, vol.Length(max=255))], vol.Length(max=100)),
         # entities of the area kept out of the room panel
         vol.Optional("hidden", default=list): vol.All([vol.All(str, vol.Length(max=255))], vol.Length(max=200)),
+        # entities whose state text the room panel leaves out
+        vol.Optional("no_state", default=list): vol.All([vol.All(str, vol.Length(max=255))], vol.Length(max=200)),
         # split points on each edge (metres from the edge's start) that cut the wall into parts of their own
         vol.Optional("wall_splits"): vol.All(
             [vol.Any(None, vol.All([vol.All(vol.Coerce(float), vol.Range(min=0.05, max=200))], vol.Length(max=16)))],
@@ -171,8 +173,9 @@ FURNITURE_SCHEMA = vol.Schema(
         vol.Required("d"): _LENGTH,
         vol.Required("h"): _LENGTH,
         vol.Required("variant"): vol.Any(None, vol.All(str, vol.Length(max=32))),
-        # its own name (e.g. "Wechselrichter Nord"); None = the type's name
+        # its own name (e.g. "Wechselrichter Nord"); None = the type's name; show_name puts it under the marker
         vol.Optional("name", default=None): vol.Any(None, vol.All(str, vol.Length(max=60))),
+        vol.Optional("show_name", default=False): bool,
         # linked entities (e.g. the TV's media player, a power sensor): None = automatic, "none" = no entity
         vol.Optional("entity", default=None): vol.Any(None, vol.All(str, vol.Length(max=255))),
         vol.Optional("power", default=None): vol.Any(None, vol.All(str, vol.Length(max=255))),
@@ -249,8 +252,9 @@ PLACEMENT_SCHEMA = vol.Schema(
         vol.Optional("marker", default=None): vol.Any(None, vol.In(["always", "no_power", "never"])),
         # an own symbol for the marker: a Material Design icon name without "mdi:"
         vol.Optional("icon", default=None): vol.Any(None, vol.All(str, vol.Length(max=64))),
-        # an own name in the plan, without renaming the entity
+        # an own name in the plan, without renaming the entity; show_name puts it under the marker
         vol.Optional("name", default=None): vol.Any(None, vol.All(str, vol.Length(max=60))),
+        vol.Optional("show_name", default=False): bool,
         # cameras: show the field-of-view wedge on the floor (None = yes)
         vol.Optional("cone", default=None): vol.Any(None, bool),
         # fixed against moving by accident

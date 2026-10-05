@@ -3,7 +3,7 @@ import { test } from "node:test";
 import type { Floor, Opening, Room } from "../model.ts";
 import { newFloor } from "../model.ts";
 import { buildFloorGeometry } from "./build.ts";
-import { buildLightSurface, lightColors, type LightSource } from "./lighting.ts";
+import { buildLightSurface, lightColors, type LightSource, zoneOf } from "./lighting.ts";
 
 function rect(id: string, x0: number, z0: number, x1: number, z1: number): Room {
   return { id, name: id, area_id: null, points: [[x0, z0], [x1, z0], [x1, z1], [x0, z1]], floor_material: "wood" };
@@ -140,4 +140,12 @@ test("wall light leaves out windows", () => {
   // the columns end at the window's sides: a cell right beside the frame, none across it
   assert.ok(centres.some(([x, y]) => x > 1.2 && x < 1.4 && y > 1 && y < 2), "cell beside the window");
   assert.equal(centres.filter(([x, y]) => x > 1.3 && x < 1.5 && y > 1 && y < 2 && x > 1.4).length, 0);
+});
+
+test("joined rooms keep the outside zone for outdoor lamps (#160)", () => {
+  assert.equal(zoneOf([0, 0, 2], 1), 0);
+  assert.equal(zoneOf([0, 0, 2], 2), 2);
+  assert.equal(zoneOf([0, 0, 2], 3), 3);
+  assert.equal(zoneOf(null, 3), 3);
+  assert.equal(zoneOf([0, 0], -1), -1);
 });

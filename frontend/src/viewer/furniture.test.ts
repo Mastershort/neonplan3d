@@ -79,3 +79,28 @@ test("the mount height is absolute: a wall cabinet hangs at 1.45 m and can go lo
   assert.ok(Math.abs(minY(cab) - 1.45) < 1e-6);
   assert.ok(Math.abs(minY({ ...cab, mount_y: 1.0 }) - 1.0) < 1e-6);
 });
+
+/** Signed volume of a closed-ish mesh: positive when its triangles face outwards. */
+function orientation(buf: GeoBuffer): number {
+  let v = 0;
+  for (let i = 0; i < buf.p.length; i += 9) {
+    const [ax, ay, az, bx, by, bz, cx, cy, cz] = buf.p.slice(i, i + 9);
+    v += ax * (by * cz - bz * cy) - ay * (bx * cz - bz * cx) + az * (bx * cy - by * cx);
+  }
+  return v;
+}
+
+test("a mirrored item keeps its faces pointing outwards (#159)", () => {
+  setPacks([PACK]);
+  for (const type of ["sofa", "bed", "fridge", "pack:t.cars:wedge"]) {
+    const vol = (mirror: boolean) => {
+      const buf = new GeoBuffer();
+      const f: Furniture = { id: "f", type, x: 0, z: 0, rotation: 30, w: 2, d: 1, h: 1, variant: null, entity: null, power: null, mirror };
+      pushFurniture(buf, new LineBuffer(), new GeoBuffer(), f);
+      return orientation(buf);
+    };
+    const plain = vol(false);
+    const mirrored = vol(true);
+    assert.ok(Math.sign(plain) === Math.sign(mirrored) && Math.abs(plain - mirrored) < Math.abs(plain) * 0.01 + 1e-6, `${type}: ${plain} vs ${mirrored}`);
+  }
+});
