@@ -840,7 +840,9 @@ export class Fp3dView3d extends LitElement {
         // a cloud speaker (Alexa, Google) drops out or reports "idle" for a moment between songs:
         // its last card stands in for a short while instead of blinking away
         const graced = this.mediaGrace.get(id);
-        const showing = !isUnavailable(st) && (st.state === "playing" || st.state === "paused") && typeof st.attributes.media_title === "string" && !!st.attributes.media_title;
+        // what it plays: the title, else the app or the source (a receiver on "TV", a speaker on Bluetooth)
+        const label = [st.attributes.media_title, st.attributes.app_name, st.attributes.source].find((v): v is string => typeof v === "string" && !!v.trim()) ?? "";
+        const showing = !isUnavailable(st) && (st.state === "playing" || (st.state === "paused" && !!label) || (st.state === "on" && !!st.attributes.source));
         if (!showing) {
           if (graced && graced.until > Date.now()) {
             sound.push({ ...graced.source, playing: false, level: 0 });
@@ -859,7 +861,7 @@ export class Fp3dView3d extends LitElement {
         const vol = typeof a.volume_level === "number" ? Math.min(1, Math.max(0, a.volume_level)) : 0.5;
         const members = Array.isArray(a.group_members) ? (a.group_members as string[]).filter((m) => m !== id) : [];
         sound.push({ id, floorId: floor.id, x, z, level: playing ? 0.3 + 0.7 * vol : 0, playing, members });
-        const title = String(a.media_title);
+        const title = label || translate(hass, "holo_media_playing");
         const anchor = { p: [x, floor.elevation + top + 0.12, z] as [number, number, number], n: [0, 1, 0] as [number, number, number], floorId: floor.id, size: holoSize * 0.7, roof: false, views: "all" as const };
         const card: HoloCard = {
           kind: "media",
