@@ -9,6 +9,8 @@
 
 - **Kamera-Wand** (Kamera-Cockpit): Die Kacheln teilen sich die Wand je nach Kamerazahl – eine Kamera füllt sie, zwei stehen nebeneinander, bis vier als Raster 2×2 – statt klein in der Ecke zu sitzen. Antippen zeigt die Kamera groß, als **Livestream** über den Player von Home Assistant (die Kacheln bleiben Standbilder, ein kleiner Hinweis sagt es); von dort „Durch die Kamera schauen“ in die 3D-Ansicht, und „Zurück zur Ansicht“ bringt die Wand zurück. Vorher blieb die Wand beim Durchschauen offen.
 - Beim Durchschauen in 3D steht in der Leiste, dass das Bild ein Standbild ist (alle 5 s neu, auf der Tablet-Stufe alle 10 s).
+- **Türformular:** Der Haken „Ohne Sensor geschlossen zeigen“ fehlte – er saß im Sensorblock, den nur Fenster haben. Positions-Sensor und „Vor dem Schalten nachfragen“ erscheinen erst, wenn ein Antrieb gesetzt oder gefunden ist; das Feld heißt bei Türen und Toren jetzt „Antrieb“.
+- **Wandhöhen:** Die Zeilen im Raumformular sind wieder sauber angeordnet (Name und Höhe, darunter die Knöpfe, ein Teilpunkt in eigener Zeile), statt dass die Schere aus der Reihe rutscht.
 
 ---
 
@@ -23,3 +25,5 @@
 
 - **Camera wall** (camera cockpit): the tiles share the wall by camera count – one camera fills it, two sit side by side, up to four in a 2×2 grid – instead of sitting small in a corner. A tap shows that camera big as a **live stream** through Home Assistant's own player (the tiles stay stills, a small note says so); from there "Look through the camera" enters the 3D view, and "Back to the view" brings the wall back. Before, the wall stayed open while looking through.
 - The look-through bar in 3D says that the picture is a still (refreshed every 5 s, every 10 s on the tablet level).
+- **Door form:** the switch "Show closed without a sensor" was missing – it sat in the window-only sensor block; the drive's position sensor and confirm switch show only once a drive is set or found; the drive field is called "Drive" for doors and gates.
+- **Wall heights:** the rows in the room form lay out cleanly again (name and height, the buttons below, a split point in its own line) instead of the cut button slipping out of line.
