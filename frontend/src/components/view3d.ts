@@ -90,6 +90,7 @@ export class Fp3dView3d extends LitElement {
     markerMode: { attribute: false },
     heatMode: { attribute: false },
     theme: { attribute: false },
+    accent: { attribute: false },
     packs: { attribute: false },
     showEnergy: { attribute: false },
     flows: { attribute: false },
@@ -157,6 +158,8 @@ export class Fp3dView3d extends LitElement {
   /** Imported furniture packs (a new list rebuilds pack furniture). */
   declare packs: unknown;
   declare theme: Theme;
+  /** Accent colour for the neon look ("#rrggbb"), null for the stock cyan. */
+  declare accent: string | null;
   /** Show the energy values at the top (cards can switch them off). */
   declare showEnergy: boolean;
   /** Power flow lines fixed on or off (cards); null: the viewer's own toggle decides. */
@@ -314,6 +317,7 @@ export class Fp3dView3d extends LitElement {
     this.markerMode = "important";
     this.heatMode = "none";
     this.theme = "neon";
+    this.accent = null;
     this.furnish = false;
     this.trail = false;
     this.weather = true;
@@ -445,6 +449,7 @@ export class Fp3dView3d extends LitElement {
       });
       this.viewer.setWallMode(this.wallMode);
       this.viewer.setTheme(this.theme);
+      this.viewer.setAccent(this.accent ?? null);
       this.viewer.setFurnishMode(this.furnish);
       this.viewer.setSurfaceGrab(this.surfaceGrab ?? null);
       this.viewer.setFurnishTypes(this.furnishTypes ?? null);
@@ -515,6 +520,7 @@ export class Fp3dView3d extends LitElement {
     if (changed.has("keepRoof")) v.setKeepRoof(this.keepRoof);
     if (changed.has("floorStack")) v.setFloorStack(this.floorStack);
     if (changed.has("theme")) v.setTheme(this.theme);
+    if (changed.has("accent")) v.setAccent(this.accent ?? null);
     if (changed.has("surfaceGrab")) v.setSurfaceGrab(this.surfaceGrab ?? null);
     if (changed.has("furnishTypes")) v.setFurnishTypes(this.furnishTypes ?? null);
     if (changed.has("furnish")) {

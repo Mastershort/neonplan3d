@@ -2,7 +2,7 @@
 // look, so switching is instant and nothing has to be rebuilt. Signal colours (lit lamps, open windows,
 // glowing screens) are bright and saturated and stay as they are in every look.
 
-import { AdditiveBlending, NormalBlending, type Material } from "three";
+import { AdditiveBlending, NormalBlending, Vector3, type Material } from "three";
 import { THEMES, type Theme } from "../themes.ts";
 
 export type { Theme } from "../themes.ts";
@@ -15,13 +15,31 @@ export function themeIndex(theme: Theme): number {
   return THEMES.indexOf(theme);
 }
 
+/** The neon look's accent (lines, cyan surfaces): the stock cyan, or a colour of the user's choice. */
+export const accentUniform = { value: new Vector3(0.22, 0.88, 1) };
+export const accentOnUniform = { value: 0 };
+
+/** "#rrggbb" to the 0–1 colour the shader uses, null for anything else. */
+export function parseAccent(hex: string | null | undefined): [number, number, number] | null {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex?.trim() ?? "");
+  if (!m) return null;
+  const n = parseInt(m[1], 16);
+  return [((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255];
+}
+
 const GLSL = `
 uniform int uTheme;
+uniform vec3 uAccent;
+uniform int uAccentOn;
 vec3 fp3dThemed(vec3 c, bool line) {
-  if (uTheme == 0) return c;
   float mx = max(c.r, max(c.g, c.b));
   float mn = min(c.r, min(c.g, c.b));
   float sat = mx > 0.0 ? (mx - mn) / mx : 0.0;
+  if (uTheme == 0) {
+    // an own accent: every line and every cyan surface takes it, as bright as it was
+    if (uAccentOn == 1 && (line || (sat > 0.35 && c.r < c.g * 0.8 && c.b > c.g * 0.85 && c.g > c.b * 0.6))) return uAccent * mx;
+    return c;
+  }
   // signal colours keep their colour
   if (!line && mx > 0.45 && sat > 0.45) return c;
   float l = dot(c, vec3(0.299, 0.587, 0.114));
@@ -47,6 +65,8 @@ export function themed<T extends Material>(material: T, uniform: ThemeUniform, l
   material.onBeforeCompile = (shader, renderer) => {
     before(shader, renderer);
     shader.uniforms.uTheme = uniform;
+    shader.uniforms.uAccent = accentUniform;
+    shader.uniforms.uAccentOn = accentOnUniform;
     shader.fragmentShader = shader.fragmentShader
       .replace("#include <common>", `#include <common>\n${GLSL}`)
       .replace("#include <color_fragment>", `#include <color_fragment>\n  diffuseColor.rgb = fp3dThemed(diffuseColor.rgb, ${line ? "true" : "false"});`);

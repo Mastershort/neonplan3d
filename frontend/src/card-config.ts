@@ -26,6 +26,8 @@ export interface CardConfig {
   heatmap?: "none" | "temperature" | "humidity" | "co2";
   /** Look: neon | blueprint | day. */
   theme?: "neon" | "blueprint" | "day";
+  /** Accent colour for the neon look and the card's chips ("#rrggbb"); leave out for the stock cyan. */
+  accent?: string;
   /** Energy values at the top (default true). */
   energy?: boolean;
   /** Power flow lines always on or off; without it the card has its own switch. */

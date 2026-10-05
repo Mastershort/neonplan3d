@@ -217,7 +217,8 @@ clearTimeout(this.cleanTimer);
     const bar = !!b && !this._clean && (canGoBack || (!!c?.controls && !(this._roomId && c.room_panel !== false)));
     const eye = c?.controls_hidden !== undefined || (c?.controls_hide_after ?? 0) > 0;
     const t = (k: Parameters<typeof translate>[1]) => translate(this.hass, k);
-    return html`<ha-card class=${this._night ? "fp3d-night" : ""} @pointerdown=${this.touch} @keydown=${this.touch} @wheel=${this.touch}>
+    const accent = /^#[0-9a-f]{6}$/i.test(c?.accent ?? "") ? c!.accent : null;
+    return html`<ha-card class=${this._night ? "fp3d-night" : ""} style=${accent ? `--fp3d-accent:${accent}` : ""} @pointerdown=${this.touch} @keydown=${this.touch} @wheel=${this.touch}>
       <div class="fp3d-card-body" style="height:${size}">
         ${b && b.floors.some((f) => f.rooms.length)
           ? html`<fp3d-view3d
@@ -234,6 +235,7 @@ clearTimeout(this.cleanTimer);
               .markerMode=${this._config?.markers ?? "important"}
               .heatMode=${heat}
               .theme=${this._config?.theme ?? "neon"}
+              .accent=${this._config?.accent ?? null}
               .showEnergy=${this._config?.energy ?? true}
               .flows=${this._config?.flows ?? null}
               .holograms=${this._config?.holograms ?? null}

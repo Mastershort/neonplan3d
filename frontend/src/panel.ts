@@ -69,6 +69,7 @@ export class Floorplan3dPanel extends LitElement {
     _cameraWall: { state: true },
     _clean: { state: true },
     _navWrap: { state: true },
+    _accent: { state: true },
     _weather: { state: true },
   };
 
@@ -106,6 +107,8 @@ export class Floorplan3dPanel extends LitElement {
   private declare _clean: boolean;
   /** The floor and room bar wraps onto several lines instead of scrolling sideways (remembered on this device). */
   private declare _navWrap: boolean;
+  /** Accent colour of the user's choice ("#rrggbb"), null for the stock cyan; remembered on this device. */
+  private declare _accent: string | null;
   /** Weather outside the house in 3D. */
   private declare _weather: boolean;
 
@@ -132,6 +135,8 @@ export class Floorplan3dPanel extends LitElement {
     this._heat = heat === "temperature" || heat === "humidity" || heat === "co2" ? heat : "none";
     const theme = prefs.get("theme") as Theme | null;
     this._theme = theme && THEMES.includes(theme) ? theme : "neon";
+    const accent = prefs.get("accent");
+    this._accent = accent && /^#[0-9a-f]{6}$/i.test(accent) ? accent : null;
     this._furnish = false;
     this._selFurniture = null;
     this._selDevice = null;
@@ -417,7 +422,7 @@ export class Floorplan3dPanel extends LitElement {
     const b = this.data.building;
     const saveState = this.data.saveState;
     return html`
-      <div class="fp3d-app ${this._clean && this._mode === "view" ? "fp3d-clean" : ""}">
+      <div class="fp3d-app ${this._clean && this._mode === "view" ? "fp3d-clean" : ""}" style=${this._accent ? `--fp3d-accent:${this._accent}` : ""}>
         ${this._clean && this._mode === "view" ? nothing : html`<header class="fp3d-header">
           <ha-menu-button .hass=${this.hass} .narrow=${this.narrow}></ha-menu-button>
           <h1>NeonPlan 3D</h1>
@@ -450,6 +455,30 @@ export class Floorplan3dPanel extends LitElement {
                       ${this.t(`theme_${t}`)}
                     </button>`,
                 )}
+                <label class="fp3d-accent-pick" title=${this.t("accent_hint")}>
+                  <input
+                    type="color"
+                    .value=${this._accent ?? "#37e0ff"}
+                    aria-label=${this.t("accent")}
+                    @input=${(e: Event) => {
+                      this._accent = (e.target as HTMLInputElement).value;
+                      prefs.set("accent", this._accent);
+                    }}
+                  />
+                  ${this._accent
+                    ? html`<button
+                        class="fp3d-accent-reset"
+                        title=${this.t("accent_reset")}
+                        aria-label=${this.t("accent_reset")}
+                        @click=${() => {
+                          this._accent = null;
+                          prefs.set("accent", "");
+                        }}
+                      >
+                        ↺
+                      </button>`
+                    : nothing}
+                </label>
               </div>
               <div class="fp3d-seg fp3d-quality" role="group" aria-label=${this.t("markers")}>
                 ${(["none", "important", "all"] as MarkerMode[]).map(
@@ -664,6 +693,7 @@ export class Floorplan3dPanel extends LitElement {
           .markerMode=${this._markers}
           .heatMode=${this._heat}
           .theme=${this._theme}
+          .accent=${this._accent}
           ?furnish=${this._furnish}
           .selectedFurniture=${this._selFurniture}
           @furniture-select=${(e: CustomEvent<{ id: string | null }>) => (this._selFurniture = e.detail.id)}
@@ -943,6 +973,37 @@ export class Floorplan3dPanel extends LitElement {
       .fp3d-body {
         flex: 1;
         min-height: 0;
+      }
+      /* the colour well beside the look: a small round swatch, the reset arrow next to it */
+      .fp3d-accent-pick {
+        display: inline-flex;
+        align-items: center;
+        gap: 2px;
+        padding: 0 4px;
+      }
+      .fp3d-accent-pick input[type="color"] {
+        width: 22px;
+        height: 22px;
+        padding: 0;
+        border: 1px solid var(--fp3d-line);
+        border-radius: 50%;
+        background: none;
+        cursor: pointer;
+      }
+      .fp3d-accent-pick input[type="color"]::-webkit-color-swatch-wrapper {
+        padding: 2px;
+      }
+      .fp3d-accent-pick input[type="color"]::-webkit-color-swatch {
+        border: none;
+        border-radius: 50%;
+      }
+      .fp3d-accent-reset {
+        border: none;
+        background: none;
+        color: var(--fp3d-muted);
+        cursor: pointer;
+        font-size: 14px;
+        padding: 0 2px;
       }
       .fp3d-nav {
         display: flex;

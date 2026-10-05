@@ -55,7 +55,7 @@ import { withVehicles } from "../parking.ts";
 import { buildRoof, type RoofWindowState } from "./roof.ts";
 import { GROUND, groundFace, groundFloor, roofFaces, wallFaces } from "../solar.ts";
 import { buildSolarLive, solarLiveMaterial, writeSolarLevels, type SolarLive } from "./solar-live.ts";
-import { lineBlending, themed, themeIndex, type Theme, type ThemeUniform } from "./theme.ts";
+import { accentOnUniform, accentUniform, parseAccent, lineBlending, themed, themeIndex, type Theme, type ThemeUniform } from "./theme.ts";
 
 export type { Theme } from "./theme.ts";
 import { ALWAYS, DEG, GeoBuffer, LineBuffer, pushPrism } from "./geo.ts";
@@ -874,6 +874,16 @@ export class FloorplanViewer {
   }
 
   /** Look of the 3D view: neon, blueprint or day. Instant: colours are mapped in the shaders. */
+  /** An accent colour of the user's choice for the neon look ("#rrggbb"), null for the stock cyan. */
+  setAccent(hex: string | null): void {
+    const rgb = parseAccent(hex);
+    const on = rgb ? 1 : 0;
+    if (on === accentOnUniform.value && (!rgb || accentUniform.value.equals(new Vector3(...rgb)))) return;
+    accentOnUniform.value = on;
+    if (rgb) accentUniform.value.set(...rgb);
+    this.invalidate();
+  }
+
   setTheme(theme: Theme): void {
     if (theme === this.theme) return;
     this.theme = theme;
