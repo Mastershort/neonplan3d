@@ -226,24 +226,34 @@ export class Fp3dQuickMenu extends LitElement {
     const svc = (domain: string, service: string, id: string, data: Record<string, unknown> = {}) => void this.hass.callService(domain, service, { entity_id: id, ...data });
     const lockId = e.lock;
     const lockIsLock = !!lockId && lockId.startsWith("lock.");
+    // anything that switches on and off (a switch, an input_boolean helper …) goes through homeassistant.turn_on/off
+    const onOff = (id: string) => /^(switch|input_boolean|fan|light)\./.test(id);
     const climId = e.climate;
     const climIsClimate = !!climId && climId.startsWith("climate.");
-    const chargeId = e.charging && e.charging.startsWith("switch.") ? e.charging : null;
+    const chargeId = e.charging && onOff(e.charging) ? e.charging : null;
     const line = [car.soc !== null ? `${Math.round(car.soc)} %` : null, car.range !== null ? `${Math.round(car.range)} ${car.rangeUnit}` : null, car.charging ? `⚡ ${this.t("car_charging_short")}` : car.plugged ? "🔌" : null].filter(Boolean).join(" · ");
     return html`<p class="qm-car-line">${line || stateText(this.hass, this.hass.states[this.entity])}</p>
       <div class="qm-car">
-        ${lockIsLock
-          ? html`<button class="qm-swatch qm-slot ${car.locked ? "qm-slot-on" : ""}" @click=${() => (car.locked ? confirm(this.t("car_unlock_confirm")) && svc("lock", "unlock", lockId!) : svc("lock", "lock", lockId!))}>
+        ${lockIsLock || (lockId && onOff(lockId))
+          ? html`<button
+              class="qm-swatch qm-slot ${car.locked ? "qm-slot-on" : ""}"
+              @click=${() =>
+                car.locked
+                  ? confirm(this.t("car_unlock_confirm")) && (lockIsLock ? svc("lock", "unlock", lockId!) : svc("homeassistant", "turn_off", lockId!))
+                  : lockIsLock
+                    ? svc("lock", "lock", lockId!)
+                    : svc("homeassistant", "turn_on", lockId!)}
+            >
               ${car.locked ? `🔓 ${this.t("car_unlock_btn")}` : `🔒 ${this.t("car_lock_btn")}`}
             </button>`
           : nothing}
         ${climId
-          ? html`<button class="qm-swatch qm-slot ${car.climateOn ? "qm-slot-on" : ""}" @click=${() => (climIsClimate ? svc("climate", car.climateOn ? "turn_off" : "turn_on", climId) : svc("switch", car.climateOn ? "turn_off" : "turn_on", climId))}>
+          ? html`<button class="qm-swatch qm-slot ${car.climateOn ? "qm-slot-on" : ""}" @click=${() => (climIsClimate ? svc("climate", car.climateOn ? "turn_off" : "turn_on", climId) : svc("homeassistant", car.climateOn ? "turn_off" : "turn_on", climId))}>
               ${car.climateOn ? `❄ ${this.t("car_climate_off")}` : `🌡 ${this.t("car_climate_on")}`}
             </button>`
           : nothing}
         ${chargeId
-          ? html`<button class="qm-swatch qm-slot ${car.charging ? "qm-slot-on" : ""}" @click=${() => svc("switch", car.charging ? "turn_off" : "turn_on", chargeId)}>
+          ? html`<button class="qm-swatch qm-slot ${car.charging ? "qm-slot-on" : ""}" @click=${() => svc("homeassistant", car.charging ? "turn_off" : "turn_on", chargeId)}>
               ${car.charging ? `⏹ ${this.t("car_charge_stop")}` : `⚡ ${this.t("car_charge_start")}`}
             </button>`
           : nothing}

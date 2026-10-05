@@ -651,18 +651,21 @@ Array.prototype.at||Object.defineProperty(Array.prototype,"at",{configurable:!0,
       /></label>`:t&(Pi|Di)?f`<div class="qm-tilt-buttons">
         ${t&Pi?f`<button class="qm-swatch qm-slot" @click=${()=>this.call("cover","open_cover_tilt")}>${this.t("cover_tilt_open")}</button>`:w}
         ${t&Di?f`<button class="qm-swatch qm-slot" @click=${()=>this.call("cover","close_cover_tilt")}>${this.t("cover_tilt_close")}</button>`:w}
-      </div>`:w}renderCar(e){let t=e.entities,n=(d,u,h,m={})=>{this.hass.callService(d,u,{entity_id:h,...m})},o=t.lock,i=!!o&&o.startsWith("lock."),s=t.climate,a=!!s&&s.startsWith("climate."),l=t.charging&&t.charging.startsWith("switch.")?t.charging:null,c=[e.soc!==null?`${Math.round(e.soc)} %`:null,e.range!==null?`${Math.round(e.range)} ${e.rangeUnit}`:null,e.charging?`\u26A1 ${this.t("car_charging_short")}`:e.plugged?"\u{1F50C}":null].filter(Boolean).join(" \xB7 ");return f`<p class="qm-car-line">${c||ce(this.hass,this.hass.states[this.entity])}</p>
+      </div>`:w}renderCar(e){let t=e.entities,n=(u,h,m,g={})=>{this.hass.callService(u,h,{entity_id:m,...g})},o=t.lock,i=!!o&&o.startsWith("lock."),s=u=>/^(switch|input_boolean|fan|light)\./.test(u),a=t.climate,l=!!a&&a.startsWith("climate."),c=t.charging&&s(t.charging)?t.charging:null,d=[e.soc!==null?`${Math.round(e.soc)} %`:null,e.range!==null?`${Math.round(e.range)} ${e.rangeUnit}`:null,e.charging?`\u26A1 ${this.t("car_charging_short")}`:e.plugged?"\u{1F50C}":null].filter(Boolean).join(" \xB7 ");return f`<p class="qm-car-line">${d||ce(this.hass,this.hass.states[this.entity])}</p>
       <div class="qm-car">
-        ${i?f`<button class="qm-swatch qm-slot ${e.locked?"qm-slot-on":""}" @click=${()=>e.locked?confirm(this.t("car_unlock_confirm"))&&n("lock","unlock",o):n("lock","lock",o)}>
+        ${i||o&&s(o)?f`<button
+              class="qm-swatch qm-slot ${e.locked?"qm-slot-on":""}"
+              @click=${()=>e.locked?confirm(this.t("car_unlock_confirm"))&&(i?n("lock","unlock",o):n("homeassistant","turn_off",o)):i?n("lock","lock",o):n("homeassistant","turn_on",o)}
+            >
               ${e.locked?`\u{1F513} ${this.t("car_unlock_btn")}`:`\u{1F512} ${this.t("car_lock_btn")}`}
             </button>`:w}
-        ${s?f`<button class="qm-swatch qm-slot ${e.climateOn?"qm-slot-on":""}" @click=${()=>n(a?"climate":"switch",e.climateOn?"turn_off":"turn_on",s)}>
+        ${a?f`<button class="qm-swatch qm-slot ${e.climateOn?"qm-slot-on":""}" @click=${()=>n(l?"climate":"homeassistant",e.climateOn?"turn_off":"turn_on",a)}>
               ${e.climateOn?`\u2744 ${this.t("car_climate_off")}`:`\u{1F321} ${this.t("car_climate_on")}`}
             </button>`:w}
-        ${l?f`<button class="qm-swatch qm-slot ${e.charging?"qm-slot-on":""}" @click=${()=>n("switch",e.charging?"turn_off":"turn_on",l)}>
+        ${c?f`<button class="qm-swatch qm-slot ${e.charging?"qm-slot-on":""}" @click=${()=>n("homeassistant",e.charging?"turn_off":"turn_on",c)}>
               ${e.charging?`\u23F9 ${this.t("car_charge_stop")}`:`\u26A1 ${this.t("car_charge_start")}`}
             </button>`:w}
-        ${!i&&!s&&!l?f`<p class="qm-note">${this.t("car_no_controls")}</p>`:w}
+        ${!i&&!a&&!c?f`<p class="qm-note">${this.t("car_no_controls")}</p>`:w}
       </div>`}renderMedia(e){let t=e.attributes,n=e.state==="playing",o=e.state==="off"||e.state==="standby",i=typeof t.volume_level=="number"?Math.round(t.volume_level*100):null,s=[t.media_title,t.media_artist].filter(l=>typeof l=="string"&&l).join(" \xB7 "),a=typeof t.entity_picture=="string"?t.entity_picture:null;return f`<div class="qm-media">
         <button class="qm-swatch qm-slot" aria-label=${this.t("previous")} ?disabled=${o} @click=${()=>this.call("media_player","media_previous_track")}>⏮</button>
         <button class="qm-power qm-media-main ${n?"qm-on":""}" aria-label=${this.t("play_pause")} style=${a?`background-image:url(${a})`:""} @click=${()=>this.call("media_player",o?"turn_on":"media_play_pause")}>
