@@ -327,6 +327,7 @@
  "camera_wall_title": "Parete telecamere",
  "camera_wall_hint": "Parete telecamere: tutte le immagini dal vivo insieme; un tocco mostra un'immagine in grande, una cornice rossa segnala movimento",
  "camera_wall_all": "Tutte le telecamere",
+ "camera_still": "immagine fissa, aggiornata ogni {s} s",
  "camera_wall_big": "Mostra l'immagine in grande",
  "detect_person": "Persona",
  "detect_car": "Veicolo",

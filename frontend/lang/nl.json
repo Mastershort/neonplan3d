@@ -327,6 +327,7 @@
  "camera_wall_title": "Camerawand",
  "camera_wall_hint": "Camerawand: alle livebeelden tegelijk; tikken toont een beeld groot, een rood kader toont beweging",
  "camera_wall_all": "Alle camera's",
+ "camera_still": "stilstaand beeld, elke {s} s ververst",
  "camera_wall_big": "Beeld groot tonen",
  "detect_person": "Persoon",
  "detect_car": "Voertuig",

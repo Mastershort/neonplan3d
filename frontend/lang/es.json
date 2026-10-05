@@ -327,6 +327,7 @@
  "camera_wall_title": "Muro de cámaras",
  "camera_wall_hint": "Muro de cámaras: todas las imágenes en directo a la vez; un toque muestra una imagen en grande, un marco rojo indica movimiento",
  "camera_wall_all": "Todas las cámaras",
+ "camera_still": "imagen fija, se actualiza cada {s} s",
  "camera_wall_big": "Mostrar la imagen en grande",
  "detect_person": "Persona",
  "detect_car": "Vehículo",

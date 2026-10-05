@@ -327,6 +327,7 @@
  "camera_wall_title": "Mur de caméras",
  "camera_wall_hint": "Mur de caméras : toutes les images en direct à la fois ; un appui agrandit une image, un cadre rouge signale un mouvement",
  "camera_wall_all": "Toutes les caméras",
+ "camera_still": "image fixe, rafraîchie toutes les {s} s",
  "camera_wall_big": "Agrandir l'image",
  "detect_person": "Personne",
  "detect_car": "Véhicule",

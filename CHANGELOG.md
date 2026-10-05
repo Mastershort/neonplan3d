@@ -14,7 +14,7 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 
 ### Fixed
 
-- **Camera wall** shares the sheet between the cameras: one camera fills it, two sit side by side, up to four in a 2×2 grid, more in three or four columns. Tapping a tile shows that camera big as a live stream through Home Assistant’s own player (the tiles stay stills); from there "Look through the camera" goes into the 3D view, and "Back to the view" brings the wall back.
+- **Camera wall** shares the sheet between the cameras: one camera fills it, two sit side by side, up to four in a 2×2 grid, more in three or four columns. Tapping a tile shows that camera big as a live stream through Home Assistant’s own player (the tiles stay stills, and a small note in the wall header and in the look-through bar says so); from there "Look through the camera" goes into the 3D view, and "Back to the view" brings the wall back.
 
 ## 1.10.1
 

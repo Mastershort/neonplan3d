@@ -1853,7 +1853,10 @@ export class Fp3dView3d extends LitElement {
     // the tiles share the wall: one camera fills it, two sit side by side, up to nine in three columns
     const cols = cameras.length <= 1 ? 1 : cameras.length <= 4 ? 2 : cameras.length <= 9 ? 3 : 4;
     return html`<div class="fp3d-wall">
-      <div class="fp3d-wall-head"><span>${translate(hass, "camera_wall_title")} · ${cameras.length}</span><button class="fp3d-chip" aria-label="✕" @click=${close}>✕</button></div>
+      <div class="fp3d-wall-head">
+        <span>${translate(hass, "camera_wall_title")} · ${cameras.length} <span class="fp3d-still">${translate(hass, "camera_still", { s: this._low ? 10 : 5 })}</span></span>
+        <button class="fp3d-chip" aria-label="✕" @click=${close}>✕</button>
+      </div>
       <div class="fp3d-wall-grid" style="grid-template-columns: repeat(${cols}, minmax(0, 1fr))">
         ${cameras.map((id) => {
           const src = srcOf(id);
@@ -1905,6 +1908,7 @@ export class Fp3dView3d extends LitElement {
       ${src ? html`<img class="fp3d-through-img" src=${src} alt="" />` : nothing}
       <div class="fp3d-through-bar">
         <span class="fp3d-through-name">${entityName(this.hass, t.entity)}</span>
+        <span class="fp3d-still">${translate(this.hass, "camera_still", { s: this._low ? 10 : 5 })}</span>
         <input
           type="range"
           min="0"
@@ -2735,6 +2739,14 @@ export class Fp3dView3d extends LitElement {
       .fp3d-through-name {
         font-weight: 600;
         white-space: nowrap;
+      }
+      /* a small note that the picture is a still, so nobody wonders why it does not move */
+      .fp3d-still {
+        font-size: 11px;
+        font-weight: 400;
+        opacity: 0.65;
+        white-space: nowrap;
+        margin-left: 6px;
       }
       .fp3d-through-bar input[type="range"] {
         width: 140px;

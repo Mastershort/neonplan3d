@@ -327,6 +327,7 @@
  "camera_wall_title": "Kamerafal",
  "camera_wall_hint": "Kamerafal: minden élőkép egyszerre; koppintásra egy kép nagyban látszik, piros keret jelzi a mozgást",
  "camera_wall_all": "Minden kamera",
+ "camera_still": "állókép, {s} mp-enként frissül",
  "camera_wall_big": "Kép nagyban",
  "detect_person": "Személy",
  "detect_car": "Jármű",
