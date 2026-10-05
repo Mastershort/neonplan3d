@@ -210,6 +210,7 @@ const shots = [
   { name: "editor-ha-floors", query: "", width: 1280, height: 900, editor: true, editorScript: "e._doc.floors[0].ha_floor = 'erdgeschoss'; e._doc.floors[1].ha_floor = 'obergeschoss'; e._floorMenu = true;" },
   { name: "editor-area-rooms", query: "", width: 1280, height: 900, editor: true, editorScript: "e._doc.floors[0].ha_floor = 'erdgeschoss'; e._doc.floors[1].ha_floor = 'obergeschoss'; e.addFloor(e.freeHaFloors[0]); e.addAreaRooms(e.floor);" },
   { name: "editor-resize", query: "", width: 1280, height: 800, editor: true, editorState: { _furnitureId: "m2" } },
+  { name: "editor-door", query: "", width: 1280, height: 900, editor: true, editorState: { _openingId: "o5", _roomId: "wohnen" }, scrollSide: true },
   { name: "editor-opening-kinds", query: "", width: 1280, height: 900, editor: true, editorState: { _openingId: "o2", _roomId: "wohnen" } },
   { name: "view-double-door", query: "", width: 1280, height: 800, click: "Wohnzimmer" },
   { name: "editor-packs", query: "", width: 1280, height: 1000, editor: true, editorState: { _tool: "furniture", _roomId: "wohnen" }, scrollSide: true },

@@ -5109,7 +5109,6 @@ export class Fp3dEditor extends LitElement {
       const tilt = main ? o.tilt : (o.tilt2 ?? null);
       const contact = main ? o.contact : o.contact2;
       const kind: Kind = (main ? o.sensor : o.sensor2) ?? (tilt && tilt !== "none" ? "contact_tilt" : "contact");
-      const door = o.type === "door";
       const setContact = (v: string | null) => this.updateOpening(main ? { contact: v } : { contact2: v === "none" ? null : v });
       return html`<label class="fp3d-field fp3d-wide"
           >${this.t("sensor_kind")}
@@ -5130,13 +5129,7 @@ export class Fp3dEditor extends LitElement {
         ${kind === "contact_tilt"
           ? this.entitySelect(this.t("tilt_entity"), tilt, undefined, contacts, (v) => this.updateOpening(main ? { tilt: v === "none" ? null : v } : { tilt2: v === "none" ? null : v }))
           : nothing}
-        ${main && door
-          ? html`<label class="fp3d-check fp3d-wide"
-              ><input type="checkbox" .checked=${!!o.shut} ?disabled=${!admin} @change=${(ev: Event) => this.updateOpening({ shut: (ev.target as HTMLInputElement).checked })} />
-              ${this.t("door_shut")}</label
-            >`
-          : nothing}
-        ${main && !door
+        ${main
           ? html`${this.entitySelect(this.t("tilt_angle_entity"), o.tilt_angle ?? null, undefined, this.entityOptions((id) => id.startsWith("sensor.")), (v) => this.updateOpening({ tilt_angle: v === "none" ? null : v }))}
             ${o.tilt_angle && o.tilt_angle !== "none"
               ? html`${this.num(this.t("tilt_angle_max"), o.tilt_max ?? 15, (v) => this.updateOpening({ tilt_max: Math.min(90, Math.max(1, v)) }), 1, 1)}
@@ -5193,8 +5186,8 @@ export class Fp3dEditor extends LitElement {
             <option value="right" ?selected=${o.hinge === "right"}>${this.t("hinge_right")}</option>
           </select></label
         >`}
-        ${window || garage || door ? this.entitySelect(this.t("cover_entity"), o.cover, autoPick("cover"), covers, (v) => this.updateOpening({ cover: v })) : nothing}
-        ${(window || garage || door) && o.cover !== "none"
+        ${window || garage || door ? this.entitySelect(this.t(window ? "cover_entity" : "door_cover"), o.cover, autoPick("cover"), covers, (v) => this.updateOpening({ cover: v })) : nothing}
+        ${(window || garage || door) && o.cover !== "none" && (o.cover || autoPick("cover"))
           ? html`${this.entitySelect(this.t("cover_position_entity"), o.position ?? null, undefined, positions, (v) => this.updateOpening({ position: v === "none" ? null : v }))}
               ${o.position
                 ? html`<label class="fp3d-check fp3d-wide"
@@ -5218,6 +5211,12 @@ export class Fp3dEditor extends LitElement {
           : html`${this.entitySelect(this.t(o.leaves === 2 ? "contact_main" : "contact_entity"), o.contact, autoPick("contact"), contacts, (v) => this.updateOpening({ contact: v }))}
               ${o.leaves === 2 && !garage
                 ? this.entitySelect(this.t("contact_second"), o.contact2, undefined, contacts, (v) => this.updateOpening({ contact2: v === "none" ? null : v }))
+                : nothing}
+              ${door
+                ? html`<label class="fp3d-check fp3d-wide" title=${this.t("door_shut_hint")}
+                    ><input type="checkbox" .checked=${!!o.shut} ?disabled=${!admin} @change=${(ev: Event) => this.updateOpening({ shut: (ev.target as HTMLInputElement).checked })} />
+                    ${this.t("door_shut")}</label
+                  >`
                 : nothing}`}
       </div>
       <p class="fp3d-sub">${this.t(window ? "opening_hint" : garage ? "garage_hint" : "door_hint")}</p>
