@@ -1,0 +1,45 @@
+### Neu
+
+- **Klang & Kino (Pro-Erweiterung, 3,90 €):** Über spielenden Lautsprechern schwebt eine Karte mit Cover, Titel, Interpret und Lautstärke (Zurück, Abspielen/Pause, Weiter direkt darauf). Schallringe wandern um spielende Lautsprecher, Multiroom-Gruppen sind durch Linien verbunden, und das Schnellmenü eines Media Players bekommt Abspielen/Pause, Titelwechsel und Lautstärke (Diskussion #6 von MisterAndrew3000, die meistgewünschte Idee).
+- **Auto Pro (Pro-Erweiterung, 5,90 €):** Das Auto auf dem Stellplatz zeigt Ladestand, Reichweite, Laden, Schloss und Klima aus seiner Integration – Lichtband in der Ladestandsfarbe, warmes Licht bei laufender Klimaanlage, Pin mit Prozent und Kilometern, „unterwegs“ mit der Zone des Trackers, Schnellmenü mit Verriegeln/Entriegeln (mit Rückfrage), Klima und Laden. Eine Entität des Autos genügt, den Rest findet NeonPlan am Gerät (Diskussionen #71 und #73, #16 von tomfischer98).
+- **Zentral-Menü und Favoriten:** Ein Stern über der Lupe schaltet alle Lichter der gezeigten Etage oder des ganzen Hauses an oder aus und fährt alle Rollläden auf oder zu (beim ganzen Haus mit Rückfrage). Darunter stehen deine Favoriten – Szenen, Skripte, Automationen, Tasten und Schalter, im Editor festgelegt. Das Raumfenster bekommt **Alle an** neben „Alle aus“ und **Alle auf / Alle zu** für die Rollläden; Kartenoption `central` (#145 von daene85).
+- **Eigene Knöpfe:** im Zentral-Menü, mit Beschriftung, Symbol und Aktion – Seite öffnen, Details einer Entität, Dienst aufrufen oder fire-dom-event für ein browser_mod-Popup mit deiner eigenen Karte; im Editor unter „Favoriten“ oder je Karte mit `buttons:` (Diskussion #143 von Schobiwan88).
+- **Wandstärke je Wand:** Jede Wand eines Raums hat im Kasten „Wandhöhen“ ein Feld für die Dicke – die 36,5er-Außenwand, die 11,5er-Trennwand; eine gemeinsame Wand nimmt die dickere Angabe (Diskussion #149 von ArtakerCadSystems).
+- **Außenrunde:** **Gefälle** je Außenfläche (Höhenunterschied und Richtung; Zäune, Leuchten und Möbel darauf folgen, #148), **Löcher** – eine Fläche mit „Aus Flächen darunter ausschneiden“ wird zum Loch in den Flächen darunter (#144), die Art **Pergola / Rahmen** mit Eckpfosten, Balken, Sparren und optionaler **X-Verstrebung**, eine **offene** Umrisslinie für Zäune und Pergolen am Haus (#141) und die Art **Wildfläche** (#142); alles von denisb88.
+- **Namen unter den Symbolen:** Ein Gerät oder Möbel mit eigenem Namen zeigt ihn auf Wunsch klein unter seinem Pin, oder alle mit der Kartenoption `marker_names: true` (#156 von denisb88).
+- **Solar auf Walmseiten:** Walm- und Zeltdächer bieten ihre beiden dreieckigen Stirnseiten für Solarfelder und Dachfenster an (Diskussionen #158 von bert-MI4U und #134).
+- **Bessere Möbelsuche:** mehrere Wörter in beliebiger Reihenfolge, deutsche und englische Namen und der Pack-Name, Hinweis bei null Treffern, das Feld bleibt beim Scrollen oben, Escape leert es (Diskussion #155 von biancapascal).
+- **Zustand im Raumfenster ausblenden:** je Gerät eines Raums („Aa“); ein reines „unbekannt“ von Schaltern, Rollläden und Lampen fällt ohnehin weg (Diskussion #154 von ggeudens).
+- **Handy: kürzerer Kopf:** Qualität, Look, Symbole und FPS klappen hinter ⚙ – zwei Kopfzeilen statt drei (#131 von denisb88).
+- **Pack Garten & Terrasse, Release 3 (kostenlos für Käufer):** Bäume nach Art – Eiche, Linde, Birke, Ahorn, Obstbaum –, Nadelbäume – Fichte, Kiefer, Thuja – dazu Strauch, Blühstrauch, Gestrüpp und eine Baumgruppe (#142 von denisb88).
+- **Pack Wohnzimmer, Release 3 (kostenlos für Käufer):** eine Wohnwand mit beleuchteten Glasvitrinen – als Leuchte: Eine verknüpfte Lampe lässt Vitrinen und LED-Leisten leuchten, dein eigener Fernseher kommt in die Nische – und eine Wohnwand mit TV, deren Bildschirm den Media Player zeigt (Diskussion #153 von Pitbull19850119).
+
+### Behoben
+
+- Außenleuchten gaben kein Licht mehr ab, sobald zwei Räume der Etage zu einer Licht-Zone verbunden waren (#160 von Thundras).
+- Gespiegelte Möbel zeigten ihre Innenseiten; jetzt stimmen alle Flächen, und die Türen und der Bildschirm des smarten Kühlschranks sowie Pack-Leuchten (Bogenleuchte, Wohnwand) folgen der Spiegelung (#159 von Thundras).
+- Das Zustandsbild eines Bildschirm-Möbels saß bei eingestellter Montagehöhe unter dem Bildschirm, und eine reine Höhenänderung bewegte das Leuchten nicht mit (#157 von Thundras).
+
+---
+
+### New
+
+- **Sound & Cinema (Pro add-on, €3.90):** a card floats over playing speakers with cover, title, artist and volume (previous, play/pause, next right on it). Sound rings travel around playing speakers, multiroom groups are joined by lines, and a media player's quick menu gets play/pause, track change and volume (discussion #6 by MisterAndrew3000, the most-voted idea).
+- **Car Pro (Pro add-on, €5.90):** the car in its parking spot shows charge, range, charging, lock and climate from its integration – a light band in the charge colour, a warm glow while the climate runs, a pin with percent and kilometres, "away" with the tracker's zone, and a quick menu with lock/unlock (unlocking asks), climate and charging. One entity of the car is enough, the rest is found on its device (discussions #71 and #73, #16 by tomfischer98).
+- **Central menu and favourites:** a star above the magnifier switches all lights of the floor shown or the whole house on or off and moves all blinds up or down (the whole house asks first). Below it your favourites – scenes, scripts, automations, buttons and switches set in the editor. The room panel gets **All on** next to All off and **All up / All down** for its blinds; card option `central` (#145 by daene85).
+- **Own buttons:** in the central menu, with a label, an icon and an action – open a path, show an entity's details, call a service, or fire a DOM event for a browser_mod popup with your own card; set in the editor under Favourites or per card with `buttons:` (discussion #143 by Schobiwan88).
+- **Thickness per wall:** every wall of a room has a thickness field in the wall-heights box – the 36.5 cm outer wall, the 11.5 cm partition; a shared wall takes the thicker setting (discussion #149 by ArtakerCadSystems).
+- **Outdoor round:** a **slope** per outdoor area (height difference and direction; fences, lamps and furniture on it follow, #148), **holes** – an area marked "cut out of the areas beneath" becomes a hole in them (#144), a **pergola / frame** type with corner posts, beams, rafters and optional **X-bracing**, an **open** outline for fences and pergolas leaning against the house (#141), and a **wild patch** type (#142); all by denisb88.
+- **Names under markers:** a device or furniture with an own name can show it small under its pin, or every named device with the card option `marker_names: true` (#156 by denisb88).
+- **Solar on hip ends:** hip and pyramid roofs offer their two triangular ends for solar fields and roof windows (discussions #158 by bert-MI4U and #134).
+- **Better furniture search:** several words in any order, German and English names and the pack name, a "nothing found" line, the field stays on top while scrolling, Escape clears it (discussion #155 by biancapascal).
+- **Hide a state in the room panel:** per device of a room ("Aa"); a bare "unknown" of switches, covers and lights is left out anyway (discussion #154 by ggeudens).
+- **Phones: a shorter header:** quality, look, markers and FPS fold behind ⚙ – two header lines instead of three (#131 by denisb88).
+- **Garden & Terrace pack, release 3 (free for owners):** trees by species – oak, lime, birch, maple, fruit tree – conifers – spruce, pine, thuja – plus shrub, flowering shrub, brush and a group of trees (#142 by denisb88).
+- **Living room pack, release 3 (free for owners):** a wall unit with lit glass vitrines – as a lamp, a linked light makes the vitrines and LED strips glow, your own TV goes into the niche – and a wall unit with a TV whose screen shows the media player (discussion #153 by Pitbull19850119).
+
+### Fixed
+
+- Outdoor lamps lit nothing once two rooms of the floor were joined into one light zone (#160 by Thundras).
+- Mirrored furniture showed its inside faces; now every face is right, and the smart fridge's doors and screen and pack lamps (arc lamp, wall unit) follow the mirror (#159 by Thundras).
+- The state picture of a screen furniture sat below the screen when a mount height was set, and changing only the mount height did not move the glow (#157 by Thundras).
