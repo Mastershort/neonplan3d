@@ -223,6 +223,8 @@ export class Fp3dView3d extends LitElement {
   private declare _wallBig: string | null;
   /** The look-through was started from the camera wall: going back reopens the wall. */
   private throughWall = false;
+  /** Camera wall, big picture: Home Assistant's own stream player (a picture-entity card in live view), one at a time. */
+  private live: { id: string; el: (HTMLElement & { hass?: unknown }) | null; failed: boolean } | null = null;
   /** How strongly the camera picture covers the 3D view (0 = only 3D, 1 = only the picture). */
   private declare _blend: number;
   /** Floor switcher with small pictures of the floors (panel and card; off with a fixed floor). */
@@ -376,6 +378,7 @@ export class Fp3dView3d extends LitElement {
     this.alertTimer = undefined;
     clearInterval(this.cameraTimer);
     this.cameraTimer = undefined;
+    this.live = null;
     clearInterval(this.trailTimer);
     this.trailTimer = undefined;
     clearInterval(this.holoTimer);
@@ -462,6 +465,7 @@ export class Fp3dView3d extends LitElement {
   }
 
   protected updated(changed: PropertyValues): void {
+    if (changed.has("hass") && this.live?.el) this.live.el.hass = this.hass;
     const v = this.viewer;
     if (!v) return;
     // a room or floor chosen elsewhere ends the look through a camera (the view is theirs now)
@@ -1798,6 +1802,7 @@ export class Fp3dView3d extends LitElement {
     const hass = this.hass;
     const close = () => {
       this._wallBig = null;
+      this.live = null;
       this.dispatchEvent(new CustomEvent("camera-wall-close", { bubbles: true, composed: true }));
     };
     if (!hasFeature("camera_cockpit")) {
@@ -1822,6 +1827,7 @@ export class Fp3dView3d extends LitElement {
     const big = this._wallBig && cameras.includes(this._wallBig) ? this._wallBig : null;
     if (big) {
       const src = srcOf(big);
+      const stream = this.liveFor(big);
       const look = () => {
         this.throughWall = true;
         close();
@@ -1829,11 +1835,19 @@ export class Fp3dView3d extends LitElement {
       };
       return html`<div class="fp3d-wall">
         <div class="fp3d-wall-head">
-          <button class="fp3d-chip" @click=${() => (this._wallBig = null)}>‹ ${translate(hass, "camera_wall_all")}</button>
+          <button
+            class="fp3d-chip"
+            @click=${() => {
+              this._wallBig = null;
+              this.live = null;
+            }}
+          >
+            ‹ ${translate(hass, "camera_wall_all")}
+          </button>
           <span class="fp3d-wall-title">${name(big)}</span>
           <span class="fp3d-wall-tools"><button class="fp3d-chip" @click=${look}>${translate(hass, "through_camera")}</button><button class="fp3d-chip" aria-label="✕" @click=${close}>✕</button></span>
         </div>
-        <div class="fp3d-wall-big">${src ? html`<img src=${src} alt="" />` : html`<div class="fp3d-wall-none">${translate(hass, "state_unavailable")}</div>`}</div>
+        <div class="fp3d-wall-big">${stream ?? (src ? html`<img src=${src} alt="" />` : html`<div class="fp3d-wall-none">${translate(hass, "state_unavailable")}</div>`)}</div>
       </div>`;
     }
     // the tiles share the wall: one camera fills it, two sit side by side, up to nine in three columns
@@ -1851,6 +1865,34 @@ export class Fp3dView3d extends LitElement {
         })}
       </div>
     </div>`;
+  }
+
+  /**
+   * The live stream of a camera through Home Assistant's own player (HLS or WebRTC, whatever the camera
+   * offers): a picture-entity card in live view, created once per camera. Null while it loads or when the
+   * helpers are missing (the preview, an old frontend) – then the snapshot stays.
+   */
+  private liveFor(id: string): HTMLElement | null {
+    if (this.live?.id !== id) {
+      const mine = { id, el: null as (HTMLElement & { hass?: unknown }) | null, failed: false };
+      this.live = mine;
+      const w = window as unknown as { loadCardHelpers?: () => Promise<{ createCardElement: (c: unknown) => HTMLElement & { hass?: unknown } }> };
+      if (!w.loadCardHelpers) mine.failed = true;
+      else
+        w.loadCardHelpers()
+          .then((h) => {
+            if (this.live !== mine) return;
+            const el = h.createCardElement({ type: "picture-entity", entity: id, camera_view: "live", show_name: false, show_state: false, tap_action: { action: "none" }, hold_action: { action: "none" } });
+            el.hass = this.hass;
+            mine.el = el;
+            this.requestUpdate();
+          })
+          .catch(() => {
+            mine.failed = true;
+            this.requestUpdate();
+          });
+    }
+    return this.live.el;
   }
 
   private renderThrough() {
@@ -2578,6 +2620,14 @@ export class Fp3dView3d extends LitElement {
         width: 100%;
         height: 100%;
         object-fit: contain;
+      }
+      /* the stream player: a bare card, as wide as the sheet allows for a 16:9 picture */
+      .fp3d-wall-big > hui-picture-entity-card,
+      .fp3d-wall-big > hui-error-card {
+        width: min(100%, calc((100vh - 200px) * 16 / 9));
+        --ha-card-background: transparent;
+        --ha-card-border-width: 0;
+        --ha-card-box-shadow: none;
       }
       .fp3d-wall-grid {
         flex: 1;
