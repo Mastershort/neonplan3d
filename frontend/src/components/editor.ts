@@ -3792,6 +3792,36 @@ export class Fp3dEditor extends LitElement {
     this._shiftZ = 0;
   }
 
+  /** Turn everything on the floor by 90° (clockwise in the plan) about the middle of its rooms: when a floor was drawn the wrong way round. */
+  private turnFloor(): void {
+    const floor = this.floor;
+    if (!floor || !this.isAdmin) return;
+    const pts = floor.rooms.flatMap((r) => r.points);
+    if (!pts.length) return;
+    const xs = pts.map((p) => p[0]);
+    const zs = pts.map((p) => p[1]);
+    const cx = (Math.min(...xs) + Math.max(...xs)) / 2;
+    const cz = (Math.min(...zs) + Math.max(...zs)) / 2;
+    const mv = (p: Vec2): Vec2 => [round(cx - (p[1] - cz)), round(cz + (p[0] - cx))];
+    this.change((_, f) => {
+      for (const r of f.rooms) r.points = r.points.map(mv);
+      for (const m of f.furniture) {
+        [m.x, m.z] = mv([m.x, m.z]);
+        m.rotation = (m.rotation + 90) % 360;
+      }
+      for (const p of f.placements) {
+        [p.x, p.z] = mv([p.x, p.z]);
+        p.rotation = ((p.rotation ?? 0) + 90) % 360;
+      }
+      for (const a of f.outdoor) a.points = a.points.map(mv);
+      for (const w of f.walls ?? []) {
+        w.a = mv(w.a);
+        w.b = mv(w.b);
+      }
+      if (f.background) [f.background.x, f.background.z] = mv([f.background.x, f.background.z]);
+    });
+  }
+
   private updateFloor(patch: Partial<Floor>): void {
     this.change((_, floor) => Object.assign(floor, patch));
   }
@@ -4702,6 +4732,7 @@ export class Fp3dEditor extends LitElement {
                     <input type="number" step="0.05" .value=${String(this._shiftX)} aria-label="X" @change=${(e: Event) => (this._shiftX = Number((e.target as HTMLInputElement).value) || 0)} />
                     <input type="number" step="0.05" .value=${String(this._shiftZ)} aria-label="Z" @change=${(e: Event) => (this._shiftZ = Number((e.target as HTMLInputElement).value) || 0)} />
                     <button class="fp3d-btn" ?disabled=${!this._shiftX && !this._shiftZ} @click=${() => this.shiftFloor(this._shiftX, this._shiftZ)}>${this.t("floor_shift_apply")}</button>
+                    <button class="fp3d-btn" title=${this.t("floor_turn_hint")} @click=${() => this.turnFloor()}>${this.t("floor_turn")}</button>
                   </div>`
                 : nothing}
               ${this.num(this.t("height"), floor.height, (v) => this.updateFloor({ height: Math.max(1, v) }), 0.05, 1)}
@@ -5324,7 +5355,7 @@ export class Fp3dEditor extends LitElement {
   private renderHeadroom(floor: Floor) {
     const ceiling = floor.elevation + floor.height;
     const sections = this._doc.settings.roof.sections ?? [];
-    if (!sections.some((s) => !s.open && s.base < ceiling - 0.05 && s.base > floor.elevation - 0.05)) return nothing;
+    if (!sections.some((s) => !s.open && s.base < ceiling - 0.05)) return nothing;
     const b = { settings: this._doc.settings };
     return svg`${[1.5, 2].map((h) =>
       headroomLines(b, floor.elevation, h).map(([p, q]) => {
@@ -5902,6 +5933,10 @@ export class Fp3dEditor extends LitElement {
             >`
           : nothing}
         ${this.markerSelect(pl.marker ?? null, (v) => this.updateDevice({ marker: v }))}
+        <label class="fp3d-field fp3d-wide" title=${this.t("device_name_hint")}
+          >${this.t("device_name")}
+          <input type="text" .value=${pl.name ?? ""} ?disabled=${!admin} maxlength="60" placeholder=${entityName(this.hass!, pl.entity_id)} @change=${(e: Event) => this.updateDevice({ name: (e.target as HTMLInputElement).value.trim() || null })}
+        /></label>
         ${this.iconInput(pl.icon, (v) => this.updateDevice({ icon: v }))}
       </div>
       ${admin

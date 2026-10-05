@@ -208,6 +208,8 @@ PLACEMENT_SCHEMA = vol.Schema(
         vol.Optional("marker", default=None): vol.Any(None, vol.In(["always", "no_power", "never"])),
         # an own symbol for the marker: a Material Design icon name without "mdi:"
         vol.Optional("icon", default=None): vol.Any(None, vol.All(str, vol.Length(max=64))),
+        # an own name in the plan, without renaming the entity
+        vol.Optional("name", default=None): vol.Any(None, vol.All(str, vol.Length(max=60))),
         # cameras: show the field-of-view wedge on the floor (None = yes)
         vol.Optional("cone", default=None): vol.Any(None, bool),
         # fixed against moving by accident

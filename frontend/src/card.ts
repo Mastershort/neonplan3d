@@ -33,6 +33,8 @@ export class Floorplan3dCard extends LitElement {
   declare hass: HomeAssistant;
   private declare _config: CardConfig;
   private declare _roomId: string | null;
+  /** The configured start room was applied once the building arrived. */
+  private roomApplied = false;
   /** Floor chosen in the card (null: the house; undefined: none chosen, the configured floor applies). */
   private declare _floorId: string | null | undefined;
   /** Choices made with the card's own switches (null: as configured). */
@@ -80,7 +82,7 @@ export class Floorplan3dCard extends LitElement {
 
   /** Back to the start view (room closed, start floor, camera reset); the screensaver may start. */
   private returnHome(): void {
-    this._roomId = null;
+    this._roomId = this._config?.room ?? null;
     this._floorId = undefined;
     this.view3d()?.resetView();
     if (this._config?.idle_orbit) this._orbit = true;
@@ -175,6 +177,11 @@ export class Floorplan3dCard extends LitElement {
     const b = this.data.building;
     const height = this._config?.height ?? 420;
     const c = this._config;
+    // the configured room opens once, when the building is there; the kiosk return brings it back
+    if (!this.roomApplied && b && c?.room) {
+      this.roomApplied = true;
+      if (b.floors.some((f) => f.rooms.some((r) => r.id === c.room))) this._roomId = c.room;
+    }
     // the configured floor is where the card starts; with floor pictures the user can switch
     const chosen = this._floorId === undefined ? (c?.floor ?? null) : this._floorId;
     const floorId = b && b.floors.length === 1 ? b.floors[0].id : b?.floors.some((f) => f.id === chosen) ? chosen : null;

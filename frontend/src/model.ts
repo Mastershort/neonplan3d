@@ -186,6 +186,8 @@ export interface Placement {
   marker?: MarkerShow | null;
   /** An own symbol for the marker: a Material Design icon name without "mdi:" (null = by kind). */
   icon?: string | null;
+  /** An own name in the plan (null = the entity's name), without renaming the entity in Home Assistant. */
+  name?: string | null;
   /** Cameras: show the field-of-view wedge on the floor (null = yes). */
   cone?: boolean | null;
 }

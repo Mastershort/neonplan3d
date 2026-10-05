@@ -1499,7 +1499,9 @@ export class FloorplanViewer {
         }
       }
       // an attic floor: its walls end under the roof sections above it
-      const sloped = (b.settings.roof.sections ?? []).some((s) => !s.open && s.base < floor.elevation + floor.height - 0.05 && s.base > floor.elevation - 0.05);
+      // every floor whose ceiling lies above a section's base is cut by the slopes – the attic, and the
+      // floor below it when the slope already starts there (a roof that reaches down past the ceiling)
+      const sloped = (b.settings.roof.sections ?? []).some((s) => !s.open && s.base < floor.elevation + floor.height - 0.05);
       const roofUnder = sloped
         ? (x: number, z: number) => {
             const y = roofUnderAt(b, x, z);

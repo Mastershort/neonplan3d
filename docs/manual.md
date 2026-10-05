@@ -123,7 +123,7 @@ Next to them are **Undo**, **Redo**, **Show all** and **3D beside**. A short hin
 Without a selection, the sidebar shows the floors:
 
 - **Add floor** creates a floor. Home Assistant floors that are still missing are offered.
-- **Name**, **height above the ground** and **ceiling height** set where the floor sits in the 3D house and how tall its walls are. **Shift the floor** moves everything on the floor (rooms, furniture, devices, outdoor areas, free walls, background image) by X and Z when a floor sits offset against the others; roof sections and cables stay.
+- **Name**, **height above the ground** and **ceiling height** set where the floor sits in the 3D house and how tall its walls are. **Turn 90°** turns everything on the floor about the middle of its rooms when a floor was drawn the wrong way round. **Shift the floor** moves everything on the floor (rooms, furniture, devices, outdoor areas, free walls, background image) by X and Z when a floor sits offset against the others; roof sections and cables stay.
 - **Floor in Home Assistant** links the floor to an HA floor. Then **"Add … rooms from HA areas"** offers the areas of that floor as rooms.
 - **Move up** and **Move down** change the order, **Delete floor** removes it with its rooms.
 - **Close gaps** joins rooms that are up to 60 cm apart. This helps when you measured inside dimensions. The gap becomes the interior wall thickness.
@@ -362,7 +362,7 @@ A simple house gets a flat or gable roof over the whole top floor under **Settin
 - **Flat roof as a free shape:** a flat roof has the button **Take the floor's outline** – the surface takes the outline of the shown floor's rooms (L- or Z-shaped too), one surface without seams instead of several rectangles. The corners can be dragged in the plan afterwards; **Back to the rectangle** drops the shape.
 - **Dormers:** in a section's form, **+ Dormer** adds a dormer on the chosen side – 2 m wide, its front at the eave wall, eaves 1.4 m above the roof's eave, gable roof, as deep as its ridge needs to meet the slope. A dormer is a small section: move it and change its width, heights and shape (gable, pent) like any other. The main slope opens under it, the cheeks close its sides, and the attic wall rises under the dormer up to its eave – put the dormer window there with **Door & window**.
 - **Cross gables (a "three-gable house"):** a gable stepping out of the eave side is a wide dormer whose eaves lie on the top of the walls: **+ Dormer**, then drag its width (say 3.4 m) and set its **eave** to the top of walls. Its depth follows by itself – the dormer reaches exactly as far as its ridge meets the slope, and the main roof opens only where the dormer's roof lies above it (the valleys). The attic wall under the cross gable rises into the gable; put its window there with **Door & window**.
-- **Roof slopes (knee walls):** if the top of walls lies below the ceiling height of the floor underneath – say 0.9 m above the attic floor – that floor's walls end under the roof: knee walls at the eaves, gables up to the ridge, inner walls cut by the slope. Windows then only fit where the wall is tall enough (in the gable); on the eave side use roof windows. Dashed lines in the plan show where 1.5 m and 2 m of headroom remain under the slope.
+- **Roof slopes (knee walls):** if the top of walls lies below the ceiling height of the floor underneath (also when the slope already starts in the floor below: its walls on the eave side then end at the slope as well) – say 0.9 m above the attic floor – that floor's walls end under the roof: knee walls at the eaves, gables up to the ridge, inner walls cut by the slope. Windows then only fit where the wall is tall enough (in the gable); on the eave side use roof windows. Dashed lines in the plan show where 1.5 m and 2 m of headroom remain under the slope.
 - Where a section meets a taller part of the house, e.g. a pent roof against the house wall, the overhang is left out there; the roof ends at the wall.
 - The **ridge height** is shown at the bottom of the form. Sections may overlap: the lower roof runs under the higher one, as with a real extension.
 - **Create again from the rooms** replaces all sections with a new proposal, **Back to one roof** switches to the simple roof.
@@ -712,6 +712,7 @@ In YAML a card looks like this. Every line except the first is optional:
 ```yaml
 type: custom:neonplan3d-card
 floor: floor_ab12cd34   # show one floor (id from the editor)
+room: room_ab12cd34     # start in this room (id from the editor), e.g. a display for the kids' room
 height: 420             # height in pixels
 fill: false             # fill the screen below the header
 walls: auto             # auto | cut

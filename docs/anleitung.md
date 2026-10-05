@@ -125,7 +125,7 @@ Daneben stehen **Rückgängig**, **Wiederholen**, **Alles zeigen** und **3D dane
 Ohne Auswahl zeigt die Seitenleiste die Etagen:
 
 - **Etage hinzufügen** legt eine neue Etage an. Gibt es in Home Assistant Etagen, die noch fehlen, erscheinen sie zur Auswahl.
-- **Name**, **Höhe über Boden** und **Raumhöhe** bestimmen, wo die Etage im 3D-Haus liegt und wie hoch ihre Wände sind. **Etage verschieben** rückt alles auf der Etage (Räume, Möbel, Geräte, Außenflächen, freie Wände, Hintergrundbild) um X und Z, wenn eine Etage gegenüber den anderen versetzt sitzt; Dachflächen und Leitungen bleiben.
+- **Name**, **Höhe über Boden** und **Raumhöhe** bestimmen, wo die Etage im 3D-Haus liegt und wie hoch ihre Wände sind. **90° drehen** dreht alles auf der Etage um die Mitte der Räume, wenn eine Etage verdreht gezeichnet wurde. **Etage verschieben** rückt alles auf der Etage (Räume, Möbel, Geräte, Außenflächen, freie Wände, Hintergrundbild) um X und Z, wenn eine Etage gegenüber den anderen versetzt sitzt; Dachflächen und Leitungen bleiben.
 - **Etage in Home Assistant** verknüpft die Etage mit einer HA-Etage. Dann bietet **„… Räume aus HA-Bereichen anlegen“** die Bereiche dieser Etage als Räume an.
 - **Nach oben** und **Nach unten** ändern die Reihenfolge, **Etage löschen** entfernt sie samt Räumen.
 - **Lücken schließen** führt Räume zusammen, die bis zu 60 cm auseinanderliegen. Das ist praktisch, wenn du Innenmaße gemessen hast. Der Abstand wird zur Innenwandstärke.
@@ -364,7 +364,7 @@ Ein einfaches Haus bekommt unter **Einstellungen → Dach** ein Flach- oder Satt
 - **Flachdach als freie Form:** Bei einem Flachdach gibt es den Knopf **Umriss des Geschosses übernehmen** – die Fläche bekommt den Umriss der Räume des angezeigten Geschosses (auch L- oder Z-förmig), eine Fläche ohne Kanten statt mehrerer Rechtecke. Die Ecken lassen sich danach im Plan ziehen; **Zurück zum Rechteck** löscht die Form.
 - **Gauben:** Im Formular einer Dachfläche fügt **+ Gaube** eine Gaube auf der gewählten Seite ein – 2 m breit, Front an der Traufwand, Traufe 1,4 m über der Dachtraufe, Satteldach, so tief, dass ihr First auf die Schräge trifft. Eine Gaube ist eine kleine Dachfläche: verschieben, Breite, Höhen und Form (Sattel, Pult) änderst du wie bei jeder anderen. Die Hauptfläche öffnet sich darunter, die Wangen schließen seitlich ab, und die Wand des Dachgeschosses steigt unter der Gaube bis zu ihrer Traufe – dort setzt du mit **Tür & Fenster** das Gaubenfenster.
 - **Zwerchgiebel (Drei-Giebel-Haus):** Ein Giebel, der aus der Traufseite vortritt, ist eine breite Gaube, deren Traufe auf der Wandoberkante liegt: **+ Gaube**, dann Breite ziehen (z. B. 3,4 m) und **Traufe** auf die Wandoberkante setzen. Die Tiefe passt sich von selbst an – die Gaube reicht genau so weit, bis ihr First auf die Schräge trifft, und das Hauptdach öffnet sich nur dort, wo das Gaubendach darüber liegt (Kehlen). Die Dachgeschoss-Wand unter dem Zwerchgiebel steigt bis in den Giebel, das Fenster darin setzt du mit **Tür & Fenster**.
-- **Dachschrägen (Kniestock):** Liegt die Wandoberkante unter der Deckenhöhe des Geschosses darunter – zum Beispiel 0,9 m über dem Boden des Dachgeschosses –, enden dessen Wände an der Dachunterseite: Kniestock an der Traufe, Giebel bis zum First, Innenwände an der Schräge. Fenster passen dann nur, wo die Wand hoch genug ist (im Giebel); an der Traufseite nimmst du Dachfenster. Im Grundriss zeigen gestrichelte Linien, wo unter der Schräge noch 1,5 m und 2 m Kopfhöhe bleiben.
+- **Dachschrägen (Kniestock):** Liegt die Wandoberkante unter der Deckenhöhe des Geschosses darunter (auch wenn die Schräge schon im Geschoss darunter beginnt: dann enden dessen Wände an der Traufseite ebenfalls an der Schräge) – zum Beispiel 0,9 m über dem Boden des Dachgeschosses –, enden dessen Wände an der Dachunterseite: Kniestock an der Traufe, Giebel bis zum First, Innenwände an der Schräge. Fenster passen dann nur, wo die Wand hoch genug ist (im Giebel); an der Traufseite nimmst du Dachfenster. Im Grundriss zeigen gestrichelte Linien, wo unter der Schräge noch 1,5 m und 2 m Kopfhöhe bleiben.
 - Wo eine Dachfläche an einen höheren Teil des Hauses stößt, etwa ein Pultdach an der Hauswand, entfällt dort der Überstand; das Dach endet an der Wand.
 - Unten im Formular steht die **Firsthöhe**. Dachflächen dürfen sich überschneiden: Das niedrigere Dach läuft unter das höhere, wie bei einem echten Anbau.
 - **Neu aus den Räumen erzeugen** ersetzt alle Dachflächen durch einen neuen Vorschlag, **Zurück zu einem Dach** schaltet auf das einfache Dach zurück.
@@ -714,6 +714,7 @@ In YAML sieht eine Karte so aus. Alle Zeilen außer der ersten sind optional:
 ```yaml
 type: custom:neonplan3d-card
 floor: floor_ab12cd34   # eine Etage zeigen (ID aus dem Editor)
+room: room_ab12cd34     # in diesem Raum starten (ID aus dem Editor), z. B. ein Display fürs Kinderzimmer
 height: 420             # Höhe in Pixeln
 fill: false             # den Bildschirm unter der Kopfzeile füllen
 walls: auto             # auto | cut

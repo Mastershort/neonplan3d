@@ -5,6 +5,8 @@ import type { Quality, WallMode } from "./viewer/viewer3d.ts";
 export interface CardConfig {
   type: string;
   floor?: string;
+  /** Start in this room (its id from the editor): a display for one room, e.g. for the kids. */
+  room?: string;
   /** A start view of this card's own (theta, phi, radius as the editor shows them); default: the plan's. */
   start_view?: { theta: number; phi: number; radius: number };
   height?: number;
