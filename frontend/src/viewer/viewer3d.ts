@@ -58,7 +58,7 @@ import { buildSolarLive, solarLiveMaterial, writeSolarLevels, type SolarLive } f
 import { lineBlending, themed, themeIndex, type Theme, type ThemeUniform } from "./theme.ts";
 
 export type { Theme } from "./theme.ts";
-import { DEG, GeoBuffer, LineBuffer, pushPrism } from "./geo.ts";
+import { ALWAYS, DEG, GeoBuffer, LineBuffer, pushPrism } from "./geo.ts";
 import { buildLightSurface, lightColors, roomIndexAt, type LightKind, type LightSource, type LightSurface } from "./lighting.ts";
 import { buildOpeningParts, CLOSED, type OpeningState } from "./openings.ts";
 import { circlePath, cleaningPath, stepRobot, type RobotInfo, type RobotMotion } from "./robot.ts";
@@ -118,6 +118,8 @@ export interface DeviceMarker {
   /** Short state text, e.g. "60 %" or "21,5 °C". */
   text: string;
   active: boolean;
+  /** The text shows on the floor as well (a marker set to "always"); otherwise only in its room or while active. */
+  full?: boolean;
   unavailable: boolean;
   /** Cameras: no field-of-view wedge on the floor (false); default on. */
   cone?: boolean;
@@ -466,7 +468,7 @@ export class FloorplanViewer {
   private readonly haloTexture: CanvasTexture;
   /** Roof over the top floor (house view only), its opacity and the camera distance of the house view. */
   /** The roof: one group with a part per floor it sits on (each part follows its floor). */
-  private roof: { group: Group; parts: { group: Group; floorId: string; base: number }[]; solid: MeshBasicMaterial; lines: LineBasicMaterial; glass: MeshBasicMaterial; live: MeshBasicMaterial; lives: SolarLive[] } | null = null;
+  private roof: { group: Group; parts: { group: Group; floorId: string; base: number; lift: boolean }[]; solid: MeshBasicMaterial; lines: LineBasicMaterial; glass: MeshBasicMaterial; live: MeshBasicMaterial; lives: SolarLive[] } | null = null;
   /** The hologram's anchor: a point on the solar field (building coordinates) and the field's normal. */
   private anchors: { p: [number, number, number]; n: [number, number, number]; floorId: string; size: number; roof: boolean; views: "house" | "all" }[] = [];
   /** Told where the anchor lies on screen after every frame, how large the hologram should be and whether its front faces the camera. */
@@ -1730,7 +1732,7 @@ export class FloorplanViewer {
       }
       part.renderOrder = 8;
       group.add(part);
-      return { group: part, floorId: geo.floor.id, base: geo.base };
+      return { group: part, floorId: geo.floor.id, base: geo.base, lift: geo.lift !== false };
     });
     group.renderOrder = 8;
     this.scene.add(group);
@@ -1758,7 +1760,7 @@ export class FloorplanViewer {
       if (!fv) continue;
       // floors pulled apart: the roof lifts off its floor the same way (it follows the floor's own glide)
       const apart = fv.ty > 0 ? Math.min(1, fv.y / fv.ty) : this.explode && this.floorId === null ? 1 : 0;
-      part.group.position.y = fv.floor.elevation + fv.y + part.base + (1 - this.roofO) * 2.2 + apart * ROOF_GAP;
+      part.group.position.y = fv.floor.elevation + fv.y + part.base + (1 - this.roofO) * 2.2 + (part.lift ? apart * ROOF_GAP : 0);
     }
     roof.solid.opacity = this.roofO;
     roof.solid.depthWrite = this.roofO > 0.9;
@@ -2524,6 +2526,11 @@ export class FloorplanViewer {
         const id = inRange(hit.object === fv.lampMesh ? fv.lampTris : fv.coneTris, tri);
         if (id) return { entity: id };
       } else if (hit.object === fv.framesMesh || hit.object === fv.blindsMesh || hit.object === fv.glassMesh) {
+        // the part above the cut is folded away with its wall: a tap there is meant for what lies behind
+        if (this.wallMode === "cut" && hit.face) {
+          const fold = ((hit.object as Mesh).geometry.getAttribute("fold") as Float32BufferAttribute | undefined)?.getX(hit.face.a) ?? ALWAYS;
+          if (fold !== ALWAYS && Math.floor(fold / 16) === 0) continue;
+        }
         // the whole window counts, glass included: a small blind is a poor target
         const id = inRange(hit.object === fv.framesMesh ? fv.frameTris : hit.object === fv.glassMesh ? fv.glassTris : fv.blindTris, tri);
         const entity = id ? this.pickOpenings.get(id) : undefined;
@@ -3343,7 +3350,7 @@ export class FloorplanViewer {
         this.place(pin, null);
         continue;
       }
-      const mode = this.roomId === null ? "" : d.roomId === this.roomId ? "full" : "dim";
+      const mode = this.roomId === null ? (d.full ? "full" : "") : d.roomId === this.roomId ? "full" : "dim";
       if (this.pinMode.get(pin) !== mode) {
         this.pinMode.set(pin, mode);
         pin.classList.toggle("fp3d-dev-full", mode === "full");

@@ -50,6 +50,8 @@ export interface RoofGeometry {
   glass: GeoBuffer;
   /** Roof sections in this part (sections roof only). */
   sections?: string[];
+  /** False for canopies: they stand on posts on their floor and do not lift off with the roof when the floors are pulled apart. */
+  lift?: boolean;
 }
 
 /** The floor the roof sits on: the highest one with rooms. */
@@ -229,8 +231,10 @@ function buildSections(b: Building, sections: readonly RoofSection[], overhang: 
     if (Math.abs(sec.x1 - sec.x0) < 0.1 || Math.abs(sec.z1 - sec.z0) < 0.1) continue;
     // the floor the section sits on: the highest one that starts below its walls' top
     const floor = [...floors].reverse().find((f) => f.elevation < sec.base - 0.05) ?? floors[0];
-    let part = parts.get(floor.id);
-    if (!part) parts.set(floor.id, (part = { floor, base: 0, solid: new GeoBuffer(), lines: new LineBuffer(), glass: new GeoBuffer(), sections: [] }));
+    // canopies get a part of their own: it rides with the floor but never lifts off like a roof
+    const key = sec.open ? `${floor.id}:open` : floor.id;
+    let part = parts.get(key);
+    if (!part) parts.set(key, (part = { floor, base: 0, solid: new GeoBuffer(), lines: new LineBuffer(), glass: new GeoBuffer(), sections: [], lift: !sec.open }));
     part.sections!.push(sec.id);
     // an attic: the floor's walls rise above the section's base, so they end under the slopes
     // themselves (knee walls, gables) and the roof draws none of its own; a dormer keeps its cheeks
@@ -262,7 +266,8 @@ function buildSections(b: Building, sections: readonly RoofSection[], overhang: 
     }
     pushSection(part.solid, part.lines, drawn, sectionOverhang(b, drawn, drawn.overhang ?? overhang), floor.elevation, part.glass, attic, holes, frontEnd);
   }
-  return [...parts.values()];
+  // the closed roofs first: the first part is the one the main roof's solar fields belong to
+  return [...parts.values()].sort((p, q) => Number(p.lift === false) - Number(q.lift === false));
 }
 
 /**

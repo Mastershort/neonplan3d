@@ -587,7 +587,7 @@ export class Fp3dView3d extends LitElement {
         const power = m.show === "no_power" || ("energyDevice" in m && m.energyDevice) ? null : (byDevice.get(m.id) ?? null);
         // at night (kiosk) colour effects rest
         const marker = { ...m, power, powerText: power === null ? undefined : formatPower(hass, power), effect: this.dimmed ? false : m.effect };
-        return { ...marker, pin: this.showPin(marker) };
+        return { ...marker, pin: this.showPin(marker), full: m.show === "always" };
       }),
       // Energie Pro: the street end of the grid cable carries a pin with what comes in or goes out
       ...(pro && (this.flows ?? this._flows) && !this.dimmed && summary.grid !== null ? [this.gridPin(hass, b, summary.grid)] : []).filter((m): m is NonNullable<typeof m> => !!m),

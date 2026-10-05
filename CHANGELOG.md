@@ -17,6 +17,9 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 - **Camera wall** shares the sheet between the cameras: one camera fills it, two sit side by side, up to four in a 2×2 grid, more in three or four columns. Tapping a tile shows that camera big as a live stream through Home Assistant’s own player (the tiles stay stills, and a small note in the wall header and in the look-through bar says so); from there "Look through the camera" goes into the 3D view, and "Back to the view" brings the wall back.
 - **Door form:** the switch "Show closed without a sensor" was missing – it sat in the window-only sensor block; the drive's position sensor and confirm switch show only once a drive is set or found; the drive field is called "Drive" for doors and gates.
 - **Wall heights:** the rows in the room form lay out cleanly again (name and height, the buttons below, a split point in its own line) instead of the cut button slipping out of line.
+- **Canopies stay on their posts** when the floors are pulled apart; before, a terrace roof or carport lifted off with the house roof (discussion #137 by RobertSorgenfrei).
+- A device marker set to **"always"** shows its value (temperature, humidity …) on the floor as well, not only inside its room (discussion #130 by Chipsy79).
+- **Cut view:** a tap on the cut-away upper part of a window no longer switches its blind or curtain by mistake; it goes through to what lies behind (discussion #127 by creativeibiza).
 
 ## 1.10.1
 

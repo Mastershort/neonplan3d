@@ -11,6 +11,9 @@
 - Beim Durchschauen in 3D steht in der Leiste, dass das Bild ein Standbild ist (alle 5 s neu, auf der Tablet-Stufe alle 10 s).
 - **Türformular:** Der Haken „Ohne Sensor geschlossen zeigen“ fehlte – er saß im Sensorblock, den nur Fenster haben. Positions-Sensor und „Vor dem Schalten nachfragen“ erscheinen erst, wenn ein Antrieb gesetzt oder gefunden ist; das Feld heißt bei Türen und Toren jetzt „Antrieb“.
 - **Wandhöhen:** Die Zeilen im Raumformular sind wieder sauber angeordnet (Name und Höhe, darunter die Knöpfe, ein Teilpunkt in eigener Zeile), statt dass die Schere aus der Reihe rutscht.
+- **Überdachungen bleiben auf ihren Pfosten**, wenn die Etagen auseinandergezogen sind; vorher hob eine Terrassenüberdachung oder ein Carport mit dem Hausdach ab (Diskussion #137 von RobertSorgenfrei).
+- Ein Gerätemarker auf **„Immer zeigen“** zeigt seinen Wert (Temperatur, Feuchte …) auch auf der Etage, nicht nur im Raum (Diskussion #130 von Chipsy79).
+- **Schnittansicht:** Ein Tipp auf den weggeschnittenen oberen Teil eines Fensters schaltet nicht mehr versehentlich Rollladen oder Vorhang; er geht durch auf das, was dahinter liegt (Diskussion #127 von creativeibiza).
 
 ---
 
@@ -27,3 +30,6 @@
 - The look-through bar in 3D says that the picture is a still (refreshed every 5 s, every 10 s on the tablet level).
 - **Door form:** the switch "Show closed without a sensor" was missing – it sat in the window-only sensor block; the drive's position sensor and confirm switch show only once a drive is set or found; the drive field is called "Drive" for doors and gates.
 - **Wall heights:** the rows in the room form lay out cleanly again (name and height, the buttons below, a split point in its own line) instead of the cut button slipping out of line.
+- **Canopies stay on their posts** when the floors are pulled apart; before, a terrace roof or carport lifted off with the house roof (discussion #137 by RobertSorgenfrei).
+- A device marker set to **"always"** shows its value (temperature, humidity …) on the floor as well, not only inside its room (discussion #130 by Chipsy79).
+- **Cut view:** a tap on the cut-away upper part of a window no longer switches its blind or curtain by mistake; it goes through to what lies behind (discussion #127 by creativeibiza).
