@@ -1,5 +1,6 @@
-// Records frames of the preview (invented demo data) for the README animation: the house turns,
-// the view flies into the ground floor and the kitchen, the lights go off and on again, then the kitchen.
+// Records frames of the preview (invented demo data) for the README animation: the house turns with its
+// solar roof and energy cards, the view flies into the ground floor (music cards over the speakers), the
+// central menu switches every light off and on again, then the kitchen with its speaker card and room panel.
 // Usage (from frontend/): node record-gif.mjs <frame-dir>; then python ../tools/make-gif.py <frame-dir> <out.gif>
 
 import { createServer } from "node:http";
@@ -74,19 +75,34 @@ const lights = (service) =>
     hass.callService("light", service, { entity_id: ids });
   }, service);
 
+// the star above the magnifier: the central menu of the 3D view
+const view = () => 'document.querySelector("neonplan3d-panel").shadowRoot.querySelector("fp3d-view3d")';
+const central = (open) => page.evaluate((code, open) => {
+  const v = new Function("return " + code)();
+  v._central = open;
+}, view(), open);
+const centralButton = (label) => page.evaluate((code, label) => {
+  const v = new Function("return " + code)();
+  const b = [...v.shadowRoot.querySelectorAll(".fp3d-central .fp3d-btn")].find((x) => x.textContent.trim() === label);
+  b?.click();
+}, view(), label);
+
 await hold(4);
-await turn(520, 40);
-await hold(3);
+await turn(560, 44);
+await hold(4);
 await clickText("Erdgeschoss");
-for (let i = 0; i < 14; i++) await frame(70);
-await turn(-200, 16);
-await hold(4);
-await lights("turn_off");
-for (let i = 0; i < 12; i++) await frame(120);
-await lights("turn_on");
-for (let i = 0; i < 14; i++) await frame(120);
+for (let i = 0; i < 16; i++) await frame(70);
+await turn(-220, 18);
+await hold(5);
+await central(true);
+await hold(6);
+await centralButton("Off");
+for (let i = 0; i < 12; i++) await frame(110);
+await centralButton("On");
+for (let i = 0; i < 12; i++) await frame(110);
+await central(false);
 await clickText("Küche");
-for (let i = 0; i < 18; i++) await frame(70);
+for (let i = 0; i < 24; i++) await frame(80);
 console.log(`${n} frames in ${outDir}`);
 await browser.close();
 server.close();
