@@ -274,6 +274,7 @@ Leuchten sind Möbel mit einem verknüpften Licht. Es gibt Deckenleuchte, Einbau
 - Farbeffekte wie ein Farbwechsel werden in 3D animiert.
 - Tischlampen stehen auf dem Möbel darunter, Wandleuchten und LED-Streifen rasten an der Wand ein, bei Pendelleuchten ist die Höhe die Abhängung unter der Decke.
 - **Höhe über Boden:** Wandleuchten hängen von sich aus auf 1,75 m, LED-Streifen direkt unter der Decke. Im Formular stellst du für beide eine eigene **Höhe über Boden** ein, etwa für einen Streifen unter den Hängeschränken oder hinter dem TV-Board. **Höhe automatisch** setzt sie zurück. Ein Streifen unter 1 m Höhe (Sockelleiste, hinter dem Schrank) strahlt nach oben an die Wand, höher montierte strahlen nach unten. Ein Streifen unterhalb der Schnitthöhe bleibt auch bei geschnittenen Wänden sichtbar. **Neigung um die Länge** legt den Streifen an eine Dachschräge oder kippt ihn zur Seite (90° = die Leuchtfläche zeigt seitlich), **Senkrecht** stellt ihn hochkant: Dann läuft er von der Höhe über Boden nach oben, am Türrahmen oder als Lichtsäule, und leuchtet rundum.
+- **Farbe und Helligkeit von:** Schaltet ein Relais (Shelly, Schaltaktor) die Lampe, während die Leuchte selbst Farbe und Helligkeit kennt, kommt An/Aus vom Schalter und die Farbe von dieser zweiten Entität.
 - Statt eines Lichts geht auch ein Schalter, etwa ein Relais für das Deckenlicht.
 - Mehrere Leuchten dürfen demselben Licht folgen.
 

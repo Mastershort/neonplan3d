@@ -1522,7 +1522,7 @@ export class Fp3dView3d extends LitElement {
       text: st ? stateText(hass, st) : "",
       active: st ? isActive(st) : false,
       unavailable: st ? isUnavailable(st) : false,
-      glow: st ? lightGlow(st) : null,
+      glow: st ? lightGlow(st, f.color_entity && f.color_entity !== "none" ? hass.states[f.color_entity] : undefined) : null,
       lamp: model,
       rotation: f.rotation,
       roll: f.tilt ?? 0,

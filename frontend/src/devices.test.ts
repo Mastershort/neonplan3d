@@ -1,5 +1,18 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
+
+test("a lamp switched by a relay takes colour and brightness from its colour entity", async () => {
+  const { lightGlow } = await import("./devices.ts");
+  const relay = { entity_id: "switch.relay", state: "on", attributes: {}, last_changed: "", last_updated: "", context: { id: "", user_id: null, parent_id: null } };
+  const bulb = { ...relay, entity_id: "light.bulb", attributes: { brightness: 255, rgb_color: [0, 0, 255], color_mode: "rgb" } };
+  const g = lightGlow(relay as never, bulb as never)!;
+  assert.deepEqual(g.color, [0, 0, 1]);
+  assert.equal(g.level, 1);
+  // the relay off: no glow, whatever the bulb says
+  assert.equal(lightGlow({ ...relay, state: "off" } as never, bulb as never), null);
+  // the bulb unavailable: the relay's own (plain) glow
+  assert.deepEqual(lightGlow(relay as never, { ...bulb, state: "unavailable" } as never)!.color, [1, 0.71, 0.28]);
+});
 import { appColor, areaEntities, otherAreaEntities, roomClimateSensors, roomClimateValue, unassignedEntities, autoPlace, entityName, fridgeDoors, furnitureEntities, groupByDevice, isActive, kindOf, lightGlow, openingEntities, openingState, powerSensorsOf, primaryEntities, roomPanelEntities, windowPosition, confirmEntities, robotRoom, robotRoomSensor, roomKey } from "./devices.ts";
 import type { Floor, Opening, Room } from "./model.ts";
 import { centroid, newFloor, pointInPolygon } from "./model.ts";

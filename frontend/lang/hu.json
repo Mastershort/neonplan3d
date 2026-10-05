@@ -821,6 +821,8 @@
  "furn_led_strip": "LED-szalag",
  "furn_group_lights": "Fények",
  "furn_entity_light": "Fény vagy kapcsoló",
+ "furn_color_entity": "Szín és fényerő innen (opcionális)",
+ "furn_color_entity_hint": "Olyan lámpákhoz, amelyeket egy relé (Shelly, kapcsolóaktor) kapcsol, miközben a fényforrás maga ismeri a színét és fényerejét: a be/ki a fenti kapcsolótól jön, a szín és a fényerő ettől az entitástól.",
  "furn_entity_climate": "Fűtés (termosztát)",
  "lamp_hint": "Koppints a lámpára 3D-ben a kapcsoláshoz, hosszú nyomás a gyorsmenühöz. Kapcsolók is működnek (pl. relé a mennyezeti lámpához) – a lámpa világít, amíg be van kapcsolva. Az asztali lámpák az alattuk lévő bútoron állnak.",
  "lamp_hint_pendant": "Magasság = függesztés a mennyezet alatt. Koppintás 3D-ben kapcsol, hosszú nyomás a részletekhez.",

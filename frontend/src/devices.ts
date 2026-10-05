@@ -329,9 +329,10 @@ export function isActive(st: HassEntity | undefined): boolean {
 }
 
 /** Colour (0..1 channels) and level (0..1) of a light that is on; null when off. */
-export function lightGlow(st: HassEntity | undefined): { color: [number, number, number]; level: number } | null {
+export function lightGlow(st: HassEntity | undefined, colorFrom?: HassEntity | undefined): { color: [number, number, number]; level: number } | null {
   if (!st || st.state !== "on") return null;
-  const a = st.attributes;
+  // a relay switches the light while the bulb itself knows its colour and brightness: read those there
+  const a = colorFrom && !["unavailable", "unknown"].includes(colorFrom.state) ? colorFrom.attributes : st.attributes;
   // a perceptual curve: a lamp at 10 % still reads as "on" (0.45), full brightness stays 1
   const level = typeof a.brightness === "number" ? 0.2 + 0.8 * Math.sqrt(Math.min(1, Math.max(0, a.brightness / 255))) : 1;
   const rgb = a.rgb_color as [number, number, number] | undefined;

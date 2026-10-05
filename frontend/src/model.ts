@@ -151,6 +151,8 @@ export interface Furniture {
   marker?: MarkerShow | null;
   /** Height of the bottom edge above the floor (null = default: the floor, a pack item's mount, a surface below). */
   mount_y?: number | null;
+  /** Lamps: a second entity whose colour and brightness the lamp shows while the linked switch is on (a relay switches the light, the bulb itself knows its colour). */
+  color_entity?: EntityRef;
   /** Mirrored (left-right) – an L-sofa the other way round, a cabinet with its door on the other side. */
   mirror?: boolean;
   /** LED strip: tilt about its length (°; 0 = lying flat, 90 = its face points sideways, e.g. along a roof slope). */

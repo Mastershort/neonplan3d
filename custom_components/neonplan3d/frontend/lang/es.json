@@ -821,6 +821,8 @@
  "furn_led_strip": "Tira LED",
  "furn_group_lights": "Luces",
  "furn_entity_light": "Luz o interruptor",
+ "furn_color_entity": "Color y brillo desde (opcional)",
+ "furn_color_entity_hint": "Para lámparas que un relé (Shelly, actuador) enciende y apaga mientras la bombilla conoce su color y brillo: encendido/apagado viene del interruptor de arriba, color y brillo de esta entidad.",
  "furn_entity_climate": "Calefacción (termostato)",
  "lamp_hint": "Toca la lámpara en 3D para accionarla; pulsación larga para el menú rápido. Los interruptores también sirven (p. ej. un relé para la lámpara de techo): la lámpara brilla mientras está activado. Las lámparas de mesa se apoyan en el mueble de debajo.",
  "lamp_hint_pendant": "Altura = caída desde el techo. Toque en 3D para accionar, pulsación larga para detalles.",

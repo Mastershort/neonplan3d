@@ -821,6 +821,8 @@
  "furn_led_strip": "Striscia LED",
  "furn_group_lights": "Luci",
  "furn_entity_light": "Luce o interruttore",
+ "furn_color_entity": "Colore e luminosità da (facoltativo)",
+ "furn_color_entity_hint": "Per lampade che un relè (Shelly, attuatore) accende e spegne mentre la lampadina stessa conosce colore e luminosità: acceso/spento viene dall'interruttore sopra, colore e luminosità da questa entità.",
  "furn_entity_climate": "Riscaldamento (termostato)",
  "lamp_hint": "Tocca la lampada in 3D per azionarla, pressione lunga per il menu rapido. Funzionano anche gli interruttori (es. un relè per la plafoniera): la lampada brilla finché è acceso. Le lampade da tavolo poggiano sul mobile sottostante.",
  "lamp_hint_pendant": "Altezza = discesa dal soffitto. Tocco in 3D per azionare, pressione lunga per i dettagli.",

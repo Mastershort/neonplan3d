@@ -5558,6 +5558,10 @@ export class Fp3dEditor extends LitElement {
           : this.entitySelect(this.t(lamp ? "furn_entity_light" : media ? "furn_entity_tv" : f.type === "radiator" ? "furn_entity_climate" : f.type === "robot_vacuum" ? "furn_entity_vacuum" : "furn_entity"), f.entity ?? null, autoPick("entity"), entities, (v) =>
               this.updateFurniture({ entity: v }),
             )}
+        ${lamp && f.entity && f.entity !== "none"
+          ? html`${this.entitySelect(this.t("furn_color_entity"), f.color_entity ?? null, undefined, this.entityOptions((id) => id.startsWith("light.") && id !== f.entity), (v) => this.updateFurniture({ color_entity: v === "none" ? null : v }))}
+              <p class="fp3d-sub fp3d-wide">${this.t("furn_color_entity_hint")}</p>`
+          : nothing}
         ${lamp || f.type === "grid_point"
           ? nothing
           : this.entitySelect(

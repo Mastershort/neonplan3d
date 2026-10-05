@@ -821,6 +821,8 @@
  "furn_led_strip": "Ledstrip",
  "furn_group_lights": "Lichten",
  "furn_entity_light": "Licht of schakelaar",
+ "furn_color_entity": "Kleur en helderheid van (optioneel)",
+ "furn_color_entity_hint": "Voor lampen die een relais (Shelly, schakelactor) aan- en uitzet terwijl de lamp zelf kleur en helderheid kent: aan/uit komt van de schakelaar hierboven, kleur en helderheid van deze entiteit.",
  "furn_entity_climate": "Verwarming (thermostaat)",
  "lamp_hint": "Tik in 3D op de lamp om te schakelen, lang indrukken voor het snelmenu. Schakelaars werken ook (bijv. een relais voor de plafondlamp) – de lamp brandt zolang die aan staat. Tafellampen staan op het meubel eronder.",
  "lamp_hint_pendant": "Hoogte = afstand onder het plafond. Tik in 3D om te schakelen, lang indrukken voor details.",

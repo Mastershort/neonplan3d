@@ -821,6 +821,8 @@
  "furn_led_strip": "Ruban LED",
  "furn_group_lights": "Lumières",
  "furn_entity_light": "Lumière ou interrupteur",
+ "furn_color_entity": "Couleur et luminosité depuis (optionnel)",
+ "furn_color_entity_hint": "Pour les lampes qu'un relais (Shelly, actionneur) allume et éteint alors que l'ampoule elle-même connaît sa couleur et sa luminosité : marche/arrêt vient de l'interrupteur ci-dessus, couleur et luminosité de cette entité.",
  "furn_entity_climate": "Chauffage (thermostat)",
  "lamp_hint": "Appuie sur la lampe en 3D pour la commuter, appui long pour le menu rapide. Les interrupteurs fonctionnent aussi (p. ex. un relais pour le plafonnier) – la lampe brille tant qu'il est activé. Les lampes de table reposent sur le meuble en dessous.",
  "lamp_hint_pendant": "Hauteur = descente sous le plafond. Appui en 3D pour commuter, appui long pour les détails.",
