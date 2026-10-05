@@ -11,6 +11,11 @@ export const FEATURES: readonly Feature[] = ["camera_cockpit", "weather", "scree
 /** Features unlocked by a pack but not listed anywhere (exclusive items). */
 const HIDDEN: readonly Feature[] = ["fridge_smart"];
 
+/** Whether this frontend knows a feature key at all (an older bundle does not know newer Pro add-ons). */
+export function knownFeature(key: string): boolean {
+  return (FEATURES as readonly string[]).includes(key) || (HIDDEN as readonly string[]).includes(key);
+}
+
 /** The shop page where the Pro pack is sold (German; see shopUrl for the user's language). */
 export const PRO_URL = "https://mastershort.de/neonplan3d/";
 

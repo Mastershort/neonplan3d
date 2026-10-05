@@ -493,7 +493,17 @@ export class Floorplan3dPanel extends LitElement {
   private renderNotices() {
     const d = this.data;
     const notices = [];
-    if (d.needsRestart) notices.push(html`<div class="fp3d-notice fp3d-notice-warn">${d.backendVersion ? this.t("needs_restart", { version: d.backendVersion }) : this.t("needs_restart_old")}</div>`);
+    if (d.needsRestart) {
+      // an old bundle in the browser or the companion app: a reload helps, a restart does not
+      if (d.versionGap === "frontend")
+        notices.push(
+          html`<div class="fp3d-notice fp3d-notice-warn">
+            ${this.t("needs_reload", { frontend: d.frontendVersion, backend: d.backendVersion ?? "?" })}
+            <button class="fp3d-btn" @click=${() => location.reload()}>${this.t("reload_page")}</button>
+          </div>`,
+        );
+      else notices.push(html`<div class="fp3d-notice fp3d-notice-warn">${d.backendVersion ? this.t("needs_restart", { version: d.backendVersion, frontend: d.frontendVersion }) : this.t("needs_restart_old")}</div>`);
+    }
     if (d.saveState === "error" && d.saveError) {
       notices.push(html`<div class="fp3d-notice fp3d-notice-error">${this.t("save_failed_detail", { error: d.saveError })}</div>`);
     }

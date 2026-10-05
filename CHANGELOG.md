@@ -10,6 +10,10 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 
 - **Camera cockpit 2** (a free update of the Pro add-on): **detection pins** – what a camera's sensors see right now (person, vehicle, animal, motion – Frigate, UniFi Protect, Reolink …) stands in front of it as a pin with the time; the **camera wall** – every placed camera's live picture at once ("Cameras" switch, card option `camera_wall`), motion framed red, recording marked; a tap looks through the camera.
 
+### Fixed
+
+- The version notice now tells which side is behind: an old bundle in the browser or the companion app gets "reload the page" with a Reload button (and the cache hint for the companion app) instead of "restart Home Assistant"; both versions are shown. A pack with a Pro feature this frontend does not know yet says so instead of looking like a furniture pack (support case of a French customer).
+
 ## 1.10.0
 
 ### New

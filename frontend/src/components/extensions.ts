@@ -17,7 +17,7 @@ import {
   type CatalogPack,
   type LicenseStatus,
 } from "../api.ts";
-import { FEATURES, manualUrl, shopUrl, unlockedFeatures } from "../features.ts";
+import { FEATURES, knownFeature, manualUrl, shopUrl, unlockedFeatures } from "../features.ts";
 import { translate, type I18nKey } from "../i18n.ts";
 import type { FurniturePack } from "../packs.ts";
 import { controls, tokens } from "../styles.ts";
@@ -292,6 +292,7 @@ export class Extensions extends LitElement {
             <b>${p.name}</b>
             <span class="fp3d-sub">${p.features?.length ? this.t("pack_features", { publisher: p.publisher, n: p.features.length }) : this.t("pack_by", { publisher: p.publisher, n: p.items.length })}</span>
             ${p.licensee ? html`<span class="fp3d-sub">${this.t("pack_licensed", { name: p.licensee })}${p.release && p.release > 1 ? ` · v${p.release}` : ""}</span>` : nothing}
+            ${(p.features ?? []).some((f) => !knownFeature(f)) ? html`<span class="fp3d-sub fp3d-pack-error">${this.t("pack_needs_update")}</span>` : nothing}
           </div>
           <button class="fp3d-btn fp3d-danger" @click=${() => this.deletePack(p)}>${this.t("pack_remove")}</button>
         </div>`,

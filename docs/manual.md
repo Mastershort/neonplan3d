@@ -823,6 +823,9 @@ The key was connected to more than five new installations in the last twelve mon
 **Activation says "The shop is busy right now" or "HTTP 429".**
 The shop's web host throttles too many requests from one address. Since 1.9.1 NeonPlan retries twice with a pause by itself; if it still fails, wait a minute and click **Activate** again. Versions before 1.9.1 were turned away by the host because of their user agent – there only the update helps.
 
+**The notice "This page still shows NeonPlan 3D x.y, Home Assistant already has …" stays.**
+The browser or the companion app still holds an old NeonPlan bundle. Tap **Reload**; in the companion app go to Settings → Companion app → **Reset frontend cache**, then close the app completely and open it again. Restarting Home Assistant does not help here. The same applies when a bought Pro add-on says "needs a newer NeonPlan version" under the packs.
+
 **The shop cannot be reached.**
 Installed packs and Pro add-ons keep working. Updates arrive as soon as the shop answers again.
 

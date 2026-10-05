@@ -101,6 +101,21 @@ export class BuildingController implements ReactiveController {
     this.host.requestUpdate();
   }
 
+  /** This frontend's version, for notices. */
+  get frontendVersion(): string {
+    return FRONTEND_VERSION;
+  }
+
+  /**
+   * Which side is behind when the versions differ: "backend" when Home Assistant still runs the old
+   * integration (restart helps), "frontend" when the browser or the companion app still holds an old
+   * bundle (a reload helps, not a restart); null when they match or one is unknown.
+   */
+  get versionGap(): "backend" | "frontend" | null {
+    if (!this.backendVersion || FRONTEND_VERSION === "dev" || this.backendVersion === FRONTEND_VERSION) return null;
+    return compareVersions(this.backendVersion, FRONTEND_VERSION) > 0 ? "frontend" : "backend";
+  }
+
   /** The backend runs another version than this frontend: Home Assistant has to restart. */
   get needsRestart(): boolean {
     // an older backend that does not report its version yet rejects the new fields ("extra keys")
@@ -197,4 +212,15 @@ export class BuildingController implements ReactiveController {
 function errorText(err: unknown): string {
   if (err && typeof err === "object" && "message" in err) return String((err as { message: unknown }).message);
   return String(err);
+}
+
+/** Numeric comparison of "1.10.1"-style versions: negative when a < b, positive when a > b. */
+export function compareVersions(a: string, b: string): number {
+  const pa = a.split(/[.-]/).map((x) => Number.parseInt(x, 10) || 0);
+  const pb = b.split(/[.-]/).map((x) => Number.parseInt(x, 10) || 0);
+  for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+    const d = (pa[i] ?? 0) - (pb[i] ?? 0);
+    if (d) return d;
+  }
+  return 0;
 }
