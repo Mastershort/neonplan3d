@@ -21,6 +21,9 @@ const COLORS: [number, number, number][] = [
 const KELVINS = [2200, 2700, 3200, 4000, 5000, 6500];
 const COLOR_MODES = ["hs", "rgb", "rgbw", "rgbww", "xy"];
 const COVER_SET_POSITION = 4;
+const COVER_OPEN_TILT = 16;
+const COVER_CLOSE_TILT = 32;
+const COVER_SET_TILT = 128;
 
 /** What a light can do, from its supported colour modes. */
 export function lightAbilities(st: HassEntity): { dim: boolean; color: boolean; temp: boolean } {
@@ -185,7 +188,32 @@ export class Fp3dQuickMenu extends LitElement {
             aria-label=${this.t("position")}
             @change=${(e: Event) => this.call("cover", "set_cover_position", { position: Number((e.target as HTMLInputElement).value) })}
           />`
-        : nothing}`;
+        : nothing}
+      ${this.renderTilt(st)}`;
+  }
+
+  /** Slats of a venetian blind or a Raffstore: a tilt slider when the cover sets a tilt position, else open/close tilt buttons. */
+  private renderTilt(st: HassEntity) {
+    const features = ((st.attributes.supported_features as number) ?? 0) | 0;
+    const tilt = typeof st.attributes.current_tilt_position === "number" ? (st.attributes.current_tilt_position as number) : null;
+    if (features & COVER_SET_TILT && tilt !== null)
+      return html`<label class="qm-tilt"
+        ><span>${this.t("cover_tilt")} · ${tilt} %</span>
+        <input
+          class="qm-slider"
+          type="range"
+          min="0"
+          max="100"
+          .value=${String(tilt)}
+          aria-label=${this.t("cover_tilt")}
+          @change=${(e: Event) => this.call("cover", "set_cover_tilt_position", { tilt_position: Number((e.target as HTMLInputElement).value) })}
+      /></label>`;
+    if (features & (COVER_OPEN_TILT | COVER_CLOSE_TILT))
+      return html`<div class="qm-tilt-buttons">
+        ${features & COVER_OPEN_TILT ? html`<button class="qm-swatch qm-slot" @click=${() => this.call("cover", "open_cover_tilt")}>${this.t("cover_tilt_open")}</button>` : nothing}
+        ${features & COVER_CLOSE_TILT ? html`<button class="qm-swatch qm-slot" @click=${() => this.call("cover", "close_cover_tilt")}>${this.t("cover_tilt_close")}</button>` : nothing}
+      </div>`;
+    return nothing;
   }
 
   private renderToggle(st: HassEntity) {
@@ -362,6 +390,24 @@ export class Fp3dQuickMenu extends LitElement {
         color: var(--fp3d-accent-text);
         font-size: 17px;
         cursor: pointer;
+      }
+      .qm-tilt {
+        display: grid;
+        gap: 4px;
+        margin-top: 8px;
+        font-size: 12px;
+        color: var(--fp3d-muted);
+      }
+      .qm-tilt-buttons {
+        display: flex;
+        gap: 6px;
+        justify-content: center;
+        margin-top: 8px;
+      }
+      .qm-tilt-buttons .qm-slot {
+        width: auto;
+        padding: 0 10px;
+        font-size: 12px;
       }
       .qm-slider {
         width: 100%;

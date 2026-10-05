@@ -125,7 +125,8 @@ Daneben stehen **Rückgängig**, **Wiederholen**, **Alles zeigen** und **3D dane
 Ohne Auswahl zeigt die Seitenleiste die Etagen:
 
 - **Etage hinzufügen** legt eine neue Etage an. Gibt es in Home Assistant Etagen, die noch fehlen, erscheinen sie zur Auswahl.
-- **Name**, **Höhe über Boden** und **Raumhöhe** bestimmen, wo die Etage im 3D-Haus liegt und wie hoch ihre Wände sind. **90° drehen** dreht alles auf der Etage um die Mitte der Räume, wenn eine Etage verdreht gezeichnet wurde. **Etage verschieben** rückt alles auf der Etage (Räume, Möbel, Geräte, Außenflächen, freie Wände, Hintergrundbild) um X und Z, wenn eine Etage gegenüber den anderen versetzt sitzt; Dachflächen und Leitungen bleiben.
+- **Name**, **Höhe über Boden** und **Raumhöhe** bestimmen, wo die Etage im 3D-Haus liegt und wie hoch ihre Wände sind. **90° drehen** dreht alles auf der Etage um die Mitte der Räume, wenn eine Etage verdreht gezeichnet wurde. **Etage verschieben** rückt alles auf der Etage (Räume, Möbel, Geräte, Außenflächen, freie Wände, Hintergrundbild) um X und Z, wenn eine Etage gegenüber den anderen versetzt sitzt; Dachflächen und Leitungen bleiben. Mit dem Haken **Alle Etagen mitnehmen** wirken Verschieben und Drehen auf das ganze Haus: alle Etagen samt Dachflächen, Außenflächen, Leitungen, Zähler und Hologramm.
+- **Hintergrundbild:** Im Abschnitt **Hintergrund** lädst du ein Foto oder einen Scan deines Grundrisses als Vorlage unter den Plan (Deckkraft einstellbar). **Im Plan verschieben und skalieren** schaltet einen Modus ein, in dem du das Bild mit der Maus ziehst und am Griff unten rechts größer oder kleiner ziehst; **Drehung (°)** dreht es um seine Mitte. Erst den Maßstab an eine bekannte Wandlänge anpassen, dann drehen, dann die Räume darüber zeichnen.
 - **Etage in Home Assistant** verknüpft die Etage mit einer HA-Etage. Dann bietet **„… Räume aus HA-Bereichen anlegen“** die Bereiche dieser Etage als Räume an.
 - **Nach oben** und **Nach unten** ändern die Reihenfolge, **Etage löschen** entfernt sie samt Räumen.
 - **Lücken schließen** führt Räume zusammen, die bis zu 60 cm auseinanderliegen. Das ist praktisch, wenn du Innenmaße gemessen hast. Der Abstand wird zur Innenwandstärke.
@@ -254,7 +255,7 @@ Sensoren erscheinen, wenn sie etwas für den Raum messen: Temperatur, Luftfeucht
 
 - **Platzieren** setzt ein Gerät in den Raum. **Alle … platzieren** unter der Liste setzt nach einer Rückfrage alle Hauptgeräte auf einmal; **Rückgängig** (Strg+Z) nimmt sie in einem Schritt zurück.
 - Lichter werden dabei als Leuchten aus der Bibliothek gesetzt, damit sie in 3D leuchten.
-- **☆** nimmt ein Gerät ins Raumfenster der 3D-Ansicht auf, ohne es in den Plan zu setzen.
+- **☆** nimmt ein Gerät ins Raumfenster der 3D-Ansicht auf, ohne es in den Plan zu setzen. **👁** blendet ein Gerät des Bereichs im Raumfenster aus (durchgestrichen in der Liste, 🙈 holt es zurück) – für Entitäten, die dort nur stören.
 - Ein platziertes Gerät ziehst du im Plan an seinen Platz.
 
 ![Ein Gerät ausgewählt](images/editor-device.jpg)
@@ -338,7 +339,7 @@ Seine Bahnen machen einen Bogen um Möbel, die auf dem Boden stehen: Schränke, 
 
 ### 4.17 Außenflächen und Außenleuchten
 
-Mit **Außen** ziehst du Rasen, Terrasse, Weg, Einfahrt, Pool, Beet, Hecke oder Zaun auf. Eine ausgewählte Außenfläche änderst du an ihren Ecken; ein Rechteck bleibt dabei ein Rechteck. Hecke und Zaun bekommen im Formular eine **Höhe** (Thuja-Sichtschutz 2,5 m, Beeteinfassung 0,5 m); **Umrisslinie zeigen** ohne Haken lässt die Leuchtlinie am Rand weg, etwa bei einem Grundstück aus mehreren Rasenflächen. Wegleuchten, Garten-Spots und Außen-Wandleuchten beleuchten die Außenflächen und die Fassade.
+Mit **Außen** ziehst du Rasen, Terrasse, Weg, Einfahrt, Pool, Beet, Hecke oder Zaun auf. Eine ausgewählte Außenfläche änderst du an ihren Ecken; ein Rechteck bleibt dabei ein Rechteck. Hecke und Zaun bekommen im Formular eine **Höhe** (Thuja-Sichtschutz 2,5 m, Beeteinfassung 0,5 m); **Umrisslinie zeigen** ohne Haken lässt die Leuchtlinie am Rand weg, etwa bei einem Grundstück aus mehreren Rasenflächen. **Höhenversatz** senkt eine Fläche unter den Boden oder hebt sie an – die Einfahrt hinunter zur tieferen Garage, die erhöhte Terrasse; Leuchten darauf folgen mit. Wegleuchten, Garten-Spots und Außen-Wandleuchten beleuchten die Außenflächen und die Fassade.
 
 ![Garten bei Nacht](images/view-garden.jpg)
 
@@ -444,7 +445,7 @@ Die 3D-Ansicht hat drei Ebenen:
 | **Auseinander** / **Gestapelt** | In der Hausansicht: Etagen auseinandergezogen oder aufeinander |
 | **Dach bleibt** | In der Hausansicht: Das Dach bleibt beim Heranzoomen liegen, statt sich zu heben und auszublenden (im Editor gilt das im Werkzeug Dach und Energie immer) |
 | **Abgedunkelt** / **Gestapelt** / **Einzeln** | Bei einer offenen Etage: Was mit den Etagen darunter passiert |
-| **Normal** / **Temp.** / **Feuchte** / **CO₂** | Heatmap: Böden in der Farbe des Raumwerts |
+| **Normal** / **Temp.** / **Feuchte** / **CO₂** / **Werte** | Heatmap: Böden in der Farbe des Raumwerts; **Werte** färbt nichts, sondern schreibt Temperatur, Feuchte und CO₂ als Zahlen unter die Raumnamen |
 | **Raumnamen** | Namen der Räume ein- oder ausblenden |
 | **Spur** | Bewegungsspur, Pro, siehe [6.1](#61-kamera-cockpit) |
 | **Wetter** | Wetter draußen, Pro, siehe [6.2](#62-wetter-draußen) |
@@ -476,7 +477,7 @@ Alle Schalter merkt sich das jeweilige Gerät.
 
 - **Antippen** schaltet Lampen und Schalter. Die Lampe blinkt kurz zur Bestätigung.
 - **Senkrecht wischen** auf einer Lampe dimmt, auf einem Rollladen oder Fenster fährt der Rollladen. Der Wert erscheint am Finger. Geräte und Fenster mit „Vor dem Schalten nachfragen“ reagieren nicht auf Wischen.
-- **Lange drücken** öffnet das Schnellmenü: bei Lichtern Helligkeit, Farbtemperatur und Farben, bei Rollläden Auf, Stopp, Zu und feste Positionen.
+- **Lange drücken** öffnet das Schnellmenü: bei Lichtern Helligkeit, Farbtemperatur und Farben, bei Rollläden Auf, Stopp, Zu und feste Positionen. Raffstores und Jalousien mit Lamellen bekommen dort und im Raumfenster einen **Lamellen**-Regler (oder Lamellen auf/zu), sobald die Entität das kann.
 - Ein **Fenster** antippen, egal ob Rahmen, Glas oder Rollladen, öffnet das Rollladen-Menü oder zeigt den Kontakt.
 - **Doppeltipp auf einen Raum** schaltet alle Lichter des Raums ein oder aus. Geräte mit „Vor dem Schalten nachfragen“ bleiben außen vor.
 - Fernseher, Türen und Garagentore lassen sich ebenfalls direkt antippen.

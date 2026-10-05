@@ -26,6 +26,8 @@ export interface Room {
   floor_material: string;
   /** Entities shown in the room's panel although they are not in the plan. */
   panel?: string[];
+  /** Entities of the room's area kept out of the room panel. */
+  hidden?: string[];
   /**
    * Height of the wall on each edge (index = edge points[i] -> points[i + 1]); null = full floor height, 0 = no
    * wall. An edge that other rooms split into parts may carry a list instead: one height per part, in order.
@@ -218,6 +220,8 @@ export interface Background {
   z: number;
   width: number;
   opacity: number;
+  /** Turn about the picture's middle (degrees, clockwise in the plan). */
+  rotation?: number;
 }
 
 export interface Floor {
@@ -489,7 +493,7 @@ export function groundLevel(floor: Floor): number {
 /** Height outdoor lamps stand on at a point: ground level, or the top of a terrace or bed there. */
 export function outdoorGround(floor: Floor, x: number, z: number): number {
   const a = (floor.outdoor ?? []).find((o) => o.type !== "hedge" && o.type !== "fence" && o.type !== "pool" && pointInPolygon([x, z], o.points));
-  return groundLevel(floor) + (a ? OUTDOOR_TOP[a.type] : 0);
+  return groundLevel(floor) + (a ? OUTDOOR_TOP[a.type] + (a.offset ?? 0) : 0);
 }
 
 /** Area outside the house (lawn, terrace, pool, hedge …), drawn like a room. */
@@ -501,6 +505,8 @@ export interface OutdoorArea {
   height?: number | null;
   /** False hides the neon outline (a plot of several lawns without lines crossing it). */
   outline?: boolean;
+  /** Height offset in m: a driveway piece in front of a lower garage sits below the ground (negative), a raised terrace above. */
+  offset?: number | null;
 }
 
 /** Energy flow: meter position and power sensors (W). Grid positive = import, battery positive = discharging. */

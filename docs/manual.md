@@ -123,7 +123,8 @@ Next to them are **Undo**, **Redo**, **Show all** and **3D beside**. A short hin
 Without a selection, the sidebar shows the floors:
 
 - **Add floor** creates a floor. Home Assistant floors that are still missing are offered.
-- **Name**, **height above the ground** and **ceiling height** set where the floor sits in the 3D house and how tall its walls are. **Turn 90°** turns everything on the floor about the middle of its rooms when a floor was drawn the wrong way round. **Shift the floor** moves everything on the floor (rooms, furniture, devices, outdoor areas, free walls, background image) by X and Z when a floor sits offset against the others; roof sections and cables stay.
+- **Name**, **height above the ground** and **ceiling height** set where the floor sits in the 3D house and how tall its walls are. **Turn 90°** turns everything on the floor about the middle of its rooms when a floor was drawn the wrong way round. **Shift the floor** moves everything on the floor (rooms, furniture, devices, outdoor areas, free walls, background image) by X and Z when a floor sits offset against the others; roof sections and cables stay. With **Take every floor along** ticked, shift and turn act on the whole house: every floor with the roof sections, outdoor areas, cables, meter and hologram.
+- **Background picture:** in the **Background** section you load a photo or scan of your floor plan as a template under the plan (opacity adjustable). **Move and scale in the plan** switches on a mode in which you drag the picture with the mouse and pull its handle at the bottom right to resize it; **Rotation (°)** turns it about its middle. Fit the scale to a known wall length first, then turn, then draw the rooms over it.
 - **Floor in Home Assistant** links the floor to an HA floor. Then **"Add … rooms from HA areas"** offers the areas of that floor as rooms.
 - **Move up** and **Move down** change the order, **Delete floor** removes it with its rooms.
 - **Close gaps** joins rooms that are up to 60 cm apart. This helps when you measured inside dimensions. The gap becomes the interior wall thickness.
@@ -252,7 +253,7 @@ Above the list you choose the source: **This area** (default), **Other areas** (
 
 - **Place** puts a device into the room. **Place all …** below the list puts all main devices in at once after asking; **Undo** (Ctrl+Z) takes them back in one step.
 - Lights are placed as lamps from the library, so they glow in 3D.
-- **☆** adds a device to the room panel of the 3D view without placing it.
+- **☆** adds a device to the room panel of the 3D view without placing it. **👁** hides an entity of the area from the room panel (struck through in the list, 🙈 brings it back) – for entities that only clutter it.
 - Drag a placed device to its spot in the plan.
 
 ![A selected device](images/editor-device.jpg)
@@ -336,7 +337,7 @@ Its lanes keep clear of furniture standing on the floor: cabinets, sofas, beds, 
 
 ### 4.17 Outdoor areas and outdoor lights
 
-With **Outdoor** you draw lawn, terrace, path, driveway, pool, flower bed, hedge or fence. A selected outdoor area is resized at its corners; a rectangle stays a rectangle. Hedges and fences take a **height** in the form (a 2.5 m thuja screen, a 0.5 m bed border); **Show the outline** unticked leaves out the glowing line along the edge, say on a plot made of several lawns. Path lights, garden spots and outdoor wall lights light the outdoor areas and the facade.
+With **Outdoor** you draw lawn, terrace, path, driveway, pool, flower bed, hedge or fence. A selected outdoor area is resized at its corners; a rectangle stays a rectangle. Hedges and fences take a **height** in the form (a 2.5 m thuja screen, a 0.5 m bed border); **Show the outline** unticked leaves out the glowing line along the edge, say on a plot made of several lawns. **Height offset** lowers an area below the ground or raises it – the driveway down to a lower garage, a raised terrace; lamps on it follow. Path lights, garden spots and outdoor wall lights light the outdoor areas and the facade.
 
 ![The garden at night](images/view-garden.jpg)
 
@@ -442,7 +443,7 @@ The 3D view has three levels:
 | **Apart** / **Stacked** | In the house view: floors pulled apart or on top of each other |
 | **Roof stays** | In the house view: the roof stays while zooming in instead of lifting and fading (in the editor's roof and energy tools it always stays) |
 | **Dimmed** / **Stacked** / **Alone** | With an open floor: what happens to the floors below |
-| **Normal** / **Temp.** / **Humidity** / **CO₂** | Heatmap: floors coloured by the room's value |
+| **Normal** / **Temp.** / **Humidity** / **CO₂** / **Values** | Heatmap: floors coloured by the room's value; **Values** colours nothing and writes temperature, humidity and CO₂ as numbers under the room names |
 | **Room names** | Show or hide the room names |
 | **Trail** | Motion trail, Pro, see [6.1](#61-camera-cockpit) |
 | **Weather** | Weather outside, Pro, see [6.2](#62-weather-outside) |
@@ -474,7 +475,7 @@ Each device remembers these switches.
 
 - **Tap** switches lamps and switches. The lamp flashes briefly to confirm.
 - **Swipe up or down** on a lamp dims it; on a blind or window it moves the blind. The value appears at your finger. Devices and windows with "Ask before switching" do not react to a swipe.
-- **Long press** opens the quick menu: brightness, colour temperature and colours for lights; up, stop, down and fixed positions for blinds.
+- **Long press** opens the quick menu: brightness, colour temperature and colours for lights; up, stop, down and fixed positions for blinds. Venetian blinds and Raffstores get a **Slats** slider there and in the room panel (or slats open/closed) as soon as the entity supports it.
 - Tap a **window** – frame, glass or blind – to open the blind menu or show the contact.
 - **Double tap a room** switches all its lights on or off. Devices with "Ask before switching" stay out.
 - TVs, doors and garage doors can be tapped directly as well.

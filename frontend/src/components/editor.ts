@@ -19,7 +19,7 @@ import { dormerParent, effectiveDormer, proposeDormer, sectionGeometry, floorOut
 import { bestFace, clampField, faceAt, faceCompass, fieldFace, fieldModules, GROUND, pointOnFace, proposeField, proposeGroundField, proposeWindow, proposeWallField, roofFaces, rowCounts, turnGroundField, fieldCenter, wallFaces, windowAsField, windowCorners, onFace, onField, rayOnFace, type RoofFace } from "../solar.ts";
 import type { SurfaceGrab, SurfaceRay } from "../viewer/viewer3d.ts";
 import { storedImageIds } from "../transfer.ts";
-import { OUTDOOR_TOP, sidelightLayout, DEFAULT_WEATHER_EFFECTS, WEATHER_EFFECTS,
+import { type Background, OUTDOOR_TOP, sidelightLayout, DEFAULT_WEATHER_EFFECTS, WEATHER_EFFECTS,
   normalizeBuilding,
   furnitureFootprint,
   type FreeWall,
@@ -120,6 +120,8 @@ type Drag =
   | { kind: "roofvertex"; id: string; index: number; base: Building; moved: boolean }
   | { kind: "cablept"; id: string; index: number; base: Building; moved: boolean }
   | { kind: "holopt"; base: Building; moved: boolean }
+  | { kind: "bgmove"; start: Vec2; bx: number; bz: number; base: Building; moved: boolean }
+  | { kind: "bgscale"; base: Building; moved: boolean }
   | { kind: "freewall"; start: Vec2; end: Vec2 }
   | { kind: "wallmove"; id: string; end: "a" | "b" | null; start: Vec2; startScreen: [number, number]; base: Building; moved: boolean }
   | { kind: "outdoor"; id: string; start: Vec2; startScreen: [number, number]; base: Building; moved: boolean }
@@ -132,7 +134,7 @@ interface Guides {
 }
 
 /** Drags that change the document live (restored when cancelled, recorded in the history when done). */
-const EDIT_DRAGS = new Set(["vertex", "room", "device", "opening", "furniture", "rotate", "resize", "outdoor", "roofmove", "roofcorner", "roofvertex", "outvertex", "solarmove", "solarturn", "cablept", "holopt"]);
+const EDIT_DRAGS = new Set(["vertex", "room", "device", "opening", "furniture", "rotate", "resize", "outdoor", "roofmove", "roofcorner", "roofvertex", "outvertex", "solarmove", "solarturn", "cablept", "holopt", "bgmove", "bgscale"]);
 
 const HISTORY = 100;
 const SNAP_PX = 10;
@@ -144,6 +146,8 @@ const ARROWS: Record<string, [number, number]> = { ArrowLeft: [-1, 0], ArrowRigh
 export class Fp3dEditor extends LitElement {
   static properties = {
     _shiftX: { state: true },
+    _shiftAll: { state: true },
+    _bgEdit: { state: true },
     _shiftZ: { state: true },
     hass: { attribute: false },
     building: { attribute: false },
@@ -261,6 +265,10 @@ export class Fp3dEditor extends LitElement {
   /** Edge of the selected room highlighted from the wall height list. */
   private declare _edgeHi: number | null;
   private declare _shiftX: number;
+  /** Shift and turn take every floor with them (roof, outdoor areas, cables, hologram included). */
+  private declare _shiftAll: boolean;
+  /** The background picture is being moved and scaled in the plan (drag it, pull its corner). */
+  private declare _bgEdit: boolean;
   private declare _shiftZ: number;
   /** Open context menu (right-click, long press) at a plan point, for one item. */
   private declare _ctx: { x: number; y: number; kind: FixKind; id: string } | null;
@@ -333,6 +341,8 @@ export class Fp3dEditor extends LitElement {
     this._wallId = null;
     this._edgeHi = null;
     this._shiftX = 0;
+    this._shiftAll = false;
+    this._bgEdit = false;
     this._shiftZ = 0;
     this._floorMenu = false;
     this._openingPreset = "door";
@@ -966,6 +976,19 @@ export class Fp3dEditor extends LitElement {
     }
     const world = this.toWorld(...local);
     const target = e.target as Element;
+    if (this._bgEdit && this.isAdmin && this.floor?.background) {
+      // the background picture: its corner scales it, its body moves it; anything else ends the editing
+      const bg = this.floor.background;
+      if (target.closest("[data-bg-handle]")) {
+        this.drag = { kind: "bgscale", base: this._doc, moved: false };
+        return;
+      }
+      if (target.closest("[data-bg]")) {
+        this.drag = { kind: "bgmove", start: world, bx: bg.x, bz: bg.z, base: this._doc, moved: false };
+        return;
+      }
+      this._bgEdit = false;
+    }
     if (this._tool === "wall") {
       const start = this.snap(world, undefined, e.altKey);
       this.drag = { kind: "freewall", start, end: start };
@@ -1486,6 +1509,39 @@ export class Fp3dEditor extends LitElement {
         this.change((doc) => (doc.settings.roof.hologram = { ...(doc.settings.roof.hologram ?? DEFAULT_HOLOGRAM), place: "free", x: round(p[0]), z: round(p[1]) }), drag.base, false);
         break;
       }
+      case "bgmove": {
+        drag.moved = true;
+        const dx = world[0] - drag.start[0];
+        const dz = world[1] - drag.start[1];
+        this.change(
+          (_, floor) => {
+            if (floor.background) {
+              floor.background.x = round(drag.bx + dx);
+              floor.background.z = round(drag.bz + dz);
+            }
+          },
+          drag.base,
+          false,
+        );
+        break;
+      }
+      case "bgscale": {
+        drag.moved = true;
+        const bg = this.floor?.background;
+        const img = bg ? this._images[bg.image_id] : undefined;
+        if (!bg || !img) break;
+        // the corner follows the pointer along the picture's own width, whatever its turn
+        const [lx] = this.bgLocal(bg, world, img.aspect);
+        const width = Math.max(0.5, round(lx));
+        this.change(
+          (_, floor) => {
+            if (floor.background) floor.background.width = width;
+          },
+          drag.base,
+          false,
+        );
+        break;
+      }
       case "roofvertex": {
         drag.moved = true;
         const p = this.snap(world, undefined, e.altKey);
@@ -1664,6 +1720,8 @@ export class Fp3dEditor extends LitElement {
       case "roofvertex":
       case "cablept":
       case "holopt":
+      case "bgmove":
+      case "bgscale":
         if (drag.moved) this.pushHistory(drag.base);
         break;
       case "device":
@@ -3825,7 +3883,7 @@ export class Fp3dEditor extends LitElement {
   private shiftFloor(dx: number, dz: number): void {
     if (!this.isAdmin || (!dx && !dz)) return;
     const mv = (p: Vec2): Vec2 => [round(p[0] + dx), round(p[1] + dz)];
-    this.change((_, floor) => {
+    const one = (floor: Floor) => {
       for (const r of floor.rooms) r.points = r.points.map(mv);
       for (const f of floor.furniture) {
         f.x = round(f.x + dx);
@@ -3844,23 +3902,47 @@ export class Fp3dEditor extends LitElement {
         floor.background.x = round(floor.background.x + dx);
         floor.background.z = round(floor.background.z + dz);
       }
-    });
+    };
+    if (this._shiftAll) {
+      // the whole house: every floor, the roof sections, the cables, the meter and the hologram
+      this.change((doc) => {
+        for (const f of doc.floors) one(f);
+        this.moveHouseExtras(doc, mv);
+      });
+    } else this.change((_, floor) => one(floor));
     this._shiftX = 0;
     this._shiftZ = 0;
+  }
+
+  /** What belongs to the house as a whole and moves with "all floors": roof sections, cables, meter, hologram. */
+  private moveHouseExtras(doc: Building, mv: (p: Vec2) => Vec2): void {
+    for (const s of doc.settings.roof.sections ?? []) {
+      const corners = [mv([s.x0, s.z0]), mv([s.x1, s.z0]), mv([s.x1, s.z1]), mv([s.x0, s.z1])];
+      s.x0 = Math.min(...corners.map((c) => c[0]));
+      s.x1 = Math.max(...corners.map((c) => c[0]));
+      s.z0 = Math.min(...corners.map((c) => c[1]));
+      s.z1 = Math.max(...corners.map((c) => c[1]));
+      if (s.points) s.points = s.points.map(mv);
+    }
+    for (const c of doc.settings.roof.cables ?? []) c.points = c.points.map(mv);
+    if (doc.energy.meter) [doc.energy.meter.x, doc.energy.meter.z] = mv([doc.energy.meter.x, doc.energy.meter.z]);
+    const h = doc.settings.roof.hologram;
+    if (h && h.place === "free" && h.x != null && h.z != null) [h.x, h.z] = mv([h.x, h.z]);
   }
 
   /** Turn everything on the floor by 90° (clockwise in the plan) about the middle of its rooms: when a floor was drawn the wrong way round. */
   private turnFloor(): void {
     const floor = this.floor;
     if (!floor || !this.isAdmin) return;
-    const pts = floor.rooms.flatMap((r) => r.points);
+    // with "all floors" the house turns about the middle of every room on every floor
+    const pts = (this._shiftAll ? this._doc.floors : [floor]).flatMap((f) => f.rooms.flatMap((r) => r.points));
     if (!pts.length) return;
     const xs = pts.map((p) => p[0]);
     const zs = pts.map((p) => p[1]);
     const cx = (Math.min(...xs) + Math.max(...xs)) / 2;
     const cz = (Math.min(...zs) + Math.max(...zs)) / 2;
     const mv = (p: Vec2): Vec2 => [round(cx - (p[1] - cz)), round(cz + (p[0] - cx))];
-    this.change((_, f) => {
+    const one = (f: Floor) => {
       for (const r of f.rooms) r.points = r.points.map(mv);
       for (const m of f.furniture) {
         [m.x, m.z] = mv([m.x, m.z]);
@@ -3875,8 +3957,17 @@ export class Fp3dEditor extends LitElement {
         w.a = mv(w.a);
         w.b = mv(w.b);
       }
-      if (f.background) [f.background.x, f.background.z] = mv([f.background.x, f.background.z]);
-    });
+      if (f.background) {
+        [f.background.x, f.background.z] = mv([f.background.x, f.background.z]);
+        f.background.rotation = ((f.background.rotation ?? 0) + 90) % 360;
+      }
+    };
+    if (this._shiftAll) {
+      this.change((doc) => {
+        for (const f of doc.floors) one(f);
+        this.moveHouseExtras(doc, mv);
+      });
+    } else this.change((_, f) => one(f));
   }
 
   private updateFloor(patch: Partial<Floor>): void {
@@ -4030,7 +4121,28 @@ export class Fp3dEditor extends LitElement {
     if (!bg || !img) return nothing;
     const [x, y] = this.toScreen([bg.x, bg.z]);
     const w = bg.width * this._view.scale;
-    return svg`<image href=${img.url} x=${x} y=${y} width=${w} height=${w * img.aspect} opacity=${bg.opacity} preserveAspectRatio="none" pointer-events="none" />`;
+    const h = w * img.aspect;
+    const rot = bg.rotation ?? 0;
+    const edit = this._bgEdit && this.isAdmin;
+    // while editing, the picture takes the pointer (drag moves it) and its lower right corner scales it
+    return svg`<g transform="rotate(${rot} ${x + w / 2} ${y + h / 2})">
+      <image href=${img.url} x=${x} y=${y} width=${w} height=${h} opacity=${bg.opacity} preserveAspectRatio="none" pointer-events=${edit ? "auto" : "none"} data-bg="1" style=${edit ? "cursor:move" : ""} />
+      ${edit
+        ? svg`<rect class="fp3d-bg-frame" x=${x} y=${y} width=${w} height=${h} />
+          <circle class="fp3d-bg-handle" data-bg-handle="1" cx=${x + w} cy=${y + h} r="9" />`
+        : nothing}
+    </g>`;
+  }
+
+  /** The picture's own frame: a plan point measured from its top left corner, along its (turned) sides, in metres. */
+  private bgLocal(bg: Background, world: Vec2, aspect: number): Vec2 {
+    const h = bg.width * aspect;
+    const cx = bg.x + bg.width / 2;
+    const cz = bg.z + h / 2;
+    const a = (-(bg.rotation ?? 0) * Math.PI) / 180;
+    const dx = world[0] - cx;
+    const dz = world[1] - cz;
+    return [cx + dx * Math.cos(a) - dz * Math.sin(a) - bg.x, cz + dx * Math.sin(a) + dz * Math.cos(a) - bg.z];
   }
 
   private renderGrid() {
@@ -4315,6 +4427,7 @@ export class Fp3dEditor extends LitElement {
         ${a.type === "hedge" || a.type === "fence"
           ? this.num(this.t("outdoor_height"), a.height ?? OUTDOOR_TOP[a.type], (v) => this.updateOutdoor({ height: Math.min(6, Math.max(0.1, round(v))) }), 0.05, 0.1)
           : nothing}
+        ${this.num(this.t("outdoor_offset"), a.offset ?? 0, (v) => this.updateOutdoor({ offset: Math.min(10, Math.max(-10, round(v))) || null }), 0.05)}
         <label class="fp3d-check fp3d-wide" title=${this.t("outdoor_outline_hint")}
           ><input type="checkbox" .checked=${a.outline !== false} ?disabled=${!admin} @change=${(ev: Event) => this.updateOutdoor({ outline: (ev.target as HTMLInputElement).checked ? undefined : false })} />
           ${this.t("outdoor_outline")}</label
@@ -4794,6 +4907,10 @@ export class Fp3dEditor extends LitElement {
                     <input type="number" step="0.05" .value=${String(this._shiftZ)} aria-label="Z" @change=${(e: Event) => (this._shiftZ = Number((e.target as HTMLInputElement).value) || 0)} />
                     <button class="fp3d-btn" ?disabled=${!this._shiftX && !this._shiftZ} @click=${() => this.shiftFloor(this._shiftX, this._shiftZ)}>${this.t("floor_shift_apply")}</button>
                     <button class="fp3d-btn" title=${this.t("floor_turn_hint")} @click=${() => this.turnFloor()}>${this.t("floor_turn")}</button>
+                    <label class="fp3d-check fp3d-wide" title=${this.t("floor_shift_all_hint")}
+                      ><input type="checkbox" .checked=${this._shiftAll} @change=${(ev: Event) => (this._shiftAll = (ev.target as HTMLInputElement).checked)} />
+                      ${this.t("floor_shift_all")}</label
+                    >
                   </div>`
                 : nothing}
               ${this.num(this.t("height"), floor.height, (v) => this.updateFloor({ height: Math.max(1, v) }), 0.05, 1)}
@@ -6106,6 +6223,7 @@ export class Fp3dEditor extends LitElement {
       (p) => kindOf(p.entity_id) === "light" && (p.mount ?? "ceiling") === "ceiling" && pointInPolygon([p.x, p.z], room.points),
     ).length;
     const pinned = new Set(room.panel ?? []);
+    const hidden = new Set(room.hidden ?? []);
     // where an entity from elsewhere is placed already (placing it here moves it)
     const placedIn = new Map<string, string>();
     for (const f of this._doc.floors)
@@ -6116,13 +6234,23 @@ export class Fp3dEditor extends LitElement {
     const row = (id: string, extra = false, nameArea = areaName) => {
       const placed = placedHere.has(id);
       const elsewhere = placed ? undefined : placedIn.get(id);
-      return html`<div class="fp3d-row fp3d-dev-row ${extra ? "fp3d-dev-extra" : ""}">
+      return html`<div class="fp3d-row fp3d-dev-row ${extra ? "fp3d-dev-extra" : ""} ${hidden.has(id) ? "fp3d-dev-hidden" : ""}">
         <button class="fp3d-dev-name ${placed ? "" : "fp3d-muted"}" ?disabled=${!placed} @click=${() => this.selectItem("device", id)}>
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d=${iconPath(kindOf(id)!)} />
           </svg>
           <span>${entityName(hass, id, nameArea)}${elsewhere ? html`<small class="fp3d-muted"> · ${this.t("devices_placed_in", { room: elsewhere })}</small>` : nothing}</span>
         </button>
+        ${admin && !extra
+          ? html`<button
+              class="fp3d-pin ${hidden.has(id) ? "fp3d-pin-on" : ""}"
+              aria-pressed=${hidden.has(id)}
+              title=${this.t(hidden.has(id) ? "panel_unhide" : "panel_hide")}
+              @click=${() => this.updateRoom({ hidden: hidden.has(id) ? [...hidden].filter((x) => x !== id) : [...hidden, id] })}
+            >
+              ${hidden.has(id) ? "🙈" : "👁"}
+            </button>`
+          : nothing}
         ${admin && !placed
           ? html`<button
               class="fp3d-pin ${pinned.has(id) ? "fp3d-pin-on" : ""}"
@@ -6271,6 +6399,13 @@ export class Fp3dEditor extends LitElement {
           ? html`${this.num(this.t("x"), bg.x, (v) => this.updateFloor({ background: { ...bg, x: v } }))}
               ${this.num(this.t("z"), bg.z, (v) => this.updateFloor({ background: { ...bg, z: v } }))}
               ${this.num(this.t("background_width"), bg.width, (v) => this.updateFloor({ background: { ...bg, width: Math.max(0.1, v) } }), 0.01, 0.1)}
+              ${this.num(this.t("background_rotation"), bg.rotation ?? 0, (v) => this.updateFloor({ background: { ...bg, rotation: Math.round(v * 10) / 10 } }), 0.5)}
+              ${this.isAdmin
+                ? html`<button class="fp3d-btn fp3d-wide ${this._bgEdit ? "fp3d-primary" : ""}" aria-pressed=${this._bgEdit} @click=${() => (this._bgEdit = !this._bgEdit)}>
+                    ${this.t(this._bgEdit ? "background_edit_done" : "background_edit")}
+                  </button>
+                  <p class="fp3d-sub fp3d-wide">${this.t("background_edit_hint")}</p>`
+                : nothing}
               <label class="fp3d-field"
                 >${this.t("background_opacity")}
                 <input
@@ -7040,6 +7175,20 @@ export class Fp3dEditor extends LitElement {
         font-weight: 500;
         font-size: 13px;
       }
+      /* the background picture while it is edited: a dashed frame and a corner handle */
+      .fp3d-bg-frame {
+        fill: none;
+        stroke: var(--fp3d-accent);
+        stroke-width: 1.5;
+        stroke-dasharray: 6 4;
+        pointer-events: none;
+      }
+      .fp3d-bg-handle {
+        fill: var(--fp3d-accent);
+        stroke: #041018;
+        stroke-width: 2;
+        cursor: nwse-resize;
+      }
       .fp3d-furn-body {
         fill: rgba(91, 124, 255, 0.1);
         stroke: rgba(91, 124, 255, 0.55);
@@ -7800,6 +7949,10 @@ export class Fp3dEditor extends LitElement {
       }
       .fp3d-more:hover {
         color: var(--fp3d-accent);
+      }
+      .fp3d-dev-hidden .fp3d-dev-name {
+        opacity: 0.45;
+        text-decoration: line-through;
       }
       .fp3d-dev-extra {
         padding-left: 18px;

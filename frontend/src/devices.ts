@@ -854,9 +854,11 @@ export function roomPanelEntities(hass: HomeAssistant, floor: Floor, room: Room)
     }),
     ...(room.panel ?? []),
   ].filter((id): id is string => !!id && !!hass.states[id]);
-  const unique = [...new Set(shown)];
+  // entities the editor hid for this room stay out of the panel altogether
+  const hidden = new Set(room.hidden ?? []);
+  const unique = [...new Set(shown)].filter((id) => !hidden.has(id));
   const set = new Set(unique);
-  return { shown: unique, more: areaEntities(hass, room.area_id).filter((id) => !set.has(id)) };
+  return { shown: unique, more: areaEntities(hass, room.area_id).filter((id) => !set.has(id) && !hidden.has(id)) };
 }
 
 const ROOM_KEYS = /(^|_)(current_room|current_segment|aktueller_raum|current_area)($|_)/;

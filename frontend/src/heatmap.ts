@@ -4,12 +4,15 @@ import { roomClimateValue } from "./devices.ts";
 import type { Building } from "./model.ts";
 import type { HomeAssistant } from "./types.ts";
 
-export type HeatMode = "none" | "temperature" | "humidity" | "co2";
+export type HeatMode = "none" | "temperature" | "humidity" | "co2" | "values";
+
+/** The modes that colour the floors (the "values" mode writes the numbers at the room names instead). */
+export type HeatColorMode = Exclude<HeatMode, "none" | "values">;
 
 type Rgb = [number, number, number];
 
 /** Colour stops per mode: value and colour. */
-export const HEAT_SCALES: Record<Exclude<HeatMode, "none">, { deviceClass: string; unit: string; stops: [number, Rgb][] }> = {
+export const HEAT_SCALES: Record<HeatColorMode, { deviceClass: string; unit: string; stops: [number, Rgb][] }> = {
   temperature: {
     deviceClass: "temperature",
     unit: "°C",
@@ -43,7 +46,7 @@ export const HEAT_SCALES: Record<Exclude<HeatMode, "none">, { deviceClass: strin
 };
 
 /** Colour of a value on a scale (clamped to the first and last stop). */
-export function heatColor(mode: Exclude<HeatMode, "none">, value: number): Rgb {
+export function heatColor(mode: HeatColorMode, value: number): Rgb {
   const stops = HEAT_SCALES[mode].stops;
   if (value <= stops[0][0]) return stops[0][1];
   for (let i = 1; i < stops.length; i++) {
@@ -58,7 +61,7 @@ export function heatColor(mode: Exclude<HeatMode, "none">, value: number): Rgb {
 }
 
 /** Average sensor value per room (rooms without a matching sensor are left out). */
-export function roomValues(hass: HomeAssistant, building: Building, mode: Exclude<HeatMode, "none">): Map<string, number> {
+export function roomValues(hass: HomeAssistant, building: Building, mode: HeatColorMode): Map<string, number> {
   const out = new Map<string, number>();
   for (const floor of building.floors) {
     for (const room of floor.rooms) {
@@ -71,7 +74,7 @@ export function roomValues(hass: HomeAssistant, building: Building, mode: Exclud
 }
 
 /** CSS gradient of a scale, for the legend. */
-export function heatGradient(mode: Exclude<HeatMode, "none">): string {
+export function heatGradient(mode: HeatColorMode): string {
   const stops = HEAT_SCALES[mode].stops;
   const lo = stops[0][0];
   const hi = stops[stops.length - 1][0];

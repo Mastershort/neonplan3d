@@ -443,6 +443,8 @@ export class FloorplanViewer {
   private persons: PersonPin[] = [];
   private readonly personPins = new Map<string, HTMLDivElement>();
   private floorInfo = new Map<string, string>();
+  /** Text behind the room names (the "values" heat mode: temperature, humidity, CO₂ per room). */
+  private roomInfo = new Map<string, string>();
   /** Ground grid texture, made when the ground first shows (the tablet level never shows it). */
   private groundTexture: CanvasTexture | null = null;
   private devices: DeviceMarker[] = [];
@@ -1064,6 +1066,25 @@ export class FloorplanViewer {
     this.invalidate();
   }
 
+  /** The room name, with a line of values below it when there is one. */
+  private fillRoomPin(pin: HTMLElement, name: string, info: string | undefined): void {
+    pin.textContent = name || "–";
+    if (info) {
+      const small = document.createElement("small");
+      small.textContent = info;
+      pin.append(small);
+      pin.classList.add("fp3d-pin-info");
+    } else pin.classList.remove("fp3d-pin-info");
+  }
+
+  /** Values behind the room names (the "values" heat mode); an empty map clears them. */
+  setRoomInfo(info: Map<string, string>): void {
+    const same = info.size === this.roomInfo.size && [...info].every(([k, v]) => this.roomInfo.get(k) === v);
+    if (same) return;
+    this.roomInfo = info;
+    for (const fv of this.floors) for (const rp of fv.roomPins) this.fillRoomPin(rp.pin, rp.room.name, info.get(rp.room.id));
+  }
+
   /** Text under the floor names in the house view, e.g. "5 rooms · 3 lights on · 1 open". */
   setFloorInfo(info: Map<string, string>): void {
     this.floorInfo = info;
@@ -1621,7 +1642,7 @@ export class FloorplanViewer {
         pin.className = "fp3d-pin";
         pin.dataset.room = room.id;
         pin.dataset.floor = floor.id;
-        pin.textContent = room.name || "–";
+        this.fillRoomPin(pin, room.name, this.roomInfo.get(room.id));
         pin.addEventListener("click", () => this.options.onRoomTap?.(floor.id, room.id));
         this.labels.append(pin);
         const [cx, cz] = centroid(room.points);

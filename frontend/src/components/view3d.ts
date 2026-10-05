@@ -1,7 +1,7 @@
 // Lit wrapper around the lazily loaded 3D viewer.
 
 import { css, html, LitElement, nothing, svg, type PropertyValues } from "lit";
-import {
+import { roomClimateValue,
   appColor,
   areaEntities,
   entityName,
@@ -570,7 +570,7 @@ export class Fp3dView3d extends LitElement {
       const robotRooms = b.floors.flatMap((f) => f.furniture.filter((m) => m.type === "robot_vacuum").map((m) => robotRoomSensor(hass, this.furnitureLinks.get(m.id)?.entity ?? null, m.room_sensor)));
       const pictureRules = b.floors.flatMap((f) => f.furniture.flatMap((m) => (m.pictures ?? []).flatMap((r) => [r.entity, ...(r.image.startsWith("camera:") ? [r.image.slice(7)] : [])])));
       const heat =
-        this.heatMode === "none"
+        this.heatMode === "none" && !this.roomLabels
           ? []
           : b.floors.flatMap((f) => f.rooms.flatMap((r) => areaEntities(hass, r.area_id).filter((id) => id.startsWith("sensor."))));
       this.alertSrc = this.alerts ? alertSources(hass, b, this.weatherEntityId) : null;
@@ -1179,12 +1179,29 @@ export class Fp3dView3d extends LitElement {
     const hass = this.hass;
     if (!v || !b || !hass) return;
     let tint: Map<string, [number, number, number]> | null = null;
-    if (this.heatMode !== "none") {
+    if (this.heatMode !== "none" && this.heatMode !== "values") {
       const mode = this.heatMode;
       const values = roomValues(hass, b, mode);
       this.heatValues = values;
       tint = new Map([...values].map(([id, value]) => [id, heatColor(mode, value)]));
     }
+    // "values": the numbers at the room names instead of coloured floors
+    const info = new Map<string, string>();
+    if (this.heatMode === "values") {
+      for (const floor of b.floors)
+        for (const room of floor.rooms) {
+          const t = roomClimateValue(hass, floor, room, "temperature");
+          const h = roomClimateValue(hass, floor, room, "humidity");
+          const c = roomClimateValue(hass, floor, room, "co2");
+          const parts = [
+            t !== null ? `${formatNumber(hass, fromCelsius(hass, t), 1)} ${tempUnit(hass)}` : null,
+            h !== null ? `${formatNumber(hass, h, 0)} %` : null,
+            c !== null ? `${formatNumber(hass, c, 0)} ppm` : null,
+          ].filter((x): x is string => !!x);
+          if (parts.length) info.set(room.id, parts.join(" · "));
+        }
+    }
+    v.setRoomInfo(info);
     if (this._alerts.length) {
       tint ??= new Map();
       const k = 0.55 + 0.45 * Math.sin(performance.now() / 160);
@@ -2098,7 +2115,7 @@ export class Fp3dView3d extends LitElement {
   }
 
   private renderLegend() {
-    if (this.heatMode === "none") return nothing;
+    if (this.heatMode === "none" || this.heatMode === "values") return nothing;
     const scale = HEAT_SCALES[this.heatMode];
     // temperatures are coloured in °C and shown in Home Assistant's unit
     const temp = this.heatMode === "temperature";
@@ -2269,6 +2286,17 @@ export class Fp3dView3d extends LitElement {
         position: absolute;
         inset: 0;
         pointer-events: none;
+      }
+      .fp3d-pin-info {
+        display: grid;
+        gap: 1px;
+        text-align: center;
+      }
+      .fp3d-pin-info small {
+        font-size: 11px;
+        font-weight: 500;
+        opacity: 0.9;
+        font-variant-numeric: tabular-nums;
       }
       .fp3d-pin {
         position: absolute;

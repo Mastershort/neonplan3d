@@ -321,6 +321,23 @@ export class Fp3dRoomPanel extends LitElement {
               @change=${(e: Event) => this.call("cover", "set_cover_position", { entity_id: id, position: Number((e.target as HTMLInputElement).value) })}
           /></label>`
         : nothing}
+      ${features & 128 && typeof a.current_tilt_position === "number"
+        ? html`<label class="fp3d-rp-slider"
+            ><span>${this.t("cover_tilt")}</span>
+            <input
+              type="range"
+              min="0"
+              max="100"
+              ?disabled=${na}
+              .value=${String(a.current_tilt_position)}
+              @change=${(e: Event) => this.call("cover", "set_cover_tilt_position", { entity_id: id, tilt_position: Number((e.target as HTMLInputElement).value) })}
+          /></label>`
+        : features & 48
+          ? html`<div class="fp3d-rp-buttons">
+              ${features & 16 ? html`<button class="fp3d-btn fp3d-rp-small" ?disabled=${na} @click=${() => this.call("cover", "open_cover_tilt", { entity_id: id })}>${this.t("cover_tilt_open")}</button>` : nothing}
+              ${features & 32 ? html`<button class="fp3d-btn fp3d-rp-small" ?disabled=${na} @click=${() => this.call("cover", "close_cover_tilt", { entity_id: id })}>${this.t("cover_tilt_close")}</button>` : nothing}
+            </div>`
+          : nothing}
     </div>`;
   }
 

@@ -41,6 +41,8 @@ ROOM_SCHEMA = vol.Schema(
         vol.Required("floor_material"): vol.All(str, vol.Length(max=32)),
         # entities shown in the room's panel although they are not in the plan
         vol.Optional("panel", default=list): vol.All([vol.All(str, vol.Length(max=255))], vol.Length(max=100)),
+        # entities of the area kept out of the room panel
+        vol.Optional("hidden", default=list): vol.All([vol.All(str, vol.Length(max=255))], vol.Length(max=200)),
         # split points on each edge (metres from the edge's start) that cut the wall into parts of their own
         vol.Optional("wall_splits"): vol.All(
             [vol.Any(None, vol.All([vol.All(vol.Coerce(float), vol.Range(min=0.05, max=200))], vol.Length(max=16)))],
@@ -247,6 +249,8 @@ BACKGROUND_SCHEMA = vol.Schema(
         vol.Required("z"): _COORD,
         vol.Required("width"): vol.All(vol.Coerce(float), vol.Range(min=0.1, max=1000)),
         vol.Required("opacity"): vol.All(vol.Coerce(float), vol.Range(min=0, max=1)),
+        # turn about the picture's middle (degrees)
+        vol.Optional("rotation", default=0.0): vol.All(vol.Coerce(float), vol.Range(min=-360, max=360)),
     },
     extra=vol.ALLOW_EXTRA,
 )
@@ -261,6 +265,8 @@ OUTDOOR_SCHEMA = vol.Schema(
         # hedges and fences: their height (None = default); outline False hides the neon line
         vol.Optional("height", default=None): vol.Any(None, vol.All(vol.Coerce(float), vol.Range(min=0.1, max=6))),
         vol.Optional("outline", default=True): bool,
+        # height offset in m (a driveway down to a lower garage, a raised terrace)
+        vol.Optional("offset", default=0.0): vol.All(vol.Coerce(float), vol.Range(min=-10, max=10)),
     },
     extra=vol.ALLOW_EXTRA,
 )

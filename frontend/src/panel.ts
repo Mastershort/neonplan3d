@@ -132,7 +132,7 @@ export class Floorplan3dPanel extends LitElement {
     const markers = prefs.get("markers");
     this._markers = markers === "none" || markers === "all" ? markers : "important";
     const heat = prefs.get("heat");
-    this._heat = heat === "temperature" || heat === "humidity" || heat === "co2" ? heat : "none";
+    this._heat = heat === "temperature" || heat === "humidity" || heat === "co2" || heat === "values" ? heat : "none";
     const theme = prefs.get("theme") as Theme | null;
     this._theme = theme && THEMES.includes(theme) ? theme : "neon";
     const accent = prefs.get("accent");
@@ -755,7 +755,7 @@ export class Floorplan3dPanel extends LitElement {
               </div>`
             : nothing}
           <div class="fp3d-seg" role="group" aria-label=${this.t("heatmap")}>
-            ${(["none", "temperature", "humidity", "co2"] as HeatMode[]).map(
+            ${(["none", "temperature", "humidity", "co2", "values"] as HeatMode[]).map(
               (m) =>
                 html`<button
                   aria-pressed=${this._heat === m}

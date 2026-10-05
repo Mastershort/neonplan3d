@@ -27,7 +27,7 @@ const LOOKS: Record<OutdoorType, Look> = {
 
 /** Height of the visible surface of an area (for the lighting layer). */
 export function outdoorSurface(floor: Floor, a: OutdoorArea): number {
-  return groundLevel(floor) + (a.type === "hedge" || a.type === "fence" ? 0.01 : OUTDOOR_TOP[a.type]);
+  return groundLevel(floor) + (a.offset ?? 0) + (a.type === "hedge" || a.type === "fence" ? 0.01 : OUTDOOR_TOP[a.type]);
 }
 
 function ccw(points: Vec2[]): Vec2[] {
@@ -35,9 +35,11 @@ function ccw(points: Vec2[]): Vec2[] {
 }
 
 export function pushOutdoor(buf: GeoBuffer, lines: LineBuffer, floor: Floor): void {
-  const g = groundLevel(floor);
+  const ground = groundLevel(floor);
   for (const a of floor.outdoor ?? []) {
     if (a.points.length < 3) continue;
+    // an area may sit above or below the ground (a driveway down to a lower garage)
+    const g = ground + (a.offset ?? 0);
     // hedges and fences take their own height; the outline can be switched off per area
     const own = (a.type === "hedge" || a.type === "fence") && a.height ? a.height : OUTDOOR_TOP[a.type];
     const look = { ...LOOKS[a.type], top: own };
