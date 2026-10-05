@@ -2525,14 +2525,43 @@ var $t=globalThis,St=$t.ShadowRoot&&($t.ShadyCSS===void 0||$t.ShadyCSS.nativeSha
         letter-spacing: 0.06em;
         text-transform: uppercase;
       }
+      /* a wall row: name and length, the height, then the buttons (full height, no wall, cut) in one line;
+         a split point gets a line of its own below */
       .fp3d-edge-height {
-        display: grid;
-        grid-template-columns: 1fr 1fr 40px;
+        display: flex;
+        flex-wrap: wrap;
         gap: 6px;
         align-items: end;
         padding: 4px 6px;
         margin: 0 -6px;
         border-radius: 8px;
+      }
+      .fp3d-edge-height > span:first-child {
+        flex: 1 1 84px;
+        min-width: 84px;
+      }
+      .fp3d-edge-height > .fp3d-field {
+        flex: 1 1 90px;
+        min-width: 0;
+      }
+      .fp3d-edge-height > .fp3d-muted {
+        flex: 1 1 90px;
+        align-self: center;
+      }
+      .fp3d-edge-height > .fp3d-btn {
+        flex: 0 0 auto;
+        white-space: nowrap;
+        padding-left: 10px;
+        padding-right: 10px;
+      }
+      .fp3d-edge-height > .fp3d-split-row {
+        flex: 1 1 100%;
+        display: flex;
+        gap: 6px;
+        align-items: end;
+      }
+      .fp3d-edge-height > .fp3d-split-row > .fp3d-field {
+        flex: 1;
       }
       .fp3d-edge-on {
         background: color-mix(in srgb, var(--fp3d-accent) 14%, transparent);
