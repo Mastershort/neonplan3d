@@ -135,6 +135,8 @@ export interface Furniture {
   export?: EntityRef;
   /** Energie Pro: a glass card over the device with its power now, today's kWh and the day curve. */
   holo?: boolean;
+  /** Energie Pro, inverter: false hides the plant's card over its field. */
+  plant_card?: boolean;
   status?: EntityRef;
   /** Robot vacuum: sensor naming the room it cleans right now (null = automatic, "none" = the dock's room). */
   room_sensor?: EntityRef;

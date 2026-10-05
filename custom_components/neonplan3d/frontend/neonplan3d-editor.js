@@ -594,6 +594,7 @@ var $t=globalThis,St=$t.ShadowRoot&&($t.ShadyCSS===void 0||$t.ShadyCSS.nativeSha
         .theme=${"neon"}
         .packs=${this.packs}
         .showEnergy=${!1}
+        .holograms=${this._tool==="energy"?!0:null}
         .flows=${!1}
         ?furnish=${this.isAdmin}
         .surfaceGrab=${this.isAdmin&&this.houseTool?this.surfaceGrabber:null}
@@ -1572,7 +1573,7 @@ var $t=globalThis,St=$t.ShadowRoot&&($t.ShadyCSS===void 0||$t.ShadyCSS.nativeSha
               ><input type="checkbox" .checked=${!!e.holo} ?disabled=${!this.isAdmin} @change=${c=>this.updateFurniture({holo:c.target.checked})} />
               ${this.t("furn_holo")}</label
             >`:ae("energy_pro")&&e.type==="inverter"?v`<label class="fp3d-check fp3d-wide" title=${this.t("furn_plant_card_hint")}
-                ><input type="checkbox" .checked=${e.holo!==!1} ?disabled=${!this.isAdmin} @change=${c=>this.updateFurniture({holo:c.target.checked?void 0:!1})} />
+                ><input type="checkbox" .checked=${e.plant_card!==!1} ?disabled=${!this.isAdmin} @change=${c=>this.updateFurniture({plant_card:c.target.checked?void 0:!1})} />
                 ${this.t("furn_plant_card")}</label
               >`:w}
       </div>

@@ -668,6 +668,7 @@ export class Fp3dEditor extends LitElement {
         .theme=${"neon"}
         .packs=${this.packs}
         .showEnergy=${false}
+        .holograms=${this._tool === "energy" ? true : null}
         .flows=${false}
         ?furnish=${this.isAdmin}
         .surfaceGrab=${this.isAdmin && this.houseTool ? this.surfaceGrabber : null}
@@ -5525,7 +5526,7 @@ export class Fp3dEditor extends LitElement {
             >`
           : hasFeature("energy_pro") && f.type === "inverter"
             ? html`<label class="fp3d-check fp3d-wide" title=${this.t("furn_plant_card_hint")}
-                ><input type="checkbox" .checked=${f.holo !== false} ?disabled=${!this.isAdmin} @change=${(ev: Event) => this.updateFurniture({ holo: (ev.target as HTMLInputElement).checked ? undefined : false })} />
+                ><input type="checkbox" .checked=${f.plant_card !== false} ?disabled=${!this.isAdmin} @change=${(ev: Event) => this.updateFurniture({ plant_card: (ev.target as HTMLInputElement).checked ? undefined : false })} />
                 ${this.t("furn_plant_card")}</label
               >`
             : nothing}

@@ -729,8 +729,8 @@ export class Fp3dView3d extends LitElement {
       const seen = new Set<string>();
       for (const floor of b.floors) {
         for (const inv of floor.furniture.filter((m) => m.type === "inverter")) {
-          // holo: false hides a plant's card (the editor's switch)
-          if (inv.holo === false || seen.has(inv.id)) continue;
+          // plant_card: false hides a plant's card (the editor's switch)
+          if (inv.plant_card === false || seen.has(inv.id)) continue;
           seen.add(inv.id);
           // its card hangs on one of its own fields, preferably not the one the main card hangs on
           const own = fields.filter((f) => inverterOf(f) === inv.id);
@@ -982,7 +982,8 @@ export class Fp3dView3d extends LitElement {
    */
   private renderHologram() {
     const e = this._energy;
-    if (!hasFeature("energy_pro") || this.roomId || !this.showEnergy || !this.holoVisible()) return nothing;
+    // the editor keeps the energy bar off but asks for the holograms in its energy tool
+    if (!hasFeature("energy_pro") || this.roomId || !(this.showEnergy || this.holograms) || !this.holoVisible()) return nothing;
     const plants = !!e && (e.solar !== null || e.grid !== null || e.battery !== null) && this.floorId === null;
     return this._holos.map((card, i) => (card.kind === "device" ? this.renderDeviceCard(card, i) : plants ? this.renderHoloCard(card, i, e!) : nothing));
   }

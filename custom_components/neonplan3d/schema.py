@@ -162,6 +162,8 @@ FURNITURE_SCHEMA = vol.Schema(
         vol.Optional("export", default=None): vol.Any(None, vol.All(str, vol.Length(max=255))),
         # Energie Pro: a hologram card over the device (power now, today's kWh, day curve)
         vol.Optional("holo", default=False): bool,
+        # Energie Pro, inverter: False hides the plant's card over its field
+        vol.Optional("plant_card"): bool,
         vol.Optional("status", default=None): vol.Any(None, vol.All(str, vol.Length(max=255))),
         # robot vacuum: sensor naming the room it cleans right now (None = automatic)
         vol.Optional("room_sensor", default=None): vol.Any(None, vol.All(str, vol.Length(max=255))),
