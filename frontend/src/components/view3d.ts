@@ -1500,7 +1500,8 @@ export class Fp3dView3d extends LitElement {
           furnitureId: f.id,
           // inverter, battery, wallbox: their own text (watts, charge, status) is always worth a pin
           energyDevice: f.type === "inverter" || f.type === "home_battery" || f.type === "wallbox" || f.type === "meter" || !!car,
-          show: f.marker ?? undefined,
+          // Auto Pro: the car's charge and range are the point of the pin – shown in full by default
+          show: f.marker ?? (car ? "always" : undefined),
           fromFurniture: true,
         });
       }

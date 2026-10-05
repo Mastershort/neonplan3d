@@ -2389,8 +2389,9 @@ export class FloorplanViewer {
           if (face.part === "band") {
             // a light band around the item at mid height (a car's charge): four thin vertical strips
             const y0 = base + h * 0.42;
-            const y1 = y0 + 0.06;
-            const col = new Color(...face.color.map((v) => Math.min(1, v * (0.35 + 0.65 * face.level))) as [number, number, number]);
+            const y1 = y0 + 0.07;
+            // additive on top of the body: kept well below 1 so green stays green instead of burning to white
+            const col = new Color(...face.color.map((v) => Math.min(1, v * (0.3 + 0.45 * face.level))) as [number, number, number]);
             const hw = Math.abs(w) / 2 + 0.02;
             const hd = d / 2 + 0.02;
             const corners: [number, number][] = [[-hw, -hd], [hw, -hd], [hw, hd], [-hw, hd]];
@@ -2401,10 +2402,9 @@ export class FloorplanViewer {
               const p10 = P(a1[0] * Math.sign(w), y0, a1[1]);
               const p11 = P(a1[0] * Math.sign(w), y1, a1[1]);
               const p01 = P(a0[0] * Math.sign(w), y1, a0[1]);
+              // the screen material is double-sided: one winding is enough (both would add up twice)
               buf.tri(p00, p10, p11, col);
               buf.tri(p00, p11, p01, col);
-              buf.tri(p00, p11, p10, col);
-              buf.tri(p00, p01, p11, col);
             }
             continue;
           }

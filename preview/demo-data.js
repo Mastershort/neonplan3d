@@ -170,6 +170,13 @@ const DEVICES = [
   entity("binary_sensor.kueche_rauch", "kueche", "off", { friendly_name: "Küche Rauchmelder", device_class: "smoke" }),
   entity("binary_sensor.garage_auto", "garage", "on", { friendly_name: "Auto in der Garage", device_class: "occupancy" }),
   entity("sensor.van_ladestand", "garage", "78", { friendly_name: "Van Ladestand", device_class: "battery", unit_of_measurement: "%" }),
+  // helpers standing in for a car without an integration (Auto Pro with input_number / input_boolean)
+  entity("input_number.test_ladestand", null, "78.0", { friendly_name: "Test Auto Ladestand", unit_of_measurement: "%", min: 0, max: 100, step: 1 }),
+  entity("input_number.test_reichweite", null, "312.0", { friendly_name: "Test Auto Reichweite", unit_of_measurement: "km", min: 0, max: 600, step: 1 }),
+  entity("input_number.test_ladeleistung", null, "0.0", { friendly_name: "Test Auto Ladeleistung", unit_of_measurement: "W", min: 0, max: 11000, step: 100 }),
+  entity("input_boolean.test_verriegelt", null, "on", { friendly_name: "Test Auto verriegelt" }),
+  entity("input_boolean.test_klima", null, "on", { friendly_name: "Test Auto Klima" }),
+  entity("input_boolean.test_auto_da", null, "on", { friendly_name: "Test Auto da" }),
   entity("sensor.van_reichweite", "garage", "312", { friendly_name: "Van Reichweite", unit_of_measurement: "km" }),
   entity("sensor.van_ladeleistung", "garage", "7400", { friendly_name: "Van Ladeleistung", device_class: "power", unit_of_measurement: "W" }),
   entity("lock.van", "garage", "locked", { friendly_name: "Van Verriegelung" }),
