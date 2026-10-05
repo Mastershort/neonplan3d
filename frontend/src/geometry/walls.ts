@@ -197,6 +197,11 @@ export function generateWalls(rooms: readonly Room[], options: WallOptions, free
     const hs = list.map(heightSet).filter((h): h is number => typeof h === "number" && h > 0);
     return hs.length ? Math.min(...hs) : undefined;
   };
+  // a thickness set on a room edge (D149); a shared wall takes the thicker setting of its two rooms
+  const thickOf = (list: Segment[]): number | undefined => {
+    const ts = list.map((s) => rooms.find((r) => r.id === s.room)?.wall_thickness?.[s.edge]).filter((t): t is number => typeof t === "number" && t > 0);
+    return ts.length ? Math.max(...ts) : undefined;
+  };
   // a height of 0 on an edge: no wall there at all (an open floor plan whose rooms share one space)
   const noWall = (list: Segment[]): boolean => list.some((s) => heightSet(s) === 0);
   const open: [string, string][] = [];
@@ -212,11 +217,12 @@ export function generateWalls(rooms: readonly Room[], options: WallOptions, free
       continue;
     }
     if (partner) {
+      const t = thickOf([first, partner]) ?? options.interior;
       drafts.push({
         a: first.u,
         b: first.v,
-        left: options.interior / 2,
-        right: options.interior / 2,
+        left: t / 2,
+        right: t / 2,
         exterior: false,
         roomLeft: first.room,
         roomRight: partner.room,
@@ -228,7 +234,7 @@ export function generateWalls(rooms: readonly Room[], options: WallOptions, free
         a: first.u,
         b: first.v,
         left: 0,
-        right: options.exterior,
+        right: thickOf([first]) ?? options.exterior,
         exterior: true,
         roomLeft: first.room,
         roomRight: null,

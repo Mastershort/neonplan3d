@@ -1180,5 +1180,8 @@
  "card_central_hint": "Toutes les lumières et volets de l'étage ou de la maison et les favoris de l'éditeur.",
  "favorites": "Favoris",
  "favorites_hint": "Scènes, scripts, automatisations, boutons et interrupteurs pour le menu central (étoile) de la vue 3D.",
- "favorites_add": "Ajouter un favori"
+ "favorites_add": "Ajouter un favori",
+ "edge_thickness": "Épaisseur (m)",
+ "wall_thickness_hint": "Épaisseur de ce mur ; un mur entre deux pièces prend la valeur la plus épaisse.",
+ "wall_thickness_reset": "Épaisseur comme pour la maison"
 }

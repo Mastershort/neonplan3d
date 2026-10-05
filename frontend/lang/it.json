@@ -1180,5 +1180,8 @@
  "card_central_hint": "Tutte le luci e tapparelle del piano o della casa e i preferiti dall'editor.",
  "favorites": "Preferiti",
  "favorites_hint": "Scene, script, automazioni, pulsanti e interruttori per il menu centrale (stella) della vista 3D.",
- "favorites_add": "Aggiungi preferito"
+ "favorites_add": "Aggiungi preferito",
+ "edge_thickness": "Spessore (m)",
+ "wall_thickness_hint": "Spessore di questo muro; un muro tra due stanze prende il valore più spesso.",
+ "wall_thickness_reset": "Spessore come per la casa"
 }

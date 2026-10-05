@@ -217,3 +217,21 @@ test("a split point cuts a wall into parts that keep apart, each with its own he
   const plain = generateWalls([room("a", 0, 0, 6, 4)], { exterior: 0.24, interior: 0.12 }).walls;
   assert.equal(plain.filter((w) => Math.abs(w.a[1]) < 1e-6 && Math.abs(w.b[1]) < 1e-6).length, 1);
 });
+
+test("a wall takes the thickness set on its room edge; a shared wall the thicker one (D149)", () => {
+  const a = { ...rect("a", 0, 0, 4, 3), wall_thickness: [0.365, null, 0.08, null] };
+  const b = { ...rect("b", 4, 0, 7, 3), wall_thickness: [null, null, null, 0.175] };
+  const { walls, warnings } = generateWalls([a, b], opts);
+  assert.deepEqual(warnings, []);
+  // edge 0 of a (z = 0, x 0 … 4): an outer wall of 36.5 cm
+  const south = walls.find((w) => w.exterior && w.sources.some((s) => s.room_id === "a" && s.edge === 0))!;
+  near(south.right, 0.365);
+  // the shared wall (a's edge 1, b's edge 3): 17.5 cm, centred
+  const shared = walls.find((w) => !w.exterior)!;
+  near(shared.left + shared.right, 0.175);
+  near(shared.left, shared.right);
+  // a's edge 2 (z = 3): its own thin setting; b's outer walls keep the building's
+  const north = walls.find((w) => w.exterior && w.sources.some((s) => s.room_id === "a" && s.edge === 2))!;
+  near(north.right, 0.08);
+  for (const w of walls.filter((w) => w.exterior && w.sources.every((s) => s.room_id === "b"))) near(w.right, EXT);
+});

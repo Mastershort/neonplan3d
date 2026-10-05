@@ -1180,5 +1180,8 @@
  "card_central_hint": "Alle lampen en rolluiken van de verdieping of het huis en de favorieten uit de editor.",
  "favorites": "Favorieten",
  "favorites_hint": "Scènes, scripts, automatiseringen, knoppen en schakelaars voor het centrale menu (ster) van de 3D-weergave.",
- "favorites_add": "Favoriet toevoegen"
+ "favorites_add": "Favoriet toevoegen",
+ "edge_thickness": "Dikte (m)",
+ "wall_thickness_hint": "Dikte van deze muur; een muur tussen twee kamers krijgt de dikste waarde.",
+ "wall_thickness_reset": "Dikte zoals voor het huis"
 }

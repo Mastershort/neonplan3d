@@ -74,7 +74,7 @@ export const DEMO_BUILDING = {
       rect("garage", "Garage", "garage", 10, 0, 13.6, 5.2, "concrete"),
     ]),
     floor("og", "Obergeschoss", 2.75, [
-      rect("kind", "Kinderzimmer", "kinderzimmer", 0, 0, 4.4, 4.2, "carpet"),
+      { ...rect("kind", "Kinderzimmer", "kinderzimmer", 0, 0, 4.4, 4.2, "carpet"), wall_thickness: [0.365, null, null, null] },
       rect("arbeit", "Arbeitszimmer", "arbeitszimmer", 4.4, 0, 10, 4.2, "oak"),
       rect("badog", "Bad oben", null, 0, 4.2, 3.4, 8, "tiles"),
       rect("gast", "Gästezimmer", null, 3.4, 4.2, 10, 8),

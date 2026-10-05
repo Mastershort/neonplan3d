@@ -1218,6 +1218,7 @@ export class Fp3dEditor extends LitElement {
           target.points.splice(i + 1, 0, mid);
           // both halves of the split edge keep its wall height
           if (target.wall_heights) target.wall_heights.splice(i + 1, 0, target.wall_heights[i] ?? null);
+          if (target.wall_thickness) target.wall_thickness.splice(i + 1, 0, target.wall_thickness[i] ?? null);
           const first = Math.hypot(mid[0] - a[0], mid[1] - a[1]);
           for (const o of floor.openings) {
             if (o.room_id !== roomId || o.wall) continue;
@@ -3874,6 +3875,7 @@ export class Fp3dEditor extends LitElement {
       target.points.splice(index, 1);
       // the edge starting at the removed corner goes away; the one before it keeps its height
       if (target.wall_heights) target.wall_heights.splice(index, 1);
+      if (target.wall_thickness) target.wall_thickness.splice(index, 1);
       // the two edges at the removed corner merge; openings on them cannot keep their place
       floor.openings = floor.openings
         .filter((o) => o.room_id !== room.id || o.wall || (o.edge !== index && o.edge !== prev))
@@ -4332,6 +4334,21 @@ export class Fp3dEditor extends LitElement {
   private renderEdgeHeights(room: Room) {
     const H = this.floor!.height;
     const n = room.points.length;
+    // which edges are outer walls (their default thickness is the exterior one)
+    const s = this._doc.settings;
+    const outer = new Set<number>();
+    for (const w of generateWalls(this.floor!.rooms, { exterior: s.wall_exterior, interior: s.wall_interior }, this.floor!.walls ?? []).walls) {
+      if (w.exterior) for (const src of w.sources) if (src.room_id === room.id) outer.add(src.edge);
+    }
+    const setThick = (edge: number, v: number | null) =>
+      this.change((_, f) => {
+        const r = f.rooms.find((x) => x.id === room.id);
+        if (!r) return;
+        const list = (r.wall_thickness ?? []).slice(0, r.points.length);
+        while (list.length < r.points.length) list.push(null);
+        list[edge] = v;
+        r.wall_thickness = list.every((t) => t === null) ? undefined : list;
+      });
     return html`<div class="fp3d-edge-box">
       <h4>${this.t("wall_heights")}</h4>
       ${room.points.flatMap((a, i) => {
@@ -4365,6 +4382,16 @@ export class Fp3dEditor extends LitElement {
             ${this.isAdmin && h !== null ? html`<button class="fp3d-btn" title=${this.t("wall_height_full")} @click=${() => set(null)}>↥</button>` : nothing}
             ${this.isAdmin && h !== 0 ? html`<button class="fp3d-btn" title=${this.t("wall_none_hint")} @click=${() => set(0)}>${this.t("wall_none")}</button>` : nothing}
             ${this.isAdmin && partLen >= 0.4 ? html`<button class="fp3d-btn" title=${this.t("wall_split_hint")} @click=${() => this.splitEdge(room, i, part)}>✂</button>` : nothing}
+            ${(part === undefined || part === 0) && h !== 0
+              ? html`<span class="fp3d-wide fp3d-split-row" title=${this.t("wall_thickness_hint")}
+                  >${this.num(this.t("edge_thickness"), room.wall_thickness?.[i] ?? (outer.has(i) ? s.wall_exterior : s.wall_interior), (v) => {
+                    const def = outer.has(i) ? s.wall_exterior : s.wall_interior;
+                    const t = Math.min(1.5, Math.max(0.02, Math.round(v * 1000) / 1000));
+                    setThick(i, Math.abs(t - def) < 0.0005 ? null : t);
+                  }, 0.01, 0.02)}
+                  ${this.isAdmin && room.wall_thickness?.[i] != null ? html`<button class="fp3d-btn" title=${this.t("wall_thickness_reset")} @click=${() => setThick(i, null)}>↺</button>` : nothing}</span
+                >`
+              : nothing}
             ${part !== undefined && part > 0 && (room.wall_splits?.[i] ?? []).some((d) => Math.abs(d - starts[part]) < 1e-3)
               ? html`<span class="fp3d-wide fp3d-split-row"
                   >${this.num(this.t("wall_split_at"), starts[part], (v) => this.moveSplit(room, i, starts[part], v), 0.05, 0.1)}

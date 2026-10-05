@@ -1180,5 +1180,8 @@
  "card_central_hint": "Todas las luces y persianas de la planta o la casa y los favoritos del editor.",
  "favorites": "Favoritos",
  "favorites_hint": "Escenas, scripts, automatizaciones, botones e interruptores para el menú central (estrella) de la vista 3D.",
- "favorites_add": "Añadir favorito"
+ "favorites_add": "Añadir favorito",
+ "edge_thickness": "Grosor (m)",
+ "wall_thickness_hint": "Grosor de esta pared; una pared entre dos habitaciones toma el valor más grueso.",
+ "wall_thickness_reset": "Grosor como en la casa"
 }

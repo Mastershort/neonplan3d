@@ -1180,5 +1180,8 @@
  "card_central_hint": "Az emelet vagy a ház összes lámpája és redőnye, valamint a szerkesztő kedvencei.",
  "favorites": "Kedvencek",
  "favorites_hint": "Jelenetek, szkriptek, automatizálások, gombok és kapcsolók a 3D nézet központi menüjéhez (csillag).",
- "favorites_add": "Kedvenc hozzáadása"
+ "favorites_add": "Kedvenc hozzáadása",
+ "edge_thickness": "Vastagság (m)",
+ "wall_thickness_hint": "Ennek a falnak a vastagsága; két szoba közös fala a vastagabb értéket kapja.",
+ "wall_thickness_reset": "Vastagság a ház beállítása szerint"
 }

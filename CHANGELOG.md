@@ -14,6 +14,7 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 
 ### New
 
+- **Thickness per wall:** every wall of a room gets a thickness field in the wall-heights box (a 36.5 cm outer wall, an 11.5 cm partition); a shared wall takes the thicker setting (discussion #149 by ArtakerCadSystems).
 - **Central menu and favourites:** a star above the magnifier opens all lights on / off and all blinds up / down for the floor shown or the whole house (with a confirmation), plus favourites – scenes, scripts, automations, buttons and switches picked in the editor; the room panel gets **All on** next to All off and **All up / All down** for its blinds; card option `central` (#145 by daene85).
 - **Names under markers:** a device or furniture with an own name can show it small under its pin in 3D ("Show the name under the marker"), or every named device with the card option `marker_names: true` (#156 by denisb88).
 - **Solar on hip ends:** hip and pyramid roof sections offer their two triangular ends for solar fields and roof windows (discussions #158 by bert-MI4U and #134).

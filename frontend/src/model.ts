@@ -36,6 +36,11 @@ export interface Room {
    */
   wall_heights?: WallHeight[];
   /**
+   * Thickness of the wall on each edge in m (index = edge); null = the building's exterior or interior
+   * thickness. A wall two rooms share takes the thicker of their settings (D149).
+   */
+  wall_thickness?: (number | null)[];
+  /**
    * Split points on each edge (index = edge): distances in metres from points[i] where the wall is cut
    * into parts of their own (each with its own height), e.g. a 2.5 m wall next to a 1.7 m one in line.
    */
