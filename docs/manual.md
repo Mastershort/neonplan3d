@@ -288,7 +288,7 @@ Lamps are furniture with a linked light: ceiling light, downlight, surface spot,
 
 ### 4.12 Electric furniture
 
-TVs, media walls, desks with monitors, washing machines, dryers, dishwashers, radiators, robot vacuums and many pack items link to entities:
+TVs, media walls, the wall unit with a TV (the wall unit without a TV is a lamp: vitrines and LED strips glow with the linked light), desks with monitors, washing machines, dryers, dishwashers, radiators, robot vacuums and many pack items link to entities:
 
 - **Device** or **TV (media player or smart plug)**: A **status sensor** works as a device too, e.g. the print status of a 3D printer (Bambu Lab and others); the item then counts as active while the status reports "running", "printing", "prepare" or similar. A TV glows while it is on. An older TV on a smart plug simply takes the plug's switch; the screen glows while the plug is on, and a tap switches it. Washing machine, dryer and dishwasher glow while they run. A radiator with a thermostat glows while it heats.
 - **Power sensor (W)**: The item shows its watts.
