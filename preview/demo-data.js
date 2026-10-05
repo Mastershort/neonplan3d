@@ -358,6 +358,8 @@ DEMO_BUILDING.floors[0].furniture = [
     [6.2, 6.9],
   ].map(([x, z]) => ({ ...item("lamp_downlight", x, z, 0.1, 0.1, 0.02), entity: "light.bad" })),
   { ...item("led_strip", 2.4, 0.08, 3.2, 0.04, 0.03), entity: "light.led_band" },
+  // an upright strip at the wall, a light column from the floor up
+  { ...item("led_strip", 0.1, 1.2, 1.8, 0.04, 0.03, 90), entity: "light.led_band", upright: true, mount_y: 0.1 },
   item("chair", 8.4, 2.2, 0.45, 0.5, 0.9),
   item("chair", 8.95, 2.9, 0.45, 0.5, 0.9, 270),
   item("bed", 2.2, 6.97, 1.6, 2.05, 0.9, 180),

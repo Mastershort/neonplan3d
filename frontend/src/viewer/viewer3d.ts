@@ -133,6 +133,9 @@ export interface DeviceMarker {
   rotation?: number;
   size?: [number, number, number];
   base?: number;
+  /** LED strip: roll about its length (degrees) and standing upright (its length runs up from the base). */
+  roll?: number;
+  upright?: boolean;
   /** Show the HTML marker (false: the 3D object alone stands for the device). */
   pin?: boolean;
   /** A placed device fixed against moving. */
@@ -1371,10 +1374,13 @@ export class FloorplanViewer {
       const y = d.lightY ?? y0;
       const color = glow.color;
       if (d.lamp === "strip") {
-        // a strip lights along its length: three sources spread over it
+        // a strip lights along its length: three sources spread over it; standing upright they climb,
+        // and a strip turned on its side (or standing) lights all around rather than up or down
         const a = (d.rotation ?? 0) * DEG;
+        const sideways = !!d.upright || Math.abs(d.roll ?? 0) > 45;
         for (const t of [-1 / 3, 0, 1 / 3]) {
-          out.push({ x: d.x + Math.cos(a) * w * t, y, z: d.z + Math.sin(a) * w * t, color, level: glow.level * 0.55, kind, room });
+          if (d.upright) out.push({ x: d.x, y: base + w * (0.5 + t), z: d.z, color, level: glow.level * 0.55, kind: "omni", room });
+          else out.push({ x: d.x + Math.cos(a) * w * t, y, z: d.z + Math.sin(a) * w * t, color, level: glow.level * 0.55, kind: sideways ? "omni" : kind, room });
         }
       } else out.push({ x: d.x, y, z: d.z, color, level: glow.level, kind, room });
     }
@@ -1967,7 +1973,7 @@ export class FloorplanViewer {
     const shapeSig =
       this.wallMode +
       (this.lowQuality ? "L" : this.highQuality ? "H" : "M") +
-      lamps.map((d) => `${d.id},${d.lamp ?? d.model},${d.variant},${d.x},${d.z},${d.y},${d.rotation ?? 0},${d.size?.join("/")},${d.base ?? 0},${d.pack ?? ""}`).join(";");
+      lamps.map((d) => `${d.id},${d.lamp ?? d.model},${d.variant},${d.x},${d.z},${d.y},${d.rotation ?? 0},${d.roll ?? 0},${d.upright ? 1 : 0},${d.size?.join("/")},${d.base ?? 0},${d.pack ?? ""}`).join(";");
     const glows = lamps.map((d) => this.glowOf(d));
     const colorSig = lamps.map((d, i) => `${flash(d.id)},${glows[i] ? `${glows[i]!.level.toFixed(3)},${glows[i]!.color.map((c) => c.toFixed(3)).join("/")}` : "off"}`).join(";");
     if (shapeSig !== fv.lampShapeSig || !fv.lampMesh.geometry.getAttribute("position")) {
@@ -2173,7 +2179,14 @@ export class FloorplanViewer {
         hp.push(x, y, z);
         hc.push(...glow.color.map((c) => c * glow.level * 0.7 * k));
       };
-      if (d.lamp === "strip") for (const t of [-0.4, -0.13, 0.13, 0.4]) push(d.x + Math.cos(ang) * w * t, d.z + Math.sin(ang) * w * t, 0.6);
+      if (d.lamp === "strip")
+        for (const t of [-0.4, -0.13, 0.13, 0.4]) {
+          if (d.upright) {
+            // an upright strip glows up its length
+            hp.push(d.x, base + w * (0.5 + t), d.z);
+            hc.push(...glow.color.map((c) => c * glow.level * 0.7 * 0.6));
+          } else push(d.x + Math.cos(ang) * w * t, d.z + Math.sin(ang) * w * t, 0.6);
+        }
       else if (d.lamp === "wall") push(d.x - Math.sin(ang) * (dd / 2 + 0.05), d.z + Math.cos(ang) * (dd / 2 + 0.05));
       else push(d.x, d.z);
       if (this.highQuality && (d.lamp === "downlight" || d.lamp === "spot")) {
@@ -3621,7 +3634,7 @@ export function createViewer(host: HTMLElement, options?: ViewerOptions): Floorp
 /** Model of a lamp into a buffer (3D view and furniture previews); `H` is the ceiling height. */
 export function pushLampModel(
   buf: GeoBuffer,
-  d: Pick<DeviceMarker, "x" | "z" | "size" | "base" | "rotation" | "variant"> & { lamp: LampModel },
+  d: Pick<DeviceMarker, "x" | "z" | "size" | "base" | "rotation" | "variant" | "roll" | "upright"> & { lamp: LampModel },
   H: number,
   shadeCol: number,
 ): void {
@@ -3722,9 +3735,45 @@ export function pushLampModel(
       break;
     }
     case "strip": {
-      // a thin bar along the wall: under the ceiling (cove light) or at its mount height
-      const y1 = d.base != null ? d.base + Math.max(0.02, h) : H - 0.04;
-      box(-w / 2, w / 2, -dd / 2, dd / 2, y1 - Math.max(0.02, h), y1, shadeCol);
+      // a thin bar along the wall: under the ceiling (cove light) or at its mount height; tilted about its
+      // length it lies against a slope, standing upright it climbs from its mount height
+      const t = Math.max(0.02, h);
+      const y1 = d.base != null ? d.base + t : H - 0.04;
+      if (!d.roll && !d.upright) {
+        box(-w / 2, w / 2, -dd / 2, dd / 2, y1 - t, y1, shadeCol);
+        break;
+      }
+      const roll = (d.roll ?? 0) * DEG;
+      const cr = Math.cos(roll);
+      const sr = Math.sin(roll);
+      const cy = d.upright ? base + w / 2 : y1 - t / 2;
+      // local: x along the length, y through the thickness, z across the depth
+      const P = (lx: number, ly: number, lz: number): number[] => {
+        let x = lx;
+        let y = ly * cr - lz * sr;
+        const z = ly * sr + lz * cr;
+        if (d.upright) [x, y] = [-y, x];
+        return [d.x + x * ca - z * sa, cy + y, d.z + x * sa + z * ca];
+      };
+      const c = [P(-w / 2, -t / 2, -dd / 2), P(w / 2, -t / 2, -dd / 2), P(w / 2, -t / 2, dd / 2), P(-w / 2, -t / 2, dd / 2), P(-w / 2, t / 2, -dd / 2), P(w / 2, t / 2, -dd / 2), P(w / 2, t / 2, dd / 2), P(-w / 2, t / 2, dd / 2)];
+      const col = new Color(shadeCol);
+      const centre = [d.x, cy, d.z];
+      const quad = (i: number, j: number, k: number, l: number) => {
+        // wound so the face looks outward
+        const [a, b, e] = [c[i], c[j], c[k]];
+        const n = [(b[1] - a[1]) * (e[2] - a[2]) - (b[2] - a[2]) * (e[1] - a[1]), (b[2] - a[2]) * (e[0] - a[0]) - (b[0] - a[0]) * (e[2] - a[2]), (b[0] - a[0]) * (e[1] - a[1]) - (b[1] - a[1]) * (e[0] - a[0])];
+        const out = [a[0] - centre[0], a[1] - centre[1], a[2] - centre[2]];
+        const flip = n[0] * out[0] + n[1] * out[1] + n[2] * out[2] < 0;
+        const [p, q, r, s] = flip ? [c[l], c[k], c[j], c[i]] : [c[i], c[j], c[k], c[l]];
+        buf.tri(p, q, r, col, col, col);
+        buf.tri(p, r, s, col, col, col);
+      };
+      quad(0, 1, 2, 3);
+      quad(4, 5, 6, 7);
+      quad(0, 1, 5, 4);
+      quad(1, 2, 6, 5);
+      quad(2, 3, 7, 6);
+      quad(3, 0, 4, 7);
       break;
     }
   }

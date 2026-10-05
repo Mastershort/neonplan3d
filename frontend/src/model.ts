@@ -146,6 +146,10 @@ export interface Furniture {
   marker?: MarkerShow | null;
   /** Height of the bottom edge above the floor (null = default: the floor, a pack item's mount, a surface below). */
   mount_y?: number | null;
+  /** LED strip: tilt about its length (°; 0 = lying flat, 90 = its face points sideways, e.g. along a roof slope). */
+  tilt?: number;
+  /** LED strip: standing upright – its length runs up from the mount height (door frame, light column). */
+  upright?: boolean;
   /** Screens: pictures shown while an entity is in a state (first match wins; "*" = any state). */
   pictures?: ScreenPicture[];
   /** Screens: what shows around a rule picture – a dark screen (default) or a white one (for dark logos). */

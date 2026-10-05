@@ -250,6 +250,7 @@ const shots = [
   { name: "phone-floor", query: "", width: 420, height: 800, click: "Erdgeschoss" },
   { name: "card-portrait-room", query: "?card&floor=eg", width: 700, height: 1000, click: "Wohnzimmer" },
   { name: "view-alert-banner", query: "?alerts", width: 1280, height: 800, click: "Erdgeschoss" },
+  { name: "view-strip-upright", query: "", width: 1280, height: 800, editor: true, editorScript: "e.fit();", then3d: "Erdgeschoss", camera: { theta: 1.3, phi: 1.2, radius: 5, target: { x: 1.2, y: 1, z: 1.4 } } },
   { name: "view-pro-locked", query: "?nopro", width: 1280, height: 800, click: "Erdgeschoss", then: "Wohnzimmer", viewScript: "v.lookThrough('camera.wohnzimmer');" },
   { name: "view-weather-rain", query: "?weather=pouring", width: 1280, height: 800, wait: 1200 },
   { name: "view-weather-snow", query: "?weather=snowy", width: 1280, height: 800, wait: 1200 },
@@ -373,7 +374,9 @@ for (const shot of shots.filter((s) => !only || only.includes(s.name))) {
         await page.evaluate((cam) => {
           const v = document.querySelector("neonplan3d-panel").shadowRoot.querySelector("fp3d-view3d");
           const viewer = Object.values(v).find((x) => x && x.floors && x.floorMap);
-          Object.assign(viewer.controls.view, cam);
+          const { target, ...rest } = cam;
+          if (target) viewer.controls.view.target.set(target.x, target.y ?? 1, target.z);
+          Object.assign(viewer.controls.view, rest);
           viewer.invalidate();
         }, shot.camera);
         await new Promise((r) => setTimeout(r, 1500));

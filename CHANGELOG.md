@@ -4,6 +4,12 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 [releases page](https://github.com/Mastershort/neonplan3d/releases). Ideas and votes:
 [Discussions → Ideas](https://github.com/Mastershort/neonplan3d/discussions/categories/ideas).
 
+## Unreleased
+
+### New
+
+- **LED strips tilt and stand upright:** a tilt about the strip's length lays it against a roof slope or turns it sideways; "Upright" stands it on end from its mount height – along a door frame, as a light column (#123 by RobertSorgenfrei, discussion #122 by idaho).
+
 ## 1.10.2
 
 ### New

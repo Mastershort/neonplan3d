@@ -1497,7 +1497,7 @@ export class Fp3dView3d extends LitElement {
       uplight: base + f.h + 0.25,
       table: base + f.h + 0.2,
       wall: base + f.h + 0.2,
-      strip: Math.max(0.3, base - 0.2),
+      strip: f.upright ? base + f.w + 0.15 : Math.max(0.3, base - 0.2),
       bollard: base + f.h + 0.25,
       garden: base + f.h + 0.25,
     }[model];
@@ -1517,6 +1517,8 @@ export class Fp3dView3d extends LitElement {
       glow: st ? lightGlow(st) : null,
       lamp: model,
       rotation: f.rotation,
+      roll: f.tilt ?? 0,
+      upright: !!f.upright,
       size: [f.w, f.d, f.h],
       base,
       pickable: !!entity,
