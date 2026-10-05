@@ -654,6 +654,18 @@ Klang & Kino bringt die Musik ins 3D-Haus. Voraussetzung ist ein Lautsprecher im
 
 **Wandtablet:** Auf der Tablet-Stufe laufen die Ringe mit halber Bildrate, die Karten ohne Glaseffekt.
 
+### 6.6 Auto Pro
+
+Auto Pro holt das Auto in den Plan, so wie es seine Integration meldet (Tesla, VW We Connect, BMW, Hyundai/Kia, Renault, Smart, Polestar, Audi, Skoda, Cupra, Ford …). Voraussetzung ist ein **Stellplatz** mit Fahrzeug (4.10) und die Integration des Autos in Home Assistant.
+
+**Einrichten:** Im Stellplatz-Formular unten der Abschnitt **Auto Pro**. Wähle unter **Fahrzeug** irgendeine Entität des Autos – NeonPlan findet die übrigen am selben Gerät: Ladestand, Reichweite, Ladeleistung oder Ladezustand, Kabel, Schloss, Klima oder Vorheizen, Standort. Jede Rolle kannst du von Hand setzen oder mit „Keine“ abschalten. Hat der Stellplatz einen Sensor „Auto anwesend“, dient der auch als Ausgangspunkt der Suche.
+
+**Im Haus:** Das Fahrzeug trägt ein **Lichtband** in der Farbe des Ladestands (grün über 50 %, gelb bis 20 %, rot darunter), kräftiger, solange es lädt. Läuft die Klima oder das Vorheizen, glimmt das Auto warm. Der **Pin am Stellplatz** zeigt „78 % · 312 km · ⚡ 7,4 kW · 🔒“. Ist das Auto weg, bleibt der Stellplatz leer und der Pin sagt **unterwegs**, mit der Zone des Trackers, wenn es eine gibt („unterwegs · Arbeit“).
+
+**Schnellmenü:** Lange drücken auf den Pin: **Verriegeln / Entriegeln** (Entriegeln fragt nach), **Klima an / aus**, **Laden starten / stoppen** (bei einem Lade-Schalter), dazu Ladestand und Reichweite.
+
+**Wandtablet:** keine Animation nötig – Auto Pro läuft auf jeder Stufe gleich.
+
 ---
 
 ## 7. Erweiterungen, Shop und Möbel-Packs

@@ -1,7 +1,7 @@
 // Lit wrapper around the lazily loaded 3D viewer.
 
 import { css, html, LitElement, nothing, svg, type PropertyValues } from "lit";
-import { roomClimateValue,
+import { carState, carWatched, type CarState, roomClimateValue,
   appColor,
   areaEntities,
   entityName,
@@ -60,7 +60,7 @@ import { furnitureName } from "../furniture-names.ts";
 import { fetchImage } from "../api.ts";
 import { formatNumber, translate, type I18nKey } from "../i18n.ts";
 import { getPacks, mountBase, packItem, packsVersion } from "../packs.ts";
-import { parkedVehicles, parkingEntities } from "../parking.ts";
+import { parkedVehicle, PRESENT_STATES, parkedVehicles, parkingEntities } from "../parking.ts";
 import { TRAIL_ICON, TRAIL_WINDOW_MS, trailEvents, trailPoints, trailSources, trailTime, type HistoryRow } from "../trail.ts";
 import { limitEffects, weatherEntity, weatherState } from "../weather.ts";
 import { SHOW_PRESENCE } from "../flags.ts";
@@ -223,7 +223,7 @@ export class Fp3dView3d extends LitElement {
   /** A running swipe on a lamp or blind: the value shown next to the finger. */
   private declare _swipe: { entity: string; kind: "light" | "cover"; start: number; value: number; x: number; y: number } | null;
   /** Quick menu at a device (long press). */
-  private declare _menu: { entity: string; x: number; y: number } | null;
+  private declare _menu: { entity: string; x: number; y: number; car?: CarState } | null;
   /** Looking through a camera: its live picture lies over the 3D view; `back` is the view to return to. */
   private declare _through: { entity: string; back: ReturnType<FloorplanViewer["getView"]> } | null;
   /** Camera wall: the camera shown big (null: all tiles). */
@@ -577,7 +577,7 @@ export class Fp3dView3d extends LitElement {
           : b.floors.flatMap((f) => f.rooms.flatMap((r) => areaEntities(hass, r.area_id).filter((id) => id.startsWith("sensor."))));
       this.alertSrc = this.alerts ? alertSources(hass, b, this.weatherEntityId) : null;
       const warn = this.alertSrc ? alertEntities(this.alertSrc) : [];
-      const parking = parkingEntities(b.floors);
+      const parking = [...parkingEntities(b.floors), ...(hasFeature("auto_pro") ? carWatched(hass, b.floors) : [])];
       const motion = trailSources(hass, b).map((s) => s.entity);
       const weather = weatherEntity(hass, this.weatherEntityId ?? b.settings.weather_entity);
       const all = [...placed, ...cameraSensors, ...links, ...power, ...furniture, ...states, ...doors, ...robotRooms, ...roofWindowIds, ...solarIds, ...pictureRules, e.grid, e.solar, e.battery, e.battery_soc, e.consumption, e.tariff, ...presence, ...lights, ...heat, ...warn, ...parking, ...motion, weather, "sun.sun"];
@@ -1320,8 +1320,11 @@ export class Fp3dView3d extends LitElement {
           markers.push(this.lampMarker(hass, floor, f, linked?.entity ?? null));
           continue;
         }
-        // a home battery with only its charge, a wallbox with only its status still gets its marker
-        const extraRef = f.type === "home_battery" ? f.soc : f.type === "wallbox" ? f.status : null;
+        // a home battery with only its charge, a wallbox with only its status still gets its marker;
+        // a parking spot with Auto Pro data gets one even without a presence sensor
+        const autoPro = f.type === "parking" && hasFeature("auto_pro") && !!f.car;
+        const car = autoPro ? carState(hass, f) : null;
+        const extraRef = f.type === "home_battery" ? f.soc : f.type === "wallbox" ? f.status : f.type === "parking" && car ? (f.car?.device ?? car.entities.soc) : null;
         const extra = extraRef && extraRef !== "none" ? extraRef : null;
         const link = linked ?? (extra ? { entity: null, power: null } : undefined);
         if (!link) continue;
@@ -1341,6 +1344,17 @@ export class Fp3dView3d extends LitElement {
           consumers.push({ id, powerEntity: link.power, floorId: floor.id, x: f.x, z: f.z, power: Math.max(0, power), wallbox: f.type === "wallbox" || undefined });
         }
         const running = (power ?? 0) > 10 || st?.state === "on" || st?.state === "running" || (isStatusSensor(st) && isActive(st));
+        // Auto Pro: the vehicle in the spot wears a light band in the colour of its charge (brighter while
+        // charging) and a warm glow on top while the climate runs; the spot's pin tells charge and range
+        if (car && parkedVehicle(hass, f)) {
+          const faces: NonNullable<ScreenState["faces"]> = [];
+          if (car.soc !== null) {
+            const col: [number, number, number] = car.soc >= 50 ? [0.3, 1, 0.5] : car.soc >= 20 ? [1, 0.8, 0.25] : [1, 0.3, 0.25];
+            faces.push({ part: "band", color: col, level: car.charging ? 1 : 0.6 });
+          }
+          if (car.climateOn) faces.push({ part: "all", color: [1, 0.62, 0.3], level: 0.55 });
+          if (faces.length) screens.set(`${f.id}:vehicle`, { color: faces[0].color, level: faces[0].level, faces });
+        }
         if (f.type === "radiator" && st && kindOf(st.entity_id) === "climate") {
           // glows while it heats; brighter the further the room is below its target
           const a = st.attributes;
@@ -1376,7 +1390,9 @@ export class Fp3dView3d extends LitElement {
           icon: f.icon ? mdiIcon(f.icon) : iconSvg(kind ?? "switch"),
           name: f.name || (link.entity ? entityName(hass, link.entity) : furnitureName(hass, f.type)),
           text:
-            f.type === "home_battery"
+            car
+              ? this.carText(hass, car, !!st && !PRESENT_STATES.has(st.state.toLowerCase()))
+              : f.type === "home_battery"
               ? this.batteryText(hass, extra, power)
               : f.type === "wallbox"
                 ? this.wallboxText(hass, extra, power)
@@ -1387,13 +1403,13 @@ export class Fp3dView3d extends LitElement {
                     : power !== null
                       ? formatPower(hass, Math.max(0, power))
                       : "",
-          active: st ? isActive(st) : (power ?? 0) > 5,
+          active: car ? car.charging : st ? isActive(st) : (power ?? 0) > 5,
           unavailable: st ? isUnavailable(st) : false,
           glow: null,
           // its pin grabs the item when furnishing
           furnitureId: f.id,
           // inverter, battery, wallbox: their own text (watts, charge, status) is always worth a pin
-          energyDevice: f.type === "inverter" || f.type === "home_battery" || f.type === "wallbox" || f.type === "meter",
+          energyDevice: f.type === "inverter" || f.type === "home_battery" || f.type === "wallbox" || f.type === "meter" || !!car,
           show: f.marker ?? undefined,
           fromFurniture: true,
         });
@@ -1593,6 +1609,22 @@ export class Fp3dView3d extends LitElement {
     return out;
   }
 
+  /** Auto Pro: the pin text of a parking spot – charge, range, charging power, lock; "away · zone" when the car is out. */
+  private carText(hass: HomeAssistant, car: CarState, absent: boolean): string {
+    const t = (k: Parameters<typeof translate>[1]) => translate(hass, k);
+    if (absent || car.away !== null) {
+      const where = car.away ? ` · ${car.away}` : "";
+      return `${t("car_away")}${where}`;
+    }
+    const parts: string[] = [];
+    if (car.soc !== null) parts.push(`${formatNumber(hass, car.soc, 0)} %`);
+    if (car.range !== null) parts.push(`${formatNumber(hass, car.range, 0)} ${car.rangeUnit}`);
+    if (car.charging) parts.push(car.chargingW !== null ? `⚡ ${formatPower(hass, car.chargingW)}` : `⚡ ${t("car_charging_short")}`);
+    else if (car.plugged) parts.push(`🔌`);
+    if (car.locked !== null) parts.push(car.locked ? "🔒" : "🔓");
+    return parts.join(" · ");
+  }
+
   /** A lamp: its 3D model glows with the linked light and is tapped directly. */
   private lampMarker(hass: HomeAssistant, floor: Building["floors"][number], f: Furniture, entity: string | null): DeviceMarker & { fromFurniture: boolean } {
     const st = entity ? hass.states[entity] : undefined;
@@ -1741,6 +1773,19 @@ export class Fp3dView3d extends LitElement {
 
   /** Long press: the quick menu at the device, or the details for devices without one. */
   private onDeviceHold(entityId: string, x: number, y: number): void {
+    // Auto Pro: a long press on the parking spot's pin opens the car's menu (lock, climate, charging)
+    if (hasFeature("auto_pro") && this.hass && this.building) {
+      for (const floor of this.building.floors)
+        for (const f of floor.furniture) {
+          if (f.type !== "parking" || !f.car) continue;
+          const car = carState(this.hass, f);
+          const ids = [f.entity, f.car.device, ...Object.values(car.entities)].filter((v): v is string => !!v && v !== "none");
+          if (ids.includes(entityId)) {
+            this._menu = { entity: entityId, x, y, car };
+            return;
+          }
+        }
+    }
     const kind = kindOf(entityId);
     if (kind === "light" || kind === "cover" || kind === "switch" || kind === "fan" || kind === "lock" || kind === "camera") this._menu = { entity: entityId, x, y };
     else openMoreInfo(this, entityId);
@@ -2087,6 +2132,7 @@ export class Fp3dView3d extends LitElement {
         ?low=${this._low}
         .hass=${this.hass}
         .entity=${m.entity}
+        .car=${m.car ?? null}
         ?confirmSwitch=${this.confirmSet.has(m.entity)}
         ?pro=${hasFeature("camera_cockpit")}
         @close=${() => (this._menu = null)}

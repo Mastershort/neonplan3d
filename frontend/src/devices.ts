@@ -1,7 +1,7 @@
 // Devices of a room: which entities belong to an area, what kind they are, how they are placed and
 // what their state looks like. Pure functions (no Lit, no three.js) so they can be tested directly.
 
-import type { EntityRef, Floor, LampMount, Opening, Placement, Room, Vec2 } from "./model.ts";
+import type { Furniture, EntityRef, Floor, LampMount, Opening, Placement, Room, Vec2 } from "./model.ts";
 import { centroid, pointInPolygon } from "./model.ts";
 import { packScreen } from "./packs.ts";
 import type { HassEntity, HomeAssistant } from "./types.ts";
@@ -862,6 +862,105 @@ export function roomPanelEntities(hass: HomeAssistant, floor: Floor, room: Room)
 }
 
 const ROOM_KEYS = /(^|_)(current_room|current_segment|aktueller_raum|current_area)($|_)/;
+
+// ------------------------------------------------------------------ Auto Pro: the car on a parking spot
+
+/** The car's entities, every role resolved: the chosen one, else one found on the car's device. */
+export interface CarEntities {
+  soc: string | null;
+  range: string | null;
+  charging: string | null;
+  plugged: string | null;
+  lock: string | null;
+  climate: string | null;
+  tracker: string | null;
+}
+
+const CAR_ROLE_PATTERNS: Record<keyof CarEntities, RegExp> = {
+  soc: /(^|_)(soc|state_of_charge|battery_level|battery|ladestand|ladezustand|akku)($|_)/,
+  range: /(^|_)(range|reichweite|remaining_range)($|_)/,
+  charging: /(charging|charge_power|ladeleistung|laden|charger_power|lade)/,
+  plugged: /(plug|cable|connected|stecker|kabel|angeschlossen)/,
+  lock: /(lock|verriegel|schloss)/,
+  climate: /(climat|preheat|precondition|hvac|heiz|klima|standheizung)/,
+  tracker: /./,
+};
+
+/** The entities of the car's Home Assistant device: the chosen device entity's siblings, else the presence entity's. */
+export function carEntities(hass: HomeAssistant, f: Pick<Furniture, "entity" | "car">): CarEntities {
+  const c = f.car ?? {};
+  const pick = (ref: string | null | undefined) => (ref && ref !== "none" ? ref : null);
+  const seed = pick(c.device) ?? pick(f.entity);
+  const device = seed ? hass.entities?.[seed]?.device_id : null;
+  const siblings = device && hass.entities ? Object.values(hass.entities).filter((e) => e.device_id === device).map((e) => e.entity_id) : [];
+  const key = (id: string) => `${id} ${(hass.states[id]?.attributes.friendly_name as string | undefined) ?? ""} ${hass.entities?.[id]?.translation_key ?? ""}`.toLowerCase().replace(/[\s-]+/g, "_");
+  const find = (role: keyof CarEntities, domains: string[], extra?: (id: string) => boolean) =>
+    siblings.find((id) => domains.includes(id.split(".")[0]) && CAR_ROLE_PATTERNS[role].test(key(id)) && (!extra || extra(id))) ?? null;
+  const unit = (id: string) => String(hass.states[id]?.attributes.unit_of_measurement ?? "");
+  const dc = (id: string) => String(hass.states[id]?.attributes.device_class ?? "");
+  return {
+    soc: pick(c.soc) ?? siblings.find((id) => id.startsWith("sensor.") && dc(id) === "battery") ?? find("soc", ["sensor"], (id) => unit(id) === "%"),
+    range: pick(c.range) ?? find("range", ["sensor"], (id) => /km|mi/.test(unit(id))) ?? find("range", ["sensor"]),
+    charging: pick(c.charging) ?? find("charging", ["sensor"], (id) => /^k?W$/.test(unit(id))) ?? find("charging", ["binary_sensor", "switch"]),
+    plugged: pick(c.plugged) ?? siblings.find((id) => id.startsWith("binary_sensor.") && dc(id) === "plug") ?? find("plugged", ["binary_sensor"]),
+    lock: pick(c.lock) ?? siblings.find((id) => id.startsWith("lock.")) ?? find("lock", ["binary_sensor"]),
+    climate: pick(c.climate) ?? siblings.find((id) => id.startsWith("climate.")) ?? find("climate", ["switch", "binary_sensor"]),
+    tracker: pick(c.tracker) ?? siblings.find((id) => id.startsWith("device_tracker.")) ?? null,
+  };
+}
+
+/** What the car reports right now (null for anything it does not tell). */
+export interface CarState {
+  entities: CarEntities;
+  soc: number | null;
+  range: number | null;
+  rangeUnit: string;
+  /** Charging power in W when a power sensor reports it. */
+  chargingW: number | null;
+  charging: boolean;
+  plugged: boolean | null;
+  locked: boolean | null;
+  climateOn: boolean | null;
+  /** Where the car is when not at home (the tracker's zone), null at home or unknown. */
+  away: string | null;
+}
+
+export function carState(hass: HomeAssistant, f: Pick<Furniture, "entity" | "car">): CarState {
+  const e = carEntities(hass, f);
+  const st = (id: string | null) => (id ? hass.states[id] : undefined);
+  const num = (id: string | null) => {
+    const v = Number(st(id)?.state);
+    return id && Number.isFinite(v) ? v : null;
+  };
+  const soc = num(e.soc);
+  const range = num(e.range);
+  const chargeSt = st(e.charging);
+  const chargeUnit = String(chargeSt?.attributes.unit_of_measurement ?? "");
+  const chargingW = chargeSt && /^k?W$/.test(chargeUnit) ? (num(e.charging) ?? 0) * (chargeUnit === "kW" ? 1000 : 1) : null;
+  const charging = chargingW !== null ? chargingW > 50 : !!chargeSt && ["on", "charging", "laden"].includes(chargeSt.state.toLowerCase());
+  const plugSt = st(e.plugged);
+  const lockSt = st(e.lock);
+  const climSt = st(e.climate);
+  const trackSt = st(e.tracker);
+  const trackState = trackSt?.state.toLowerCase() ?? "";
+  return {
+    entities: e,
+    soc: soc !== null ? Math.max(0, Math.min(100, soc)) : null,
+    range,
+    rangeUnit: String(st(e.range)?.attributes.unit_of_measurement ?? "km"),
+    chargingW,
+    charging,
+    plugged: plugSt ? plugSt.state === "on" : null,
+    locked: lockSt ? (lockSt.entity_id.startsWith("lock.") ? lockSt.state === "locked" : lockSt.state === "on") : null,
+    climateOn: climSt ? (climSt.entity_id.startsWith("climate.") ? climSt.state !== "off" && climSt.state !== "unavailable" : climSt.state === "on") : null,
+    away: trackSt && trackState !== "home" && !isUnavailable(trackSt) ? (trackState === "not_home" ? "" : trackSt.state) : null,
+  };
+}
+
+/** Every entity a car's state hangs on (to watch for changes). */
+export function carWatched(hass: HomeAssistant, floors: readonly Floor[]): string[] {
+  return floors.flatMap((fl) => fl.furniture.filter((f) => f.type === "parking" && f.car).flatMap((f) => Object.values(carEntities(hass, f)))).filter((id): id is string => !!id);
+}
 
 /** The sensor naming the room a robot vacuum cleans: the chosen one, else one of the vacuum's device. */
 export function robotRoomSensor(hass: HomeAssistant, vacuum: string | null, chosen: string | null | undefined): string | null {

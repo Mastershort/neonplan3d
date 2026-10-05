@@ -139,6 +139,21 @@ _SCREEN_PICTURE_SCHEMA = vol.Schema(
     }
 )
 
+# Auto Pro: the car's entities on a parking spot (None = found on the car's device)
+_CAR_ENTITY = vol.Any(None, vol.All(str, vol.Length(max=255)))
+CAR_SCHEMA = vol.Schema(
+    {
+        vol.Optional("device", default=None): _CAR_ENTITY,
+        vol.Optional("soc", default=None): _CAR_ENTITY,
+        vol.Optional("range", default=None): _CAR_ENTITY,
+        vol.Optional("charging", default=None): _CAR_ENTITY,
+        vol.Optional("plugged", default=None): _CAR_ENTITY,
+        vol.Optional("lock", default=None): _CAR_ENTITY,
+        vol.Optional("climate", default=None): _CAR_ENTITY,
+        vol.Optional("tracker", default=None): _CAR_ENTITY,
+    },
+    extra=vol.ALLOW_EXTRA,
+)
 # parking spots: which vehicle a state of the type sensor means
 _VEHICLE_TYPE_SCHEMA = vol.Schema(
     {vol.Required("state"): vol.All(str, vol.Length(max=64)), vol.Required("vehicle"): vol.All(str, vol.Length(max=96))}
@@ -203,6 +218,8 @@ FURNITURE_SCHEMA = vol.Schema(
         # screens: the screen around a rule picture is dark (default) or white
         vol.Optional("screen_bg", default="black"): vol.In(["black", "white"]),
         vol.Optional("vehicle", default=None): vol.Any(None, vol.All(str, vol.Length(max=96))),
+        # Auto Pro: the car's entities
+        vol.Optional("car", default=None): vol.Any(None, CAR_SCHEMA),
         vol.Optional("scale", default=1.0): vol.All(vol.Coerce(float), vol.Range(min=0.2, max=2)),
         vol.Optional("type_entity", default=None): vol.Any(None, vol.All(str, vol.Length(max=255))),
         vol.Optional("types", default=[]): vol.All([_VEHICLE_TYPE_SCHEMA], vol.Length(max=20)),

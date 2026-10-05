@@ -2,7 +2,7 @@
 // up/stop/down for blinds, on/off for switches, with a slider and a way to the full details.
 
 import { css, html, LitElement, nothing } from "lit";
-import { entityName, isUnavailable, kindOf } from "../devices.ts";
+import { type CarState, entityName, isUnavailable, kindOf } from "../devices.ts";
 import { hasFeature } from "../features.ts";
 import { translate, type I18nKey } from "../i18n.ts";
 import { openMoreInfo, stateText } from "../markers.ts";
@@ -42,6 +42,7 @@ export class Fp3dQuickMenu extends LitElement {
   static properties = {
     hass: { attribute: false },
     entity: { attribute: false },
+    car: { attribute: false },
     confirmSwitch: { type: Boolean },
     pro: { type: Boolean },
     low: { type: Boolean, reflect: true },
@@ -50,6 +51,8 @@ export class Fp3dQuickMenu extends LitElement {
 
   declare hass: HomeAssistant;
   declare entity: string;
+  /** Auto Pro: the car behind a parking spot's pin – its menu replaces the entity's. */
+  declare car: CarState | null;
   /** Ask before the power button switches. */
   declare confirmSwitch: boolean;
   /** The camera cockpit is unlocked (otherwise the look-through button shows a lock). */
@@ -217,6 +220,37 @@ export class Fp3dQuickMenu extends LitElement {
     return nothing;
   }
 
+  /** Auto Pro: lock and unlock (unlocking asks first), climate, charging; the charge and range on top. */
+  private renderCar(car: CarState) {
+    const e = car.entities;
+    const svc = (domain: string, service: string, id: string, data: Record<string, unknown> = {}) => void this.hass.callService(domain, service, { entity_id: id, ...data });
+    const lockId = e.lock;
+    const lockIsLock = !!lockId && lockId.startsWith("lock.");
+    const climId = e.climate;
+    const climIsClimate = !!climId && climId.startsWith("climate.");
+    const chargeId = e.charging && e.charging.startsWith("switch.") ? e.charging : null;
+    const line = [car.soc !== null ? `${Math.round(car.soc)} %` : null, car.range !== null ? `${Math.round(car.range)} ${car.rangeUnit}` : null, car.charging ? `⚡ ${this.t("car_charging_short")}` : car.plugged ? "🔌" : null].filter(Boolean).join(" · ");
+    return html`<p class="qm-car-line">${line || stateText(this.hass, this.hass.states[this.entity])}</p>
+      <div class="qm-car">
+        ${lockIsLock
+          ? html`<button class="qm-swatch qm-slot ${car.locked ? "qm-slot-on" : ""}" @click=${() => (car.locked ? confirm(this.t("car_unlock_confirm")) && svc("lock", "unlock", lockId!) : svc("lock", "lock", lockId!))}>
+              ${car.locked ? `🔓 ${this.t("car_unlock_btn")}` : `🔒 ${this.t("car_lock_btn")}`}
+            </button>`
+          : nothing}
+        ${climId
+          ? html`<button class="qm-swatch qm-slot ${car.climateOn ? "qm-slot-on" : ""}" @click=${() => (climIsClimate ? svc("climate", car.climateOn ? "turn_off" : "turn_on", climId) : svc("switch", car.climateOn ? "turn_off" : "turn_on", climId))}>
+              ${car.climateOn ? `❄ ${this.t("car_climate_off")}` : `🌡 ${this.t("car_climate_on")}`}
+            </button>`
+          : nothing}
+        ${chargeId
+          ? html`<button class="qm-swatch qm-slot ${car.charging ? "qm-slot-on" : ""}" @click=${() => svc("switch", car.charging ? "turn_off" : "turn_on", chargeId)}>
+              ${car.charging ? `⏹ ${this.t("car_charge_stop")}` : `⚡ ${this.t("car_charge_start")}`}
+            </button>`
+          : nothing}
+        ${!lockIsLock && !climId && !chargeId ? html`<p class="qm-note">${this.t("car_no_controls")}</p>` : nothing}
+      </div>`;
+  }
+
   /** Klang & Kino: a media player – cover in the middle, play/pause on it, previous and next around, the volume below. */
   private renderMedia(st: HassEntity) {
     const a = st.attributes;
@@ -265,7 +299,9 @@ export class Fp3dQuickMenu extends LitElement {
     const st = this.hass?.states[this.entity];
     if (!st) return nothing;
     const kind = kindOf(this.entity);
-    const body = isUnavailable(st)
+    const body = this.car
+      ? this.renderCar(this.car)
+      : isUnavailable(st)
       ? html`<p class="qm-note">${stateText(this.hass, st)}</p>`
       : kind === "light"
         ? this.renderLight(st)
@@ -422,6 +458,22 @@ export class Fp3dQuickMenu extends LitElement {
         color: var(--fp3d-accent-text);
         font-size: 17px;
         cursor: pointer;
+      }
+      .qm-car-line {
+        margin: 2px 0 8px;
+        text-align: center;
+        font-weight: 600;
+        font-variant-numeric: tabular-nums;
+      }
+      .qm-car {
+        display: grid;
+        gap: 6px;
+        justify-items: stretch;
+      }
+      .qm-car .qm-slot {
+        width: auto;
+        padding: 6px 10px;
+        font-size: 13px;
       }
       .qm-media {
         display: flex;

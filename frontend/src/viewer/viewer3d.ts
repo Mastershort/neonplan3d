@@ -226,7 +226,7 @@ export interface ScreenState {
   plain?: boolean;
   /** Furniture with a state: glowing faces on top of the item instead of a screen – the whole top, or a half of it. */
   // (see also SoundSource below)
-  faces?: { part: "all" | "left" | "right" | "top" | "bottom"; color: [number, number, number]; level: number }[];
+  faces?: { part: "all" | "left" | "right" | "top" | "bottom" | "band"; color: [number, number, number]; level: number }[];
 }
 
 /** Position of the sun (from sun.sun): degrees above the horizon and clockwise from north. */
@@ -2349,7 +2349,8 @@ export class FloorplanViewer {
 
   /** Lit screens of a floor: a bright panel in the app colour and a faint glow around it. */
   private buildScreens(fv: FloorView): void {
-    const items = fv.floor.furniture.filter((f) => this.screens.has(f.id));
+    // the vehicles in the parking spots count as furniture here too (Auto Pro lights a band on them)
+    const items = withVehicles(fv.floor, this.parked).furniture.filter((f) => this.screens.has(f.id));
     const sig = items.map((f) => `${f.id}:${f.x},${f.z},${f.rotation},${f.w},${f.d},${f.h}:${JSON.stringify(this.screens.get(f.id))}`).join(";");
     // pictures follow the screens even when only they changed
     if (sig === fv.screenSig && fv.screenMesh.geometry.getAttribute("position")) return this.updateScreenPictures(fv, items);
@@ -2368,6 +2369,28 @@ export class FloorplanViewer {
         const h = Math.max(0.005, f.h);
         const base = mountBase(fv.floor, f);
         for (const face of st.faces) {
+          if (face.part === "band") {
+            // a light band around the item at mid height (a car's charge): four thin vertical strips
+            const y0 = base + h * 0.42;
+            const y1 = y0 + 0.06;
+            const col = new Color(...face.color.map((v) => Math.min(1, v * (0.35 + 0.65 * face.level))) as [number, number, number]);
+            const hw = Math.abs(w) / 2 + 0.02;
+            const hd = d / 2 + 0.02;
+            const corners: [number, number][] = [[-hw, -hd], [hw, -hd], [hw, hd], [-hw, hd]];
+            for (let i = 0; i < 4; i++) {
+              const a0 = corners[i];
+              const a1 = corners[(i + 1) % 4];
+              const p00 = P(a0[0] * Math.sign(w), y0, a0[1]);
+              const p10 = P(a1[0] * Math.sign(w), y0, a1[1]);
+              const p11 = P(a1[0] * Math.sign(w), y1, a1[1]);
+              const p01 = P(a0[0] * Math.sign(w), y1, a0[1]);
+              buf.tri(p00, p10, p11, col);
+              buf.tri(p00, p11, p01, col);
+              buf.tri(p00, p11, p10, col);
+              buf.tri(p00, p01, p11, col);
+            }
+            continue;
+          }
           const x0 = face.part === "right" ? 0.03 : -Math.abs(w) / 2 + 0.03;
           const x1 = face.part === "left" ? -0.03 : Math.abs(w) / 2 - 0.03;
           const y = base + (face.part === "bottom" ? h * 0.45 : h) + 0.006;

@@ -652,6 +652,18 @@ Sound & Cinema brings the music into the 3D house. It needs a speaker in the pla
 
 **Wall tablet:** on the tablet level the rings run at half the frame rate, the cards without the glass effect.
 
+### 6.6 Car Pro
+
+Car Pro brings the car into the plan the way its integration reports it (Tesla, VW We Connect, BMW, Hyundai/Kia, Renault, Smart, Polestar, Audi, Skoda, Cupra, Ford …). It needs a **parking spot** with a vehicle (4.10) and the car's integration in Home Assistant.
+
+**Setup:** at the bottom of the parking spot form, the **Car Pro** section. Under **Car** choose any entity of the car – NeonPlan finds the others on the same device: charge, range, charging power or state, cable, lock, climate or preheating, location. Every role can be set by hand or switched off with "None". A "car present" sensor on the spot serves as the starting point of the search as well.
+
+**In the house:** the vehicle wears a **light band** in the colour of its charge (green above 50 %, yellow down to 20 %, red below), stronger while it charges. While the climate or preheating runs, the car glows warm. The **pin at the spot** reads "78 % · 312 km · ⚡ 7.4 kW · 🔒". When the car is out, the spot stays empty and the pin says **away**, with the tracker's zone when there is one ("away · Work").
+
+**Quick menu:** a long press on the pin: **Lock / Unlock** (unlocking asks first), **Climate on / off**, **Start / stop charging** (with a charge switch), plus charge and range.
+
+**Wall tablet:** no animation needed – Car Pro runs the same on every level.
+
 ---
 
 ## 7. Extensions, shop and furniture packs

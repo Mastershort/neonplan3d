@@ -4,7 +4,7 @@ import { css, html, LitElement, nothing, svg, type PropertyValues, type Template
 import { unsafeHTML } from "lit/directives/unsafe-html.js";
 import { fetchImage, listHistory, restoreSnapshot, storeImage, takeSnapshot, type Snapshot } from "../api.ts";
 import { download, exportFile, parseExport } from "../transfer.ts";
-import { areaEntities, autoPlace, CLIMATE_CLASSES, defaultHeight, entityName, entityAreaId, furnitureEntities, groupByDevice, hasScreen, isMediaFurniture, isPlaceable, isRoomClimateSensor, kindOf, openingEntities, otherAreaEntities, pictureRuleMatches, roomClimateSensors, unassignedEntities, windowPosition, type ClimateKey } from "../devices.ts";
+import { carEntities, type CarEntities, areaEntities, autoPlace, CLIMATE_CLASSES, defaultHeight, entityName, entityAreaId, furnitureEntities, groupByDevice, hasScreen, isMediaFurniture, isPlaceable, isRoomClimateSensor, kindOf, openingEntities, otherAreaEntities, pictureRuleMatches, roomClimateSensors, unassignedEntities, windowPosition, type ClimateKey } from "../devices.ts";
 import { furnitureSymbol } from "./furniture2d.ts";
 import { closeGaps, suggestedThickness } from "../geometry/gaps.ts";
 import { keepInRoom, snapToWall } from "../geometry/snap.ts";
@@ -19,7 +19,7 @@ import { dormerParent, effectiveDormer, proposeDormer, sectionGeometry, floorOut
 import { bestFace, clampField, faceAt, faceCompass, fieldFace, fieldModules, GROUND, pointOnFace, proposeField, proposeGroundField, proposeWindow, proposeWallField, roofFaces, rowCounts, turnGroundField, fieldCenter, wallFaces, windowAsField, windowCorners, onFace, onField, rayOnFace, type RoofFace } from "../solar.ts";
 import type { SurfaceGrab, SurfaceRay } from "../viewer/viewer3d.ts";
 import { storedImageIds } from "../transfer.ts";
-import { type Background, OUTDOOR_TOP, sidelightLayout, DEFAULT_WEATHER_EFFECTS, WEATHER_EFFECTS,
+import { type CarLinks, type Background, OUTDOOR_TOP, sidelightLayout, DEFAULT_WEATHER_EFFECTS, WEATHER_EFFECTS,
   normalizeBuilding,
   furnitureFootprint,
   type FreeWall,
@@ -5835,7 +5835,40 @@ export class Fp3dEditor extends LitElement {
           : nothing}
       </div>
       ${tooTall ? html`<p class="fp3d-sub fp3d-warn">${this.t("parking_too_tall", { car: formatNumber(this.hass, carH, 2), room: formatNumber(this.hass, floor!.height, 2) })}</p>` : nothing}
-      <p class="fp3d-sub">${this.t("parking_hint")}</p>`;
+      <p class="fp3d-sub">${this.t("parking_hint")}</p>
+      ${this.renderCarForm(f)}`;
+  }
+
+  /** Auto Pro: the car's entities – one entity of the car's device is enough, the roles are found beside it. */
+  private renderCarForm(f: Furniture) {
+    const lang = this.hass?.language;
+    if (!hasFeature("auto_pro"))
+      return html`<section class="fp3d-teaser">
+        <div class="fp3d-teaser-head"><b>🚗 ${this.t("pro_name_auto_pro")}</b><a class="fp3d-btn fp3d-primary" href=${shopUrl(lang)} target="_blank" rel="noopener">${this.t("pro_unlock")}</a></div>
+        <p class="fp3d-sub">${this.t("auto_pro_teaser")}</p>
+      </section>`;
+    if (!this.hass) return nothing;
+    const hass = this.hass;
+    const car = f.car ?? {};
+    const auto = carEntities(hass, { entity: f.entity, car: { device: car.device } });
+    const set = (patch: Partial<CarLinks>) => this.updateFurniture({ car: { ...car, ...patch } });
+    const any = this.entityOptions((id) => /^(sensor|binary_sensor|lock|climate|switch|device_tracker|number|select)\./.test(id));
+    const role = (key: keyof CarLinks & keyof CarEntities, label: I18nKey, options: { id: string; label: string }[]) =>
+      this.entitySelect(this.t(label), car[key] ?? null, auto[key], options, (v) => set({ [key]: v === "none" ? "none" : v }));
+    return html`<section>
+      <h3>🚗 ${this.t("pro_name_auto_pro")}</h3>
+      <p class="fp3d-sub">${this.t("car_hint")}</p>
+      <div class="fp3d-form fp3d-links">
+        ${this.entitySelect(this.t("car_device"), car.device ?? null, undefined, any, (v) => set({ device: v === "none" ? null : v }))}
+        ${role("soc", "car_soc", this.entityOptions((id) => id.startsWith("sensor.")))}
+        ${role("range", "car_range", this.entityOptions((id) => id.startsWith("sensor.")))}
+        ${role("charging", "car_charging", this.entityOptions((id) => /^(sensor|binary_sensor|switch)\./.test(id)))}
+        ${role("plugged", "car_plugged", this.entityOptions((id) => id.startsWith("binary_sensor.")))}
+        ${role("lock", "car_lock", this.entityOptions((id) => /^(lock|binary_sensor)\./.test(id)))}
+        ${role("climate", "car_climate", this.entityOptions((id) => /^(climate|switch|binary_sensor)\./.test(id)))}
+        ${role("tracker", "car_tracker", this.entityOptions((id) => id.startsWith("device_tracker.")))}
+      </div>
+    </section>`;
   }
 
   private toggleLibrary(key: string): void {

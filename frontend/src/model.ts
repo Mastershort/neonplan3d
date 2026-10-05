@@ -172,6 +172,8 @@ export interface Furniture {
   screen_bg?: "black" | "white";
   /** Parking spots: the vehicle shown (a pack item type) while `entity` reports a car. */
   vehicle?: string | null;
+  /** Auto Pro: the car's entities (each null = found on the device of `device`, or of the presence entity). */
+  car?: CarLinks | null;
   /** Parking spots: size factor of the vehicle (1 = the pack item's size). */
   scale?: number;
   /** Parking spots: a sensor naming the kind of vehicle, and which vehicle each state means. */
@@ -494,6 +496,20 @@ export function groundLevel(floor: Floor): number {
 export function outdoorGround(floor: Floor, x: number, z: number): number {
   const a = (floor.outdoor ?? []).find((o) => o.type !== "hedge" && o.type !== "fence" && o.type !== "pool" && pointInPolygon([x, z], o.points));
   return groundLevel(floor) + (a ? OUTDOOR_TOP[a.type] + (a.offset ?? 0) : 0);
+}
+
+/** Auto Pro: which entities tell the car's state; null = automatic (an entity of the car's Home Assistant device). */
+export interface CarLinks {
+  /** Any entity of the car's device: the others are found beside it. */
+  device?: EntityRef;
+  soc?: EntityRef;
+  range?: EntityRef;
+  /** Charging power (W/kW), a charging binary sensor, or the charge switch. */
+  charging?: EntityRef;
+  plugged?: EntityRef;
+  lock?: EntityRef;
+  climate?: EntityRef;
+  tracker?: EntityRef;
 }
 
 /** Area outside the house (lawn, terrace, pool, hedge …), drawn like a room. */
