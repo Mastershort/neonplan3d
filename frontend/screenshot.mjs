@@ -251,6 +251,7 @@ const shots = [
   { name: "phone-floor", query: "", width: 420, height: 800, click: "Erdgeschoss" },
   { name: "card-portrait-room", query: "?card&floor=eg", width: 700, height: 1000, click: "Wohnzimmer" },
   { name: "view-alert-banner", query: "?alerts", width: 1280, height: 800, click: "Erdgeschoss" },
+  { name: "view-garden-trees", query: "", width: 1280, height: 800, editor: true, editorScript: "e.fit();", then3d: "Alle Etagen", then3dAlso: ["Gestapelt"], camera: { theta: 0.35, phi: 1.15, radius: 30, target: { x: 7, y: 0, z: -1 } } },
   { name: "view-auto", query: "", width: 1280, height: 800, click: "Erdgeschoss", then: "Garage" },
   { name: "view-sound", query: "", width: 1280, height: 800, click: "Erdgeschoss" },
   { name: "view-sound-locked", query: "?nopro", width: 1280, height: 800, click: "Erdgeschoss" },

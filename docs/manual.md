@@ -337,7 +337,7 @@ Its lanes keep clear of furniture standing on the floor: cabinets, sofas, beds, 
 
 ### 4.17 Outdoor areas and outdoor lights
 
-With **Outdoor** you draw lawn, terrace, path, driveway, pool, flower bed, hedge or fence. A selected outdoor area is resized at its corners; a rectangle stays a rectangle. Hedges and fences take a **height** in the form (a 2.5 m thuja screen, a 0.5 m bed border); **Show the outline** unticked leaves out the glowing line along the edge, say on a plot made of several lawns. **Height offset** lowers an area below the ground or raises it – the driveway down to a lower garage, a raised terrace; lamps on it follow. Path lights, garden spots and outdoor wall lights light the outdoor areas and the facade.
+With **Outdoor** you draw lawn, terrace, path, driveway, pool, flower bed, hedge or fence. A selected outdoor area is resized at its corners; a rectangle stays a rectangle. Hedges and fences take a **height** in the form (a 2.5 m thuja screen, a 0.5 m bed border); **Show the outline** unticked leaves out the glowing line along the edge, say on a plot made of several lawns. **Height offset** lowers an area below the ground or raises it – the driveway down to a lower garage, a raised terrace; lamps on it follow. Trees, shrubs and brush come as furniture from the **Garden & Terrace** pack (from release 3: oak, lime, birch, maple, fruit tree, spruce, pine, thuja, shrub, flowering shrub, brush, group of trees); width and height in the furniture form set crown and growth. Path lights, garden spots and outdoor wall lights light the outdoor areas and the facade.
 
 ![The garden at night](images/view-garden.jpg)
 

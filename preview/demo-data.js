@@ -359,6 +359,13 @@ DEMO_BUILDING.floors[0].furniture = [
     [7.6, 12.4],
   ].map(([x, z]) => ({ ...item("lamp_bollard", x, z, 0.16, 0.16, 0.8), entity: "light.garten" })),
   { ...item("lamp_garden", 12.4, -3.4, 0.12, 0.12, 0.3), entity: "light.pool" },
+  // vegetation from the garden pack (release 3): an oak and a birch on the front lawn, a fruit tree behind the house
+  item("pack:mastershort.garden:tree_oak", -0.5, -5.4, 5.0, 5.0, 7.0),
+  item("pack:mastershort.garden:tree_birch", 15.2, -5.8, 3.2, 3.2, 7.5),
+  item("pack:mastershort.garden:shrub", 7.2, -1.2, 1.3, 1.3, 1.2),
+  item("pack:mastershort.garden:shrub_flowering", 0.6, -1.4, 1.3, 1.3, 1.4),
+  item("pack:mastershort.garden:tree_fruit", 2.2, 12.2, 3.2, 3.2, 3.6),
+  item("pack:mastershort.garden:brush", 4.8, 12.0, 2.6, 2.6, 0.8),
   { ...item("lamp_wall", 8.9, 9.5, 0.22, 0.12, 0.2), entity: "light.haustuer" },
   { ...item("lamp_ceiling", 7.0, 2.1, 0.45, 0.45, 0.08), entity: "light.kueche_links" },
   { ...item("lamp_ceiling", 9.0, 2.1, 0.45, 0.45, 0.08), entity: "light.kueche_rechts" },
