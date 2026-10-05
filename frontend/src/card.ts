@@ -228,6 +228,7 @@ export class Floorplan3dCard extends LitElement {
               ?trail=${!!c?.motion_trail}
               .cameraWall=${this._cameraWall}
               @camera-wall-close=${() => (this._cameraWall = false)}
+              @camera-wall-open=${() => (this._cameraWall = true)}
               ?weather=${c?.weather !== false}
               .weatherEntityId=${c?.weather_entity ?? null}
               .dimmed=${this._night}

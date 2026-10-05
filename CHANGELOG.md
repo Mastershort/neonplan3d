@@ -14,7 +14,7 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 
 ### Fixed
 
-- **Camera wall** shares the sheet between the cameras: one camera fills it, two sit side by side, up to four in a 2×2 grid, more in three or four columns. Tapping a tile closes the wall before the view looks through that camera.
+- **Camera wall** shares the sheet between the cameras: one camera fills it, two sit side by side, up to four in a 2×2 grid, more in three or four columns. Tapping a tile shows that picture big; from there "Look through the camera" goes into the 3D view, and "Back to the view" brings the wall back.
 
 ## 1.10.1
 

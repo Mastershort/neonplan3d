@@ -123,6 +123,7 @@ export class Fp3dView3d extends LitElement {
     _menu: { state: true },
     _through: { state: true },
     _blend: { state: true },
+    _wallBig: { state: true },
     _find: { state: true },
     _thumbs: { state: true },
     floorThumbs: { attribute: false },
@@ -218,6 +219,10 @@ export class Fp3dView3d extends LitElement {
   private declare _menu: { entity: string; x: number; y: number } | null;
   /** Looking through a camera: its live picture lies over the 3D view; `back` is the view to return to. */
   private declare _through: { entity: string; back: ReturnType<FloorplanViewer["getView"]> } | null;
+  /** Camera wall: the camera shown big (null: all tiles). */
+  private declare _wallBig: string | null;
+  /** The look-through was started from the camera wall: going back reopens the wall. */
+  private throughWall = false;
   /** How strongly the camera picture covers the 3D view (0 = only 3D, 1 = only the picture). */
   private declare _blend: number;
   /** Floor switcher with small pictures of the floors (panel and card; off with a fixed floor). */
@@ -326,6 +331,7 @@ export class Fp3dView3d extends LitElement {
     this._swipe = null;
     this._menu = null;
     this._through = null;
+    this._wallBig = null;
     this._blend = 0.6;
     this._find = null;
     this._thumbs = [];
@@ -1763,6 +1769,10 @@ export class Fp3dView3d extends LitElement {
     if (!t) return;
     this._through = null;
     this.viewer?.flyTo(t.back);
+    if (this.throughWall) {
+      this.throughWall = false;
+      this.dispatchEvent(new CustomEvent("camera-wall-open", { bubbles: true, composed: true }));
+    }
   }
 
   /** The hint shown when a Pro feature is used without the Pro pack. */
@@ -1785,7 +1795,10 @@ export class Fp3dView3d extends LitElement {
   private renderCameraWall() {
     if (!this.cameraWall || !this.hass || !this.building) return nothing;
     const hass = this.hass;
-    const close = () => this.dispatchEvent(new CustomEvent("camera-wall-close", { bubbles: true, composed: true }));
+    const close = () => {
+      this._wallBig = null;
+      this.dispatchEvent(new CustomEvent("camera-wall-close", { bubbles: true, composed: true }));
+    };
     if (!hasFeature("camera_cockpit")) {
       return html`<div class="fp3d-wall">
         <div class="fp3d-wall-head"><span>${translate(hass, "camera_wall_title")}</span><button class="fp3d-chip" @click=${close}>✕</button></div>
@@ -1794,24 +1807,45 @@ export class Fp3dView3d extends LitElement {
     }
     const cameras = [...new Set(this.building.floors.flatMap((f) => f.placements.map((p) => p.entity_id)).filter((id) => kindOf(id) === "camera"))];
     this.watchCameras(true);
+    const srcOf = (id: string) => {
+      const st = hass.states[id];
+      const picture = st?.attributes.entity_picture as string | undefined;
+      return picture && st && !isUnavailable(st) ? (picture.startsWith("data:") ? picture : `${picture}${picture.includes("?") ? "&" : "?"}fp3d=${this.cameraTick}`) : null;
+    };
+    const name = (id: string) => {
+      const st = hass.states[id];
+      return html`${entityName(hass, id)}${st?.state === "recording" ? html` <b>● ${translate(hass, "state_recording")}</b>` : nothing}`;
+    };
+    // one camera big: its live picture fills the wall; from here the view can look through the camera,
+    // and "back to the view" brings the wall back
+    const big = this._wallBig && cameras.includes(this._wallBig) ? this._wallBig : null;
+    if (big) {
+      const src = srcOf(big);
+      const look = () => {
+        this.throughWall = true;
+        close();
+        this.lookThrough(big);
+      };
+      return html`<div class="fp3d-wall">
+        <div class="fp3d-wall-head">
+          <button class="fp3d-chip" @click=${() => (this._wallBig = null)}>‹ ${translate(hass, "camera_wall_all")}</button>
+          <span class="fp3d-wall-title">${name(big)}</span>
+          <span class="fp3d-wall-tools"><button class="fp3d-chip" @click=${look}>${translate(hass, "through_camera")}</button><button class="fp3d-chip" aria-label="✕" @click=${close}>✕</button></span>
+        </div>
+        <div class="fp3d-wall-big">${src ? html`<img src=${src} alt="" />` : html`<div class="fp3d-wall-none">${translate(hass, "state_unavailable")}</div>`}</div>
+      </div>`;
+    }
     // the tiles share the wall: one camera fills it, two sit side by side, up to nine in three columns
     const cols = cameras.length <= 1 ? 1 : cameras.length <= 4 ? 2 : cameras.length <= 9 ? 3 : 4;
     return html`<div class="fp3d-wall">
       <div class="fp3d-wall-head"><span>${translate(hass, "camera_wall_title")} · ${cameras.length}</span><button class="fp3d-chip" aria-label="✕" @click=${close}>✕</button></div>
       <div class="fp3d-wall-grid" style="grid-template-columns: repeat(${cols}, minmax(0, 1fr))">
         ${cameras.map((id) => {
-          const st = hass.states[id];
-          const picture = st?.attributes.entity_picture as string | undefined;
-          const src = picture && st && !isUnavailable(st) ? (picture.startsWith("data:") ? picture : `${picture}${picture.includes("?") ? "&" : "?"}fp3d=${this.cameraTick}`) : null;
+          const src = srcOf(id);
           const seen = cameraMotionSensors(hass, id).some((s) => hass.states[s]?.state === "on");
-          // looking through a camera closes the wall first, so the live picture lies over the scene alone
-          const look = () => {
-            close();
-            this.lookThrough(id);
-          };
-          return html`<button class="fp3d-wall-cam ${seen ? "fp3d-wall-seen" : ""}" title=${translate(hass, "through_camera")} @click=${look}>
+          return html`<button class="fp3d-wall-cam ${seen ? "fp3d-wall-seen" : ""}" title=${translate(hass, "camera_wall_big")} @click=${() => (this._wallBig = id)}>
             ${src ? html`<img src=${src} alt="" />` : html`<div class="fp3d-wall-none">${translate(hass, "state_unavailable")}</div>`}
-            <span class="fp3d-wall-name">${entityName(hass, id)}${st?.state === "recording" ? html` <b>● ${translate(hass, "state_recording")}</b>` : nothing}</span>
+            <span class="fp3d-wall-name">${name(id)}</span>
           </button>`;
         })}
       </div>
@@ -2512,6 +2546,37 @@ export class Fp3dView3d extends LitElement {
       .fp3d-wall-pro {
         margin: 0;
         color: #ffd75a;
+      }
+      .fp3d-wall-head .fp3d-wall-title {
+        flex: 1;
+        text-align: center;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        padding: 0 8px;
+      }
+      .fp3d-wall-title b {
+        color: #ff6b6b;
+        font-weight: 600;
+      }
+      .fp3d-wall-tools {
+        display: flex;
+        gap: 6px;
+      }
+      .fp3d-wall-big {
+        flex: 1;
+        min-height: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 12px;
+        overflow: hidden;
+        background: #0a1426;
+      }
+      .fp3d-wall-big img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
       }
       .fp3d-wall-grid {
         flex: 1;

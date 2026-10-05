@@ -616,6 +616,7 @@ export class Floorplan3dPanel extends LitElement {
           ?trail=${this._trail}
           .cameraWall=${this._cameraWall}
           @camera-wall-close=${() => (this._cameraWall = false)}
+          @camera-wall-open=${() => (this._cameraWall = true)}
           ?weather=${this._weather}
           .panelOpen=${!!this._roomId}
           .floorId=${b.floors.length > 1 ? this._floorId : (b.floors[0]?.id ?? null)}

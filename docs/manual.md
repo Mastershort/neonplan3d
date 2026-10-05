@@ -549,7 +549,7 @@ Pro add-ons are paid extra features, sold singly in the shop. Without an add-on,
 
 **Detection pins:** when one of a camera's sensors reports a detection right now (Frigate, UniFi Protect, Reolink and the like give one sensor per object: person, vehicle, animal, motion), a pin stands in front of the camera with a symbol, the kind and the time – "Person · 18:42". A tap opens the sensor. Several objects at once give several pins on top of each other.
 
-**Camera wall:** the **Cameras** switch at the bottom (in the card the option `camera_wall: true`) lays every placed camera's live picture over the scene as a wall, refreshed every few seconds. A camera that sees motion right now gets a red frame; one that records, a red dot. The tiles share the wall (one camera fills it, two sit side by side, up to four in a 2×2 grid). A tap closes the wall and looks through the camera, ✕ just closes the wall.
+**Camera wall:** the **Cameras** switch at the bottom (in the card the option `camera_wall: true`) lays every placed camera's live picture over the scene as a wall, refreshed every few seconds. A camera that sees motion right now gets a red frame; one that records, a red dot. The tiles share the wall (one camera fills it, two sit side by side, up to four in a 2×2 grid). A tap shows the picture big; from there **Look through the camera** goes into the 3D view, and **Back to the view** brings the wall back. **‹ All cameras** returns to the grid, ✕ closes the wall.
 
 ### 6.2 Weather outside
 
