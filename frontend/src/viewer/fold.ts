@@ -34,8 +34,8 @@ export function makeFoldable<T extends Material>(material: T, masks: FoldMasks, 
           int fp3dBucket = fp3dFold - fp3dKind * 16;
           bool fp3dStanding = ((uStanding >> fp3dBucket) & 1) == 1;
           bool fp3dGlass = ((uGlass >> fp3dBucket) & 1) == 1;
-          // kinds: 0 upper part, 1 cut edge, 2 lower part, 3 cap at the cut height
-          fp3dShow = fp3dKind == 0 ? fp3dStanding : fp3dKind == 1 || fp3dKind == 3 ? !fp3dStanding : true;
+          // kinds: 0 upper part, 1 cut edge, 2 lower part, 3 cap at the cut height, 4 furniture above the cut
+          fp3dShow = fp3dKind == 0 || fp3dKind == 4 ? fp3dStanding : fp3dKind == 1 || fp3dKind == 3 ? !fp3dStanding : true;
           bool fp3dWall = fp3dKind == 0 || fp3dKind == 2;
           ${role === "solid" ? "if (fp3dGlass && fp3dWall) fp3dShow = false;" : ""}
           ${role === "glass" ? "fp3dShow = fp3dShow && fp3dGlass && fp3dWall;" : ""}

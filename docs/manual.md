@@ -436,7 +436,7 @@ The 3D view has three levels:
 
 | Switch | Effect |
 |---|---|
-| **Tall walls** / **Cut** | Walls at full height, the front ones as tinted glass, or all walls cut at hip height |
+| **Tall walls** / **Cut** | Walls at full height, the front ones as tinted glass, or all walls cut at hip height – tall furniture (wardrobe, stairs, tall units) is cut with them, so it hides nothing behind it |
 | **Apart** / **Stacked** | In the house view: floors pulled apart or on top of each other |
 | **Roof stays** | In the house view: the roof stays while zooming in instead of lifting and fading (in the editor's roof and energy tools it always stays) |
 | **Dimmed** / **Stacked** / **Alone** | With an open floor: what happens to the floors below |

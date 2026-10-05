@@ -18,6 +18,8 @@ export const ALWAYS = -1;
 export const CUT_OFFSET = 16;
 export const LOWER_OFFSET = 32;
 export const CAP_OFFSET = 48;
+/** Fold kind 4: the part of a tall piece of furniture above the cut height – folds away with the walls. */
+export const FURN_OFFSET = 64;
 
 export class GeoBuffer {
   p: number[] = [];
@@ -86,6 +88,114 @@ export class LineBuffer {
     g.setAttribute("color", new Float32BufferAttribute(this.c, 3));
     g.setAttribute("fold", new Float32BufferAttribute(this.f, 1));
     return g;
+  }
+}
+
+/**
+ * Cut the triangles from `fromTri` on at the height `cut`: pieces above it get `fold`, pieces below keep
+ * theirs; a triangle across the plane is split (its colours and uvs interpolated). New triangles go to
+ * the end of the buffer, so the range stays contiguous. For tall furniture in the cut view.
+ */
+export function cutAbove(buf: GeoBuffer, fromTri: number, cut: number, fold: number): void {
+  const eps = 1e-6;
+  const uvN = buf.uv ? 2 : 0;
+  const read = (tri: number, k: number) => {
+    const v = tri * 3 + k;
+    return {
+      p: buf.p.slice(v * 3, v * 3 + 3),
+      c: buf.c.slice(v * 3, v * 3 + 3),
+      uv: buf.uv ? buf.uv.slice(v * 2, v * 2 + 2) : null,
+      tile: buf.tile ? buf.tile.slice(v * 2, v * 2 + 2) : null,
+    };
+  };
+  type V = ReturnType<typeof read>;
+  const mix = (a: V, b: V, t: number): V => ({
+    p: a.p.map((x, i) => x + (b.p[i] - x) * t),
+    c: a.c.map((x, i) => x + (b.c[i] - x) * t),
+    uv: a.uv && b.uv ? a.uv.map((x, i) => x + (b.uv![i] - x) * t) : null,
+    tile: a.tile,
+  });
+  const write = (tri: number, vs: V[], f: number) => {
+    for (let k = 0; k < 3; k++) {
+      const v = tri * 3 + k;
+      for (let i = 0; i < 3; i++) {
+        buf.p[v * 3 + i] = vs[k].p[i];
+        buf.c[v * 3 + i] = vs[k].c[i];
+      }
+      if (buf.uv && vs[k].uv) for (let i = 0; i < uvN; i++) buf.uv[v * 2 + i] = vs[k].uv![i];
+      if (buf.tile && vs[k].tile) for (let i = 0; i < 2; i++) buf.tile[v * 2 + i] = vs[k].tile![i];
+      buf.f[v] = f;
+    }
+  };
+  const append = (vs: V[], f: number) => {
+    const tri = buf.p.length / 9;
+    for (const v of vs) {
+      buf.p.push(...v.p);
+      buf.c.push(...v.c);
+      buf.f.push(f);
+      buf.uv?.push(...(v.uv ?? [0.5, 0.5]));
+      buf.tile?.push(...(v.tile ?? [0, 1]));
+    }
+    return tri;
+  };
+  const n = buf.p.length / 9;
+  for (let tri = fromTri; tri < n; tri++) {
+    const vs = [read(tri, 0), read(tri, 1), read(tri, 2)];
+    const above = vs.map((v) => v.p[1] > cut + eps);
+    const below = vs.map((v) => v.p[1] < cut - eps);
+    if (!above.some(Boolean)) continue;
+    if (!below.some(Boolean)) {
+      for (let k = 0; k < 3; k++) buf.f[tri * 3 + k] = fold;
+      continue;
+    }
+    const keep = buf.f[tri * 3];
+    const at = (a: V, b: V) => mix(a, b, (cut - a.p[1]) / (b.p[1] - a.p[1]));
+    const up = above.filter(Boolean).length;
+    // rotate so the odd vertex comes first, keeping the cyclic order (and so the winding)
+    const odd = up === 1 ? above.indexOf(true) : above.indexOf(false);
+    const a = vs[odd];
+    const b = vs[(odd + 1) % 3];
+    const c = vs[(odd + 2) % 3];
+    const ab = at(a, b);
+    const ca = at(c, a);
+    if (up === 1) {
+      // a above: a small cap above, the rest below
+      write(tri, [a, ab, ca], fold);
+      append([ab, b, c], keep);
+      append([ab, c, ca], keep);
+    } else {
+      // a below: a small piece below, the rest above
+      write(tri, [a, ab, ca], keep);
+      append([ab, b, c], fold);
+      append([ab, c, ca], fold);
+    }
+  }
+}
+
+/** The same for edge lines: segments from `fromSeg` on are split at the cut height, the upper part gets `fold`. */
+export function cutLinesAbove(lines: LineBuffer, fromSeg: number, cut: number, fold: number): void {
+  const n = lines.p.length / 6;
+  for (let s = fromSeg; s < n; s++) {
+    const a = lines.p.slice(s * 6, s * 6 + 3);
+    const b = lines.p.slice(s * 6 + 3, s * 6 + 6);
+    const [lo, hi] = a[1] <= b[1] ? [a, b] : [b, a];
+    if (hi[1] <= cut + 1e-6) continue;
+    if (lo[1] >= cut - 1e-6) {
+      lines.f[s * 2] = fold;
+      lines.f[s * 2 + 1] = fold;
+      continue;
+    }
+    const t = (cut - lo[1]) / (hi[1] - lo[1]);
+    const mid = [lo[0] + (hi[0] - lo[0]) * t, cut, lo[2] + (hi[2] - lo[2]) * t];
+    // the lower part stays in place, the upper part is appended
+    for (let i = 0; i < 3; i++) {
+      lines.p[s * 6 + i] = lo[i];
+      lines.p[s * 6 + 3 + i] = mid[i];
+    }
+    const col = lines.c.slice(s * 6, s * 6 + 3);
+    lines.p.push(...mid, ...hi);
+    lines.c.push(...col, ...col);
+    lines.f.push(fold, fold);
   }
 }
 
