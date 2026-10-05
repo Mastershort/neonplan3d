@@ -1757,15 +1757,22 @@ export class Fp3dView3d extends LitElement {
     }
     const cameras = [...new Set(this.building.floors.flatMap((f) => f.placements.map((p) => p.entity_id)).filter((id) => kindOf(id) === "camera"))];
     this.watchCameras(true);
+    // the tiles share the wall: one camera fills it, two sit side by side, up to nine in three columns
+    const cols = cameras.length <= 1 ? 1 : cameras.length <= 4 ? 2 : cameras.length <= 9 ? 3 : 4;
     return html`<div class="fp3d-wall">
       <div class="fp3d-wall-head"><span>${translate(hass, "camera_wall_title")} · ${cameras.length}</span><button class="fp3d-chip" aria-label="✕" @click=${close}>✕</button></div>
-      <div class="fp3d-wall-grid">
+      <div class="fp3d-wall-grid" style="grid-template-columns: repeat(${cols}, minmax(0, 1fr))">
         ${cameras.map((id) => {
           const st = hass.states[id];
           const picture = st?.attributes.entity_picture as string | undefined;
           const src = picture && st && !isUnavailable(st) ? (picture.startsWith("data:") ? picture : `${picture}${picture.includes("?") ? "&" : "?"}fp3d=${this.cameraTick}`) : null;
           const seen = cameraMotionSensors(hass, id).some((s) => hass.states[s]?.state === "on");
-          return html`<button class="fp3d-wall-cam ${seen ? "fp3d-wall-seen" : ""}" title=${translate(hass, "through_camera")} @click=${() => this.lookThrough(id)}>
+          // looking through a camera closes the wall first, so the live picture lies over the scene alone
+          const look = () => {
+            close();
+            this.lookThrough(id);
+          };
+          return html`<button class="fp3d-wall-cam ${seen ? "fp3d-wall-seen" : ""}" title=${translate(hass, "through_camera")} @click=${look}>
             ${src ? html`<img src=${src} alt="" />` : html`<div class="fp3d-wall-none">${translate(hass, "state_unavailable")}</div>`}
             <span class="fp3d-wall-name">${entityName(hass, id)}${st?.state === "recording" ? html` <b>● ${translate(hass, "state_recording")}</b>` : nothing}</span>
           </button>`;
@@ -2470,9 +2477,11 @@ export class Fp3dView3d extends LitElement {
         color: #ffd75a;
       }
       .fp3d-wall-grid {
+        flex: 1;
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-        gap: 10px;
+        align-content: center;
+        gap: 12px;
+        min-height: 0;
       }
       .fp3d-wall-cam {
         position: relative;
@@ -2483,6 +2492,8 @@ export class Fp3dView3d extends LitElement {
         background: #0a1426;
         cursor: pointer;
         aspect-ratio: 16 / 9;
+        width: 100%;
+        max-height: calc(100vh - 160px);
       }
       .fp3d-wall-cam img,
       .fp3d-wall-none {
