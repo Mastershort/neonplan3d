@@ -32,8 +32,10 @@ import { type CustomButton, type EntityRef, DEFAULT_HOLOGRAM, type SolarField } 
 
 /** A hologram card: the house's balance on the main plant, one plant (a balcony plant) on its own, or a device. */
 interface HoloCard {
-  kind: "main" | "plant" | "device" | "media";
+  kind: "main" | "plant" | "device" | "media" | "car";
   name: string;
+  /** Auto Pro: the car in its parking spot (charge, range, charging, lock, climate). */
+  car?: { spot: string; soc: number | null; range: number | null; rangeUnit: string; chargingW: number | null; charging: boolean; locked: boolean | null; climateOn: boolean | null; lock: string | null; climate: string | null; charge: string | null };
   /** Klang & Kino: what the player plays right now. */
   media?: { id: string; title: string; artist: string; picture: string | null; volume: number; playing: boolean };
   /** The plant's power now (W); null on the main card (it shows the house). */
@@ -63,7 +65,7 @@ import { furnitureName } from "../furniture-names.ts";
 import { fetchImage } from "../api.ts";
 import { formatNumber, translate, type I18nKey } from "../i18n.ts";
 import { getPacks, mountBase, packItem, packsVersion } from "../packs.ts";
-import { parkedVehicle, PRESENT_STATES, parkedVehicles, parkingEntities } from "../parking.ts";
+import { parkedVehicle, PRESENT_STATES, parkedVehicles, parkingEntities, vehicleFurniture } from "../parking.ts";
 import { TRAIL_ICON, TRAIL_WINDOW_MS, trailEvents, trailPoints, trailSources, trailTime, type HistoryRow } from "../trail.ts";
 import { limitEffects, weatherEntity, weatherState } from "../weather.ts";
 import { SHOW_PRESENCE } from "../flags.ts";
@@ -629,6 +631,10 @@ export class Fp3dView3d extends LitElement {
     this.confirmSet = confirmEntities(hass, b.floors);
     const trail = this.trail ? this.trailNow(hass, b) : [];
     const pro = hasFeature("energy_pro");
+    // Auto Pro: spots whose car stands there get a card, so their pin steps aside
+    const carSpots = new Set(
+      hasFeature("auto_pro") ? b.floors.flatMap((fl) => fl.furniture.filter((f) => f.type === "parking" && f.car && parkedVehicle(hass, f)).map((f) => f.id)) : [],
+    );
     v.setDevices([
       ...[...deviceMarkers, ...furniture.markers].map((m) => {
         // "without watts" drops the power badge (a plug shows only on / off)
@@ -638,7 +644,7 @@ export class Fp3dView3d extends LitElement {
         // the own name under the pin: per device, or for every named device (card option marker_names)
         const caption = m.ownName && (m.showName || this.markerNames) ? m.ownName : "";
         // Klang & Kino: while a card floats over the speaker, its pin steps aside (it comes back when the music stops)
-        const carded = hasFeature("sound") && this.mediaCardUp(hass, m.id);
+        const carded = (hasFeature("sound") && this.mediaCardUp(hass, m.id)) || (hasFeature("auto_pro") && !!m.furnitureId && carSpots.has(m.furnitureId));
         return { ...marker, pin: this.showPin(marker) && !carded, full: m.show === "always", caption };
       }),
       // Energie Pro: the street end of the grid cable carries a pin with what comes in or goes out
@@ -890,6 +896,43 @@ export class Fp3dView3d extends LitElement {
       for (const floor of b.floors) for (const pl of floor.placements) add(floor, pl.entity_id, pl.x, pl.z, pl.y ?? 1.1, pl.name || entityName(hass, pl.entity_id));
       for (const floor of b.floors) furn(floor, false);
     }
+    // Auto Pro: a glass card over the car in its spot, in the same look as the energy and music cards
+    if (hasFeature("auto_pro")) {
+      const holoSize = (b.settings.roof.hologram ?? DEFAULT_HOLOGRAM).size;
+      for (const floor of b.floors) {
+        for (const f of floor.furniture) {
+          if (f.type !== "parking" || !f.car) continue;
+          const vehicle = parkedVehicle(hass, f);
+          if (!vehicle) continue;
+          const car = carState(hass, f);
+          if (car.soc === null && car.range === null && car.locked === null && car.climateOn === null) continue;
+          const veh = vehicleFurniture(f, vehicle);
+          const top = mountBase(floor, f) + (veh?.h ?? 1.6);
+          anchors.push({ p: [f.x, floor.elevation + top + 0.25, f.z], n: [0, 1, 0], floorId: floor.id, size: holoSize * 0.7, roof: false, views: "all" });
+          const e = car.entities;
+          cards.push({
+            kind: "car",
+            name: f.name || furnitureName(hass, vehicle),
+            w: null,
+            dayIds: [],
+            battery: null,
+            car: {
+              spot: f.id,
+              soc: car.soc,
+              range: car.range,
+              rangeUnit: car.rangeUnit,
+              chargingW: car.chargingW,
+              charging: car.charging,
+              locked: car.locked,
+              climateOn: car.climateOn,
+              lock: e.lock,
+              climate: e.climate,
+              charge: e.charging && /^(switch|input_boolean)\./.test(e.charging) ? e.charging : null,
+            },
+          });
+        }
+      }
+    }
     v.setSound(sound);
     v.setAnchors(anchors);
     if (JSON.stringify(cards) !== JSON.stringify(this._holos)) this._holos = cards;
@@ -1102,9 +1145,59 @@ export class Fp3dView3d extends LitElement {
   private renderHologram() {
     const e = this._energy;
     // the editor keeps the energy bar off but asks for the holograms in its energy tool
-    if (!(hasFeature("energy_pro") || hasFeature("sound")) || this.roomId || !(this.showEnergy || this.holograms) || !this.holoVisible()) return nothing;
+    if (!(hasFeature("energy_pro") || hasFeature("sound") || hasFeature("auto_pro")) || this.roomId || !(this.showEnergy || this.holograms) || !this.holoVisible()) return nothing;
     const plants = !!e && (e.solar !== null || e.grid !== null || e.battery !== null) && this.floorId === null;
-    return this._holos.map((card, i) => (card.kind === "media" ? this.renderMediaCard(card, i) : card.kind === "device" ? this.renderDeviceCard(card, i) : plants ? this.renderHoloCard(card, i, e!) : nothing));
+    return this._holos.map((card, i) => (card.kind === "car" ? this.renderCarCard(card, i) : card.kind === "media" ? this.renderMediaCard(card, i) : card.kind === "device" ? this.renderDeviceCard(card, i) : plants ? this.renderHoloCard(card, i, e!) : nothing));
+  }
+
+  /** Auto Pro: the car's card – charge as a bar in its colour, range, charging power, lock and climate buttons. */
+  private renderCarCard(card: HoloCard, index: number) {
+    const hass = this.hass;
+    const t = (k: Parameters<typeof translate>[1]) => translate(hass, k);
+    const c = card.car!;
+    const open = !this.mediaFolded.has(c.spot);
+    const toggle = () => {
+      if (this.mediaFolded.has(c.spot)) this.mediaFolded.delete(c.spot);
+      else this.mediaFolded.add(c.spot);
+      this.requestUpdate();
+    };
+    const svc = (domain: string, service: string, id: string) => void hass.callService(domain, service, { entity_id: id });
+    const onOff = (id: string, on: boolean) => (id.startsWith("climate.") ? svc("climate", on ? "turn_on" : "turn_off", id) : svc("homeassistant", on ? "turn_on" : "turn_off", id));
+    const lockTap = () => {
+      if (!c.lock) return;
+      const isLock = c.lock.startsWith("lock.");
+      if (c.locked) {
+        if (!confirm(t("car_unlock_confirm"))) return;
+        if (isLock) svc("lock", "unlock", c.lock);
+        else svc("homeassistant", "turn_off", c.lock);
+      } else if (isLock) svc("lock", "lock", c.lock);
+      else svc("homeassistant", "turn_on", c.lock);
+    };
+    const col = c.soc === null ? "#37e0ff" : c.soc >= 50 ? "#4dff80" : c.soc >= 20 ? "#ffcc40" : "#ff4d40";
+    const lockable = !!c.lock && /^(lock|input_boolean|switch)\./.test(c.lock);
+    const climable = !!c.climate && /^(climate|switch|input_boolean)\./.test(c.climate);
+    return html`<svg class="fp3d-holo-link" data-holo=${index} hidden aria-hidden="true"><line x1="0" y1="0" x2="0" y2="0" /><circle cx="0" cy="0" r="3" /></svg>
+      <div class="fp3d-holo fp3d-holo-dev fp3d-holo-car ${open ? "" : "fp3d-holo-min"} ${this._low ? "fp3d-holo-plain" : ""}" data-holo=${index} hidden role="group" aria-label=${card.name}>
+        <div class="fp3d-holo-sheen"></div>
+        <div class="fp3d-holo-scan"></div>
+        <div class="fp3d-holo-body">
+          <div class="fp3d-holo-head" role="button" tabindex="0" @click=${toggle}>
+            <span>🚗 ${card.name}</span><span class="fp3d-holo-live">${c.charging ? `⚡ ${t("car_charging_short")}` : c.locked === null ? "" : c.locked ? "🔒" : "🔓"}</span>
+          </div>
+          <div class="fp3d-holo-car-main">
+            <b style="color:${col}">${c.soc !== null ? `${Math.round(c.soc)} %` : "–"}</b>
+            <span>${c.range !== null ? `${formatNumber(hass, c.range, 0)} ${c.rangeUnit}` : ""}${c.charging && c.chargingW ? ` · ${formatPower(hass, c.chargingW)}` : ""}</span>
+          </div>
+          ${c.soc !== null ? html`<div class="fp3d-holo-car-bar"><i style="width:${Math.max(2, Math.min(100, c.soc))}%;background:${col}"></i></div>` : nothing}
+          ${open && (lockable || climable || c.charge)
+            ? html`<div class="fp3d-holo-media-controls fp3d-holo-car-controls">
+                ${lockable ? html`<button title=${c.locked ? t("car_unlock_btn") : t("car_lock_btn")} @click=${lockTap}>${c.locked ? "🔒" : "🔓"}</button>` : nothing}
+                ${climable ? html`<button class=${c.climateOn ? "fp3d-holo-on" : ""} title=${t("car_climate")} @click=${() => onOff(c.climate!, !c.climateOn)}>❄</button>` : nothing}
+                ${c.charge ? html`<button class=${c.charging ? "fp3d-holo-on" : ""} title=${t("car_charging")} @click=${() => onOff(c.charge!, !c.charging)}>⚡</button>` : nothing}
+              </div>`
+            : nothing}
+        </div>
+      </div>`;
   }
 
   /** Klang & Kino: what a speaker plays – cover, title, artist, volume, with play/pause, previous and next. */
@@ -3413,6 +3506,37 @@ export class Fp3dView3d extends LitElement {
       .fp3d-holo-media-controls input[type="range"] {
         width: 70px;
         accent-color: var(--fp3d-accent);
+      }
+      .fp3d-holo-car-main {
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+        margin-top: 4px;
+      }
+      .fp3d-holo-car-main b {
+        font-size: 22px;
+        font-variant-numeric: tabular-nums;
+      }
+      .fp3d-holo-car-main span {
+        font-size: 12px;
+        opacity: 0.85;
+      }
+      .fp3d-holo-car-bar {
+        height: 5px;
+        margin-top: 6px;
+        border-radius: 3px;
+        background: rgba(160, 240, 255, 0.15);
+        overflow: hidden;
+      }
+      .fp3d-holo-car-bar i {
+        display: block;
+        height: 100%;
+        border-radius: 3px;
+        box-shadow: 0 0 8px currentColor;
+      }
+      .fp3d-holo-on {
+        border-color: var(--fp3d-accent) !important;
+        color: var(--fp3d-accent) !important;
       }
       .fp3d-holo-vol {
         font-size: 11px;
