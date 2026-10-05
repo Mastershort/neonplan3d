@@ -25,7 +25,7 @@ import { alertColor, alertEntities, alertSources, alertText, findAlerts, type Al
 import { iconPath, iconSvg, mdiIcon } from "../icons.ts";
 import { deviceSensors, energySummary, fetchSolarRows, fieldLevels, fieldPowers, findConsumers, flowColor, flowSegments, gridPoint, powerSensorFor, readPower, solarCurvePath, solarDayFromStats, type Consumer, type EnergySummary, type StatRow } from "../energy.ts";
 import { fieldFace, fieldSize } from "../solar.ts";
-import { DEFAULT_HOLOGRAM, type SolarField } from "../model.ts";
+import { type EntityRef, DEFAULT_HOLOGRAM, type SolarField } from "../model.ts";
 
 /** A hologram card: the house's balance on the main plant, one plant (a balcony plant) on its own, or a device. */
 interface HoloCard {
@@ -556,6 +556,7 @@ export class Fp3dView3d extends LitElement {
       const presence = b.presence.flatMap((p) => [p.person, p.sensor]);
       const lights = b.floors.flatMap((f) => f.rooms.flatMap((r) => areaEntities(hass, r.area_id).filter((id) => kindOf(id) === "light")));
       const furniture = [...this.furnitureLinks.values()].flatMap((l) => [l.entity, l.power]);
+      const states = b.floors.flatMap((f) => f.furniture.flatMap((m) => [m.state_entity ?? null, m.state_entity2 ?? null, m.color_entity ?? null]));
       const doors = b.floors.flatMap((f) => f.furniture.flatMap((m) => [m.door_left ?? null, m.door_right ?? null, m.soc ?? null, m.status ?? null, m.charge ?? null, m.export ?? null]));
       const roofWindowIds = (b.settings.roof?.windows ?? []).flatMap((w) => [w.cover, w.contact, w.tilt]).filter((x): x is string => !!x && x !== "none");
       // the solar fields' and strings' sensors feed the roof cables
@@ -571,7 +572,7 @@ export class Fp3dView3d extends LitElement {
       const parking = parkingEntities(b.floors);
       const motion = trailSources(hass, b).map((s) => s.entity);
       const weather = weatherEntity(hass, this.weatherEntityId ?? b.settings.weather_entity);
-      const all = [...placed, ...cameraSensors, ...links, ...power, ...furniture, ...doors, ...robotRooms, ...roofWindowIds, ...solarIds, ...pictureRules, e.grid, e.solar, e.battery, e.battery_soc, e.consumption, e.tariff, ...presence, ...lights, ...heat, ...warn, ...parking, ...motion, weather, "sun.sun"];
+      const all = [...placed, ...cameraSensors, ...links, ...power, ...furniture, ...states, ...doors, ...robotRooms, ...roofWindowIds, ...solarIds, ...pictureRules, e.grid, e.solar, e.battery, e.battery_soc, e.consumption, e.tariff, ...presence, ...lights, ...heat, ...warn, ...parking, ...motion, weather, "sun.sun"];
       this.watched = [...new Set(all.filter((id): id is string => !!id))];
       force = true;
     }
@@ -1213,6 +1214,10 @@ export class Fp3dView3d extends LitElement {
     for (const floor of b.floors) {
       for (const f of floor.furniture) {
         const linked = this.furnitureLinks.get(f.id);
+        // furniture with a state: a glowing plate on the item while its entity is on, occupied or home;
+        // two entities light the halves (left/right of a bed, bottom/top of a bunk bed)
+        const faces = this.stateFaces(hass, f);
+        if (faces.length) screens.set(f.id, { color: faces[0].color, level: faces[0].level, faces });
         if (isLamp(f.type)) {
           markers.push(this.lampMarker(hass, floor, f, linked?.entity ?? null));
           continue;
@@ -1467,6 +1472,27 @@ export class Fp3dView3d extends LitElement {
     const label = charging ? translate(hass, "wallbox_charging") : plugged ? translate(hass, "wallbox_plugged") : st && !isUnavailable(st) && !st.entity_id.startsWith("binary_sensor.") ? stateText(hass, st) : "";
     const watts = power !== null && power > 50 ? formatPower(hass, power) : "";
     return [label, watts].filter(Boolean).join(" · ");
+  }
+
+  /** The glowing faces of an item with a state entity (none while nothing is on). */
+  private stateFaces(hass: HomeAssistant, f: Furniture): NonNullable<ScreenState["faces"]> {
+    const out: NonNullable<ScreenState["faces"]> = [];
+    const refs: [EntityRef | undefined, "all" | "left" | "right" | "top" | "bottom"][] = f.state_entity2 && f.state_entity2 !== "none"
+      ? [
+          [f.state_entity, f.state_split === "top_bottom" ? "bottom" : "left"],
+          [f.state_entity2, f.state_split === "top_bottom" ? "top" : "right"],
+        ]
+      : [[f.state_entity, "all"]];
+    for (const [ref, part] of refs) {
+      if (!ref || ref === "none") continue;
+      const st = hass.states[ref];
+      if (!st || isUnavailable(st)) continue;
+      const on = isActive(st) || st.state === "home" || st.state === "occupied" || st.state === "on";
+      if (!on) continue;
+      const lit = kindOf(ref) === "light" ? lightGlow(st) : null;
+      out.push({ part, color: lit ? lit.color : [1, 0.71, 0.28], level: lit ? lit.level : 0.85 });
+    }
+    return out;
   }
 
   /** A lamp: its 3D model glows with the linked light and is tapped directly. */

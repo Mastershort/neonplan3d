@@ -227,6 +227,7 @@ The **Furniture** tool opens the library with 40 built-in models in the sections
 - **Drag** to move it. Near a wall it turns its back to the wall and sits flush. **Alt** moves freely.
 - The **handle in front of the item** turns it in 15° steps, the **corners** resize it.
 - On the right you set width, depth, height, rotation and **Height above the floor**. **Mirror** swaps left and right – the L-sofa the other way round, the cabinet with its door on the other side; the item is in the right-click menu and in the furnish bar of the 3D view as well. That is how a network cabinet or a shelf hangs on the wall, or a dryer stands on the washing machine. It always counts from the floor: a wall cabinet sits at 1.45 m by default, a wall TV is centred at 1.3 m; you can set both higher or lower. **Automatic height** resets it.
+- **State from:** any piece of furniture can show an entity that reports on, occupied or home – its top then glows: the bed with an occupancy mat, the armchair, the sauna. A second entity lights the other half (left/right, bottom/top for a bunk bed). Lamps, energy devices and screens have fields of their own for this.
 - **Duplicate** and **Delete** are there too.
 
 ![A selected item](images/editor-furniture.jpg)

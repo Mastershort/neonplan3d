@@ -151,6 +151,11 @@ export interface Furniture {
   marker?: MarkerShow | null;
   /** Height of the bottom edge above the floor (null = default: the floor, a pack item's mount, a surface below). */
   mount_y?: number | null;
+  /** Any furniture: an entity whose state the item shows – it glows while on, occupied or home (a bed with an occupancy mat, a chair, a sauna). */
+  state_entity?: EntityRef;
+  /** A second state entity for the other half: left/right (a double bed) or bottom/top (a bunk bed). */
+  state_entity2?: EntityRef;
+  state_split?: "left_right" | "top_bottom" | null;
   /** Lamps: a second entity whose colour and brightness the lamp shows while the linked switch is on (a relay switches the light, the bulb itself knows its colour). */
   color_entity?: EntityRef;
   /** Mirrored (left-right) – an L-sofa the other way round, a cabinet with its door on the other side. */

@@ -250,6 +250,7 @@ const shots = [
   { name: "phone-floor", query: "", width: 420, height: 800, click: "Erdgeschoss" },
   { name: "card-portrait-room", query: "?card&floor=eg", width: 700, height: 1000, click: "Wohnzimmer" },
   { name: "view-alert-banner", query: "?alerts", width: 1280, height: 800, click: "Erdgeschoss" },
+  { name: "view-bed-state", query: "", width: 1280, height: 800, editor: true, editorScript: "e.fit();", then3d: "Erdgeschoss", camera: { theta: 3.6, phi: 0.55, radius: 6, target: { x: 2.2, y: 0.5, z: 6.9 } } },
   { name: "view-cut-furniture", query: "", width: 1280, height: 800, editor: true, editorScript: "e.fit();", then3d: "Erdgeschoss", then3dAlso: ["Schnitt"], camera: { theta: 2.4, phi: 1.1, radius: 8, target: { x: 8.6, y: 0.6, z: 6.2 } } },
   { name: "editor-sidelight", query: "", width: 1280, height: 900, editor: true, editorState: { _openingId: "o14", _roomId: "flur" }, scrollSide: true },
   { name: "view-mirror", query: "", width: 1280, height: 800, editor: true, editorScript: "e.change((d) => { for (const m of d.floors[0].furniture) if (m.type === 'sofa' || m.type === 'tv_board') m.mirror = true; });", then3d: "Erdgeschoss", camera: { theta: 0.9, phi: 1.15, radius: 6, target: { x: 2.4, y: 0.8, z: 2.2 } } },

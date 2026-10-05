@@ -210,6 +210,8 @@ export interface ScreenState {
   picture?: string | null;
   /** No glow frame around the screen (a logo from a picture rule stands on its own). */
   plain?: boolean;
+  /** Furniture with a state: glowing faces on top of the item instead of a screen – the whole top, or a half of it. */
+  faces?: { part: "all" | "left" | "right" | "top" | "bottom"; color: [number, number, number]; level: number }[];
 }
 
 /** Position of the sun (from sun.sun): degrees above the horizon and clockwise from north. */
@@ -2229,13 +2231,40 @@ export class FloorplanViewer {
     fv.screenSig = sig;
     const buf = new GeoBuffer();
     for (const f of items) {
-      const r = screenRect(f, fv.floor);
       const st = this.screens.get(f.id)!;
-      if (!r) continue;
       const a = f.rotation * DEG;
       const c = Math.cos(a);
       const s = Math.sin(a);
       const P = (x: number, y: number, z: number) => [f.x + x * c - z * s, y, f.z + x * s + z * c];
+      if (st.faces) {
+        // a state on the item itself: a glowing plate on its top (a half of it for a bed's side or a bunk)
+        const w = Math.max(0.05, f.w) * (f.mirror ? -1 : 1);
+        const d = Math.max(0.05, f.d);
+        const h = Math.max(0.005, f.h);
+        const base = mountBase(fv.floor, f);
+        for (const face of st.faces) {
+          const x0 = face.part === "right" ? 0.03 : -Math.abs(w) / 2 + 0.03;
+          const x1 = face.part === "left" ? -0.03 : Math.abs(w) / 2 - 0.03;
+          const y = base + (face.part === "bottom" ? h * 0.45 : h) + 0.006;
+          const col = new Color(...face.color.map((v) => Math.min(1, v * (0.35 + 0.65 * face.level))) as [number, number, number]);
+          const edge = new Color(0, 0, 0);
+          const Q = (x: number, z: number, yy = y) => P(x * Math.sign(w), yy, z);
+          const inner = [Q(x0, -d / 2 + 0.03), Q(x1, -d / 2 + 0.03), Q(x1, d / 2 - 0.03), Q(x0, d / 2 - 0.03)];
+          buf.tri(inner[0], inner[2], inner[1], col);
+          buf.tri(inner[0], inner[3], inner[2], col);
+          const g = 0.12 + 0.1 * face.level;
+          const halo = col.clone().multiplyScalar(0.5);
+          const outer = [Q(x0 - g, -d / 2 - g, y + 0.004), Q(x1 + g, -d / 2 - g, y + 0.004), Q(x1 + g, d / 2 + g, y + 0.004), Q(x0 - g, d / 2 + g, y + 0.004)];
+          for (let i = 0; i < 4; i++) {
+            const j = (i + 1) % 4;
+            buf.tri(inner[i], outer[j], outer[i], halo, edge, edge);
+            buf.tri(inner[i], inner[j], outer[j], halo, halo, edge);
+          }
+        }
+        continue;
+      }
+      const r = screenRect(f, fv.floor);
+      if (!r) continue;
       const core = new Color(...st.color.map((v) => Math.min(1, v * (0.35 + 0.65 * st.level))) as [number, number, number]);
       const edge = new Color(0, 0, 0);
       const z = r.z + 0.004;
