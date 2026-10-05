@@ -233,6 +233,7 @@ const shots = [
   { name: "view-find", query: "", width: 1280, height: 800, viewScript: "v._find = 'licht';" },
   { name: "view-find-go", query: "", width: 1280, height: 800, viewScript: "v._find = 'stehlampe'; setTimeout(() => v.renderRoot.querySelector('.fp3d-find-list button').click(), 300);" },
   { name: "view-quickmenu", query: "", width: 1280, height: 800, click: "Wohnzimmer", viewScript: "v.onDeviceHold('light.wohnzimmer_decke', 520, 420);" },
+  { name: "view-quickmenu-media", query: "", width: 1280, height: 800, click: "Küche", viewScript: "v.onDeviceHold('media_player.kueche_lautsprecher', 640, 400);" },
   { name: "view-quickmenu-cover", query: "", width: 1280, height: 800, viewScript: "v.onDeviceTap('cover.wohnzimmer', 700, 400);" },
   { name: "view-swipe", query: "", width: 1280, height: 800, viewScript: "v.onDeviceSwipe('light.wohnzimmer_decke', 'start', 0, 600, 420); v.onDeviceSwipe('light.wohnzimmer_decke', 'move', -40, 600, 420);" },
   { name: "editor-preview-sofa", query: "", width: 1280, height: 800, editor: true, editorState: { _tool: "furniture" }, hover: "Sofa" },
