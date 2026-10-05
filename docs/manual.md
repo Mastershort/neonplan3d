@@ -659,6 +659,20 @@ Sound & Cinema brings the music into the 3D house. It needs a speaker in the pla
 
 **Wall tablet:** on the tablet level the rings run at half the frame rate, the cards without the glass effect.
 
+**Which speakers fit?** NeonPlan uses Home Assistant's standard media player interface: what works in Home Assistant's media player dialog works here too. This is an assessment from documentation and experience, not a guarantee for every model:
+
+| Integration | Cover and title | Volume | Multiroom lines |
+|---|---|---|---|
+| Sonos | yes | yes, local | yes |
+| Music Assistant (every player, Echos too) | yes | yes | yes |
+| Denon/Marantz HEOS, Yamaha MusicCast, Bluesound, Squeezebox/Lyrion | yes | yes | yes |
+| Google Cast (Nest Audio, Nest Hub, Chromecast) | yes | yes | mostly not |
+| Apple TV / HomePod | yes | depends on the model | no |
+| TVs and AV receivers | depends on the app | yes | no |
+| Amazon Echo through Alexa Media Player | yes | **often not, or delayed** | no |
+
+What a player should bring: the state `playing`/`paused`, `media_title` and `media_artist` (else the card shows the app or source), `entity_picture` for the cover, `volume_level` for the slider and rings, `group_members` for the lines.
+
 **One device, one player:** every media player has exactly one card. Furniture you linked to the player by hand wins over the player placed as a device. If the same speaker exists twice in Home Assistant (e.g. an Echo through Alexa Media Player **and** through Music Assistant, recognisable by "_2" at the end), pick the one you really play through – the other never reports "playing".
 
 **Echo devices (Alexa Media Player):** play, pause and track change work. The **volume** cannot be set on some devices and versions of Alexa Media Player, or only with a delay, and the new value often comes back minutes later. This is down to the unofficial Amazon interface, not NeonPlan; Home Assistant's own media player dialog has the same limit. Echos controlled through Music Assistant usually follow the volume more reliably.

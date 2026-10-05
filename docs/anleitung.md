@@ -661,6 +661,20 @@ Klang & Kino bringt die Musik ins 3D-Haus. Voraussetzung ist ein Lautsprecher im
 
 **Wandtablet:** Auf der Tablet-Stufe laufen die Ringe mit halber Bildrate, die Karten ohne Glaseffekt.
 
+**Welche Lautsprecher passen?** NeonPlan nutzt die Standard-Schnittstelle der Media Player von Home Assistant: Was im Media-Player-Fenster von Home Assistant geht, geht auch hier. Das ist eine Einschätzung nach Dokumentation und Erfahrungen, keine Garantie für jedes Modell:
+
+| Integration | Cover und Titel | Lautstärke | Multiroom-Linien |
+|---|---|---|---|
+| Sonos | ja | ja, lokal | ja |
+| Music Assistant (alle Player, auch Echos) | ja | ja | ja |
+| Denon/Marantz HEOS, Yamaha MusicCast, Bluesound, Squeezebox/Lyrion | ja | ja | ja |
+| Google Cast (Nest Audio, Nest Hub, Chromecast) | ja | ja | meist nicht |
+| Apple TV / HomePod | ja | je nach Modell | nein |
+| Fernseher und AV-Receiver | je nach App | ja | nein |
+| Amazon Echo über Alexa Media Player | ja | **oft nicht oder verzögert** | nein |
+
+Was ein Player mitbringen sollte: den Zustand `playing`/`paused`, `media_title` und `media_artist` (sonst zeigt die Karte App oder Quelle), `entity_picture` für das Cover, `volume_level` für Regler und Ringe, `group_members` für die Linien.
+
 **Ein Gerät, ein Player:** Jeder Media Player hat genau eine Karte. Ein Möbel, dem du den Player selbst zugewiesen hast, hat Vorrang vor einem als Gerät platzierten Player. Hast du denselben Lautsprecher doppelt in Home Assistant (etwa einen Echo über Alexa Media Player **und** über Music Assistant, erkennbar an „_2“ am Ende), wähle den, über den du wirklich abspielst – der andere meldet nie „spielt“.
 
 **Echo-Geräte (Alexa Media Player):** Abspielen, Pause und Titelwechsel gehen. Die **Lautstärke** lässt sich je nach Gerät und Version von Alexa Media Player nicht oder nur verzögert setzen, und der neue Wert kommt oft erst Minuten später zurück. Das liegt an der inoffiziellen Amazon-Schnittstelle, nicht an NeonPlan; dieselbe Grenze hat das Media-Player-Fenster von Home Assistant. Echos, die du über Music Assistant steuerst, folgen der Lautstärke in der Regel zuverlässiger.
