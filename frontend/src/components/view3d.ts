@@ -875,14 +875,18 @@ export class Fp3dView3d extends LitElement {
         cards.push(card);
         this.mediaGrace.set(id, { until: Date.now() + 45000, card, source: sound[sound.length - 1], anchor });
       };
-      for (const floor of b.floors) {
-        // a speaker placed as a device first: it keeps its card where it stands
-        for (const pl of floor.placements) add(floor, pl.entity_id, pl.x, pl.z, pl.y ?? 1.1, pl.name || entityName(hass, pl.entity_id));
+      // one card per player: furniture linked to it by hand first (a wall speaker given the Echo Show),
+      // then a device placed in the plan, then furniture that found the player by itself
+      const furn = (floor: Building["floors"][number], byHand: boolean) => {
         for (const f of floor.furniture) {
+          if ((f.entity != null && f.entity !== "none") !== byHand) continue;
           const e = this.furnitureLinks?.get(f.id)?.entity;
           if (e) add(floor, e, f.x, f.z, mountBase(floor, f) + f.h, f.name || furnitureName(hass, f.type));
         }
-      }
+      };
+      for (const floor of b.floors) furn(floor, true);
+      for (const floor of b.floors) for (const pl of floor.placements) add(floor, pl.entity_id, pl.x, pl.z, pl.y ?? 1.1, pl.name || entityName(hass, pl.entity_id));
+      for (const floor of b.floors) furn(floor, false);
     }
     v.setSound(sound);
     v.setAnchors(anchors);
