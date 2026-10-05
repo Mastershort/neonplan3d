@@ -12,6 +12,7 @@ import { holeInRoom } from "../geometry/holes.ts";
 import { weatherEntity } from "../weather.ts";
 import { SHOW_PRESENCE } from "../flags.ts";
 import { hasFeature, manualUrl, shopUrl } from "../features.ts";
+import { cameraMotionSensors, detectionKind } from "../markers.ts";
 import { deviceSensors, energySummary, flowSegments, gridPoint, proposeEnergySensors, type EnergyPrefs, type FlowSegment } from "../energy.ts";
 import { isStatusSensor, robotRoomSensor, TOGGLE_KINDS } from "../devices.ts";
 import { dormerParent, effectiveDormer, proposeDormer, sectionGeometry, floorOutline, polygonBox, headroomLines, ridgeHeight, roofSectionsFromRooms, sectionFrame, wallTopUnder } from "../roof-sections.ts";
@@ -4034,6 +4035,20 @@ export class Fp3dEditor extends LitElement {
     });
   }
 
+  /** Kamera-Cockpit: which detection sensors the camera's device brings (person, vehicle, animal, motion) – found by itself. */
+  private renderCameraDetections(cameraId: string) {
+    if (!this.hass) return nothing;
+    const hass = this.hass;
+    const sensors = cameraMotionSensors(hass, cameraId);
+    const kinds = [...new Set(sensors.map((id) => detectionKind(hass, id)))];
+    const pro = hasFeature("camera_cockpit");
+    return html`<p class="fp3d-sub fp3d-wide">
+      ${sensors.length
+        ? html`${pro ? "" : "🔒 "}${this.t("camera_detect_found", { kinds: kinds.map((k) => this.t(`detect_${k}` as I18nKey)).join(", "), n: sensors.length })}`
+        : this.t("camera_detect_none")}
+    </p>`;
+  }
+
   /** Cut a wall (or one part of it) in the middle: a split point of its own, the new part keeps the height. */
   private splitEdge(room: Room, edge: number, part: number | undefined): void {
     if (!this.isAdmin) return;
@@ -5877,7 +5892,8 @@ export class Fp3dEditor extends LitElement {
               ><input type="checkbox" .checked=${pl.cone !== false} ?disabled=${!admin} @change=${(ev: Event) => this.updateDevice({ cone: (ev.target as HTMLInputElement).checked ? null : false })} />
               ${this.t("camera_cone")}</label
             >
-            <p class="fp3d-sub fp3d-wide">${this.t("camera_aim_hint")}</p>`
+            <p class="fp3d-sub fp3d-wide">${this.t("camera_aim_hint")}</p>
+            ${this.renderCameraDetections(pl.entity_id)}`
           : nothing}
         ${kind && TOGGLE_KINDS.has(kind)
           ? html`<label class="fp3d-check fp3d-wide" title=${this.t("device_confirm_hint")}

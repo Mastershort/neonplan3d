@@ -232,6 +232,8 @@
  "camera_tilt": "Inclinación hacia abajo (°)",
  "camera_tilt_short": "Inclin. °",
  "camera_aim_hint": "En el plano, el cono muestra hacia dónde mira la cámara. El tirador en su punta gira la cámara y ajusta su alcance.",
+ "camera_detect_found": "Detección (cabina de cámaras): {n} sensores encontrados en el dispositivo – {kinds}. Cuando uno informa algo, aparece un pin delante de la cámara en la vista 3D; el muro de cámaras (botón «Cámaras» abajo en la vista 3D) muestra todas las imágenes en directo.",
+ "camera_detect_none": "Detección (cabina de cámaras): el dispositivo de esta cámara no tiene sensores de movimiento o detección. Los pines aparecen en cuanto la integración los proporcione (Frigate, UniFi Protect, Reolink…).",
  "camera_cone": "Mostrar el campo de visión en 3D",
  "state_recording": "Grabando",
  "state_streaming": "En directo",

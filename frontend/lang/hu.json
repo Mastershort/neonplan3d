@@ -232,6 +232,8 @@
  "camera_tilt": "Lefelé döntés (°)",
  "camera_tilt_short": "Döntés °",
  "camera_aim_hint": "A tervben a cikk mutatja, hová néz a kamera. A csúcsán lévő fogantyú forgatja a kamerát és állítja a hatótávját. 3D-ben a cikk az első falnál végződik.",
+ "camera_detect_found": "Érzékelés (kamera-pilótafülke): {n} érzékelő található az eszközön – {kinds}. Ha valamelyik jelez, a 3D nézetben egy jelölő áll a kamera előtt; a kamerafal (a 3D nézet alján a „Kamerák” gomb) minden élőképet mutat.",
+ "camera_detect_none": "Érzékelés (kamera-pilótafülke): a kamera eszközén nincs mozgás- vagy érzékelő-szenzor. A jelölők megjelennek, amint az integráció ad ilyeneket (Frigate, UniFi Protect, Reolink …).",
  "camera_cone": "Látószög mutatása 3D-ben",
  "state_recording": "Felvétel",
  "state_streaming": "Közvetítés",

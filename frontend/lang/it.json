@@ -232,6 +232,8 @@
  "camera_tilt": "Inclinazione verso il basso (°)",
  "camera_tilt_short": "Inclin. °",
  "camera_aim_hint": "Nel piano il cono mostra dove guarda la telecamera. La maniglia sulla punta ruota la telecamera e ne regola la portata.",
+ "camera_detect_found": "Rilevamento (cockpit telecamere): {n} sensori trovati sul dispositivo – {kinds}. Quando uno segnala qualcosa, nella vista 3D appare un pin davanti alla telecamera; la parete telecamere (pulsante «Telecamere» in basso nella vista 3D) mostra tutte le immagini dal vivo.",
+ "camera_detect_none": "Rilevamento (cockpit telecamere): il dispositivo di questa telecamera non ha sensori di movimento o rilevamento. I pin compaiono non appena l'integrazione li fornisce (Frigate, UniFi Protect, Reolink …).",
  "camera_cone": "Mostra il campo visivo in 3D",
  "state_recording": "In registrazione",
  "state_streaming": "In streaming",

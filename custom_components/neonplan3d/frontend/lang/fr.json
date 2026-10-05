@@ -232,6 +232,8 @@
  "camera_tilt": "Inclinaison vers le bas (°)",
  "camera_tilt_short": "Inclin. °",
  "camera_aim_hint": "Dans le plan, le cône montre où regarde la caméra. La poignée à sa pointe tourne la caméra et règle sa portée.",
+ "camera_detect_found": "Détection (cockpit caméra) : {n} capteurs trouvés sur l'appareil – {kinds}. Dès qu'un capteur signale quelque chose, une épingle apparaît devant la caméra en vue 3D ; le mur de caméras (bouton « Caméras » en bas de la vue 3D) montre toutes les images en direct.",
+ "camera_detect_none": "Détection (cockpit caméra) : l'appareil de cette caméra n'a pas de capteur de mouvement ou de détection. Les épingles apparaissent dès que l'intégration en fournit (Frigate, UniFi Protect, Reolink…).",
  "camera_cone": "Afficher le champ de vision en 3D",
  "state_recording": "Enregistre",
  "state_streaming": "En direct",

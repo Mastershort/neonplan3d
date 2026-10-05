@@ -232,6 +232,8 @@
  "camera_tilt": "Kanteling omlaag (°)",
  "camera_tilt_short": "Kantel °",
  "camera_aim_hint": "In het plan toont de kegel waar de camera kijkt. De greep aan de punt draait de camera en stelt het bereik in.",
+ "camera_detect_found": "Detectie (cameracockpit): {n} sensoren op het apparaat gevonden – {kinds}. Meldt er een iets, dan staat in de 3D-weergave een pin voor de camera; de camerawand (knop „Camera's“ onderaan de 3D-weergave) toont alle livebeelden.",
+ "camera_detect_none": "Detectie (cameracockpit): het apparaat van deze camera heeft geen bewegings- of detectiesensoren. Pins verschijnen zodra de integratie ze levert (Frigate, UniFi Protect, Reolink …).",
  "camera_cone": "Gezichtsveld in 3D tonen",
  "state_recording": "Neemt op",
  "state_streaming": "Streamt",
