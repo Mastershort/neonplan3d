@@ -227,6 +227,14 @@ export class Fp3dView3d extends LitElement {
   private holoTimer: ReturnType<typeof setInterval> | undefined;
   /** Which hologram cards are folded to their big number. */
   private holoFolded = new Set<number>();
+  /** Media cards folded by the user, by player (positions shift as players start and stop). */
+  private mediaFolded = new Set<string>();
+  /** Klang & Kino: the last card of each player and until when it may stand in for a short dropout. */
+  private mediaGrace = new Map<string, { until: number; card: HoloCard; source: SoundSource; anchor: Parameters<FloorplanViewer["setAnchors"]>[0][number] }>();
+  private mediaGraceTimer: ReturnType<typeof setTimeout> | undefined;
+  /** The volume being dragged (shown at once; the player answers later, a cloud speaker slowly). */
+  private mediaVolume = new Map<string, { v: number; at: number }>();
+  private volumeSent = 0;
   private holoIds = "";
   /** The start view last handed to the viewer (JSON), to notice a new one. */
   private shownStartView: string | undefined;
@@ -827,32 +835,51 @@ export class Fp3dView3d extends LitElement {
       const holoSize = (b.settings.roof.hologram ?? DEFAULT_HOLOGRAM).size;
       const add = (floor: Building["floors"][number], id: string, x: number, z: number, top: number, name: string) => {
         const st = hass.states[id];
-        if (!st || kindOf(id) !== "media" || seenMedia.has(id) || isUnavailable(st)) return;
+        if (!st || kindOf(id) !== "media" || seenMedia.has(id)) return;
         seenMedia.add(id);
+        // a cloud speaker (Alexa, Google) drops out or reports "idle" for a moment between songs:
+        // its last card stands in for a short while instead of blinking away
+        const graced = this.mediaGrace.get(id);
+        const showing = !isUnavailable(st) && (st.state === "playing" || st.state === "paused") && typeof st.attributes.media_title === "string" && !!st.attributes.media_title;
+        if (!showing) {
+          if (graced && graced.until > Date.now()) {
+            sound.push({ ...graced.source, playing: false, level: 0 });
+            anchors.push(graced.anchor);
+            cards.push({ ...graced.card, media: { ...graced.card.media!, playing: false } });
+            clearTimeout(this.mediaGraceTimer);
+            this.mediaGraceTimer = setTimeout(() => this.syncDevices(true), Math.max(500, graced.until - Date.now() + 100));
+          } else if (!isUnavailable(st)) {
+            this.mediaGrace.delete(id);
+            sound.push({ id, floorId: floor.id, x, z, level: 0, playing: false, members: [] });
+          }
+          return;
+        }
         const playing = st.state === "playing";
         const a = st.attributes;
         const vol = typeof a.volume_level === "number" ? Math.min(1, Math.max(0, a.volume_level)) : 0.5;
         const members = Array.isArray(a.group_members) ? (a.group_members as string[]).filter((m) => m !== id) : [];
         sound.push({ id, floorId: floor.id, x, z, level: playing ? 0.3 + 0.7 * vol : 0, playing, members });
-        const title = typeof a.media_title === "string" ? a.media_title : "";
-        if ((playing || st.state === "paused") && title) {
-          anchors.push({ p: [x, floor.elevation + top + 0.12, z], n: [0, 1, 0], floorId: floor.id, size: holoSize * 0.7, roof: false, views: "all" });
-          cards.push({
-            kind: "media",
-            name,
-            w: null,
-            dayIds: [],
-            battery: null,
-            media: { id, title, artist: typeof a.media_artist === "string" ? a.media_artist : typeof a.media_album_name === "string" ? a.media_album_name : "", picture: typeof a.entity_picture === "string" ? a.entity_picture : null, volume: Math.round(vol * 100), playing },
-          });
-        }
+        const title = String(a.media_title);
+        const anchor = { p: [x, floor.elevation + top + 0.12, z] as [number, number, number], n: [0, 1, 0] as [number, number, number], floorId: floor.id, size: holoSize * 0.7, roof: false, views: "all" as const };
+        const card: HoloCard = {
+          kind: "media",
+          name,
+          w: null,
+          dayIds: [],
+          battery: null,
+          media: { id, title, artist: typeof a.media_artist === "string" ? a.media_artist : typeof a.media_album_name === "string" ? a.media_album_name : "", picture: typeof a.entity_picture === "string" ? a.entity_picture : null, volume: Math.round(vol * 100), playing },
+        };
+        anchors.push(anchor);
+        cards.push(card);
+        this.mediaGrace.set(id, { until: Date.now() + 45000, card, source: sound[sound.length - 1], anchor });
       };
       for (const floor of b.floors) {
+        // a speaker placed as a device first: it keeps its card where it stands
+        for (const pl of floor.placements) add(floor, pl.entity_id, pl.x, pl.z, pl.y ?? 1.1, pl.name || entityName(hass, pl.entity_id));
         for (const f of floor.furniture) {
           const e = this.furnitureLinks?.get(f.id)?.entity;
           if (e) add(floor, e, f.x, f.z, mountBase(floor, f) + f.h, f.name || furnitureName(hass, f.type));
         }
-        for (const pl of floor.placements) add(floor, pl.entity_id, pl.x, pl.z, 1.1, pl.name || entityName(hass, pl.entity_id));
       }
     }
     v.setSound(sound);
@@ -1077,13 +1104,25 @@ export class Fp3dView3d extends LitElement {
     const hass = this.hass;
     const t = (k: Parameters<typeof translate>[1]) => translate(hass, k);
     const m = card.media!;
-    const open = !this.holoFolded.has(index);
+    const open = !this.mediaFolded.has(m.id);
     const toggle = () => {
-      if (this.holoFolded.has(index)) this.holoFolded.delete(index);
-      else this.holoFolded.add(index);
+      if (this.mediaFolded.has(m.id)) this.mediaFolded.delete(m.id);
+      else this.mediaFolded.add(m.id);
       this.requestUpdate();
     };
     const call = (service: string, data: Record<string, unknown> = {}) => void hass.callService("media_player", service, { entity_id: m.id, ...data });
+    // the dragged volume shows at once and is sent while dragging (at most every 350 ms) and on release;
+    // the player's own value takes over again a few seconds later
+    const local = this.mediaVolume.get(m.id);
+    const volume = local && Date.now() - local.at < 5000 ? local.v : m.volume;
+    const setVolume = (v: number, last: boolean) => {
+      this.mediaVolume.set(m.id, { v, at: Date.now() });
+      this.requestUpdate();
+      if (last || Date.now() - this.volumeSent > 350) {
+        this.volumeSent = Date.now();
+        call("volume_set", { volume_level: v / 100 });
+      }
+    };
     return html`<svg class="fp3d-holo-link" data-holo=${index} hidden aria-hidden="true"><line x1="0" y1="0" x2="0" y2="0" /><circle cx="0" cy="0" r="3" /></svg>
       <div class="fp3d-holo fp3d-holo-dev fp3d-holo-media ${open ? "" : "fp3d-holo-min"} ${this._low ? "fp3d-holo-plain" : ""}" data-holo=${index} hidden role="group" aria-label=${card.name}>
       <div class="fp3d-holo-sheen"></div>
@@ -1099,8 +1138,16 @@ export class Fp3dView3d extends LitElement {
                 <button aria-label=${t("previous")} @click=${() => call("media_previous_track")}>⏮</button>
                 <button aria-label=${t("play_pause")} @click=${() => call("media_play_pause")}>${m.playing ? "⏸" : "▶"}</button>
                 <button aria-label=${t("next")} @click=${() => call("media_next_track")}>⏭</button>
-                <input type="range" min="0" max="100" .value=${String(m.volume)} aria-label=${t("volume")} @change=${(e: Event) => call("volume_set", { volume_level: Number((e.target as HTMLInputElement).value) / 100 })} />
-                <span class="fp3d-holo-vol">${m.volume} %</span>
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  .value=${String(volume)}
+                  aria-label=${t("volume")}
+                  @input=${(e: Event) => setVolume(Number((e.target as HTMLInputElement).value), false)}
+                  @change=${(e: Event) => setVolume(Number((e.target as HTMLInputElement).value), true)}
+                />
+                <span class="fp3d-holo-vol">${volume} %</span>
               </div>`
           : nothing}
       </div>

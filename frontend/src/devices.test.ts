@@ -566,3 +566,26 @@ test("own buttons call a service or fire the DOM event browser_mod listens for (
     { type: "hass-more-info", detail: { entityId: "cover.wohnzimmer" } },
   ]);
 });
+
+test("a desk's monitor does not take the room's smart speaker, a placed device stays its own", async () => {
+  const { furnitureEntities } = await import("./devices.ts");
+  const st = (entity_id: string, state: string, attributes: Record<string, unknown> = {}) => ({ entity_id, state, attributes });
+  const hass = {
+    language: "de",
+    states: { "media_player.echo_show_buero": st("media_player.echo_show_buero", "playing", { friendly_name: "Echo Show Büro" }) },
+    entities: { "media_player.echo_show_buero": { entity_id: "media_player.echo_show_buero", area_id: "buero" } },
+    devices: {},
+    areas: { buero: { area_id: "buero", name: "Büro" } },
+  } as unknown as HomeAssistant;
+  const room = { id: "r", name: "Büro", area_id: "buero", points: [[0, 0], [4, 0], [4, 3], [0, 3]] as [number, number][], floor_material: "wood" as const };
+  const desk = { id: "d", type: "desk", x: 2, z: 1, w: 1.4, d: 0.7, h: 0.75, rotation: 0, variant: null };
+  const tv = { id: "t", type: "tv_wall", x: 1, z: 0.1, w: 1.2, d: 0.08, h: 0.7, rotation: 0, variant: null };
+  // the desk alone: no media player by chance
+  const one = furnitureEntities(hass, [{ ...newFloor("eg", "EG", 0), rooms: [room], furniture: [desk] }]);
+  assert.equal(one.get("d")?.entity ?? null, null);
+  // a TV takes the room's player, unless that player is placed as a device of its own
+  const two = furnitureEntities(hass, [{ ...newFloor("eg", "EG", 0), rooms: [room], furniture: [tv] }]);
+  assert.equal(two.get("t")?.entity, "media_player.echo_show_buero");
+  const placed = furnitureEntities(hass, [{ ...newFloor("eg", "EG", 0), rooms: [room], furniture: [tv], placements: [{ entity_id: "media_player.echo_show_buero", x: 3.8, z: 2.8, y: null }] }]);
+  assert.equal(placed.get("t")?.entity ?? null, null);
+});

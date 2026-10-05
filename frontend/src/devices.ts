@@ -778,7 +778,8 @@ function devicePower(hass: HomeAssistant, id: string): string | null {
 export function furnitureEntities(hass: HomeAssistant, floors: readonly Floor[]): Map<string, FurnitureLinks> {
   const out = new Map<string, FurnitureLinks>();
   for (const floor of floors) {
-    const used = new Set<string>(floor.furniture.flatMap((f) => [f.entity, f.power]).filter((v): v is string => !!v && v !== "none"));
+    // entities set by hand and devices placed in the plan (an Echo Show in the corner) are taken
+    const used = new Set<string>([...floor.furniture.flatMap((f) => [f.entity, f.power]), ...floor.placements.map((p) => p.entity_id)].filter((v): v is string => !!v && v !== "none"));
     for (const f of floor.furniture) {
       const lamp = f.type in LAMP_NAMES;
       const pattern = lamp ? LAMP_NAMES[f.type] : FURNITURE_NAMES[f.type];
@@ -801,7 +802,11 @@ export function furnitureEntities(hass: HomeAssistant, floors: readonly Floor[])
           entity = climates.find((id) => pattern.test(name(id))) ?? climates[0] ?? null;
         } else if (isMediaFurniture(f.type)) {
           const media = free.filter((id) => kindOf(id) === "media");
-          entity = media.find((id) => hass.states[id]?.attributes.device_class === "tv") ?? media.find((id) => pattern?.test(name(id))) ?? media[0] ?? null;
+          // a TV takes the TV (or any player of the room); a monitor or a smart speaker model only one whose name fits
+          entity =
+            media.find((id) => hass.states[id]?.attributes.device_class === "tv") ??
+            media.find((id) => pattern?.test(name(id))) ??
+            (MEDIA_FURNITURE.has(f.type) ? (media[0] ?? null) : null);
         } else if (pattern) {
           entity = free.find((id) => ["switch", "media", "fan"].includes(kindOf(id) ?? "") && pattern.test(name(id))) ?? null;
         }
