@@ -439,7 +439,11 @@ DEMO_BUILDING.floors[0].outdoor = [
   area("a7", "hedge", -3.5, -8.5, -2.9, 14),
   area("a8", "bed", 1.5, 10.2, 5.5, 11.2),
   area("a9", "fence", -4, -9, 19, 14.5),
+  // a wild patch cut out of the front lawn, a pergola with bracing on the terrace side, the driveway falls to the street
+  { ...area("a10", "wild", 9.5, -2.6, 12.2, -1.0), cut: true },
+  { ...area("a11", "pergola", 13.4, -3.6, 16.2, -0.9), height: 2.3, bracing: true },
 ];
+DEMO_BUILDING.floors[0].outdoor[5] = { ...DEMO_BUILDING.floors[0].outdoor[5], slope: 0.35, slope_dir: "x" };
 // meter, solar inverter, home battery and wallbox on the back wall of the garage
 DEMO_BUILDING.floors[0].furniture.push(
   { ...item("meter", 13.75, 0.11, 0.55, 0.21, 1.1), power: "sensor.netz_leistung" },

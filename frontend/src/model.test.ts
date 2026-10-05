@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { emptyBuilding, floorElevation, newFloor, openingPreset, openingStyle, normalizeBuilding, outdoorGround, resizeFurniture, roomTiles, sidelightLayout, spotGrid, surfaceHeight, type Furniture } from "./model.ts";
+import { emptyBuilding, floorElevation, newFloor, openingPreset, openingStyle, normalizeBuilding, outdoorDrop, outdoorGround, resizeFurniture, roomTiles, sidelightLayout, spotGrid, surfaceHeight, type Furniture } from "./model.ts";
 
 test("a sidelight sits opposite the hinge, on the hinge side when asked, and keeps the leaf at least half a metre", () => {
   const none = {};
@@ -138,4 +138,24 @@ test("opening kinds: terrace doors are windows down to the floor, double ones ha
   assert.equal(openingPreset({ type: "window", leaves: 1, sill: 0.9 }), "window");
   assert.equal(openingPreset({ type: "door", leaves: 2, sill: 0 }), "door_double");
   assert.equal(openingPreset({ type: "garage", leaves: 1, sill: 0 }), "garage");
+});
+
+test("a sloped area falls from its high edge to its low edge, lamps follow", () => {
+  const floor = newFloor("eg", "EG", 0);
+  floor.outdoor = [{ id: "d", type: "driveway", points: [[0, 0], [10, 0], [10, 3], [0, 3]], slope: 1.2, slope_dir: "-x" }];
+  const a = floor.outdoor[0];
+  assert.equal(outdoorDrop(a, 10, 1), 0);
+  assert.ok(Math.abs(outdoorDrop(a, 0, 1) - 1.2) < 1e-9);
+  assert.ok(Math.abs(outdoorDrop(a, 5, 1) - 0.6) < 1e-9);
+  assert.ok(Math.abs(outdoorGround(floor, 5, 1) - (-0.2 + 0.02 - 0.6)) < 1e-9);
+});
+
+test("a patch cut out of a lawn decides the ground inside it", () => {
+  const floor = newFloor("eg", "EG", 0);
+  floor.outdoor = [
+    { id: "l", type: "lawn", points: [[0, 0], [10, 0], [10, 10], [0, 10]] },
+    { id: "w", type: "wild", points: [[2, 2], [4, 2], [4, 4], [2, 4]], cut: true },
+  ];
+  assert.ok(Math.abs(outdoorGround(floor, 3, 3) - (-0.2 + 0.03)) < 1e-9);
+  assert.ok(Math.abs(outdoorGround(floor, 8, 8) - (-0.2 + 0.012)) < 1e-9);
 });

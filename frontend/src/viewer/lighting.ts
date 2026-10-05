@@ -6,7 +6,7 @@
 
 import type { Floor, Vec2 } from "../model.ts";
 import { outdoorSurface } from "./outdoor.ts";
-import { pointInPolygon } from "../model.ts";
+import { outdoorStanding, pointInPolygon } from "../model.ts";
 import type { Wall } from "../geometry/walls.ts";
 import type { OpeningInfo } from "./build.ts";
 import { LOWER_OFFSET } from "./geo.ts";
@@ -87,7 +87,7 @@ export function buildLightSurface(floor: Floor, walls: Wall[], wallBuckets: numb
   // outside: one zone (index rooms.length) for all outdoor areas and the outer faces of the walls
   const outside = floor.rooms.length;
   for (const a of floor.outdoor ?? []) {
-    if (a.points.length < 3 || a.type === "hedge" || a.type === "fence") continue;
+    if (a.points.length < 3 || outdoorStanding(a.type)) continue;
     const y = outdoorSurface(floor, a) + LIFT;
     const xs = a.points.map((p) => p[0]);
     const zs = a.points.map((p) => p[1]);

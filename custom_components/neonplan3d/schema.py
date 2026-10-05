@@ -272,7 +272,7 @@ BACKGROUND_SCHEMA = vol.Schema(
     extra=vol.ALLOW_EXTRA,
 )
 
-OUTDOOR_TYPES = ["lawn", "terrace", "path", "driveway", "pool", "bed", "hedge", "fence"]
+OUTDOOR_TYPES = ["lawn", "terrace", "path", "driveway", "pool", "bed", "wild", "hedge", "fence", "pergola"]
 
 OUTDOOR_SCHEMA = vol.Schema(
     {
@@ -284,6 +284,14 @@ OUTDOOR_SCHEMA = vol.Schema(
         vol.Optional("outline", default=True): bool,
         # height offset in m (a driveway down to a lower garage, a raised terrace)
         vol.Optional("offset", default=0.0): vol.All(vol.Coerce(float), vol.Range(min=-10, max=10)),
+        # fall in m across the area along slope_dir (the high edge sits at the offset)
+        vol.Optional("slope", default=0.0): vol.All(vol.Coerce(float), vol.Range(min=0, max=20)),
+        vol.Optional("slope_dir", default="x"): vol.In(["x", "-x", "z", "-z"]),
+        # fences and pergolas: the closing edge is left out; pergola: X-bracing on the sides
+        vol.Optional("open", default=False): bool,
+        vol.Optional("bracing", default=False): bool,
+        # cut out of every area beneath it that contains it
+        vol.Optional("cut", default=False): bool,
     },
     extra=vol.ALLOW_EXTRA,
 )

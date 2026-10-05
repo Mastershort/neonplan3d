@@ -211,6 +211,17 @@ export function shade(hex: number, k: number): Color {
   return c;
 }
 
+/** Twice the signed area of a ring in (x, z): positive when counter-clockwise. */
+function ringArea(ring: Vec2[]): number {
+  let a = 0;
+  for (let i = 0; i < ring.length; i++) {
+    const p = ring[i];
+    const q = ring[(i + 1) % ring.length];
+    a += p[0] * q[1] - q[0] * p[1];
+  }
+  return a;
+}
+
 export function triangulate(poly: Vec2[], holes: Vec2[][] = []): number[][] {
   const contour = poly.map(([x, z]) => new Vector2(x, z));
   return ShapeUtils.triangulateShape(
@@ -291,7 +302,7 @@ export function pushPrism(
   y1: number | ((x: number, z: number) => number),
   side: number,
   top: number,
-  opts: { aoFrom?: number; fold?: number; topFold?: number; bottom?: boolean; topFace?: boolean } = {},
+  opts: { aoFrom?: number; fold?: number; topFold?: number; bottom?: boolean; topFace?: boolean; holes?: Vec2[][] } = {},
 ): void {
   // a top that follows a height function (a wall ending under a roof slope): planar for a wall piece
   // within one roof plane, so the top quad and the vertical sides stay flat
@@ -299,29 +310,32 @@ export function pushPrism(
   const aoFrom = opts.aoFrom ?? y0;
   const fold = opts.fold ?? ALWAYS;
   const k = (y: number) => 0.5 + 0.5 * Math.min(1, Math.max(0, (y - aoFrom) / 1.6));
-  const tris = opts.topFace === false && !opts.bottom ? [] : triangulate(poly);
+  // holes (an area with a patch cut out): their rings run clockwise so the inner sides face the hole
+  const holes = (opts.holes ?? []).map((h) => (ringArea(h) > 0 ? [...h].reverse() : h));
+  const all = holes.length ? [...poly, ...holes.flat()] : poly;
+  const tris = opts.topFace === false && !opts.bottom ? [] : triangulate(poly, holes);
   if (opts.topFace !== false) {
     const topC = new Color(top);
     for (const [i, j, l] of tris) {
       // polygon is counter-clockwise in (x, z); seen from above (+y) that is clockwise, so swap
-      const a = poly[i];
-      const b = poly[j];
-      const c = poly[l];
+      const a = all[i];
+      const b = all[j];
+      const c = all[l];
       buf.tri([a[0], topY(a), a[1]], [c[0], topY(c), c[1]], [b[0], topY(b), b[1]], topC, topC, topC, undefined, opts.topFold ?? fold);
     }
   }
   if (opts.bottom) {
     const botC = shade(side, 0.55);
     for (const [i, j, l] of tris) {
-      const a = poly[i];
-      const b = poly[j];
-      const c = poly[l];
+      const a = all[i];
+      const b = all[j];
+      const c = all[l];
       buf.tri([a[0], y0, a[1]], [b[0], y0, b[1]], [c[0], y0, c[1]], botC, botC, botC, undefined, fold);
     }
   }
-  for (let i = 0; i < poly.length; i++) {
-    const a = poly[i];
-    const b = poly[(i + 1) % poly.length];
+  for (const ring of [poly, ...holes]) for (let i = 0; i < ring.length; i++) {
+    const a = ring[i];
+    const b = ring[(i + 1) % ring.length];
     const dx = b[0] - a[0];
     const dz = b[1] - a[1];
     const l = Math.hypot(dx, dz);

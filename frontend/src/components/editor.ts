@@ -45,6 +45,9 @@ import {
   LAMP_MODEL,
   isAxisRect,
   OUTDOOR_TYPES,
+  outdoorStanding,
+  SLOPE_DIRS,
+  type SlopeDir,
   spotGrid,
   step,
   type Direction,
@@ -4424,15 +4427,41 @@ export class Fp3dEditor extends LitElement {
           ? html`${this.num(this.t("x"), b.x0, (v) => setRect("x", v))} ${this.num(this.t("z"), b.z0, (v) => setRect("z", v))}
             ${this.num(this.t("width"), b.x1 - b.x0, (v) => setRect("w", v), 0.01, 0.1)} ${this.num(this.t("depth"), b.z1 - b.z0, (v) => setRect("d", v), 0.01, 0.1)}`
           : nothing}
-        ${a.type === "hedge" || a.type === "fence"
+        ${outdoorStanding(a.type)
           ? this.num(this.t("outdoor_height"), a.height ?? OUTDOOR_TOP[a.type], (v) => this.updateOutdoor({ height: Math.min(6, Math.max(0.1, round(v))) }), 0.05, 0.1)
           : nothing}
         ${this.num(this.t("outdoor_offset"), a.offset ?? 0, (v) => this.updateOutdoor({ offset: Math.min(10, Math.max(-10, round(v))) || null }), 0.05)}
+        ${a.type !== "pool"
+          ? html`${this.num(this.t("outdoor_slope"), a.slope ?? 0, (v) => this.updateOutdoor({ slope: Math.min(20, Math.max(0, round(v))) || null }), 0.05, 0)}
+              <label class="fp3d-field"
+                >${this.t("outdoor_slope_dir")}
+                <select ?disabled=${!admin} @change=${(e: Event) => this.updateOutdoor({ slope_dir: (e.target as HTMLSelectElement).value as SlopeDir })}>
+                  ${SLOPE_DIRS.map((d) => html`<option value=${d} ?selected=${d === (a.slope_dir ?? "x")}>${this.t(`slope_${d.replace("-", "n")}` as I18nKey)}</option>`)}
+                </select></label
+              >`
+          : nothing}
         <label class="fp3d-check fp3d-wide" title=${this.t("outdoor_outline_hint")}
           ><input type="checkbox" .checked=${a.outline !== false} ?disabled=${!admin} @change=${(ev: Event) => this.updateOutdoor({ outline: (ev.target as HTMLInputElement).checked ? undefined : false })} />
           ${this.t("outdoor_outline")}</label
         >
+        ${a.type === "fence" || a.type === "pergola"
+          ? html`<label class="fp3d-check fp3d-wide" title=${this.t("outdoor_open_hint")}
+              ><input type="checkbox" .checked=${!!a.open} ?disabled=${!admin} @change=${(ev: Event) => this.updateOutdoor({ open: (ev.target as HTMLInputElement).checked || undefined })} />
+              ${this.t("outdoor_open")}</label
+            >`
+          : nothing}
+        ${a.type === "pergola"
+          ? html`<label class="fp3d-check fp3d-wide"
+              ><input type="checkbox" .checked=${!!a.bracing} ?disabled=${!admin} @change=${(ev: Event) => this.updateOutdoor({ bracing: (ev.target as HTMLInputElement).checked || undefined })} />
+              ${this.t("outdoor_bracing")}</label
+            >`
+          : nothing}
+        <label class="fp3d-check fp3d-wide" title=${this.t("outdoor_cut_hint")}
+          ><input type="checkbox" .checked=${!!a.cut} ?disabled=${!admin} @change=${(ev: Event) => this.updateOutdoor({ cut: (ev.target as HTMLInputElement).checked || undefined })} />
+          ${this.t("outdoor_cut")}</label
+        >
       </div>
+      ${a.slope ? html`<p class="fp3d-sub">${this.t("outdoor_slope_hint")}</p>` : nothing}
       <p class="fp3d-sub">${this.t("outdoor_hint")}</p>
       ${admin
         ? html`<div class="fp3d-actions">
@@ -7252,6 +7281,7 @@ export class Fp3dEditor extends LitElement {
       }
       .fp3d-out-lawn polygon,
       .fp3d-out-bed polygon,
+      .fp3d-out-wild polygon,
       .fp3d-out-hedge polygon {
         fill: rgba(61, 224, 160, 0.1);
         stroke: rgba(61, 224, 160, 0.5);

@@ -472,7 +472,7 @@ export type WeatherEffect = (typeof WEATHER_EFFECTS)[number];
 /** The effects shown when the plan does not say: everything but fog (fog greys the whole scene). */
 export const DEFAULT_WEATHER_EFFECTS: WeatherEffect[] = ["rain", "snow", "clouds", "lightning", "sky"];
 
-export const OUTDOOR_TYPES = ["lawn", "terrace", "path", "driveway", "pool", "bed", "hedge", "fence"] as const;
+export const OUTDOOR_TYPES = ["lawn", "terrace", "path", "driveway", "pool", "bed", "wild", "hedge", "fence", "pergola"] as const;
 export type OutdoorType = (typeof OUTDOOR_TYPES)[number];
 
 /** Top of each kind of outdoor area above ground level (pool: its water, below). */
@@ -483,9 +483,46 @@ export const OUTDOOR_TOP: Record<OutdoorType, number> = {
   driveway: 0.02,
   pool: -0.25,
   bed: 0.15,
+  wild: 0.03,
   hedge: 1.2,
   fence: 1.0,
+  pergola: 2.2,
 };
+
+/** Types that stand on the ground as structures (no surface to stand on, no light pool). */
+export function outdoorStanding(type: OutdoorType): boolean {
+  return type === "hedge" || type === "fence" || type === "pergola";
+}
+
+/** The directions an area can fall towards: +x (right in the plan), −x, +z (down in the plan), −z. */
+export const SLOPE_DIRS = ["x", "-x", "z", "-z"] as const;
+export type SlopeDir = (typeof SLOPE_DIRS)[number];
+
+/**
+ * How far the surface of an area has dropped at a point (m, ≥ 0): zero on the high edge, the full
+ * slope on the low edge, along the slope direction across the extent of the polygon.
+ */
+export function outdoorDrop(a: OutdoorArea, x: number, z: number): number {
+  const slope = a.slope ?? 0;
+  if (!slope || a.type === "pool") return 0;
+  const dir = a.slope_dir ?? "x";
+  const proj = (px: number, pz: number) => (dir === "x" ? px : dir === "-x" ? -px : dir === "z" ? pz : -pz);
+  let lo = Infinity;
+  let hi = -Infinity;
+  for (const [px, pz] of a.points) {
+    const v = proj(px, pz);
+    lo = Math.min(lo, v);
+    hi = Math.max(hi, v);
+  }
+  if (hi - lo < 1e-6) return 0;
+  const t = Math.min(1, Math.max(0, (proj(x, z) - lo) / (hi - lo)));
+  return slope * t;
+}
+
+/** Height of the surface of an area at a point, in floor coordinates (offset and slope included). */
+export function outdoorTopAt(floor: Floor, a: OutdoorArea, x: number, z: number): number {
+  return groundLevel(floor) + (a.offset ?? 0) + OUTDOOR_TOP[a.type] - outdoorDrop(a, x, z);
+}
 
 /** Ground level in floor coordinates: below the ground floor slab (0.2 m), the floor itself further up. */
 export function groundLevel(floor: Floor): number {
@@ -494,8 +531,10 @@ export function groundLevel(floor: Floor): number {
 
 /** Height outdoor lamps stand on at a point: ground level, or the top of a terrace or bed there. */
 export function outdoorGround(floor: Floor, x: number, z: number): number {
-  const a = (floor.outdoor ?? []).find((o) => o.type !== "hedge" && o.type !== "fence" && o.type !== "pool" && pointInPolygon([x, z], o.points));
-  return groundLevel(floor) + (a ? OUTDOOR_TOP[a.type] + (a.offset ?? 0) : 0);
+  const inside = (floor.outdoor ?? []).filter((o) => !outdoorStanding(o.type) && o.type !== "pool" && pointInPolygon([x, z], o.points));
+  // an area cut out of the one beneath it wins over that one
+  const a = [...inside].reverse().find((o) => o.cut) ?? inside[0];
+  return a ? outdoorTopAt(floor, a, x, z) : groundLevel(floor);
 }
 
 /** Auto Pro: which entities tell the car's state; null = automatic (an entity of the car's Home Assistant device). */
@@ -523,6 +562,15 @@ export interface OutdoorArea {
   outline?: boolean;
   /** Height offset in m: a driveway piece in front of a lower garage sits below the ground (negative), a raised terrace above. */
   offset?: number | null;
+  /** Fall in m across the area along slope_dir (a driveway down to the garage, a sloping lawn); the high edge sits at the offset. */
+  slope?: number | null;
+  slope_dir?: SlopeDir;
+  /** Fences and pergolas: the closing edge (last point back to the first) is left out, so a fence can lean against the house. */
+  open?: boolean;
+  /** Pergola: diagonal X-bracing on every side. */
+  bracing?: boolean;
+  /** This area is cut out of every area beneath it that contains it (a wild patch or pond inside a lawn). */
+  cut?: boolean;
 }
 
 /** Energy flow: meter position and power sensors (W). Grid positive = import, battery positive = discharging. */
