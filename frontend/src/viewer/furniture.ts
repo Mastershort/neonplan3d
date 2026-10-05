@@ -866,6 +866,39 @@ function contactShadow(shadow: GeoBuffer, tf: Tf, w: number, d: number, strength
 }
 
 export function pushFurniture(buf: GeoBuffer, lines: LineBuffer, shadow: GeoBuffer, f: Furniture, base = 0): void {
+  const p0 = buf.p.length;
+  const s0 = shadow.p.length;
+  pushUpright(buf, lines, shadow, f, base);
+  // a mirrored item is built with its x flipped, which turns every triangle inside out: wind them back
+  if (f.mirror) {
+    flipWinding(buf, p0);
+    flipWinding(shadow, s0);
+  }
+}
+
+/** Swap the second and third vertex of every triangle from `from` on (positions, colours, folds, uvs, tiles). */
+function flipWinding(buf: GeoBuffer, from: number): void {
+  const swap = (arr: number[] | null, start: number, n: number) => {
+    if (!arr) return;
+    for (let k = 0; k < n; k++) {
+      const i = start + n + k;
+      const j = start + 2 * n + k;
+      const t = arr[i];
+      arr[i] = arr[j];
+      arr[j] = t;
+    }
+  };
+  for (let i = from; i < buf.p.length; i += 9) {
+    const tri = i / 9;
+    swap(buf.p, i, 3);
+    swap(buf.c, i, 3);
+    swap(buf.f, tri * 3, 1);
+    swap(buf.uv, tri * 6, 2);
+    swap(buf.tile, tri * 6, 2);
+  }
+}
+
+function pushUpright(buf: GeoBuffer, lines: LineBuffer, shadow: GeoBuffer, f: Furniture, base: number): void {
   // pack items place their parts at `base` themselves; built-in models are drawn on the floor and
   // lifted as a whole (a dryer on the washer, a shelf on the wall), without a shadow on the floor
   // the mount height is absolute: a wall cabinet drawn at 1.45 m moves by the difference (up or down)
@@ -882,7 +915,9 @@ function buildFurniture(buf: GeoBuffer, lines: LineBuffer, shadow: GeoBuffer, f:
   const a = f.rotation * DEG;
   const c = Math.cos(a);
   const s = Math.sin(a);
-  const tf: Tf = (x, z) => [f.x + x * c - z * s, f.z + x * s + z * c];
+  // mirrored: the item's own x runs the other way
+  const mx = f.mirror ? -1 : 1;
+  const tf: Tf = (x, z) => [f.x + mx * x * c - z * s, f.z + mx * x * s + z * c];
   const b = new Builder(buf, lines, tf);
   const w = Math.max(0.05, f.w);
   const d = Math.max(0.05, f.d);

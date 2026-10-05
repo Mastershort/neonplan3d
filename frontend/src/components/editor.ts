@@ -3504,7 +3504,8 @@ export class Fp3dEditor extends LitElement {
       ${c.kind === "room" ? html`<button @click=${run(() => this.duplicateRoom())}>⧉ ${this.t("duplicate")}</button>` : nothing}
       ${c.kind === "furniture"
         ? html`<button @click=${run(() => this.duplicateFurniture())}>⧉ ${this.t("duplicate")}</button>
-            <button ?disabled=${fixed} @click=${run(() => this.rotateFurniture(90))}>↻ ${this.t("ctx_rotate")}</button>`
+            <button ?disabled=${fixed} @click=${run(() => this.rotateFurniture(90))}>↻ ${this.t("ctx_rotate")}</button>
+            <button ?disabled=${fixed} @click=${run(() => this.mirrorFurniture())}>⇋ ${this.t("furn_mirror")}</button>`
         : nothing}
       <button class="fp3d-ctx-danger" @click=${run(() => this.deleteItem(c.kind, c.id))}>✕ ${this.t("delete")}</button>
     </div>`;
@@ -3677,6 +3678,12 @@ export class Fp3dEditor extends LitElement {
   private updateFurniture(patch: Partial<Furniture>): void {
     const id = this._furnitureId;
     this.change((_, floor) => Object.assign(floor.furniture.find((f) => f.id === id)!, patch));
+  }
+
+  private mirrorFurniture(): void {
+    const f = this.furnitureItem;
+    if (!f || !this.isAdmin) return;
+    this.updateFurniture({ mirror: !f.mirror });
   }
 
   private rotateFurniture(delta: number): void {
@@ -4364,7 +4371,7 @@ export class Fp3dEditor extends LitElement {
       const [fx, fy] = this.toScreen([f.x - Math.sin(a) * (f.d / 2), f.z + Math.cos(a) * (f.d / 2)]);
       const lit = isLamp(f.type) && !!f.entity && f.entity !== "none" && this.hass?.states[f.entity]?.state === "on";
       return svg`<g data-furniture=${f.id} class=${`fp3d-furn${sel ? " fp3d-furn-sel" : ""}${lit ? " fp3d-furn-lit" : ""}${(ENERGY_DEVICES as readonly string[]).includes(f.type) ? " fp3d-energy-item" : ""}`}>
-        <g transform="translate(${cx} ${cy}) rotate(${f.rotation}) scale(${k})">
+        <g transform="translate(${cx} ${cy}) rotate(${f.rotation}) scale(${f.mirror ? -k : k} ${k})">
           <rect class="fp3d-furn-body" x=${-f.w / 2} y=${-f.d / 2} width=${f.w} height=${f.d} />
           <g class="fp3d-furn-sym">${furnitureSymbol(f.type, f.w, f.d)}</g>
           <line class="fp3d-furn-front" x1=${-f.w / 2} y1=${f.d / 2} x2=${f.w / 2} y2=${f.d / 2} />
@@ -5257,6 +5264,12 @@ export class Fp3dEditor extends LitElement {
         ${this.num(this.t("depth"), f.d, (v) => this.updateFurniture({ d: Math.max(0.05, v) }), 0.01, 0.05)}
         ${this.num(this.t("height_m"), f.h, (v) => this.updateFurniture({ h: Math.max(0.005, v) }), 0.01, 0)}
         ${this.num(this.t("rotation"), f.rotation, (v) => this.updateFurniture({ rotation: ((v % 360) + 360) % 360 }), 1)}
+        ${isLamp(f.type)
+          ? nothing
+          : html`<label class="fp3d-check" title=${this.t("furn_mirror_hint")}
+              ><input type="checkbox" .checked=${!!f.mirror} ?disabled=${!admin} @change=${(ev: Event) => this.updateFurniture({ mirror: (ev.target as HTMLInputElement).checked })} />
+              ${this.t("furn_mirror")}</label
+            >`}
         ${f.type === "led_strip"
           ? html`${this.num(this.t("strip_tilt"), f.tilt ?? 0, (v) => this.updateFurniture({ tilt: Math.max(-90, Math.min(90, Math.round(v))) }), 5)}
               <label class="fp3d-check" title=${this.t("strip_upright_hint")}

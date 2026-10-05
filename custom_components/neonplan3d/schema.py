@@ -177,6 +177,8 @@ FURNITURE_SCHEMA = vol.Schema(
         # factor, and a sensor naming the kind of vehicle with a state -> vehicle mapping
         # height of the bottom edge above the floor (None = default: the floor, a pack item's mount)
         vol.Optional("mount_y", default=None): vol.Any(None, vol.All(vol.Coerce(float), vol.Range(min=0, max=10))),
+        # mirrored left-right
+        vol.Optional("mirror", default=False): bool,
         # LED strip: tilt about its length (degrees) and standing upright
         vol.Optional("tilt", default=0.0): vol.All(vol.Coerce(float), vol.Range(min=-90, max=90)),
         vol.Optional("upright", default=False): bool,

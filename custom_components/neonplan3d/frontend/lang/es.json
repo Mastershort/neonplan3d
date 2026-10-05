@@ -522,6 +522,8 @@
  "help_issue": "Informar de un problema",
  "help_idea": "Proponer una idea",
  "furn_name": "Nombre (opcional)",
+ "furn_mirror": "Reflejar",
+ "furn_mirror_hint": "Intercambiar izquierda y derecha: el sofá en L al revés, el armario con la puerta al otro lado, la cocina reflejada.",
  "cables_title": "Cables (Energía Pro)",
  "cables_hint": "Discontinuo: el cable busca su propio camino. Agárralo en el plano o elígelo aquí y pulsa «Tender a mano»: entonces va en línea continua por tus puntos a la altura ajustada, p. ej. por fuera de la fachada o bajo el techo, y varios cables pueden ir en paralelo.",
  "cable_laid": "tendido a mano",

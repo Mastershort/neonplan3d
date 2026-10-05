@@ -522,6 +522,8 @@
  "help_issue": "Segnala un problema",
  "help_idea": "Proponi un'idea",
  "furn_name": "Nome (facoltativo)",
+ "furn_mirror": "Specchia",
+ "furn_mirror_hint": "Scambiare sinistra e destra: il divano a L al contrario, l'armadio con l'anta dall'altro lato, la cucina specchiata.",
  "cables_title": "Cavi (Energia Pro)",
  "cables_hint": "Tratteggiato: il cavo trova da solo la sua strada. Afferralo nel piano o sceglilo qui e premi «Posa a mano»: allora corre a linea continua per i tuoi punti all'altezza impostata, es. lungo la facciata esterna o sotto il soffitto, e più cavi possono correre affiancati.",
  "cable_laid": "posato a mano",

@@ -522,6 +522,8 @@
  "help_issue": "Signaler un problème",
  "help_idea": "Proposer une idée",
  "furn_name": "Nom (optionnel)",
+ "furn_mirror": "Miroir",
+ "furn_mirror_hint": "Inverser gauche et droite – le canapé d'angle dans l'autre sens, l'armoire avec la porte de l'autre côté, la cuisine en miroir.",
  "cables_title": "Câbles (Énergie Pro)",
  "cables_hint": "Pointillés : le câble trouve son chemin tout seul. Saisis-le dans le plan ou choisis-le ici et appuie sur « Poser à la main » : il passe alors en trait plein par tes points à la hauteur réglée, p. ex. le long de la façade ou sous le plafond, et plusieurs câbles peuvent courir côte à côte.",
  "cable_laid": "posé à la main",

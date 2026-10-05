@@ -146,6 +146,8 @@ export interface Furniture {
   marker?: MarkerShow | null;
   /** Height of the bottom edge above the floor (null = default: the floor, a pack item's mount, a surface below). */
   mount_y?: number | null;
+  /** Mirrored (left-right) – an L-sofa the other way round, a cabinet with its door on the other side. */
+  mirror?: boolean;
   /** LED strip: tilt about its length (°; 0 = lying flat, 90 = its face points sideways, e.g. along a roof slope). */
   tilt?: number;
   /** LED strip: standing upright – its length runs up from the mount height (door frame, light column). */

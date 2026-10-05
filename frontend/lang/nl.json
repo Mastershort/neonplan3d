@@ -522,6 +522,8 @@
  "help_issue": "Probleem melden",
  "help_idea": "Idee voorstellen",
  "furn_name": "Naam (optioneel)",
+ "furn_mirror": "Spiegelen",
+ "furn_mirror_hint": "Links en rechts omwisselen – de hoekbank andersom, de kast met de deur aan de andere kant, het keukenblok gespiegeld.",
  "cables_title": "Kabels (Energie Pro)",
  "cables_hint": "Gestippeld: de kabel zoekt zelf zijn weg. Pak hem in het plan vast of kies hem hier en druk op “Zelf leggen”: dan loopt hij als doorgetrokken lijn via jouw punten op de ingestelde hoogte, bijv. langs de gevel buiten of onder het plafond, en meerdere kabels kunnen naast elkaar lopen.",
  "cable_laid": "zelf gelegd",

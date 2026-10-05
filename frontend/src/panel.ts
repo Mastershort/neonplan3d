@@ -788,6 +788,7 @@ export class Floorplan3dPanel extends LitElement {
                     ${this.renderSizeFields(this._selFurniture)}
                     <button class="fp3d-chip" @click=${() => this.turnFurniture(-45)}>↺ 45°</button>
                     <button class="fp3d-chip" @click=${() => this.turnFurniture(45)}>↻ 45°</button>
+                    <button class="fp3d-chip" title=${this.t("furn_mirror_hint")} @click=${() => this.editFurniture(this._selFurniture!, (f) => (f.mirror = !f.mirror))}>⇋ ${this.t("furn_mirror")}</button>
                     <button class="fp3d-chip fp3d-danger-chip" @click=${() => this.deleteFurniture()}>${this.t("delete")}</button>`
                 : this._selDevice
                   ? html`<span>${entityName(this.hass, this._selDevice)}</span>

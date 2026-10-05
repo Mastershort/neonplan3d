@@ -522,6 +522,8 @@
  "help_issue": "Probléma jelentése",
  "help_idea": "Ötlet javaslása",
  "furn_name": "Név (opcionális)",
+ "furn_mirror": "Tükrözés",
+ "furn_mirror_hint": "Bal és jobb felcserélése – az L-kanapé fordítva, a szekrény ajtaja a másik oldalon, a konyhasor tükrözve.",
  "cables_title": "Kábelek (Energy Pro)",
  "cables_hint": "Szaggatott: a kábel magának keres utat. Fogd meg a tervben, vagy válaszd ki itt és nyomd meg a „Kézi fektetés” gombot: ekkor folytonosan, a pontjaidon át fut a beállított magasságban, pl. kint a homlokzat mentén vagy a mennyezet alatt, és több kábel futhat egymás mellett.",
  "cable_laid": "kézzel fektetve",
