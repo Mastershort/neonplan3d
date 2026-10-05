@@ -39,6 +39,9 @@ interface HoloCard {
   battery: { soc: number | null; w: number | null } | null;
 }
 
+/** How long a detection pin stays after its sensor dropped back. */
+const DETECT_LINGER_MS = 120000;
+
 /** Pins of what a camera detects (Frigate and the like): a person, a vehicle, an animal, motion. */
 const DETECT_ICONS: Record<string, string> = {
   person: '<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true"><path d="M12 2a3 3 0 1 1 0 6 3 3 0 0 1 0-6m-3 7h6a2 2 0 0 1 2 2v6h-2v6H9v-6H7v-6a2 2 0 0 1 2-2"/></svg>',
@@ -807,7 +810,15 @@ export class Fp3dView3d extends LitElement {
     const out: (DeviceMarker & { pin: boolean })[] = [];
     for (const cam of markers) {
       if (!cam.model?.startsWith("camera")) continue;
-      const active = cameraMotionSensors(hass, cam.id).filter((id) => hass.states[id]?.state === "on");
+      // a detection stays as a pin for two minutes after the sensor dropped back (Reolink and the like hold it
+      // only for seconds), with the time it was seen
+      const now = Date.now();
+      const active = cameraMotionSensors(hass, cam.id).filter((id) => {
+        const st = hass.states[id];
+        if (!st) return false;
+        if (st.state === "on") return true;
+        return st.state === "off" && !!st.last_changed && now - Date.parse(st.last_changed) < DETECT_LINGER_MS;
+      });
       // one pin per kind (a person and a car at the same time), the plain motion only when nothing else is seen
       const kinds = new Map<string, string>();
       for (const id of active) {
