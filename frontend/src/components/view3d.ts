@@ -1118,9 +1118,10 @@ export class Fp3dView3d extends LitElement {
     };
     const call = (service: string, data: Record<string, unknown> = {}) => void hass.callService("media_player", service, { entity_id: m.id, ...data });
     // the dragged volume shows at once and is sent while dragging (at most every 350 ms) and on release;
-    // the player's own value takes over again a few seconds later
+    // it stays until the player reports it (a cloud speaker like an Echo answers late), at most 30 s
     const local = this.mediaVolume.get(m.id);
-    const volume = local && Date.now() - local.at < 5000 ? local.v : m.volume;
+    if (local && (Math.abs(local.v - m.volume) <= 2 || Date.now() - local.at > 30000)) this.mediaVolume.delete(m.id);
+    const volume = this.mediaVolume.get(m.id)?.v ?? m.volume;
     const setVolume = (v: number, last: boolean) => {
       this.mediaVolume.set(m.id, { v, at: Date.now() });
       this.requestUpdate();
