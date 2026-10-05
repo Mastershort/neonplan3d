@@ -1703,6 +1703,7 @@ export class Fp3dView3d extends LitElement {
       glow: st ? lightGlow(st, f.color_entity && f.color_entity !== "none" ? hass.states[f.color_entity] : undefined) : null,
       lamp: model,
       rotation: f.rotation,
+      mirror: !!f.mirror,
       roll: f.tilt ?? 0,
       upright: !!f.upright,
       size: [f.w, f.d, f.h],

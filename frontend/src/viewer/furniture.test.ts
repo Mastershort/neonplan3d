@@ -104,3 +104,23 @@ test("a mirrored item keeps its faces pointing outwards (#159)", () => {
     assert.ok(Math.sign(plain) === Math.sign(mirrored) && Math.abs(plain - mirrored) < Math.abs(plain) * 0.01 + 1e-6, `${type}: ${plain} vs ${mirrored}`);
   }
 });
+
+test("a mirrored pack lamp is drawn mirrored and still faces outwards", async () => {
+  const { pushPackLamp } = await import("./furniture.ts");
+  setPacks([PACK]);
+  const item = PACK.items[0];
+  const vol = (mirror: boolean) => {
+    const buf = new GeoBuffer();
+    pushPackLamp(buf, item, { x: 0, z: 0, rotation: 0, w: 2, d: 4, h: 1, mirror }, 0, 0xffffff);
+    return { v: orientation(buf), xs: buf.p.filter((_, i) => i % 3 === 0) };
+  };
+  const a = vol(false);
+  const b = vol(true);
+  assert.ok(Math.sign(a.v) === Math.sign(b.v));
+  // the wheel sits at x = -0.4 of the item: mirrored, it moves to the other side
+  near2(Math.min(...a.xs), -Math.max(...b.xs));
+});
+
+function near2(a: number, b: number) {
+  assert.ok(Math.abs(a - b) < 1e-6, `${a} != ${b}`);
+}

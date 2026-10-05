@@ -9,7 +9,7 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 ### Fixed
 
 - Outdoor lamps lit nothing once two rooms of the floor were joined into one light zone (#160 by Thundras).
-- Mirrored furniture showed its inside faces; only lying cylinders and the contact shadow are rewound now, the smart fridge's doors and screen follow the mirror (#159 by Thundras).
+- Mirrored furniture showed its inside faces; only lying cylinders and the contact shadow are rewound now, the smart fridge's doors and screen and pack lamps (arc lamp, wall unit) follow the mirror (#159 by Thundras).
 - The state picture of a screen furniture sat below the screen when a mount height was set, and changing only the mount height did not move the glow (#157 by Thundras).
 
 ### New

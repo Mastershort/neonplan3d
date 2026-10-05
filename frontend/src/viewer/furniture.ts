@@ -1184,11 +1184,13 @@ export function pushCameraModel(buf: GeoBuffer, model: "camera_wall" | "camera_c
 }
 
 /** A pack lamp into the lamp buffer: glowing parts in the light's colour (`glow`), or dark when off. */
-export function pushPackLamp(buf: GeoBuffer, item: PackItem, f: Pick<Furniture, "x" | "z" | "rotation" | "w" | "d" | "h">, base: number, glow: number): void {
+export function pushPackLamp(buf: GeoBuffer, item: PackItem, f: Pick<Furniture, "x" | "z" | "rotation" | "w" | "d" | "h" | "mirror">, base: number, glow: number): void {
   const a = f.rotation * DEG;
   const c = Math.cos(a);
   const s = Math.sin(a);
-  const tf: Tf = (x, z) => [f.x + x * c - z * s, f.z + x * s + z * c];
+  // mirrored: the item's own x runs the other way (the builder rewinds what needs it)
+  const mx = f.mirror ? -1 : 1;
+  const tf: Tf = (x, z) => [f.x + mx * x * c - z * s, f.z + mx * x * s + z * c];
   // lamps have no outlines: their edges are dropped
   packModel(new Builder(buf, new LineBuffer(), tf), item, Math.max(0.05, f.w), Math.max(0.05, f.d), Math.max(0.005, f.h), base, glow);
 }
