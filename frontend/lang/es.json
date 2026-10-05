@@ -827,6 +827,7 @@
  "lamp_hint": "Toca la lámpara en 3D para accionarla; pulsación larga para el menú rápido. Los interruptores también sirven (p. ej. un relé para la lámpara de techo): la lámpara brilla mientras está activado. Las lámparas de mesa se apoyan en el mueble de debajo.",
  "lamp_hint_pendant": "Altura = caída desde el techo. Toque en 3D para accionar, pulsación larga para detalles.",
  "theme": "Estilo",
+ "version_hint": "Versión instalada de NeonPlan 3D – interfaz; la integración en Home Assistant informa {backend}",
  "accent": "Color de acento",
  "accent_hint": "Un color de acento propio: líneas y bordes luminosos del aspecto neón, botones y pines – ↺ devuelve el cian neón",
  "accent_reset": "Volver al cian",

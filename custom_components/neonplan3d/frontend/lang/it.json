@@ -827,6 +827,7 @@
  "lamp_hint": "Tocca la lampada in 3D per azionarla, pressione lunga per il menu rapido. Funzionano anche gli interruttori (es. un relè per la plafoniera): la lampada brilla finché è acceso. Le lampade da tavolo poggiano sul mobile sottostante.",
  "lamp_hint_pendant": "Altezza = discesa dal soffitto. Tocco in 3D per azionare, pressione lunga per i dettagli.",
  "theme": "Stile",
+ "version_hint": "Versione installata di NeonPlan 3D – interfaccia; l'integrazione in Home Assistant riporta {backend}",
  "accent": "Colore accento",
  "accent_hint": "Un colore accento tuo: linee e bordi luminosi nel look neon, pulsanti e pin – ↺ riporta il ciano neon",
  "accent_reset": "Torna al ciano",

@@ -511,6 +511,7 @@ export class Floorplan3dPanel extends LitElement {
           ${this._mode === "editor" && saveState !== "idle"
             ? html`<span class="fp3d-save fp3d-save-${saveState}">${this.t(saveState === "saving" ? "saving" : saveState === "saved" ? "saved" : "save_error")}</span>`
             : nothing}
+          <span class="fp3d-version" title=${this.t("version_hint", { backend: this.data.backendVersion ?? "?" })}>v${this.data.frontendVersion}</span>
         </header>`}
         ${this._clean && this._mode === "view" ? nothing : this.renderNotices()}
         ${this.data.error && !b ? html`<p class="fp3d-message">${this.t("load_error")}: ${this.data.error}</p>` : nothing}
@@ -966,6 +967,14 @@ export class Floorplan3dPanel extends LitElement {
       .fp3d-save {
         font-size: 12.5px;
         color: var(--fp3d-muted);
+      }
+      /* the installed version, at the far right of the header */
+      .fp3d-version {
+        margin-left: auto;
+        font-size: 11.5px;
+        color: var(--fp3d-muted);
+        white-space: nowrap;
+        opacity: 0.8;
       }
       .fp3d-save-error {
         color: var(--fp3d-danger);

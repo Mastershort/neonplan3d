@@ -827,6 +827,7 @@
  "lamp_hint": "Koppints a lámpára 3D-ben a kapcsoláshoz, hosszú nyomás a gyorsmenühöz. Kapcsolók is működnek (pl. relé a mennyezeti lámpához) – a lámpa világít, amíg be van kapcsolva. Az asztali lámpák az alattuk lévő bútoron állnak.",
  "lamp_hint_pendant": "Magasság = függesztés a mennyezet alatt. Koppintás 3D-ben kapcsol, hosszú nyomás a részletekhez.",
  "theme": "Megjelenés",
+ "version_hint": "A NeonPlan 3D telepített verziója – felület; a Home Assistant-integráció ezt jelenti: {backend}",
  "accent": "Kiemelőszín",
  "accent_hint": "Saját kiemelőszín: vonalak és világító élek a neon megjelenésben, gombok és jelölők – ↺ visszahozza a neon cián színt",
  "accent_reset": "Vissza a ciánhoz",

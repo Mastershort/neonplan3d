@@ -460,6 +460,8 @@ At the top right:
 | **None** / **Important** / **All** | Which device markers appear. Important shows only devices without their own 3D model and values such as watts or the running app |
 | **FPS** | Frame rate, slowest frame and the reason for every drawn frame. At rest it reads 0 fps |
 
+At the far right of the header stands the installed version (e.g. v1.11.0); hovering it shows which version the integration in Home Assistant reports.
+
 Each device remembers these switches.
 
 ![Blueprint](images/view-blueprint.jpg)

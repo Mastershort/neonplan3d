@@ -827,6 +827,7 @@
  "lamp_hint": "Tik in 3D op de lamp om te schakelen, lang indrukken voor het snelmenu. Schakelaars werken ook (bijv. een relais voor de plafondlamp) – de lamp brandt zolang die aan staat. Tafellampen staan op het meubel eronder.",
  "lamp_hint_pendant": "Hoogte = afstand onder het plafond. Tik in 3D om te schakelen, lang indrukken voor details.",
  "theme": "Stijl",
+ "version_hint": "Geïnstalleerde versie van NeonPlan 3D – interface; de integratie in Home Assistant meldt {backend}",
  "accent": "Accentkleur",
  "accent_hint": "Een eigen accentkleur: lijnen en lichtranden in de neon-look, knoppen en pins – ↺ brengt het neon-cyaan terug",
  "accent_reset": "Terug naar cyaan",
