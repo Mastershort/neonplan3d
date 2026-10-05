@@ -142,6 +142,9 @@ const shots = [
   { name: "editor-solar-list", query: "", width: 1280, height: 900, editor: true, editorScript: "e._tool = 'energy'; e._solarId = null; setTimeout(() => e.fit(), 300);" },
   // Energie Pro: the cables from the roof to the inverter, battery, meter, wallbox and grid with their moving dots
   { name: "view-flows", query: "?flows", width: 1280, height: 800, editor: true, editorScript: "e.fit();", then3d: "Alle Etagen", then3dAlso: ["Gestapelt"], camera: { theta: 0.6, phi: 1.15, radius: 22 } },
+  { name: "view-holo-plants", query: "?flows", width: 1280, height: 800, editor: true, editorScript: "e.fit();", then3d: "Alle Etagen", then3dAlso: ["Gestapelt"], camera: { theta: 2.6, phi: 1.15, radius: 24 } },
+  { name: "view-holo-free", query: "?flows", width: 1280, height: 800, editor: true, editorScript: "e.change((d) => (d.settings.roof.hologram = { field: null, size: 1, right: 0, up: 0, place: 'free', x: 9, z: -2, height: 3.5 })); e.fit();", then3d: "Alle Etagen", then3dAlso: ["Gestapelt"], camera: { theta: 2.6, phi: 1.2, radius: 24 } },
+  { name: "editor-holo-free", query: "", width: 1500, height: 1000, editor: true, editorScript: "e._tool = 'energy'; e._floorId = 'eg'; e._solarId = null; e.change((d) => (d.settings.roof.hologram = { field: null, size: 1, right: 0, up: 0, place: 'free', x: 9, z: -2, height: 3.5 })); setTimeout(() => e.fit(), 300);", afterWait: 1500, scrollSide: true },
   { name: "view-flows-garage", query: "?flows", width: 1280, height: 800, editor: true, editorScript: "e.fit();", then3d: "Alle Etagen", then3dAlso: ["Gestapelt"], camera: { theta: 3.6, phi: 1.2, radius: 16 } },
   { name: "view-house-fr", query: "?lang=fr", width: 1280, height: 800, click: "Erdgeschoss" },
   { name: "view-house-es", query: "?lang=es", width: 1280, height: 800, click: "Erdgeschoss" },

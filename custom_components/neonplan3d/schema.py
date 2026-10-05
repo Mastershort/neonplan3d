@@ -358,7 +358,11 @@ CABLE_SCHEMA = vol.Schema(
 # Energie Pro: the hologram hangs on a solar field, moved along it and scaled
 HOLOGRAM_SCHEMA = vol.Schema(
     {
+        vol.Optional("place", default="field"): vol.In(["field", "free"]),
         vol.Optional("field", default=None): vol.Any(None, _ID),
+        vol.Optional("x", default=0.0): vol.All(vol.Coerce(float), vol.Range(min=-500, max=500)),
+        vol.Optional("z", default=0.0): vol.All(vol.Coerce(float), vol.Range(min=-500, max=500)),
+        vol.Optional("height", default=3.0): vol.All(vol.Coerce(float), vol.Range(min=0, max=60)),
         vol.Optional("size", default=1.0): vol.All(vol.Coerce(float), vol.Range(min=0.3, max=3)),
         vol.Optional("right", default=0.0): vol.All(vol.Coerce(float), vol.Range(min=-30, max=30)),
         vol.Optional("up", default=0.0): vol.All(vol.Coerce(float), vol.Range(min=-30, max=30)),

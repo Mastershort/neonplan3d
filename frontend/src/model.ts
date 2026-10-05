@@ -348,8 +348,14 @@ export interface SolarField {
  */
 /** Energie Pro: where the hologram hangs – on a solar field, moved along the field and up the slope, scaled. */
 export interface HologramSettings {
+  /** Where it hangs: on a solar field (default), or free at a point in the plan. */
+  place?: "field" | "free";
   /** The field it hangs on (null: the biggest one). */
   field: string | null;
+  /** Free placement: the point in the plan (m) and the height of the card's middle above the ground floor (m). */
+  x?: number;
+  z?: number;
+  height?: number;
   /** Size factor (1 = normal). */
   size: number;
   /** Offset from the field's middle along the eave (m, + = right) and up the slope (m). */

@@ -656,12 +656,47 @@ export class Fp3dView3d extends LitElement {
     const anchors: { p: [number, number, number]; n: [number, number, number]; floorId: string; size: number; roof: boolean; views: "house" | "all" }[] = [];
     const cards: HoloCard[] = [];
     const anyEnergy = summary.grid !== null || summary.battery !== null || summary.solar !== null;
-    const first = pro && summary.solar !== null ? (fields.find((f) => f.id === holo.field) ?? fields[0]) : undefined;
-    const mainAnchor = first ? anchorOn(first, holo.right, holo.up, holo.size) : null;
+    const free = holo.place === "free" && Number.isFinite(holo.x) && Number.isFinite(holo.z);
+    const first = pro && summary.solar !== null && !free ? (fields.find((f) => f.id === holo.field) ?? fields[0]) : undefined;
+    const mainInverter = first ? inverterOf(first) : null;
+    // the plant whose field carries the main card keeps its own card on that field: the main card steps aside
+    // (just right of the field) unless the editor moved it by hand
+    const shared = !!first && !!mainInverter && !fields.some((f) => f.id !== first.id && inverterOf(f) === mainInverter) && holo.right === 0 && holo.up === 0;
+    const sharedRight = (() => {
+      if (!shared || !first) return 0;
+      const face = fieldFace(b, first);
+      return face ? fieldSize(face, first)[0] / 2 + 1.2 : 0;
+    })();
+    const mainAnchor = first ? anchorOn(first, holo.right + sharedRight, holo.up, holo.size) : null;
     const devicePower = this.devicePowers(hass, b);
     const solarIds = pro && summary.solar !== null ? (b.energy.solar ? [b.energy.solar] : deviceSensors(b, (f) => this.furnitureLinks?.get(f.id)?.power ?? null).solar) : [];
     if (mainAnchor) {
       anchors.push(mainAnchor);
+      cards.push({ kind: "main", name: translate(hass, "holo_title"), w: null, dayIds: solarIds, battery: null });
+    } else if (pro && anyEnergy && free) {
+      // placed free in the plan: a point and a height, the card faces away from the house
+      let cx = 0;
+      let cz = 0;
+      let n = 0;
+      let ground = Infinity;
+      let topFloor = b.floors[0];
+      for (const f of b.floors) {
+        if (f.rooms.length) ground = Math.min(ground, f.elevation);
+        if (f.rooms.length && (!topFloor.rooms.length || f.elevation + f.height > topFloor.elevation + topFloor.height)) topFloor = f;
+        for (const r of f.rooms) for (const [x, z] of r.points) {
+          cx += x;
+          cz += z;
+          n++;
+        }
+      }
+      if (n) {
+        cx /= n;
+        cz /= n;
+      }
+      const dx = holo.x! - cx;
+      const dz = holo.z! - cz;
+      const len = Math.hypot(dx, dz);
+      anchors.push({ p: [holo.x!, (Number.isFinite(ground) ? ground : 0) + (holo.height ?? 3), holo.z!], n: len > 0.01 ? [dx / len, 0, dz / len] : [1, 0, 0], floorId: topFloor.id, size: holo.size, roof: true, views: "house" });
       cards.push({ kind: "main", name: translate(hass, "holo_title"), w: null, dayIds: solarIds, battery: null });
     } else if (pro && anyEnergy && b.floors.some((f) => f.rooms.length)) {
       // no solar field in the plan (a meter and a battery only): the hologram hangs beside the house
@@ -684,16 +719,18 @@ export class Fp3dView3d extends LitElement {
       anchors.push({ p: [x1 + 0.6, top + 0.4, (z0 + z1) / 2], n: [1, 0, 0], floorId: topFloor.id, size: holo.size, roof: true, views: "house" });
       cards.push({ kind: "main", name: translate(hass, "holo_title"), w: null, dayIds: solarIds, battery: null });
     }
-    if (pro && first) {
-      const mainInverter = inverterOf(first);
+    if (pro && summary.solar !== null) {
       const seen = new Set<string>();
       for (const floor of b.floors) {
         for (const inv of floor.furniture.filter((m) => m.type === "inverter")) {
-          if (inv.id === mainInverter || seen.has(inv.id)) continue;
+          // holo: false hides a plant's card (the editor's switch)
+          if (inv.holo === false || seen.has(inv.id)) continue;
           seen.add(inv.id);
+          // its card hangs on one of its own fields, preferably not the one the main card hangs on
           const own = fields.filter((f) => inverterOf(f) === inv.id);
+          const field = (first && inv.id === mainInverter ? own.find((f) => f.id !== first.id) : null) ?? own[0];
           const sensor = this.furnitureLinks?.get(inv.id)?.power ?? null;
-          const anchor = own.length ? anchorOn(own[0], 0, 0, holo.size * 0.85) : null;
+          const anchor = field ? anchorOn(field, 0, 0, holo.size * 0.85) : null;
           if (!anchor || !sensor) continue;
           // its battery: the nearest one on the same floor
           const bat = floor.furniture.filter((m) => m.type === "home_battery").sort((p, q) => Math.hypot(p.x - inv.x, p.z - inv.z) - Math.hypot(q.x - inv.x, q.z - inv.z))[0];

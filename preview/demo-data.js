@@ -193,6 +193,7 @@ const DEVICES = [
   // energy (invented values)
   entity("sensor.netz_leistung", "flur", "420", { friendly_name: "Netz Leistung", device_class: "power", unit_of_measurement: "W" }),
   entity("sensor.pv_leistung", "flur", "1150", { friendly_name: "PV Leistung", device_class: "power", unit_of_measurement: "W" }),
+  entity("sensor.balkon_leistung", "flur", "380", { friendly_name: "Balkonkraftwerk Leistung", device_class: "power", unit_of_measurement: "W" }),
   entity("sensor.akku_leistung", "flur", "-300", { friendly_name: "Akku Leistung", device_class: "power", unit_of_measurement: "W" }),
   entity("sensor.akku_ladestand", "flur", "64", { friendly_name: "Akku Ladestand", device_class: "battery", unit_of_measurement: "%" }),
   entity("sensor.strompreis", null, "0.29", { friendly_name: "Strompreis", device_class: "monetary", unit_of_measurement: "€/kWh" }),
@@ -421,7 +422,9 @@ DEMO_BUILDING.floors[0].outdoor = [
 // meter, solar inverter, home battery and wallbox on the back wall of the garage
 DEMO_BUILDING.floors[0].furniture.push(
   { ...item("meter", 13.75, 0.11, 0.55, 0.21, 1.1), power: "sensor.netz_leistung" },
-  { ...item("inverter", 13.0, 0.11, 0.5, 0.2, 0.65), power: "sensor.pv_leistung" },
+  { ...item("inverter", 13.0, 0.11, 0.5, 0.2, 0.65), id: "inv_main", power: "sensor.pv_leistung" },
+  // a balcony plant of its own: a small inverter with its field on the north face
+  { ...item("inverter", 13.6, 0.11, 0.3, 0.15, 0.4), id: "inv_balkon", name: "Balkonkraftwerk", power: "sensor.balkon_leistung" },
   { ...item("home_battery", 12.3, 0.14, 0.6, 0.25, 1.1), power: "sensor.akku_leistung", soc: "sensor.akku_ladestand" },
   item("wallbox", 10.6, 0.09, 0.3, 0.15, 0.42),
 );
@@ -429,7 +432,15 @@ DEMO_BUILDING.settings = {
   ...DEMO_BUILDING.settings,
   north: 0,
   // a solar field of 2 × 7 modules on the south side of the roof
-  roof: { type: "gable", pitch: 35, overhang: 0.4, solar: [{ id: "pv_sued", face: "main:b", u: 1.4, v: 0.75, rows: 2, cols: 7, portrait: true }],
+  roof: { type: "gable", pitch: 35, overhang: 0.4,
+    solar: [
+      { id: "pv_sued", face: "main:b", u: 1.4, v: 0.75, rows: 2, cols: 7, portrait: true, string: "str_main" },
+      { id: "pv_balkon", face: "main:a", u: 1.4, v: 0.75, rows: 1, cols: 2, portrait: true, string: "str_balkon" },
+    ],
+    strings: [
+      { id: "str_main", name: "Strang Süd", entity: null, inverter: "inv_main" },
+      { id: "str_balkon", name: "Balkon", entity: null, inverter: "inv_balkon" },
+    ],
     // a roof window beside it: open, with the blind half down
     windows: [{ id: "dachfenster", face: "main:b", u: 10.0, v: 1.0, contact: "binary_sensor.schlafzimmer_fenster", cover: "cover.kueche" }],
   },

@@ -119,6 +119,7 @@ type Drag =
   | { kind: "roofcorner"; id: string; corner: [0 | 1, 0 | 1]; base: Building; moved: boolean }
   | { kind: "roofvertex"; id: string; index: number; base: Building; moved: boolean }
   | { kind: "cablept"; id: string; index: number; base: Building; moved: boolean }
+  | { kind: "holopt"; base: Building; moved: boolean }
   | { kind: "freewall"; start: Vec2; end: Vec2 }
   | { kind: "wallmove"; id: string; end: "a" | "b" | null; start: Vec2; startScreen: [number, number]; base: Building; moved: boolean }
   | { kind: "outdoor"; id: string; start: Vec2; startScreen: [number, number]; base: Building; moved: boolean }
@@ -131,7 +132,7 @@ interface Guides {
 }
 
 /** Drags that change the document live (restored when cancelled, recorded in the history when done). */
-const EDIT_DRAGS = new Set(["vertex", "room", "device", "opening", "furniture", "rotate", "resize", "outdoor", "roofmove", "roofcorner", "roofvertex", "outvertex", "solarmove", "solarturn", "cablept"]);
+const EDIT_DRAGS = new Set(["vertex", "room", "device", "opening", "furniture", "rotate", "resize", "outdoor", "roofmove", "roofcorner", "roofvertex", "outvertex", "solarmove", "solarturn", "cablept", "holopt"]);
 
 const HISTORY = 100;
 const SNAP_PX = 10;
@@ -981,6 +982,11 @@ export class Fp3dEditor extends LitElement {
         this.drag = this.isAdmin ? { kind: "furniture", id: marker, start: world, startScreen: local, base: this._doc, moved: false } : { kind: "pan", last: local };
         return;
       }
+      if (this._tool === "energy" && target.closest("[data-holo-pt]")) {
+        // the free hologram's handle
+        this.drag = this.isAdmin ? { kind: "holopt", base: this._doc, moved: false } : { kind: "pan", last: local };
+        return;
+      }
       if (this._tool === "energy") {
         const pt = target.closest("[data-cable-pt]")?.getAttribute("data-cable-pt");
         const lockedCable = (id: string) => !!this._doc.settings.roof.cables?.find((c) => c.id === id)?.locked;
@@ -1473,6 +1479,12 @@ export class Fp3dEditor extends LitElement {
         );
         break;
       }
+      case "holopt": {
+        drag.moved = true;
+        const p = this.snap(world, undefined, e.altKey);
+        this.change((doc) => (doc.settings.roof.hologram = { ...(doc.settings.roof.hologram ?? DEFAULT_HOLOGRAM), place: "free", x: round(p[0]), z: round(p[1]) }), drag.base, false);
+        break;
+      }
       case "roofvertex": {
         drag.moved = true;
         const p = this.snap(world, undefined, e.altKey);
@@ -1650,6 +1662,7 @@ export class Fp3dEditor extends LitElement {
       case "roofcorner":
       case "roofvertex":
       case "cablept":
+      case "holopt":
         if (drag.moved) this.pushHistory(drag.base);
         break;
       case "device":
@@ -2633,7 +2646,18 @@ export class Fp3dEditor extends LitElement {
     const floor = this.floor;
     if (!floor) return nothing;
     const icons: Record<string, string> = { inverter: "⚡", home_battery: "🔋", wallbox: "🔌", meter: "📟", grid_point: "🏁" };
-    return svg`<g class="fp3d-energy-markers">${floor.furniture
+    const h = this._doc.settings.roof.hologram;
+    const holoPt = hasFeature("energy_pro") && h?.place === "free" && Number.isFinite(h.x) && Number.isFinite(h.z) ? this.toScreen([h.x!, h.z!]) : null;
+    return svg`<g class="fp3d-energy-markers">${
+      holoPt
+        ? svg`<g data-holo-pt="1" class="fp3d-energy-marker fp3d-holo-pt">
+          <circle cx=${holoPt[0]} cy=${holoPt[1]} r="17" />
+          <text x=${holoPt[0]} y=${holoPt[1] + 6} class="fp3d-energy-icon">◈</text>
+          <text x=${holoPt[0]} y=${holoPt[1] + 32} class="fp3d-energy-name">${this.t("holo_settings")}</text>
+          <title>${this.t("holo_place_free")}</title>
+        </g>`
+        : nothing
+    }${floor.furniture
       .filter((m) => (ENERGY_DEVICES as readonly string[]).includes(m.type))
       .map((m) => {
         const [x, y] = this.toScreen([m.x, m.z]);
@@ -3033,25 +3057,50 @@ export class Fp3dEditor extends LitElement {
   /** Energie Pro: which solar field the hologram hangs on, how big it is and where exactly. */
   private renderHologramSettings() {
     const fields = this._doc.settings.roof.solar ?? [];
-    if (!fields.length) return nothing;
     const admin = this.isAdmin;
     const h = this._doc.settings.roof.hologram ?? DEFAULT_HOLOGRAM;
+    const free = h.place === "free";
+    if (!fields.length && !free) return nothing;
     const set = (patch: Partial<HologramSettings>) => this.change((d) => (d.settings.roof.hologram = { ...(d.settings.roof.hologram ?? DEFAULT_HOLOGRAM), ...patch }));
     const name = (f: SolarField, i: number) => f.name || `${this.t("solar_field")} ${i + 1}`;
+    // setting it free for the first time puts the handle beside the house, to the right of the rooms
+    const setFree = () => {
+      let x1 = -Infinity;
+      let z0 = Infinity;
+      let z1 = -Infinity;
+      for (const f of this._doc.floors) for (const r of f.rooms) for (const [x, z] of r.points) {
+        x1 = Math.max(x1, x);
+        z0 = Math.min(z0, z);
+        z1 = Math.max(z1, z);
+      }
+      const ok = Number.isFinite(x1);
+      set({ place: "free", x: h.x ?? (ok ? round(x1 + 2) : 0), z: h.z ?? (ok ? round((z0 + z1) / 2) : 0), height: h.height ?? 3 });
+    };
     return html`<section>
       <h3>◈ ${this.t("holo_settings")}</h3>
       <p class="fp3d-sub">${this.t("holo_settings_hint")}</p>
       <div class="fp3d-form">
         <label class="fp3d-field fp3d-wide"
-          >${this.t("holo_field")}
-          <select ?disabled=${!admin} @change=${(e: Event) => set({ field: (e.target as HTMLSelectElement).value || null })}>
-            <option value="" ?selected=${!h.field}>${this.t("holo_field_auto")}</option>
-            ${fields.map((f, i) => html`<option value=${f.id} ?selected=${f.id === h.field}>${name(f, i)}</option>`)}
+          >${this.t("holo_place")}
+          <select ?disabled=${!admin} @change=${(e: Event) => ((e.target as HTMLSelectElement).value === "free" ? setFree() : set({ place: "field" }))}>
+            <option value="field" ?selected=${!free}>${this.t("holo_place_field")}</option>
+            <option value="free" ?selected=${free}>${this.t("holo_place_free")}</option>
           </select>
         </label>
+        ${free
+          ? html`<p class="fp3d-sub fp3d-wide">${this.t("holo_free_hint")}</p>
+              ${this.num("X (m)", h.x ?? 0, (v) => set({ x: round(v) }), 0.25)} ${this.num("Z (m)", h.z ?? 0, (v) => set({ z: round(v) }), 0.25)}
+              ${this.num(this.t("holo_height"), h.height ?? 3, (v) => set({ height: Math.min(60, Math.max(0, round(v))) }), 0.25, 0)}`
+          : html`<label class="fp3d-field fp3d-wide"
+                >${this.t("holo_field")}
+                <select ?disabled=${!admin} @change=${(e: Event) => set({ field: (e.target as HTMLSelectElement).value || null })}>
+                  <option value="" ?selected=${!h.field}>${this.t("holo_field_auto")}</option>
+                  ${fields.map((f, i) => html`<option value=${f.id} ?selected=${f.id === h.field}>${name(f, i)}</option>`)}
+                </select>
+              </label>
+              ${this.num(this.t("holo_right"), h.right, (v) => set({ right: Math.min(30, Math.max(-30, round(v))) }), 0.25)}
+              ${this.num(this.t("holo_up"), h.up, (v) => set({ up: Math.min(30, Math.max(-30, round(v))) }), 0.25)}`}
         ${this.num(this.t("holo_size"), h.size, (v) => set({ size: Math.min(3, Math.max(0.3, round(v))) }), 0.1, 0.3)}
-        ${this.num(this.t("holo_right"), h.right, (v) => set({ right: Math.min(30, Math.max(-30, round(v))) }), 0.25)}
-        ${this.num(this.t("holo_up"), h.up, (v) => set({ up: Math.min(30, Math.max(-30, round(v))) }), 0.25)}
       </div>
     </section>`;
   }
@@ -5474,7 +5523,12 @@ export class Fp3dEditor extends LitElement {
               ><input type="checkbox" .checked=${!!f.holo} ?disabled=${!this.isAdmin} @change=${(ev: Event) => this.updateFurniture({ holo: (ev.target as HTMLInputElement).checked })} />
               ${this.t("furn_holo")}</label
             >`
-          : nothing}
+          : hasFeature("energy_pro") && f.type === "inverter"
+            ? html`<label class="fp3d-check fp3d-wide" title=${this.t("furn_plant_card_hint")}
+                ><input type="checkbox" .checked=${f.holo !== false} ?disabled=${!this.isAdmin} @change=${(ev: Event) => this.updateFurniture({ holo: (ev.target as HTMLInputElement).checked ? undefined : false })} />
+                ${this.t("furn_plant_card")}</label
+              >`
+            : nothing}
       </div>
       ${f.type === "meter"
         ? html`<div class="fp3d-form fp3d-links">
@@ -7171,6 +7225,13 @@ export class Fp3dEditor extends LitElement {
         fill: color-mix(in srgb, #0b1426 80%, transparent);
         stroke: #ffd75a;
         stroke-width: 2;
+      }
+      .fp3d-holo-pt circle {
+        stroke: #c9a4ff;
+        cursor: grab;
+      }
+      .fp3d-holo-pt .fp3d-energy-name {
+        fill: #c9a4ff;
       }
       .fp3d-energy-marker-sel circle {
         stroke: var(--fp3d-accent);
