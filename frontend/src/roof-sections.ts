@@ -585,9 +585,18 @@ export function sectionOverhang(b: Building, s: RoofSection, overhang: number): 
 
 /** Wall tops below a rectangle: the highest floor with a room under its middle (null = none). */
 export function wallTopUnder(b: Building, x0: number, z0: number, x1: number, z1: number): number | null {
-  const c: Vec2 = [(x0 + x1) / 2, (z0 + z1) / 2];
-  const tops = b.floors.filter((f) => f.rooms.some((r) => r.points.length >= 3 && pointInPolygon(c, r.points))).map((f) => f.elevation + f.height);
+  // not the centre alone: an upper floor with a stairwell or a hall cut out in the middle would leave
+  // the roof on the ground floor (#166) – the highest floor any of nine points of the rectangle falls on
+  const pts: Vec2[] = [];
+  for (const u of [0.2, 0.5, 0.8]) for (const v of [0.2, 0.5, 0.8]) pts.push([x0 + (x1 - x0) * u, z0 + (z1 - z0) * v]);
+  const tops = b.floors.filter((f) => f.rooms.some((r) => r.points.length >= 3 && pts.some((p) => pointInPolygon(p, r.points)))).map((f) => f.elevation + f.height);
   return tops.length ? Math.max(...tops) : null;
+}
+
+/** The floor a roof section sits on: the highest one with rooms that starts below the section's base. */
+export function sectionFloor(b: Building, sec: Pick<RoofSection, "base">): Building["floors"][number] | undefined {
+  const floors = b.floors.filter((f) => f.rooms.length > 0).sort((p, q) => p.elevation - q.elevation);
+  return [...floors].reverse().find((f) => f.elevation < sec.base - 0.05) ?? floors[0];
 }
 
 /** Height of the ridge (or of the high edge of a pent roof) above the ground. */

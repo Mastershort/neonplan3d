@@ -8,12 +8,15 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 
 ### Fixed
 
+- A roof section drawn over an upper floor with a gap in its middle (a stairwell) landed on the ground floor; the wall top is now found at nine points, and the roof form gets **Sits on floor** to move a section onto another floor (#166 by speedymk1).
+- Helpers could not be picked: number fields now offer `input_number` and `number` helpers, on/off fields `input_boolean` – for solar, energy, the car and contacts (#161 by vwtuner).
 - Outdoor lamps lit nothing once two rooms of the floor were joined into one light zone (#160 by Thundras).
 - Mirrored furniture showed its inside faces; only lying cylinders and the contact shadow are rewound now, the smart fridge's doors and screen and pack lamps (arc lamp, wall unit) follow the mirror (#159 by Thundras).
 - The state picture of a screen furniture sat below the screen when a mount height was set, and changing only the mount height did not move the glow (#157 by Thundras).
 
 ### New
 
+- **Glass wall:** a new preset under doors & windows – fixed floor-to-ceiling glazing with slim mullions for an indoor glass wall (#163 by xFireShade).
 - **Show a device as furniture:** a placed device turns into a fitting furniture item in its place, already linked (a speaker or smart display for a media player, a lamp for a light …), and back to a pin.
 - **Sound & Cinema, more life:** the quick menu gets **Play** with your stations and playlists (set in the editor, `media_player.play_media`, also for Echos via search phrases) and the player's sources; a speaker's pin steps aside while its card floats; players without a title show their app or source; one card per player, furniture linked by hand first; cards survive short cloud dropouts; the volume answers while dragging.
 - **Home Cinema & Hi-Fi pack, release 2 (free for owners):** 13 smart speakers and smart displays (ball, cylinder, puck, pod, tall, oval, compact and portable multiroom, premium soundbar, displays 5″/7″/8″/15″); with Sound & Cinema their light ring glows in the app's colour and the displays show the cover.

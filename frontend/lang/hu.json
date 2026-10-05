@@ -1213,5 +1213,9 @@
  "as_furniture_hint": "A jelölőt ugyanott egy összekapcsolt bútorra cseréli. Ctrl+Z visszavonja.",
  "as_furniture_pick": "Bútor választása …",
  "as_device": "Vissza jelölőnek",
- "as_device_hint": "A bútort az eszköz jelölőjére cseréli."
+ "as_device_hint": "A bútort az eszköz jelölőjére cseréli.",
+ "roof_on_floor": "Ezen a szinten ül",
+ "roof_on_floor_hint": "A szakaszt ennek a szintnek a falaira teszi.",
+ "style_glass_wall": "Üvegfal (fix)",
+ "preset_glass_wall": "Üvegfal"
 }

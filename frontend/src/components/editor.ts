@@ -15,7 +15,7 @@ import { hasFeature, manualUrl, shopUrl } from "../features.ts";
 import { cameraMotionSensors, detectionKind } from "../markers.ts";
 import { deviceSensors, energySummary, flowSegments, gridPoint, proposeEnergySensors, type EnergyPrefs, type FlowSegment } from "../energy.ts";
 import { isStatusSensor, robotRoomSensor, TOGGLE_KINDS } from "../devices.ts";
-import { dormerParent, effectiveDormer, proposeDormer, sectionGeometry, floorOutline, polygonBox, headroomLines, ridgeHeight, roofSectionsFromRooms, sectionFrame, wallTopUnder } from "../roof-sections.ts";
+import { sectionFloor, dormerParent, effectiveDormer, proposeDormer, sectionGeometry, floorOutline, polygonBox, headroomLines, ridgeHeight, roofSectionsFromRooms, sectionFrame, wallTopUnder } from "../roof-sections.ts";
 import { bestFace, clampField, faceAt, faceCompass, fieldFace, fieldModules, GROUND, pointOnFace, proposeField, proposeGroundField, proposeWindow, proposeWallField, roofFaces, rowCounts, turnGroundField, fieldCenter, wallFaces, windowAsField, windowCorners, onFace, onField, rayOnFace, type RoofFace } from "../solar.ts";
 import type { SurfaceGrab, SurfaceRay } from "../viewer/viewer3d.ts";
 import { storedImageIds } from "../transfer.ts";
@@ -2519,7 +2519,7 @@ export class Fp3dEditor extends LitElement {
     const set = (patch: Partial<RoofWindow>) => this.updateRoofWindow(patch);
     const index = (this._doc.settings.roof.windows ?? []).findIndex((x) => x.id === w.id) + 1;
     const covers = this.entityOptions((id) => id.startsWith("cover."));
-    const contacts = this.entityOptions((id) => id.startsWith("binary_sensor.") || id.startsWith("sensor."));
+    const contacts = this.entityOptions((id) => binaryish(id) || numberish(id));
     return html`<button class="fp3d-btn fp3d-back" @click=${() => (this._roofWinId = null)}>‹ ${this.t("roof_sections")}</button>
       <section>
         <div class="fp3d-h3row">
@@ -3174,7 +3174,7 @@ export class Fp3dEditor extends LitElement {
 
   /** A power sensor: device class power, or a plain sensor in W or kW (templates, MQTT, many meters have no class). */
   private isPowerSensor(id: string): boolean {
-    if (!id.startsWith("sensor.")) return false;
+    if (!numberish(id)) return false;
     const a = this.hass?.states[id]?.attributes;
     return a?.device_class === "power" || a?.unit_of_measurement === "W" || a?.unit_of_measurement === "kW";
   }
@@ -3419,6 +3419,25 @@ export class Fp3dEditor extends LitElement {
               ${num(`${this.t("roof_pitch_short")} ${pent ? "" : sideA}`, sec.pitch_a, (v) => set({ pitch_a: Math.min(75, v) }), 1, 0)}
               ${pent ? nothing : num(`${this.t("roof_pitch_short")} ${sideB}`, sec.pitch_b, (v) => set({ pitch_b: Math.min(75, v) }), 1, 0)}`}
           ${num(this.t("roof_base"), sec.base, (v) => set({ base: v }))}
+          <label class="fp3d-field" title=${this.t("roof_on_floor_hint")}
+            >${this.t("roof_on_floor")}
+            <select
+              ?disabled=${!admin}
+              @change=${(e: Event) => {
+                const f = this._doc.floors.find((x) => x.id === (e.target as HTMLSelectElement).value);
+                if (!f) return;
+                // the section moves onto that floor's wall tops: base and eaves shift by the same amount
+                const top = round(f.elevation + f.height);
+                const shift = top - sec.base;
+                set({ base: top, eave_a: round(sec.eave_a + shift), eave_b: round(sec.eave_b + shift) });
+              }}
+            >
+              ${[...this._doc.floors]
+                .filter((f) => f.rooms.length)
+                .sort((p, q) => q.elevation - p.elevation)
+                .map((f) => html`<option value=${f.id} ?selected=${sectionFloor(this._doc, sec)?.id === f.id}>${f.name}</option>`)}
+            </select></label
+          >
           <p class="fp3d-sub fp3d-wide">${this.t("roof_base_hint")}</p>
           ${num(this.t("roof_overhang"), sec.overhang ?? this._doc.settings.roof.overhang, (v) => set({ overhang: Math.min(2, v) }), 0.05, 0)}
         </div>
@@ -5376,13 +5395,13 @@ export class Fp3dEditor extends LitElement {
     const contacts = this.entityOptions(
       (id) =>
         (id.startsWith("binary_sensor.") && ["door", "window", "opening", "garage_door"].includes(dc(id) ?? "")) ||
-        (id.startsWith("sensor.") && windowPosition(this.hass?.states[id]) !== null),
+        (numberish(id) && windowPosition(this.hass?.states[id]) !== null),
     );
     // handle sensors: text states (open / tilted / closed), a window_state attribute, or a telling name
     const handles = this.entityOptions((id) => {
       const st = this.hass?.states[id];
       if (id.startsWith("binary_sensor.")) return typeof st?.attributes.window_state === "string";
-      return id.startsWith("sensor.") && (windowPosition(st) !== null || /griff|handle|fenster|window|drehgriff/i.test(`${id} ${entityName(this.hass, id)}`));
+      return numberish(id) && (windowPosition(st) !== null || /griff|handle|fenster|window|drehgriff/i.test(`${id} ${entityName(this.hass, id)}`));
     });
     const plainContacts = this.entityOptions((id) => id.startsWith("binary_sensor.") && ["door", "window", "opening", "garage_door"].includes(dc(id) ?? ""));
     type Kind = NonNullable<Opening["sensor"]>;
@@ -5412,7 +5431,7 @@ export class Fp3dEditor extends LitElement {
           ? this.entitySelect(this.t("tilt_entity"), tilt, undefined, contacts, (v) => this.updateOpening(main ? { tilt: v === "none" ? null : v } : { tilt2: v === "none" ? null : v }))
           : nothing}
         ${main
-          ? html`${this.entitySelect(this.t("tilt_angle_entity"), o.tilt_angle ?? null, undefined, this.entityOptions((id) => id.startsWith("sensor.")), (v) => this.updateOpening({ tilt_angle: v === "none" ? null : v }))}
+          ? html`${this.entitySelect(this.t("tilt_angle_entity"), o.tilt_angle ?? null, undefined, this.entityOptions((id) => numberish(id)), (v) => this.updateOpening({ tilt_angle: v === "none" ? null : v }))}
             ${o.tilt_angle && o.tilt_angle !== "none"
               ? html`${this.num(this.t("tilt_angle_max"), o.tilt_max ?? 15, (v) => this.updateOpening({ tilt_max: Math.min(90, Math.max(1, v)) }), 1, 1)}
                 ${this.num(this.t("tilt_angle_offset"), o.tilt_offset ?? 0, (v) => this.updateOpening({ tilt_offset: v }), 0.5)}
@@ -5658,9 +5677,9 @@ export class Fp3dEditor extends LitElement {
     const admin = this.isAdmin;
     const attr = (id: string, key: string) => this.hass?.states[id]?.attributes[key] as string | undefined;
     const power = this.entityOptions((id) => this.isPowerSensor(id));
-    const soc = this.entityOptions((id) => id.startsWith("sensor.") && attr(id, "device_class") === "battery");
+    const soc = this.entityOptions((id) => numberish(id) && attr(id, "device_class") === "battery");
     const tariff = this.entityOptions(
-      (id) => id.startsWith("sensor.") && (attr(id, "device_class") === "monetary" || /\/(kWh|MWh)$/.test(attr(id, "unit_of_measurement") ?? "")),
+      (id) => numberish(id) && (attr(id, "device_class") === "monetary" || /\/(kWh|MWh)$/.test(attr(id, "unit_of_measurement") ?? "")),
     );
     const pick = (key: "grid" | "solar" | "battery" | "battery_soc" | "consumption" | "tariff") => (v: string | null) => this.setEnergy({ [key]: v === "none" ? null : v });
     const links = this.hass ? furnitureEntities(this.hass, this._doc.floors) : new Map<string, { power: string | null }>();
@@ -5883,7 +5902,7 @@ export class Fp3dEditor extends LitElement {
     const sensors = (person: string) => {
       // likely room sensors of this person first (ESPresense / Bermuda name them after the device)
       const slug = person.slice("person.".length);
-      const all = this.entityOptions((id) => id.startsWith("sensor."));
+      const all = this.entityOptions((id) => numberish(id));
       const likely = (id: string) => id.includes(slug) && /(area|room|raum|bermuda|espresense)/.test(id);
       return [...all.filter((o) => likely(o.id)), ...all.filter((o) => !likely(o.id))];
     };
@@ -5998,7 +6017,7 @@ export class Fp3dEditor extends LitElement {
               this.t("furn_soc"),
               f.soc ?? null,
               undefined,
-              this.entityOptions((id) => id.startsWith("sensor.") && (hass.states[id]?.attributes.device_class === "battery" || hass.states[id]?.attributes.unit_of_measurement === "%")),
+              this.entityOptions((id) => numberish(id) && (hass.states[id]?.attributes.device_class === "battery" || hass.states[id]?.attributes.unit_of_measurement === "%")),
               (v) => this.updateFurniture({ soc: v === "none" ? null : v }),
             )}
             ${this.entitySelect(this.t("furn_charge"), f.charge ?? null, undefined, power, (v) => this.updateFurniture({ charge: v === "none" ? null : v }))}
@@ -6011,7 +6030,7 @@ export class Fp3dEditor extends LitElement {
               this.t("furn_wallbox_status"),
               f.status ?? null,
               undefined,
-              this.entityOptions((id) => id.startsWith("binary_sensor.") || id.startsWith("sensor.")),
+              this.entityOptions((id) => binaryish(id) || numberish(id)),
               (v) => this.updateFurniture({ status: v === "none" ? null : v }),
             )}
           </div>`
@@ -6029,7 +6048,7 @@ export class Fp3dEditor extends LitElement {
               this.t("furn_robot_room"),
               f.room_sensor ?? null,
               robotRoomSensor(hass, furnitureEntities(hass, this._doc.floors).get(f.id)?.entity ?? null, null),
-              this.entityOptions((id) => id.startsWith("sensor.")),
+              this.entityOptions((id) => numberish(id)),
               (v) => this.updateFurniture({ room_sensor: v }),
             )}
           </div>`
@@ -6123,8 +6142,8 @@ export class Fp3dEditor extends LitElement {
       <p class="fp3d-sub">${this.t("car_hint")}</p>
       <div class="fp3d-form fp3d-links">
         ${this.entitySelect(this.t("car_device"), car.device ?? null, undefined, any, (v) => set({ device: v === "none" ? null : v }))}
-        ${role("soc", "car_soc", this.entityOptions((id) => id.startsWith("sensor.")))}
-        ${role("range", "car_range", this.entityOptions((id) => id.startsWith("sensor.")))}
+        ${role("soc", "car_soc", this.entityOptions((id) => numberish(id)))}
+        ${role("range", "car_range", this.entityOptions((id) => numberish(id)))}
         ${role("charging", "car_charging", this.entityOptions((id) => /^(sensor|binary_sensor|switch)\./.test(id)))}
         ${role("plugged", "car_plugged", this.entityOptions((id) => id.startsWith("binary_sensor.")))}
         ${role("lock", "car_lock", this.entityOptions((id) => /^(lock|binary_sensor)\./.test(id)))}
@@ -6709,7 +6728,7 @@ export class Fp3dEditor extends LitElement {
       const dc = CLIMATE_CLASSES[key];
       const auto = roomClimateSensors(hass, this.floor ?? null, { ...room, climate: null }, key);
       // the room's own sensors first, then all others; device temperatures (printer, heat pump) last
-      const options = this.entityOptions((id) => id.startsWith("sensor.") && hass.states[id]?.attributes.device_class === dc)
+      const options = this.entityOptions((id) => numberish(id) && hass.states[id]?.attributes.device_class === dc)
         .map((o) => ({ ...o, rank: (entityAreaId(hass, o.id) === room.area_id ? 0 : 1) + (isRoomClimateSensor(hass, o.id) ? 0 : 2) }))
         .sort((a, b) => a.rank - b.rank)
         .map(({ id, label }) => ({ id, label }));
@@ -8478,3 +8497,13 @@ function fold(s: string): string {
 
 /** A stand-in hass for English names (the furniture search also matches the English name). */
 const EN_HASS = { language: "en" } as HomeAssistant;
+
+/** Entities that carry a number: sensors and the number helpers (input_number, number) – #161. */
+function numberish(id: string): boolean {
+  return /^(sensor|input_number|number)\./.test(id);
+}
+
+/** Entities that are on or off: binary sensors and the toggle helper (input_boolean) – #161. */
+function binaryish(id: string): boolean {
+  return /^(binary_sensor|input_boolean)\./.test(id);
+}

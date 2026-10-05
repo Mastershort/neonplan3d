@@ -2,6 +2,7 @@
 
 - **Klang & Kino (Pro-Erweiterung, 3,90 €):** Über spielenden Lautsprechern schwebt eine Karte mit Cover, Titel, Interpret und Lautstärke (Zurück, Abspielen/Pause, Weiter direkt darauf). Schallringe wandern um spielende Lautsprecher, Multiroom-Gruppen sind durch Linien verbunden, und das Schnellmenü eines Media Players bekommt Abspielen/Pause, Titelwechsel und Lautstärke (Diskussion #6 von MisterAndrew3000, die meistgewünschte Idee). **Hinweis für Amazon Echo über Alexa Media Player: Die Lautstärke lässt sich bei vielen Echos nicht oder nur verzögert setzen – eine Grenze der inoffiziellen Amazon-Schnittstelle.**
 - **Auto Pro (Pro-Erweiterung, 5,90 €):** Das Auto auf dem Stellplatz zeigt Ladestand, Reichweite, Laden, Schloss und Klima aus seiner Integration – Lichtband in der Ladestandsfarbe, warmes Licht bei laufender Klimaanlage, Pin mit Prozent und Kilometern, „unterwegs“ mit der Zone des Trackers, Schnellmenü mit Verriegeln/Entriegeln (mit Rückfrage), Klima und Laden. Eine Entität des Autos genügt, den Rest findet NeonPlan am Gerät (Diskussionen #71 und #73, #16 von tomfischer98).
+- **Glaswand:** neue Vorlage bei Türen und Fenstern – feststehende, raumhohe Verglasung mit schmalen Sprossen für eine gläserne Innenwand (#163 von xFireShade).
 - **Gerät als Möbel darstellen:** Ein platziertes Gerät wird mit einem Klick zu einem passenden Möbel an derselben Stelle, schon verknüpft – Lautsprecher oder Smart Display für einen Media Player, Leuchte für ein Licht … – und zurück zum Pin.
 - **Klang & Kino, mehr Leben:** Das Schnellmenü bekommt **Abspielen** mit deinen Sendern und Playlists (im Editor angelegt, auch für Echos per Suchbegriff) und den Quellen des Players; der Pin eines Lautsprechers tritt zur Seite, solange seine Karte schwebt; Player ohne Titel zeigen App oder Quelle; die Karte übersteht kurze Cloud-Aussetzer; der Lautstärkeregler reagiert beim Ziehen.
 - **Pack Heimkino & Hi-Fi, Release 2 (kostenlos für Käufer):** 13 Smart Speaker und Smart Displays (Kugel, Zylinder, Puck, Pod, hoch, oval, Kompakt- und tragbarer Multiroom-Lautsprecher, Premium-Soundbar, Displays 5″/7″/8″/15″); mit Klang & Kino leuchtet ihr Lichtring in der App-Farbe, die Displays zeigen das Cover.
@@ -19,6 +20,8 @@
 
 ### Behoben
 
+- Eine Dachfläche über einem Obergeschoss mit Lücke in der Mitte (Treppenloch) landete auf dem Erdgeschoss; die Wandoberkante wird jetzt an neun Punkten gesucht, und das Dachformular bekommt **Sitzt auf Etage**, um eine Fläche auf eine andere Etage zu setzen (#166 von speedymk1).
+- Helfer ließen sich nicht auswählen: Zahlenfelder bieten jetzt auch `input_number`- und `number`-Helfer, Ein/Aus-Felder `input_boolean` – für PV, Energie, Auto und Kontakte (#161 von vwtuner).
 - Außenleuchten gaben kein Licht mehr ab, sobald zwei Räume der Etage zu einer Licht-Zone verbunden waren (#160 von Thundras).
 - Gespiegelte Möbel zeigten ihre Innenseiten; jetzt stimmen alle Flächen, und die Türen und der Bildschirm des smarten Kühlschranks sowie Pack-Leuchten (Bogenleuchte, Wohnwand) folgen der Spiegelung (#159 von Thundras).
 - Das Zustandsbild eines Bildschirm-Möbels saß bei eingestellter Montagehöhe unter dem Bildschirm, und eine reine Höhenänderung bewegte das Leuchten nicht mit (#157 von Thundras).
@@ -29,6 +32,7 @@
 
 - **Sound & Cinema (Pro add-on, €3.90):** a card floats over playing speakers with cover, title, artist and volume (previous, play/pause, next right on it). Sound rings travel around playing speakers, multiroom groups are joined by lines, and a media player's quick menu gets play/pause, track change and volume (discussion #6 by MisterAndrew3000, the most-voted idea). **Note for Amazon Echo through Alexa Media Player: on many Echos the volume cannot be set, or only with a delay – a limit of the unofficial Amazon interface.**
 - **Car Pro (Pro add-on, €5.90):** the car in its parking spot shows charge, range, charging, lock and climate from its integration – a light band in the charge colour, a warm glow while the climate runs, a pin with percent and kilometres, "away" with the tracker's zone, and a quick menu with lock/unlock (unlocking asks), climate and charging. One entity of the car is enough, the rest is found on its device (discussions #71 and #73, #16 by tomfischer98).
+- **Glass wall:** a new preset under doors & windows – fixed floor-to-ceiling glazing with slim mullions for an indoor glass wall (#163 by xFireShade).
 - **Show a device as furniture:** a placed device turns into a fitting furniture item in its place with one click, already linked – a speaker or smart display for a media player, a lamp for a light … – and back to a pin.
 - **Sound & Cinema, more life:** the quick menu gets **Play** with your stations and playlists (set in the editor, for Echos via search phrases too) and the player's sources; a speaker's pin steps aside while its card floats; players without a title show their app or source; cards survive short cloud dropouts; the volume slider answers while dragging.
 - **Home Cinema & Hi-Fi pack, release 2 (free for owners):** 13 smart speakers and smart displays (ball, cylinder, puck, pod, tall, oval, compact and portable multiroom, premium soundbar, displays 5″/7″/8″/15″); with Sound & Cinema their light ring glows in the app's colour and the displays show the cover.
@@ -46,6 +50,8 @@
 
 ### Fixed
 
+- A roof section drawn over an upper floor with a gap in its middle (a stairwell) landed on the ground floor; the wall top is now found at nine points, and the roof form gets **Sits on floor** to move a section onto another floor (#166 by speedymk1).
+- Helpers could not be picked: number fields now offer `input_number` and `number` helpers, on/off fields `input_boolean` – for solar, energy, the car and contacts (#161 by vwtuner).
 - Outdoor lamps lit nothing once two rooms of the floor were joined into one light zone (#160 by Thundras).
 - Mirrored furniture showed its inside faces; now every face is right, and the smart fridge's doors and screen and pack lamps (arc lamp, wall unit) follow the mirror (#159 by Thundras).
 - The state picture of a screen furniture sat below the screen when a mount height was set, and changing only the mount height did not move the glow (#157 by Thundras).

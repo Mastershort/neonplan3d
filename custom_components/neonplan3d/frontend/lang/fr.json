@@ -1213,5 +1213,9 @@
  "as_furniture_hint": "Remplace le repère par un meuble lié au même endroit. Ctrl+Z annule.",
  "as_furniture_pick": "Choisir un meuble …",
  "as_device": "Revenir au repère",
- "as_device_hint": "Remplace le meuble par le repère de son appareil."
+ "as_device_hint": "Remplace le meuble par le repère de son appareil.",
+ "roof_on_floor": "Repose sur l'étage",
+ "roof_on_floor_hint": "Pose la section sur le haut des murs de cet étage.",
+ "style_glass_wall": "Cloison vitrée (fixe)",
+ "preset_glass_wall": "Cloison vitrée"
 }

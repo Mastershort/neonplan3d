@@ -1213,5 +1213,9 @@
  "as_furniture_hint": "Vervangt de pin door een gekoppeld meubel op dezelfde plek. Ctrl+Z maakt het ongedaan.",
  "as_furniture_pick": "Meubel kiezen …",
  "as_device": "Terug naar pin",
- "as_device_hint": "Vervangt het meubel door de pin van het apparaat."
+ "as_device_hint": "Vervangt het meubel door de pin van het apparaat.",
+ "roof_on_floor": "Ligt op verdieping",
+ "roof_on_floor_hint": "Zet de sectie op de muren van deze verdieping.",
+ "style_glass_wall": "Glazen wand (vast)",
+ "preset_glass_wall": "Glazen wand"
 }

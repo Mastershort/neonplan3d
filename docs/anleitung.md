@@ -187,7 +187,7 @@ Unter **Vorlage (Grundriss-Bild)** lädst du ein Foto oder einen Scan deines Gru
 
 ![Tür ausgewählt](images/editor-opening.jpg)
 
-Mit **Tür & Fenster** tippst du auf eine Wand, eine Raumwand oder eine einzelne Wand. Danach wählst du rechts die **Art**: Tür, Fenster oder Garagentor. Ein Fenster mit Brüstung 0 ist eine Terrassentür.
+Mit **Tür & Fenster** tippst du auf eine Wand, eine Raumwand oder eine einzelne Wand. Danach wählst du rechts die **Art**: Tür, Fenster oder Garagentor. Ein Fenster mit Brüstung 0 ist eine Terrassentür. Die Vorlage **Glaswand** setzt eine feststehende, raumhohe Verglasung mit schmalen Sprossen ohne Flügel – für eine gläserne Innenwand oder Trennwand; Breite und Höhe stellst du frei ein, als Art geht sie auch bei jedem Fenster unter **Stil**.
 
 ![Arten von Öffnungen](images/editor-opening-kinds.jpg)
 
@@ -369,6 +369,7 @@ Ein einfaches Haus bekommt unter **Einstellungen → Dach** ein Flach- oder Satt
 - Jede Dachfläche hat eine **Form** – Sattel, Walm, Krüppelwalm (oben abgewalmter Giebel), Zelt (vier Flächen zur Spitze), Mansard (steil unten, flach oben), Pult, Flach und Attika (Flachdach mit Brüstung) – und eine **Firstrichtung** (↔ oder ↕).
 - **Traufe** und **Neigung** stellst du für beide Seiten getrennt ein. Alle Höhen zählen vom Boden. Eine Seite mit tieferer Traufe zieht weiter herunter, so entsteht etwa ein Abschleppdach über einem niedrigen Anbau. Ein Pultdach steigt von der ersten Seite an; **Seiten tauschen** dreht es um.
 - **Wandoberkante** ist die Höhe, auf der die Wände unter dem Dach enden. Eine neue Dachfläche übernimmt sie von den Räumen darunter, egal welche Etage der Plan gerade zeigt. Von dort werden Giebel und Drempel bis unter das Dach hochgezogen, so ist auch der Raum unter einem Pultdach geschlossen.
+- **Sitzt auf Etage** zeigt, zu welcher Etage die Dachfläche in der 3D-Ansicht gehört, und setzt sie auf die Wandoberkante einer anderen Etage – Wandoberkante und Traufen wandern mit. Das hilft, wenn eine neue Dachfläche auf der falschen Etage gelandet ist, etwa über einem Obergeschoss mit Treppenloch in der Mitte.
 - **Flachdach als freie Form:** Bei einem Flachdach gibt es den Knopf **Umriss des Geschosses übernehmen** – die Fläche bekommt den Umriss der Räume des angezeigten Geschosses (auch L- oder Z-förmig), eine Fläche ohne Kanten statt mehrerer Rechtecke. Die Ecken lassen sich danach im Plan ziehen; **Zurück zum Rechteck** löscht die Form.
 - **Gauben:** Im Formular einer Dachfläche fügt **+ Gaube** eine Gaube auf der gewählten Seite ein – 2 m breit, Front an der Traufwand, Traufe 1,4 m über der Dachtraufe, Satteldach, so tief, dass ihr First auf die Schräge trifft. Eine Gaube ist eine kleine Dachfläche: verschieben, Breite, Höhen und Form (Sattel, Pult) änderst du wie bei jeder anderen. Die Hauptfläche öffnet sich darunter, die Wangen schließen seitlich ab, und die Wand des Dachgeschosses steigt unter der Gaube bis zu ihrer Traufe – dort setzt du mit **Tür & Fenster** das Gaubenfenster.
 - **Zwerchgiebel (Drei-Giebel-Haus):** Ein Giebel, der aus der Traufseite vortritt, ist eine breite Gaube, deren Traufe auf der Wandoberkante liegt: **+ Gaube**, dann Breite ziehen (z. B. 3,4 m) und **Traufe** auf die Wandoberkante setzen. Die Tiefe passt sich von selbst an – die Gaube reicht genau so weit, bis ihr First auf die Schräge trifft, und das Hauptdach öffnet sich nur dort, wo das Gaubendach darüber liegt (Kehlen). Die Dachgeschoss-Wand unter dem Zwerchgiebel steigt bis in den Giebel, das Fenster darin setzt du mit **Tür & Fenster**.
@@ -866,6 +867,9 @@ Das normale Backup von Home Assistant sichert NeonPlan 3D ebenfalls vollständig
 ## 12. Häufige Fragen und Fehlerbehebung
 
 **Hilfe und Rückmeldung:** Einen Fehler meldest du am besten als [Issue auf GitHub](https://github.com/Mastershort/neonplan3d/issues/new/choose), eine Idee als [Diskussion](https://github.com/Mastershort/neonplan3d/discussions/categories/ideas). So geht nichts verloren, alle sehen den Stand, und du wirst in den Release-Notizen genannt, wenn es umgesetzt ist. Die beiden Knöpfe dafür stehen auch im Editor unten in der Seitenleiste und auf der Seite Erweiterungen.
+
+**Kann ich Helfer statt echter Sensoren nehmen?**
+Ja. Überall, wo NeonPlan einen Zahlenwert erwartet (Leistung, Ladestand, Reichweite, Position …), stehen auch `input_number`- und `number`-Helfer zur Wahl, und wo ein Ein/Aus erwartet wird (Kontakt, Anwesenheit …), auch `input_boolean`. Für Leistung braucht der Helfer die Einheit W oder kW.
 
 **Die Lautstärke eines Echo ändert sich nicht.**
 Alexa Media Player setzt die Lautstärke bei manchen Echos nicht oder nur verzögert und meldet den neuen Wert spät zurück. Prüfe es unter Entwicklerwerkzeuge → Aktionen mit `media_player.volume_set`: Passiert dort nichts, liegt es an der Integration (siehe Kapitel 6.5).

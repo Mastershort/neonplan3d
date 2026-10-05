@@ -159,3 +159,8 @@ test("a patch cut out of a lawn decides the ground inside it", () => {
   assert.ok(Math.abs(outdoorGround(floor, 3, 3) - (-0.2 + 0.03)) < 1e-9);
   assert.ok(Math.abs(outdoorGround(floor, 8, 8) - (-0.2 + 0.012)) < 1e-9);
 });
+
+test("a glass wall is a preset of its own (#163)", () => {
+  assert.equal(openingPreset({ type: "window", leaves: 1, sill: 0, style: "glass_wall" }), "glass_wall");
+  assert.equal(openingPreset({ type: "window", leaves: 1, sill: 0, style: null }), "terrace");
+});

@@ -1213,5 +1213,9 @@
  "as_furniture_hint": "Sustituye el pin por un mueble vinculado en el mismo sitio. Ctrl+Z lo deshace.",
  "as_furniture_pick": "Elegir mueble …",
  "as_device": "Volver a pin",
- "as_device_hint": "Sustituye el mueble por el pin de su dispositivo."
+ "as_device_hint": "Sustituye el mueble por el pin de su dispositivo.",
+ "roof_on_floor": "Sobre la planta",
+ "roof_on_floor_hint": "Coloca la sección sobre los muros de esta planta.",
+ "style_glass_wall": "Pared de vidrio (fija)",
+ "preset_glass_wall": "Pared de vidrio"
 }

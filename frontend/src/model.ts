@@ -1033,7 +1033,8 @@ export const OPENING_DEFAULTS = {
 /** Kinds of openings offered when placing one; a terrace door is a window down to the floor. */
 /** Door looks: room doors, front doors (with glass, one or two sidelights), a glass door, a sliding door. */
 export const DOOR_STYLES = ["interior", "front", "front_glass", "sidelight", "sidelights", "glass", "sliding", "passage"] as const;
-export const WINDOW_STYLES = ["standard", "bars"] as const;
+/** "glass_wall": fixed floor-to-ceiling glazing without sashes, slim mullions (an indoor glass wall, #163). */
+export const WINDOW_STYLES = ["standard", "bars", "glass_wall"] as const;
 export type OpeningStyle = (typeof DOOR_STYLES)[number] | (typeof WINDOW_STYLES)[number];
 
 /** The style an opening is drawn with: its own, or the automatic one for its wall. */
@@ -1088,6 +1089,7 @@ export const OPENING_PRESETS = {
   terrace: { type: "window", leaves: 1, width: 1.0, sill: 0, height: 2.1 },
   terrace_double: { type: "window", leaves: 2, width: 1.8, sill: 0, height: 2.1 },
   garage: { type: "garage", leaves: 1, width: 2.5, sill: 0, height: 2.1 },
+  glass_wall: { type: "window", leaves: 1, width: 2.0, sill: 0, height: 2.4, style: "glass_wall" },
 } as const satisfies Record<string, { type: OpeningType; leaves: 1 | 2; width: number; sill: number; height: number; style?: OpeningStyle }>;
 
 export type OpeningPreset = keyof typeof OPENING_PRESETS;
@@ -1095,6 +1097,7 @@ export type OpeningPreset = keyof typeof OPENING_PRESETS;
 /** The preset an opening matches (by type, leaves, style and whether it reaches the floor). */
 export function openingPreset(o: Pick<Opening, "type" | "leaves" | "sill" | "style">): OpeningPreset {
   if (o.type === "garage") return "garage";
+  if (o.type === "window" && o.style === "glass_wall") return "glass_wall";
   const two = o.leaves === 2;
   if (o.type === "door") {
     if (!two && o.style && isFrontDoor(o.style)) return "front";

@@ -6,7 +6,7 @@
 import { Color } from "three";
 import type { Building, Floor, RoofSection, SolarField, Vec2 } from "../model.ts";
 import { polygonArea } from "../model.ts";
-import { cutHole, dormerHoles, dormerParent, effectiveDormer, offsetPolygon, sectionGeometry, sectionHeightAt, sectionPolygon, sectionFrame, sectionOverhang, sectionProfile, sectionUV, type Q, type SectionOverhang } from "../roof-sections.ts";
+import { cutHole, sectionFloor, dormerHoles, dormerParent, effectiveDormer, offsetPolygon, sectionGeometry, sectionHeightAt, sectionPolygon, sectionFrame, sectionOverhang, sectionProfile, sectionUV, type Q, type SectionOverhang } from "../roof-sections.ts";
 import { DEG, GeoBuffer, LineBuffer, pushPrism, shade } from "./geo.ts";
 import { fieldModules, roofFaces, windowCorners, type RoofFace } from "../solar.ts";
 
@@ -230,7 +230,7 @@ function buildSections(b: Building, sections: readonly RoofSection[], overhang: 
   for (const sec of sections) {
     if (Math.abs(sec.x1 - sec.x0) < 0.1 || Math.abs(sec.z1 - sec.z0) < 0.1) continue;
     // the floor the section sits on: the highest one that starts below its walls' top
-    const floor = [...floors].reverse().find((f) => f.elevation < sec.base - 0.05) ?? floors[0];
+    const floor = sectionFloor(b, sec) ?? floors[0];
     // canopies get a part of their own: it rides with the floor but never lifts off like a roof
     const key = sec.open ? `${floor.id}:open` : floor.id;
     let part = parts.get(key);

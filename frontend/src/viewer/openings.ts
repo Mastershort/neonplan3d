@@ -220,6 +220,25 @@ export function buildOpeningParts(infos: readonly OpeningInfo[], states: Readonl
       if (closed > 0.01) panel(blinds, tf, 0.02, W - 0.02, plane, bottom, T, panelC, cut, bucket, 0.5);
       const up = (1 - closed) * T;
       if (up > 0.01) flatPanel(blinds, tf, 0.02, W - 0.02, plane, plane + up, T + 0.03, panelC, bucket, 0.5);
+    } else if (openingStyle(info.opening, info.exterior) === "glass_wall") {
+      // an indoor glass wall: a slim frame, mullions about every 0.9 m, glass from the floor up, no sashes
+      const fw = 0.04;
+      const fd = 0.025;
+      splitBox(frames, tf, 0, fw, mid - fd, mid + fd, S, T, frameC, frameTop, cut, bucket);
+      splitBox(frames, tf, W - fw, W, mid - fd, mid + fd, S, T, frameC, frameTop, cut, bucket);
+      splitBox(frames, tf, fw, W - fw, mid - fd, mid + fd, S, S + 0.03, frameC, frameTop, cut, bucket);
+      splitBox(frames, tf, fw, W - fw, mid - fd, mid + fd, T - fw, T, frameC, frameTop, cut, bucket);
+      const n = Math.max(1, Math.round((W - 2 * fw) / 0.9));
+      const pane = (W - 2 * fw) / n;
+      for (let k = 1; k < n; k++) {
+        const x = fw + k * pane;
+        splitBox(frames, tf, x - 0.02, x + 0.02, mid - fd, mid + fd, S + 0.03, T - fw, frameC, frameTop, cut, bucket);
+      }
+      for (let k = 0; k < n; k++) {
+        const x0 = fw + k * pane + (k ? 0.02 : 0);
+        const x1 = fw + (k + 1) * pane - (k < n - 1 ? 0.02 : 0);
+        panel(glass, tf, x0, x1, mid, S + 0.03, T - fw, GLASS, cut, bucket);
+      }
     } else {
       const fw = 0.06;
       const fd = 0.035;

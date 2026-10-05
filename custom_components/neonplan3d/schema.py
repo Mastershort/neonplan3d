@@ -73,7 +73,7 @@ ROOM_SCHEMA = vol.Schema(
 
 # door looks (room door, front doors with glass and sidelights, glass and sliding door) and window looks
 _OPENING_STYLES = ["interior", "front", "front_glass", "sidelight", "sidelights", "glass", "sliding", "passage"]
-_OPENING_STYLES += ["standard", "bars"]
+_OPENING_STYLES += ["standard", "bars", "glass_wall"]
 
 OPENING_SCHEMA = vol.Schema(
     {

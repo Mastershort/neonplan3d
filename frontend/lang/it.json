@@ -1213,5 +1213,9 @@
  "as_furniture_hint": "Sostituisce il segnaposto con un mobile collegato nello stesso punto. Ctrl+Z annulla.",
  "as_furniture_pick": "Scegli un mobile …",
  "as_device": "Torna a segnaposto",
- "as_device_hint": "Sostituisce il mobile con il segnaposto del dispositivo."
+ "as_device_hint": "Sostituisce il mobile con il segnaposto del dispositivo.",
+ "roof_on_floor": "Poggia sul piano",
+ "roof_on_floor_hint": "Mette la sezione sui muri di questo piano.",
+ "style_glass_wall": "Parete in vetro (fissa)",
+ "preset_glass_wall": "Parete in vetro"
 }

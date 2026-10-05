@@ -212,3 +212,18 @@ test("a dormer sits on a side of its section, opens the slope under it and lifts
   const beside = roofUnderAt(b, 3, 0.5)!;
   assert.ok(underDormer > beside + 0.5, `dormer ${underDormer} above slope ${beside}`);
 });
+
+test("a roof drawn over an upper floor with a hole in its middle sits on the upper floor (#166)", async () => {
+  const { wallTopUnder, sectionFloor } = await import("./roof-sections.ts");
+  const { emptyBuilding, newFloor } = await import("./model.ts");
+  const b = emptyBuilding();
+  const room = (id: string, x0: number, z0: number, x1: number, z1: number) => ({ id, name: id, area_id: null, points: [[x0, z0], [x1, z0], [x1, z1], [x0, z1]] as [number, number][], floor_material: "wood" as const });
+  // ground floor 10 × 8; the upper floor has two rooms left and right, a stairwell gap in the middle
+  b.floors = [
+    { ...newFloor("eg", "EG", 0), height: 2.5, rooms: [room("a", 0, 0, 10, 8)] },
+    { ...newFloor("og", "OG", 2.75), height: 2.5, rooms: [room("l", 0, 0, 4, 8), room("r", 6, 0, 10, 8)] },
+  ];
+  const top = wallTopUnder(b, 0, 0, 10, 8);
+  assert.equal(top, 5.25);
+  assert.equal(sectionFloor(b, { base: top! })?.id, "og");
+});
