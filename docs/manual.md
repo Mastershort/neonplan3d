@@ -173,6 +173,7 @@ Walls are created automatically: every shared edge of two rooms becomes an inter
 | **Weather entity** | Which weather entity drives the weather outside, see [6.2](#62-weather-outside) |
 | **Weather effects in 3D** | Which effects are shown |
 | **Start view** | Turn and zoom the house in the 3D pane on the right the way it should open (e.g. from the garden side) and press **Remember the current 3D view as the start**. The 3D view, the card and the kiosk then open the house like that, and an opened floor is shown from the same side as well; **Default** resets it |
+| **Favourites** | Scenes, scripts, automations, buttons and switches for the central menu (star) of the 3D view: party, presence simulation, shading, watering. Pick them with the search, order them with ↑ ↓, ✕ removes one |
 
 ### 4.6 Floor plan image as a template
 
@@ -491,7 +492,7 @@ Each device remembers these switches.
 
 ![Room panel](images/view-room-panel.jpg)
 
-In a room the room panel opens on the right, at the bottom on phones and portrait tablets. It shows the room's devices by kind: lights with brightness, colour temperature and colours, **All off**, covers, heating, media, switches, cameras with snapshot, sensors, and scenes & scripts.
+In a room the room panel opens on the right, at the bottom on phones and portrait tablets. It shows the room's devices by kind: lights with brightness, colour temperature and colours, **All on** and **All off**, covers with **All up** and **All down**, heating, media, switches, cameras with snapshot, sensors, and scenes & scripts.
 
 It shows the devices placed in the room and everything you added with ☆ in the editor. **More devices of the area** shows the rest.
 
@@ -500,6 +501,8 @@ With a selected room and no open room panel, the area's **scenes and scripts** a
 ### 5.5 Search
 
 ![Search](images/view-find.jpg)
+
+The **star** above the magnifier opens the **central menu**: lights on or off and blinds up or down for the floor shown – in the house view for the whole house, then with a confirmation ("Sure?", a second tap runs it). Garage doors and gates do not count as blinds. Below it the **favourites** from the editor; a tap starts a scene or script, presses a button or toggles a switch. In the card, `central: false` hides the star.
 
 The magnifier at the bottom left opens **"Where is …?"**. Type a device or room name. A hit flies the camera there and the device flashes.
 
@@ -757,6 +760,7 @@ theme: neon             # neon | blueprint | day
 accent: "#ff8a00"       # an accent colour of your own (neon lines, buttons, pins); leave out for cyan
 markers: important      # none | important | all
 marker_names: false     # true: devices with an own name show it under their marker
+central: true           # the star with the central menu (all lights, blinds, favourites)
 heatmap: none           # none | temperature | humidity | co2
 room_panel: true        # tapping a room opens the room panel
 room_names: true

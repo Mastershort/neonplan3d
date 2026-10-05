@@ -4994,7 +4994,7 @@ export class Fp3dEditor extends LitElement {
             : floor
               ? this.renderRoomList(floor)
               : nothing}
-      ${admin ? this.renderStartView() : nothing}
+      ${admin ? this.renderStartView() : nothing} ${admin ? this.renderFavorites() : nothing}
       ${this.renderHelpLinks()}
       ${admin && SHOW_PRESENCE ? this.renderPresenceSettings() : nothing}
       ${floor && admin ? this.renderBackgroundForm(floor) : nothing} ${admin ? this.renderSettings() : nothing}
@@ -5622,6 +5622,39 @@ export class Fp3dEditor extends LitElement {
           <text class="fp3d-headroom-label" x=${(x1 + x2) / 2} y=${(y1 + y2) / 2 - 4}>${formatNumber(this.hass, h, 1)} m</text>`;
       }),
     )}`;
+  }
+
+  /** Favourites of the house: scenes, scripts and switches in the central menu (star) of the 3D view (#145). */
+  private renderFavorites() {
+    const list = this._doc.settings.favorites ?? [];
+    const domains = ["scene", "script", "automation", "button", "input_button", "switch", "input_boolean", "light", "fan", "cover", "lock"];
+    const options = this.entityOptions((id) => domains.includes(id.split(".")[0]) && !list.includes(id));
+    const set = (next: string[]) => this.change((d) => (d.settings.favorites = next.length ? next : undefined));
+    const move = (i: number, by: number) => {
+      const next = [...list];
+      const [x] = next.splice(i, 1);
+      next.splice(Math.max(0, Math.min(next.length, i + by)), 0, x);
+      set(next);
+    };
+    return html`<details class="fp3d-section">
+      <summary>${this.t("favorites")}${list.length ? html` <span class="fp3d-lib-count">${list.length}</span>` : nothing}</summary>
+      <p class="fp3d-sub">${this.t("favorites_hint")}</p>
+      ${list.map(
+        (id, i) => html`<div class="fp3d-row fp3d-dev-row">
+          <span class="fp3d-dev-name"><span>${entityName(this.hass, id)}</span></span>
+          <button class="fp3d-pin" title=${this.t("move_up")} ?disabled=${i === 0} @click=${() => move(i, -1)}>↑</button>
+          <button class="fp3d-pin" title=${this.t("move_down")} ?disabled=${i === list.length - 1} @click=${() => move(i, 1)}>↓</button>
+          <button class="fp3d-pin" title=${this.t("delete")} @click=${() => set(list.filter((x) => x !== id))}>✕</button>
+        </div>`,
+      )}
+      ${list.length < 40
+        ? html`<div class="fp3d-form">
+            ${this.entitySelect(this.t("favorites_add"), null, undefined, options, (v) => {
+              if (v && v !== "none" && !list.includes(v)) set([...list, v]);
+            })}
+          </div>`
+        : nothing}
+    </details>`;
   }
 
   /** The camera the house opens with: the editor's 3D pane as it stands right now, or the default. */

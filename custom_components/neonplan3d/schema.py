@@ -490,6 +490,8 @@ SETTINGS_SCHEMA = vol.Schema(
         vol.Optional("north", default=0): vol.All(vol.Coerce(float), vol.Range(min=-360, max=360)),
         # plan lock: rooms, walls, doors, windows and outdoor areas cannot be moved by accident
         vol.Optional("lock_plan", default=False): bool,
+        # favourites of the house in the central menu of the 3D view (scenes, scripts, switches …)
+        vol.Optional("favorites", default=list): vol.All([vol.All(str, vol.Length(max=255))], vol.Length(max=40)),
         # the camera the house view opens with (None = fitted from the front left)
         vol.Optional("start_view", default=None): vol.Any(
             None,

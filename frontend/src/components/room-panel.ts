@@ -171,14 +171,30 @@ export class Fp3dRoomPanel extends LitElement {
           ? this.section(
               "panel_lights",
               lights.map((st) => this.lightRow(st)),
-              lightsOn.length
+              html`${lightsOn.length < lights.length
+                ? html`<button class="fp3d-btn fp3d-rp-small" @click=${() => this.call("light", "turn_on", { entity_id: lights.filter((l) => !isUnavailable(l)).map((l) => l.entity_id) })}>
+                    ${this.t("panel_all_on")}
+                  </button>`
+                : nothing}${lightsOn.length
                 ? html`<button class="fp3d-btn fp3d-rp-small" @click=${() => this.call("light", "turn_off", { entity_id: lightsOn.map((l) => l.entity_id) })}>
                     ${this.t("panel_all_off")}
                   </button>`
+                : nothing}`,
+            )
+          : nothing}
+        ${covers.length
+          ? this.section(
+              "panel_covers",
+              covers.map((st) => this.coverRow(st)),
+              covers.length > 1
+                ? html`<button class="fp3d-btn fp3d-rp-small" @click=${() => this.call("cover", "open_cover", { entity_id: covers.filter((c) => !isUnavailable(c)).map((c) => c.entity_id) })}>
+                      ${this.t("panel_all_open")}</button
+                    ><button class="fp3d-btn fp3d-rp-small" @click=${() => this.call("cover", "close_cover", { entity_id: covers.filter((c) => !isUnavailable(c)).map((c) => c.entity_id) })}>
+                      ${this.t("panel_all_close")}
+                    </button>`
                 : nothing,
             )
           : nothing}
-        ${covers.length ? this.section("panel_covers", covers.map((st) => this.coverRow(st))) : nothing}
         ${climates.length ? this.section("panel_climate", climates.map((st) => this.climateRow(st))) : nothing}
         ${media.length ? this.section("panel_media", media.map((st) => this.mediaRow(st))) : nothing}
         ${switches.length ? this.section("panel_switches", switches.map((st) => this.switchRow(st))) : nothing}

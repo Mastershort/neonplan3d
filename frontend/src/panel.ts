@@ -1113,7 +1113,8 @@ export class Floorplan3dPanel extends LitElement {
         position: absolute;
         right: 12px;
         bottom: 12px;
-        left: 60px;
+        /* room for the search button and the eye beside it */
+        left: 100px;
         display: flex;
         flex-wrap: wrap;
         justify-content: center;

@@ -175,6 +175,7 @@ Unten in der Seitenleiste klappt **Einstellungen** auf:
 | **Wetter-Entität** | Welche Wetter-Entität das Wetter draußen liefert, siehe [6.2](#62-wetter-draußen) |
 | **Wetter-Effekte in 3D** | Welche Effekte gezeigt werden |
 | **Startansicht** | Drehe und zoome das Haus in der 3D-Ansicht rechts so, wie es sich öffnen soll (zum Beispiel von der Gartenseite), und drücke **Aktuelle 3D-Ansicht als Start merken**. 3D-Ansicht, Karte und Kiosk öffnen das Haus dann so, und auch eine geöffnete Etage wird von derselben Seite gezeigt; **Standard** setzt zurück |
+| **Favoriten** | Szenen, Skripte, Automationen, Tasten und Schalter für das Zentral-Menü (Stern) der 3D-Ansicht: Party, Anwesenheitssimulation, Verschattung, Bewässerung. Auswählen mit der Suche, Reihenfolge mit ↑ ↓, ✕ entfernt |
 
 ### 4.6 Grundriss-Bild als Vorlage
 
@@ -493,7 +494,7 @@ Alle Schalter merkt sich das jeweilige Gerät.
 
 ![Raumfenster](images/view-room-panel.jpg)
 
-In einem Raum öffnet sich rechts das Raumfenster, auf Handys und hochkant unten. Es zeigt die Geräte des Raums nach Art: Licht mit Helligkeit, Farbtemperatur und Farben, **Alle aus**, Rollläden, Heizung, Medien, Schalter, Kameras mit Standbild, Sensoren sowie Szenen & Skripte.
+In einem Raum öffnet sich rechts das Raumfenster, auf Handys und hochkant unten. Es zeigt die Geräte des Raums nach Art: Licht mit Helligkeit, Farbtemperatur und Farben, **Alle an** und **Alle aus**, Rollläden mit **Alle auf** und **Alle zu**, Heizung, Medien, Schalter, Kameras mit Standbild, Sensoren sowie Szenen & Skripte.
 
 Es zeigt die Geräte, die im Plan im Raum stehen, und alles, was du im Editor mit ☆ hinzugefügt hast. **Weitere Geräte des Bereichs** blendet den Rest ein.
 
@@ -502,6 +503,8 @@ Bei einem ausgewählten Raum ohne offenes Raumfenster erscheinen unten die **Sze
 ### 5.5 Suchen
 
 ![Suche](images/view-find.jpg)
+
+Der **Stern** über der Lupe öffnet das **Zentral-Menü**: Lichter an oder aus und Rollläden auf oder zu für die gezeigte Etage – in der Hausansicht für das ganze Haus, dann mit einer Rückfrage („Sicher?“, ein zweiter Tipp führt es aus). Garagentore und Tore zählen nicht als Rollläden. Darunter stehen die **Favoriten** aus dem Editor; ein Tipp startet eine Szene oder ein Skript, drückt eine Taste oder schaltet einen Schalter um. In der Karte blendet `central: false` den Stern aus.
 
 Die Lupe unten links öffnet **„Wo ist …?“**. Tippe einen Gerätenamen oder Raum. Ein Treffer fliegt die Kamera dorthin, das Gerät blinkt.
 
@@ -759,6 +762,7 @@ theme: neon             # neon | blueprint | day
 accent: "#ff8a00"       # eigene Akzentfarbe (Linien im Neon-Look, Knöpfe, Pins); weglassen = Cyan
 markers: important      # none | important | all
 marker_names: false     # true: Geräte mit eigenem Namen zeigen ihn unter dem Symbol
+central: true           # der Stern mit dem Zentral-Menü (alle Lichter, Rollläden, Favoriten)
 heatmap: none           # none | temperature | humidity | co2
 room_panel: true        # Raum antippen öffnet das Raumfenster
 room_names: true

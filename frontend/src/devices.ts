@@ -994,3 +994,38 @@ export function robotRoom<R extends { name: string; area_id?: string | null }>(h
   const names = (r: R) => [r.name, r.area_id ?? "", (r.area_id && hass.areas?.[r.area_id]?.name) || ""].map(roomKey).filter(Boolean);
   return rooms.find((r) => names(r).includes(want)) ?? rooms.find((r) => names(r).some((n) => n.length >= 3 && (n.includes(want) || want.includes(n)))) ?? null;
 }
+
+/** Covers that are doors rather than blinds: a central "close all" leaves them alone. */
+const DOOR_COVERS = new Set(["garage", "gate", "door"]);
+
+/**
+ * Lights and blinds of a floor for the central "all on / all off" (#145): the main entities of its
+ * rooms' areas (without the ones a room hides), placed devices and linked furniture. Garage doors and
+ * gates are no blinds and stay out.
+ */
+export function floorControls(hass: HomeAssistant, floor: Floor): { lights: string[]; covers: string[] } {
+  const lights = new Set<string>();
+  const covers = new Set<string>();
+  const add = (id: string | null | undefined) => {
+    if (!id || id === "none" || !hass.states[id]) return;
+    const kind = kindOf(id);
+    if (kind === "light") lights.add(id);
+    else if (kind === "cover" && !DOOR_COVERS.has(String(hass.states[id].attributes.device_class ?? ""))) covers.add(id);
+  };
+  for (const room of floor.rooms) {
+    const hidden = new Set(room.hidden ?? []);
+    for (const id of primaryEntities(hass, areaEntities(hass, room.area_id))) if (!hidden.has(id)) add(id);
+  }
+  for (const pl of floor.placements) add(pl.entity_id);
+  for (const f of floor.furniture) add(f.entity);
+  return { lights: [...lights], covers: [...covers] };
+}
+
+/** The service a favourite runs when tapped: scenes and scripts start, buttons are pressed, the rest toggles. */
+export function favoriteCall(entityId: string): [domain: string, service: string] {
+  const domain = entityId.split(".")[0];
+  if (domain === "scene" || domain === "script") return [domain, "turn_on"];
+  if (domain === "automation") return [domain, "trigger"];
+  if (domain === "button" || domain === "input_button") return [domain, "press"];
+  return ["homeassistant", "toggle"];
+}

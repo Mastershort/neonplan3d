@@ -35,6 +35,7 @@ const DEFAULTS: Partial<CardConfig> = {
   controls_hidden: false,
   controls_hide_after: 0,
   marker_names: false,
+  central: true,
   night: "off",
   idle_orbit: false,
 };
@@ -142,6 +143,10 @@ export class Floorplan3dCardEditor extends LitElement {
     return html`<label class="toggle">
         <input type="checkbox" .checked=${on} @change=${(e: Event) => this.set("controls", (e.target as HTMLInputElement).checked ? true : undefined)} />
         <span>${this.t("card_controls")}<small>${this.t("card_controls_hint")}</small></span>
+      </label>
+      <label class="toggle">
+        <input type="checkbox" .checked=${v.central} @change=${(e: Event) => this.set("central", (e.target as HTMLInputElement).checked ? undefined : false)} />
+        <span>${this.t("card_central")}<small>${this.t("card_central_hint")}</small></span>
       </label>
       <label class="toggle">
         <input type="checkbox" .checked=${v.marker_names} @change=${(e: Event) => this.set("marker_names", (e.target as HTMLInputElement).checked ? true : undefined)} />

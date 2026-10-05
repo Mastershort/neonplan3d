@@ -456,6 +456,7 @@ DEMO_BUILDING.floors[0].furniture.push(
 DEMO_BUILDING.settings = {
   ...DEMO_BUILDING.settings,
   north: 0,
+  favorites: ["scene.wohnzimmer_film", "scene.wohnzimmer_lesen", "script.gute_nacht"],
   // a solar field of 2 × 7 modules on the south side of the roof
   roof: { type: "gable", pitch: 35, overhang: 0.4,
     solar: [

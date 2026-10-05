@@ -439,6 +439,8 @@ export interface SolarString {
 }
 
 export interface BuildingSettings {
+  /** Favourites of the house: scenes, scripts, automations, buttons and switches in the central menu of the 3D view (#145). */
+  favorites?: string[];
   wall_exterior: number;
   wall_interior: number;
   grid: number;

@@ -24,6 +24,8 @@ export interface CardConfig {
   markers?: "none" | "important" | "all";
   /** Every device with an own name shows it under its marker (#156). */
   marker_names?: boolean;
+  /** The star with the central menu: all lights / blinds of the floor or house and the favourites (default true, #145). */
+  central?: boolean;
   /** Heatmap of the rooms: none | temperature | humidity | co2. */
   heatmap?: "none" | "temperature" | "humidity" | "co2";
   /** Look: neon | blueprint | day. */

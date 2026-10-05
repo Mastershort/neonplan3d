@@ -519,3 +519,32 @@ test("a door with a roller shutter shows the blind at the cover's position", () 
   // without a cover a door has no blind
   assert.equal(openingState(hass, { cover: null, contact: null, tilt: null }, "door").cover, null);
 });
+
+test("the central menu switches a floor's lights and blinds, not its garage door (#145)", async () => {
+  const { floorControls, favoriteCall } = await import("./devices.ts");
+  const st = (entity_id: string, state: string, attributes: Record<string, unknown> = {}) => ({ entity_id, state, attributes });
+  const hass = {
+    language: "de",
+    states: {
+      "light.decke": st("light.decke", "on"),
+      "light.stehlampe": st("light.stehlampe", "off"),
+      "cover.rollo": st("cover.rollo", "open", { device_class: "shutter" }),
+      "cover.garage": st("cover.garage", "closed", { device_class: "garage" }),
+    },
+    entities: {
+      "light.decke": { entity_id: "light.decke", area_id: "wz" },
+      "cover.rollo": { entity_id: "cover.rollo", area_id: "wz" },
+      "cover.garage": { entity_id: "cover.garage", area_id: "wz" },
+    },
+    devices: {},
+    areas: { wz: { area_id: "wz", name: "Wohnzimmer" } },
+  } as unknown as HomeAssistant;
+  const floor = { ...newFloor("eg", "EG", 0), rooms: [{ id: "r", name: "WZ", area_id: "wz", points: [[0, 0], [4, 0], [4, 4], [0, 4]] as [number, number][], floor_material: "wood" as const }] };
+  floor.placements = [{ entity_id: "light.stehlampe", x: 1, z: 1, y: null }];
+  const c = floorControls(hass, floor);
+  assert.deepEqual(c.lights.sort(), ["light.decke", "light.stehlampe"]);
+  assert.deepEqual(c.covers, ["cover.rollo"]);
+  assert.deepEqual(favoriteCall("scene.party"), ["scene", "turn_on"]);
+  assert.deepEqual(favoriteCall("button.klingel"), ["button", "press"]);
+  assert.deepEqual(favoriteCall("switch.bewaesserung"), ["homeassistant", "toggle"]);
+});
