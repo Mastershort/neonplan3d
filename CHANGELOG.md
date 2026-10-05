@@ -4,6 +4,12 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 [releases page](https://github.com/Mastershort/neonplan3d/releases). Ideas and votes:
 [Discussions → Ideas](https://github.com/Mastershort/neonplan3d/discussions/categories/ideas).
 
+## Unreleased
+
+### Fixed
+
+- Device holograms (Energy Pro) sat at the wrong height on floors above or below ground – the floor's elevation was left out (#151 by fschade).
+
 ## 1.11.0
 
 ### New

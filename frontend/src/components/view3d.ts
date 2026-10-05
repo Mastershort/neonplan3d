@@ -779,7 +779,8 @@ export class Fp3dView3d extends LitElement {
           const sensor = this.furnitureLinks?.get(f.id)?.power ?? null;
           const c = consumers.find((k) => k.id === f.id);
           if (!sensor && !c) continue;
-          const top = mountBase(floor, f) + f.h;
+          // anchors are building coordinates: the floor's elevation plus the device's top on its floor (#151)
+          const top = floor.elevation + mountBase(floor, f) + f.h;
           anchors.push({ p: [f.x, top + 0.1, f.z], n: [0, 1, 0], floorId: floor.id, size: holo.size * 0.7, roof: false, views: "all" });
           cards.push({
             kind: "device",
