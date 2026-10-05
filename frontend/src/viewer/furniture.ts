@@ -1130,11 +1130,12 @@ function packColor(value: string | undefined, top: boolean): number | null {
 }
 
 /** Model of a pack item: its parts scaled to the item's size; glowing parts take `glow` (a lit lamp). */
-function packModel(b: Builder, item: PackItem, w: number, d: number, h: number, base: number, glow: number | null, onlyGlow = false): void {
+function packModel(b: Builder, item: PackItem, w: number, d: number, h: number, base: number, glow: number | null, only: ((p: PackItem["parts"][number]) => boolean) | null = null): void {
+  const onlyGlow = !!only;
   for (const q of item.parts) {
-    // only the glowing parts, a hair larger so they cover the item's own (a speaker's light ring)
-    if (onlyGlow && !q.glow) continue;
-    const p = onlyGlow ? { ...q, w: q.w + 0.006 / w, d: q.d + 0.006 / d, y: Math.max(0, q.y - 0.002 / h), h: q.h + 0.004 / h } : q;
+    // only some parts (the glowing ones of a speaker, a car's windows), a hair larger so they cover the item's own
+    if (only && !only(q)) continue;
+    const p = onlyGlow ? { ...q, glow: true, w: q.w + 0.006 / w, d: q.d + 0.006 / d, y: Math.max(0, q.y - 0.002 / h), h: q.h + 0.004 / h } : q;
     const lit = p.glow && glow !== null;
     const side = lit ? glow : (packColor(p.color, false) ?? C.body);
     // without a top colour, the top is the role's top shade or a little lighter
@@ -1187,13 +1188,13 @@ export function pushCameraModel(buf: GeoBuffer, model: "camera_wall" | "camera_c
 }
 
 /** The glowing parts of a pack item that is no lamp (a smart speaker's light ring) in `color`: for the screen layer. */
-export function pushPackGlow(buf: GeoBuffer, item: PackItem, f: Pick<Furniture, "x" | "z" | "rotation" | "w" | "d" | "h" | "mirror">, base: number, color: number): void {
+export function pushPackGlow(buf: GeoBuffer, item: PackItem, f: Pick<Furniture, "x" | "z" | "rotation" | "w" | "d" | "h" | "mirror">, base: number, color: number, pick: (p: PackItem["parts"][number]) => boolean = (p) => !!p.glow): void {
   const a = f.rotation * DEG;
   const c = Math.cos(a);
   const s = Math.sin(a);
   const mx = f.mirror ? -1 : 1;
   const tf: Tf = (x, z) => [f.x + mx * x * c - z * s, f.z + mx * x * s + z * c];
-  packModel(new Builder(buf, new LineBuffer(), tf), item, Math.max(0.05, f.w), Math.max(0.05, f.d), Math.max(0.005, f.h), base, color, true);
+  packModel(new Builder(buf, new LineBuffer(), tf), item, Math.max(0.05, f.w), Math.max(0.05, f.d), Math.max(0.005, f.h), base, color, pick);
 }
 
 /** A pack lamp into the lamp buffer: glowing parts in the light's colour (`glow`), or dark when off. */

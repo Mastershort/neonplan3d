@@ -1526,7 +1526,12 @@ export class Fp3dView3d extends LitElement {
             const col: [number, number, number] = car.soc >= 50 ? [0.3, 1, 0.5] : car.soc >= 20 ? [1, 0.8, 0.25] : [1, 0.3, 0.25];
             faces.push({ part: "band", color: col, level: car.charging ? 1 : 0.6 });
           }
-          if (car.climateOn) faces.push({ part: "all", color: [1, 0.62, 0.3], level: 0.3 });
+          if (car.climateOn) {
+            // the cabin glows through the windows: warm while heating (or unknown), cool blue while cooling
+            const clim = car.entities.climate ? hass.states[car.entities.climate] : undefined;
+            const cooling = !!clim && (clim.attributes.hvac_action === "cooling" || clim.state === "cool");
+            faces.push({ part: "cabin", color: cooling ? [0.45, 0.8, 1] : [1, 0.55, 0.22], level: 0.35 });
+          }
           if (faces.length) screens.set(`${f.id}:vehicle`, { color: faces[0].color, level: faces[0].level, faces });
         }
         if (f.type === "radiator" && st && kindOf(st.entity_id) === "climate") {

@@ -693,7 +693,7 @@ Auto Pro hängt am **Stellplatz**, nicht am Fahrzeug-Möbel. Steht dein Auto als
 
 **Im Haus:** Das Fahrzeug trägt ein **Lichtband** in der Farbe des Ladestands (grün über 50 %, gelb bis 20 %, rot darunter), kräftiger, solange es lädt. Läuft die Klima oder das Vorheizen, glimmt das Auto warm. Der **Pin am Stellplatz** zeigt „78 % · 312 km · ⚡ 7,4 kW · 🔒“. Ist das Auto weg, bleibt der Stellplatz leer und der Pin sagt **unterwegs**, mit der Zone des Trackers, wenn es eine gibt („unterwegs · Arbeit“).
 
-**Glaskarte:** Über dem Auto schwebt eine Karte im Look von Energie Pro und Klang & Kino: Ladestand groß in seiner Farbe mit Balken, Reichweite, Ladeleistung beim Laden, dazu Knöpfe für Schloss (Entriegeln fragt nach), Klima und – bei einem Lade-Schalter – Laden. Ein Tipp auf den Kopf klappt sie zusammen. Solange die Karte steht, tritt der Pin zur Seite; ist das Auto weg, zeigt der Pin „unterwegs“.
+**Glaskarte:** Über dem Auto schwebt eine Karte im Look von Energie Pro und Klang & Kino: Ladestand groß in seiner Farbe mit Balken, Reichweite, Ladeleistung beim Laden, dazu Knöpfe für Schloss (Entriegeln fragt nach), Klima und – bei einem Lade-Schalter – Laden. Läuft die Klima, leuchten die Scheiben des Autos von innen – warm beim Heizen, kühl-blau, wenn eine Klima-Entität „kühlen“ meldet. Ein Tipp auf den Kopf klappt die Karte zusammen. Solange die Karte steht, tritt der Pin zur Seite; ist das Auto weg, zeigt der Pin „unterwegs“.
 
 **Schnellmenü:** Lange drücken auf den Pin: **Verriegeln / Entriegeln** (Entriegeln fragt nach), **Klima an / aus**, **Laden starten / stoppen** (bei einem Lade-Schalter), dazu Ladestand und Reichweite.
 

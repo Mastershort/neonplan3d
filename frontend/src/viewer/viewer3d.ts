@@ -236,7 +236,7 @@ export interface ScreenState {
   plain?: boolean;
   /** Furniture with a state: glowing faces on top of the item instead of a screen – the whole top, or a half of it. */
   // (see also SoundSource below)
-  faces?: { part: "all" | "left" | "right" | "top" | "bottom" | "band"; color: [number, number, number]; level: number }[];
+  faces?: { part: "all" | "left" | "right" | "top" | "bottom" | "band" | "cabin"; color: [number, number, number]; level: number }[];
 }
 
 /** Position of the sun (from sun.sun): degrees above the horizon and clockwise from north. */
@@ -2386,14 +2386,27 @@ export class FloorplanViewer {
         const h = Math.max(0.005, f.h);
         const base = mountBase(fv.floor, f);
         for (const face of st.faces) {
-          if (face.part === "band") {
-            // a light band around the item at mid height (a car's charge): four thin vertical strips
-            const y0 = base + h * 0.42;
-            const y1 = y0 + 0.07;
+          if (face.part === "cabin") {
+            // a car's climate: its windows (the glass parts of its model) glow from inside
+            const model = packItem(f.type);
+            // the vehicles pack paints its windows in this glass colour (or the palette role "glass")
+            const glassy = (p: { color: string }) => p.color.toLowerCase() === "#13283a" || p.color === "glass";
+            if (model && model.parts.some(glassy)) {
+              const col = new Color(...face.color.map((v) => Math.min(1, v * (0.3 + 0.5 * face.level))) as [number, number, number]);
+              pushPackGlow(buf, model, f, base, col.getHex(), glassy);
+              continue;
+            }
+          }
+          if (face.part === "band" || face.part === "cabin") {
+            // a light band around the item at mid height (a car's charge): four thin vertical strips;
+            // "cabin": the windows glow from inside (a car's climate) – a taller, softer band at window height
+            const cabin = face.part === "cabin";
+            const y0 = base + h * (cabin ? 0.6 : 0.42);
+            const y1 = cabin ? base + h * 0.86 : y0 + 0.07;
             // additive on top of the body: kept well below 1 so green stays green instead of burning to white
             const col = new Color(...face.color.map((v) => Math.min(1, v * (0.3 + 0.45 * face.level))) as [number, number, number]);
-            const hw = Math.abs(w) / 2 + 0.02;
-            const hd = d / 2 + 0.02;
+            const hw = Math.abs(w) / 2 + (cabin ? 0.012 : 0.02);
+            const hd = d / 2 + (cabin ? 0.012 : 0.02);
             const corners: [number, number][] = [[-hw, -hd], [hw, -hd], [hw, hd], [-hw, hd]];
             for (let i = 0; i < 4; i++) {
               const a0 = corners[i];
