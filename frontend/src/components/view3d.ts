@@ -1352,7 +1352,7 @@ export class Fp3dView3d extends LitElement {
             const col: [number, number, number] = car.soc >= 50 ? [0.3, 1, 0.5] : car.soc >= 20 ? [1, 0.8, 0.25] : [1, 0.3, 0.25];
             faces.push({ part: "band", color: col, level: car.charging ? 1 : 0.6 });
           }
-          if (car.climateOn) faces.push({ part: "all", color: [1, 0.62, 0.3], level: 0.55 });
+          if (car.climateOn) faces.push({ part: "all", color: [1, 0.62, 0.3], level: 0.3 });
           if (faces.length) screens.set(`${f.id}:vehicle`, { color: faces[0].color, level: faces[0].level, faces });
         }
         if (f.type === "radiator" && st && kindOf(st.entity_id) === "climate") {
