@@ -640,6 +640,20 @@ Der Knopf **Hologramme** in der Energieleiste (neben ⚡) blendet alle Karten au
 
 **Wenn etwas fehlt:** Die Einrichtung oben im Werkzeug zeigt, was noch nicht passt. Kein Hologramm bedeutet meist: kein Sensor am Wechselrichter oder keine Hausansicht (Etagen- und Raumansichten haben keins). Keine Leitung zu einem Gerät: Das Gerät hat keinen Leistungssensor.
 
+### 6.5 Klang & Kino
+
+Klang & Kino bringt die Musik ins 3D-Haus. Voraussetzung ist ein Lautsprecher im Plan: ein Media Player als Gerät platziert (Kapitel 4.11) oder ein Möbel aus dem Heimkino-Pack (Standlautsprecher, Soundbar, Deckenlautsprecher …) mit dem Media Player als **Gerät** im Möbelformular.
+
+**Läuft-gerade-Karte:** Sobald ein Lautsprecher spielt (oder pausiert), schwebt über ihm eine Glaskarte mit Cover, Titel, Interpret und Lautstärke. Darauf: Zurück, Abspielen/Pause, Weiter und ein Lautstärkeregler – ohne den Raum zu öffnen. Antippen der Kopfzeile klappt die Karte zusammen. Die Karten gehorchen dem Schalter **Hologramme** (neben ⚡ in der Energieleiste; ohne Energie Pro ist der Schalter nicht da, dann sind sie immer an).
+
+**Schallringe:** Um jeden spielenden Lautsprecher wandern leuchtende Ringe über den Boden nach außen – je lauter, desto weiter und kräftiger. So siehst du aus der Hausansicht, wo Musik läuft.
+
+**Multiroom-Gruppen:** Spielen Lautsprecher als Gruppe (Sonos, HA-Gruppen, alles mit `group_members`), verbindet eine leuchtende Linie die Mitglieder auf derselben Etage.
+
+**Schnellmenü:** Lange drücken auf einen Media Player öffnet jetzt Cover mit Abspielen/Pause in der Mitte, Zurück und Weiter daneben, Lautstärke darunter – statt nur An/Aus. Fernseher und Bildschirme bekommen ihre Farben und Bilder weiter über **Bildschirme live** (6.3).
+
+**Wandtablet:** Auf der Tablet-Stufe laufen die Ringe mit halber Bildrate, die Karten ohne Glaseffekt.
+
 ---
 
 ## 7. Erweiterungen, Shop und Möbel-Packs

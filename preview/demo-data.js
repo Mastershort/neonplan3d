@@ -155,6 +155,8 @@ const DEVICES = [
     max_temp: 30,
   }),
   entity("media_player.fernseher", "wohnzimmer", "playing", { friendly_name: "Fernseher", device_class: "tv", app_name: "Netflix", media_title: "Serie", volume_level: 0.35, entity_picture: COVER }),
+  entity("media_player.kueche_lautsprecher", "kueche", "playing", { friendly_name: "Küche Lautsprecher", device_class: "speaker", media_title: "Blue Train", media_artist: "John Coltrane", volume_level: 0.45, entity_picture: COVER, group_members: ["media_player.kueche_lautsprecher", "media_player.bad_lautsprecher"] }),
+  entity("media_player.bad_lautsprecher", "bad", "playing", { friendly_name: "Bad Lautsprecher", device_class: "speaker", media_title: "Blue Train", media_artist: "John Coltrane", volume_level: 0.3, entity_picture: COVER, group_members: ["media_player.kueche_lautsprecher", "media_player.bad_lautsprecher"] }),
   entity("switch.kaffeemaschine", "kueche", "on", { friendly_name: "Kaffeemaschine" }),
   entity("camera.wohnzimmer", "wohnzimmer", "idle", { friendly_name: "Wohnzimmer Kamera", entity_picture: CAMERA_STILL }),
   entity("sensor.wohnzimmer_temperatur", "wohnzimmer", "21.4", { friendly_name: "Wohnzimmer Temperatur", device_class: "temperature", unit_of_measurement: "°C" }),
@@ -251,6 +253,8 @@ DEMO_BUILDING.floors[0].placements = [
   place("cover.wohnzimmer", 1.6, 0.4),
   place("climate.wohnzimmer", 0.5, 2.2),
   place("media_player.fernseher", 3.0, 0.4),
+  place("media_player.kueche_lautsprecher", 9.4, 0.5),
+  place("media_player.bad_lautsprecher", 7.2, 6.4),
 
   place("switch.kaffeemaschine", 9.4, 0.6),
   place("binary_sensor.kueche_fenster", 7.2, 0.4),

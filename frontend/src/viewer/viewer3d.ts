@@ -7,6 +7,7 @@
 
 import {
   AdditiveBlending,
+  RingGeometry,
   FogExp2,
   CircleGeometry,
   Box3,
@@ -203,6 +204,19 @@ export interface FlowPiece {
 }
 
 /** A lit TV or monitor screen: colour of the running app and brightness (0..1). */
+/** Klang & Kino: a speaker or media player in the house – rings pulse around it while it plays, group members are joined by a line. */
+export interface SoundSource {
+  id: string;
+  floorId: string;
+  x: number;
+  z: number;
+  /** 0 = silent; the ring strength (volume) while playing. */
+  level: number;
+  playing: boolean;
+  /** Entity ids of the players grouped with this one (Sonos, HA media groups). */
+  members: string[];
+}
+
 export interface ScreenState {
   color: [number, number, number];
   level: number;
@@ -211,6 +225,7 @@ export interface ScreenState {
   /** No glow frame around the screen (a logo from a picture rule stands on its own). */
   plain?: boolean;
   /** Furniture with a state: glowing faces on top of the item instead of a screen – the whole top, or a half of it. */
+  // (see also SoundSource below)
   faces?: { part: "all" | "left" | "right" | "top" | "bottom"; color: [number, number, number]; level: number }[];
 }
 
@@ -366,6 +381,8 @@ interface FloorView {
   wallMesh: Mesh;
   screenMesh: Mesh;
   screenSig: string;
+  /** Klang & Kino: rings around playing speakers and lines between grouped ones (made when first needed). */
+  soundGroup?: Group;
   /** Pictures shown on lit screens, by furniture id. */
   screenPics: Map<string, { url: string; mesh: Mesh; texture: Texture | null }>;
   /** Content signatures: meshes are only rebuilt when these change. */
@@ -439,6 +456,9 @@ export class FloorplanViewer {
   private readonly flowTime = { value: 0 };
   private readonly flowStart = performance.now();
   private flowActive = false;
+  /** Klang & Kino: the sound sources and whether any plays (then the rings animate). */
+  private sound: SoundSource[] = [];
+  private soundActive = false;
   private flowTimer: ReturnType<typeof setTimeout> | undefined;
   private persons: PersonPin[] = [];
   private readonly personPins = new Map<string, HTMLDivElement>();
@@ -812,6 +832,80 @@ export class FloorplanViewer {
     for (const fv of this.floors) if (fv.solarLive && writeSolarLevels(fv.solarLive, levels)) alive = true;
     this.solarActive = alive;
     this.invalidate();
+  }
+
+  /** Klang & Kino: rings around playing speakers, lines between grouped players; an empty list clears them. */
+  setSound(list: SoundSource[]): void {
+    const sig = (l: SoundSource[]) => l.map((s) => `${s.id}:${s.floorId}:${s.x},${s.z}:${s.level.toFixed(2)}:${s.playing ? 1 : 0}:${s.members.join("+")}`).join(";");
+    if (sig(list) === sig(this.sound)) return;
+    this.sound = list;
+    this.soundActive = list.some((s) => s.playing);
+    for (const fv of this.floors) {
+      const g = (fv.soundGroup ??= (() => {
+        const grp = new Group();
+        grp.renderOrder = 6;
+        fv.group.add(grp);
+        return grp;
+      })());
+      for (const c of [...g.children]) {
+        g.remove(c);
+        (c as Mesh).geometry?.dispose();
+        ((c as Mesh).material as Material | undefined)?.dispose?.();
+      }
+      const mine = list.filter((s) => s.floorId === fv.floor.id);
+      const y = fv.floor.elevation + 0.03;
+      for (const src of mine) {
+        if (!src.playing) continue;
+        // three rings per speaker, staggered; the frame loop scales and fades them
+        for (let i = 0; i < 3; i++) {
+          const ring = new Mesh(
+            new RingGeometry(0.92, 1, 48),
+            new MeshBasicMaterial({ color: 0x37e0ff, transparent: true, opacity: 0, blending: AdditiveBlending, depthWrite: false, side: DoubleSide }),
+          );
+          ring.rotation.x = -Math.PI / 2;
+          ring.position.set(src.x, y + i * 0.002, src.z);
+          ring.userData = { sound: true, phase: i / 3, level: src.level };
+          ring.frustumCulled = false;
+          g.add(ring);
+        }
+      }
+      // grouped players on this floor: a faint line between each pair, drawn once per pair
+      const pos: number[] = [];
+      const seen = new Set<string>();
+      for (const src of mine)
+        for (const other of src.members) {
+          const o = mine.find((x) => x.id === other);
+          if (!o || o === src) continue;
+          const key = [src.id, o.id].sort().join("|");
+          if (seen.has(key)) continue;
+          seen.add(key);
+          pos.push(src.x, y + 0.02, src.z, o.x, y + 0.02, o.z);
+        }
+      if (pos.length) {
+        const geo = new Geometry();
+        geo.setAttribute("position", new Float32BufferAttribute(pos, 3));
+        const line = new LineSegments(geo, new LineBasicMaterial({ color: 0x37e0ff, transparent: true, opacity: 0.45, blending: AdditiveBlending, depthWrite: false }));
+        line.userData = { soundLine: true };
+        g.add(line);
+      }
+    }
+    this.invalidate();
+  }
+
+  /** The rings grow out of a playing speaker and fade; called every frame while anything plays. */
+  private animateSound(now: number): void {
+    const t = now / 1000;
+    for (const fv of this.floors) {
+      if (!fv.soundGroup) continue;
+      for (const c of fv.soundGroup.children) {
+        if (!c.userData.sound) continue;
+        const phase = (t * 0.45 + (c.userData.phase as number)) % 1;
+        const level = c.userData.level as number;
+        const r = 0.25 + phase * (0.9 + 1.6 * level);
+        c.scale.set(r, r, 1);
+        ((c as Mesh).material as MeshBasicMaterial).opacity = (1 - phase) * (0.25 + 0.45 * level);
+      }
+    }
   }
 
   setFlows(flows: FlowPiece[]): void {
@@ -3192,6 +3286,7 @@ export class FloorplanViewer {
     if (flashing) busy.push("flash");
     if (roofMoving) busy.push("roof");
     if (this.flowActive) busy.push("flow");
+    if (this.soundActive) busy.push("sound");
     if (this.solarActive) busy.push("solar");
     if (this.effectTick) busy.push("effect");
     if (robotsMoving) busy.push("robot");
@@ -3200,6 +3295,7 @@ export class FloorplanViewer {
     this.effectTick = this.tintTick = false;
     this.lastFrame = moving ? now : 0;
     this.flowTime.value = this.flowSeconds();
+    if (this.soundActive) this.animateSound(now);
     this.updateWalls();
     this.renderer.render(this.scene, this.camera);
     // labels are placed only when the view or something on it moved (style writes cost layout)
@@ -3246,7 +3342,7 @@ export class FloorplanViewer {
         this.invalidate();
       }, this.lowQuality ? 66 : 33);
     }
-    if (!moving && (this.flowActive || this.solarActive) && !this.flowTimer) {
+    if (!moving && (this.flowActive || this.solarActive || this.soundActive) && !this.flowTimer) {
       // only the energy flow (or the living modules) moves: about 30 frames per second are enough
       this.flowTimer = setTimeout(() => {
         this.flowTimer = undefined;

@@ -146,7 +146,8 @@ PAYLOAD_SCHEMA = vol.Schema(
         vol.Optional("description", default=""): vol.All(str, vol.Length(max=400)),
         # Pro features the pack unlocks (a feature pack may carry no furniture at all)
         vol.Optional("features", default=[]): vol.All(
-            [vol.In(["camera_cockpit", "weather", "screens", "fridge_smart", "energy_pro"])], vol.Length(max=10)
+            [vol.In(["camera_cockpit", "weather", "screens", "fridge_smart", "energy_pro", "sound"])],
+            vol.Length(max=10),
         ),
         vol.Required("items"): vol.All([ITEM_SCHEMA], vol.Length(min=0, max=200)),
     }

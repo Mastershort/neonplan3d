@@ -250,6 +250,8 @@ const shots = [
   { name: "phone-floor", query: "", width: 420, height: 800, click: "Erdgeschoss" },
   { name: "card-portrait-room", query: "?card&floor=eg", width: 700, height: 1000, click: "Wohnzimmer" },
   { name: "view-alert-banner", query: "?alerts", width: 1280, height: 800, click: "Erdgeschoss" },
+  { name: "view-sound", query: "", width: 1280, height: 800, click: "Erdgeschoss" },
+  { name: "view-sound-locked", query: "?nopro", width: 1280, height: 800, click: "Erdgeschoss" },
   { name: "view-heat-values", query: "", width: 1280, height: 800, click: "Erdgeschoss", then: "Werte" },
   { name: "view-accent", query: "", width: 1280, height: 800, click: "Erdgeschoss", viewScript: "const p = v.getRootNode().host; p._accent = '#ff8a00';", wait: 1500 },
   { name: "view-bed-state", query: "", width: 1280, height: 800, editor: true, editorScript: "e.fit();", then3d: "Erdgeschoss", camera: { theta: 3.6, phi: 0.55, radius: 6, target: { x: 2.2, y: 0.5, z: 6.9 } } },

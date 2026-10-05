@@ -638,6 +638,20 @@ The **Holograms** button in the energy bar (next to ⚡) hides all cards and sho
 
 **When something is missing:** the Setup list at the top of the tool shows what does not fit yet. No hologram usually means: no sensor on the inverter, or not the house view (floor and room views have none). No cable to a device: the device has no power sensor.
 
+### 6.5 Sound & Cinema
+
+Sound & Cinema brings the music into the 3D house. It needs a speaker in the plan: a media player placed as a device (chapter 4.11), or an item from the Home Cinema pack (floor-standing speaker, soundbar, ceiling speaker …) with the media player as its **Device** in the furniture form.
+
+**Now-playing card:** as soon as a speaker plays (or pauses), a glass card floats over it with cover, title, artist and volume. On it: previous, play/pause, next and a volume slider – without opening the room. A tap on its header folds the card. The cards follow the **Holograms** switch (next to ⚡ in the energy bar; without Energy Pro the switch is not there and they are always on).
+
+**Sound rings:** glowing rings travel outwards over the floor around every playing speaker – the louder, the wider and stronger. So you see from the house view where music is on.
+
+**Multiroom groups:** when speakers play as a group (Sonos, HA groups, anything with `group_members`), a glowing line joins the members on the same floor.
+
+**Quick menu:** a long press on a media player now opens the cover with play/pause in the middle, previous and next beside it, the volume below – instead of on/off only. TVs and screens keep their colours and pictures through **Live screens** (6.3).
+
+**Wall tablet:** on the tablet level the rings run at half the frame rate, the cards without the glass effect.
+
 ---
 
 ## 7. Extensions, shop and furniture packs

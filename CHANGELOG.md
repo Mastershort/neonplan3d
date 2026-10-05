@@ -4,6 +4,12 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 [releases page](https://github.com/Mastershort/neonplan3d/releases). Ideas and votes:
 [Discussions → Ideas](https://github.com/Mastershort/neonplan3d/discussions/categories/ideas).
 
+## Unreleased
+
+### New
+
+- **Sound & Cinema (Pro add-on, €3.90):** speakers show a now-playing card with cover, title, artist and volume (play/pause, previous, next on it), sound rings pulse around playing speakers, multiroom groups are joined by lines, and the quick menu of a media player gets play/pause, track change and volume (discussion #6 by MisterAndrew3000, the most-voted idea).
+
 ## 1.11.1
 
 ### New

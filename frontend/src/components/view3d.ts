@@ -29,8 +29,10 @@ import { type EntityRef, DEFAULT_HOLOGRAM, type SolarField } from "../model.ts";
 
 /** A hologram card: the house's balance on the main plant, one plant (a balcony plant) on its own, or a device. */
 interface HoloCard {
-  kind: "main" | "plant" | "device";
+  kind: "main" | "plant" | "device" | "media";
   name: string;
+  /** Klang & Kino: what the player plays right now. */
+  media?: { id: string; title: string; artist: string; picture: string | null; volume: number; playing: boolean };
   /** The plant's power now (W); null on the main card (it shows the house). */
   w: number | null;
   /** Sensors whose statistics give today's curve. */
@@ -72,7 +74,7 @@ import { furnitureFootprint, isLamp, LAMP_MODEL, outdoorGround, pointInPolygon, 
 import { floorCounts, floorInfoText, personsInRooms } from "../presence.ts";
 import { controls, tokens } from "../styles.ts";
 import type { HassEntity, HomeAssistant } from "../types.ts";
-import type { DeviceMarker, FloorplanViewer, FloorStack, RobotInfo, Quality, ScreenState, SurfaceGrab, ViewerStats, WallMode } from "../viewer/viewer3d.ts";
+import type { DeviceMarker, FloorplanViewer, FloorStack, RobotInfo, Quality, ScreenState, SoundSource, SurfaceGrab, ViewerStats, WallMode } from "../viewer/viewer3d.ts";
 
 /** Which HTML markers are shown: none, only what has no 3D object or shows a value, or all. */
 export type MarkerMode = "none" | "important" | "all";
@@ -792,6 +794,43 @@ export class Fp3dView3d extends LitElement {
         }
       }
     }
+    // Klang & Kino: a now-playing card over every speaker or media furniture that plays, rings around it,
+    // and lines between the members of a multiroom group
+    const sound: SoundSource[] = [];
+    if (hasFeature("sound")) {
+      const seenMedia = new Set<string>();
+      const holoSize = (b.settings.roof.hologram ?? DEFAULT_HOLOGRAM).size;
+      const add = (floor: Building["floors"][number], id: string, x: number, z: number, top: number, name: string) => {
+        const st = hass.states[id];
+        if (!st || kindOf(id) !== "media" || seenMedia.has(id) || isUnavailable(st)) return;
+        seenMedia.add(id);
+        const playing = st.state === "playing";
+        const a = st.attributes;
+        const vol = typeof a.volume_level === "number" ? Math.min(1, Math.max(0, a.volume_level)) : 0.5;
+        const members = Array.isArray(a.group_members) ? (a.group_members as string[]).filter((m) => m !== id) : [];
+        sound.push({ id, floorId: floor.id, x, z, level: playing ? 0.3 + 0.7 * vol : 0, playing, members });
+        const title = typeof a.media_title === "string" ? a.media_title : "";
+        if ((playing || st.state === "paused") && title) {
+          anchors.push({ p: [x, floor.elevation + top + 0.12, z], n: [0, 1, 0], floorId: floor.id, size: holoSize * 0.7, roof: false, views: "all" });
+          cards.push({
+            kind: "media",
+            name,
+            w: null,
+            dayIds: [],
+            battery: null,
+            media: { id, title, artist: typeof a.media_artist === "string" ? a.media_artist : typeof a.media_album_name === "string" ? a.media_album_name : "", picture: typeof a.entity_picture === "string" ? a.entity_picture : null, volume: Math.round(vol * 100), playing },
+          });
+        }
+      };
+      for (const floor of b.floors) {
+        for (const f of floor.furniture) {
+          const e = this.furnitureLinks?.get(f.id)?.entity;
+          if (e) add(floor, e, f.x, f.z, mountBase(floor, f) + f.h, f.name || furnitureName(hass, f.type));
+        }
+        for (const pl of floor.placements) add(floor, pl.entity_id, pl.x, pl.z, 1.1, pl.name || entityName(hass, pl.entity_id));
+      }
+    }
+    v.setSound(sound);
     v.setAnchors(anchors);
     if (JSON.stringify(cards) !== JSON.stringify(this._holos)) this._holos = cards;
     // the modules live with their production (at night, and without Pro, they rest)
@@ -1003,9 +1042,44 @@ export class Fp3dView3d extends LitElement {
   private renderHologram() {
     const e = this._energy;
     // the editor keeps the energy bar off but asks for the holograms in its energy tool
-    if (!hasFeature("energy_pro") || this.roomId || !(this.showEnergy || this.holograms) || !this.holoVisible()) return nothing;
+    if (!(hasFeature("energy_pro") || hasFeature("sound")) || this.roomId || !(this.showEnergy || this.holograms) || !this.holoVisible()) return nothing;
     const plants = !!e && (e.solar !== null || e.grid !== null || e.battery !== null) && this.floorId === null;
-    return this._holos.map((card, i) => (card.kind === "device" ? this.renderDeviceCard(card, i) : plants ? this.renderHoloCard(card, i, e!) : nothing));
+    return this._holos.map((card, i) => (card.kind === "media" ? this.renderMediaCard(card, i) : card.kind === "device" ? this.renderDeviceCard(card, i) : plants ? this.renderHoloCard(card, i, e!) : nothing));
+  }
+
+  /** Klang & Kino: what a speaker plays – cover, title, artist, volume, with play/pause, previous and next. */
+  private renderMediaCard(card: HoloCard, index: number) {
+    const hass = this.hass;
+    const t = (k: Parameters<typeof translate>[1]) => translate(hass, k);
+    const m = card.media!;
+    const open = !this.holoFolded.has(index);
+    const toggle = () => {
+      if (this.holoFolded.has(index)) this.holoFolded.delete(index);
+      else this.holoFolded.add(index);
+      this.requestUpdate();
+    };
+    const call = (service: string, data: Record<string, unknown> = {}) => void hass.callService("media_player", service, { entity_id: m.id, ...data });
+    return html`<svg class="fp3d-holo-link" data-holo=${index} hidden aria-hidden="true"><line x1="0" y1="0" x2="0" y2="0" /><circle cx="0" cy="0" r="3" /></svg>
+      <div class="fp3d-holo fp3d-holo-dev fp3d-holo-media ${open ? "" : "fp3d-holo-min"} ${this._low ? "fp3d-holo-plain" : ""}" data-holo=${index} hidden role="group" aria-label=${card.name}>
+      <div class="fp3d-holo-sheen"></div>
+      <div class="fp3d-holo-scan"></div>
+      <div class="fp3d-holo-body">
+        <div class="fp3d-holo-head" role="button" tabindex="0" @click=${toggle}><span>♪ ${card.name}</span><span class="fp3d-holo-live">${m.playing ? `● ${t("holo_media_playing")}` : t("holo_media_paused")}</span></div>
+        <div class="fp3d-holo-track">
+          ${m.picture ? html`<img class="fp3d-holo-cover" src=${m.picture} alt="" />` : html`<span class="fp3d-holo-cover fp3d-holo-cover-none">♪</span>`}
+          <div class="fp3d-holo-titles"><b>${m.title}</b>${m.artist ? html`<span>${m.artist}</span>` : nothing}</div>
+        </div>
+        ${open
+          ? html`<div class="fp3d-holo-media-controls">
+                <button aria-label=${t("previous")} @click=${() => call("media_previous_track")}>⏮</button>
+                <button aria-label=${t("play_pause")} @click=${() => call("media_play_pause")}>${m.playing ? "⏸" : "▶"}</button>
+                <button aria-label=${t("next")} @click=${() => call("media_next_track")}>⏭</button>
+                <input type="range" min="0" max="100" .value=${String(m.volume)} aria-label=${t("volume")} @change=${(e: Event) => call("volume_set", { volume_level: Number((e.target as HTMLInputElement).value) / 100 })} />
+                <span class="fp3d-holo-vol">${m.volume} %</span>
+              </div>`
+          : nothing}
+      </div>
+    </div>`;
   }
 
   /** A device's card: its power now, today's consumption and the day curve from its sensor's statistics. */
@@ -2941,6 +3015,76 @@ export class Fp3dView3d extends LitElement {
         display: none;
       }
       /* a device's card: smaller than the plant's */
+      /* the now-playing card: cover, titles, transport and volume */
+      .fp3d-holo-media .fp3d-holo-head {
+        cursor: pointer;
+      }
+      .fp3d-holo-track {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-top: 6px;
+      }
+      .fp3d-holo-cover {
+        width: 46px;
+        height: 46px;
+        border-radius: 8px;
+        object-fit: cover;
+        flex: none;
+        box-shadow: 0 0 12px rgba(55, 224, 255, 0.35);
+      }
+      .fp3d-holo-cover-none {
+        display: grid;
+        place-items: center;
+        font-size: 22px;
+        background: rgba(55, 224, 255, 0.15);
+        color: #a8f0ff;
+      }
+      .fp3d-holo-titles {
+        display: grid;
+        gap: 2px;
+        min-width: 0;
+      }
+      .fp3d-holo-titles b {
+        font-size: 14px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 170px;
+      }
+      .fp3d-holo-titles span {
+        font-size: 12px;
+        opacity: 0.8;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 170px;
+      }
+      .fp3d-holo-media-controls {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin-top: 8px;
+      }
+      .fp3d-holo-media-controls button {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        border: 1px solid rgba(160, 240, 255, 0.4);
+        background: rgba(8, 16, 34, 0.6);
+        color: var(--fp3d-text);
+        cursor: pointer;
+        font-size: 12px;
+      }
+      .fp3d-holo-media-controls input[type="range"] {
+        width: 70px;
+        accent-color: var(--fp3d-accent);
+      }
+      .fp3d-holo-vol {
+        font-size: 11px;
+        opacity: 0.8;
+        font-variant-numeric: tabular-nums;
+      }
       .fp3d-holo-dev {
         width: 184px;
         padding: 10px 12px 9px;

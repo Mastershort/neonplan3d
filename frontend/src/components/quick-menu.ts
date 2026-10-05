@@ -3,6 +3,7 @@
 
 import { css, html, LitElement, nothing } from "lit";
 import { entityName, isUnavailable, kindOf } from "../devices.ts";
+import { hasFeature } from "../features.ts";
 import { translate, type I18nKey } from "../i18n.ts";
 import { openMoreInfo, stateText } from "../markers.ts";
 import { tokens } from "../styles.ts";
@@ -216,6 +217,35 @@ export class Fp3dQuickMenu extends LitElement {
     return nothing;
   }
 
+  /** Klang & Kino: a media player – cover in the middle, play/pause on it, previous and next around, the volume below. */
+  private renderMedia(st: HassEntity) {
+    const a = st.attributes;
+    const playing = st.state === "playing";
+    const off = st.state === "off" || st.state === "standby";
+    const vol = typeof a.volume_level === "number" ? Math.round((a.volume_level as number) * 100) : null;
+    const title = [a.media_title, a.media_artist].filter((x) => typeof x === "string" && x).join(" · ");
+    const picture = typeof a.entity_picture === "string" ? (a.entity_picture as string) : null;
+    return html`<div class="qm-media">
+        <button class="qm-swatch qm-slot" aria-label=${this.t("previous")} ?disabled=${off} @click=${() => this.call("media_player", "media_previous_track")}>⏮</button>
+        <button class="qm-power qm-media-main ${playing ? "qm-on" : ""}" aria-label=${this.t("play_pause")} style=${picture ? `background-image:url(${picture})` : ""} @click=${() => this.call("media_player", off ? "turn_on" : "media_play_pause")}>
+          <span>${off ? "⏻" : playing ? "⏸" : "▶"}</span>
+        </button>
+        <button class="qm-swatch qm-slot" aria-label=${this.t("next")} ?disabled=${off} @click=${() => this.call("media_player", "media_next_track")}>⏭</button>
+      </div>
+      ${title ? html`<p class="qm-media-title">${title}</p>` : nothing}
+      ${vol !== null
+        ? html`<input
+            class="qm-slider"
+            type="range"
+            min="0"
+            max="100"
+            .value=${String(vol)}
+            aria-label=${this.t("volume")}
+            @change=${(e: Event) => this.call("media_player", "volume_set", { volume_level: Number((e.target as HTMLInputElement).value) / 100 })}
+          />`
+        : nothing}`;
+  }
+
   private renderToggle(st: HassEntity) {
     const on = st.state === "on" || st.state === "unlocked" || st.state === "playing";
     const domain = st.entity_id.split(".")[0];
@@ -243,7 +273,9 @@ export class Fp3dQuickMenu extends LitElement {
           ? this.renderCover(st)
           : kind === "camera"
             ? this.renderCamera(st)
-            : this.renderToggle(st);
+            : kind === "media" && hasFeature("sound")
+              ? this.renderMedia(st)
+              : this.renderToggle(st);
     return html`<div class="qm" role="dialog" aria-label=${entityName(this.hass, this.entity)}>
       <div class="qm-title">${entityName(this.hass, this.entity)}</div>
       ${body}
@@ -390,6 +422,43 @@ export class Fp3dQuickMenu extends LitElement {
         color: var(--fp3d-accent-text);
         font-size: 17px;
         cursor: pointer;
+      }
+      .qm-media {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        margin: 6px 0;
+      }
+      .qm-media-main {
+        width: 64px;
+        height: 64px;
+        border-radius: 50%;
+        background-size: cover;
+        background-position: center;
+        position: relative;
+      }
+      .qm-media-main span {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        font-size: 22px;
+        text-shadow: 0 0 6px rgba(0, 0, 0, 0.8);
+        color: #fff;
+      }
+      .qm-media .qm-slot {
+        width: auto;
+        padding: 0 10px;
+      }
+      .qm-media-title {
+        margin: 2px 0 4px;
+        text-align: center;
+        font-size: 12px;
+        opacity: 0.85;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
       }
       .qm-tilt {
         display: grid;
