@@ -400,7 +400,8 @@ DEMO_BUILDING.floors[0].furniture = [
   item("wardrobe", 7.1, 6.4, 1.2, 0.4, 2.0, 270),
   { ...item("robot_vacuum", 5.7, 3.2, 0.36, 0.5, 0.1, 270), entity: "vacuum.saugi" },
   {
-    ...item("parking", 11.7, 2.6, 2.6, 5.2, 0.02, 270),
+    // along the garage (3.6 m wide, 5.2 m deep): the van fits inside instead of poking through the wall
+    ...item("parking", 11.8, 2.6, 2.6, 5.0, 0.02, 0),
     entity: "binary_sensor.garage_auto",
     car: { soc: "sensor.van_ladestand", range: "sensor.van_reichweite", charging: "sensor.van_ladeleistung", lock: "lock.van", climate: "switch.van_klima" },
     vehicle: "pack:mastershort.vehicles:van",
