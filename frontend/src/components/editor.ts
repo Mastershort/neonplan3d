@@ -151,6 +151,9 @@ const round = (v: number) => Math.round(v * 1000) / 1000;
 /** Arrow keys as plan directions (x right, z down). */
 const ARROWS: Record<string, [number, number]> = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
 
+// furniture without a top to light: no "State from" box
+const NO_STATE_TYPES = new Set(["parking", "stairwell", "rug", "grid_point"]);
+
 export class Fp3dEditor extends LitElement {
   static properties = {
     _shiftX: { state: true },
@@ -5784,7 +5787,7 @@ export class Fp3dEditor extends LitElement {
             >
           </div>`
         : nothing}
-      ${isElectric(f.type) ? this.renderFurnitureLinks(f) : nothing} ${f.type === "parking" ? this.renderParkingForm(f) : nothing}
+      ${isElectric(f.type) ? this.renderFurnitureLinks(f) : !NO_STATE_TYPES.has(f.type) ? html`<div class="fp3d-form fp3d-links">${this.renderStateLinks(f)}</div>` : nothing} ${f.type === "parking" ? this.renderParkingForm(f) : nothing}
       ${f.type.startsWith("pack:mastershort.vehicles:") && this.isAdmin
         ? html`<section>
             <p class="fp3d-sub">${this.t("vehicle_to_spot_hint")}</p>
@@ -6118,6 +6121,24 @@ export class Fp3dEditor extends LitElement {
     </details>`;
   }
 
+  /** "State from": an entity lights the item's top (two light its halves) – any furniture, a bed with occupancy mats too (#116). */
+  private renderStateLinks(f: Furniture) {
+    return html`${this.entitySelect(this.t("furn_state_entity"), f.state_entity ?? null, undefined, this.entityOptions((id) => /^(binary_sensor|switch|input_boolean|light|fan|person|device_tracker|sensor)\./.test(id)), (v) => this.updateFurniture({ state_entity: v === "none" ? null : v }))}
+              ${f.state_entity && f.state_entity !== "none"
+                ? html`${this.entitySelect(this.t("furn_state_entity2"), f.state_entity2 ?? null, undefined, this.entityOptions((id) => /^(binary_sensor|switch|input_boolean|light|fan|person|device_tracker|sensor)\./.test(id)), (v) => this.updateFurniture({ state_entity2: v === "none" ? null : v }))}
+                    ${f.state_entity2 && f.state_entity2 !== "none"
+                      ? html`<label class="fp3d-field"
+                          >${this.t("furn_state_split")}
+                          <select ?disabled=${!this.isAdmin} @change=${(e: Event) => this.updateFurniture({ state_split: (e.target as HTMLSelectElement).value === "top_bottom" ? "top_bottom" : "left_right" })}>
+                            <option value="left_right" ?selected=${f.state_split !== "top_bottom"}>${this.t("furn_state_left_right")}</option>
+                            <option value="top_bottom" ?selected=${f.state_split === "top_bottom"}>${this.t("furn_state_top_bottom")}</option>
+                          </select></label
+                        >`
+                      : nothing}`
+                : nothing}
+              <p class="fp3d-sub fp3d-wide">${this.t("furn_state_hint")}</p>`;
+  }
+
   private renderFurnitureLinks(f: Furniture) {
     if (!this.hass) return nothing;
     const hass = this.hass;
@@ -6154,22 +6175,7 @@ export class Fp3dEditor extends LitElement {
           : this.entitySelect(this.t(lamp ? "furn_entity_light" : tvLike ? "furn_entity_tv" : f.type === "radiator" ? "furn_entity_climate" : f.type === "robot_vacuum" ? "furn_entity_vacuum" : "furn_entity"), f.entity ?? null, autoPick("entity"), entities, (v) =>
               this.updateFurniture({ entity: v }),
             )}
-        ${!lamp && !(ENERGY_DEVICES as readonly string[]).includes(f.type) && !hasScreen(f.type)
-          ? html`${this.entitySelect(this.t("furn_state_entity"), f.state_entity ?? null, undefined, this.entityOptions((id) => /^(binary_sensor|switch|input_boolean|light|fan|person|device_tracker|sensor)\./.test(id)), (v) => this.updateFurniture({ state_entity: v === "none" ? null : v }))}
-              ${f.state_entity && f.state_entity !== "none"
-                ? html`${this.entitySelect(this.t("furn_state_entity2"), f.state_entity2 ?? null, undefined, this.entityOptions((id) => /^(binary_sensor|switch|input_boolean|light|fan|person|device_tracker|sensor)\./.test(id)), (v) => this.updateFurniture({ state_entity2: v === "none" ? null : v }))}
-                    ${f.state_entity2 && f.state_entity2 !== "none"
-                      ? html`<label class="fp3d-field"
-                          >${this.t("furn_state_split")}
-                          <select ?disabled=${!this.isAdmin} @change=${(e: Event) => this.updateFurniture({ state_split: (e.target as HTMLSelectElement).value === "top_bottom" ? "top_bottom" : "left_right" })}>
-                            <option value="left_right" ?selected=${f.state_split !== "top_bottom"}>${this.t("furn_state_left_right")}</option>
-                            <option value="top_bottom" ?selected=${f.state_split === "top_bottom"}>${this.t("furn_state_top_bottom")}</option>
-                          </select></label
-                        >`
-                      : nothing}`
-                : nothing}
-              <p class="fp3d-sub fp3d-wide">${this.t("furn_state_hint")}</p>`
-          : nothing}
+        ${!lamp && !(ENERGY_DEVICES as readonly string[]).includes(f.type) && !hasScreen(f.type) ? this.renderStateLinks(f) : nothing}
         ${lamp && f.entity && f.entity !== "none"
           ? html`${this.entitySelect(this.t("furn_color_entity"), f.color_entity ?? null, undefined, this.entityOptions((id) => id.startsWith("light.") && id !== f.entity), (v) => this.updateFurniture({ color_entity: v === "none" ? null : v }))}
               <p class="fp3d-sub fp3d-wide">${this.t("furn_color_entity_hint")}</p>`

@@ -4,6 +4,12 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 [releases page](https://github.com/Mastershort/neonplan3d/releases). Ideas and votes:
 [Discussions → Ideas](https://github.com/Mastershort/neonplan3d/discussions/categories/ideas).
 
+## Unreleased
+
+### Fixed
+
+- "State from" (occupancy mats, a lit top while something is on) is offered for every piece of furniture again, also a plain bed or armchair – it only showed for electric furniture (#116 by hahne-t).
+
 ## 1.12.3
 
 ### New
