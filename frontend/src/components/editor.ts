@@ -159,6 +159,7 @@ export class Fp3dEditor extends LitElement {
     _bgRuler: { state: true },
     _bgRulerLen: { state: true },
     _bgLevel: { state: true },
+    _bgOpen: { state: true },
     _shiftZ: { state: true },
     hass: { attribute: false },
     building: { attribute: false },
@@ -285,6 +286,8 @@ export class Fp3dEditor extends LitElement {
   private declare _bgRulerLen: number;
   /** Straighten the background: two taps along a wall that should run straight (null = off). */
   private declare _bgLevel: Vec2[] | null;
+  /** The background section is open: the picture has handles like a piece of furniture (move, scale, turn). */
+  private declare _bgOpen: boolean;
   private declare _shiftZ: number;
   /** Open context menu (right-click, long press) at a plan point, for one item. */
   private declare _ctx: { x: number; y: number; kind: FixKind; id: string } | null;
@@ -362,6 +365,7 @@ export class Fp3dEditor extends LitElement {
     this._bgRuler = null;
     this._bgRulerLen = 0;
     this._bgLevel = null;
+    this._bgOpen = false;
     this._shiftZ = 0;
     this._floorMenu = false;
     this._openingPreset = "door";
@@ -1002,7 +1006,7 @@ export class Fp3dEditor extends LitElement {
       else this.applyBgLevel(pts[0], pts[1]);
       return;
     }
-    if (this._bgEdit && this.isAdmin && this.floor?.background && target.closest("[data-bg-rotate]")) {
+    if ((this._bgEdit || this._bgOpen) && this.isAdmin && this.floor?.background && target.closest("[data-bg-rotate]")) {
       const bg = this.floor.background;
       const img = this._images[bg.image_id];
       const h = bg.width * (img?.aspect ?? 1);
@@ -1013,6 +1017,14 @@ export class Fp3dEditor extends LitElement {
     if (this._bgRuler && this._bgRuler.length < 2 && this.isAdmin && this.floor?.background) {
       // the ruler: two taps on a stretch of known length in the picture
       this._bgRuler = [...this._bgRuler, world];
+      return;
+    }
+    if (this._bgOpen && !this._bgEdit && this.isAdmin && this.floor?.background && (target.closest("[data-bg-handle]") || target.closest("[data-bg]"))) {
+      // the background section is open: the picture moves and scales like furniture
+      const bg = this.floor.background;
+      this.drag = target.closest("[data-bg-handle]")
+        ? { kind: "bgscale", base: this._doc, moved: false }
+        : { kind: "bgmove", start: world, bx: bg.x, bz: bg.z, base: this._doc, moved: false };
       return;
     }
     if (this._bgEdit && this.isAdmin && this.floor?.background) {
@@ -4298,15 +4310,19 @@ export class Fp3dEditor extends LitElement {
     const w = bg.width * this._view.scale;
     const h = w * img.aspect;
     const rot = bg.rotation ?? 0;
-    const edit = this._bgEdit && this.isAdmin;
+    const edit = (this._bgEdit || this._bgOpen) && this.isAdmin;
     // while editing, the picture takes the pointer (drag moves it) and its lower right corner scales it
     return svg`<g transform="rotate(${rot} ${x + w / 2} ${y + h / 2})">
       <image href=${img.url} x=${x} y=${y} width=${w} height=${h} opacity=${bg.opacity} preserveAspectRatio="none" pointer-events=${edit ? "auto" : "none"} data-bg="1" style=${edit ? "cursor:move" : ""} />
       ${edit
         ? svg`<rect class="fp3d-bg-frame" x=${x} y=${y} width=${w} height=${h} />
           <circle class="fp3d-bg-handle" data-bg-handle="1" cx=${x + w} cy=${y + h} r="9" />
-          <line class="fp3d-bg-frame" x1=${x + w / 2} y1=${y} x2=${x + w / 2} y2=${y - 28} />
-          <circle class="fp3d-bg-handle fp3d-bg-rotate" data-bg-rotate="1" cx=${x + w / 2} cy=${y - 28} r="9" />`
+          <g class="fp3d-rotate" data-bg-rotate="1">
+            <line x1=${x + w / 2} y1=${y} x2=${x + w / 2} y2=${y - 30} />
+            <circle cx=${x + w / 2} cy=${y - 30} r="16" class="fp3d-hit" />
+            <circle cx=${x + w / 2} cy=${y - 30} r="8" />
+            <path d="M${x + w / 2 - 4} ${y - 31}a4 4 0 1 1 2 3.5" />
+          </g>`
         : nothing}
     </g>${this.renderBgRuler()}`;
   }
@@ -6911,7 +6927,7 @@ export class Fp3dEditor extends LitElement {
 
   private renderBackgroundForm(floor: Floor) {
     const bg = floor.background;
-    return html`<details class="fp3d-section">
+    return html`<details class="fp3d-section" ?open=${this._bgOpen} @toggle=${(e: Event) => (this._bgOpen = (e.target as HTMLDetailsElement).open)}>
       <summary>${this.t("background")}</summary>
       <div class="fp3d-form">
         <label class="fp3d-btn fp3d-wide fp3d-upload"
@@ -6923,10 +6939,7 @@ export class Fp3dEditor extends LitElement {
               ${this.num(this.t("background_width"), bg.width, (v) => this.updateFloor({ background: { ...bg, width: Math.max(0.1, v) } }), 0.01, 0.1)}
               ${this.num(this.t("background_rotation"), bg.rotation ?? 0, (v) => this.updateFloor({ background: { ...bg, rotation: Math.round(v * 10) / 10 } }), 0.5)}
               ${this.isAdmin
-                ? html`<button class="fp3d-btn fp3d-wide ${this._bgEdit ? "fp3d-primary" : ""}" aria-pressed=${this._bgEdit} @click=${() => (this._bgEdit = !this._bgEdit)}>
-                    ${this.t(this._bgEdit ? "background_edit_done" : "background_edit")}
-                  </button>
-                  <p class="fp3d-sub fp3d-wide">${this.t("background_edit_hint")}</p>
+                ? html`<p class="fp3d-sub fp3d-wide">${this.t("background_handles_hint")}</p>
                   <button class="fp3d-btn fp3d-wide ${this._bgLevel ? "fp3d-primary" : ""}" aria-pressed=${!!this._bgLevel} @click=${() => {
                     this._bgLevel = this._bgLevel ? null : [];
                     this._bgRuler = null;

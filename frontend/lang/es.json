@@ -1238,5 +1238,6 @@
  "bg_level": "Enderezar",
  "bg_level_cancel": "Cancelar",
  "bg_level_first": "Toca el inicio de una pared de la imagen que debería estar recta.",
- "bg_level_second": "Ahora toca el final de esa pared: la imagen gira para encajar."
+ "bg_level_second": "Ahora toca el final de esa pared: la imagen gira para encajar.",
+ "background_handles_hint": "Mientras esta sección está abierta, la imagen tiene asas como un mueble: arrastrar la mueve, la esquina la escala, el asa redonda la gira. Cierra la sección para dibujar."
 }

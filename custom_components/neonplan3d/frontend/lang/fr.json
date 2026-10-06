@@ -1238,5 +1238,6 @@
  "bg_level": "Redresser",
  "bg_level_cancel": "Annuler le redressement",
  "bg_level_first": "Touche le début d'un mur de l'image qui doit être droit.",
- "bg_level_second": "Touche maintenant la fin de ce mur – l'image tourne pour s'aligner."
+ "bg_level_second": "Touche maintenant la fin de ce mur – l'image tourne pour s'aligner.",
+ "background_handles_hint": "Tant que cette section est ouverte, l'image a des poignées comme un meuble : glisser la déplace, le coin la redimensionne, la poignée ronde la tourne. Ferme la section pour dessiner."
 }
