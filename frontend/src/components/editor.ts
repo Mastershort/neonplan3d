@@ -129,6 +129,7 @@ type Drag =
   | { kind: "holopt"; base: Building; moved: boolean }
   | { kind: "bgmove"; start: Vec2; bx: number; bz: number; base: Building; moved: boolean }
   | { kind: "bgscale"; base: Building; moved: boolean }
+  | { kind: "bgrotate"; base: Building; moved: boolean; start: number; rot: number }
   | { kind: "freewall"; start: Vec2; end: Vec2 }
   | { kind: "wallmove"; id: string; end: "a" | "b" | null; start: Vec2; startScreen: [number, number]; base: Building; moved: boolean }
   | { kind: "outdoor"; id: string; start: Vec2; startScreen: [number, number]; base: Building; moved: boolean }
@@ -141,7 +142,7 @@ interface Guides {
 }
 
 /** Drags that change the document live (restored when cancelled, recorded in the history when done). */
-const EDIT_DRAGS = new Set(["vertex", "room", "device", "opening", "furniture", "rotate", "resize", "outdoor", "roofmove", "roofcorner", "roofvertex", "outvertex", "solarmove", "solarturn", "cablept", "holopt", "bgmove", "bgscale"]);
+const EDIT_DRAGS = new Set(["vertex", "room", "device", "opening", "furniture", "rotate", "resize", "outdoor", "roofmove", "roofcorner", "roofvertex", "outvertex", "solarmove", "solarturn", "cablept", "holopt", "bgmove", "bgscale", "bgrotate"]);
 
 const HISTORY = 100;
 const SNAP_PX = 10;
@@ -157,6 +158,7 @@ export class Fp3dEditor extends LitElement {
     _bgEdit: { state: true },
     _bgRuler: { state: true },
     _bgRulerLen: { state: true },
+    _bgLevel: { state: true },
     _shiftZ: { state: true },
     hass: { attribute: false },
     building: { attribute: false },
@@ -281,6 +283,8 @@ export class Fp3dEditor extends LitElement {
   /** Scale the background with a ruler (#183): null = off, else the points tapped so far (two = waiting for the length). */
   private declare _bgRuler: Vec2[] | null;
   private declare _bgRulerLen: number;
+  /** Straighten the background: two taps along a wall that should run straight (null = off). */
+  private declare _bgLevel: Vec2[] | null;
   private declare _shiftZ: number;
   /** Open context menu (right-click, long press) at a plan point, for one item. */
   private declare _ctx: { x: number; y: number; kind: FixKind; id: string } | null;
@@ -357,6 +361,7 @@ export class Fp3dEditor extends LitElement {
     this._bgEdit = false;
     this._bgRuler = null;
     this._bgRulerLen = 0;
+    this._bgLevel = null;
     this._shiftZ = 0;
     this._floorMenu = false;
     this._openingPreset = "door";
@@ -990,6 +995,21 @@ export class Fp3dEditor extends LitElement {
     }
     const world = this.toWorld(...local);
     const target = e.target as Element;
+    if (this._bgLevel && this.isAdmin && this.floor?.background) {
+      // straighten: the second tap turns the picture so the tapped wall runs exactly along x or z
+      const pts = [...this._bgLevel, world];
+      if (pts.length < 2) this._bgLevel = pts;
+      else this.applyBgLevel(pts[0], pts[1]);
+      return;
+    }
+    if (this._bgEdit && this.isAdmin && this.floor?.background && target.closest("[data-bg-rotate]")) {
+      const bg = this.floor.background;
+      const img = this._images[bg.image_id];
+      const h = bg.width * (img?.aspect ?? 1);
+      const c: Vec2 = [bg.x + bg.width / 2, bg.z + h / 2];
+      this.drag = { kind: "bgrotate", base: this._doc, moved: false, start: Math.atan2(world[1] - c[1], world[0] - c[0]), rot: bg.rotation ?? 0 };
+      return;
+    }
     if (this._bgRuler && this._bgRuler.length < 2 && this.isAdmin && this.floor?.background) {
       // the ruler: two taps on a stretch of known length in the picture
       this._bgRuler = [...this._bgRuler, world];
@@ -1545,6 +1565,27 @@ export class Fp3dEditor extends LitElement {
         );
         break;
       }
+      case "bgrotate": {
+        drag.moved = true;
+        const bg = this.floor?.background;
+        const img = bg ? this._images[bg.image_id] : undefined;
+        if (!bg || !img) break;
+        const h = bg.width * img.aspect;
+        const c: Vec2 = [bg.x + bg.width / 2, bg.z + h / 2];
+        const now = Math.atan2(world[1] - c[1], world[0] - c[0]);
+        // turn about the middle; Shift snaps to whole 15° steps, otherwise tenths of a degree
+        let rot = drag.rot + ((now - drag.start) * 180) / Math.PI;
+        rot = e.shiftKey ? Math.round(rot / 15) * 15 : Math.round(rot * 10) / 10;
+        rot = ((((rot + 180) % 360) + 360) % 360) - 180;
+        this.change(
+          (_, floor) => {
+            if (floor.background) floor.background.rotation = rot;
+          },
+          drag.base,
+          false,
+        );
+        break;
+      }
       case "bgscale": {
         drag.moved = true;
         const bg = this.floor?.background;
@@ -1742,6 +1783,7 @@ export class Fp3dEditor extends LitElement {
       case "holopt":
       case "bgmove":
       case "bgscale":
+      case "bgrotate":
         if (drag.moved) this.pushHistory(drag.base);
         break;
       case "device":
@@ -4262,20 +4304,42 @@ export class Fp3dEditor extends LitElement {
       <image href=${img.url} x=${x} y=${y} width=${w} height=${h} opacity=${bg.opacity} preserveAspectRatio="none" pointer-events=${edit ? "auto" : "none"} data-bg="1" style=${edit ? "cursor:move" : ""} />
       ${edit
         ? svg`<rect class="fp3d-bg-frame" x=${x} y=${y} width=${w} height=${h} />
-          <circle class="fp3d-bg-handle" data-bg-handle="1" cx=${x + w} cy=${y + h} r="9" />`
+          <circle class="fp3d-bg-handle" data-bg-handle="1" cx=${x + w} cy=${y + h} r="9" />
+          <line class="fp3d-bg-frame" x1=${x + w / 2} y1=${y} x2=${x + w / 2} y2=${y - 28} />
+          <circle class="fp3d-bg-handle fp3d-bg-rotate" data-bg-rotate="1" cx=${x + w / 2} cy=${y - 28} r="9" />`
         : nothing}
     </g>${this.renderBgRuler()}`;
   }
 
-  /** The ruler's points and line over the background (#183). */
+  /** The ruler's points and line over the background (#183), or the straighten line. */
   private renderBgRuler() {
-    const pts = this._bgRuler;
+    const pts = this._bgLevel?.length ? this._bgLevel : this._bgRuler;
     if (!pts?.length) return nothing;
     const s = pts.map((p) => this.toScreen(p));
     return svg`<g class="fp3d-bg-ruler">
       ${s.length === 2 ? svg`<line x1=${s[0][0]} y1=${s[0][1]} x2=${s[1][0]} y2=${s[1][1]} />` : nothing}
       ${s.map(([x, y]) => svg`<circle cx=${x} cy=${y} r="6" />`)}
     </g>`;
+  }
+
+  /** Turn the background about the first tap so the tapped line runs exactly along x or z (whichever is nearer). */
+  private applyBgLevel(p: Vec2, q: Vec2): void {
+    const bg = this.floor?.background;
+    const img = bg ? this._images[bg.image_id] : undefined;
+    this._bgLevel = null;
+    if (!bg || !img || Math.hypot(q[0] - p[0], q[1] - p[1]) < 0.05) return;
+    const a = Math.atan2(q[1] - p[1], q[0] - p[0]);
+    const delta = Math.round(a / (Math.PI / 2)) * (Math.PI / 2) - a;
+    if (Math.abs(delta) < 1e-4) return;
+    // turning about p moves the picture's middle along: c' = p + R(delta) (c − p)
+    const h = bg.width * img.aspect;
+    const c: Vec2 = [bg.x + bg.width / 2, bg.z + h / 2];
+    const dx = c[0] - p[0];
+    const dz = c[1] - p[1];
+    const c2: Vec2 = [p[0] + dx * Math.cos(delta) - dz * Math.sin(delta), p[1] + dx * Math.sin(delta) + dz * Math.cos(delta)];
+    let rot = (bg.rotation ?? 0) + (delta * 180) / Math.PI;
+    rot = Math.round((((((rot + 180) % 360) + 360) % 360) - 180) * 100) / 100;
+    this.updateFloor({ background: { ...bg, rotation: rot, x: round(c2[0] - bg.width / 2), z: round(c2[1] - h / 2) } });
   }
 
   /** Scale the background about the ruler's first point so the measured stretch gets its real length (#183). */
@@ -6863,8 +6927,15 @@ export class Fp3dEditor extends LitElement {
                     ${this.t(this._bgEdit ? "background_edit_done" : "background_edit")}
                   </button>
                   <p class="fp3d-sub fp3d-wide">${this.t("background_edit_hint")}</p>
+                  <button class="fp3d-btn fp3d-wide ${this._bgLevel ? "fp3d-primary" : ""}" aria-pressed=${!!this._bgLevel} @click=${() => {
+                    this._bgLevel = this._bgLevel ? null : [];
+                    this._bgRuler = null;
+                    this._bgEdit = false;
+                  }}>📐 ${this.t(this._bgLevel ? "bg_level_cancel" : "bg_level")}</button>
+                  ${this._bgLevel ? html`<p class="fp3d-sub fp3d-wide">${this.t(this._bgLevel.length ? "bg_level_second" : "bg_level_first")}</p>` : nothing}
                   <button class="fp3d-btn fp3d-wide ${this._bgRuler ? "fp3d-primary" : ""}" aria-pressed=${!!this._bgRuler} @click=${() => {
                     this._bgRuler = this._bgRuler ? null : [];
+                    this._bgLevel = null;
                     this._bgEdit = false;
                   }}>📏 ${this.t(this._bgRuler ? "bg_ruler_cancel" : "bg_ruler")}</button>
                   ${this._bgRuler
@@ -8397,6 +8468,9 @@ export class Fp3dEditor extends LitElement {
       .fp3d-open-sel path,
       .fp3d-open-sel line {
         stroke-width: 2.4;
+      }
+      .fp3d-bg-rotate {
+        cursor: grab;
       }
       .fp3d-bg-ruler line {
         stroke: #ffb020;

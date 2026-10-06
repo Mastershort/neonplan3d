@@ -1234,5 +1234,9 @@
  "bg_ruler_second": "Ora tocca la fine del tratto.",
  "bg_ruler_length_hint": "Misurato nella pianta: {m} m. Inserisci la lunghezza reale.",
  "bg_ruler_length": "Lunghezza reale (m)",
- "bg_ruler_apply": "Applica la scala"
+ "bg_ruler_apply": "Applica la scala",
+ "bg_level": "Raddrizza",
+ "bg_level_cancel": "Annulla",
+ "bg_level_first": "Tocca l'inizio di un muro dell'immagine che deve essere dritto.",
+ "bg_level_second": "Ora tocca la fine di quel muro: l'immagine ruota."
 }

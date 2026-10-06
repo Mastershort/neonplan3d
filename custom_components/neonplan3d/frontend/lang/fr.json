@@ -1234,5 +1234,9 @@
  "bg_ruler_second": "Touche maintenant la fin du segment.",
  "bg_ruler_length_hint": "Mesuré dans le plan : {m} m. Saisis la longueur réelle.",
  "bg_ruler_length": "Longueur réelle (m)",
- "bg_ruler_apply": "Appliquer l'échelle"
+ "bg_ruler_apply": "Appliquer l'échelle",
+ "bg_level": "Redresser",
+ "bg_level_cancel": "Annuler le redressement",
+ "bg_level_first": "Touche le début d'un mur de l'image qui doit être droit.",
+ "bg_level_second": "Touche maintenant la fin de ce mur – l'image tourne pour s'aligner."
 }

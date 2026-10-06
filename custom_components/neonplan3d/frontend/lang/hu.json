@@ -1234,5 +1234,9 @@
  "bg_ruler_second": "Most a szakasz végére koppints.",
  "bg_ruler_length_hint": "A tervben mérve: {m} m. Add meg a valódi hosszt.",
  "bg_ruler_length": "Valódi hossz (m)",
- "bg_ruler_apply": "Méretarány alkalmazása"
+ "bg_ruler_apply": "Méretarány alkalmazása",
+ "bg_level": "Kiegyenesítés",
+ "bg_level_cancel": "Kiegyenesítés megszakítása",
+ "bg_level_first": "Koppints a kép egy falának elejére, amelynek egyenesnek kell lennie.",
+ "bg_level_second": "Most a fal végére koppints – a kép elfordul."
 }

@@ -1234,5 +1234,9 @@
  "bg_ruler_second": "Ahora toca el final del tramo.",
  "bg_ruler_length_hint": "Medido en el plano: {m} m. Introduce la longitud real.",
  "bg_ruler_length": "Longitud real (m)",
- "bg_ruler_apply": "Aplicar escala"
+ "bg_ruler_apply": "Aplicar escala",
+ "bg_level": "Enderezar",
+ "bg_level_cancel": "Cancelar",
+ "bg_level_first": "Toca el inicio de una pared de la imagen que debería estar recta.",
+ "bg_level_second": "Ahora toca el final de esa pared: la imagen gira para encajar."
 }

@@ -1234,5 +1234,9 @@
  "bg_ruler_second": "Tik nu op het einde van het stuk.",
  "bg_ruler_length_hint": "Gemeten in de plattegrond: {m} m. Voer de echte lengte in.",
  "bg_ruler_length": "Echte lengte (m)",
- "bg_ruler_apply": "Schaal toepassen"
+ "bg_ruler_apply": "Schaal toepassen",
+ "bg_level": "Rechtzetten",
+ "bg_level_cancel": "Rechtzetten annuleren",
+ "bg_level_first": "Tik op het begin van een muur in de afbeelding die recht moet staan.",
+ "bg_level_second": "Tik nu op het einde van die muur – de afbeelding draait mee."
 }
