@@ -101,7 +101,7 @@ import { fetchBackup, restoreBackup, type BackupFile } from "../api.ts";
 import { load3d } from "../load3d.ts";
 import type { WallMode } from "../viewer/viewer3d.ts";
 import { furnitureName } from "../furniture-names.ts";
-import { furnitureSize, isElectric, mountBase, packItem, packItemName, packType, setPacks, type FurniturePack } from "../packs.ts";
+import { furnitureSize, isElectric, mountBase, packItem, packItemName, packName, packType, setPacks, type FurniturePack } from "../packs.ts";
 
 /** Items that can be fixed against moving. */
 type FixKind = "room" | "opening" | "furniture" | "device" | "wall" | "outdoor";
@@ -3834,7 +3834,7 @@ export class Fp3dEditor extends LitElement {
     const lang = this.hass?.language ?? "en";
     const all = [
       ...FURNITURE_TYPES.map((t) => ({ type: t as string, label: this.t(`furn_${t}` as I18nKey) })),
-      ...(this.packs ?? []).flatMap((p) => p.items.map((it) => ({ type: packType(p.id, it.id), label: `${packItemName(it, lang)} · ${p.name}` }))),
+      ...(this.packs ?? []).flatMap((p) => p.items.map((it) => ({ type: packType(p.id, it.id), label: `${packItemName(it, lang)} · ${packName(p, lang)}` }))),
     ];
     const speakerish = /speaker|sound|subwoofer|receiver|smart_|display|tv|media|turntable|projector|console/;
     const fits = (t: string): boolean => {
@@ -5718,7 +5718,7 @@ export class Fp3dEditor extends LitElement {
           <select ?disabled=${!admin} @change=${(e: Event) => this.updateFurniture({ type: (e.target as HTMLSelectElement).value })}>
             ${FURNITURE_TYPES.map((t) => html`<option value=${t} ?selected=${t === f.type}>${this.t(`furn_${t}` as I18nKey)}</option>`)}
             ${(this.packs ?? []).map(
-              (pack) => html`<optgroup label=${pack.name}>
+              (pack) => html`<optgroup label=${packName(pack, (this.hass?.language ?? "de"))}>
                 ${pack.items.map((it) => {
                   const t = packType(pack.id, it.id);
                   return html`<option value=${t} ?selected=${t === f.type}>${packItemName(it, this.hass?.language ?? "en")}</option>`;
@@ -6263,7 +6263,7 @@ export class Fp3dEditor extends LitElement {
   private renderParkingForm(f: Furniture) {
     const admin = this.isAdmin;
     const lang = this.hass?.language ?? "en";
-    const vehicles = (this.packs ?? []).flatMap((p) => p.items.filter((it) => it.vehicle).map((it) => ({ id: packType(p.id, it.id), label: `${packItemName(it, lang)} · ${p.name}` })));
+    const vehicles = (this.packs ?? []).flatMap((p) => p.items.filter((it) => it.vehicle).map((it) => ({ id: packType(p.id, it.id), label: `${packItemName(it, lang)} · ${packName(p, lang)}` })));
     const presence = this.entityOptions((id) => /^(binary_sensor|device_tracker|input_boolean|switch|sensor)\./.test(id));
     const typeSensors = this.entityOptions((id) => /^(sensor|input_select|select|input_text)\./.test(id));
     const typeState = f.type_entity ? this.hass?.states[f.type_entity] : undefined;
@@ -6382,7 +6382,7 @@ export class Fp3dEditor extends LitElement {
     const lang = this.hass?.language ?? "en";
     const all: string[] = [
       ...Object.entries(FURNITURE_GROUPS).flatMap(([g, types]) => types.map((t) => `${this.t(`furn_${t}` as I18nKey)} ${translate(EN_HASS, `furn_${t}` as I18nKey)} ${t.replace(/_/g, " ")} ${this.t(`furn_group_${g}` as I18nKey)}`)),
-      ...(this.packs ?? []).flatMap((p) => p.items.map((it) => `${packItemName(it, lang)} ${Object.values(it.name).join(" ")} ${it.id.replace(/_/g, " ")} ${p.name}`)),
+      ...(this.packs ?? []).flatMap((p) => p.items.map((it) => `${packItemName(it, lang)} ${Object.values(it.name).join(" ")} ${it.id.replace(/_/g, " ")} ${p.name} ${packName(p, "en")}`)),
     ];
     return all.some((s) => {
       const hay = fold(s);
@@ -6602,7 +6602,7 @@ export class Fp3dEditor extends LitElement {
       ${(this.packs ?? []).map((pack) =>
         this.librarySection(
           `pack:${pack.id}`,
-          pack.name,
+          packName(pack, lang),
           pack.items.map((it) => ({ type: packType(pack.id, it.id), label: packItemName(it, lang), search: Object.values(it.name).join(" ") })),
           q,
         ),

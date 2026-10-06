@@ -148,6 +148,43 @@ export function packItemName(item: PackItem, language: string): string {
 }
 
 
+// English names of our own packs: a pack file carries one (German) name, the furniture inside both (#224)
+const PACK_NAMES_EN: Record<string, string> = {
+  architecture: "Architecture & Fit-out",
+  bath: "Bathroom",
+  bedroom: "Bedroom",
+  cinema: "Home Cinema & Hi-Fi",
+  exclusive: "Exclusive: Smart Fridge",
+  fitness: "Fitness",
+  garage: "Garage & Workshop",
+  garden: "Garden & Terrace",
+  kids: "Kids' Room",
+  kitchen: "Kitchen",
+  living: "Living Room",
+  office: "Office & Gaming",
+  pets: "Pets",
+  smarthome: "Smart Home & Tech",
+  stairs: "Stairs & Railings",
+  utility: "Utility & Building Services",
+  vehicles: "Vehicles",
+  starter: "Starter Pack",
+  pro_auto: "Pro: Car Pro",
+  pro_camera: "Pro: Camera Cockpit",
+  pro_energy: "Pro: Energy Pro",
+  pro_screens: "Pro: Live Screens",
+  pro_sound: "Pro: Sound & Cinema",
+  pro_weather: "Pro: Weather Outside",
+};
+
+/** A pack's name in the user's language: our own packs in English outside German, others as they come. */
+export function packName(pack: { id: string; name: string }, language: string): string {
+  if (language.split("-")[0] === "de") return pack.name;
+  const key = pack.id.replace(/^mastershort\./, "");
+  const sample = key.endsWith("_sample");
+  const en = PACK_NAMES_EN[sample ? key.slice(0, -"_sample".length) : key];
+  return en ? (sample ? `${en} – Sampler` : en) : pack.name;
+}
+
 /** Height of the bottom of a pack item, a wall light or an LED strip above the floor (0 for other built-in furniture). */
 export function mountBase(floor: Floor, f: Pick<Furniture, "type" | "x" | "z" | "h"> & { mount_y?: number | null }): number {
   const item = packItem(f.type);

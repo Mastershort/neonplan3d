@@ -14,6 +14,7 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 - Camera Cockpit: the camera wall fits any number of cameras – the grid picks the columns that give the largest tiles, nothing overlaps, and with very many cameras the wall scrolls (#217 by denisb88).
 - Solar fields: the inverter choice shows each inverter's own name (or its entity's name), and an inverter shows which strings feed it (#213 by rolandarends).
 - Garden solar fields stand on the ground floor, no longer on a cellar below it (#192 by denisb88).
+- Extensions: our furniture packs and Pro add-ons show English names when Home Assistant is not set to German (#224).
 - Pulled apart, a roof rides with the highest floor beneath it, so a loft under the same slopes stays under the roof; dormers go along with their roof (#202 by Kuddelsoft, discussion #207 by 1970lexi).
 - Under a roof slope the light on the walls ends where the wall does, instead of shining through the roof (#201 by Twilight-Networks).
 - Walls under a roof no longer show vertical stripes (discussion #180 by RobertSorgenfrei).

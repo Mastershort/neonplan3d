@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { isLamp, newFloor } from "./model.ts";
-import { furnitureSize, isElectric, mountBase, packItem, packItemName, packType, setPacks, type FurniturePack } from "./packs.ts";
+import { furnitureSize, isElectric, mountBase, packItem, packItemName, packName, packType, setPacks, type FurniturePack } from "./packs.ts";
 
 const pack: FurniturePack = {
   id: "demo.pack",
@@ -54,4 +54,12 @@ test("pack items stand on the floor, on furniture, on a wall or hang from the ce
   assert.equal(isLamp("pack:p:chandelier"), true);
   assert.equal(isLamp("pack:p:island"), false);
   setPacks([]);
+});
+
+test("our packs show an English name outside German, others keep theirs (#224)", () => {
+  assert.equal(packName({ id: "mastershort.office", name: "Büro & Gaming" }, "en"), "Office & Gaming");
+  assert.equal(packName({ id: "mastershort.office", name: "Büro & Gaming" }, "de-DE"), "Büro & Gaming");
+  assert.equal(packName({ id: "mastershort.living_sample", name: "Wohnzimmer – Schnupper-Pack" }, "fr"), "Living Room – Sampler");
+  assert.equal(packName({ id: "pro_weather", name: "Wetter draußen" }, "en"), "Pro: Weather Outside");
+  assert.equal(packName({ id: "someone.else", name: "Möbel" }, "en"), "Möbel");
 });

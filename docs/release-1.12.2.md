@@ -10,6 +10,7 @@ A small round of fixes, mostly around roofs and attics.
 - **Camera Cockpit:** the camera wall fits any number of cameras – largest possible tiles, nothing overlaps, and with very many cameras the wall scrolls (#217 by denisb88).
 - **Solar fields:** the inverter choice shows each inverter's own name, and an inverter shows which strings feed it (#213 by rolandarends).
 - **Garden solar fields** stand on the ground floor, no longer on a cellar below it (#192 by denisb88).
+- **Pack names in English:** outside German, the extensions page and the furniture library show our packs and Pro add-ons with English names (#224 by twynne).
 - **Heatmap:** with the temperature, humidity or CO₂ view on, garden lamps keep their light and room lamps a soft glow (discussion #205 by 1970lexi).
 - **Clear message for add-ons that need a newer version:** installing a Pro add-on on an older NeonPlan 3D now says "please update NeonPlan 3D first" instead of a cryptic error (#218 by twynne).
 
@@ -31,6 +32,7 @@ Eine kleine Fehlerrunde, vor allem rund um Dächer und Dachgeschosse.
 - **Kamera-Cockpit:** Die Kamera-Wand passt sich jeder Anzahl Kameras an – möglichst große Kacheln, nichts überlappt, bei sehr vielen Kameras scrollt die Wand (#217 von denisb88).
 - **Solarfelder:** Die Wechselrichter-Auswahl zeigt den eigenen Namen jedes Wechselrichters, und ein Wechselrichter zeigt, welche Stränge an ihm hängen (#213 von rolandarends).
 - **Gartensolarfelder** stehen auf dem Erdgeschoss, nicht mehr im Keller darunter (#192 von denisb88).
+- **Pack-Namen auf Englisch:** Ist Home Assistant nicht auf Deutsch eingestellt, zeigen die Erweiterungsseite und die Möbelbibliothek unsere Packs und Pro-Erweiterungen mit englischen Namen (#224 von twynne).
 - **Heatmap:** Bei Temperatur-, Feuchte- oder CO₂-Ansicht behalten Gartenlampen ihr Licht und Raumlampen einen sanften Schein (Diskussion #205 von 1970lexi).
 - **Klare Meldung bei Erweiterungen, die eine neuere Version brauchen:** Wer eine Pro-Erweiterung auf einer älteren NeonPlan-3D-Version installiert, liest jetzt „bitte zuerst NeonPlan 3D aktualisieren“ statt einer kryptischen Fehlermeldung (#218 von twynne).
 
