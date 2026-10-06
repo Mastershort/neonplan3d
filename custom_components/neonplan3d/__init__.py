@@ -15,6 +15,7 @@ from homeassistant.helpers.event import async_call_later, async_track_time_inter
 from homeassistant.helpers.typing import ConfigType
 from homeassistant.loader import async_get_integration
 
+from .card_resource import async_remove_card_resource, async_schedule_card_resource
 from .const import (
     DOMAIN,
     MAIN_BUNDLE,
@@ -84,6 +85,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     url = await _async_main_url(hass)
     frontend.add_extra_js_url(hass, url)
+    # and as a dashboard resource, so a dashboard never draws the card before its script is there (#252)
+    async_schedule_card_resource(hass, url)
     await panel_custom.async_register_panel(
         hass,
         frontend_url_path=PANEL_URL_PATH,
@@ -108,3 +111,4 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """The plan, its pictures and packs stay in .storage when the integration is removed: they are the
     user's work, and removing and re-adding the integration must never cost it."""
+    await async_remove_card_resource(hass)

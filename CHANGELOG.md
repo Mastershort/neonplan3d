@@ -8,6 +8,7 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 
 ### Fixed
 
+- Dashboard card: right after starting the app, the card could show "Custom element doesn't exist: neonplan3d-card" until the sidebar page was opened. The card's script is now also kept in the dashboard resources (storage mode), so dashboards wait for it; an older copy of the script there is pointed to the current one (#252 by TheRev-ha, RobertSorgenfrei).
 - Installing a Pro add-on from the shop: NeonPlan 3D now also sends its version in the request, so the shop can answer an installation that is too old with a readable "please update first" message.
 - "State from" (occupancy mats, a lit top while something is on) is offered for every piece of furniture again, also a plain bed or armchair – it only showed for electric furniture (#116 by hahne-t).
 
