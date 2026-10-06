@@ -10,6 +10,7 @@ What comes next. The order follows your wishes (issues and 👍 in [Discussions 
 
 | Topic | What it is about | Wish |
 |---|---|---|
+| Height per room | Ceiling height and height above ground per room on one floor (a garage with 5 m, an extension a few steps lower), spots follow | #30, discussion #113 |
 | Outdoor areas like rooms | Link garden, terrace, pool to a Home Assistant area; a tap opens them, their devices and sensors are found; sensor values outside without a fake room | #100, #59, discussion #80 |
 | Free-form outdoor areas | Point by point like rooms, with round corners for beds and paths | #97, discussions #31, #34 |
 | Lift-and-slide door | Fixed and moving glass panel, side selectable, two blinds too | #79, discussions #53, #72 |
@@ -26,6 +27,15 @@ What comes next. The order follows your wishes (issues and 👍 in [Discussions 
 | Keyboard in 3D | Arrow keys, later a walk-through mode | #171 |
 | Sun with shadows | Real shadows by the sun's position, a visible sun and moon | #126 |
 | Curved walls | Wall arcs, windows follow | #63 |
+| Roofs | Gable at one end and hip at the other in one section; windows in dormers; a roof flush against a wall | #209, discussions #207, #203 |
+| Blinds and covers | Interior blinds (inside the glass), several cover entities per window, Somfy "My" position | discussions #112, #197, #204 |
+| Doors with locks | Electronic door locks and garage doors opened by a switch, with lock/unlock and open buttons | discussion #173 |
+| Scenes and menu | Scenes higher up in the room panel; main menu/favourites open at start and larger; own buttons light up while on | #188, discussions #174, #196 |
+| Small tablets and phones | Zoom in the start view, larger 3D and room card on small tablets, keep the camera when switching floors, a compact editor menu on phones | #191, #206, discussions #190, #200 |
+| Devices alike | Every electric piece of furniture switches and shows its power the same way | #198 |
+| Visibility condition | An item shows only while a helper or condition is on (e.g. seasonal decoration) | discussion #169 |
+| Picture frame | A frame with your own picture and an adjustable border | discussion #164 |
+| Device cards by hand | Move a device card by hand when devices stand close together | discussion #194 |
 
 ## Pro add-ons – planned
 
@@ -41,7 +51,7 @@ Available today: **Camera Cockpit**, **Weather outside**, **Live screens**, **En
 | **Light designer** | Set lamps in 3D and save them as a scene, copy a mood from room to room |
 
 Updates for existing add-ons:
-- **Energy Pro:** gas and water meters with their own cable colours, heat pump with heat flow, 7-day history.
+- **Energy Pro:** house balance and plant cards in floor views too (#193), gas and water meters with their own cable colours, heat pump with heat flow, 7-day history.
 - **Car Pro:** opening doors and hatches, departure time, charging cable to the wallbox, distance while away.
 - **Camera Cockpit:** pan/tilt from 3D, doorbell.
 - **Sound & Cinema:** more sources and favourites per speaker.
@@ -50,7 +60,7 @@ Updates for existing add-ons:
 
 - **Season & Decoration** – Christmas tree with fairy lights, Advent wreath, outdoor light chains, pumpkins and Easter (before Christmas).
 - **Smart Home release 2** – siren, access point, smoke detectors, wall thermostat, dehumidifier, cube lamp, ceiling fans (discussions #44, #45, #57, #124).
-- **Building services update** – air conditioners indoor and outdoor units (discussion #118).
+- **Building services update** – air conditioners indoor and outdoor units, water tank with fill level (discussions #118, #138).
 - **Wellness** – sauna with temperature, hot tub, infrared cabin (discussion #176).
 - **Garden release 4** – awning, gates (sliding gate, garden door), water feature with light (discussions #170, #175).
 - **Kitchen release 3** – coffee machine and more appliances (discussion #167).
@@ -74,6 +84,7 @@ Was als Nächstes kommt. Die Reihenfolge richtet sich nach euren Wünschen (Issu
 
 | Thema | Worum es geht | Wunsch |
 |---|---|---|
+| Höhe je Raum | Deckenhöhe und Höhe über Boden je Raum auf einer Etage (Garage mit 5 m, Anbau ein paar Stufen tiefer), Spots folgen | #30, Diskussion #113 |
 | Außenflächen wie Räume | Garten, Terrasse, Pool einem Home-Assistant-Bereich zuordnen; antippen öffnet sie, ihre Geräte und Sensoren werden gefunden; Sensorwerte draußen ohne Schein-Raum | #100, #59, Diskussion #80 |
 | Außenflächen frei zeichnen | Punkt für Punkt wie Räume, mit runden Ecken für Beete und Wege | #97, Diskussionen #31, #34 |
 | Hebe-Schiebetür | Festes und bewegliches Glasfeld, Seite wählbar, auch mit zwei Rollläden | #79, Diskussionen #53, #72 |
@@ -90,6 +101,15 @@ Was als Nächstes kommt. Die Reihenfolge richtet sich nach euren Wünschen (Issu
 | Tastatur in 3D | Pfeiltasten, später ein Rundgang-Modus | #171 |
 | Sonne mit Schatten | Echte Schatten nach Sonnenstand, sichtbare Sonne und Mond | #126 |
 | Runde Wände | Wandbögen, Fenster folgen | #63 |
+| Dächer | Giebel an einem und Walm am anderen Ende eines Abschnitts; Fenster in Gauben; Dach bündig an eine Wand | #209, Diskussionen #207, #203 |
+| Rollläden und Rollos | Rollos innen (hinter dem Glas), mehrere Rollladen-Entitäten je Fenster, Somfy-„My“-Position | Diskussionen #112, #197, #204 |
+| Türen mit Schloss | Elektrische Türschlösser und Garagentore per Schalter, mit Ver-/Entriegeln und Öffnen | Diskussion #173 |
+| Szenen und Menü | Szenen weiter oben im Raumfenster; Hauptmenü/Favoriten beim Start offen und größer; eigene Knöpfe leuchten, wenn sie an sind | #188, Diskussionen #174, #196 |
+| Kleine Tablets und Handys | Zoom in der Startansicht, größere 3D-Ansicht und Raumkarte auf kleinen Tablets, Kamera beim Etagenwechsel behalten, kompaktes Editor-Menü auf dem Handy | #191, #206, Diskussionen #190, #200 |
+| Geräte einheitlich | Jedes elektrische Möbel schaltet und zeigt seine Leistung gleich | #198 |
+| Sichtbarkeitsbedingung | Ein Gegenstand erscheint nur, solange ein Helfer oder eine Bedingung an ist (z. B. Saison-Deko) | Diskussion #169 |
+| Bilderrahmen | Rahmen mit eigenem Bild und einstellbarem Rand | Diskussion #164 |
+| Gerätekarten von Hand | Eine Gerätekarte von Hand verschieben, wenn Geräte dicht beieinander stehen | Diskussion #194 |
 
 ## Pro-Erweiterungen – geplant
 
@@ -105,7 +125,7 @@ Bereits erhältlich: **Kamera-Cockpit**, **Wetter draußen**, **Bildschirme live
 | **Licht-Designer** | Lampen in 3D einstellen und als Szene speichern, Stimmung von Raum zu Raum kopieren |
 
 Updates für bestehende Erweiterungen:
-- **Energie Pro:** Gas- und Wasserzähler mit eigenen Leitungsfarben, Wärmepumpe mit Wärmefluss, 7-Tage-Verlauf.
+- **Energie Pro:** Hausbilanz und Anlagenkarten auch in Etagenansichten (#193), Gas- und Wasserzähler mit eigenen Leitungsfarben, Wärmepumpe mit Wärmefluss, 7-Tage-Verlauf.
 - **Auto Pro:** bewegliche Türen und Klappen, Abfahrtszeit, Ladekabel zur Wallbox, Entfernung unterwegs.
 - **Kamera-Cockpit:** Schwenken/Neigen aus 3D, Türklingel.
 - **Klang & Kino:** mehr Quellen und Favoriten je Lautsprecher.
@@ -114,7 +134,7 @@ Updates für bestehende Erweiterungen:
 
 - **Saison & Deko** – Weihnachtsbaum mit Lichterkette, Adventskranz, Lichterketten außen, Kürbis und Ostern (vor Weihnachten).
 - **Smart Home Release 2** – Sirene, Access Point, Rauchmelder, Wandthermostat, Luftentfeuchter, Würfellampe, Deckenventilatoren (Diskussionen #44, #45, #57, #124).
-- **Haustechnik-Update** – Klimaanlagen innen und außen (Diskussion #118).
+- **Haustechnik-Update** – Klimaanlagen innen und außen, Wassertank mit Füllstand (Diskussionen #118, #138).
 - **Wellness** – Sauna mit Temperatur, Whirlpool, Infrarotkabine (Diskussion #176).
 - **Garten Release 4** – Markise, Tore (Schiebetor, Gartentür), Wasserspiel mit Licht (Diskussionen #170, #175).
 - **Küche Release 3** – Kaffeemaschine und mehr Geräte (Diskussion #167).
