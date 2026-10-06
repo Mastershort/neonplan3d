@@ -22,7 +22,7 @@ const common = {
 const viewerConfig = { ...common, entryPoints: ["src/viewer/viewer3d.ts"], outfile: `${out}/neonplan3d-3d.js` };
 // the card's visual editor only loads in the dashboard's card dialog
 // the language files (lang/*.json) are fetched with a hash of their content, so a new text is never stale
-const LANGS = ["fr", "es", "nl", "it", "hu"];
+const LANGS = ["fr", "es", "nl", "it", "hu", "nb"];
 const langHash = createHash("sha256")
   .update(LANGS.map((l) => (existsSync(`lang/${l}.json`) ? readFileSync(`lang/${l}.json`) : "")).join("\n"))
   .digest("hex")
