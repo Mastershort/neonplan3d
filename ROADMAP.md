@@ -10,7 +10,8 @@ What comes next. The order follows your wishes (issues and 👍 in [Discussions 
 
 | Topic | What it is about | Wish |
 |---|---|---|
-| Height per room | Ceiling height and height above ground per room on one floor (a garage with 5 m, an extension a few steps lower), spots follow | #30, discussion #113 |
+| Height per room and split levels | Ceiling height and height above ground per room on one floor (a garage with 5 m, an extension a few steps lower), spots follow; split-level homes: floors that overlap in height shown together in the editor, conflicts marked in red | #30, discussion #113 |
+| Area within a room | A part of a room (a shelf, a corner) as its own Home Assistant area without walls of its own | Facebook |
 | Outdoor areas like rooms | Link garden, terrace, pool to a Home Assistant area; a tap opens them, their devices and sensors are found; sensor values outside without a fake room | #100, #59, discussion #80 |
 | Free-form outdoor areas | Point by point like rooms, with round corners for beds and paths | #97, discussions #31, #34 |
 | Lift-and-slide door | Fixed and moving glass panel, side selectable, two blinds too | #79, discussions #53, #72 |
@@ -27,7 +28,7 @@ What comes next. The order follows your wishes (issues and 👍 in [Discussions 
 | Keyboard in 3D | Arrow keys, later a walk-through mode | #171 |
 | Sun with shadows | Real shadows by the sun's position, a visible sun and moon | #126 |
 | Curved walls | Wall arcs, windows follow | #63 |
-| Roofs | Gable at one end and hip at the other in one section; windows in dormers; windows with a slanted top under the slope; a roof flush against a wall | #209, discussions #207, #203, #172 |
+| Roofs | Gable at one end and hip at the other in one section; windows in dormers; windows with a slanted top under the slope; a roof flush against a wall; a chimney through the roof | #209, discussions #207, #203, #172 |
 | Blinds and covers | Interior blinds (inside the glass), several cover entities per window, Somfy "My" position | discussions #112, #197, #204 |
 | Doors with locks | Electronic door locks and garage doors opened by a switch, with lock/unlock and open buttons | discussion #173 |
 | Scenes and menu | Scenes higher up in the room panel; main menu/favourites open at start and larger; own buttons light up while on | #188, discussions #174, #196 |
@@ -85,7 +86,8 @@ Was als Nächstes kommt. Die Reihenfolge richtet sich nach euren Wünschen (Issu
 
 | Thema | Worum es geht | Wunsch |
 |---|---|---|
-| Höhe je Raum | Deckenhöhe und Höhe über Boden je Raum auf einer Etage (Garage mit 5 m, Anbau ein paar Stufen tiefer), Spots folgen | #30, Diskussion #113 |
+| Höhe je Raum und Split-Level | Deckenhöhe und Höhe über Boden je Raum auf einer Etage (Garage mit 5 m, Anbau ein paar Stufen tiefer), Spots folgen; Split-Level-Häuser: Etagen, die sich in der Höhe überschneiden, im Editor gemeinsam sehen, Konflikte rot markiert | #30, Diskussion #113 |
+| Bereich im Raum | Ein Teil eines Raums (ein Regal, eine Ecke) als eigener Home-Assistant-Bereich ohne eigene Wände | Facebook |
 | Außenflächen wie Räume | Garten, Terrasse, Pool einem Home-Assistant-Bereich zuordnen; antippen öffnet sie, ihre Geräte und Sensoren werden gefunden; Sensorwerte draußen ohne Schein-Raum | #100, #59, Diskussion #80 |
 | Außenflächen frei zeichnen | Punkt für Punkt wie Räume, mit runden Ecken für Beete und Wege | #97, Diskussionen #31, #34 |
 | Hebe-Schiebetür | Festes und bewegliches Glasfeld, Seite wählbar, auch mit zwei Rollläden | #79, Diskussionen #53, #72 |
@@ -102,7 +104,7 @@ Was als Nächstes kommt. Die Reihenfolge richtet sich nach euren Wünschen (Issu
 | Tastatur in 3D | Pfeiltasten, später ein Rundgang-Modus | #171 |
 | Sonne mit Schatten | Echte Schatten nach Sonnenstand, sichtbare Sonne und Mond | #126 |
 | Runde Wände | Wandbögen, Fenster folgen | #63 |
-| Dächer | Giebel an einem und Walm am anderen Ende eines Abschnitts; Fenster in Gauben; Fenster mit schräger Oberkante unter der Dachschräge; Dach bündig an eine Wand | #209, Diskussionen #207, #203, #172 |
+| Dächer | Giebel an einem und Walm am anderen Ende eines Abschnitts; Fenster in Gauben; Fenster mit schräger Oberkante unter der Dachschräge; Dach bündig an eine Wand; Schornstein durchs Dach | #209, Diskussionen #207, #203, #172 |
 | Rollläden und Rollos | Rollos innen (hinter dem Glas), mehrere Rollladen-Entitäten je Fenster, Somfy-„My“-Position | Diskussionen #112, #197, #204 |
 | Türen mit Schloss | Elektrische Türschlösser und Garagentore per Schalter, mit Ver-/Entriegeln und Öffnen | Diskussion #173 |
 | Szenen und Menü | Szenen weiter oben im Raumfenster; Hauptmenü/Favoriten beim Start offen und größer; eigene Knöpfe leuchten, wenn sie an sind | #188, Diskussionen #174, #196 |
