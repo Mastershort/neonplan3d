@@ -841,6 +841,15 @@ export class Fp3dView3d extends LitElement {
             battery: null,
           });
         }
+        // placed devices too: a smart plug with its power (D178)
+        for (const pl of floor.placements) {
+          if (!pl.holo) continue;
+          const sensor = powerSensorFor(hass, pl.entity_id);
+          if (!sensor) continue;
+          const top = floor.elevation + (pl.y ?? 0.4) + 0.2;
+          anchors.push({ p: [pl.x, top, pl.z], n: [0, 1, 0], floorId: floor.id, size: holo.size * 0.7, roof: false, views: "all" });
+          cards.push({ kind: "device", name: pl.name || entityName(hass, pl.entity_id), w: readPower(hass.states[sensor]), dayIds: [sensor], battery: null });
+        }
       }
     }
     // Klang & Kino: a now-playing card over every speaker or media furniture that plays, rings around it,
@@ -1113,7 +1122,13 @@ export class Fp3dView3d extends LitElement {
    * the solar field to the card's lower left corner; the card keeps its size in the world and, seen from
    * behind the field, shows its back (mirrored).
    */
+  /** Cards placed in this frame (screen boxes), so the next one can step aside (D178). */
+  private holoBoxes: { i: number; x0: number; x1: number; y0: number; y1: number }[] = [];
+  private holoSizes = new Map<number, { w: number; h: number; at: number }>();
+
   private placeHolo(index: number, x: number, y: number, on: boolean, scale: number, facing: boolean): void {
+    // a new frame starts with the first anchor again
+    if (!this.holoBoxes.length || index <= this.holoBoxes[this.holoBoxes.length - 1].i) this.holoBoxes = [];
     const el = this.renderRoot.querySelector<HTMLElement>(`.fp3d-holo[data-holo="${index}"]`);
     const link = this.renderRoot.querySelector<SVGSVGElement>(`.fp3d-holo-link[data-holo="${index}"]`);
     const main = this._holos[index]?.kind === "main";
@@ -1131,7 +1146,25 @@ export class Fp3dView3d extends LitElement {
     const dy = 46 * s;
     // the card's lower left corner (lower right when it is mirrored) sits up and to the side of the anchor
     const cx = x + (facing ? dx : -dx);
-    const cy = y - dy;
+    let cy = y - dy;
+    // cards that would cover one placed before step up above it (two devices side by side, D178);
+    // the card's size is read now and then, not every frame
+    let size = this.holoSizes.get(index);
+    const now = performance.now();
+    if (!size || now - size.at > 2000) {
+      size = { w: el.offsetWidth || 184, h: el.offsetHeight || 90, at: now };
+      this.holoSizes.set(index, size);
+    }
+    const w = size.w * s;
+    const h = size.h * s;
+    const x0 = facing ? cx : cx - w;
+    const x1 = x0 + w;
+    for (let pass = 0; pass < 6; pass++) {
+      const hit = this.holoBoxes.find((b) => x0 < b.x1 + 4 && x1 > b.x0 - 4 && cy - h < b.y1 + 4 && cy > b.y0 - 4);
+      if (!hit) break;
+      cy = hit.y0 - 6;
+    }
+    this.holoBoxes.push({ i: index, x0, x1, y0: cy - h, y1: cy });
     el.style.transform = `translate(${cx.toFixed(1)}px, ${cy.toFixed(1)}px) scale(${(facing ? s : -s).toFixed(3)}, ${s.toFixed(3)}) translate(0, -100%)`;
     if (link) {
       const line = link.firstElementChild as SVGLineElement | null;

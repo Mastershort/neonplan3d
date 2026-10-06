@@ -268,6 +268,8 @@ PLACEMENT_SCHEMA = vol.Schema(
         vol.Optional("glow_scale", default=None): vol.Any(
             None, vol.All(vol.Coerce(float), vol.Range(min=0.1, max=1.5))
         ),
+        # Energie Pro: a glass card over the placed device (a smart plug)
+        vol.Optional("holo", default=False): bool,
         # cameras: show the field-of-view wedge on the floor (None = yes)
         vol.Optional("cone", default=None): vol.Any(None, bool),
         # fixed against moving by accident

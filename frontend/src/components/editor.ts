@@ -13,7 +13,7 @@ import { weatherEntity } from "../weather.ts";
 import { SHOW_PRESENCE } from "../flags.ts";
 import { hasFeature, manualUrl, shopUrl } from "../features.ts";
 import { cameraMotionSensors, detectionKind } from "../markers.ts";
-import { deviceSensors, energySummary, flowSegments, gridPoint, proposeEnergySensors, type EnergyPrefs, type FlowSegment } from "../energy.ts";
+import { deviceSensors, energySummary, flowSegments, gridPoint, powerSensorFor, proposeEnergySensors, type EnergyPrefs, type FlowSegment } from "../energy.ts";
 import { isStatusSensor, robotRoomSensor, TOGGLE_KINDS } from "../devices.ts";
 import { sectionFloor, dormerParent, effectiveDormer, proposeDormer, sectionGeometry, floorOutline, polygonBox, headroomLines, ridgeHeight, roofSectionsFromRooms, sectionFrame, wallTopUnder } from "../roof-sections.ts";
 import { bestFace, clampField, faceAt, faceCompass, fieldFace, fieldModules, GROUND, pointOnFace, proposeField, proposeGroundField, proposeWindow, proposeWallField, roofFaces, rowCounts, turnGroundField, fieldCenter, wallFaces, windowAsField, windowCorners, onFace, onField, rayOnFace, type RoofFace } from "../solar.ts";
@@ -6611,6 +6611,12 @@ export class Fp3dEditor extends LitElement {
           ? html`<label class="fp3d-check fp3d-wide" title=${this.t("device_confirm_hint")}
               ><input type="checkbox" .checked=${!!pl.confirm} ?disabled=${!admin} @change=${(ev: Event) => this.updateDevice({ confirm: (ev.target as HTMLInputElement).checked })} />
               ${this.t("device_confirm")}</label
+            >`
+          : nothing}
+        ${hasFeature("energy_pro") && powerSensorFor(this.hass!, pl.entity_id)
+          ? html`<label class="fp3d-check fp3d-wide" title=${this.t("furn_holo_hint")}
+              ><input type="checkbox" .checked=${!!pl.holo} ?disabled=${!admin} @change=${(ev: Event) => this.updateDevice({ holo: (ev.target as HTMLInputElement).checked || undefined })} />
+              ${this.t("furn_holo")}</label
             >`
           : nothing}
         ${this.markerSelect(pl.marker ?? null, (v) => this.updateDevice({ marker: v }))}

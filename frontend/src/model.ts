@@ -227,6 +227,8 @@ export interface Placement {
   show_name?: boolean;
   /** Lights: how strongly the light glows in 3D, 0.1–1.5 (1 = as bright as the light reports) – #181. */
   glow_scale?: number | null;
+  /** Energie Pro: a glass card over the device (a smart plug) with its power, today's kWh and the day curve (D178). */
+  holo?: boolean;
   /** Cameras: show the field-of-view wedge on the floor (null = yes). */
   cone?: boolean | null;
 }

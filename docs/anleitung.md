@@ -642,7 +642,7 @@ In der Hausansicht hängt ein Hologramm aus Glas am größten Solarfeld (ohne Fe
 
 **Geräte-Hologramme**
 
-Auch ohne Solaranlage: Jedes Gerät mit Leistungssensor (Fernseher, Waschmaschine, Kühlschrank, Wärmepumpe, PC, Wallbox) kann eine kleine Glaskarte über sich tragen – Leistung jetzt, Verbrauch heute und die Tageskurve aus den Statistiken seines Sensors. Im Möbelformular den Haken **Hologramm über dem Gerät** setzen. Die Karten zeigen sich in der Hausansicht und auf der Etage des Geräts; Antippen klappt sie zusammen. Zehn Karten kosten weniger als eine Leitung, auch auf dem Wandtablet.
+Auch ohne Solaranlage: Jedes Gerät mit Leistungssensor (Fernseher, Waschmaschine, Kühlschrank, Wärmepumpe, PC, Wallbox) kann eine kleine Glaskarte über sich tragen – Leistung jetzt, Verbrauch heute und die Tageskurve aus den Statistiken seines Sensors. Im Möbelformular den Haken **Hologramm über dem Gerät** setzen – genauso im Formular eines platzierten Geräts mit Leistungssensor, etwa einer smarten Steckdose. Stehen Geräte dicht nebeneinander (Waschmaschine und Trockner), weichen ihre Karten einander nach oben aus. Die Karten zeigen sich in der Hausansicht und auf der Etage des Geräts; Antippen klappt sie zusammen. Zehn Karten kosten weniger als eine Leitung, auch auf dem Wandtablet.
 
 Der Knopf **Hologramme** in der Energieleiste (neben ⚡) blendet alle Karten aus und wieder ein – praktisch, wenn viele Geräte eine tragen. In der Karte gibt es den Knopf ebenfalls, oder du legst es mit `holograms` fest.
 
@@ -872,6 +872,9 @@ Das normale Backup von Home Assistant sichert NeonPlan 3D ebenfalls vollständig
 ## 12. Häufige Fragen und Fehlerbehebung
 
 **Hilfe und Rückmeldung:** Einen Fehler meldest du am besten als [Issue auf GitHub](https://github.com/Mastershort/neonplan3d/issues/new/choose), eine Idee als [Diskussion](https://github.com/Mastershort/neonplan3d/discussions/categories/ideas). So geht nichts verloren, alle sehen den Stand, und du wirst in den Release-Notizen genannt, wenn es umgesetzt ist. Die beiden Knöpfe dafür stehen auch im Editor unten in der Seitenleiste und auf der Seite Erweiterungen.
+
+**Wie bekomme ich das neueste Update?**
+Einstellungen → System → Updates. Fehlt NeonPlan 3D dort: HACS → NeonPlan 3D → ⋮ → **Informationen aktualisieren** → **Herunterladen**. Danach Home Assistant neu starten und die Seite neu laden (Strg+F5, in der Companion-App: Einstellungen → Companion-App → Frontend-Cache zurücksetzen).
 
 **Kann ich Helfer statt echter Sensoren nehmen?**
 Ja. Überall, wo NeonPlan einen Zahlenwert erwartet (Leistung, Ladestand, Reichweite, Position …), stehen auch `input_number`- und `number`-Helfer zur Wahl, und wo ein Ein/Aus erwartet wird (Kontakt, Anwesenheit …), auch `input_boolean`. Für Leistung braucht der Helfer die Einheit W oder kW.

@@ -11,6 +11,11 @@
 - Where an interior wall continues an outer wall in line, it stood half its thickness into the room; it now sits flush (#179 by gcorgnet).
 - Demo: the van stands along the garage instead of across its wall.
 
+### How to update
+
+Settings → System → Updates. If NeonPlan 3D is missing there: HACS → NeonPlan 3D → ⋮ → **Update information** → **Download**. Then restart Home Assistant and reload the page (Ctrl+F5).
+
+
 ---
 
 ### Neu
@@ -25,3 +30,7 @@
 
 - Wo eine Innenwand eine Außenwand in einer Flucht fortsetzt, stand sie eine halbe Wandstärke in den Raum hinein; jetzt schließt sie bündig an (#179 von gcorgnet).
 - Demo: Der Van steht längs in der Garage statt quer durch die Wand.
+
+### So bekommst du das Update
+
+Einstellungen → System → Updates. Fehlt NeonPlan 3D dort: HACS → NeonPlan 3D → ⋮ → **Informationen aktualisieren** → **Herunterladen**. Danach Home Assistant neu starten und die Seite neu laden (Strg+F5).
