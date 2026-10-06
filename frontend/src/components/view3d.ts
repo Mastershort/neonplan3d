@@ -1526,6 +1526,8 @@ export class Fp3dView3d extends LitElement {
             const col: [number, number, number] = car.soc >= 50 ? [0.3, 1, 0.5] : car.soc >= 20 ? [1, 0.8, 0.25] : [1, 0.3, 0.25];
             faces.push({ part: "band", color: col, level: car.charging ? 1 : 0.6 });
           }
+          // unlocked: head- and taillights glow amber, like the indicators when a car opens
+          if (car.locked === false) faces.push({ part: "lights", color: [1, 0.42, 0.02], level: 1 });
           if (car.climateOn) {
             // the cabin glows through the windows: warm while heating (or unknown), cool blue while cooling
             const clim = car.entities.climate ? hass.states[car.entities.climate] : undefined;
