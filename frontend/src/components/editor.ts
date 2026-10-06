@@ -101,7 +101,7 @@ import { fetchBackup, restoreBackup, type BackupFile } from "../api.ts";
 import { load3d } from "../load3d.ts";
 import type { WallMode } from "../viewer/viewer3d.ts";
 import { furnitureName } from "../furniture-names.ts";
-import { furnitureSize, isElectric, mountBase, packItem, packItemName, packName, packType, setPacks, type FurniturePack } from "../packs.ts";
+import { furnitureSize, isElectric, isPackType, mountBase, packDisplay, packItem, packItemName, packName, packType, setPacks, type FurniturePack } from "../packs.ts";
 
 /** Items that can be fixed against moving. */
 type FixKind = "room" | "opening" | "furniture" | "device" | "wall" | "outdoor";
@@ -6128,12 +6128,15 @@ export class Fp3dEditor extends LitElement {
       return furnitureEntities(hass, probe).get(f.id)?.[key] ?? null;
     };
     const media = isMediaFurniture(f.type);
+    // a pack item with only a status light (a 3D printer's panel, a wallbox's LED) links like any device:
+    // "Device", with media players, switches and status sensors to choose from
+    const tvLike = media && (!isPackType(f.type) || packDisplay(f.type));
     const lamp = isLamp(f.type);
     const entities = this.entityOptions((id) =>
       lamp
         ? // a lamp can follow a light or a plain switch (e.g. a relay that switches the ceiling light)
           /^(light|switch|input_boolean)\./.test(id)
-        : media
+        : tvLike
           ? // a media player, or the smart plug an older TV is switched with
             /^(media_player|switch|input_boolean|light)\./.test(id)
           : f.type === "radiator"
@@ -6148,7 +6151,7 @@ export class Fp3dEditor extends LitElement {
     return html`<div class="fp3d-form fp3d-links">
         ${f.type === "grid_point"
           ? html`<p class="fp3d-sub fp3d-wide">${this.t("grid_point_hint")}</p>`
-          : this.entitySelect(this.t(lamp ? "furn_entity_light" : media ? "furn_entity_tv" : f.type === "radiator" ? "furn_entity_climate" : f.type === "robot_vacuum" ? "furn_entity_vacuum" : "furn_entity"), f.entity ?? null, autoPick("entity"), entities, (v) =>
+          : this.entitySelect(this.t(lamp ? "furn_entity_light" : tvLike ? "furn_entity_tv" : f.type === "radiator" ? "furn_entity_climate" : f.type === "robot_vacuum" ? "furn_entity_vacuum" : "furn_entity"), f.entity ?? null, autoPick("entity"), entities, (v) =>
               this.updateFurniture({ entity: v }),
             )}
         ${!lamp && !(ENERGY_DEVICES as readonly string[]).includes(f.type) && !hasScreen(f.type)

@@ -121,6 +121,21 @@ export function packScreen(type: string): PackPart | undefined {
   return packItem(type)?.parts.find((p) => p.screen);
 }
 
+/**
+ * A pack item with a real display (a TV, a monitor, a smart display) rather than a small status light (a
+ * printer's panel, a wallbox's LED): one of its screen parts is at least 6 cm on both sides of its face.
+ */
+export function packDisplay(type: string): boolean {
+  const item = packItem(type);
+  if (!item) return false;
+  const [W, D, H] = item.size;
+  return item.parts.some((p) => {
+    if (!p.screen) return false;
+    const [a, b] = [p.w * W, p.d * D, p.h * H].sort((x, y) => y - x);
+    return a >= 0.06 && b >= 0.06;
+  });
+}
+
 export function packItem(type: string): PackItem | undefined {
   if (!isPackType(type)) return undefined;
   const hit = items.get(type);

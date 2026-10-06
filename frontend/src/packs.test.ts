@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { isLamp, newFloor } from "./model.ts";
-import { furnitureSize, isElectric, mountBase, packItem, packItemName, packName, packType, setPacks, type FurniturePack } from "./packs.ts";
+import { furnitureSize, isElectric, mountBase, packDisplay, packItem, packItemName, packName, packType, setPacks, type FurniturePack } from "./packs.ts";
 
 const pack: FurniturePack = {
   id: "demo.pack",
@@ -62,4 +62,21 @@ test("our packs show an English name outside German, others keep theirs (#224)",
   assert.equal(packName({ id: "mastershort.living_sample", name: "Wohnzimmer – Schnupper-Pack" }, "fr"), "Living Room – Sampler");
   assert.equal(packName({ id: "pro_weather", name: "Wetter draußen" }, "en"), "Pro: Weather Outside");
   assert.equal(packName({ id: "someone.else", name: "Möbel" }, "en"), "Möbel");
+});
+
+test("a status light is no display: printers ask for a device, TVs for a media player", () => {
+  setPacks([
+    {
+      id: "t",
+      name: "T",
+      publisher: "x",
+      items: [
+        { id: "tv", name: { en: "TV" }, size: [1.2, 0.08, 0.7], parts: [{ shape: "box", x: 0, z: 0.4, w: 0.95, d: 0.1, y: 0.05, h: 0.9, color: "accent", screen: true }] },
+        { id: "printer", name: { en: "Printer" }, size: [0.39, 0.4, 0.46], parts: [{ shape: "box", x: -0.3, z: 0.5, w: 0.2, d: 0.0125, y: 0.03, h: 0.07, color: "accent", screen: true }] },
+      ],
+    } as unknown as FurniturePack,
+  ]);
+  assert.equal(packDisplay("pack:t:tv"), true);
+  assert.equal(packDisplay("pack:t:printer"), false);
+  setPacks([]);
 });
