@@ -1219,5 +1219,20 @@
  "style_glass_wall": "Pared de vidrio (fija)",
  "preset_glass_wall": "Pared de vidrio",
  "vehicle_to_spot": "Convertir en plaza de aparcamiento",
- "vehicle_to_spot_hint": "Como plaza aparece solo cuando un sensor detecta el coche; allí se configura Auto Pro."
+ "vehicle_to_spot_hint": "Como plaza aparece solo cuando un sensor detecta el coche; allí se configura Auto Pro.",
+ "glow_scale": "Brillo en 3D (%)",
+ "glow_scale_hint": "Cuánto brilla la lámpara en 3D; no cambia nada en Home Assistant.",
+ "floor_start_view": "Vista como inicio de la planta",
+ "floor_start_view_hint": "Esta planta se abre en 3D como está ahora la vista 3D de la derecha.",
+ "floor_start_view_reset": "Quitar la vista de inicio de la planta",
+ "floor_start_view_need_pane": "Activa primero «3D al lado» y gira la planta.",
+ "thumbs_fold": "Plegar las imágenes de las plantas en botones",
+ "thumbs_show": "Volver a mostrar las imágenes",
+ "bg_ruler": "Escala con regla",
+ "bg_ruler_cancel": "Cancelar la regla",
+ "bg_ruler_first": "Toca en la imagen el inicio de un tramo de longitud conocida.",
+ "bg_ruler_second": "Ahora toca el final del tramo.",
+ "bg_ruler_length_hint": "Medido en el plano: {m} m. Introduce la longitud real.",
+ "bg_ruler_length": "Longitud real (m)",
+ "bg_ruler_apply": "Aplicar escala"
 }

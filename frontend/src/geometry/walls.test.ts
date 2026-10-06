@@ -235,3 +235,13 @@ test("a wall takes the thickness set on its room edge; a shared wall the thicker
   near(north.right, 0.08);
   for (const w of walls.filter((w) => w.exterior && w.sources.every((s) => s.room_id === "b"))) near(w.right, EXT);
 });
+
+test("an interior wall continuing an outer wall in line sits flush with it (#179)", () => {
+  // A (0..4 × 0..3) and B (4..7 × 0..5): B's west edge x = 4 is shared with A for z 0..3 and outside above
+  const { walls } = generateWalls([rect("a", 0, 0, 4, 3), rect("b", 4, 0, 7, 5)], opts);
+  const inner = walls.find((w) => !w.exterior)!;
+  // the shared wall's face towards B lies on x = 4, like the outer wall's inner face above it
+  const bSide = inner.roomLeft === "b" ? inner.left : inner.right;
+  near(bSide, 0);
+  near(inner.left + inner.right, INT);
+});

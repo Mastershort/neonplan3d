@@ -2698,10 +2698,13 @@ export class FloorplanViewer {
     if (this.floorId === null) this.houseRadius = radius;
     // the house view opens as set up (from the garden side, closer …); an opened floor keeps the fitted
     // distance but looks from the same side, so the house never turns round when a floor is opened
-    const start = this.startView;
     const house = this.floorId === null;
-    if (start && house) this.controls.maxRadius = Math.max(this.controls.maxRadius, start.radius * 1.5);
-    this.controls.flyTo({ target: center, radius: start && house ? start.radius : radius, phi: start ? start.phi : 0.85, theta: start ? start.theta : -0.6 }, duration);
+    // a floor may have a start view of its own (#182): it opens from that side and distance
+    const own = !house ? (this.floorMap.get(this.floorId!)?.floor.start_view ?? null) : null;
+    const start = own ?? this.startView;
+    const useRadius = !!start && (house || !!own);
+    if (start && useRadius) this.controls.maxRadius = Math.max(this.controls.maxRadius, start.radius * 1.5);
+    this.controls.flyTo({ target: center, radius: useRadius ? start!.radius : radius, phi: start ? start.phi : 0.85, theta: start ? start.theta : -0.6 }, duration);
   }
 
   /** The ground grid lies under the lowest floor and reaches well beyond the building. */

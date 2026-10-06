@@ -74,7 +74,7 @@ import { searchIndex, searchItems, type SearchItem } from "../search.ts";
 import { coverPositionable, lightAbilities } from "./quick-menu.ts";
 import "./quick-menu.ts";
 import { load3d } from "../load3d.ts";
-import { detectionKind, buildMarkers, cameraMotionSensors, openMoreInfo, placedEntities, stateText, toggleEntity } from "../markers.ts";
+import { detectionKind, scaleGlow, buildMarkers, cameraMotionSensors, openMoreInfo, placedEntities, stateText, toggleEntity } from "../markers.ts";
 import { furnitureFootprint, isLamp, LAMP_MODEL, outdoorGround, pointInPolygon, surfaceHeight, type Building, type Furniture, type StartView } from "../model.ts";
 import { floorCounts, floorInfoText, personsInRooms } from "../presence.ts";
 import { controls, tokens } from "../styles.ts";
@@ -135,6 +135,7 @@ export class Fp3dView3d extends LitElement {
     _wallBig: { state: true },
     _find: { state: true },
     _central: { state: true },
+    _thumbsCompact: { state: true },
     _armed: { state: true },
     central: { attribute: false },
     buttons: { attribute: false },
@@ -300,6 +301,8 @@ export class Fp3dView3d extends LitElement {
   private thumbsAt = 0;
   /** Search ("where is …?"): null = closed. */
   private declare _find: string | null;
+  /** Floor pictures folded to plain floor buttons (D177), remembered per device. */
+  private declare _thumbsCompact: boolean;
   /** The central menu (all lights / blinds of the floor or house, favourites) is open (#145). */
   private declare _central: boolean;
   /** A house-wide action waiting for its second tap ("sure?"), with the time it was armed. */
@@ -378,6 +381,11 @@ export class Fp3dView3d extends LitElement {
     this._blend = 0.6;
     this._find = null;
     this._central = false;
+    try {
+      this._thumbsCompact = localStorage.getItem("neonplan3d.thumbs_compact") === "1";
+    } catch {
+      this._thumbsCompact = false;
+    }
     this._armed = null;
     this.central = true;
     this.buttons = null;
@@ -1869,7 +1877,7 @@ export class Fp3dView3d extends LitElement {
       text: st ? stateText(hass, st) : "",
       active: st ? isActive(st) : false,
       unavailable: st ? isUnavailable(st) : false,
-      glow: st ? lightGlow(st, f.color_entity && f.color_entity !== "none" ? hass.states[f.color_entity] : undefined) : null,
+      glow: st ? scaleGlow(lightGlow(st, f.color_entity && f.color_entity !== "none" ? hass.states[f.color_entity] : undefined), f.glow_scale) : null,
       lamp: model,
       rotation: f.rotation,
       mirror: !!f.mirror,
@@ -1949,14 +1957,24 @@ export class Fp3dView3d extends LitElement {
     const order = [...this._thumbs].sort(
       (a, b) => (this.building!.floors.find((f) => f.id === b.floorId)?.elevation ?? 0) - (this.building!.floors.find((f) => f.id === a.floorId)?.elevation ?? 0),
     );
-    return html`<nav class="fp3d-thumbs ${this.narrowThumbs ? "fp3d-thumbs-small" : ""}" aria-label=${translate(this.hass, "floors")}>
+    const compact = this._thumbsCompact;
+    const fold = () => {
+      this._thumbsCompact = !compact;
+      try {
+        localStorage.setItem("neonplan3d.thumbs_compact", this._thumbsCompact ? "1" : "0");
+      } catch {
+        // private mode: the choice lasts for this page only
+      }
+    };
+    return html`<nav class="fp3d-thumbs ${this.narrowThumbs ? "fp3d-thumbs-small" : ""} ${compact ? "fp3d-thumbs-compact" : ""}" aria-label=${translate(this.hass, "floors")}>
+      <button class="fp3d-thumbs-fold" title=${translate(this.hass, compact ? "thumbs_show" : "thumbs_fold")} aria-label=${translate(this.hass, compact ? "thumbs_show" : "thumbs_fold")} @click=${fold}>${compact ? "▸" : "◂"}</button>
       <button class="fp3d-thumb fp3d-thumb-house" aria-pressed=${this.floorId === null} @click=${() => this.fire("floor-tap", { floorId: null })}>
         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M3 11l9-7 9 7M5 10v10h14V10" /></svg>
         <span>${translate(this.hass, "all_floors")}</span>
       </button>
       ${order.map(
         (t) => html`<button class="fp3d-thumb" aria-pressed=${this.floorId === t.floorId} @click=${() => this.fire("floor-tap", { floorId: t.floorId })}>
-          <img src=${t.url} alt="" />
+          ${compact ? nothing : html`<img src=${t.url} alt="" />`}
           <span>${names.get(t.floorId) ?? ""}</span>
         </button>`,
       )}
@@ -2915,6 +2933,28 @@ export class Fp3dView3d extends LitElement {
         font-size: 12px;
         font-weight: 600;
         text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
+      }
+      .fp3d-thumbs-fold {
+        align-self: flex-start;
+        width: 26px;
+        height: 22px;
+        padding: 0;
+        border: 1px solid var(--fp3d-line);
+        border-radius: 8px;
+        background: var(--fp3d-chrome);
+        color: var(--fp3d-text);
+        font-size: 11px;
+        cursor: pointer;
+      }
+      /* folded: plain floor buttons with their names, no pictures (D177) */
+      .fp3d-thumbs-compact .fp3d-thumb {
+        padding: 6px 10px;
+        min-width: 0;
+      }
+      .fp3d-thumbs-compact .fp3d-thumb span {
+        position: static;
+        background: none;
+        padding: 0;
       }
       .fp3d-thumb-house {
         display: flex;

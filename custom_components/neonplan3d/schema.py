@@ -181,6 +181,10 @@ FURNITURE_SCHEMA = vol.Schema(
         # its own name (e.g. "Wechselrichter Nord"); None = the type's name; show_name puts it under the marker
         vol.Optional("name", default=None): vol.Any(None, vol.All(str, vol.Length(max=60))),
         vol.Optional("show_name", default=False): bool,
+        # lamps / lights: how strongly they glow in 3D (None = as reported)
+        vol.Optional("glow_scale", default=None): vol.Any(
+            None, vol.All(vol.Coerce(float), vol.Range(min=0.1, max=1.5))
+        ),
         # linked entities (e.g. the TV's media player, a power sensor): None = automatic, "none" = no entity
         vol.Optional("entity", default=None): vol.Any(None, vol.All(str, vol.Length(max=255))),
         vol.Optional("power", default=None): vol.Any(None, vol.All(str, vol.Length(max=255))),
@@ -260,6 +264,10 @@ PLACEMENT_SCHEMA = vol.Schema(
         # an own name in the plan, without renaming the entity; show_name puts it under the marker
         vol.Optional("name", default=None): vol.Any(None, vol.All(str, vol.Length(max=60))),
         vol.Optional("show_name", default=False): bool,
+        # lamps / lights: how strongly they glow in 3D (None = as reported)
+        vol.Optional("glow_scale", default=None): vol.Any(
+            None, vol.All(vol.Coerce(float), vol.Range(min=0.1, max=1.5))
+        ),
         # cameras: show the field-of-view wedge on the floor (None = yes)
         vol.Optional("cone", default=None): vol.Any(None, bool),
         # fixed against moving by accident
@@ -482,6 +490,18 @@ FLOOR_SCHEMA = vol.Schema(
         vol.Optional("walls", default=list): vol.All([FREE_WALL_SCHEMA], vol.Length(max=MAX_ITEMS)),
         # floor of Home Assistant's floor registry this floor stands for
         vol.Optional("ha_floor", default=None): vol.Any(None, vol.All(str, vol.Length(max=255))),
+        # the camera this floor opens with (None = the house view's side)
+        vol.Optional("start_view", default=None): vol.Any(
+            None,
+            vol.Schema(
+                {
+                    vol.Required("theta"): vol.All(vol.Coerce(float), vol.Range(min=-10, max=10)),
+                    vol.Required("phi"): vol.All(vol.Coerce(float), vol.Range(min=0, max=3.2)),
+                    vol.Required("radius"): vol.All(vol.Coerce(float), vol.Range(min=1, max=500)),
+                },
+                extra=vol.ALLOW_EXTRA,
+            ),
+        ),
     },
     extra=vol.ALLOW_EXTRA,
 )
