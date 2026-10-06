@@ -66,6 +66,14 @@ export type RoofHolder = { settings: { roof: { sections?: readonly RoofSection[]
 export const ROOF_THICK = 0.14;
 
 /**
+ * Whether a section can reach below a floor's ceiling: its wall top or one of its eaves lies lower. A low
+ * eave over a full-height floor cuts the walls too (D147), not only a wall top set below the ceiling.
+ */
+export function sectionCutsBelow(s: Pick<RoofSection, "open" | "base" | "eave_a" | "eave_b">, ceiling: number): boolean {
+  return !s.open && Math.min(s.base, s.eave_a, s.eave_b) < ceiling - 0.05;
+}
+
+/**
  * The underside of the roof above a plan point (absolute height): the lowest covered section, or
  * null outside every section (canopies do not count, and neither does a single roof: it sits on
  * the top floor's walls anyway).

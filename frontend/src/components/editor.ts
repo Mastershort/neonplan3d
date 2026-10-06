@@ -15,7 +15,7 @@ import { hasFeature, manualUrl, shopUrl } from "../features.ts";
 import { cameraMotionSensors, detectionKind } from "../markers.ts";
 import { deviceSensors, energySummary, flowSegments, gridPoint, powerSensorFor, proposeEnergySensors, type EnergyPrefs, type FlowSegment } from "../energy.ts";
 import { isStatusSensor, robotRoomSensor, TOGGLE_KINDS } from "../devices.ts";
-import { sectionFloor, dormerParent, effectiveDormer, proposeDormer, sectionGeometry, floorOutline, polygonBox, headroomLines, ridgeHeight, roofSectionsFromRooms, sectionFrame, wallTopUnder } from "../roof-sections.ts";
+import { sectionFloor, dormerParent, effectiveDormer, proposeDormer, sectionGeometry, floorOutline, polygonBox, headroomLines, ridgeHeight, sectionCutsBelow, roofSectionsFromRooms, sectionFrame, wallTopUnder } from "../roof-sections.ts";
 import { bestFace, clampField, faceAt, faceCompass, fieldFace, fieldModules, GROUND, pointOnFace, proposeField, proposeGroundField, proposeWindow, proposeWallField, roofFaces, rowCounts, turnGroundField, fieldCenter, wallFaces, windowAsField, windowCorners, onFace, onField, rayOnFace, type RoofFace } from "../solar.ts";
 import type { SurfaceGrab, SurfaceRay } from "../viewer/viewer3d.ts";
 import { storedImageIds } from "../transfer.ts";
@@ -5894,7 +5894,7 @@ export class Fp3dEditor extends LitElement {
   private renderHeadroom(floor: Floor) {
     const ceiling = floor.elevation + floor.height;
     const sections = this._doc.settings.roof.sections ?? [];
-    if (!sections.some((s) => !s.open && s.base < ceiling - 0.05)) return nothing;
+    if (!sections.some((s) => sectionCutsBelow(s, ceiling))) return nothing;
     const b = { settings: this._doc.settings };
     return svg`${[1.5, 2].map((h) =>
       headroomLines(b, floor.elevation, h).map(([p, q]) => {

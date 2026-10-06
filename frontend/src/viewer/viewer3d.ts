@@ -46,7 +46,7 @@ import {
 import type { Building, Floor, Furniture, Room } from "../model.ts";
 import { recolorLamps, SHADE_SENTINEL, shadeFactors } from "./lamp-colors.ts";
 import { centroid, pointInPolygon, openingStyle, WALL_LAMP_Y } from "../model.ts";
-import { roofUnderAt } from "../roof-sections.ts";
+import { roofUnderAt, sectionCutsBelow } from "../roof-sections.ts";
 import { buildFloorGeometry, SLAB, stairHoles, type FloorGeometry } from "./build.ts";
 import { OrbitControls, type OrbitView } from "./controls.ts";
 import { makeFoldable, type FoldMasks } from "./fold.ts";
@@ -1653,7 +1653,7 @@ export class FloorplanViewer {
       // an attic floor: its walls end under the roof sections above it
       // every floor whose ceiling lies above a section's base is cut by the slopes – the attic, and the
       // floor below it when the slope already starts there (a roof that reaches down past the ceiling)
-      const sloped = (b.settings.roof.sections ?? []).some((s) => !s.open && s.base < floor.elevation + floor.height - 0.05);
+      const sloped = (b.settings.roof.sections ?? []).some((s) => sectionCutsBelow(s, floor.elevation + floor.height));
       const roofUnder = sloped
         ? (x: number, z: number) => {
             const y = roofUnderAt(b, x, z);
@@ -1898,7 +1898,9 @@ export class FloorplanViewer {
     const roof = this.roof;
     if (!roof) return false;
     const zoom = this.keepRoof ? 1 : Math.min(1, Math.max(0, (this.controls.view.radius / this.houseRadius - 0.62) / 0.3));
-    const target = this.floorId === null && this.wallMode !== "cut" ? 0.94 * zoom : 0;
+    // a house with a single floor shows that floor as its house view, roof included (D208)
+    const house = this.floorId === null || this.floors.length === 1;
+    const target = house && this.wallMode !== "cut" ? 0.94 * zoom : 0;
     const k = 1 - Math.exp(-dt / FLOOR_TAU);
     const before = this.roofO;
     this.roofO += (target - this.roofO) * k;
@@ -2695,7 +2697,7 @@ export class FloorplanViewer {
     const radius = Math.max(8, this.distanceFor(size) * (this.camera.aspect < 1 ? 1.16 : 1.02));
     this.controls.maxRadius = Math.max(40, radius * 3);
     center.y = box.min.y + size.y * (this.houseView ? 0.45 : 0.3);
-    if (this.floorId === null) this.houseRadius = radius;
+    if (this.floorId === null || this.floors.length === 1) this.houseRadius = radius;
     // the house view opens as set up (from the garden side, closer …); an opened floor keeps the fitted
     // distance but looks from the same side, so the house never turns round when a floor is opened
     const house = this.floorId === null;
