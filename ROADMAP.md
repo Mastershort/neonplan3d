@@ -1,71 +1,8 @@
 # NeonPlan 3D – Roadmap
 
-Was als Nächstes kommt. Die Reihenfolge richtet sich nach euren Wünschen (Issues und 👍 in [Discussions → Ideas](https://github.com/Mastershort/neonplan3d/discussions/categories/ideas)) und kann sich ändern. Feste Termine gibt es bewusst nicht – eine Funktion kommt, wenn sie gut ist. Alles läuft weiter auch auf alten, schwachen Wandtablets.
-
-**Grundsatz:** Alles, was du brauchst, um dein Zuhause abzubilden und zu bedienen, bleibt kostenlos. Sicherheit (Rauch, Wasser, Alarm, Regenwarnung) ist immer kostenlos. Bezahlt werden zusätzliche Möbel-Packs und Pro-Erweiterungen mit besonderen Live-Effekten – einmal, ohne Abo, und was installiert ist, läuft für immer.
-
-*English below.*
-
----
-
-## Kostenlos – als Nächstes
-
-| Thema | Worum es geht | Wunsch |
-|---|---|---|
-| Außenflächen wie Räume | Garten, Terrasse, Pool einem Home-Assistant-Bereich zuordnen; antippen öffnet sie, ihre Geräte und Sensoren werden gefunden; Sensorwerte draußen ohne Schein-Raum | #100, #59, Diskussion #80 |
-| Außenflächen frei zeichnen | Punkt für Punkt wie Räume, mit runden Ecken für Beete und Wege | #97, Diskussionen #31, #34 |
-| Hebe-Schiebetür | Festes und bewegliches Glasfeld, Seite wählbar, auch mit zwei Rollläden | #79, Diskussionen #53, #72 |
-| Lampen unter Dachschrägen | Deckenleuchten folgen der Dachunterseite, Höhe einstellbar | #168 |
-| Wandthermostat | Zum Platzieren an der Wand, verknüpft mit Klima oder Heizgruppe | #55 |
-| Alarmanlage | Alarmo und andere Alarm-Panels mit Anzeige des auslösenden Sensors | #92, Diskussion #78 |
-| Wände | Dicke je Teilstück einer Wand, Innenmaße (Wand zu Wand) messen | #162 |
-| Treppen und Sofas frei | U-Treppe und L-/U-Sofa als einfache Grundmodelle ohne Pack | #61 |
-| Solarfelder drehen | Eigene Drehung und Neigung, auch Ost-West-Aufständerung | #106, Diskussion #69 |
-| Leuchten mit mehreren Leuchtmitteln | Einzelne Birnen einer Lampe getrennt | #5 |
-| Treppe nach unten | Treppe in einen Keller, der nicht gezeichnet ist | Diskussion #111 |
-| Heizkarte nach Jahreszeit | Winter-/Sommer-Profil, Klima-Entitäten als Quelle | #33 |
-| Zoll und Fuß | Maßeinheiten nach Home-Assistant-Einstellung | Diskussion #117 |
-| Tastatur in 3D | Pfeiltasten, später ein Rundgang-Modus | #171 |
-| Sonne mit Schatten | Echte Schatten nach Sonnenstand, sichtbare Sonne und Mond | #126 |
-| Runde Wände | Wandbögen, Fenster folgen | #63 |
-
-## Pro-Erweiterungen – geplant
-
-Bereits erhältlich: **Kamera-Cockpit**, **Wetter draußen**, **Bildschirme live**, **Energie Pro**, **Klang & Kino**, **Auto Pro**. Käufer bekommen Verbesserungen ihrer Erweiterungen kostenlos.
-
-| Erweiterung | Was sie bringt |
-|---|---|
-| **Zeitreise** | Ein Zeitregler spielt die letzten 24 Stunden (später 7 Tage) im Haus ab: Lichter, Türen, Fenster, Bewegung, Energie – „Was war gestern um 3 Uhr?“ |
-| **Raumklima Pro** | Fließende Klimakarte aus allen Sensoren, Schimmel-Risiko je Raum, Lüftungs-Hinweise, Heizverläufe |
-| **Technik Pro** | WLAN-Karte, Netzwerkgeräte mit Zustand, 3D-Drucker live mit Fortschritt und „fertig“-Effekt, Systemzustand (Diskussionen #54, #115, #136) |
-| **Garten & Pool Pro** | Bewässerung mit Zonen und Sprüh-Animation, Mähroboter-Bahnen, Pool mit Temperatur und Pumpe (Diskussion #76) |
-| **Haushalt Pro** | Mülltonnen mit Abfuhr-Kalender und Erinnerung, Waschmaschine fertig, Paket da, Pflanzen gießen (Diskussion #84) |
-| **Licht-Designer** | Lampen in 3D einstellen und als Szene speichern, Stimmung von Raum zu Raum kopieren |
-
-Updates für bestehende Erweiterungen:
-- **Energie Pro:** Gas- und Wasserzähler mit eigenen Leitungsfarben, Wärmepumpe mit Wärmefluss, 7-Tage-Verlauf, Hologramme für Steckdosen (Diskussion #178).
-- **Auto Pro:** bewegliche Türen und Klappen, Abfahrtszeit, Ladekabel zur Wallbox, Entfernung unterwegs.
-- **Kamera-Cockpit:** Schwenken/Neigen aus 3D, Türklingel.
-- **Klang & Kino:** mehr Quellen und Favoriten je Lautsprecher.
-
-## Möbel-Packs – geplant
-
-- **Saison & Deko** – Weihnachtsbaum mit Lichterkette, Adventskranz, Lichterketten außen, Kürbis und Ostern (vor Weihnachten).
-- **Smart Home Release 2** – Sirene, Access Point, Rauchmelder, Wandthermostat, Luftentfeuchter, Würfellampe, Deckenventilatoren (Diskussionen #44, #45, #57, #124).
-- **Haustechnik-Update** – Klimaanlagen innen und außen (Diskussion #118).
-- **Wellness** – Sauna mit Temperatur, Whirlpool, Infrarotkabine (Diskussion #176).
-- **Garten Release 4** – Markise, Tore (Schiebetor, Gartentür), Wasserspiel mit Licht (Diskussionen #170, #175).
-- **Küche Release 3** – Kaffeemaschine und mehr Geräte (Diskussion #167).
-- **Fahrzeuge Release 2** – Motorrad, Wohnmobil, Anhänger, E-Bike, Türen zum Öffnen.
-- Später: **Grillküche & Terrasse**, **Werkstatt**, **Japandi & Skandi**, **Loft & Industrial**, **Indoor-Grün**, **Musik & Atelier**.
-
-Käufer bekommen neue Releases ihrer Packs automatisch und kostenlos.
-
----
-
-# NeonPlan 3D – Roadmap (English)
-
 What comes next. The order follows your wishes (issues and 👍 in [Discussions → Ideas](https://github.com/Mastershort/neonplan3d/discussions/categories/ideas)) and may change. There are deliberately no fixed dates – a feature ships when it is good. Everything keeps running on old, weak wall tablets.
+
+*Deutsch weiter unten.*
 
 **Principle:** everything you need to draw and control your home stays free. Safety (smoke, water, alarm, rain warning) is always free. What costs money are extra furniture packs and Pro add-ons with special live effects – paid once, no subscription, and whatever is installed keeps working forever.
 
@@ -121,3 +58,67 @@ Updates for existing add-ons:
 - Later: **Outdoor kitchen & terrace**, **Workshop**, **Japandi & Scandi**, **Loft & Industrial**, **Indoor greenery**, **Music & Studio**.
 
 Owners get new releases of their packs automatically and for free.
+
+---
+
+# NeonPlan 3D – Roadmap (Deutsch)
+
+Was als Nächstes kommt. Die Reihenfolge richtet sich nach euren Wünschen (Issues und 👍 in [Discussions → Ideas](https://github.com/Mastershort/neonplan3d/discussions/categories/ideas)) und kann sich ändern. Feste Termine gibt es bewusst nicht – eine Funktion kommt, wenn sie gut ist. Alles läuft weiter auch auf alten, schwachen Wandtablets.
+
+**Grundsatz:** Alles, was du brauchst, um dein Zuhause abzubilden und zu bedienen, bleibt kostenlos. Sicherheit (Rauch, Wasser, Alarm, Regenwarnung) ist immer kostenlos. Bezahlt werden zusätzliche Möbel-Packs und Pro-Erweiterungen mit besonderen Live-Effekten – einmal, ohne Abo, und was installiert ist, läuft für immer.
+
+
+---
+
+## Kostenlos – als Nächstes
+
+| Thema | Worum es geht | Wunsch |
+|---|---|---|
+| Außenflächen wie Räume | Garten, Terrasse, Pool einem Home-Assistant-Bereich zuordnen; antippen öffnet sie, ihre Geräte und Sensoren werden gefunden; Sensorwerte draußen ohne Schein-Raum | #100, #59, Diskussion #80 |
+| Außenflächen frei zeichnen | Punkt für Punkt wie Räume, mit runden Ecken für Beete und Wege | #97, Diskussionen #31, #34 |
+| Hebe-Schiebetür | Festes und bewegliches Glasfeld, Seite wählbar, auch mit zwei Rollläden | #79, Diskussionen #53, #72 |
+| Lampen unter Dachschrägen | Deckenleuchten folgen der Dachunterseite, Höhe einstellbar | #168 |
+| Wandthermostat | Zum Platzieren an der Wand, verknüpft mit Klima oder Heizgruppe | #55 |
+| Alarmanlage | Alarmo und andere Alarm-Panels mit Anzeige des auslösenden Sensors | #92, Diskussion #78 |
+| Wände | Dicke je Teilstück einer Wand, Innenmaße (Wand zu Wand) messen | #162 |
+| Treppen und Sofas frei | U-Treppe und L-/U-Sofa als einfache Grundmodelle ohne Pack | #61 |
+| Solarfelder drehen | Eigene Drehung und Neigung, auch Ost-West-Aufständerung | #106, Diskussion #69 |
+| Leuchten mit mehreren Leuchtmitteln | Einzelne Birnen einer Lampe getrennt | #5 |
+| Treppe nach unten | Treppe in einen Keller, der nicht gezeichnet ist | Diskussion #111 |
+| Heizkarte nach Jahreszeit | Winter-/Sommer-Profil, Klima-Entitäten als Quelle | #33 |
+| Zoll und Fuß | Maßeinheiten nach Home-Assistant-Einstellung | Diskussion #117 |
+| Tastatur in 3D | Pfeiltasten, später ein Rundgang-Modus | #171 |
+| Sonne mit Schatten | Echte Schatten nach Sonnenstand, sichtbare Sonne und Mond | #126 |
+| Runde Wände | Wandbögen, Fenster folgen | #63 |
+
+## Pro-Erweiterungen – geplant
+
+Bereits erhältlich: **Kamera-Cockpit**, **Wetter draußen**, **Bildschirme live**, **Energie Pro**, **Klang & Kino**, **Auto Pro**. Käufer bekommen Verbesserungen ihrer Erweiterungen kostenlos.
+
+| Erweiterung | Was sie bringt |
+|---|---|
+| **Zeitreise** | Ein Zeitregler spielt die letzten 24 Stunden (später 7 Tage) im Haus ab: Lichter, Türen, Fenster, Bewegung, Energie – „Was war gestern um 3 Uhr?“ |
+| **Raumklima Pro** | Fließende Klimakarte aus allen Sensoren, Schimmel-Risiko je Raum, Lüftungs-Hinweise, Heizverläufe |
+| **Technik Pro** | WLAN-Karte, Netzwerkgeräte mit Zustand, 3D-Drucker live mit Fortschritt und „fertig“-Effekt, Systemzustand (Diskussionen #54, #115, #136) |
+| **Garten & Pool Pro** | Bewässerung mit Zonen und Sprüh-Animation, Mähroboter-Bahnen, Pool mit Temperatur und Pumpe (Diskussion #76) |
+| **Haushalt Pro** | Mülltonnen mit Abfuhr-Kalender und Erinnerung, Waschmaschine fertig, Paket da, Pflanzen gießen (Diskussion #84) |
+| **Licht-Designer** | Lampen in 3D einstellen und als Szene speichern, Stimmung von Raum zu Raum kopieren |
+
+Updates für bestehende Erweiterungen:
+- **Energie Pro:** Gas- und Wasserzähler mit eigenen Leitungsfarben, Wärmepumpe mit Wärmefluss, 7-Tage-Verlauf, Hologramme für Steckdosen (Diskussion #178).
+- **Auto Pro:** bewegliche Türen und Klappen, Abfahrtszeit, Ladekabel zur Wallbox, Entfernung unterwegs.
+- **Kamera-Cockpit:** Schwenken/Neigen aus 3D, Türklingel.
+- **Klang & Kino:** mehr Quellen und Favoriten je Lautsprecher.
+
+## Möbel-Packs – geplant
+
+- **Saison & Deko** – Weihnachtsbaum mit Lichterkette, Adventskranz, Lichterketten außen, Kürbis und Ostern (vor Weihnachten).
+- **Smart Home Release 2** – Sirene, Access Point, Rauchmelder, Wandthermostat, Luftentfeuchter, Würfellampe, Deckenventilatoren (Diskussionen #44, #45, #57, #124).
+- **Haustechnik-Update** – Klimaanlagen innen und außen (Diskussion #118).
+- **Wellness** – Sauna mit Temperatur, Whirlpool, Infrarotkabine (Diskussion #176).
+- **Garten Release 4** – Markise, Tore (Schiebetor, Gartentür), Wasserspiel mit Licht (Diskussionen #170, #175).
+- **Küche Release 3** – Kaffeemaschine und mehr Geräte (Diskussion #167).
+- **Fahrzeuge Release 2** – Motorrad, Wohnmobil, Anhänger, E-Bike, Türen zum Öffnen.
+- Später: **Grillküche & Terrasse**, **Werkstatt**, **Japandi & Skandi**, **Loft & Industrial**, **Indoor-Grün**, **Musik & Atelier**.
+
+Käufer bekommen neue Releases ihrer Packs automatisch und kostenlos.

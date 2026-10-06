@@ -1,18 +1,3 @@
-### Neu
-
-- **Lineal für das Hintergrundbild:** Anfang und Ende einer bekannten Strecke im Bild antippen, echte Länge eingeben – das Bild ist richtig skaliert (#183 von HardstylerDN).
-- **Leuchtstärke je Leuchte in 3D:** Ein Prozentfeld bei Leuchten und platzierten Lichtern dämpft helle LED-Streifen oder verstärkt schwache Lampen – nur in der Darstellung (#181 von RobertSorgenfrei).
-- **Startansicht je Etage:** Jede Etage kann sich von ihrer eigenen Seite öffnen, etwa das Erdgeschoss von vorn und das Obergeschoss von hinten (#182 von RobertSorgenfrei).
-- **Etagenbilder einklappen:** Ein kleiner Pfeil macht aus den Etagenbildern links schlichte Knöpfe mit Namen – mehr Platz auf dem Handy (Diskussion #177 von Eric-41).
-- **Auto Pro:** Ist das Auto entriegelt, leuchten Scheinwerfer und Rücklichter orange wie Blinker.
-
-### Behoben
-
-- Wo eine Innenwand eine Außenwand in einer Flucht fortsetzt, stand sie eine halbe Wandstärke in den Raum hinein; jetzt schließt sie bündig an (#179 von gcorgnet).
-- Demo: Der Van steht längs in der Garage statt quer durch die Wand.
-
----
-
 ### New
 
 - **Ruler for the background picture:** tap the start and end of a stretch of known length in the picture, enter the real length – the picture is scaled right (#183 by HardstylerDN).
@@ -25,3 +10,18 @@
 
 - Where an interior wall continues an outer wall in line, it stood half its thickness into the room; it now sits flush (#179 by gcorgnet).
 - Demo: the van stands along the garage instead of across its wall.
+
+---
+
+### Neu
+
+- **Lineal für das Hintergrundbild:** Anfang und Ende einer bekannten Strecke im Bild antippen, echte Länge eingeben – das Bild ist richtig skaliert (#183 von HardstylerDN).
+- **Leuchtstärke je Leuchte in 3D:** Ein Prozentfeld bei Leuchten und platzierten Lichtern dämpft helle LED-Streifen oder verstärkt schwache Lampen – nur in der Darstellung (#181 von RobertSorgenfrei).
+- **Startansicht je Etage:** Jede Etage kann sich von ihrer eigenen Seite öffnen, etwa das Erdgeschoss von vorn und das Obergeschoss von hinten (#182 von RobertSorgenfrei).
+- **Etagenbilder einklappen:** Ein kleiner Pfeil macht aus den Etagenbildern links schlichte Knöpfe mit Namen – mehr Platz auf dem Handy (Diskussion #177 von Eric-41).
+- **Auto Pro:** Ist das Auto entriegelt, leuchten Scheinwerfer und Rücklichter orange wie Blinker.
+
+### Behoben
+
+- Wo eine Innenwand eine Außenwand in einer Flucht fortsetzt, stand sie eine halbe Wandstärke in den Raum hinein; jetzt schließt sie bündig an (#179 von gcorgnet).
+- Demo: Der Van steht längs in der Garage statt quer durch die Wand.
