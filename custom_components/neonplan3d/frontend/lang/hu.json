@@ -139,7 +139,7 @@
  "background_width": "Szélesség a tervben (m)",
  "background_opacity": "Átlátszatlanság",
  "background_rotation": "Forgatás (°)",
- "background_edit": "Mozgatás és méretezés a tervben",
+ "background_edit": "Mozgatás, méretezés és forgatás",
  "background_edit_done": "Kész",
  "background_edit_hint": "Amíg a mód be van kapcsolva: a kép húzása mozgatja, a jobb alsó fogantyú nagyítja vagy kicsinyíti. Először igazítsd a képet a léptékhez, aztán forgasd.",
  "background_remove": "Sablon eltávolítása",
@@ -1239,5 +1239,6 @@
  "bg_level_cancel": "Kiegyenesítés megszakítása",
  "bg_level_first": "Koppints a kép egy falának elejére, amelynek egyenesnek kell lennie.",
  "bg_level_second": "Most a fal végére koppints – a kép elfordul.",
- "background_handles_hint": "Amíg ez a szakasz nyitva van, a képnek bútorhoz hasonló fogantyúi vannak: húzással mozgatod, a sarokkal méretezed, a kerek fogantyúval forgatod. Rajzoláshoz zárd be a szakaszt."
+ "background_handles_hint": "Amíg ez a szakasz nyitva van, a képnek bútorhoz hasonló fogantyúi vannak: húzással mozgatod, a sarokkal méretezed, a kerek fogantyúval forgatod. Rajzoláshoz zárd be a szakaszt.",
+ "background_fixed_hint": "A kép rögzítve van, rajzolhatsz rá."
 }

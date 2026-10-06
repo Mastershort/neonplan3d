@@ -1,6 +1,6 @@
 ### New
 
-- **Ruler and straighten for the background picture:** tap the start and end of a stretch of known length and enter its real length – the picture is scaled right; **Straighten** turns a skewed scan by two taps along a wall; while the Background section is open, the picture has handles like furniture – drag, scale at the corner, turn at the round handle (#183 by HardstylerDN).
+- **Ruler and straighten for the background picture:** tap the start and end of a stretch of known length and enter its real length – the picture is scaled right; **Straighten** turns a skewed scan by two taps along a wall; **Move, scale and turn** gives the picture handles like furniture – drag, scale at the corner, turn at the round handle; **Done** fixes it again (#183 by HardstylerDN).
 - **Glow per lamp in 3D:** a percent field on lamps and placed lights tones down bright LED strips or lifts weak lamps – display only (#181 by RobertSorgenfrei).
 - **Start view per floor:** each floor can open from its own side, e.g. the ground floor from the front and the upper floor from the back (#182 by RobertSorgenfrei).
 - **Fold the floor pictures:** a small arrow turns the floor pictures on the left into plain buttons with names – more room on a phone (discussion #177 by Eric-41).
@@ -21,7 +21,7 @@ Settings → System → Updates. If NeonPlan 3D is missing there: HACS → NeonP
 
 ### Neu
 
-- **Lineal und Geraderichten fürs Hintergrundbild:** Anfang und Ende einer bekannten Strecke antippen und die echte Länge eingeben – das Bild ist richtig skaliert; **Gerade ausrichten** dreht einen schiefen Scan mit zwei Tipps auf eine Wand gerade; solange der Abschnitt Hintergrund offen ist, hat das Bild Griffe wie ein Möbel – ziehen, an der Ecke skalieren, am runden Griff drehen (#183 von HardstylerDN).
+- **Lineal und Geraderichten fürs Hintergrundbild:** Anfang und Ende einer bekannten Strecke antippen und die echte Länge eingeben – das Bild ist richtig skaliert; **Gerade ausrichten** dreht einen schiefen Scan mit zwei Tipps auf eine Wand gerade; **Verschieben, skalieren und drehen** gibt dem Bild Griffe wie einem Möbel – ziehen, an der Ecke skalieren, am runden Griff drehen; **Fertig** legt es wieder fest (#183 von HardstylerDN).
 - **Leuchtstärke je Leuchte in 3D:** Ein Prozentfeld bei Leuchten und platzierten Lichtern dämpft helle LED-Streifen oder verstärkt schwache Lampen – nur in der Darstellung (#181 von RobertSorgenfrei).
 - **Startansicht je Etage:** Jede Etage kann sich von ihrer eigenen Seite öffnen, etwa das Erdgeschoss von vorn und das Obergeschoss von hinten (#182 von RobertSorgenfrei).
 - **Etagenbilder einklappen:** Ein kleiner Pfeil macht aus den Etagenbildern links schlichte Knöpfe mit Namen – mehr Platz auf dem Handy (Diskussion #177 von Eric-41).

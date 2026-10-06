@@ -139,7 +139,7 @@
  "background_width": "Larghezza nel piano (m)",
  "background_opacity": "Opacità",
  "background_rotation": "Rotazione (°)",
- "background_edit": "Sposta e scala nella pianta",
+ "background_edit": "Sposta, scala e ruota",
  "background_edit_done": "Fatto",
  "background_edit_hint": "Finché la modalità è attiva: trascinare l'immagine la sposta, la maniglia in basso a destra la ingrandisce o rimpicciolisce. Adatta prima l'immagine alla scala, poi ruotala.",
  "background_remove": "Rimuovi sfondo",
@@ -1239,5 +1239,6 @@
  "bg_level_cancel": "Annulla",
  "bg_level_first": "Tocca l'inizio di un muro dell'immagine che deve essere dritto.",
  "bg_level_second": "Ora tocca la fine di quel muro: l'immagine ruota.",
- "background_handles_hint": "Finché questa sezione è aperta, l'immagine ha maniglie come un mobile: trascina per spostarla, l'angolo la scala, la maniglia tonda la ruota. Chiudi la sezione per disegnare."
+ "background_handles_hint": "Finché questa sezione è aperta, l'immagine ha maniglie come un mobile: trascina per spostarla, l'angolo la scala, la maniglia tonda la ruota. Chiudi la sezione per disegnare.",
+ "background_fixed_hint": "L'immagine è ferma, puoi disegnarci sopra."
 }

@@ -139,7 +139,7 @@
  "background_width": "Breedte in het plan (m)",
  "background_opacity": "Dekking",
  "background_rotation": "Draaiing (°)",
- "background_edit": "Verschuiven en schalen in het plan",
+ "background_edit": "Verplaatsen, schalen en draaien",
  "background_edit_done": "Klaar",
  "background_edit_hint": "Zolang de modus aan staat: de afbeelding slepen verschuift haar, de greep rechtsonder maakt haar groter of kleiner. Pas eerst de schaal aan, draai dan.",
  "background_remove": "Onderlegger verwijderen",
@@ -1239,5 +1239,6 @@
  "bg_level_cancel": "Rechtzetten annuleren",
  "bg_level_first": "Tik op het begin van een muur in de afbeelding die recht moet staan.",
  "bg_level_second": "Tik nu op het einde van die muur – de afbeelding draait mee.",
- "background_handles_hint": "Zolang deze sectie open is, heeft de afbeelding grepen zoals een meubel: slepen verplaatst, de hoek schaalt, de ronde greep draait. Sluit de sectie om te tekenen."
+ "background_handles_hint": "Zolang deze sectie open is, heeft de afbeelding grepen zoals een meubel: slepen verplaatst, de hoek schaalt, de ronde greep draait. Sluit de sectie om te tekenen.",
+ "background_fixed_hint": "De afbeelding ligt vast, je kunt erop tekenen."
 }

@@ -1006,7 +1006,7 @@ export class Fp3dEditor extends LitElement {
       else this.applyBgLevel(pts[0], pts[1]);
       return;
     }
-    if ((this._bgEdit || this._bgOpen) && this.isAdmin && this.floor?.background && target.closest("[data-bg-rotate]")) {
+    if (this.bgHandles() && this.floor.background && target.closest("[data-bg-rotate]")) {
       const bg = this.floor.background;
       const img = this._images[bg.image_id];
       const h = bg.width * (img?.aspect ?? 1);
@@ -1019,7 +1019,7 @@ export class Fp3dEditor extends LitElement {
       this._bgRuler = [...this._bgRuler, world];
       return;
     }
-    if (this._bgOpen && !this._bgEdit && this.isAdmin && this.floor?.background && (target.closest("[data-bg-handle]") || target.closest("[data-bg]"))) {
+    if (this.bgHandles() && this.floor.background && !this._bgEdit && (target.closest("[data-bg-handle]") || target.closest("[data-bg]"))) {
       // the background section is open: the picture moves and scales like furniture
       const bg = this.floor.background;
       this.drag = target.closest("[data-bg-handle]")
@@ -4310,7 +4310,7 @@ export class Fp3dEditor extends LitElement {
     const w = bg.width * this._view.scale;
     const h = w * img.aspect;
     const rot = bg.rotation ?? 0;
-    const edit = (this._bgEdit || this._bgOpen) && this.isAdmin;
+    const edit = this.bgHandles();
     // while editing, the picture takes the pointer (drag moves it) and its lower right corner scales it
     return svg`<g transform="rotate(${rot} ${x + w / 2} ${y + h / 2})">
       <image href=${img.url} x=${x} y=${y} width=${w} height=${h} opacity=${bg.opacity} preserveAspectRatio="none" pointer-events=${edit ? "auto" : "none"} data-bg="1" style=${edit ? "cursor:move" : ""} />
@@ -4325,6 +4325,11 @@ export class Fp3dEditor extends LitElement {
           </g>`
         : nothing}
     </g>${this.renderBgRuler()}`;
+  }
+
+  /** The picture has handles (move, scale, turn) only while "Move and scale" is switched on, with the select tool. */
+  private bgHandles(): boolean {
+    return !!this.floor?.background && this.isAdmin && this._tool === "select" && this._bgEdit;
   }
 
   /** The ruler's points and line over the background (#183), or the straighten line. */
@@ -6939,7 +6944,18 @@ export class Fp3dEditor extends LitElement {
               ${this.num(this.t("background_width"), bg.width, (v) => this.updateFloor({ background: { ...bg, width: Math.max(0.1, v) } }), 0.01, 0.1)}
               ${this.num(this.t("background_rotation"), bg.rotation ?? 0, (v) => this.updateFloor({ background: { ...bg, rotation: Math.round(v * 10) / 10 } }), 0.5)}
               ${this.isAdmin
-                ? html`<p class="fp3d-sub fp3d-wide">${this.t("background_handles_hint")}</p>
+                ? html`<button
+                      class="fp3d-btn fp3d-wide ${this._bgEdit ? "fp3d-primary" : ""}"
+                      aria-pressed=${this._bgEdit}
+                      @click=${() => {
+                        this._bgEdit = !this._bgEdit;
+                        // the handles need the select tool
+                        if (this._bgEdit) this._tool = "select";
+                      }}
+                    >
+                      ${this.t(this._bgEdit ? "background_edit_done" : "background_edit")}
+                    </button>
+                    <p class="fp3d-sub fp3d-wide">${this.t(this._bgEdit ? "background_handles_hint" : "background_fixed_hint")}</p>
                   <button class="fp3d-btn fp3d-wide ${this._bgLevel ? "fp3d-primary" : ""}" aria-pressed=${!!this._bgLevel} @click=${() => {
                     this._bgLevel = this._bgLevel ? null : [];
                     this._bgRuler = null;

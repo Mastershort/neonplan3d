@@ -139,7 +139,7 @@
  "background_width": "Ancho en el plano (m)",
  "background_opacity": "Opacidad",
  "background_rotation": "Rotación (°)",
- "background_edit": "Mover y escalar en el plano",
+ "background_edit": "Mover, escalar y girar",
  "background_edit_done": "Listo",
  "background_edit_hint": "Mientras el modo está activo: arrastrar la imagen la mueve, el asa abajo a la derecha la agranda o reduce. Ajusta primero la imagen a la escala y luego gírala.",
  "background_remove": "Quitar plantilla",
@@ -1239,5 +1239,6 @@
  "bg_level_cancel": "Cancelar",
  "bg_level_first": "Toca el inicio de una pared de la imagen que debería estar recta.",
  "bg_level_second": "Ahora toca el final de esa pared: la imagen gira para encajar.",
- "background_handles_hint": "Mientras esta sección está abierta, la imagen tiene asas como un mueble: arrastrar la mueve, la esquina la escala, el asa redonda la gira. Cierra la sección para dibujar."
+ "background_handles_hint": "Mientras esta sección está abierta, la imagen tiene asas como un mueble: arrastrar la mueve, la esquina la escala, el asa redonda la gira. Cierra la sección para dibujar.",
+ "background_fixed_hint": "La imagen está fija, puedes dibujar encima."
 }
