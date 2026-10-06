@@ -45,6 +45,7 @@ RETRY_AFTER_MAX = 60.0
 # a pause between the pack downloads of the daily check, so they never arrive as a burst
 PACK_PAUSE = 2.0
 _user_agent: str | None = None
+_version = "dev"
 
 
 class LicenseError(Exception):
@@ -75,13 +76,14 @@ async def async_instance_fingerprint(hass: HomeAssistant) -> str:
 async def _user_agent_of(hass: HomeAssistant) -> str:
     """Our own User-Agent. Home Assistant's default names aiohttp, and the shop's web host answers
     every request with that word in the User-Agent with HTTP 429 before WordPress sees it."""
-    global _user_agent
+    global _user_agent, _version
     if _user_agent is None:
         try:
             version = (await async_get_integration(hass, DOMAIN)).version
         except Exception:
             version = None
-        _user_agent = f"NeonPlan3D/{version or 'dev'} (Home Assistant; +https://github.com/Mastershort/neonplan3d)"
+        _version = str(version) if version else "dev"
+        _user_agent = f"NeonPlan3D/{_version} (Home Assistant; +https://github.com/Mastershort/neonplan3d)"
     return _user_agent
 
 
@@ -101,6 +103,8 @@ async def _post(hass: HomeAssistant, path: str, body: dict[str, Any]) -> Any:
     A 429 is retried a few times with a pause (the host throttles bursts from one address)."""
     session = async_get_clientsession(hass)
     headers = {"User-Agent": await _user_agent_of(hass)}
+    # the shop answers an add-on that needs a newer NeonPlan 3D with a readable "please update" message
+    body = {**body, "version": _version}
     attempt = 0
     try:
         while True:

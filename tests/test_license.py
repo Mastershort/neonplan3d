@@ -108,7 +108,9 @@ async def test_activate_install_and_update(hass: HomeAssistant, hass_ws_client, 
     # an older shop sends no offers and no loyalty code
     assert status["offers"] == [] and status["loyalty"] is None
     sent = aioclient_mock.mock_calls[-1][2]
-    assert sent == {"key": "NP-ABCD-EFGH-2345-6789", "instance": fp}
+    # the version goes along, so the shop can ask an old installation to update first
+    assert {k: v for k, v in sent.items() if k != "version"} == {"key": "NP-ABCD-EFGH-2345-6789", "instance": fp}
+    assert isinstance(sent["version"], str) and sent["version"]
 
     await client.send_json_auto_id({"type": "neonplan3d/packs/install", "pack_id": "shop.living"})
     result = await client.receive_json()

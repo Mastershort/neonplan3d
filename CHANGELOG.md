@@ -8,6 +8,7 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 
 ### Fixed
 
+- Installing a Pro add-on from the shop: NeonPlan 3D now also sends its version in the request, so the shop can answer an installation that is too old with a readable "please update first" message.
 - "State from" (occupancy mats, a lit top while something is on) is offered for every piece of furniture again, also a plain bed or armchair – it only showed for electric furniture (#116 by hahne-t).
 
 ## 1.12.3
