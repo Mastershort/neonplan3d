@@ -1,0 +1,13 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "NeonPlan 3D",
+        "description": "Dodaje stronę na pasku bocznym, na której rysujesz swój dom i widzisz go w 3D."
+      }
+    },
+    "abort": {
+      "single_instance_allowed": "NeonPlan 3D jest już skonfigurowany."
+    }
+  }
+}

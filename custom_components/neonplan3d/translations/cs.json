@@ -1,0 +1,13 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "NeonPlan 3D",
+        "description": "Přidá do postranního panelu stránku, kde nakreslíš svůj domov a uvidíš ho ve 3D."
+      }
+    },
+    "abort": {
+      "single_instance_allowed": "NeonPlan 3D je již nastaven."
+    }
+  }
+}

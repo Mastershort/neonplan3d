@@ -1,0 +1,13 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "NeonPlan 3D",
+        "description": "Tilføjer en side i sidebjælken, hvor du tegner dit hjem og ser det i 3D."
+      }
+    },
+    "abort": {
+      "single_instance_allowed": "NeonPlan 3D er allerede sat op."
+    }
+  }
+}

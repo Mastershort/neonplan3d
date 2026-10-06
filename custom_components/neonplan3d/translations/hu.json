@@ -1,0 +1,13 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "NeonPlan 3D",
+        "description": "Hozzáad egy oldalt az oldalsávhoz, ahol megrajzolod az otthonodat és 3D-ben látod."
+      }
+    },
+    "abort": {
+      "single_instance_allowed": "A NeonPlan 3D már be van állítva."
+    }
+  }
+}

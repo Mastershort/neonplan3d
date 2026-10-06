@@ -1,0 +1,13 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "NeonPlan 3D",
+        "description": "Ajoute une page dans la barre latérale où tu dessines ton logement et le vois en 3D."
+      }
+    },
+    "abort": {
+      "single_instance_allowed": "NeonPlan 3D est déjà configuré."
+    }
+  }
+}

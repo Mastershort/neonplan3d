@@ -2515,13 +2515,15 @@ declare const __FP3D_LANG_HASH__: string;
  * load texts they do not need) and are fetched once when Home Assistant runs in that language. Missing
  * keys fall back to English.
  */
-export const EXTRA_LANGUAGES = ["fr", "es", "nl", "it", "hu"] as const;
+export const EXTRA_LANGUAGES = ["fr", "es", "nl", "it", "hu", "da", "sv", "nb", "nn", "fi", "cs", "pl", "ro", "sl"] as const;
 const extra = new Map<string, Record<string, string>>();
 const pending = new Map<string, Promise<void>>();
 
 /** The language file a Home Assistant language needs (null: German or English, built in). */
 export function languageCode(lang: string | undefined): string | null {
-  const code = (lang ?? navigator.language).toLowerCase().slice(0, 2);
+  const raw = (lang ?? navigator.language).toLowerCase();
+  // plain "no" (Norwegian) reads as Bokmål
+  const code = raw.startsWith("no") ? "nb" : raw.slice(0, 2);
   return (EXTRA_LANGUAGES as readonly string[]).includes(code) ? code : null;
 }
 

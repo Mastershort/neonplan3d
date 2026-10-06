@@ -1,0 +1,13 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "NeonPlan 3D",
+        "description": "Lägger till en sida i sidofältet där du ritar ditt hem och ser det i 3D."
+      }
+    },
+    "abort": {
+      "single_instance_allowed": "NeonPlan 3D är redan konfigurerat."
+    }
+  }
+}

@@ -4,6 +4,17 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 [releases page](https://github.com/Mastershort/neonplan3d/releases). Ideas and votes:
 [Discussions → Ideas](https://github.com/Mastershort/neonplan3d/discussions/categories/ideas).
 
+## 1.12.3
+
+### New
+
+- **Nine new languages:** Danish, Swedish, Norwegian (Bokmål and Nynorsk), Finnish, Czech, Polish, Romanian and Slovenian – 16 in all; the Norwegian one builds on the translation by zanzei26 (#233).
+- The integration's setup dialog is translated into every language.
+
+### Fixed
+
+- French, Spanish, Dutch, Italian and Hungarian: the restart notice shows both versions again.
+
 ## 1.12.2
 
 ### Fixed
