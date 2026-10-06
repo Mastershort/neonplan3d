@@ -3117,7 +3117,15 @@ export class Fp3dEditor extends LitElement {
           ${(() => {
             const st = this._doc.settings.roof.strings?.find((x) => x.id === f.string);
             if (!st) return this.entitySelect(this.t("solar_entity"), f.entity ?? null, undefined, power, (v) => set({ entity: v === "none" ? null : v }));
-            const inverters = this._doc.floors.flatMap((fl) => fl.furniture.filter((m) => m.type === "inverter").map((m, i) => ({ id: m.id, label: `${this.t("furn_inverter")} ${i + 1} · ${fl.name}` })));
+            // each inverter by its own name, else its entity's name, numbered across the house only as a last resort (#213)
+            const linked = this.hass ? furnitureEntities(this.hass, this._doc.floors) : null;
+            const inverters = this._doc.floors
+              .flatMap((fl) => fl.furniture.filter((m) => m.type === "inverter").map((m) => ({ m, fl })))
+              .map(({ m, fl }, i) => {
+                const entity = linked?.get(m.id)?.entity;
+                const own = m.name?.trim() || (entity && this.hass ? entityName(this.hass, entity) : "");
+                return { id: m.id, label: `${own || `${this.t("furn_inverter")} ${i + 1}`} · ${fl.name}` };
+              });
             return html`<label class="fp3d-field fp3d-wide"
                 >${this.t("solar_string_name")}
                 <input type="text" ?disabled=${!admin} .value=${st.name} @change=${(e: Event) => this.updateSolarString({ name: (e.target as HTMLInputElement).value.trim() || st.name })}
@@ -6190,6 +6198,13 @@ export class Fp3dEditor extends LitElement {
             ${this.entitySelect(this.t("furn_export"), f.export ?? null, undefined, power, (v) => this.updateFurniture({ export: v === "none" ? null : v }))}
             <p class="fp3d-sub fp3d-wide">${this.t("furn_export_hint")}</p>
           </div>`
+        : nothing}
+      ${f.type === "inverter" && (this._doc.settings.roof.solar ?? []).length
+        ? (() => {
+            // which strings feed this inverter, so it can be told apart from the others (#213)
+            const strings = (this._doc.settings.roof.strings ?? []).filter((st) => st.inverter === f.id).map((st) => st.name);
+            return html`<p class="fp3d-sub fp3d-wide">${strings.length ? this.t("inverter_strings", { names: strings.join(", ") }) : this.t("inverter_strings_none")}</p>`;
+          })()
         : nothing}
       ${f.type === "home_battery"
         ? html`<div class="fp3d-form fp3d-links">

@@ -11,6 +11,13 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 - A roof section whose eaves lie below a floor's ceiling now cuts that floor's walls, even when its wall top is set to the ceiling height (discussion #147 by twynne and wouter-b).
 - A house with a single floor shows its roof in 3D; an extra attic floor is no longer needed (discussion #208 by Kohhal).
 - Installing a Pro add-on that is newer than the installed NeonPlan 3D now says "please update NeonPlan 3D first" instead of a cryptic error (#218 by twynne).
+- Camera Cockpit: the camera wall fits any number of cameras – the grid picks the columns that give the largest tiles, nothing overlaps, and with very many cameras the wall scrolls (#217 by denisb88).
+- Solar fields: the inverter choice shows each inverter's own name (or its entity's name), and an inverter shows which strings feed it (#213 by rolandarends).
+- Garden solar fields stand on the ground floor, no longer on a cellar below it (#192 by denisb88).
+- Pulled apart, a roof rides with the highest floor beneath it, so a loft under the same slopes stays under the roof; dormers go along with their roof (#202 by Kuddelsoft, discussion #207 by 1970lexi).
+- Under a roof slope the light on the walls ends where the wall does, instead of shining through the roof (#201 by Twilight-Networks).
+- Walls under a roof no longer show vertical stripes (discussion #180 by RobertSorgenfrei).
+- With the temperature, humidity or CO₂ view on, garden lamps keep their light and room lamps a soft glow (discussion #205 by 1970lexi).
 
 ## 1.12.1
 

@@ -77,10 +77,13 @@ export function wallFaces(b: Building, floorId?: string): RoofFace[] {
 /** Face key of fields standing in the garden. */
 export const GROUND = "ground";
 
-/** The floor whose garden ground-mounted fields stand in: the lowest with rooms. */
+/**
+ * The floor whose garden ground-mounted fields stand in: the lowest with rooms at ground level – a cellar
+ * below the ground is passed over (#192) – else the lowest with rooms at all.
+ */
 export function groundFloor(b: Building): Floor | null {
-  const withRooms = b.floors.filter((f) => f.rooms.some((r) => r.points.length >= 3));
-  return [...withRooms].sort((p, q) => p.elevation - q.elevation)[0] ?? b.floors[0] ?? null;
+  const withRooms = [...b.floors.filter((f) => f.rooms.some((r) => r.points.length >= 3))].sort((p, q) => p.elevation - q.elevation);
+  return withRooms.find((f) => f.elevation > -0.5) ?? withRooms[0] ?? b.floors[0] ?? null;
 }
 
 /**

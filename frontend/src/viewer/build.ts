@@ -85,6 +85,8 @@ export interface FloorGeometry {
   wallBuckets: number[];
   /** Triangle ranges of furniture in `walls`, for tapping furniture in 3D. */
   furnitureTris: { id: string; start: number; end: number }[];
+  /** Under roof slopes: the roof's underside above a plan point, in floor coordinates (null = no roof there). */
+  roofUnder?: (x: number, z: number) => number | null;
 }
 
 export const SLAB = 0.2;
@@ -280,12 +282,17 @@ export function buildFloorGeometry(
           const t0 = Math.max(piece.t0, -0.5);
           const t1 = Math.min(piece.t1, len + 0.5);
           const n = Math.max(1, Math.ceil((t1 - t0) / 0.3));
-          return Array.from({ length: n }, (_, i) => ({ t0: i === 0 ? piece.t0 : t0 + ((t1 - t0) * i) / n, t1: i === n - 1 ? piece.t1 : t0 + ((t1 - t0) * (i + 1)) / n, ranges: piece.ranges }));
+          return Array.from({ length: n }, (_, i) => ({ t0: i === 0 ? piece.t0 : t0 + ((t1 - t0) * i) / n, t1: i === n - 1 ? piece.t1 : t0 + ((t1 - t0) * (i + 1)) / n, ranges: piece.ranges, inner0: i > 0, inner1: i < n - 1 }));
         })
-      : pieces;
+      : pieces.map((piece) => ({ ...piece, inner0: false, inner1: false }));
+    const tOf = (p: Vec2) => (p[0] - wall.a[0]) * ax[0] + (p[1] - wall.a[1]) * ax[1];
     for (const piece of steps) {
       const poly = clipAlong(wall.footprint, wall.a, ax, piece.t0, piece.t1);
       if (poly.length < 3) continue;
+      // the faces between two steps of one piece are inside the wall: left out, or they show as stripes
+      // through the see-through walls (D180)
+      const on = (p: Vec2, t: number) => Math.abs(tOf(p) - t) < 1e-4;
+      const skipSide = (p: Vec2, q: Vec2) => (piece.inner0 && on(p, piece.t0) && on(q, piece.t0)) || (piece.inner1 && on(p, piece.t1) && on(q, piece.t1));
       // the roof over this step: the lowest point of its footprint decides what is left of each range
       const roofTop = underRoof ? Math.min(...poly.map(([x, z]) => topAt(x, z, H))) : H;
       for (const [y0, y1raw] of piece.ranges) {
@@ -298,9 +305,9 @@ export function buildFloorGeometry(
           // the top face at the cut height is only seen while the wall is cut
           const topFold = y1 > cut + 1e-6 ? CAP_OFFSET + b : LOWER_OFFSET + b;
           const capped = sloped && roofTop < cut ? (x: number, z: number) => Math.min(cut, topOf(x, z)) : Math.min(y1, cut);
-          pushPrism(wallBuf, poly, y0, capped, NEON.wall, NEON.wallTop, { aoFrom: 0, bottom: lintel, fold: LOWER_OFFSET + b, topFold });
+          pushPrism(wallBuf, poly, y0, capped, NEON.wall, NEON.wallTop, { aoFrom: 0, bottom: lintel, fold: LOWER_OFFSET + b, topFold, skipSide });
         }
-        if (y1 > cut + 1e-6 && roofTop > cut + 1e-6) pushPrism(wallBuf, poly, Math.max(y0, cut), sloped ? topOf : y1, NEON.wall, NEON.wallTop, { aoFrom: 0, fold: b, bottom: lintel && y0 >= cut });
+        if (y1 > cut + 1e-6 && roofTop > cut + 1e-6) pushPrism(wallBuf, poly, Math.max(y0, cut), sloped ? topOf : y1, NEON.wall, NEON.wallTop, { aoFrom: 0, fold: b, bottom: lintel && y0 >= cut, skipSide });
       }
     }
   }
@@ -377,6 +384,7 @@ export function buildFloorGeometry(
     openRooms,
     wallBuckets: walls.map((w) => wallBucket.get(w)!),
     furnitureTris,
+    roofUnder,
   };
 }
 

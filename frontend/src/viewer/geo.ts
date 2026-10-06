@@ -302,7 +302,7 @@ export function pushPrism(
   y1: number | ((x: number, z: number) => number),
   side: number,
   top: number,
-  opts: { aoFrom?: number; fold?: number; topFold?: number; bottom?: boolean; topFace?: boolean; holes?: Vec2[][] } = {},
+  opts: { aoFrom?: number; fold?: number; topFold?: number; bottom?: boolean; topFace?: boolean; holes?: Vec2[][]; skipSide?: (a: Vec2, b: Vec2) => boolean } = {},
 ): void {
   // a top that follows a height function (a wall ending under a roof slope): planar for a wall piece
   // within one roof plane, so the top quad and the vertical sides stay flat
@@ -339,7 +339,7 @@ export function pushPrism(
     const dx = b[0] - a[0];
     const dz = b[1] - a[1];
     const l = Math.hypot(dx, dz);
-    if (l < 1e-6) continue;
+    if (l < 1e-6 || opts.skipSide?.(a, b)) continue;
     const facing = ((dz / l) * LIGHT[0] - (dx / l) * LIGHT[1] + 1) / 2;
     const dir = 0.8 + 0.28 * facing;
     const ya = topY(a);

@@ -1242,5 +1242,7 @@
  "background_handles_hint": "Zolang deze sectie open is, heeft de afbeelding grepen zoals een meubel: slepen verplaatst, de hoek schaalt, de ronde greep draait. Sluit de sectie om te tekenen.",
  "background_fixed_hint": "De afbeelding ligt vast, je kunt erop tekenen.",
  "pack_error_needs_update": "Deze uitbreiding heeft een nieuwere versie van NeonPlan 3D nodig. Werk eerst bij (HACS › NeonPlan 3D › ⋮ › \"Informatie bijwerken\" › \"Downloaden\"), herstart Home Assistant en installeer opnieuw.",
- "license_error_needs_update": "Deze uitbreiding heeft een nieuwere versie van NeonPlan 3D nodig. Werk eerst bij (HACS › NeonPlan 3D › ⋮ › \"Informatie bijwerken\" › \"Downloaden\"), herstart Home Assistant en installeer opnieuw."
+ "license_error_needs_update": "Deze uitbreiding heeft een nieuwere versie van NeonPlan 3D nodig. Werk eerst bij (HACS › NeonPlan 3D › ⋮ › \"Informatie bijwerken\" › \"Downloaden\"), herstart Home Assistant en installeer opnieuw.",
+ "inverter_strings": "Strings op deze omvormer: {names}",
+ "inverter_strings_none": "Nog geen string op deze omvormer – wijs hem toe bij een zonneveld onder String › Omvormer."
 }

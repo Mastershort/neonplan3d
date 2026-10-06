@@ -1242,5 +1242,7 @@
  "background_handles_hint": "Finché questa sezione è aperta, l'immagine ha maniglie come un mobile: trascina per spostarla, l'angolo la scala, la maniglia tonda la ruota. Chiudi la sezione per disegnare.",
  "background_fixed_hint": "L'immagine è ferma, puoi disegnarci sopra.",
  "pack_error_needs_update": "Questa estensione richiede una versione più recente di NeonPlan 3D. Aggiorna prima (HACS › NeonPlan 3D › ⋮ › \"Aggiorna informazioni\" › \"Scarica\"), riavvia Home Assistant e installa di nuovo.",
- "license_error_needs_update": "Questa estensione richiede una versione più recente di NeonPlan 3D. Aggiorna prima (HACS › NeonPlan 3D › ⋮ › \"Aggiorna informazioni\" › \"Scarica\"), riavvia Home Assistant e installa di nuovo."
+ "license_error_needs_update": "Questa estensione richiede una versione più recente di NeonPlan 3D. Aggiorna prima (HACS › NeonPlan 3D › ⋮ › \"Aggiorna informazioni\" › \"Scarica\"), riavvia Home Assistant e installa di nuovo.",
+ "inverter_strings": "Stringhe su questo inverter: {names}",
+ "inverter_strings_none": "Ancora nessuna stringa su questo inverter: assegnala in un campo solare sotto Stringa › Inverter."
 }

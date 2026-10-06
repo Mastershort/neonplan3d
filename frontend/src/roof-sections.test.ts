@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { emptyBuilding, newFloor, ROOF_SHAPES, type Room, type RoofSection } from "./model.ts";
-import { cutHole, dormerHole, dormerHoles, dormerParent, floorOutline, offsetPolygon, polygonBox, proposeDormer, ridgeHeight, roofSectionsFromRooms, roofUnderAt, sectionFrame, sectionGeometry, sectionHeightAt, sectionOverhang, sectionPolygon, sectionProfile, wallTopUnder } from "./roof-sections.ts";
+import { cutHole, dormerHole, dormerHoles, dormerParent, floorOutline, offsetPolygon, polygonBox, proposeDormer, ridgeHeight, roofRider, roofSectionsFromRooms, roofUnderAt, sectionFrame, sectionGeometry, sectionHeightAt, sectionOverhang, sectionPolygon, sectionProfile, wallTopUnder } from "./roof-sections.ts";
 import { buildRoof } from "./viewer/roof.ts";
 
 const near = (a: number, b: number, eps = 1e-6) => assert.ok(Math.abs(a - b) < eps, `${a} != ${b}`);
@@ -226,4 +226,22 @@ test("a roof drawn over an upper floor with a hole in its middle sits on the upp
   const top = wallTopUnder(b, 0, 0, 10, 8);
   assert.equal(top, 5.25);
   assert.equal(sectionFloor(b, { base: top! })?.id, "og");
+});
+
+test("pulled apart, a roof rides with the loft under its slopes, a garage roof with its own floor (#202, D207)", () => {
+  const b = emptyBuilding();
+  b.floors = [
+    { ...newFloor("eg", "EG", 0), height: 2.5, rooms: [rect("a", 0, 0, 12, 8), rect("g", 13, 0, 17, 6)] },
+    { ...newFloor("og", "OG", 2.5), height: 2.5, rooms: [rect("b", 0, 0, 12, 8)] },
+    { ...newFloor("sb", "Spitzboden", 5.3), height: 2, rooms: [rect("c", 3, 2, 9, 6)] },
+  ];
+  // the main roof stands on the OG (ridge 9 m), the loft lies under it; a dormer sits in its slope
+  const main = section({ id: "main", base: 5, eave_a: 5, eave_b: 5 });
+  const dormer = section({ id: "d", x0: 4, z0: 0, x1: 6, z1: 2, axis: "z", base: 5.5, eave_a: 6.5, eave_b: 6.5, pitch_a: 30, pitch_b: 30, dormer: true });
+  const garage = section({ id: "gar", x0: 13, z0: 0, x1: 17, z1: 6, base: 2.5, eave_a: 2.5, eave_b: 2.5, pitch_a: 20, pitch_b: 20 });
+  b.settings.roof = { type: "custom", pitch: 45, overhang: 0, sections: [main, dormer, garage] };
+  const og = b.floors[1];
+  assert.equal(roofRider(b, og, ["main"]), "sb");
+  assert.equal(roofRider(b, og, ["d"]), "sb");
+  assert.equal(roofRider(b, b.floors[0], ["gar"]), "eg");
 });

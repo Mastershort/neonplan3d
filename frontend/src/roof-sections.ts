@@ -678,3 +678,25 @@ export function roofSectionsFromRooms(b: Building, makeId: (i: number) => string
   }
   return out;
 }
+
+/**
+ * The floor a roof part rides with when the floors are pulled apart: the highest floor with rooms under its
+ * sections (between the floor it sits on and its ridge) – a loft under the same slopes, not only the floor
+ * the roof stands on (#202). Dormers ride with their main roof, as they sit in its slope (D207).
+ */
+export function roofRider(b: Building, floor: Building["floors"][number], sectionIds: readonly string[]): string {
+  const all = b.settings.roof.sections ?? [];
+  const mine = all.filter((s) => sectionIds.includes(s.id)).map((s) => dormerParent(all, s) ?? s);
+  if (!mine.length) return floor.id;
+  const top = Math.max(...mine.map((s) => ridgeHeight(s)));
+  const under = (f: Building["floors"][number]) =>
+    f.rooms.some((r) =>
+      r.points.length >= 3 &&
+      mine.some((s) => {
+        const [cx, cz] = r.points.reduce((a, p) => [a[0] + p[0] / r.points.length, a[1] + p[1] / r.points.length], [0, 0]);
+        return cx >= Math.min(s.x0, s.x1) && cx <= Math.max(s.x0, s.x1) && cz >= Math.min(s.z0, s.z1) && cz <= Math.max(s.z0, s.z1);
+      }),
+    );
+  const riders = b.floors.filter((f) => f.elevation >= floor.elevation && f.elevation < top - 0.3 && under(f)).sort((p, q) => q.elevation - p.elevation);
+  return riders[0]?.id ?? floor.id;
+}

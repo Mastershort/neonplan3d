@@ -1242,5 +1242,7 @@
  "background_handles_hint": "Amíg ez a szakasz nyitva van, a képnek bútorhoz hasonló fogantyúi vannak: húzással mozgatod, a sarokkal méretezed, a kerek fogantyúval forgatod. Rajzoláshoz zárd be a szakaszt.",
  "background_fixed_hint": "A kép rögzítve van, rajzolhatsz rá.",
  "pack_error_needs_update": "Ehhez a bővítményhez a NeonPlan 3D újabb verziója kell. Előbb frissíts (HACS › NeonPlan 3D › ⋮ › „Információk frissítése” › „Letöltés”), indítsd újra a Home Assistantot, majd telepítsd újra.",
- "license_error_needs_update": "Ehhez a bővítményhez a NeonPlan 3D újabb verziója kell. Előbb frissíts (HACS › NeonPlan 3D › ⋮ › „Információk frissítése” › „Letöltés”), indítsd újra a Home Assistantot, majd telepítsd újra."
+ "license_error_needs_update": "Ehhez a bővítményhez a NeonPlan 3D újabb verziója kell. Előbb frissíts (HACS › NeonPlan 3D › ⋮ › „Információk frissítése” › „Letöltés”), indítsd újra a Home Assistantot, majd telepítsd újra.",
+ "inverter_strings": "Stringek ezen az inverteren: {names}",
+ "inverter_strings_none": "Ehhez az inverterhez még nincs string – a napelemmezőnél rendeld hozzá: String › Inverter."
 }

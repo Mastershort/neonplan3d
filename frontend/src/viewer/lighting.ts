@@ -47,7 +47,15 @@ const FACE_GAP = 0.012;
  * Builds the light surface of a floor: a grid of `cell` metres on every room floor and strips on the
  * room side of every wall face, split at the cut height and left out where doors and windows are.
  */
-export function buildLightSurface(floor: Floor, walls: Wall[], wallBuckets: number[], openings: OpeningInfo[], cell: number, holes: Vec2[][] = []): LightSurface {
+export function buildLightSurface(
+  floor: Floor,
+  walls: Wall[],
+  wallBuckets: number[],
+  openings: OpeningInfo[],
+  cell: number,
+  holes: Vec2[][] = [],
+  roofUnder?: (x: number, z: number) => number | null,
+): LightSurface {
   const pos: number[] = [];
   const normal: number[] = [];
   const room: number[] = [];
@@ -133,6 +141,11 @@ export function buildLightSurface(floor: Floor, walls: Wall[], wallBuckets: numb
       const face = (side > 0 ? w.left : w.right) + FACE_GAP;
       const n: Vec2 = [nLeft[0] * side, nLeft[1] * side];
       const at = (s: number, y: number) => [w.a[0] + u[0] * s + n[0] * face, y, w.a[1] + u[1] * s + n[1] * face];
+      const under = (s: number) => {
+        const p = at(s, 0);
+        const y = roofUnder?.(p[0], p[2]);
+        return y == null ? Infinity : y - 0.02;
+      };
       for (let p = 0; p < cols.length - 1; p++) {
         const span = cols[p + 1] - cols[p];
         const steps = Math.max(1, Math.ceil(span / cell));
@@ -147,7 +160,11 @@ export function buildLightSurface(floor: Floor, walls: Wall[], wallBuckets: numb
             const ym = (y0 + y1) / 2;
             if (gaps.some((g) => sm > g.s0 && sm < g.s1 && ym > g.y0 && ym < g.y1)) continue;
             const f = y0 >= cut - 1e-6 ? bucket : LOWER_OFFSET + bucket;
-            quad(at(s0, y0), at(s1, y0), at(s1, y1), at(s0, y1), [n[0], 0, n[1]], ri, f);
+            // under a roof slope the lit face ends where the wall does (#201)
+            const topA = Math.min(y1, under(s0));
+            const topB = Math.min(y1, under(s1));
+            if (topA <= y0 + 0.005 && topB <= y0 + 0.005) continue;
+            quad(at(s0, y0), at(s1, y0), at(s1, Math.max(y0, topB)), at(s0, Math.max(y0, topA)), [n[0], 0, n[1]], ri, f);
           }
         }
       }

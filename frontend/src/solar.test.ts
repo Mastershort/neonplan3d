@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { emptyBuilding, newFloor, type Building, type RoofSection, type SolarField } from "./model.ts";
-import { bestFace, clampField, faceAt, faceCompass, fieldFace, fieldModules, fieldPlan, fieldCenter, groundFace, proposeField, proposeGroundField, proposeWallField, roofFaces, turnGroundField, wallFaces } from "./solar.ts";
+import { bestFace, clampField, faceAt, faceCompass, fieldFace, fieldModules, fieldPlan, fieldCenter, groundFace, groundFloor, proposeField, proposeGroundField, proposeWallField, roofFaces, turnGroundField, wallFaces } from "./solar.ts";
 
 /** A 10 × 8 m house of one floor (walls 2.5 m high) with the given roof. */
 function house(roof: Building["settings"]["roof"]): Building {
@@ -203,4 +203,15 @@ test("a hip roof offers its two hip ends for modules too (D158)", () => {
   const field = proposeField(c, "s");
   assert.ok(field.rows * field.cols > 0);
   assert.equal(fieldModules(c, field).length, field.rows * field.cols);
+});
+
+test("garden fields stand on the ground floor, not in the cellar below it (#192)", () => {
+  const b = house({ type: "flat", pitch: 0, overhang: 0 });
+  const room = b.floors[0].rooms[0];
+  b.floors.push({ ...newFloor("kg", "KG", -2.5), height: 2.3, rooms: [{ ...room, id: "k" }] });
+  assert.equal(groundFloor(b)?.id, "eg");
+  near(groundFace(b, { u: 2, v: 2 }).o[1], -0.2);
+  // a house of cellars only keeps the lowest floor
+  b.floors = b.floors.filter((f) => f.id === "kg");
+  assert.equal(groundFloor(b)?.id, "kg");
 });

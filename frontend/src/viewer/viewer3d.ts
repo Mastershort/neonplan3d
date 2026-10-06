@@ -46,7 +46,7 @@ import {
 import type { Building, Floor, Furniture, Room } from "../model.ts";
 import { recolorLamps, SHADE_SENTINEL, shadeFactors } from "./lamp-colors.ts";
 import { centroid, pointInPolygon, openingStyle, WALL_LAMP_Y } from "../model.ts";
-import { roofUnderAt, sectionCutsBelow } from "../roof-sections.ts";
+import { roofRider, roofUnderAt, sectionCutsBelow } from "../roof-sections.ts";
 import { buildFloorGeometry, SLAB, stairHoles, type FloorGeometry } from "./build.ts";
 import { OrbitControls, type OrbitView } from "./controls.ts";
 import { makeFoldable, type FoldMasks } from "./fold.ts";
@@ -505,7 +505,7 @@ export class FloorplanViewer {
   private readonly haloTexture: CanvasTexture;
   /** Roof over the top floor (house view only), its opacity and the camera distance of the house view. */
   /** The roof: one group with a part per floor it sits on (each part follows its floor). */
-  private roof: { group: Group; parts: { group: Group; floorId: string; base: number; lift: boolean }[]; solid: MeshBasicMaterial; lines: LineBasicMaterial; glass: MeshBasicMaterial; live: MeshBasicMaterial; lives: SolarLive[] } | null = null;
+  private roof: { group: Group; parts: { group: Group; floorId: string; rideId: string; base: number; lift: boolean }[]; solid: MeshBasicMaterial; lines: LineBasicMaterial; glass: MeshBasicMaterial; live: MeshBasicMaterial; lives: SolarLive[] } | null = null;
   /** The hologram's anchor: a point on the solar field (building coordinates) and the field's normal. */
   private anchors: { p: [number, number, number]; n: [number, number, number]; floorId: string; size: number; roof: boolean; views: "house" | "all" }[] = [];
   /** Told where the anchor lies on screen after every frame, how large the hologram should be and whether its front faces the camera. */
@@ -1456,7 +1456,7 @@ export class FloorplanViewer {
   /** Light surface of a floor (rebuilt with the floor plan and when the detail level changes). */
   private buildLightSurface(fv: FloorView): void {
     const cell = this.lowQuality ? 0.5 : 0.25;
-    const surface = buildLightSurface(fv.floor, fv.geo.walls2d, fv.geo.wallBuckets, fv.geo.openings, cell, fv.geo.holes);
+    const surface = buildLightSurface(fv.floor, fv.geo.walls2d, fv.geo.wallBuckets, fv.geo.openings, cell, fv.geo.holes, fv.geo.roofUnder);
     // rooms joined by "no wall" form one zone: a lamp lights the open neighbour as if it stood in the same room
     const zones = lightZonesOf(fv.floor, fv.geo.openRooms);
     fv.lightZones = zones.some((z, i) => z !== i) ? zones : null;
@@ -1550,13 +1550,21 @@ export class FloorplanViewer {
     fv.glowSig = sig;
     const g = fv.glowMesh.geometry;
     const attr = g.getAttribute("color") as Float32BufferAttribute;
-    // the heatmap is an analysis view: room light would wash out its colours
-    if (!sources.length || this.roomTint) {
+    if (!sources.length) {
       fv.glowMesh.visible = false;
       g.setDrawRange(0, 0);
       return;
     }
     const colors = lightColors(surface, sources, 0.42, doorOpen);
+    if (this.roomTint) {
+      // the heatmap is an analysis view: inside the rooms the light is only a hint, so their colours read;
+      // outside (garden, outer walls) it stays as it is (D205)
+      const outside = fv.floor.rooms.length;
+      for (let v = 0; v < surface.room.length; v++) {
+        if (surface.room[v] === outside) continue;
+        for (let k = 0; k < 3; k++) colors[v * 3 + k] *= 0.12;
+      }
+    }
     (attr.array as Float32Array).set(colors);
     attr.needsUpdate = true;
     // only quads that receive light are drawn (dark ones would cost fill rate for nothing)
@@ -1882,7 +1890,7 @@ export class FloorplanViewer {
       }
       part.renderOrder = 8;
       group.add(part);
-      return { group: part, floorId: geo.floor.id, base: geo.base, lift: geo.lift !== false };
+      return { group: part, floorId: geo.floor.id, rideId: roofRider(this.building!, geo.floor, geo.sections ?? []), base: geo.base, lift: geo.lift !== false };
     });
     group.renderOrder = 8;
     this.scene.add(group);
@@ -1910,9 +1918,11 @@ export class FloorplanViewer {
     for (const part of roof.parts) {
       const fv = this.floorMap.get(part.floorId);
       if (!fv) continue;
-      // floors pulled apart: the roof lifts off its floor the same way (it follows the floor's own glide)
-      const apart = fv.ty > 0 ? Math.min(1, fv.y / fv.ty) : this.explode && this.floorId === null ? 1 : 0;
-      part.group.position.y = fv.floor.elevation + fv.y + part.base + (1 - this.roofO) * 2.2 + (part.lift ? apart * ROOF_GAP : 0);
+      // floors pulled apart: the roof rides with the highest floor beneath it (an attic or a loft under
+      // the same slopes, #202) and lifts off it the same way (it follows that floor's own glide)
+      const ride = this.floorMap.get(part.rideId) ?? fv;
+      const apart = ride.ty > 0 ? Math.min(1, ride.y / ride.ty) : this.explode && this.floorId === null ? 1 : 0;
+      part.group.position.y = fv.floor.elevation + ride.y + part.base + (1 - this.roofO) * 2.2 + (part.lift ? apart * ROOF_GAP : 0);
     }
     roof.solid.opacity = this.roofO;
     roof.solid.depthWrite = this.roofO > 0.9;

@@ -80,9 +80,11 @@ import { floorCounts, floorInfoText, personsInRooms } from "../presence.ts";
 import { controls, tokens } from "../styles.ts";
 import type { HassEntity, HomeAssistant } from "../types.ts";
 import type { DeviceMarker, FloorplanViewer, FloorStack, RobotInfo, Quality, ScreenState, SoundSource, SurfaceGrab, ViewerStats, WallMode } from "../viewer/viewer3d.ts";
+import { wallLayout } from "../camera-wall.ts";
 
 /** Which HTML markers are shown: none, only what has no 3D object or shows a value, or all. */
 export type MarkerMode = "none" | "important" | "all";
+
 
 
 export class Fp3dView3d extends LitElement {
@@ -2401,14 +2403,16 @@ export class Fp3dView3d extends LitElement {
         <div class="fp3d-wall-big">${stream ?? (src ? html`<img src=${src} alt="" />` : html`<div class="fp3d-wall-none">${translate(hass, "state_unavailable")}</div>`)}</div>
       </div>`;
     }
-    // the tiles share the wall: one camera fills it, two sit side by side, up to nine in three columns
-    const cols = cameras.length <= 1 ? 1 : cameras.length <= 4 ? 2 : cameras.length <= 9 ? 3 : 4;
+    // the grid's own size from the last render; on the first one an estimate, measured right after
+    const grid = this.renderRoot.querySelector<HTMLElement>(".fp3d-wall-grid");
+    if (!grid) requestAnimationFrame(() => this.requestUpdate());
+    const { cols, tile } = wallLayout(cameras.length, grid?.clientWidth ?? this.clientWidth - 48, grid?.clientHeight ?? this.clientHeight - 160);
     return html`<div class="fp3d-wall">
       <div class="fp3d-wall-head">
         <span>${translate(hass, "camera_wall_title")} · ${cameras.length} <span class="fp3d-still">${translate(hass, "camera_still", { s: this._low ? 10 : 5 })}</span></span>
         <button class="fp3d-chip" aria-label="✕" @click=${close}>✕</button>
       </div>
-      <div class="fp3d-wall-grid" style="grid-template-columns: repeat(${cols}, minmax(0, 1fr))">
+      <div class="fp3d-wall-grid" style="grid-template-columns: repeat(${cols}, ${tile}px); grid-auto-rows: ${Math.round((tile * 9) / 16)}px">
         ${cameras.map((id) => {
           const src = srcOf(id);
           const seen = cameraMotionSensors(hass, id).some((s) => hass.states[s]?.state === "on");
@@ -3331,9 +3335,11 @@ export class Fp3dView3d extends LitElement {
       .fp3d-wall-grid {
         flex: 1;
         display: grid;
-        align-content: center;
+        align-content: safe center;
+        justify-content: center;
         gap: 12px;
         min-height: 0;
+        overflow-y: auto;
       }
       .fp3d-wall-cam {
         position: relative;
@@ -3343,9 +3349,8 @@ export class Fp3dView3d extends LitElement {
         overflow: hidden;
         background: #0a1426;
         cursor: pointer;
-        aspect-ratio: 16 / 9;
         width: 100%;
-        max-height: calc(100vh - 160px);
+        height: 100%;
       }
       .fp3d-wall-cam img,
       .fp3d-wall-none {

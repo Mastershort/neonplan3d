@@ -1242,5 +1242,7 @@
  "background_handles_hint": "Tant que cette section est ouverte, l'image a des poignées comme un meuble : glisser la déplace, le coin la redimensionne, la poignée ronde la tourne. Ferme la section pour dessiner.",
  "background_fixed_hint": "L'image est fixe, tu peux dessiner dessus.",
  "pack_error_needs_update": "Cette extension nécessite une version plus récente de NeonPlan 3D. Mets d'abord à jour (HACS › NeonPlan 3D › ⋮ › « Mettre à jour les informations » › « Télécharger »), redémarre Home Assistant, puis installe à nouveau.",
- "license_error_needs_update": "Cette extension nécessite une version plus récente de NeonPlan 3D. Mets d'abord à jour (HACS › NeonPlan 3D › ⋮ › « Mettre à jour les informations » › « Télécharger »), redémarre Home Assistant, puis installe à nouveau."
+ "license_error_needs_update": "Cette extension nécessite une version plus récente de NeonPlan 3D. Mets d'abord à jour (HACS › NeonPlan 3D › ⋮ › « Mettre à jour les informations » › « Télécharger »), redémarre Home Assistant, puis installe à nouveau.",
+ "inverter_strings": "Strings sur cet onduleur : {names}",
+ "inverter_strings_none": "Aucun string sur cet onduleur pour l'instant – à attribuer dans un champ solaire sous String › Onduleur."
 }
