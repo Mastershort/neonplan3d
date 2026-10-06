@@ -15,16 +15,19 @@ import { hasFeature, manualUrl, shopUrl } from "../features.ts";
 import { cameraMotionSensors, detectionKind } from "../markers.ts";
 import { deviceSensors, energySummary, flowSegments, gridPoint, powerSensorFor, proposeEnergySensors, type EnergyPrefs, type FlowSegment } from "../energy.ts";
 import { isStatusSensor, robotRoomSensor, TOGGLE_KINDS } from "../devices.ts";
-import { sectionFloor, dormerParent, effectiveDormer, proposeDormer, sectionGeometry, floorOutline, polygonBox, headroomLines, ridgeHeight, sectionCutsBelow, roofSectionsFromRooms, sectionFrame, wallTopUnder } from "../roof-sections.ts";
+import { sectionFloor, dormerParent, effectiveDormer, proposeDormer, sectionGeometry, floorOutline, polygonBox, headroomLines, ridgeHeight, sectionCutsBelow, roofSectionsFromRooms, sectionFrame, wallTopUnder, sectionCenter, sectionCorners, sectionRotation, toSectionLocal, fromSectionLocal, reboxSection } from "../roof-sections.ts";
 import { bestFace, clampField, faceAt, faceCompass, fieldFace, fieldModules, GROUND, pointOnFace, proposeField, proposeGroundField, proposeWindow, proposeWallField, roofFaces, rowCounts, turnGroundField, fieldCenter, wallFaces, windowAsField, windowCorners, onFace, onField, rayOnFace, type RoofFace } from "../solar.ts";
 import type { SurfaceGrab, SurfaceRay } from "../viewer/viewer3d.ts";
 import { storedImageIds } from "../transfer.ts";
 import { type CarLinks, type Background, OUTDOOR_TOP, sidelightLayout, DEFAULT_WEATHER_EFFECTS, WEATHER_EFFECTS,
   normalizeBuilding,
   furnitureFootprint,
+  rotatePoint,
+  wrapAngle,
   type FreeWall,
 } from "../model.ts";
 import { furnishRoom, PACKAGES, type PackageId } from "../packages.ts";
+import { connectedRooms, rotateSection, rotateSelection, selectionPivot, setSectionRotation, type RotateResult } from "../rotate-selection.ts";
 import { generateWalls, locateOpening, openingHost, pointOnRoomEdge, type Wall } from "../geometry/walls.ts";
 import { formatNumber, languageReady, loadLanguage, translate, type I18nKey } from "../i18n.ts";
 import { iconPath } from "../icons.ts";
@@ -124,6 +127,7 @@ type Drag =
   | { kind: "solarmove"; id: string; start: Vec2; startScreen: [number, number]; base: Building; moved: boolean; grab: { du: number; ds: number } | null; win?: boolean }
   | { kind: "outvertex"; id: string; index: number; base: Building; moved: boolean }
   | { kind: "roofcorner"; id: string; corner: [0 | 1, 0 | 1]; base: Building; moved: boolean }
+  | { kind: "roofturn"; id: string; base: Building; moved: boolean }
   | { kind: "roofvertex"; id: string; index: number; base: Building; moved: boolean }
   | { kind: "cablept"; id: string; index: number; base: Building; moved: boolean }
   | { kind: "holopt"; base: Building; moved: boolean }
@@ -142,7 +146,7 @@ interface Guides {
 }
 
 /** Drags that change the document live (restored when cancelled, recorded in the history when done). */
-const EDIT_DRAGS = new Set(["vertex", "room", "device", "opening", "furniture", "rotate", "resize", "outdoor", "roofmove", "roofcorner", "roofvertex", "outvertex", "solarmove", "solarturn", "cablept", "holopt", "bgmove", "bgscale", "bgrotate"]);
+const EDIT_DRAGS = new Set(["vertex", "room", "device", "opening", "furniture", "rotate", "resize", "outdoor", "roofmove", "roofcorner", "roofturn", "roofvertex", "outvertex", "solarmove", "solarturn", "cablept", "holopt", "bgmove", "bgscale", "bgrotate"]);
 
 const HISTORY = 100;
 const SNAP_PX = 10;
@@ -194,6 +198,7 @@ export class Fp3dEditor extends LitElement {
     _notice: { state: true },
     _history: { state: true },
     _spots: { state: true },
+    _turn: { state: true },
     _outdoorId: { state: true },
     _wallId: { state: true },
     _edgeHi: { state: true },
@@ -308,6 +313,8 @@ export class Fp3dEditor extends LitElement {
   private declare _packages: boolean;
   private declare _rectSize: [number, number];
   private declare _spots: { type: FurnitureType; rows: number; cols: number; entity: string | null } | null;
+  /** "Turn rooms" form of the selected room: angle (degrees clockwise), with the rooms touching it, with the floors above and below. */
+  private declare _turn: { roomId: string; angle: number; connected: boolean; floors: boolean } | null;
   private declare _tool: Tool;
   private declare _draft: Vec2[];
   private declare _cursor: Vec2 | null;
@@ -356,6 +363,7 @@ export class Fp3dEditor extends LitElement {
     this._notice = null;
     this._history = null;
     this._spots = null;
+    this._turn = null;
     this._outdoorId = null;
     this._wallId = null;
     this._edgeHi = null;
@@ -1047,6 +1055,7 @@ export class Fp3dEditor extends LitElement {
     }
     if (this._tool === "roof" || this._tool === "energy") {
       const corner = target.closest("[data-roof-corner]")?.getAttribute("data-roof-corner");
+      const roofTurn = target.closest("[data-roof-turn]")?.getAttribute("data-roof-turn");
       const vertex = target.closest("[data-roof-vertex]")?.getAttribute("data-roof-vertex");
       const body = target.closest("[data-roof]")?.getAttribute("data-roof");
       const marker = this._tool === "energy" ? target.closest("[data-energy-device]")?.getAttribute("data-energy-device") : null;
@@ -1184,6 +1193,8 @@ export class Fp3dEditor extends LitElement {
       } else if (corner && this.isAdmin) {
         const [id, cx, cz] = corner.split(":");
         this.drag = { kind: "roofcorner", id, corner: [cx === "1" ? 1 : 0, cz === "1" ? 1 : 0], base: this._doc, moved: false };
+      } else if (roofTurn && this.isAdmin) {
+        this.drag = { kind: "roofturn", id: roofTurn, base: this._doc, moved: false };
       } else if (body) {
         const fixed = this.roofFixed(this._doc.settings.roof.sections?.find((x) => x.id === body));
         if (fixed && this._roofId === body) this._fixedHint = true;
@@ -1637,11 +1648,39 @@ export class Fp3dEditor extends LitElement {
           (doc) => {
             const sec = doc.settings.roof.sections?.find((x) => x.id === drag.id);
             if (!sec) return;
-            if (drag.corner[0]) sec.x1 = round(p[0]);
-            else sec.x0 = round(p[0]);
-            if (drag.corner[1]) sec.z1 = round(p[1]);
-            else sec.z0 = round(p[1]);
+            if (!sectionRotation(sec)) {
+              if (drag.corner[0]) sec.x1 = round(p[0]);
+              else sec.x0 = round(p[0]);
+              if (drag.corner[1]) sec.z1 = round(p[1]);
+              else sec.z0 = round(p[1]);
+              return;
+            }
+            // a turned section: the corner moves in the section's own frame, the opposite corner stays put
+            const [lx, lz] = toSectionLocal(sec, p[0], p[1]);
+            const box = { x0: Math.min(sec.x0, sec.x1), z0: Math.min(sec.z0, sec.z1), x1: Math.max(sec.x0, sec.x1), z1: Math.max(sec.z0, sec.z1) };
+            if (drag.corner[0]) box.x1 = lx;
+            else box.x0 = lx;
+            if (drag.corner[1]) box.z1 = lz;
+            else box.z0 = lz;
+            const moved = reboxSection(sec, box);
+            Object.assign(sec, { x0: round(moved.x0), z0: round(moved.z0), x1: round(moved.x1), z1: round(moved.z1) });
           },
+          drag.base,
+          false,
+        );
+        break;
+      }
+      case "roofturn": {
+        drag.moved = true;
+        const src = drag.base.settings.roof.sections?.find((x) => x.id === drag.id);
+        if (!src) return;
+        // the handle sits beyond the section's top edge: the pointer's bearing from the middle is the turn
+        const [cx, cz] = sectionCenter(src);
+        let a = (Math.atan2(world[0] - cx, -(world[1] - cz)) * 180) / Math.PI;
+        const step = e.altKey ? 1 : 15;
+        a = wrapAngle(Math.round(a / step) * step);
+        this.change(
+          (doc) => setSectionRotation(doc.settings.roof.sections ?? [], drag.id, a),
           drag.base,
           false,
         );
@@ -1790,6 +1829,7 @@ export class Fp3dEditor extends LitElement {
       case "solarturn":
       case "roofmove":
       case "roofcorner":
+      case "roofturn":
       case "roofvertex":
       case "cablept":
       case "holopt":
@@ -2407,6 +2447,13 @@ export class Fp3dEditor extends LitElement {
     });
   }
 
+  /** Turn the selected section; its dormers turn along. */
+  private turnRoofSection(angle: number): void {
+    const id = this._roofId;
+    if (!id || !this.isAdmin) return;
+    this.change((doc) => setSectionRotation(doc.settings.roof.sections ?? [], id, angle));
+  }
+
   private deleteRoofSection(): void {
     const id = this._roofId;
     if (!id || !this.isAdmin) return;
@@ -2455,12 +2502,28 @@ export class Fp3dEditor extends LitElement {
             })
           : nothing}
         ${sel && this.isAdmin && !this.roofFixed(sec) && !shape
-          ? ([[0, 0], [1, 0], [1, 1], [0, 1]] as const).map(([kx, kz]) => {
-              const [x, y] = this.toScreen([kx ? Math.max(sec.x0, sec.x1) : Math.min(sec.x0, sec.x1), kz ? Math.max(sec.z0, sec.z1) : Math.min(sec.z0, sec.z1)]);
+          ? ([[0, 0], [1, 0], [1, 1], [0, 1]] as const).map(([kx, kz], k) => {
+              // the corners turn with the section (sectionCorners keeps this order)
+              const [x, y] = this.toScreen(sectionCorners(sec)[k]);
               return svg`<g class="fp3d-vertex" data-roof-corner=${`${sec.id}:${kx}:${kz}`}><circle cx=${x} cy=${y} r="16" class="fp3d-hit" /><circle cx=${x} cy=${y} r="6" /></g>`;
             })
-          : nothing}`;
+          : nothing}
+        ${sel && this.isAdmin && !this.roofFixed(sec) && !shape ? this.renderRoofTurnHandle(sec) : nothing}`;
     })}</g>`;
+  }
+
+  /** The turn handle of a section: beyond the middle of its top edge (before the turn), turning with it. */
+  private renderRoofTurnHandle(sec: RoofSection) {
+    const c = sectionCenter(sec);
+    const top = Math.min(sec.z0, sec.z1);
+    const [fx, fy] = this.toScreen(fromSectionLocal(sec, [c[0], top]));
+    const [hx, hy] = this.toScreen(fromSectionLocal(sec, [c[0], top - 0.8]));
+    return svg`<g class="fp3d-rotate" data-roof-turn=${sec.id}>
+      <line x1=${fx} y1=${fy} x2=${hx} y2=${hy} />
+      <circle cx=${hx} cy=${hy} r="16" class="fp3d-hit" />
+      <circle cx=${hx} cy=${hy} r="8" />
+      <path d="M${hx - 4} ${hy - 1}a4 4 0 1 1 2 3.5" />
+    </g>`;
   }
 
   /** Where a plan point lies on a face; on a house wall only along it (s = NaN: the height stays). */
@@ -3514,6 +3577,9 @@ export class Fp3dEditor extends LitElement {
           >
           <p class="fp3d-sub fp3d-wide">${this.t("roof_base_hint")}</p>
           ${num(this.t("roof_overhang"), sec.overhang ?? this._doc.settings.roof.overhang, (v) => set({ overhang: Math.min(2, v) }), 0.05, 0)}
+          ${sec.points && sec.points.length >= 3
+            ? nothing
+            : this.num(this.t("roof_section_rotation"), sectionRotation(sec), (v) => this.turnRoofSection(wrapAngle(Math.round(v * 10) / 10)), 1)}
         </div>
         ${flat && admin
           ? html`<div class="fp3d-actions">
@@ -4110,8 +4176,13 @@ export class Fp3dEditor extends LitElement {
   }
 
   /** What belongs to the house as a whole and moves with "all floors": roof sections, cables, meter, hologram. */
-  private moveHouseExtras(doc: Building, mv: (p: Vec2) => Vec2): void {
+  private moveHouseExtras(doc: Building, mv: (p: Vec2) => Vec2, turn?: { pivot: Vec2; angle: number }): void {
     for (const s of doc.settings.roof.sections ?? []) {
+      // a turn turns the sections too (their ridge with them), not only their rectangles
+      if (turn) {
+        rotateSection(s, turn.pivot, turn.angle);
+        continue;
+      }
       const corners = [mv([s.x0, s.z0]), mv([s.x1, s.z0]), mv([s.x1, s.z1]), mv([s.x0, s.z1])];
       s.x0 = Math.min(...corners.map((c) => c[0]));
       s.x1 = Math.max(...corners.map((c) => c[0]));
@@ -4160,7 +4231,7 @@ export class Fp3dEditor extends LitElement {
     if (this._shiftAll) {
       this.change((doc) => {
         for (const f of doc.floors) one(f);
-        this.moveHouseExtras(doc, mv);
+        this.moveHouseExtras(doc, mv, { pivot: [cx, cz], angle: 90 });
       });
     } else this.change((_, f) => one(f));
   }
@@ -4294,7 +4365,7 @@ export class Fp3dEditor extends LitElement {
               ${floor ? this.renderOutdoorHandles(floor) : nothing}
               ${this.room && this._tool === "select" ? this.renderSplitMarks(this.room) : nothing}
               ${floor ? this.renderHeadroom(floor) : nothing}
-              ${this._tool === "roof" ? svg`${this.renderRoofSections()}${this.renderRoofWindows()}` : this._tool === "energy" ? svg`${this.renderRoofSections()}${this.renderSolarFields()}${this.renderCables()}${this.renderEnergyMarkers()}` : nothing} ${this.renderDraft()} ${this.renderGuides()}
+              ${this._tool === "roof" ? svg`${this.renderRoofSections()}${this.renderRoofWindows()}` : this._tool === "energy" ? svg`${this.renderRoofSections()}${this.renderSolarFields()}${this.renderCables()}${this.renderEnergyMarkers()}` : nothing} ${this.renderDraft()} ${this.renderTurnPreview()} ${this.renderGuides()}
             </svg>
             ${this.renderContext()}
             <p class="fp3d-hint ${this._fixedHint ? "fp3d-hint-fixed" : ""}">${!floor ? this.t("hint_empty") : this._fixedHint ? this.t("fixed_drag_hint") : this.t(`hint_${this._tool}` as I18nKey)}</p>
@@ -5348,11 +5419,19 @@ export class Fp3dEditor extends LitElement {
         ? html`<div class="fp3d-actions">
             <button class="fp3d-btn fp3d-primary" @click=${() => (this._packages = !this._packages)}>${this.t("pkg_open")}</button>
             <button class="fp3d-btn" @click=${() => this.openSpotForm(room)}>${this.t("spots_place")}</button>
+            <button
+              class="fp3d-btn"
+              title=${this.t("turn_rooms_hint")}
+              ?disabled=${!!this._doc.settings.lock_plan}
+              @click=${() => (this._turn = this._turn?.roomId === room.id ? null : { roomId: room.id, angle: 0, connected: true, floors: true })}
+            >
+              ⟳ ${this.t("turn_rooms")}
+            </button>
             <button class="fp3d-btn" @click=${() => this.duplicateRoom()}>${this.t("duplicate")}</button>
             <button class="fp3d-btn fp3d-danger" @click=${() => this.deleteRoom()}>${this.t("delete")}</button>
           </div>`
         : nothing}
-      ${this._spots ? this.renderSpotForm(room) : nothing}
+      ${this._spots ? this.renderSpotForm(room) : nothing} ${this._turn?.roomId === room.id ? this.renderTurnForm(this._turn) : nothing}
       ${this._packages
         ? html`<div class="fp3d-packages">
             ${PACKAGES.map(
@@ -5364,6 +5443,65 @@ export class Fp3dEditor extends LitElement {
           </div>`
         : nothing}
     </section>`;
+  }
+
+  /** The rooms the "turn rooms" form turns: the selected one, or every room connected to it on its floor. */
+  private turnRoomIds(t: NonNullable<Fp3dEditor["_turn"]>): string[] {
+    const floor = this.floor;
+    if (!floor) return [];
+    return t.connected ? connectedRooms(floor, t.roomId) : [t.roomId];
+  }
+
+  /** Turn the rooms with everything in and over them (see rotate-selection.ts). */
+  private applyTurn(): void {
+    const t = this._turn;
+    const floor = this.floor;
+    if (!t || !floor || !this.isAdmin || this._doc.settings.lock_plan || !t.angle) return;
+    const roomIds = this.turnRoomIds(t);
+    const done: RotateResult[] = [];
+    this.change((doc) => {
+      done.push(rotateSelection(doc, { floorId: floor.id, roomIds, angle: t.angle, otherFloors: t.floors }));
+    });
+    this._turn = null;
+    const r = done[0];
+    if (r) this._notice = this.t("turn_rooms_done", { rooms: r.rooms, items: r.furniture + r.placements, sections: r.sections });
+  }
+
+  private renderTurnForm(t: NonNullable<Fp3dEditor["_turn"]>) {
+    const set = (patch: Partial<NonNullable<Fp3dEditor["_turn"]>>) => (this._turn = { ...t, ...patch });
+    const n = this.turnRoomIds(t).length;
+    return html`<div class="fp3d-form fp3d-spot-form">
+      ${this.num(this.t("turn_rooms_angle"), t.angle, (v) => set({ angle: Math.max(-180, Math.min(180, Math.round(v * 10) / 10)) }), 1)}
+      <label class="fp3d-check fp3d-wide"
+        ><input type="checkbox" .checked=${t.connected} @change=${(e: Event) => set({ connected: (e.target as HTMLInputElement).checked })} />
+        ${this.t("turn_rooms_connected", { n })}</label
+      >
+      <label class="fp3d-check fp3d-wide"
+        ><input type="checkbox" .checked=${t.floors} @change=${(e: Event) => set({ floors: (e.target as HTMLInputElement).checked })} />
+        ${this.t("turn_rooms_floors")}</label
+      >
+      <div class="fp3d-actions fp3d-wide">
+        <button class="fp3d-btn fp3d-primary" ?disabled=${!t.angle} @click=${() => this.applyTurn()}>${this.t("turn_rooms_apply")}</button>
+        <button class="fp3d-btn" @click=${() => (this._turn = null)}>${this.t("cancel")}</button>
+      </div>
+      <p class="fp3d-sub fp3d-wide">${this.t("turn_rooms_form_hint")}</p>
+    </div>`;
+  }
+
+  /** While the "turn rooms" form is open: the rooms' outlines where they will lie, and the pivot. */
+  private renderTurnPreview() {
+    const t = this._turn;
+    const floor = this.floor;
+    if (!t || !floor || !t.angle) return nothing;
+    const ids = this.turnRoomIds(t);
+    const rooms = floor.rooms.filter((r) => ids.includes(r.id) && r.points.length >= 3);
+    if (!rooms.length) return nothing;
+    const pivot = selectionPivot(rooms);
+    const [px, py] = this.toScreen(pivot);
+    return svg`<g pointer-events="none">
+      ${rooms.map((r) => svg`<polygon class="fp3d-draft" points=${r.points.map((p) => this.toScreen(rotatePoint(p, pivot, t.angle)).join(",")).join(" ")} />`)}
+      <circle class="fp3d-draft-pt" cx=${px} cy=${py} r="5" />
+    </g>`;
   }
 
   /** Adds the furniture of a room package (lamps link to the room's lights automatically). */

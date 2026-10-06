@@ -318,6 +318,12 @@ export interface RoofSection {
   locked?: boolean;
   /** A canopy (terrace roof, carport): posts and beams instead of walls, a see-through roof. */
   open?: boolean;
+  /**
+   * Turn of the whole section in degrees, clockwise in the plan about the middle of x0 … z1 (a detached
+   * garage at an angle to the house); x0 … z1, axis and flip describe it before the turn. Missing = 0.
+   * A free-shaped flat roof (points) does not turn: its polygon is already where it lies.
+   */
+  rotation?: number;
 }
 
 export interface RoofSettings {
@@ -1214,6 +1220,26 @@ export function bounds(points: readonly Vec2[]): { x0: number; z0: number; x1: n
     z1 = Math.max(z1, z);
   }
   return { x0, z0, x1, z1 };
+}
+
+/**
+ * A plan point turned about a centre by `deg` degrees, clockwise in the plan (x east, z south): east
+ * turns to south. The same sense as furniture, devices and roof sections turn in.
+ */
+export function rotatePoint(p: Vec2, c: Vec2, deg: number): Vec2 {
+  if (!deg) return [p[0], p[1]];
+  const a = (deg * Math.PI) / 180;
+  const cos = Math.cos(a);
+  const sin = Math.sin(a);
+  const dx = p[0] - c[0];
+  const dz = p[1] - c[1];
+  return [c[0] + dx * cos - dz * sin, c[1] + dx * sin + dz * cos];
+}
+
+/** An angle in degrees brought into (-180, 180]. */
+export function wrapAngle(deg: number): number {
+  const a = ((((deg + 180) % 360) + 360) % 360) - 180;
+  return a === -180 ? 180 : a;
 }
 
 /** Corners of a furniture item in world x/z (rotated rectangle). */

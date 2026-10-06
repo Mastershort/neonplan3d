@@ -5,9 +5,9 @@
 // length); on a flat roof s runs across, level. A field's u and v place its lower left corner on the face.
 
 import type { Building, Floor, RoofSection, RoofWindow, SolarField, Vec2 } from "./model.ts";
-import { outdoorGround } from "./model.ts";
+import { outdoorGround, rotatePoint } from "./model.ts";
 import { generateWalls } from "./geometry/walls.ts";
-import { sectionFrame, sectionOverhang, sectionProfile } from "./roof-sections.ts";
+import { sectionCenter, sectionFrame, sectionOverhang, sectionProfile, sectionRotation } from "./roof-sections.ts";
 
 const DEG = Math.PI / 180;
 type V3 = [number, number, number];
@@ -184,9 +184,13 @@ function sectionFaces(s: RoofSection, ov: { u0: number; u1: number; a: number; b
   const U1 = fr.u1 + Math.max(0, ov.u1);
   const lu = U1 - U0;
   if (s.shape === "flat" || s.shape === "parapet") {
-    const a = fr.at(U0, -oa);
-    const c = fr.at(U1, fr.w + ob);
-    return [flatFace(s.id, s.id, Math.min(a[0], c[0]), Math.min(a[1], c[1]), Math.max(a[0], c[0]), Math.max(a[1], c[1]), s.eave_a + FLAT_SLAB)];
+    // a turned section: the face is laid out on the unturned rectangle and turned with it
+    const rot = sectionRotation(s);
+    const lf = rot ? sectionFrame({ ...s, rotation: 0 }) : fr;
+    const a = lf.at(U0, -oa);
+    const c = lf.at(U1, fr.w + ob);
+    const face = flatFace(s.id, s.id, Math.min(a[0], c[0]), Math.min(a[1], c[1]), Math.max(a[0], c[0]), Math.max(a[1], c[1]), s.eave_a + FLAT_SLAB);
+    return [rot ? turnFace(face, sectionCenter(s), rot) : face];
   }
   if (s.shape === "pent") return [slopeFace(`${s.id}:a`, s.id, "a", P(U0, -oa, pr.y(-oa)), P(U1, -oa, pr.y(-oa)), P(U0, fr.w + ob, pr.y(fr.w + ob)), s.pitch_a, () => [0, lu])];
   // a pyramid is a hip whose ridge has no length; half-hip and mansard place their modules like a gable
@@ -275,6 +279,17 @@ function flatFace(id: string, section: string | null, x0: number, z0: number, x1
     span: () => [0, lu],
     facing: alongX ? [0, 1] : [1, 0],
   };
+}
+
+/** A flat face turned in the plan about a centre (clockwise, degrees): its origin and its directions. */
+function turnFace(face: RoofFace, c: Vec2, deg: number): RoofFace {
+  const [ox, oz] = rotatePoint([face.o[0], face.o[2]], c, deg);
+  const dir = (d: V3): V3 => {
+    const [x, z] = rotatePoint([d[0], d[2]], [0, 0], deg);
+    return [x, d[1], z];
+  };
+  const facing = rotatePoint(face.facing, [0, 0], deg);
+  return { ...face, o: [ox, face.o[1], oz], eu: dir(face.eu), es: dir(face.es), facing };
 }
 
 /** One module: its four corners (lower left, lower right, upper right, upper left) and, on a flat roof, its stand. */

@@ -344,6 +344,9 @@ ROOF_SECTION_SCHEMA = vol.Schema(
         vol.Optional("locked", default=False): bool,
         # a canopy (terrace roof, carport): posts instead of walls, a see-through roof
         vol.Optional("open", default=False): bool,
+        # turn of the whole section in degrees, clockwise in the plan about the middle of x0 … z1
+        # (a detached garage at an angle to the house); free shapes (points) do not turn
+        vol.Optional("rotation", default=0.0): vol.All(vol.Coerce(float), vol.Range(min=-180, max=180)),
     },
     extra=vol.ALLOW_EXTRA,
 )

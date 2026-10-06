@@ -4,6 +4,17 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 [releases page](https://github.com/Mastershort/neonplan3d/releases). Ideas and votes:
 [Discussions → Ideas](https://github.com/Mastershort/neonplan3d/discussions/categories/ideas).
 
+## Unreleased
+
+### New
+
+- Roof sections can be rotated by any angle (new "Rotation" field in the section form, or the round handle above the selected section; Alt for 1° steps): a detached garage at an angle to the house gets its roof at the same angle. Slopes, hips, knee walls and walls cut by the slope, dormers (they turn along), roof windows and solar fields all follow.
+- Editor, room form: "Rotate …" turns a room – by default with every room touching it and the rooms above and below – by any angle, together with the furniture and devices in it, free walls and outdoor areas inside it and the roof sections over it. Doors and windows stay on their walls.
+
+### Fixed
+
+- "Turn 90°" with "all floors" now turns the roof sections' ridges along with the house instead of only swapping their rectangles.
+
 ## 1.12.2
 
 ### Fixed
