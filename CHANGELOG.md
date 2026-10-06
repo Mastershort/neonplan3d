@@ -12,6 +12,7 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 - **Glow per lamp in 3D:** a percent field on lamps and placed lights tones down bright LED strips or lifts weak lamps – display only (#181 by RobertSorgenfrei).
 - **Start view per floor:** each floor can open from its own side, e.g. the ground floor from the front and the upper floor from the back (#182 by RobertSorgenfrei).
 - **Fold the floor pictures:** a small arrow turns the floor pictures on the left into plain buttons with names – more room on a phone (discussion #177 by Eric-41).
+- **Energy Pro:** smart plugs and other placed devices with a power sensor can carry a device card too; cards of devices standing side by side no longer cover each other (discussion #178 by jan-1992-29, karli4711).
 - **Car Pro:** when the car is unlocked, its head- and taillights glow amber like indicators.
 
 ### Fixed
