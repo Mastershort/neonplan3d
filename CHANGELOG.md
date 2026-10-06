@@ -16,6 +16,9 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 - Garden solar fields stand on the ground floor, no longer on a cellar below it (#192 by denisb88).
 - Extensions: our furniture packs and Pro add-ons show English names when Home Assistant is not set to German (#224 by twynne).
 - Furniture with only a small status light (3D printers, wallbox, speakers) links as a device, no longer as a "TV / media player".
+- Energy Pro: tapping the grid pin at the street opens the grid sensor instead of an empty "grid" dialog (#223 by denisb88).
+- Entity choices say how many more entries there are ("… +23 · type to search"); for a parking spot's presence, GPS trackers (the car's own integration, a phone) come before a router's many network trackers (#227 by twynne).
+- The star menu closes when you tap into the 3D view, on a room or switch floors; while the search is open the eye button steps aside (#220 by daene85).
 - Pulled apart, a roof rides with the highest floor beneath it, so a loft under the same slopes stays under the roof; dormers go along with their roof (#202 by Kuddelsoft, discussion #207 by 1970lexi).
 - Under a roof slope the light on the walls ends where the wall does, instead of shining through the roof (#201 by Twilight-Networks).
 - Walls under a roof no longer show vertical stripes (discussion #180 by RobertSorgenfrei).

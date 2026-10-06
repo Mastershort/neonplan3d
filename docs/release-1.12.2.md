@@ -12,6 +12,9 @@ A small round of fixes, mostly around roofs and attics.
 - **Garden solar fields** stand on the ground floor, no longer on a cellar below it (#192 by denisb88).
 - **Pack names in English:** outside German, the extensions page and the furniture library show our packs and Pro add-ons with English names (#224 by twynne).
 - Furniture with only a small status light (3D printers, wallbox, speakers) links as a device, no longer as a "TV / media player".
+- Energy Pro: tapping the grid pin at the street opens the grid sensor instead of an empty "grid" dialog (#223 by denisb88).
+- Entity choices say how many more entries there are ("… +23 · type to search"); for a parking spot's presence, GPS trackers (the car's own integration, a phone) come before a router's many network trackers (#227 by twynne).
+- The star menu closes when you tap into the 3D view, on a room or switch floors; while the search is open the eye button steps aside (#220 by daene85).
 - **Heatmap:** with the temperature, humidity or CO₂ view on, garden lamps keep their light and room lamps a soft glow (discussion #205 by 1970lexi).
 - **Clear message for add-ons that need a newer version:** installing a Pro add-on on an older NeonPlan 3D now says "please update NeonPlan 3D first" instead of a cryptic error (#218 by twynne).
 
@@ -35,6 +38,9 @@ Eine kleine Fehlerrunde, vor allem rund um Dächer und Dachgeschosse.
 - **Gartensolarfelder** stehen auf dem Erdgeschoss, nicht mehr im Keller darunter (#192 von denisb88).
 - **Pack-Namen auf Englisch:** Ist Home Assistant nicht auf Deutsch eingestellt, zeigen die Erweiterungsseite und die Möbelbibliothek unsere Packs und Pro-Erweiterungen mit englischen Namen (#224 von twynne).
 - Möbel mit nur einer kleinen Statusanzeige (3D-Drucker, Wallbox, Lautsprecher) werden als Gerät verknüpft, nicht mehr als „Fernseher / Mediaplayer“.
+- Energie Pro: Ein Tipp auf den Netz-Pin an der Straße öffnet den Netz-Sensor statt eines leeren „grid“-Dialogs (#223 von denisb88).
+- Entitäten-Auswahl: Die Liste sagt, wie viele weitere Einträge es gibt („… +23 · Tippen zum Suchen“); bei der Anwesenheit eines Stellplatzes stehen GPS-Tracker (die Integration des Autos, ein Handy) vor den vielen Netzwerk-Trackern eines Routers (#227 von twynne).
+- Das Sternmenü schließt sich bei einem Tipp in die 3D-Ansicht, auf einen Raum oder beim Etagenwechsel; bei offener Suche macht der Augen-Knopf Platz (#220 von daene85).
 - **Heatmap:** Bei Temperatur-, Feuchte- oder CO₂-Ansicht behalten Gartenlampen ihr Licht und Raumlampen einen sanften Schein (Diskussion #205 von 1970lexi).
 - **Klare Meldung bei Erweiterungen, die eine neuere Version brauchen:** Wer eine Pro-Erweiterung auf einer älteren NeonPlan-3D-Version installiert, liest jetzt „bitte zuerst NeonPlan 3D aktualisieren“ statt einer kryptischen Fehlermeldung (#218 von twynne).
 

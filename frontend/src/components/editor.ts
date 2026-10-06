@@ -6267,7 +6267,12 @@ export class Fp3dEditor extends LitElement {
     const admin = this.isAdmin;
     const lang = this.hass?.language ?? "en";
     const vehicles = (this.packs ?? []).flatMap((p) => p.items.filter((it) => it.vehicle).map((it) => ({ id: packType(p.id, it.id), label: `${packItemName(it, lang)} · ${packName(p, lang)}` })));
-    const presence = this.entityOptions((id) => /^(binary_sensor|device_tracker|input_boolean|switch|sensor)\./.test(id));
+    // presence: GPS trackers (a car's own integration, a phone) before the many network trackers of a router (#227)
+    const rank = (id: string) => {
+      if (!id.startsWith("device_tracker.")) return 1;
+      return this.hass?.states[id]?.attributes.source_type === "router" ? 2 : 0;
+    };
+    const presence = this.entityOptions((id) => /^(binary_sensor|device_tracker|input_boolean|switch|sensor)\./.test(id)).sort((a, b) => rank(a.id) - rank(b.id));
     const typeSensors = this.entityOptions((id) => /^(sensor|input_select|select|input_text)\./.test(id));
     const typeState = f.type_entity ? this.hass?.states[f.type_entity] : undefined;
     const options = Array.isArray(typeState?.attributes.options) ? (typeState.attributes.options as string[]) : [];

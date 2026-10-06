@@ -65,6 +65,14 @@ export class EntityPicker extends LitElement {
     return [...fixed, ...rest.slice(0, MAX_SHOWN)];
   }
 
+  /** How many matching entities the list leaves out (it shows the first MAX_SHOWN). */
+  private get leftOut(): number {
+    const q = this._query.trim().toLowerCase();
+    const words = q.split(/\s+/).filter(Boolean);
+    const all = q ? this.options.filter((o) => words.every((w) => `${o.label} ${o.id}`.toLowerCase().includes(w))).length : this.options.length;
+    return Math.max(0, all - MAX_SHOWN);
+  }
+
   private choose(id: string): void {
     this.value = id;
     this._query = "";
@@ -131,7 +139,7 @@ export class EntityPicker extends LitElement {
                 <span>${o.label}</span>${o.id.includes(".") ? html`<small>${o.id}</small>` : nothing}
               </li>`,
             )}
-            ${this._query && this.options.length > MAX_SHOWN && hits.length >= MAX_SHOWN ? html`<li class="empty">…</li>` : nothing}
+            ${this.leftOut > 0 ? html`<li class="empty">… +${this.leftOut} · ${this.placeholder}</li>` : nothing}
           </ul>`
         : nothing}
     </div>`;

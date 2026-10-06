@@ -471,6 +471,10 @@ export class Fp3dView3d extends LitElement {
       const mod = await load3d();
       if (!this.isConnected) return;
       const host = this.renderRoot.querySelector(".fp3d-stage") as HTMLElement;
+      // a tap into the 3D view closes the star menu, like any menu (#220)
+      host.addEventListener("pointerdown", (e) => {
+        if (this._central && !(e.target as Element | null)?.closest?.(".fp3d-central, .fp3d-central-btn")) this._central = false;
+      });
       this.viewer = mod.createViewer(host, {
         quality: this.quality,
         explode: this.explode,
@@ -524,6 +528,8 @@ export class Fp3dView3d extends LitElement {
 
   protected updated(changed: PropertyValues): void {
     if (changed.has("hass") && this.live?.el) this.live.el.hass = this.hass;
+    // the star menu closes when a room or another floor is chosen (#220)
+    if (this._central && ((changed.has("roomId") && changed.get("roomId") !== undefined) || (changed.has("floorId") && changed.get("floorId") !== undefined))) this._central = false;
     const v = this.viewer;
     if (!v) return;
     // a room or floor chosen elsewhere ends the look through a camera (the view is theirs now)
@@ -2269,7 +2275,8 @@ export class Fp3dView3d extends LitElement {
 
   /** The eye: one tap hides every bar and overlay so only the stage remains, the next brings them back. */
   private renderEye() {
-    if (!this.cleanButton || !this.hass) return nothing;
+    // while the search is open its field takes the eye's place (#220)
+    if (!this.cleanButton || !this.hass || (this._find !== null && !this.clean)) return nothing;
     const label = translate(this.hass, this.clean ? "controls_show" : "controls_hide");
     return html`<button
       class="fp3d-eye ${this.clean ? "fp3d-eye-clean" : ""}"
@@ -2503,6 +2510,13 @@ export class Fp3dView3d extends LitElement {
   private onDeviceTap(entityId: string, x = 0, y = 0): void {
     // trail pins and lamps without a light are drawn, but nothing of Home Assistant stands behind them
     if (entityId.startsWith("trail:") || entityId.startsWith("lamp:")) return;
+    // the street end of the grid cable opens the grid sensor: the balance's, else the meter's (#223)
+    if (entityId === "grid") {
+      const b = this.building;
+      const sensor = b ? (b.energy.grid ?? deviceSensors(b, (f) => this.furnitureLinks?.get(f.id)?.power ?? null).grid) : null;
+      if (sensor) openMoreInfo(this, sensor);
+      return;
+    }
     // a detection pin opens its sensor
     if (entityId.startsWith("detect:")) {
       openMoreInfo(this, entityId.slice(7));
