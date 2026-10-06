@@ -41,7 +41,7 @@ Available today: **Camera Cockpit**, **Weather outside**, **Live screens**, **En
 | **Light designer** | Set lamps in 3D and save them as a scene, copy a mood from room to room |
 
 Updates for existing add-ons:
-- **Energy Pro:** gas and water meters with their own cable colours, heat pump with heat flow, 7-day history, holograms for smart plugs (discussion #178).
+- **Energy Pro:** gas and water meters with their own cable colours, heat pump with heat flow, 7-day history.
 - **Car Pro:** opening doors and hatches, departure time, charging cable to the wallbox, distance while away.
 - **Camera Cockpit:** pan/tilt from 3D, doorbell.
 - **Sound & Cinema:** more sources and favourites per speaker.
@@ -105,7 +105,7 @@ Bereits erhältlich: **Kamera-Cockpit**, **Wetter draußen**, **Bildschirme live
 | **Licht-Designer** | Lampen in 3D einstellen und als Szene speichern, Stimmung von Raum zu Raum kopieren |
 
 Updates für bestehende Erweiterungen:
-- **Energie Pro:** Gas- und Wasserzähler mit eigenen Leitungsfarben, Wärmepumpe mit Wärmefluss, 7-Tage-Verlauf, Hologramme für Steckdosen (Diskussion #178).
+- **Energie Pro:** Gas- und Wasserzähler mit eigenen Leitungsfarben, Wärmepumpe mit Wärmefluss, 7-Tage-Verlauf.
 - **Auto Pro:** bewegliche Türen und Klappen, Abfahrtszeit, Ladekabel zur Wallbox, Entfernung unterwegs.
 - **Kamera-Cockpit:** Schwenken/Neigen aus 3D, Türklingel.
 - **Klang & Kino:** mehr Quellen und Favoriten je Lautsprecher.
