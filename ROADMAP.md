@@ -47,10 +47,11 @@ Available today: **Camera Cockpit**, **Weather outside**, **Live screens**, **En
 |---|---|
 | **Time travel** | A time slider replays the last 24 hours (later 7 days) in the house: lights, doors, windows, motion, energy – "what happened yesterday at 3 am?" |
 | **Room climate Pro** | A flowing climate map from all sensors, mould risk per room, ventilation hints, heating curves |
-| **Tech Pro** | Wi-Fi map, network devices with their state, 3D printer live with progress and a "done" effect, system health (discussions #54, #115, #136) |
+| **Tech Pro** | Wi-Fi map, network devices with their state, system health (discussion #54) |
 | **Garden & Pool Pro** | Irrigation with zones and spray animation, robot mower paths, pool with temperature and pump (discussion #76) |
 | **Household Pro** | Waste bins with collection calendar and reminder, washing machine done, parcel arrived, water the plants (discussion #84) |
 | **Light designer** | Set lamps in 3D and save them as a scene, copy a mood from room to room |
+| **3D Print Pro** | Your printer live: a card with the model picture, progress, time left and "done at", layer, temperatures and filament colours; the print grows on the bed, the head moves, a "done" effect – for Bambu Lab, OctoPrint, Klipper/Moonraker and PrusaLink (discussions #115, #136) |
 | **Furniture studio** | Build your own furniture in the editor from templates: cabinets in any width with drawers and doors, lamps, shelves, devices with a display – for the furniture no pack has (discussions #222, #27, #229) |
 
 Updates for existing add-ons:
@@ -124,10 +125,11 @@ Bereits erhältlich: **Kamera-Cockpit**, **Wetter draußen**, **Bildschirme live
 |---|---|
 | **Zeitreise** | Ein Zeitregler spielt die letzten 24 Stunden (später 7 Tage) im Haus ab: Lichter, Türen, Fenster, Bewegung, Energie – „Was war gestern um 3 Uhr?“ |
 | **Raumklima Pro** | Fließende Klimakarte aus allen Sensoren, Schimmel-Risiko je Raum, Lüftungs-Hinweise, Heizverläufe |
-| **Technik Pro** | WLAN-Karte, Netzwerkgeräte mit Zustand, 3D-Drucker live mit Fortschritt und „fertig“-Effekt, Systemzustand (Diskussionen #54, #115, #136) |
+| **Technik Pro** | WLAN-Karte, Netzwerkgeräte mit Zustand, Systemzustand (Diskussion #54) |
 | **Garten & Pool Pro** | Bewässerung mit Zonen und Sprüh-Animation, Mähroboter-Bahnen, Pool mit Temperatur und Pumpe (Diskussion #76) |
 | **Haushalt Pro** | Mülltonnen mit Abfuhr-Kalender und Erinnerung, Waschmaschine fertig, Paket da, Pflanzen gießen (Diskussion #84) |
 | **Licht-Designer** | Lampen in 3D einstellen und als Szene speichern, Stimmung von Raum zu Raum kopieren |
+| **3D-Druck Pro** | Dein Drucker live: Karte mit Modellbild, Fortschritt, Restzeit und „fertig um“, Schicht, Temperaturen und Filamentfarben; das Druckteil wächst auf dem Bett, der Kopf fährt, ein „fertig“-Effekt – für Bambu Lab, OctoPrint, Klipper/Moonraker und PrusaLink (Diskussionen #115, #136) |
 | **Möbel-Studio** | Eigene Möbel im Editor aus Vorlagen bauen: Schränke in jeder Breite mit Schubladen und Türen, Lampen, Regale, Geräte mit Display – für alles, was kein Pack hat (Diskussionen #222, #27, #229) |
 
 Updates für bestehende Erweiterungen:
