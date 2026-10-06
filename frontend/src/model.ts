@@ -126,6 +126,9 @@ export interface Furniture {
   x: number;
   z: number;
   rotation: number;
+  /** Local X/Z rotations in degrees around the model centre; missing values preserve old plans. */
+  rotation_x?: number;
+  rotation_z?: number;
   w: number;
   d: number;
   h: number;

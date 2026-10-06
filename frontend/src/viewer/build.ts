@@ -357,7 +357,7 @@ export function buildFloorGeometry(
     const base = mountBase(floor, f);
     pushFurniture(wallBuf, lines, shadow, f, base);
     // a wardrobe or a stair reaching above the cut height is cut with the walls, so it hides nothing behind it
-    if (base + f.h > cut + 0.05) {
+    if (base + f.h > cut + 0.05 || f.rotation_x || f.rotation_z) {
       cutAbove(wallBuf, start, cut, FURN_OFFSET);
       cutLinesAbove(lines, l0, cut, FURN_OFFSET);
     }

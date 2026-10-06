@@ -290,10 +290,38 @@ const shots = [
   { name: "site-demo-phone", query: "?site&lang=de", width: 390, height: 844 },
 ];
 
+const ROTATION_SCRIPT = `
+  const floor = e._doc.floors[0];
+  const strip = floor.furniture.find((f) => f.type === 'led_strip');
+  Object.assign(strip, { mount_y: 1.2, x: 2.4, z: 1.3, rotation: 25, rotation_x: 40, rotation_z: 70, upright: false });
+  const sofa = floor.furniture.find((f) => f.type === 'sofa');
+  Object.assign(sofa, { mount_y: 0.6, rotation_x: 20, rotation_z: -25 });
+  const tv = floor.furniture.find((f) => f.type === 'tv_board');
+  if (tv) Object.assign(tv, { rotation_x: -15, rotation_z: 20 });
+  e.setDoc(structuredClone(e._doc));
+  e._roomId = 'wohnen'; e._furnitureId = strip.id;
+`;
+shots.push(
+  { name: "editor-inventory-rotation", query: "", width: 1400, height: 1000, editor: true, editorScript: ROTATION_SCRIPT + "e._split = true;", focusRotation: true, mockPrivatePacks: true },
+  { name: "editor-inventory-rotation-phone", query: "", width: 430, height: 1000, editor: true, editorScript: ROTATION_SCRIPT, focusRotation: true, mockPrivatePacks: true },
+  { name: "view-inventory-rotation", query: "", width: 1280, height: 800, editor: true, editorScript: ROTATION_SCRIPT, mockPrivatePacks: true, then3d: "Erdgeschoss", camera: { theta: 1.3, phi: 1.1, radius: 7, target: { x: 2.4, y: 1.1, z: 2 } } },
+);
+
 const errors = [];
 const only = process.env.SHOTS?.split(",");
 for (const shot of shots.filter((s) => !only || only.includes(s.name))) {
   const page = await browser.newPage();
+  if (shot.mockPrivatePacks) {
+    // These rotation-only scenes use built-in models, not the author's untracked shop fixtures.
+    await page.setRequestInterception(true);
+    page.on("request", (request) => {
+      const path = new URL(request.url()).pathname;
+      if (path === "/private/packs/starter.json" || path === "/private/packs/src/index.json") {
+        const body = path.endsWith("index.json") ? [] : { id: "preview.empty", name: "Preview", publisher: "Preview", items: [] };
+        request.respond({ status: 200, contentType: "application/json", body: JSON.stringify(body) });
+      } else request.continue();
+    });
+  }
   page.on("pageerror", (e) => errors.push(`${shot.name}: ${e.message}`));
   page.on("console", (m) => m.type() === "error" && !m.location()?.url?.endsWith("favicon.ico") && errors.push(`${shot.name}: ${m.text()}`));
   await page.setViewport({ width: shot.width, height: shot.height, deviceScaleFactor: 1 });
@@ -471,6 +499,18 @@ for (const shot of shots.filter((s) => !only || only.includes(s.name))) {
       const side = editor.shadowRoot.querySelector(".fp3d-side");
       side.scrollTop = side.scrollHeight;
     });
+    await new Promise((r) => setTimeout(r, 300));
+  }
+  if (shot.focusRotation) {
+    const values = await page.evaluate(() => {
+      const editor = document.querySelector("neonplan3d-panel").shadowRoot.querySelector("fp3d-editor");
+      const labels = [...editor.shadowRoot.querySelectorAll("label.fp3d-field")];
+      const x = labels.find((label) => label.textContent.includes("Drehung X"));
+      const z = labels.find((label) => label.textContent.includes("Drehung Z"));
+      x?.scrollIntoView({ block: "center", inline: "nearest" });
+      return [x?.querySelector("input")?.value, z?.querySelector("input")?.value];
+    });
+    if (values[0] !== "40" || values[1] !== "70") throw new Error(`${shot.name}: rotation fields missing or stale (${values})`);
     await new Promise((r) => setTimeout(r, 300));
   }
   await page.screenshot({ path: join(outDir, `${shot.name}.png`) });

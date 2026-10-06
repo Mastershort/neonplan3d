@@ -529,9 +529,17 @@ export class Fp3dEditor extends LitElement {
           }}
         />
       </label>`;
+      const angle = (key: "rotation" | "rotation_x" | "rotation_z", axis: "x" | "y" | "z") => html`<label class="fp3d-3d-size" title=${this.t(`furn_rotation_${axis}`)}
+        >${axis.toUpperCase()}°
+        <input type="number" inputmode="decimal" step="1" .value=${String(f[key] ?? 0)} @change=${(e: Event) => {
+          const v = parseFloat((e.target as HTMLInputElement).value.replace(",", "."));
+          if (Number.isFinite(v)) this.updateFurniture({ [key]: key === "rotation" ? ((v % 360) + 360) % 360 : ((v + 180) % 360 + 360) % 360 - 180 });
+        }} />
+      </label>`;
       return html`<div class="fp3d-3d-bar">
         <span>${furnitureName(this.hass, f.type)}</span>
         ${num("w", this.t("size_short_w"))} ${num("d", this.t("size_short_d"))} ${num("h", this.t("size_short_h"))}
+        ${angle("rotation_x", "x")} ${angle("rotation", "y")} ${angle("rotation_z", "z")}
         ${wallItem
           ? html`<label class="fp3d-3d-size" title=${this.t("mount_height")}
               >↕
@@ -5576,7 +5584,10 @@ export class Fp3dEditor extends LitElement {
         ${this.num(this.t("width"), f.w, (v) => this.updateFurniture({ w: Math.max(0.05, v) }), 0.01, 0.05)}
         ${this.num(this.t("depth"), f.d, (v) => this.updateFurniture({ d: Math.max(0.05, v) }), 0.01, 0.05)}
         ${this.num(this.t("height_m"), f.h, (v) => this.updateFurniture({ h: Math.max(0.005, v) }), 0.01, 0)}
-        ${this.num(this.t("rotation"), f.rotation, (v) => this.updateFurniture({ rotation: ((v % 360) + 360) % 360 }), 1)}
+        ${this.num(this.t("furn_rotation_y"), f.rotation, (v) => this.updateFurniture({ rotation: ((v % 360) + 360) % 360 }), 1)}
+        ${this.num(this.t("furn_rotation_x"), f.rotation_x ?? 0, (v) => this.updateFurniture({ rotation_x: ((v + 180) % 360 + 360) % 360 - 180 }), 1)}
+        ${this.num(this.t("furn_rotation_z"), f.rotation_z ?? 0, (v) => this.updateFurniture({ rotation_z: ((v + 180) % 360 + 360) % 360 - 180 }), 1)}
+        <button class="fp3d-btn fp3d-field-btn" ?disabled=${!admin} @click=${() => this.updateFurniture({ rotation: 0, rotation_x: 0, rotation_z: 0, ...(f.type === "led_strip" ? { tilt: 0, upright: false } : {}) })}>${this.t("furn_rotation_reset")}</button>
         ${isLamp(f.type)
           ? nothing
           : html`<label class="fp3d-check" title=${this.t("furn_mirror_hint")}
@@ -5595,6 +5606,7 @@ export class Fp3dEditor extends LitElement {
               ${f.mount_y != null ? html`<button class="fp3d-btn fp3d-field-btn" ?disabled=${!admin} @click=${() => this.updateFurniture({ mount_y: null })}>${this.t("height_auto")}</button>` : nothing}`
           : nothing}
       </div>
+      <p class="fp3d-sub">${this.t("furn_rotation_hint")}</p>
       ${f.type === "stairs" ? html`<p class="fp3d-sub">${this.t("stairs_hint")}</p>` : nothing}
       ${f.type === "stairwell"
         ? html`<p class="fp3d-sub">${this.t("stairwell_hint")}</p>

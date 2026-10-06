@@ -61,7 +61,7 @@ export function vehicleFurniture(spot: Furniture, vehicle: string): Furniture | 
   const item = packItem(vehicle);
   if (!item) return null;
   const k = spot.scale ?? 1;
-  return { id: `${spot.id}:vehicle`, type: vehicle, x: spot.x, z: spot.z, rotation: spot.rotation, w: item.size[0] * k, d: item.size[1] * k, h: item.size[2] * k, variant: null, entity: null, power: null };
+  return { id: `${spot.id}:vehicle`, type: vehicle, x: spot.x, z: spot.z, rotation: spot.rotation, rotation_x: spot.rotation_x, rotation_z: spot.rotation_z, mount_y: spot.mount_y, w: item.size[0] * k, d: item.size[1] * k, h: item.size[2] * k, variant: null, entity: null, power: null };
 }
 
 /** A floor with the parked vehicles added to its furniture (for building the 3D geometry). */

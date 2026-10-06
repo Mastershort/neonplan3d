@@ -27,6 +27,14 @@ function setup() {
   return { hass, spot };
 }
 
+test("vehicles inherit the spot's extra rotations and mounting height", () => {
+  const { spot } = setup();
+  const vehicle = vehicleFurniture({ ...spot, rotation_x: 45, rotation_z: -30, mount_y: 0.4 }, VAN)!;
+  assert.equal(vehicle.rotation_x, 45);
+  assert.equal(vehicle.rotation_z, -30);
+  assert.equal(vehicle.mount_y, 0.4);
+});
+
 test("a spot shows its vehicle while the presence entity reports a car", () => {
   const { hass, spot } = setup();
   assert.equal(parkedVehicle(hass, spot), VAN);

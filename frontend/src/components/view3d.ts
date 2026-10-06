@@ -1871,6 +1871,11 @@ export class Fp3dView3d extends LitElement {
       lamp: model,
       rotation: f.rotation,
       mirror: !!f.mirror,
+      rotation_x: f.rotation_x ?? 0,
+      rotation_z: f.rotation_z ?? 0,
+      pivot_y: item ? base + f.h / 2
+        : ["ceiling", "downlight", "spot", "panel", "pendant"].includes(model) ? H - f.h / 2
+        : base + (model === "strip" && f.upright ? f.w : f.h) / 2,
       roll: f.tilt ?? 0,
       upright: !!f.upright,
       size: [f.w, f.d, f.h],

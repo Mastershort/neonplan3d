@@ -6,6 +6,7 @@
 import { Color } from "three";
 import type { Furniture, Vec2 } from "../model.ts";
 import { builtinBase } from "../model.ts";
+import { rotateFurniturePositions } from "../furniture-transform.ts";
 import { mountBase, packItem, packScreen, type PackItem } from "../packs.ts";
 import type { Floor } from "../model.ts";
 import { ALWAYS, DEG, EDGE_TOP, GeoBuffer, LineBuffer, pushLoft, pushLyingCyl, pushPrism, shade } from "./geo.ts";
@@ -343,10 +344,11 @@ export const FRIDGE_DOOR = 0.06;
  * outer hinge: the left one carries the water dispenser, the right one the screen. An open door turns
  * red – it should not stay open for long.
  */
-export function pushFridgeDoors(buf: GeoBuffer, f: Pick<Furniture, "x" | "z" | "rotation" | "w" | "d" | "h" | "mirror">, base: number, left: number, right: number): void {
+export function pushFridgeDoors(buf: GeoBuffer, f: Pick<Furniture, "x" | "z" | "rotation" | "rotation_x" | "rotation_z" | "w" | "d" | "h" | "mirror">, base: number, left: number, right: number): void {
   const p0 = buf.p.length;
   pushFridgeDoorsUnflipped(buf, f, base, left, right);
   if (f.mirror) flipWinding(buf, p0);
+  rotateFurniturePositions(buf.p, p0, f, base + f.h / 2);
 }
 
 function pushFridgeDoorsUnflipped(buf: GeoBuffer, f: Pick<Furniture, "x" | "z" | "rotation" | "w" | "d" | "h" | "mirror">, base: number, left: number, right: number): void {
@@ -895,7 +897,12 @@ function contactShadow(shadow: GeoBuffer, tf: Tf, w: number, d: number, strength
 export function pushFurniture(buf: GeoBuffer, lines: LineBuffer, shadow: GeoBuffer, f: Furniture, base = 0): void {
   // a mirrored item needs no rewinding here: boxes, lofts and upright cylinders wind themselves (ccw),
   // lying cylinders and the contact shadow rewind themselves when the transform mirrors (#159)
-  pushUpright(buf, lines, shadow, f, base);
+  const p0 = buf.p.length;
+  const l0 = lines.p.length;
+  // A tilted object's old flat contact shadow is misleading; do not rotate a shadow through the floor.
+  pushUpright(buf, lines, f.rotation_x || f.rotation_z ? new GeoBuffer() : shadow, f, base);
+  rotateFurniturePositions(buf.p, p0, f, base + f.h / 2);
+  rotateFurniturePositions(lines.p, l0, f, base + f.h / 2);
 }
 
 /** Swap the second and third vertex of every triangle from `from` on (positions, colours, folds, uvs, tiles). */
@@ -1188,17 +1195,20 @@ export function pushCameraModel(buf: GeoBuffer, model: "camera_wall" | "camera_c
 }
 
 /** The glowing parts of a pack item that is no lamp (a smart speaker's light ring) in `color`: for the screen layer. */
-export function pushPackGlow(buf: GeoBuffer, item: PackItem, f: Pick<Furniture, "x" | "z" | "rotation" | "w" | "d" | "h" | "mirror">, base: number, color: number, pick: (p: PackItem["parts"][number]) => boolean = (p) => !!p.glow): void {
+export function pushPackGlow(buf: GeoBuffer, item: PackItem, f: Pick<Furniture, "x" | "z" | "rotation" | "rotation_x" | "rotation_z" | "w" | "d" | "h" | "mirror">, base: number, color: number, pick: (p: PackItem["parts"][number]) => boolean = (p) => !!p.glow): void {
+  const from = buf.p.length;
   const a = f.rotation * DEG;
   const c = Math.cos(a);
   const s = Math.sin(a);
   const mx = f.mirror ? -1 : 1;
   const tf: Tf = (x, z) => [f.x + mx * x * c - z * s, f.z + mx * x * s + z * c];
   packModel(new Builder(buf, new LineBuffer(), tf), item, Math.max(0.05, f.w), Math.max(0.05, f.d), Math.max(0.005, f.h), base, color, pick);
+  rotateFurniturePositions(buf.p, from, f, base + f.h / 2);
 }
 
 /** A pack lamp into the lamp buffer: glowing parts in the light's colour (`glow`), or dark when off. */
-export function pushPackLamp(buf: GeoBuffer, item: PackItem, f: Pick<Furniture, "x" | "z" | "rotation" | "w" | "d" | "h" | "mirror">, base: number, glow: number): void {
+export function pushPackLamp(buf: GeoBuffer, item: PackItem, f: Pick<Furniture, "x" | "z" | "rotation" | "rotation_x" | "rotation_z" | "w" | "d" | "h" | "mirror">, base: number, glow: number): void {
+  const from = buf.p.length;
   const a = f.rotation * DEG;
   const c = Math.cos(a);
   const s = Math.sin(a);
@@ -1207,4 +1217,5 @@ export function pushPackLamp(buf: GeoBuffer, item: PackItem, f: Pick<Furniture, 
   const tf: Tf = (x, z) => [f.x + mx * x * c - z * s, f.z + mx * x * s + z * c];
   // lamps have no outlines: their edges are dropped
   packModel(new Builder(buf, new LineBuffer(), tf), item, Math.max(0.05, f.w), Math.max(0.05, f.d), Math.max(0.005, f.h), base, glow);
+  rotateFurniturePositions(buf.p, from, f, base + f.h / 2);
 }

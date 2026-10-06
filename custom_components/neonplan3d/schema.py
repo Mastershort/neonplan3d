@@ -6,6 +6,8 @@ so saving keeps working after a frontend update until Home Assistant restarts wi
 
 from __future__ import annotations
 
+from math import isfinite
+
 import voluptuous as vol
 
 MAX_FLOORS = 20
@@ -22,6 +24,16 @@ _POINT = vol.All([_COORD], vol.Length(min=2, max=2))
 _ENTITY_REF = vol.Any(None, vol.All(str, vol.Length(max=255)))
 
 _SENSOR_REF = vol.Any(None, vol.All(str, vol.Length(max=255)))
+
+
+def _finite_angle(value: float) -> float:
+    """Do not allow NaN to pass through range checks into geometry."""
+    if not isfinite(value):
+        raise vol.Invalid("rotation must be finite")
+    return value
+
+
+_ANGLE = vol.All(vol.Coerce(float), _finite_angle, vol.Range(min=-360, max=360))
 
 ROOM_SCHEMA = vol.Schema(
     {
@@ -174,6 +186,9 @@ FURNITURE_SCHEMA = vol.Schema(
         vol.Required("x"): _COORD,
         vol.Required("z"): _COORD,
         vol.Required("rotation"): vol.Coerce(float),
+        # extra local axes, before the existing Y/plan rotation; old plans remain upright
+        vol.Optional("rotation_x", default=0.0): _ANGLE,
+        vol.Optional("rotation_z", default=0.0): _ANGLE,
         vol.Required("w"): _LENGTH,
         vol.Required("d"): _LENGTH,
         vol.Required("h"): _LENGTH,

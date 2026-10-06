@@ -4,6 +4,12 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 [releases page](https://github.com/Mastershort/neonplan3d/releases). Ideas and votes:
 [Discussions → Ideas](https://github.com/Mastershort/neonplan3d/discussions/categories/ideas).
 
+## 1.12.1 (local branch)
+
+### New
+
+- All inventory furniture, including pack models and lamps, can rotate around local X and Z as well as the existing Y axis. The editor exposes all three angles and an orientation reset. Screens, picture planes, animated fridge doors and lamp geometry follow the orientation; existing LED strip tilt/upright settings remain compatible.
+
 ## 1.12.0
 
 ### Fixed

@@ -44,6 +44,7 @@ import {
   type Material,
 } from "three";
 import type { Building, Floor, Furniture, Room } from "../model.ts";
+import { furnitureTransform, rotateFurniturePositions } from "../furniture-transform.ts";
 import { recolorLamps, SHADE_SENTINEL, shadeFactors } from "./lamp-colors.ts";
 import { centroid, pointInPolygon, openingStyle, WALL_LAMP_Y } from "../model.ts";
 import { roofUnderAt } from "../roof-sections.ts";
@@ -140,6 +141,10 @@ export interface DeviceMarker {
   /** A mirrored lamp furniture (its pack model is drawn mirrored). */
   mirror?: boolean;
   rotation?: number;
+  rotation_x?: number;
+  rotation_z?: number;
+  /** Centre of the furniture model above the floor (also used by lights and halos). */
+  pivot_y?: number;
   size?: [number, number, number];
   base?: number;
   /** LED strip: roll about its length (degrees) and standing upright (its length runs up from the base). */
@@ -1498,6 +1503,7 @@ export class FloorplanViewer {
       const room = zoneOf(fv.lightZones, ri);
       const [w, , h] = d.size ?? (d.lamp ? LAMP_SIZE[d.lamp] : [0.3, 0.3, 0.3]);
       const base = d.base ?? 0;
+      const sourceStart = out.length;
       const kinds: Record<LampModel, [number, LightKind]> = {
         ceiling: [H - 0.12, "ceiling"],
         downlight: [H - 0.03, "spot"],
@@ -1527,6 +1533,16 @@ export class FloorplanViewer {
           else out.push({ x: d.x + Math.cos(a) * w * t, y, z: d.z + Math.sin(a) * w * t, color, level: glow.level * 0.55, kind: sideways ? "omni" : kind, room });
         }
       } else out.push({ x: d.x, y, z: d.z, color, level: glow.level, kind, room });
+      if (d.rotation_x || d.rotation_z) {
+        const P = furnitureTransform(d, lampPivot(d, H));
+        for (let i = sourceStart; i < out.length; i++) {
+          const light = out[i];
+          [light.x, light.y, light.z] = P(light.x, light.y, light.z);
+          // The light surface uses vertical lamp presets; arbitrary orientations emit omnidirectionally.
+          light.kind = "omni";
+          light.room = zoneOf(fv.lightZones, roomIndexAt(fv.floor, light.x, light.z));
+        }
+      }
     }
     return out;
   }
@@ -2117,7 +2133,7 @@ export class FloorplanViewer {
     const shapeSig =
       this.wallMode +
       (this.lowQuality ? "L" : this.highQuality ? "H" : "M") +
-      lamps.map((d) => `${d.id},${d.lamp ?? d.model},${d.variant},${d.x},${d.z},${d.y},${d.rotation ?? 0},${d.roll ?? 0},${d.upright ? 1 : 0},${d.size?.join("/")},${d.base ?? 0},${d.pack ?? ""},${d.mirror ? 1 : 0}`).join(";");
+      lamps.map((d) => `${d.id},${d.lamp ?? d.model},${d.variant},${d.x},${d.z},${d.y},${d.rotation ?? 0},${d.rotation_x ?? 0},${d.rotation_z ?? 0},${d.pivot_y ?? ""},${d.roll ?? 0},${d.upright ? 1 : 0},${d.size?.join("/")},${d.base ?? 0},${d.pack ?? ""},${d.mirror ? 1 : 0}`).join(";");
     const glows = lamps.map((d) => this.glowOf(d));
     const colorSig = lamps.map((d, i) => `${flash(d.id)},${glows[i] ? `${glows[i]!.level.toFixed(3)},${glows[i]!.color.map((c) => c.toFixed(3)).join("/")}` : "off"}`).join(";");
     if (shapeSig !== fv.lampShapeSig || !fv.lampMesh.geometry.getAttribute("position")) {
@@ -2137,7 +2153,7 @@ export class FloorplanViewer {
         const [pw, pd, ph] = d.size ?? [0.3, 0.3, 0.3];
         // shades get the sentinel colour and are recoloured below
         if (d.model) pushCameraModel(buf, d.model, d.x, d.model === "camera_ceiling" ? H : d.y, d.z, d.rotation ?? 0);
-        else if (packed) pushPackLamp(buf, packed, { x: d.x, z: d.z, rotation: d.rotation ?? 0, w: pw, d: pd, h: ph, mirror: d.mirror }, d.base ?? 0, SHADE_SENTINEL);
+        else if (packed) pushPackLamp(buf, packed, { x: d.x, z: d.z, rotation: d.rotation ?? 0, rotation_x: d.rotation_x, rotation_z: d.rotation_z, w: pw, d: pd, h: ph, mirror: d.mirror }, d.base ?? 0, SHADE_SENTINEL);
         else pushLampModel(buf, { ...d, lamp: d.lamp! }, H, SHADE_SENTINEL);
         // keyed by the furniture: two lamps may share one light (one switch for two strips)
         ranges.set(d.furnitureId ?? d.id, { start, end: buf.count });
@@ -2303,6 +2319,8 @@ export class FloorplanViewer {
       if (HANGING.has(d.lamp) && this.wallMode === "cut") continue;
       const [w, dd, h] = d.size ?? LAMP_SIZE[d.lamp];
       const base = d.base ?? 0;
+      const haloStart = hp.length;
+      const coneStart = cones.p.length;
       const ang = (d.rotation ?? 0) * DEG;
       const y = {
         ceiling: H - 0.07,
@@ -2333,7 +2351,7 @@ export class FloorplanViewer {
         }
       else if (d.lamp === "wall") push(d.x - Math.sin(ang) * (dd / 2 + 0.05), d.z + Math.cos(ang) * (dd / 2 + 0.05));
       else push(d.x, d.z);
-      if (this.highQuality && (d.lamp === "downlight" || d.lamp === "spot")) {
+      if (this.highQuality && (d.lamp === "downlight" || d.lamp === "spot") && !d.rotation_x && !d.rotation_z) {
         // soft cone from the lamp to the floor, fading towards the floor
         const top = new Color(...glow.color.map((c) => c * 0.09 * glow.level) as [number, number, number]);
         const bottom = new Color(0, 0, 0);
@@ -2351,6 +2369,8 @@ export class FloorplanViewer {
           cones.tri(t0, b1, t1, top, bottom, top);
         }
       }
+      rotateFurniturePositions(hp, haloStart, d, lampPivot(d, H));
+      rotateFurniturePositions(cones.p, coneStart, d, lampPivot(d, H));
     }
     const g = new Geometry();
     g.setAttribute("position", new Float32BufferAttribute(hp, 3));
@@ -2368,7 +2388,7 @@ export class FloorplanViewer {
   private buildScreens(fv: FloorView): void {
     // the vehicles in the parking spots count as furniture here too (Auto Pro lights a band on them)
     const items = withVehicles(fv.floor, this.parked).furniture.filter((f) => this.screens.has(f.id));
-    const sig = items.map((f) => `${f.id}:${f.x},${f.z},${f.rotation},${f.w},${f.d},${f.h},${f.mount_y ?? ""},${f.mirror ? 1 : 0}:${JSON.stringify(this.screens.get(f.id))}`).join(";");
+    const sig = items.map((f) => `${f.id}:${f.x},${f.z},${f.rotation},${f.rotation_x ?? 0},${f.rotation_z ?? 0},${f.w},${f.d},${f.h},${f.mount_y ?? ""},${f.mirror ? 1 : 0}:${JSON.stringify(this.screens.get(f.id))}`).join(";");
     // pictures follow the screens even when only they changed
     if (sig === fv.screenSig && fv.screenMesh.geometry.getAttribute("position")) return this.updateScreenPictures(fv, items);
     fv.screenSig = sig;
@@ -2378,7 +2398,8 @@ export class FloorplanViewer {
       const a = f.rotation * DEG;
       const c = Math.cos(a);
       const s = Math.sin(a);
-      const P = (x: number, y: number, z: number) => [f.x + x * c - z * s, y, f.z + x * s + z * c];
+      const turn = furnitureTransform(f, mountBase(fv.floor, f) + f.h / 2);
+      const P = (x: number, y: number, z: number) => turn(f.x + x * c - z * s, y, f.z + x * s + z * c);
       if (st.faces) {
         // a state on the item itself: a glowing plate on its top (a half of it for a bed's side or a bunk)
         const w = Math.max(0.05, f.w) * (f.mirror ? -1 : 1);
@@ -2508,7 +2529,7 @@ export class FloorplanViewer {
             const mat = entry.mesh.material as MeshBasicMaterial;
             mat.map = tex;
             mat.needsUpdate = true;
-            this.placeScreenPicture(entry.mesh, f, r, tex);
+            this.placeScreenPicture(entry.mesh, f, r, tex, mountBase(fv.floor, f) + f.h / 2);
             entry.mesh.visible = true;
             this.invalidate();
           },
@@ -2518,11 +2539,11 @@ export class FloorplanViewer {
         );
       }
       (pic.mesh.material as MeshBasicMaterial).color.setScalar(0.45 + 0.55 * st.level);
-      if (pic.texture) this.placeScreenPicture(pic.mesh, f, r, pic.texture);
+      if (pic.texture) this.placeScreenPicture(pic.mesh, f, r, pic.texture, mountBase(fv.floor, f) + f.h / 2);
     }
   }
 
-  private placeScreenPicture(mesh: Mesh, f: Furniture, r: { x0: number; x1: number; y0: number; y1: number; z: number }, tex: Texture): void {
+  private placeScreenPicture(mesh: Mesh, f: Furniture, r: { x0: number; x1: number; y0: number; y1: number; z: number }, tex: Texture, pivotY: number): void {
     const img = tex.image as { width?: number; height?: number } | undefined;
     const aspect = img?.width && img?.height ? img.width / img.height : 16 / 9;
     const sw = r.x1 - r.x0 - 0.04;
@@ -2534,8 +2555,9 @@ export class FloorplanViewer {
     const cx = (r.x0 + r.x1) / 2;
     const z = r.z + 0.008;
     mesh.scale.set(w, h, 1);
-    mesh.rotation.set(0, -a, 0);
-    mesh.position.set(f.x + cx * Math.cos(a) - z * Math.sin(a), (r.y0 + r.y1) / 2, f.z + cx * Math.sin(a) + z * Math.cos(a));
+    mesh.rotation.set((f.rotation_x ?? 0) * DEG, -a, (f.rotation_z ?? 0) * DEG, "YZX");
+    const P = furnitureTransform(f, pivotY);
+    mesh.position.set(...P(f.x + cx * Math.cos(a) - z * Math.sin(a), (r.y0 + r.y1) / 2, f.z + cx * Math.sin(a) + z * Math.cos(a)));
   }
 
   private flowSeconds(): number {
@@ -3035,6 +3057,17 @@ export class FloorplanViewer {
     }
     // the front edge a little brighter at floor level, so the direction is clear
     lines.seg(corner(-f.w / 2, f.d / 2 + 0.03, y0 + 0.02), corner(f.w / 2, f.d / 2 + 0.03, y0 + 0.02), new Color(1, 1, 1));
+    const pose = { ...f, x, z };
+    let pivotY = y0 + f.h / 2;
+    if (f.type === "led_strip") {
+      rotateFurniturePositions(lines.p, 0, { ...pose, rotation_x: f.tilt, rotation_z: f.upright ? 90 : 0 }, pivotY);
+      if (f.upright) {
+        const lift = f.w / 2 - f.h / 2;
+        for (let i = 1; i < lines.p.length; i += 3) lines.p[i] += lift;
+        pivotY += lift;
+      }
+    }
+    rotateFurniturePositions(lines.p, 0, pose, pivotY);
     this.ghost = new LineSegments(lines.geometry(), new LineBasicMaterial({ vertexColors: true, depthTest: false, transparent: true }));
     this.ghost.position.y = fv.floor.elevation + fv.y;
     this.ghost.renderOrder = 20;
@@ -3849,10 +3882,25 @@ export function createViewer(host: HTMLElement, options?: ViewerOptions): Floorp
 /** Model of a lamp into a buffer (3D view and furniture previews); `H` is the ceiling height. */
 export function pushLampModel(
   buf: GeoBuffer,
-  d: Pick<DeviceMarker, "x" | "z" | "size" | "base" | "rotation" | "variant" | "roll" | "upright"> & { lamp: LampModel },
+  d: LampPose,
   H: number,
   shadeCol: number,
 ): void {
+  const from = buf.p.length;
+  pushLampModelUnrotated(buf, d, H, shadeCol);
+  rotateFurniturePositions(buf.p, from, d, lampPivot(d, H));
+}
+
+type LampPose = Pick<DeviceMarker, "x" | "z" | "size" | "base" | "rotation" | "rotation_x" | "rotation_z" | "pivot_y" | "variant" | "roll" | "upright"> & { lamp: LampModel };
+
+function lampPivot(d: Pick<DeviceMarker, "lamp" | "size" | "base" | "pivot_y" | "upright">, H: number): number {
+  if (d.pivot_y != null) return d.pivot_y;
+  const [w, , h] = d.size ?? (d.lamp ? LAMP_SIZE[d.lamp] : [0.3, 0.3, 0.3]);
+  if (d.lamp && HANGING.has(d.lamp)) return H - h / 2;
+  return (d.base ?? 0) + (d.lamp === "strip" && d.upright ? w : h) / 2;
+}
+
+function pushLampModelUnrotated(buf: GeoBuffer, d: LampPose, H: number, shadeCol: number): void {
   const [w, dd, h] = d.size ?? LAMP_SIZE[d.lamp];
   const base = d.base ?? 0;
   const ang = (d.rotation ?? 0) * DEG;
