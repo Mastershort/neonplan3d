@@ -1240,5 +1240,7 @@
  "bg_level_first": "Tocca l'inizio di un muro dell'immagine che deve essere dritto.",
  "bg_level_second": "Ora tocca la fine di quel muro: l'immagine ruota.",
  "background_handles_hint": "Finché questa sezione è aperta, l'immagine ha maniglie come un mobile: trascina per spostarla, l'angolo la scala, la maniglia tonda la ruota. Chiudi la sezione per disegnare.",
- "background_fixed_hint": "L'immagine è ferma, puoi disegnarci sopra."
+ "background_fixed_hint": "L'immagine è ferma, puoi disegnarci sopra.",
+ "pack_error_needs_update": "Questa estensione richiede una versione più recente di NeonPlan 3D. Aggiorna prima (HACS › NeonPlan 3D › ⋮ › \"Aggiorna informazioni\" › \"Scarica\"), riavvia Home Assistant e installa di nuovo.",
+ "license_error_needs_update": "Questa estensione richiede una versione più recente di NeonPlan 3D. Aggiorna prima (HACS › NeonPlan 3D › ⋮ › \"Aggiorna informazioni\" › \"Scarica\"), riavvia Home Assistant e installa di nuovo."
 }

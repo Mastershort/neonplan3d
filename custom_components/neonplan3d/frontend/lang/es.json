@@ -1240,5 +1240,7 @@
  "bg_level_first": "Toca el inicio de una pared de la imagen que debería estar recta.",
  "bg_level_second": "Ahora toca el final de esa pared: la imagen gira para encajar.",
  "background_handles_hint": "Mientras esta sección está abierta, la imagen tiene asas como un mueble: arrastrar la mueve, la esquina la escala, el asa redonda la gira. Cierra la sección para dibujar.",
- "background_fixed_hint": "La imagen está fija, puedes dibujar encima."
+ "background_fixed_hint": "La imagen está fija, puedes dibujar encima.",
+ "pack_error_needs_update": "Esta extensión necesita una versión más reciente de NeonPlan 3D. Actualiza primero (HACS › NeonPlan 3D › ⋮ › \"Actualizar información\" › \"Descargar\"), reinicia Home Assistant y vuelve a instalar.",
+ "license_error_needs_update": "Esta extensión necesita una versión más reciente de NeonPlan 3D. Actualiza primero (HACS › NeonPlan 3D › ⋮ › \"Actualizar información\" › \"Descargar\"), reinicia Home Assistant y vuelve a instalar."
 }

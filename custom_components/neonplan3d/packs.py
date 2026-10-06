@@ -130,6 +130,9 @@ ITEM_SCHEMA = vol.Schema(
     }
 )
 
+# Pro features this version knows; a pack with a newer one needs a newer NeonPlan 3D
+KNOWN_FEATURES = ["camera_cockpit", "weather", "screens", "fridge_smart", "energy_pro", "sound", "auto_pro"]
+
 PAYLOAD_SCHEMA = vol.Schema(
     {
         vol.Required("format"): PACK_FORMAT,
@@ -146,7 +149,7 @@ PAYLOAD_SCHEMA = vol.Schema(
         vol.Optional("description", default=""): vol.All(str, vol.Length(max=400)),
         # Pro features the pack unlocks (a feature pack may carry no furniture at all)
         vol.Optional("features", default=[]): vol.All(
-            [vol.In(["camera_cockpit", "weather", "screens", "fridge_smart", "energy_pro", "sound", "auto_pro"])],
+            [vol.In(KNOWN_FEATURES)],
             vol.Length(max=10),
         ),
         vol.Required("items"): vol.All([ITEM_SCHEMA], vol.Length(min=0, max=200)),
@@ -190,9 +193,18 @@ def parts_of(text: str) -> tuple[dict[str, Any], dict[str, str]]:
 
 def validate_payload(payload: Any) -> dict[str, Any]:
     """Check the content of a pack (without its signature); raises PackError."""
+    features = payload.get("features") if isinstance(payload, dict) else None
+    if isinstance(features, list):
+        unknown = [f for f in features if isinstance(f, str) and f not in KNOWN_FEATURES]
+        if unknown:
+            # a Pro add-on newer than this installation (#218): ask for an update, not a cryptic error
+            raise PackError("needs_update", ", ".join(unknown))
     try:
         clean = PAYLOAD_SCHEMA(payload)
     except vol.Invalid as err:
+        # a value this version does not know yet (a new item kind of a newer pack release)
+        if "value must be one of" in str(err):
+            raise PackError("needs_update", str(err)) from err
         raise PackError("invalid_content", str(err)) from err
     ids = [item["id"] for item in clean["items"]]
     if len(ids) != len(set(ids)):

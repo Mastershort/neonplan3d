@@ -1240,5 +1240,7 @@
  "bg_level_first": "Koppints a kép egy falának elejére, amelynek egyenesnek kell lennie.",
  "bg_level_second": "Most a fal végére koppints – a kép elfordul.",
  "background_handles_hint": "Amíg ez a szakasz nyitva van, a képnek bútorhoz hasonló fogantyúi vannak: húzással mozgatod, a sarokkal méretezed, a kerek fogantyúval forgatod. Rajzoláshoz zárd be a szakaszt.",
- "background_fixed_hint": "A kép rögzítve van, rajzolhatsz rá."
+ "background_fixed_hint": "A kép rögzítve van, rajzolhatsz rá.",
+ "pack_error_needs_update": "Ehhez a bővítményhez a NeonPlan 3D újabb verziója kell. Előbb frissíts (HACS › NeonPlan 3D › ⋮ › „Információk frissítése” › „Letöltés”), indítsd újra a Home Assistantot, majd telepítsd újra.",
+ "license_error_needs_update": "Ehhez a bővítményhez a NeonPlan 3D újabb verziója kell. Előbb frissíts (HACS › NeonPlan 3D › ⋮ › „Információk frissítése” › „Letöltés”), indítsd újra a Home Assistantot, majd telepítsd újra."
 }

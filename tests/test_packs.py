@@ -196,5 +196,8 @@ def test_feature_packs_need_no_items_but_a_pack_needs_something() -> None:
     assert packs.validate_payload(pro)["features"] == ["camera_cockpit", "weather"]
     with pytest.raises(packs.PackError):
         packs.validate_payload({**PAYLOAD, "items": []})
-    with pytest.raises(packs.PackError):
+    # a Pro add-on newer than this installation asks for an update (#218)
+    with pytest.raises(packs.PackError) as err:
         packs.validate_payload({**pro, "features": ["time_travel"]})
+    assert err.value.code == "needs_update"
+    assert err.value.detail == "time_travel"
