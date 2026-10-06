@@ -241,7 +241,7 @@ export interface ScreenState {
   plain?: boolean;
   /** Furniture with a state: glowing faces on top of the item instead of a screen – the whole top, or a half of it. */
   // (see also SoundSource below)
-  faces?: { part: "all" | "left" | "right" | "top" | "bottom" | "band" | "cabin"; color: [number, number, number]; level: number }[];
+  faces?: { part: "all" | "left" | "right" | "top" | "bottom" | "band" | "cabin" | "lights"; color: [number, number, number]; level: number }[];
 }
 
 /** Position of the sun (from sun.sun): degrees above the horizon and clockwise from north. */
@@ -2407,6 +2407,16 @@ export class FloorplanViewer {
         const h = Math.max(0.005, f.h);
         const base = mountBase(fv.floor, f);
         for (const face of st.faces) {
+          if (face.part === "lights") {
+            // a car's head- and taillights (an unlocked car: they glow amber like its indicators)
+            const model = packItem(f.type);
+            const lamp = (p: { color: string }) => ["#e8f4ff", "#ff3b4f"].includes(p.color.toLowerCase());
+            if (model && model.parts.some(lamp)) {
+              const col = new Color(...face.color.map((v) => Math.min(1, v * (0.4 + 0.6 * face.level))) as [number, number, number]);
+              pushPackGlow(buf, model, f, base, col.getHex(), lamp);
+            }
+            continue;
+          }
           if (face.part === "cabin") {
             // a car's climate: its windows (the glass parts of its model) glow from inside
             const model = packItem(f.type);
@@ -2710,10 +2720,13 @@ export class FloorplanViewer {
     if (this.floorId === null) this.houseRadius = radius;
     // the house view opens as set up (from the garden side, closer …); an opened floor keeps the fitted
     // distance but looks from the same side, so the house never turns round when a floor is opened
-    const start = this.startView;
     const house = this.floorId === null;
-    if (start && house) this.controls.maxRadius = Math.max(this.controls.maxRadius, start.radius * 1.5);
-    this.controls.flyTo({ target: center, radius: start && house ? start.radius : radius, phi: start ? start.phi : 0.85, theta: start ? start.theta : -0.6 }, duration);
+    // a floor may have a start view of its own (#182): it opens from that side and distance
+    const own = !house ? (this.floorMap.get(this.floorId!)?.floor.start_view ?? null) : null;
+    const start = own ?? this.startView;
+    const useRadius = !!start && (house || !!own);
+    if (start && useRadius) this.controls.maxRadius = Math.max(this.controls.maxRadius, start.radius * 1.5);
+    this.controls.flyTo({ target: center, radius: useRadius ? start!.radius : radius, phi: start ? start.phi : 0.85, theta: start ? start.theta : -0.6 }, duration);
   }
 
   /** The ground grid lies under the lowest floor and reaches well beyond the building. */

@@ -123,8 +123,8 @@ Next to them are **Undo**, **Redo**, **Show all** and **3D beside**. A short hin
 Without a selection, the sidebar shows the floors:
 
 - **Add floor** creates a floor. Home Assistant floors that are still missing are offered.
-- **Name**, **height above the ground** and **ceiling height** set where the floor sits in the 3D house and how tall its walls are. **Turn 90°** turns everything on the floor about the middle of its rooms when a floor was drawn the wrong way round. **Shift the floor** moves everything on the floor (rooms, furniture, devices, outdoor areas, free walls, background image) by X and Z when a floor sits offset against the others; roof sections and cables stay. With **Take every floor along** ticked, shift and turn act on the whole house: every floor with the roof sections, outdoor areas, cables, meter and hologram.
-- **Background picture:** in the **Background** section you load a photo or scan of your floor plan as a template under the plan (opacity adjustable). **Move and scale in the plan** switches on a mode in which you drag the picture with the mouse and pull its handle at the bottom right to resize it; **Rotation (°)** turns it about its middle. Fit the scale to a known wall length first, then turn, then draw the rooms over it.
+- **Name**, **height above the ground** and **ceiling height** set where the floor sits in the 3D house and how tall its walls are. **Turn 90°** turns everything on the floor about the middle of its rooms when a floor was drawn the wrong way round. **Shift the floor** moves everything on the floor (rooms, furniture, devices, outdoor areas, free walls, background image) by X and Z when a floor sits offset against the others; roof sections and cables stay. With **Take every floor along** ticked, shift and turn act on the whole house: every floor with the roof sections, outdoor areas, cables, meter and hologram. **View as this floor's start** remembers how the 3D pane beside stands right now – this floor then opens from that side, e.g. the ground floor from the front and the upper floor from the back; ↺ removes it.
+- **Background picture:** in the **Background** section you load a photo or scan of your floor plan as a template under the plan (opacity adjustable). **Move and scale in the plan** switches on a mode in which you drag the picture with the mouse and pull its handle at the bottom right to resize it; **Rotation (°)** turns it about its middle. The easiest way to the scale is **📏 Scale with a ruler**: tap the start and end of a stretch of known length in the picture (a dimensioned wall), enter the real length – the picture is scaled to fit and the first point stays put. Scale first, then turn, then draw the rooms over it.
 - **Floor in Home Assistant** links the floor to an HA floor. Then **"Add … rooms from HA areas"** offers the areas of that floor as rooms.
 - **Move up** and **Move down** change the order, **Delete floor** removes it with its rooms.
 - **Close gaps** joins rooms that are up to 60 cm apart. This helps when you measured inside dimensions. The gap becomes the interior wall thickness.
@@ -281,6 +281,7 @@ Lamps are furniture with a linked light: ceiling light, downlight, surface spot,
 - Table lamps stand on the item below, wall lights and LED strips snap to the wall, a pendant's height is how far it hangs below the ceiling.
 - **Height above floor:** wall lights hang at 1.75 m by default, LED strips right under the ceiling. In the form you set a **Height above floor** of their own, e.g. for a strip under the wall cabinets or behind the TV unit. **Automatic height** resets it. A strip below 1 m (skirting board, behind a cabinet) shines up the wall, higher strips shine down. A strip below the cut height stays visible with cut walls. **Tilt about its length** lays the strip against a roof slope or turns it sideways (90° = its face points to the side); **Upright** stands it on end: it then runs up from the height above the floor, along a door frame or as a light column, and shines all around.
 - **Colour and brightness from:** when a relay (Shelly, switch actuator) switches the lamp while the bulb itself knows its colour and brightness, on/off comes from the switch and the colour from this second entity.
+- **Glow in 3D (%):** how strongly the lamp glows in 3D. Below 100 % tones down bright LED strips so the room does not burn out, above 100 % makes a weak lamp glow more. Works for lights placed as devices too; it switches nothing in Home Assistant.
 - A switch works instead of a light too, e.g. a relay for the ceiling light.
 - Several lamps may follow the same light.
 
@@ -439,7 +440,7 @@ The 3D view has three levels:
 - Tap a floor label or a room to go one level down.
 - **Double tap** an empty spot, **Esc** or **Back** go one level up.
 - Drag to turn the view, two fingers or the mouse wheel zoom.
-- The **floor pictures** on the left jump straight to a floor.
+- The **floor pictures** on the left jump straight to a floor. The small arrow above them folds them into plain floor buttons (the device remembers it); in the card `floor_thumbs: false` turns them off.
 - Buttons at the top list all floors and the rooms of the open floor.
 
 ### 5.2 The switches at the bottom
@@ -692,7 +693,7 @@ Car Pro lives on the **parking spot**, not on the vehicle furniture. If your car
 
 **In the house:** the vehicle wears a **light band** in the colour of its charge (green above 50 %, yellow down to 20 %, red below), stronger while it charges. While the climate or preheating runs, the car glows warm. The **pin at the spot** reads "78 % · 312 km · ⚡ 7.4 kW · 🔒". When the car is out, the spot stays empty and the pin says **away**, with the tracker's zone when there is one ("away · Work").
 
-**Glass card:** a card floats over the car in the look of Energy Pro and Sound & Cinema: the charge large in its colour with a bar, the range, the charging power while charging, and buttons for the lock (unlocking asks), the climate and – with a charge switch – charging. While the climate runs, the car's windows glow from inside – warm while heating, cool blue when a climate entity reports cooling. A tap on its head folds the card. While the card shows, the pin steps aside; when the car is out, the pin says "away".
+**Glass card:** a card floats over the car in the look of Energy Pro and Sound & Cinema: the charge large in its colour with a bar, the range, the charging power while charging, and buttons for the lock (unlocking asks), the climate and – with a charge switch – charging. When the car is unlocked, its head- and taillights glow amber like indicators; locked they stay dark. While the climate runs, the car's windows glow from inside – warm while heating, cool blue when a climate entity reports cooling. A tap on its head folds the card. While the card shows, the pin steps aside; when the car is out, the pin says "away".
 
 **Quick menu:** a long press on the pin: **Lock / Unlock** (unlocking asks first), **Climate on / off**, **Start / stop charging** (with a charge switch), plus charge and range.
 

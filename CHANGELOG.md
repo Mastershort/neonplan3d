@@ -4,11 +4,26 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 [releases page](https://github.com/Mastershort/neonplan3d/releases). Ideas and votes:
 [Discussions → Ideas](https://github.com/Mastershort/neonplan3d/discussions/categories/ideas).
 
-## 1.12.1 (local branch)
+## 1.12.2
 
 ### New
 
 - All inventory furniture, including pack models and lamps, can rotate around local X and Z as well as the existing Y axis. The editor exposes all three angles and an orientation reset. Screens, picture planes, animated fridge doors and lamp geometry follow the orientation; existing LED strip tilt/upright settings remain compatible.
+
+## 1.12.1
+
+### New
+
+- **Ruler for the background picture:** tap the start and end of a stretch of known length in the picture, enter the real length – the picture is scaled right (#183 by HardstylerDN).
+- **Glow per lamp in 3D:** a percent field on lamps and placed lights tones down bright LED strips or lifts weak lamps – display only (#181 by RobertSorgenfrei).
+- **Start view per floor:** each floor can open from its own side, e.g. the ground floor from the front and the upper floor from the back (#182 by RobertSorgenfrei).
+- **Fold the floor pictures:** a small arrow turns the floor pictures on the left into plain buttons with names – more room on a phone (discussion #177 by Eric-41).
+- **Car Pro:** when the car is unlocked, its head- and taillights glow amber like indicators.
+
+### Fixed
+
+- Where an interior wall continues an outer wall in line, it stood half its thickness into the room; it now sits flush (#179 by gcorgnet).
+- Demo: the van stands along the garage instead of across its wall.
 
 ## 1.12.0
 

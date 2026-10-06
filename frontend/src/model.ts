@@ -137,6 +137,8 @@ export interface Furniture {
   name?: string | null;
   /** The own name shows as a small label under its marker in 3D. */
   show_name?: boolean;
+  /** Lamps: how strongly the lamp glows in 3D, 0.1–1.5 (1 = as bright as the light reports) – #181. */
+  glow_scale?: number | null;
   /** An own symbol for the marker: a Material Design icon name without "mdi:" (null = by kind). */
   icon?: string | null;
   /** Linked entity, e.g. the TV's media player (null = automatic, "none" = none). */
@@ -226,6 +228,8 @@ export interface Placement {
   name?: string | null;
   /** The own name shows as a small label under its marker in 3D. */
   show_name?: boolean;
+  /** Lights: how strongly the light glows in 3D, 0.1–1.5 (1 = as bright as the light reports) – #181. */
+  glow_scale?: number | null;
   /** Cameras: show the field-of-view wedge on the floor (null = yes). */
   cone?: boolean | null;
 }
@@ -256,6 +260,8 @@ export interface Floor {
   walls?: FreeWall[];
   /** Linked floor of Home Assistant's floor registry. */
   ha_floor: string | null;
+  /** The camera this floor opens with (#182): another side than the house view; null = the house view's side. */
+  start_view?: StartView | null;
 }
 
 /** A wall drawn on its own, from a to b along its centre line. */

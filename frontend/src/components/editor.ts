@@ -155,6 +155,8 @@ export class Fp3dEditor extends LitElement {
     _shiftX: { state: true },
     _shiftAll: { state: true },
     _bgEdit: { state: true },
+    _bgRuler: { state: true },
+    _bgRulerLen: { state: true },
     _shiftZ: { state: true },
     hass: { attribute: false },
     building: { attribute: false },
@@ -276,6 +278,9 @@ export class Fp3dEditor extends LitElement {
   private declare _shiftAll: boolean;
   /** The background picture is being moved and scaled in the plan (drag it, pull its corner). */
   private declare _bgEdit: boolean;
+  /** Scale the background with a ruler (#183): null = off, else the points tapped so far (two = waiting for the length). */
+  private declare _bgRuler: Vec2[] | null;
+  private declare _bgRulerLen: number;
   private declare _shiftZ: number;
   /** Open context menu (right-click, long press) at a plan point, for one item. */
   private declare _ctx: { x: number; y: number; kind: FixKind; id: string } | null;
@@ -350,6 +355,8 @@ export class Fp3dEditor extends LitElement {
     this._shiftX = 0;
     this._shiftAll = false;
     this._bgEdit = false;
+    this._bgRuler = null;
+    this._bgRulerLen = 0;
     this._shiftZ = 0;
     this._floorMenu = false;
     this._openingPreset = "door";
@@ -991,6 +998,11 @@ export class Fp3dEditor extends LitElement {
     }
     const world = this.toWorld(...local);
     const target = e.target as Element;
+    if (this._bgRuler && this._bgRuler.length < 2 && this.isAdmin && this.floor?.background) {
+      // the ruler: two taps on a stretch of known length in the picture
+      this._bgRuler = [...this._bgRuler, world];
+      return;
+    }
     if (this._bgEdit && this.isAdmin && this.floor?.background) {
       // the background picture: its corner scales it, its body moves it; anything else ends the editing
       const bg = this.floor.background;
@@ -3744,6 +3756,24 @@ export class Fp3dEditor extends LitElement {
     this._openingId = null;
   }
 
+  /** How strongly a lamp glows in 3D, in percent (#181): many bright LED strips need not outshine the room. */
+  private glowScaleField(value: number | null | undefined, set: (v: number | null) => void) {
+    return html`<label class="fp3d-field" title=${this.t("glow_scale_hint")}
+      >${this.t("glow_scale")}
+      <input
+        type="number"
+        min="10"
+        max="150"
+        step="5"
+        .value=${String(Math.round((value ?? 1) * 100))}
+        ?disabled=${!this.isAdmin}
+        @change=${(e: Event) => {
+          const v = Math.min(150, Math.max(10, Number((e.target as HTMLInputElement).value) || 100)) / 100;
+          set(Math.abs(v - 1) < 0.001 ? null : v);
+        }}
+    /></label>`;
+  }
+
   /** Furniture that can stand for a placed device of this kind (a speaker for a media player, a lamp for a light …). */
   private furnitureFor(entityId: string): { type: string; label: string }[] {
     const kind = kindOf(entityId);
@@ -4242,7 +4272,40 @@ export class Fp3dEditor extends LitElement {
         ? svg`<rect class="fp3d-bg-frame" x=${x} y=${y} width=${w} height=${h} />
           <circle class="fp3d-bg-handle" data-bg-handle="1" cx=${x + w} cy=${y + h} r="9" />`
         : nothing}
+    </g>${this.renderBgRuler()}`;
+  }
+
+  /** The ruler's points and line over the background (#183). */
+  private renderBgRuler() {
+    const pts = this._bgRuler;
+    if (!pts?.length) return nothing;
+    const s = pts.map((p) => this.toScreen(p));
+    return svg`<g class="fp3d-bg-ruler">
+      ${s.length === 2 ? svg`<line x1=${s[0][0]} y1=${s[0][1]} x2=${s[1][0]} y2=${s[1][1]} />` : nothing}
+      ${s.map(([x, y]) => svg`<circle cx=${x} cy=${y} r="6" />`)}
     </g>`;
+  }
+
+  /** Scale the background about the ruler's first point so the measured stretch gets its real length (#183). */
+  private applyBgRuler(real: number): void {
+    const floor = this.floor;
+    const bg = floor?.background;
+    const pts = this._bgRuler;
+    const img = bg ? this._images[bg.image_id] : undefined;
+    if (!bg || !img || !pts || pts.length < 2 || !(real > 0)) return;
+    const measured = Math.hypot(pts[1][0] - pts[0][0], pts[1][1] - pts[0][1]);
+    if (measured < 1e-4) return;
+    const k = real / measured;
+    // scaling about p keeps the turn: the centre moves to p + k (c − p), the size grows by k
+    const h = bg.width * img.aspect;
+    const c: Vec2 = [bg.x + bg.width / 2, bg.z + h / 2];
+    const p = pts[0];
+    const c2: Vec2 = [p[0] + k * (c[0] - p[0]), p[1] + k * (c[1] - p[1])];
+    const w2 = bg.width * k;
+    const h2 = h * k;
+    this.updateFloor({ background: { ...bg, width: round(w2), x: round(c2[0] - w2 / 2), z: round(c2[1] - h2 / 2) } });
+    this._bgRuler = null;
+    this._bgRulerLen = 0;
   }
 
   /** The picture's own frame: a plan point measured from its top left corner, along its (turned) sides, in metres. */
@@ -5069,6 +5132,8 @@ export class Fp3dEditor extends LitElement {
                     <input type="number" step="0.05" .value=${String(this._shiftZ)} aria-label="Z" @change=${(e: Event) => (this._shiftZ = Number((e.target as HTMLInputElement).value) || 0)} />
                     <button class="fp3d-btn" ?disabled=${!this._shiftX && !this._shiftZ} @click=${() => this.shiftFloor(this._shiftX, this._shiftZ)}>${this.t("floor_shift_apply")}</button>
                     <button class="fp3d-btn" title=${this.t("floor_turn_hint")} @click=${() => this.turnFloor()}>${this.t("floor_turn")}</button>
+                    <button class="fp3d-btn" title=${this.t("floor_start_view_hint")} @click=${() => this.rememberFloorView()}>${this.t("floor_start_view")}</button>
+                    ${floor.start_view ? html`<button class="fp3d-btn" title=${this.t("floor_start_view_reset")} @click=${() => this.updateFloor({ start_view: null })}>↺</button>` : nothing}
                     <label class="fp3d-check fp3d-wide" title=${this.t("floor_shift_all_hint")}
                       ><input type="checkbox" .checked=${this._shiftAll} @change=${(ev: Event) => (this._shiftAll = (ev.target as HTMLInputElement).checked)} />
                       ${this.t("floor_shift_all")}</label
@@ -5901,6 +5966,17 @@ export class Fp3dEditor extends LitElement {
         : nothing}`;
   }
 
+  /** This floor opens with the camera of the editor's 3D pane as it stands right now (#182). */
+  private rememberFloorView(): void {
+    const pane = this.renderRoot.querySelector("fp3d-view3d") as (HTMLElement & { currentView(): StartView | null }) | null;
+    const v = pane?.currentView();
+    if (!v) {
+      alert(this.t("floor_start_view_need_pane"));
+      return;
+    }
+    this.updateFloor({ start_view: { theta: round(v.theta), phi: round(v.phi), radius: round(v.radius) } });
+  }
+
   /** The camera the house opens with: the editor's 3D pane as it stands right now, or the default. */
   private renderStartView() {
     const set = this._doc.settings.start_view ?? null;
@@ -6014,6 +6090,7 @@ export class Fp3dEditor extends LitElement {
           ? html`${this.entitySelect(this.t("furn_color_entity"), f.color_entity ?? null, undefined, this.entityOptions((id) => id.startsWith("light.") && id !== f.entity), (v) => this.updateFurniture({ color_entity: v === "none" ? null : v }))}
               <p class="fp3d-sub fp3d-wide">${this.t("furn_color_entity_hint")}</p>`
           : nothing}
+        ${lamp ? this.glowScaleField(f.glow_scale, (v) => this.updateFurniture({ glow_scale: v })) : nothing}
         ${lamp || f.type === "grid_point"
           ? nothing
           : this.entitySelect(
@@ -6517,7 +6594,8 @@ export class Fp3dEditor extends LitElement {
               <select ?disabled=${!admin} @change=${(e: Event) => this.updateDevice({ mount: (e.target as HTMLSelectElement).value as LampMount, y: null })}>
                 ${(["ceiling", "floor", "table", "wall"] as const).map((m) => html`<option value=${m} ?selected=${m === mount}>${this.t(`lamp_${m}`)}</option>`)}
               </select></label
-            >`
+            >
+            ${this.glowScaleField(pl.glow_scale, (v) => this.updateDevice({ glow_scale: v }))}`
           : kind === "camera"
             ? html`<label class="fp3d-field fp3d-wide"
                 >${this.t("camera_mount")}
@@ -6790,7 +6868,21 @@ export class Fp3dEditor extends LitElement {
                 ? html`<button class="fp3d-btn fp3d-wide ${this._bgEdit ? "fp3d-primary" : ""}" aria-pressed=${this._bgEdit} @click=${() => (this._bgEdit = !this._bgEdit)}>
                     ${this.t(this._bgEdit ? "background_edit_done" : "background_edit")}
                   </button>
-                  <p class="fp3d-sub fp3d-wide">${this.t("background_edit_hint")}</p>`
+                  <p class="fp3d-sub fp3d-wide">${this.t("background_edit_hint")}</p>
+                  <button class="fp3d-btn fp3d-wide ${this._bgRuler ? "fp3d-primary" : ""}" aria-pressed=${!!this._bgRuler} @click=${() => {
+                    this._bgRuler = this._bgRuler ? null : [];
+                    this._bgEdit = false;
+                  }}>📏 ${this.t(this._bgRuler ? "bg_ruler_cancel" : "bg_ruler")}</button>
+                  ${this._bgRuler
+                    ? this._bgRuler.length < 2
+                      ? html`<p class="fp3d-sub fp3d-wide">${this.t(this._bgRuler.length ? "bg_ruler_second" : "bg_ruler_first")}</p>`
+                      : html`<p class="fp3d-sub fp3d-wide">${this.t("bg_ruler_length_hint", { m: formatNumber(this.hass, Math.hypot(this._bgRuler[1][0] - this._bgRuler[0][0], this._bgRuler[1][1] - this._bgRuler[0][1]), 2) })}</p>
+                          <label class="fp3d-field"
+                            >${this.t("bg_ruler_length")}
+                            <input type="number" min="0.01" step="0.01" .value=${this._bgRulerLen ? String(this._bgRulerLen) : ""} @input=${(e: Event) => (this._bgRulerLen = Number((e.target as HTMLInputElement).value.replace(",", ".")) || 0)} @keydown=${(e: KeyboardEvent) => e.key === "Enter" && this.applyBgRuler(this._bgRulerLen)}
+                          /></label>
+                          <button class="fp3d-btn fp3d-primary" ?disabled=${!(this._bgRulerLen > 0)} @click=${() => this.applyBgRuler(this._bgRulerLen)}>${this.t("bg_ruler_apply")}</button>`
+                    : nothing}`
                 : nothing}
               <label class="fp3d-field"
                 >${this.t("background_opacity")}
@@ -8311,6 +8403,16 @@ export class Fp3dEditor extends LitElement {
       .fp3d-open-sel path,
       .fp3d-open-sel line {
         stroke-width: 2.4;
+      }
+      .fp3d-bg-ruler line {
+        stroke: #ffb020;
+        stroke-width: 2.5;
+        stroke-dasharray: 6 4;
+      }
+      .fp3d-bg-ruler circle {
+        fill: #ffb020;
+        stroke: #1a1000;
+        stroke-width: 1.5;
       }
       .fp3d-own-button {
         padding: 10px 0;

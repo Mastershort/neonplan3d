@@ -94,7 +94,7 @@ export function buildMarkers(hass: HomeAssistant, building: Building): DeviceMar
         text: stateText(hass, st),
         active: isActive(st),
         unavailable: isUnavailable(st),
-        glow: kind === "light" ? lightGlow(st) : null,
+        glow: kind === "light" ? scaleGlow(lightGlow(st), pl.glow_scale) : null,
         show: pl.marker ?? undefined,
         fixed: !!pl.locked,
       });
@@ -144,4 +144,10 @@ export function openMoreInfo(from: HTMLElement, entityId: string): void {
 export function toggleEntity(hass: HomeAssistant, entityId: string): Promise<unknown> {
   const domain = entityId.slice(0, entityId.indexOf("."));
   return hass.callService(domain, "toggle", { entity_id: entityId });
+}
+
+/** A glow made weaker or stronger by the lamp's own factor (#181): many LED strips need not outshine the room. */
+export function scaleGlow<T extends { level: number }>(glow: T | null, scale: number | null | undefined): T | null {
+  if (!glow || scale == null || scale === 1) return glow;
+  return { ...glow, level: Math.max(0.02, Math.min(1.5, glow.level * scale)) };
 }

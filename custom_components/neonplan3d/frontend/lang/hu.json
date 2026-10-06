@@ -1219,5 +1219,20 @@
  "style_glass_wall": "Üvegfal (fix)",
  "preset_glass_wall": "Üvegfal",
  "vehicle_to_spot": "Parkolóhellyé alakítás",
- "vehicle_to_spot_hint": "Parkolóhelyként csak akkor jelenik meg, ha egy érzékelő jelzi az autót; ott állítható az Auto Pro."
+ "vehicle_to_spot_hint": "Parkolóhelyként csak akkor jelenik meg, ha egy érzékelő jelzi az autót; ott állítható az Auto Pro.",
+ "glow_scale": "Fényerő 3D-ben (%)",
+ "glow_scale_hint": "Mennyire világít a lámpa 3D-ben; Home Assistantban nem kapcsol semmit.",
+ "floor_start_view": "Nézet a szint kezdőnézeteként",
+ "floor_start_view_hint": "Ez a szint úgy nyílik meg 3D-ben, ahogy a jobb oldali 3D nézet most áll.",
+ "floor_start_view_reset": "A szint kezdőnézetének törlése",
+ "floor_start_view_need_pane": "Előbb kapcsold be a „3D mellette” nézetet, és forgasd a szintet.",
+ "thumbs_fold": "Szintképek gombokká csukása",
+ "thumbs_show": "Szintképek újra",
+ "bg_ruler": "Méretarány vonalzóval",
+ "bg_ruler_cancel": "Vonalzó megszakítása",
+ "bg_ruler_first": "Koppints a képen egy ismert hosszúságú szakasz elejére.",
+ "bg_ruler_second": "Most a szakasz végére koppints.",
+ "bg_ruler_length_hint": "A tervben mérve: {m} m. Add meg a valódi hosszt.",
+ "bg_ruler_length": "Valódi hossz (m)",
+ "bg_ruler_apply": "Méretarány alkalmazása"
 }

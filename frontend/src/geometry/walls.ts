@@ -244,6 +244,31 @@ export function generateWalls(rooms: readonly Room[], options: WallOptions, free
     }
   }
 
+  // an interior wall that continues an outer wall in line sits flush with the outer wall's inner face on
+  // the room they share, instead of standing half its thickness into that room (#179)
+  const dir = (d: Draft): Vec2 => unit(sub(verts[d.b], verts[d.a]));
+  for (const d of drafts) {
+    if (d.exterior || d.free) continue;
+    const sides = new Set<"left" | "right">();
+    for (const node of [d.a, d.b]) {
+      for (const e of drafts) {
+        if (!e.exterior || e.free || (e.a !== node && e.b !== node)) continue;
+        if (Math.abs(cross(dir(d), dir(e))) > 1e-6) continue;
+        if (e.roomLeft === d.roomLeft) sides.add("left");
+        else if (e.roomLeft === d.roomRight) sides.add("right");
+      }
+    }
+    if (sides.size !== 1) continue;
+    const t = d.left + d.right;
+    if (sides.has("left")) {
+      d.left = 0;
+      d.right = t;
+    } else {
+      d.left = t;
+      d.right = 0;
+    }
+  }
+
   // free walls: interior walls of the room they stand in (the same room on both sides)
   freeWalls.forEach((w, i) => {
     const [ia, ib] = freeIds[i];

@@ -1219,5 +1219,20 @@
  "style_glass_wall": "Parete in vetro (fissa)",
  "preset_glass_wall": "Parete in vetro",
  "vehicle_to_spot": "Trasforma in posto auto",
- "vehicle_to_spot_hint": "Come posto auto appare solo se un sensore segnala l'auto; lì si imposta Auto Pro."
+ "vehicle_to_spot_hint": "Come posto auto appare solo se un sensore segnala l'auto; lì si imposta Auto Pro.",
+ "glow_scale": "Luminosità in 3D (%)",
+ "glow_scale_hint": "Quanto brilla la lampada in 3D; non cambia nulla in Home Assistant.",
+ "floor_start_view": "Vista come inizio del piano",
+ "floor_start_view_hint": "Questo piano si apre in 3D come la vista 3D a destra adesso.",
+ "floor_start_view_reset": "Rimuovi la vista iniziale del piano",
+ "floor_start_view_need_pane": "Attiva prima «3D accanto» e ruota il piano.",
+ "thumbs_fold": "Riduci le miniature dei piani a pulsanti",
+ "thumbs_show": "Mostra di nuovo le miniature",
+ "bg_ruler": "Scala con righello",
+ "bg_ruler_cancel": "Annulla il righello",
+ "bg_ruler_first": "Tocca nell'immagine l'inizio di un tratto di lunghezza nota.",
+ "bg_ruler_second": "Ora tocca la fine del tratto.",
+ "bg_ruler_length_hint": "Misurato nella pianta: {m} m. Inserisci la lunghezza reale.",
+ "bg_ruler_length": "Lunghezza reale (m)",
+ "bg_ruler_apply": "Applica la scala"
 }

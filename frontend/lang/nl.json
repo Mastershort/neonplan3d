@@ -1219,5 +1219,20 @@
  "style_glass_wall": "Glazen wand (vast)",
  "preset_glass_wall": "Glazen wand",
  "vehicle_to_spot": "Omzetten naar parkeerplaats",
- "vehicle_to_spot_hint": "Als parkeerplaats verschijnt het alleen als een sensor de auto meldt; daar stel je Auto Pro in."
+ "vehicle_to_spot_hint": "Als parkeerplaats verschijnt het alleen als een sensor de auto meldt; daar stel je Auto Pro in.",
+ "glow_scale": "Gloed in 3D (%)",
+ "glow_scale_hint": "Hoe sterk de lamp in 3D gloeit; schakelt niets in Home Assistant.",
+ "floor_start_view": "Weergave als start van de verdieping",
+ "floor_start_view_hint": "Deze verdieping opent in 3D zoals de 3D-weergave rechts nu staat.",
+ "floor_start_view_reset": "Startweergave van de verdieping verwijderen",
+ "floor_start_view_need_pane": "Zet eerst ‘3D ernaast’ aan en draai de verdieping.",
+ "thumbs_fold": "Verdiepingsplaatjes inklappen tot knoppen",
+ "thumbs_show": "Verdiepingsplaatjes weer tonen",
+ "bg_ruler": "Schaal met liniaal",
+ "bg_ruler_cancel": "Liniaal annuleren",
+ "bg_ruler_first": "Tik in de afbeelding op het begin van een stuk met bekende lengte.",
+ "bg_ruler_second": "Tik nu op het einde van het stuk.",
+ "bg_ruler_length_hint": "Gemeten in de plattegrond: {m} m. Voer de echte lengte in.",
+ "bg_ruler_length": "Echte lengte (m)",
+ "bg_ruler_apply": "Schaal toepassen"
 }
