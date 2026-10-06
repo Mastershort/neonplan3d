@@ -51,6 +51,7 @@ Available today: **Camera Cockpit**, **Weather outside**, **Live screens**, **En
 | **Garden & Pool Pro** | Irrigation with zones and spray animation, robot mower paths, pool with temperature and pump (discussion #76) |
 | **Household Pro** | Waste bins with collection calendar and reminder, washing machine done, parcel arrived, water the plants (discussion #84) |
 | **Light designer** | Set lamps in 3D and save them as a scene, copy a mood from room to room |
+| **Furniture studio** | Build your own furniture in the editor from templates: cabinets in any width with drawers and doors, lamps, shelves, devices with a display – for the furniture no pack has (discussions #222, #27, #229) |
 
 Updates for existing add-ons:
 - **Energy Pro:** house balance and plant cards in floor views too (#193), gas and water meters with their own cable colours, heat pump with heat flow, 7-day history.
@@ -127,6 +128,7 @@ Bereits erhältlich: **Kamera-Cockpit**, **Wetter draußen**, **Bildschirme live
 | **Garten & Pool Pro** | Bewässerung mit Zonen und Sprüh-Animation, Mähroboter-Bahnen, Pool mit Temperatur und Pumpe (Diskussion #76) |
 | **Haushalt Pro** | Mülltonnen mit Abfuhr-Kalender und Erinnerung, Waschmaschine fertig, Paket da, Pflanzen gießen (Diskussion #84) |
 | **Licht-Designer** | Lampen in 3D einstellen und als Szene speichern, Stimmung von Raum zu Raum kopieren |
+| **Möbel-Studio** | Eigene Möbel im Editor aus Vorlagen bauen: Schränke in jeder Breite mit Schubladen und Türen, Lampen, Regale, Geräte mit Display – für alles, was kein Pack hat (Diskussionen #222, #27, #229) |
 
 Updates für bestehende Erweiterungen:
 - **Energie Pro:** Hausbilanz und Anlagenkarten auch in Etagenansichten (#193), Gas- und Wasserzähler mit eigenen Leitungsfarben, Wärmepumpe mit Wärmefluss, 7-Tage-Verlauf.
