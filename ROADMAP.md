@@ -30,8 +30,9 @@ What comes next. The order follows your wishes (issues and 👍 in [Discussions 
 | Curved walls | Wall arcs, windows follow | #63 |
 | Roofs | Gable at one end and hip at the other in one section; windows in dormers; windows with a slanted top under the slope; a roof flush against a wall; a chimney through the roof | #209, discussions #207, #203, #172 |
 | Blinds and covers | Interior blinds (inside the glass), several cover entities per window, Somfy "My" position | discussions #112, #197, #204 |
+| Gates in fences | A swing or sliding gate as part of a fence or wall outside, linked to the gate opener (a cover entity) – it opens and closes in 3D, a tap opens or closes it | discussion #175 |
 | Doors with locks | Electronic door locks and garage doors opened by a switch, with lock/unlock and open buttons | discussion #173 |
-| Scenes and menu | Scenes higher up in the room panel; main menu/favourites open at start and larger; own buttons light up while on | #188, discussions #174, #196 |
+| Scenes and menu | Scenes higher up in the room panel; main menu/favourites open at start and larger; own buttons light up while on; an own tap action per device (a script, scene or automation, e.g. the TV starts "TV mode") | #188, discussions #174, #196 |
 | Small tablets and phones | Zoom in the start view, larger 3D and room card on small tablets, keep the camera when switching floors, a compact editor menu on phones | #191, #206, discussions #190, #200 |
 | Layers | Show or hide a floor as a layer (e.g. all trees) with an eye button, see-through trees that fade when they stand in the way | #191 |
 | Devices alike | Every electric piece of furniture switches and shows its power the same way | #198 |
@@ -66,7 +67,7 @@ Updates for existing add-ons:
 - **Smart Home release 2** – siren, access point, smoke detectors, wall thermostat, dehumidifier, cube lamp, ceiling fans (discussions #44, #45, #57, #124).
 - **Building services update** – air conditioners indoor and outdoor units, water tank with fill level (discussions #118, #138).
 - **Wellness** – sauna with temperature, hot tub, infrared cabin (discussion #176).
-- **Garden release 4** – awning, gates (sliding gate, garden door), water feature with light (discussions #170, #175).
+- **Garden release 4** – awning, water feature with light (discussion #170).
 - **Kitchen release 3** – coffee machine and more appliances (discussion #167).
 - **Vehicles release 2** – motorbike, camper van, trailer, e-bike, opening doors.
 - Later: **Outdoor kitchen & terrace**, **Workshop**, **Japandi & Scandi**, **Loft & Industrial**, **Indoor greenery**, **Music & Studio**.
@@ -108,8 +109,9 @@ Was als Nächstes kommt. Die Reihenfolge richtet sich nach euren Wünschen (Issu
 | Runde Wände | Wandbögen, Fenster folgen | #63 |
 | Dächer | Giebel an einem und Walm am anderen Ende eines Abschnitts; Fenster in Gauben; Fenster mit schräger Oberkante unter der Dachschräge; Dach bündig an eine Wand; Schornstein durchs Dach | #209, Diskussionen #207, #203, #172 |
 | Rollläden und Rollos | Rollos innen (hinter dem Glas), mehrere Rollladen-Entitäten je Fenster, Somfy-„My“-Position | Diskussionen #112, #197, #204 |
+| Tore im Zaun | Dreh- oder Schiebetor als Teil eines Zauns oder einer Mauer draußen, verknüpft mit dem Torantrieb (Cover-Entität) – es fährt in 3D auf und zu, ein Tipp öffnet oder schließt es | Diskussion #175 |
 | Türen mit Schloss | Elektrische Türschlösser und Garagentore per Schalter, mit Ver-/Entriegeln und Öffnen | Diskussion #173 |
-| Szenen und Menü | Szenen weiter oben im Raumfenster; Hauptmenü/Favoriten beim Start offen und größer; eigene Knöpfe leuchten, wenn sie an sind | #188, Diskussionen #174, #196 |
+| Szenen und Menü | Szenen weiter oben im Raumfenster; Hauptmenü/Favoriten beim Start offen und größer; eigene Knöpfe leuchten, wenn sie an sind; eine eigene Tipp-Aktion je Gerät (Skript, Szene oder Automation, z. B. der Fernseher startet den „Fernseh-Modus“) | #188, Diskussionen #174, #196 |
 | Kleine Tablets und Handys | Zoom in der Startansicht, größere 3D-Ansicht und Raumkarte auf kleinen Tablets, Kamera beim Etagenwechsel behalten, kompaktes Editor-Menü auf dem Handy | #191, #206, Diskussionen #190, #200 |
 | Ebenen | Eine Etage als Ebene ein- und ausblenden (z. B. alle Bäume) per Augen-Knopf, durchscheinende Bäume, die ausblenden, wenn sie im Weg stehen | #191 |
 | Geräte einheitlich | Jedes elektrische Möbel schaltet und zeigt seine Leistung gleich | #198 |
@@ -144,7 +146,7 @@ Updates für bestehende Erweiterungen:
 - **Smart Home Release 2** – Sirene, Access Point, Rauchmelder, Wandthermostat, Luftentfeuchter, Würfellampe, Deckenventilatoren (Diskussionen #44, #45, #57, #124).
 - **Haustechnik-Update** – Klimaanlagen innen und außen, Wassertank mit Füllstand (Diskussionen #118, #138).
 - **Wellness** – Sauna mit Temperatur, Whirlpool, Infrarotkabine (Diskussion #176).
-- **Garten Release 4** – Markise, Tore (Schiebetor, Gartentür), Wasserspiel mit Licht (Diskussionen #170, #175).
+- **Garten Release 4** – Markise, Wasserspiel mit Licht (Diskussion #170).
 - **Küche Release 3** – Kaffeemaschine und mehr Geräte (Diskussion #167).
 - **Fahrzeuge Release 2** – Motorrad, Wohnmobil, Anhänger, E-Bike, Türen zum Öffnen.
 - Später: **Grillküche & Terrasse**, **Werkstatt**, **Japandi & Skandi**, **Loft & Industrial**, **Indoor-Grün**, **Musik & Atelier**.
