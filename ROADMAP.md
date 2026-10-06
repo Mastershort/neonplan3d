@@ -32,6 +32,7 @@ What comes next. The order follows your wishes (issues and 👍 in [Discussions 
 | Doors with locks | Electronic door locks and garage doors opened by a switch, with lock/unlock and open buttons | discussion #173 |
 | Scenes and menu | Scenes higher up in the room panel; main menu/favourites open at start and larger; own buttons light up while on | #188, discussions #174, #196 |
 | Small tablets and phones | Zoom in the start view, larger 3D and room card on small tablets, keep the camera when switching floors, a compact editor menu on phones | #191, #206, discussions #190, #200 |
+| Layers | Show or hide a floor as a layer (e.g. all trees) with an eye button, see-through trees that fade when they stand in the way | #191 |
 | Devices alike | Every electric piece of furniture switches and shows its power the same way | #198 |
 | Visibility condition | An item shows only while a helper or condition is on (e.g. seasonal decoration) | discussion #169 |
 | Picture frame | A frame with your own picture and an adjustable border | discussion #164 |
@@ -106,6 +107,7 @@ Was als Nächstes kommt. Die Reihenfolge richtet sich nach euren Wünschen (Issu
 | Türen mit Schloss | Elektrische Türschlösser und Garagentore per Schalter, mit Ver-/Entriegeln und Öffnen | Diskussion #173 |
 | Szenen und Menü | Szenen weiter oben im Raumfenster; Hauptmenü/Favoriten beim Start offen und größer; eigene Knöpfe leuchten, wenn sie an sind | #188, Diskussionen #174, #196 |
 | Kleine Tablets und Handys | Zoom in der Startansicht, größere 3D-Ansicht und Raumkarte auf kleinen Tablets, Kamera beim Etagenwechsel behalten, kompaktes Editor-Menü auf dem Handy | #191, #206, Diskussionen #190, #200 |
+| Ebenen | Eine Etage als Ebene ein- und ausblenden (z. B. alle Bäume) per Augen-Knopf, durchscheinende Bäume, die ausblenden, wenn sie im Weg stehen | #191 |
 | Geräte einheitlich | Jedes elektrische Möbel schaltet und zeigt seine Leistung gleich | #198 |
 | Sichtbarkeitsbedingung | Ein Gegenstand erscheint nur, solange ein Helfer oder eine Bedingung an ist (z. B. Saison-Deko) | Diskussion #169 |
 | Bilderrahmen | Rahmen mit eigenem Bild und einstellbarem Rand | Diskussion #164 |
