@@ -30,7 +30,7 @@
  "level": "Niveau {n}",
  "ha_floor": "Verdieping in Home Assistant",
  "no_ha_floor": "– geen –",
- "area_rooms": "{n} kamers toevoegen uit HA-ruimtes",
+ "area_rooms": "Kamers toevoegen uit HA-ruimtes ({n})",
  "area_rooms_hint": "Voegt per ruimte van deze verdieping een kamer (4 × 3 m) toe – sleep hem daarna op zijn plek en pas de hoeken aan",
  "floor_name": "Naam",
  "elevation": "Hoogte boven de grond (m)",

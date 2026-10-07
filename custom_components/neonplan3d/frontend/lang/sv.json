@@ -30,7 +30,7 @@
  "level": "Plan {n}",
  "ha_floor": "Våning i Home Assistant",
  "no_ha_floor": "– ingen –",
- "area_rooms": "Lägg till {n} rum från HA-områden",
+ "area_rooms": "Lägg till rum från HA-områden ({n})",
  "area_rooms_hint": "Lägger till ett rum (4 × 3 m) för varje område på den här våningen – dra det sedan på plats och justera hörnen",
  "floor_name": "Namn",
  "elevation": "Höjd över mark (m)",

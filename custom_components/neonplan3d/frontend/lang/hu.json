@@ -30,7 +30,7 @@
  "level": "{n}. szint",
  "ha_floor": "Szint a Home Assistantban",
  "no_ha_floor": "– nincs –",
- "area_rooms": "{n} helyiség hozzáadása a HA-területekből",
+ "area_rooms": "Helyiségek hozzáadása a HA-területekből ({n})",
  "area_rooms_hint": "A szint minden területéhez hozzáad egy helyiséget (4 × 3 m) – utána húzd a helyére és igazítsd a sarkait",
  "floor_name": "Név",
  "elevation": "Szintmagasság (m)",

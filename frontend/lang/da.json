@@ -30,7 +30,7 @@
  "level": "Niveau {n}",
  "ha_floor": "Etage i Home Assistant",
  "no_ha_floor": "– ingen –",
- "area_rooms": "Tilføj {n} rum fra HA-områder",
+ "area_rooms": "Tilføj rum fra HA-områder ({n})",
  "area_rooms_hint": "Tilføjer et rum (4 × 3 m) for hvert område på denne etage – træk det derefter på plads, og justér hjørnerne",
  "floor_name": "Navn",
  "elevation": "Højde over jorden (m)",

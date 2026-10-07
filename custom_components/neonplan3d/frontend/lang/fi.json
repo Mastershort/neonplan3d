@@ -30,7 +30,7 @@
  "level": "Taso {n}",
  "ha_floor": "Kerros Home Assistantissa",
  "no_ha_floor": "– ei mitään –",
- "area_rooms": "Lisää {n} huonetta HA-alueista",
+ "area_rooms": "Lisää huoneet HA-alueista ({n})",
  "area_rooms_hint": "Lisää huoneen (4 × 3 m) tämän kerroksen jokaiselle alueelle – vedä se sitten paikalleen ja säädä kulmat",
  "floor_name": "Nimi",
  "elevation": "Korkeus maasta (m)",

@@ -30,7 +30,7 @@
  "level": "Nivelul {n}",
  "ha_floor": "Etaj în Home Assistant",
  "no_ha_floor": "– niciunul –",
- "area_rooms": "Adaugă {n} camere din zonele HA",
+ "area_rooms": "Adaugă camere din zonele HA ({n})",
  "area_rooms_hint": "Adaugă o cameră (4 × 3 m) pentru fiecare zonă a acestui etaj – apoi trage-o la locul ei și ajustează colțurile",
  "floor_name": "Nume",
  "elevation": "Cotă (m)",

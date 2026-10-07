@@ -742,6 +742,11 @@ export class Fp3dEditor extends LitElement {
   }
 
   protected updated(): void {
+    // ?selected only sets an option's selectedness until the user picks one in that select; after that a
+    // reused <select> (another room, another item) would keep showing the old pick: follow the attribute
+    for (const option of this.renderRoot.querySelectorAll<HTMLOptionElement>("select option[selected]")) {
+      if (!option.selected) option.selected = true;
+    }
     if (this.reframe3d) {
       this.reframe3d = false;
       // after the 3D half got its new floor (and built the roof): frame it

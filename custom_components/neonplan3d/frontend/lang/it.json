@@ -30,7 +30,7 @@
  "level": "Livello {n}",
  "ha_floor": "Piano in Home Assistant",
  "no_ha_floor": "– nessuno –",
- "area_rooms": "Aggiungi {n} stanze dalle aree di HA",
+ "area_rooms": "Aggiungi stanze dalle aree di HA ({n})",
  "area_rooms_hint": "Aggiunge una stanza (4 × 3 m) per ogni area di questo piano; poi trascinala al suo posto e sistema gli angoli",
  "floor_name": "Nome",
  "elevation": "Quota (m)",

@@ -1481,6 +1481,8 @@ export class Fp3dView3d extends LitElement {
     if (this.heatMode !== "none" && this.heatMode !== "values") {
       const mode = this.heatMode;
       const values = roomValues(hass, b, mode);
+      // the legend's "nothing found" line depends on it: render again when that changes
+      if (!values.size !== !this.heatValues.size) this.requestUpdate();
       this.heatValues = values;
       tint = new Map([...values].map(([id, value]) => [id, heatColor(mode, value)]));
     }
@@ -3487,7 +3489,8 @@ export class Fp3dView3d extends LitElement {
       .fp3d-legend {
         position: absolute;
         left: 12px;
-        bottom: calc(60px + var(--fp3d-bottom-inset, 0px));
+        /* above the star button */
+        bottom: calc(104px + var(--fp3d-bottom-inset, 0px));
         display: grid;
         gap: 4px;
         min-width: 180px;

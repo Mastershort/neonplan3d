@@ -30,7 +30,7 @@
  "level": "Nivå {n}",
  "ha_floor": "Etasje i Home Assistant",
  "no_ha_floor": "– ingen –",
- "area_rooms": "Legg til {n} rom frå HA-område",
+ "area_rooms": "Legg til rom frå HA-område ({n})",
  "area_rooms_hint": "Legg til eit rom (4 × 3 m) for kvart område i denne etasjen – dra det så på plass og juster hjørna",
  "floor_name": "Namn",
  "elevation": "Høgd over bakken (m)",

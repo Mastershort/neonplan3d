@@ -138,6 +138,55 @@ export async function startRecorder({ outDir, width = 1920, height = 1080, lang 
       await R.click();
     },
 
+    /**
+     * Pick an option of a select field found by its label: click the field, show its option list as an overlay
+     * (a native dropdown is not in headless screenshots), move to the option, click it, then set the value.
+     */
+    async pickOption(label, option, seconds = 0.6) {
+      const box = await R.moveTo({ label }, seconds);
+      await R.click();
+      const list = await page.evaluate(showOptions, label, box);
+      if (!list) throw new Error(`no select: ${label}`);
+      await frame(0.5, 60);
+      const at = await page.evaluate((text) => {
+        const el = [...document.querySelectorAll("#tut-options div")].find((d) => d.textContent.trim() === text);
+        if (!el) return null;
+        el.classList.add("tut-hover");
+        const r = el.getBoundingClientRect();
+        return { x: r.left + Math.min(60, r.width / 2), y: r.top + r.height / 2 };
+      }, option);
+      if (!at) throw new Error(`no option: ${option}`);
+      await R.move(at.x, at.y, 0.7);
+      await R.click();
+      await page.evaluate(chooseOption, label, option);
+      await frame(1 / FPS, 150);
+    },
+    /**
+     * Scroll with the mouse wheel (at the cursor) until the heading or element with this text (h3, button, label …)
+     * sits `top` pixels from the top of the window – for the side panel's sections below the fold.
+     */
+    async scrollTo(text, top = 220, seconds = 0.8) {
+      // a focused number field would change its value under the wheel: blur it first
+      await page.evaluate(() => {
+        let a = document.activeElement;
+        while (a?.shadowRoot?.activeElement) a = a.shadowRoot.activeElement;
+        a?.blur?.();
+      });
+      const y = await page.evaluate(findTextTop, text);
+      if (y == null) throw new Error(`not found: ${text}`);
+      const n = Math.max(1, Math.round(seconds * FPS));
+      const total = y - top;
+      let done = 0;
+      for (let i = 1; i <= n; i++) {
+        const t = i / n;
+        const k = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+        const step = Math.round(total * k) - done;
+        done += step;
+        if (step) await page.mouse.wheel({ deltaY: step });
+        await frame(1 / FPS, 30);
+      }
+      await frame(1 / FPS, 120);
+    },
     /** A plan point (metres) of the editor as a screen point. */
     async planPoint(x, z) {
       return page.evaluate(
@@ -286,4 +335,80 @@ function findBox(target) {
   if (!hit) return null;
   const r = hit.getBoundingClientRect();
   return { x: r.left + r.width / 2, y: r.top + r.height / 2, w: r.width, h: r.height };
+}
+
+function showOptions(label, box) {
+  const walk = function* (root) {
+    for (const el of root.querySelectorAll("*")) {
+      yield el;
+      if (el.shadowRoot) yield* walk(el.shadowRoot);
+    }
+  };
+  let sel = null;
+  for (const el of walk(document)) {
+    if (el.tagName !== "LABEL" || !el.textContent.replace(/\s+/g, " ").trim().startsWith(label)) continue;
+    const s = el.querySelector("select");
+    if (s && s.getBoundingClientRect().width > 0) sel = s;
+  }
+  if (!sel) return null;
+  if (!document.getElementById("tut-options-style")) {
+    const st = document.createElement("style");
+    st.id = "tut-options-style";
+    st.textContent = `#tut-options { position: fixed; z-index: 2147483640; background: #101a2e; border: 1px solid #37e0ff; border-radius: 8px;
+      box-shadow: 0 8px 30px rgba(0,0,0,.6); padding: 4px 0; font: 15px/1.2 system-ui, "Segoe UI", sans-serif; color: #eaf6ff; overflow: hidden; }
+      #tut-options div { padding: 7px 14px; white-space: nowrap; }
+      #tut-options div.tut-sel { color: #37e0ff; }
+      #tut-options div.tut-hover { background: #1f6f86; color: #fff; }`;
+    document.head.appendChild(st);
+  }
+  const r = sel.getBoundingClientRect();
+  const o = document.createElement("div");
+  o.id = "tut-options";
+  for (const opt of sel.options) {
+    const d = document.createElement("div");
+    d.textContent = opt.textContent.trim();
+    if (opt.selected) d.className = "tut-sel";
+    o.appendChild(d);
+  }
+  o.style.left = `${r.left}px`;
+  o.style.width = `${r.width}px`;
+  document.body.appendChild(o);
+  const h = o.getBoundingClientRect().height;
+  o.style.top = `${r.bottom + h + 4 < innerHeight ? r.bottom + 2 : Math.max(4, r.top - h - 2)}px`;
+  return sel.options.length;
+}
+
+function chooseOption(label, option) {
+  document.getElementById("tut-options")?.remove();
+  const walk = function* (root) {
+    for (const el of root.querySelectorAll("*")) {
+      yield el;
+      if (el.shadowRoot) yield* walk(el.shadowRoot);
+    }
+  };
+  let sel = null;
+  for (const el of walk(document)) {
+    if (el.tagName !== "LABEL" || !el.textContent.replace(/\s+/g, " ").trim().startsWith(label)) continue;
+    const s = el.querySelector("select");
+    if (s && s.getBoundingClientRect().width > 0) sel = s;
+  }
+  const opt = [...sel.options].find((o) => o.textContent.trim() === option);
+  sel.value = opt.value;
+  sel.dispatchEvent(new Event("change", { bubbles: true, composed: true }));
+}
+
+function findTextTop(text) {
+  const walk = function* (root) {
+    for (const el of root.querySelectorAll("*")) {
+      yield el;
+      if (el.shadowRoot) yield* walk(el.shadowRoot);
+    }
+  };
+  let hit = null;
+  for (const el of walk(document)) {
+    if (!/^(H2|H3|H4|BUTTON|LABEL|SUMMARY|P)$/.test(el.tagName)) continue;
+    if (el.textContent.replace(/\s+/g, " ").trim() !== text) continue;
+    if (el.getBoundingClientRect().width > 0) hit = el;
+  }
+  return hit ? hit.getBoundingClientRect().top : null;
 }

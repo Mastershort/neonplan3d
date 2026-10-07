@@ -30,7 +30,7 @@
  "level": "Niveau {n}",
  "ha_floor": "Étage dans Home Assistant",
  "no_ha_floor": "– aucun –",
- "area_rooms": "Ajouter {n} pièces depuis les zones HA",
+ "area_rooms": "Ajouter des pièces depuis les zones HA ({n})",
  "area_rooms_hint": "Ajoute une pièce (4 × 3 m) pour chaque zone de cet étage – ensuite, déplace-la et ajuste ses coins",
  "floor_name": "Nom",
  "elevation": "Altitude (m)",

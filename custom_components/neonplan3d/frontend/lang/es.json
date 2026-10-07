@@ -30,7 +30,7 @@
  "level": "Nivel {n}",
  "ha_floor": "Planta en Home Assistant",
  "no_ha_floor": "– ninguna –",
- "area_rooms": "Añadir {n} habitaciones desde las áreas de HA",
+ "area_rooms": "Añadir habitaciones desde las áreas de HA ({n})",
  "area_rooms_hint": "Añade una habitación (4 × 3 m) por cada área de esta planta; después colócala y ajusta las esquinas",
  "floor_name": "Nombre",
  "elevation": "Altura sobre el suelo (m)",
