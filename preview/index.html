@@ -133,8 +133,14 @@
         },
         async callWS(msg) {
           switch (msg.type) {
-            case "neonplan3d/building/get":
-              return { building: structuredClone(building), revision };
+            case "neonplan3d/building/get": {
+              // the online demo has no private packs: their items would stand as grey boxes, so leave them out
+              const packs = await previewPacks();
+              const known = new Set(packs.flatMap((p) => p.items.map((it) => `pack:${p.id}:${it.id}`)));
+              const shown = structuredClone(building);
+              for (const f of shown.floors) f.furniture = f.furniture.filter((m) => !m.type.startsWith("pack:") || known.has(m.type));
+              return { building: shown, revision };
+            }
             case "neonplan3d/building/save":
               // ?savefail simulates a backend that still runs an older version
               if (params.has("savefail")) throw { code: "invalid_format", message: "extra keys not allowed @ data['building']['floors'][0]['furniture'][0]['entity']" };
