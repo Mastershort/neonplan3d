@@ -10,6 +10,9 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 
 - Dashboard card: right after starting the app, the card could show "Custom element doesn't exist: neonplan3d-card" until the sidebar page was opened. The card's script is now also kept in the dashboard resources (storage mode), so dashboards wait for it; an older copy of the script there is pointed to the current one (#252 by TheRev-ha, RobertSorgenfrei).
 - Installing a Pro add-on from the shop: NeonPlan 3D now also sends its version in the request, so the shop can answer an installation that is too old with a readable "please update first" message.
+- Energy Pro in a house with a single floor: the plant cards (solar, balance) show in the 3D view and the card, not only in the editor (#255 by Kohhal).
+- Energy Pro: a grid connection mounted on a wall – the grid cable starts at its height instead of on the ground, and its pin sits there too (#256 by Kohhal).
+- Solar fields moved to another roof face (e.g. after replacing a flat roof) keep their modules – rows, columns, format and tilt – instead of starting again from a proposal (#258 by rolandarends).
 - "State from" (occupancy mats, a lit top while something is on) is offered for every piece of furniture again, also a plain bed or armchair – it only showed for electric furniture (#116 by hahne-t).
 
 ## 1.12.3

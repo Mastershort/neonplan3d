@@ -3532,7 +3532,8 @@ export class FloorplanViewer {
       // view only, a device's also on its own floor
       this.anchors.forEach((a, i) => {
         const fv = this.floorMap.get(a.floorId);
-        if (this.floorId !== null && (a.views !== "all" || a.floorId !== this.floorId)) {
+        // a single floor is the house view as well (#255)
+        if (this.floorId !== null && this.floors.length > 1 && (a.views !== "all" || a.floorId !== this.floorId)) {
           this.anchorCb!(i, 0, 0, false, 1, true);
           return;
         }

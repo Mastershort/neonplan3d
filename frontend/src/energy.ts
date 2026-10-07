@@ -549,8 +549,14 @@ export function flowSegments({ building, consumers, summary, battery, fieldPower
     const importing = summary.grid! >= 0;
     const hand = laid("grid");
     const route: V3[] = hand
-      ? manualPoints(building, hand, [street.end[0], meterFloor.elevation + CABLE_Y, street.end[1]], [meter.x, meterFloor.elevation + 0.4 + 1.1, meter.z])
-      : [[street.end[0], CABLE_Y, street.end[1]], [street.wall[0], CABLE_Y, street.wall[1]], [meter.x, CABLE_Y, meter.z]];
+      ? manualPoints(building, hand, [street.end[0], meterFloor.elevation + Math.max(CABLE_Y, street.height), street.end[1]], [meter.x, meterFloor.elevation + 0.4 + 1.1, meter.z])
+      : [
+          // a grid connection mounted on a wall: the cable comes down from it first
+          ...(street.height > 0.05 ? [[street.end[0], street.height, street.end[1]] as V3] : []),
+          [street.end[0], CABLE_Y, street.end[1]],
+          [street.wall[0], CABLE_Y, street.wall[1]],
+          [meter.x, CABLE_Y, meter.z],
+        ];
     const pieces = hand
       ? absolutePolyline(building, importing ? route : [...route].reverse(), Math.abs(summary.grid!), importing ? "grid" : "export", meterFloor)
       : polyline(meterFloor.id, importing ? route : [...route].reverse(), Math.abs(summary.grid!), importing ? "grid" : "export", 0);
@@ -641,7 +647,8 @@ interface DevicePos {
  * Where the grid cable leaves the house and where it ends: through the exterior wall nearest to the meter and on
  * to the edge of the plot in that direction (the outermost outdoor area, else a few metres out) – the street.
  */
-export function gridPoint(building: Building): { floorId: string; wall: Vec2; end: Vec2 } | null {
+/** Where the grid cable leaves the house: the wall it passes, its end at the street, and the height of that end above the floor (a grid connection mounted on a wall, #256). */
+export function gridPoint(building: Building): { floorId: string; wall: Vec2; end: Vec2; height: number } | null {
   const meter = meterPosition(building);
   const floor = meter ? building.floors.find((f) => f.id === meter.floor_id) : undefined;
   if (!meter || !floor) return null;
@@ -666,7 +673,8 @@ export function gridPoint(building: Building): { floorId: string; wall: Vec2; en
       hit = { q: [meter.x + dx * t, meter.z + dz * t], out: [ez / l, -ex / l], t };
     }
     const wall: Vec2 = hit ? [hit.q[0] + hit.out[0] * (ext / 2 + 0.05), hit.q[1] + hit.out[1] * (ext / 2 + 0.05)] : [meter.x, meter.z];
-    return { floorId: floor.id, wall, end: [set.x, set.z] };
+    const height = building.floors.flatMap((f) => f.furniture).find((m) => m.id === set.id)?.mount_y ?? 0;
+    return { floorId: floor.id, wall, end: [set.x, set.z], height: Math.max(0, height) };
   }
   let best: { q: Vec2; out: Vec2; d: number } | null = null;
   for (const w of exterior) {
@@ -700,7 +708,7 @@ export function gridPoint(building: Building): { floorId: string; wall: Vec2; en
     }
   }
   const t = far > ext + 1 ? far : ext + 2.5;
-  return { floorId: floor.id, wall: [q[0] + out[0] * (ext / 2 + 0.05), q[1] + out[1] * (ext / 2 + 0.05)], end: [q[0] + out[0] * t, q[1] + out[1] * t] };
+  return { floorId: floor.id, wall: [q[0] + out[0] * (ext / 2 + 0.05), q[1] + out[1] * (ext / 2 + 0.05)], end: [q[0] + out[0] * t, q[1] + out[1] * t], height: 0 };
 }
 
 /** All energy devices of a type in the plan (where cables start or end). */

@@ -1094,7 +1094,7 @@ export class Fp3dView3d extends LitElement {
       roomId: null,
       x: g.end[0],
       z: g.end[1],
-      y: 0.9,
+      y: 0.9 + g.height,
       icon: GRID_ICON,
       name: translate(hass, "holo_grid"),
       text: idle ? formatPower(hass, 0) : `${translate(hass, grid < 0 ? "energy_grid_export" : "energy_grid_import")} ${formatPower(hass, Math.abs(grid))}`,
@@ -1195,7 +1195,9 @@ export class Fp3dView3d extends LitElement {
     const e = this._energy;
     // the editor keeps the energy bar off but asks for the holograms in its energy tool
     if (!(hasFeature("energy_pro") || hasFeature("sound") || hasFeature("auto_pro")) || this.roomId || !(this.showEnergy || this.holograms) || !this.holoVisible()) return nothing;
-    const plants = !!e && (e.solar !== null || e.grid !== null || e.battery !== null) && this.floorId === null;
+    // the plants' cards belong to the house view – with a single floor that floor is the house view (#255)
+    const house = this.floorId === null || (this.building?.floors.length ?? 0) <= 1;
+    const plants = !!e && (e.solar !== null || e.grid !== null || e.battery !== null) && house;
     return this._holos.map((card, i) => (card.kind === "car" ? this.renderCarCard(card, i) : card.kind === "media" ? this.renderMediaCard(card, i) : card.kind === "device" ? this.renderDeviceCard(card, i) : plants ? this.renderHoloCard(card, i, e!) : nothing));
   }
 

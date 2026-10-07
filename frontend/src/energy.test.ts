@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { deviceSensors, energySummary, fieldPowers, findConsumers, flowColor, FLOW_COLORS, flowSegments, meterPosition, powerSensorFor, proposeEnergySensors, readPower, solarCurvePath, solarDayFromStats } from "./energy.ts";
+import { deviceSensors, energySummary, fieldPowers, findConsumers, flowColor, FLOW_COLORS, flowSegments, gridPoint, meterPosition, powerSensorFor, proposeEnergySensors, readPower, solarCurvePath, solarDayFromStats } from "./energy.ts";
 import { proposeField, roofFaces } from "./solar.ts";
 import type { Building, Room } from "./model.ts";
 import { emptyBuilding, newFloor } from "./model.ts";
@@ -301,4 +301,17 @@ test("a meter with separate import and export sensors: the export is taken off",
   hass.states["sensor.export"] = power("sensor.export", "0");
   hass.states["sensor.import"] = power("sensor.import", "420");
   assert.equal(energySummary(hass, b, []).grid, 420);
+});
+
+test("a grid connection mounted on a wall: the grid cable starts at its height (#256)", () => {
+  const b = house();
+  const furn = (id: string, type: string, x: number, z: number, extra: Record<string, unknown> = {}) => ({ id, type, x, z, rotation: 0, w: 0.4, d: 0.2, h: 0.5, variant: null, ...extra }) as Building["floors"][0]["furniture"][0];
+  b.floors[0].furniture.push(furn("m", "meter", 0.5, 0.3, { power: "sensor.grid" }), furn("gp", "grid_point", -2, 0.3, { mount_y: 2 }));
+  assert.equal(gridPoint(b)?.height, 2);
+  const hass = hassWith([power("sensor.grid", "500")]);
+  const consumers = findConsumers(hass, b);
+  const summary = energySummary(hass, b, consumers);
+  const grid = flowSegments({ building: b, consumers, summary }).filter((s) => s.kind === "grid");
+  const top = Math.max(...grid.flatMap((s) => [s.a[1], s.b[1]]));
+  assert.ok(top >= 2 - 1e-6, `grid cable reaches ${top}`);
 });

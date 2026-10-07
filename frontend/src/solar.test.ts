@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { emptyBuilding, newFloor, type Building, type RoofSection, type SolarField } from "./model.ts";
-import { bestFace, clampField, faceAt, faceCompass, fieldFace, fieldModules, fieldPlan, fieldCenter, groundFace, groundFloor, proposeField, proposeGroundField, proposeWallField, roofFaces, turnGroundField, wallFaces } from "./solar.ts";
+import { bestFace, clampField, faceAt, faceCompass, fieldFace, fieldModules, fieldPlan, fieldCenter, groundFace, groundFloor, moveField, proposeField, proposeGroundField, proposeWallField, roofFaces, turnGroundField, wallFaces } from "./solar.ts";
 
 /** A 10 × 8 m house of one floor (walls 2.5 m high) with the given roof. */
 function house(roof: Building["settings"]["roof"]): Building {
@@ -214,4 +214,16 @@ test("garden fields stand on the ground floor, not in the cellar below it (#192)
   // a house of cellars only keeps the lowest floor
   b.floors = b.floors.filter((f) => f.id === "kg");
   assert.equal(groundFloor(b)?.id, "kg");
+});
+
+test("a field moved to another face keeps its modules (#258)", () => {
+  const b = house({ type: "flat", pitch: 0, overhang: 0 });
+  const face = roofFaces(b)[0];
+  const f: SolarField = { ...proposeField(face, "pv"), rows: 2, cols: 4, tilt: 30 };
+  const moved = moveField(face, { ...f, face: "gone" });
+  assert.equal(moved.face, face.key);
+  assert.equal(moved.rows, 2);
+  assert.equal(moved.cols, 4);
+  assert.equal(moved.tilt, 30);
+  assert.ok(moved.u >= 0 && moved.v >= 0);
 });

@@ -455,6 +455,17 @@ export function proposeField(face: RoofFace, id: string): SolarField {
   return f;
 }
 
+/**
+ * A field moved to another face (a roof section replaced, #258): it keeps its modules – rows, columns, format
+ * and tilt where the face allows one – and is centred along the eave of the new face, inside its edges.
+ */
+export function moveField(face: RoofFace, f: SolarField): SolarField {
+  const next: SolarField = { ...f, face: face.key, tilt: face.flat ? (f.tilt ?? 15) : null, rotation: null, flip: false };
+  next.u = center(face, next);
+  next.v = 0.4;
+  return { ...next, ...clampField(face, next) };
+}
+
 function center(face: RoofFace, f: SolarField): number {
   const [mw] = moduleSize(f);
   const width = f.cols * mw + (f.cols - 1) * MODULE_GAP;

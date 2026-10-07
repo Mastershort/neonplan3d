@@ -16,7 +16,7 @@ import { cameraMotionSensors, detectionKind } from "../markers.ts";
 import { deviceSensors, energySummary, flowSegments, gridPoint, powerSensorFor, proposeEnergySensors, type EnergyPrefs, type FlowSegment } from "../energy.ts";
 import { isStatusSensor, robotRoomSensor, TOGGLE_KINDS } from "../devices.ts";
 import { sectionFloor, dormerParent, effectiveDormer, proposeDormer, sectionGeometry, floorOutline, polygonBox, headroomLines, ridgeHeight, sectionCutsBelow, roofSectionsFromRooms, sectionFrame, wallTopUnder } from "../roof-sections.ts";
-import { bestFace, clampField, faceAt, faceCompass, fieldFace, fieldModules, GROUND, pointOnFace, proposeField, proposeGroundField, proposeWindow, proposeWallField, roofFaces, rowCounts, turnGroundField, fieldCenter, wallFaces, windowAsField, windowCorners, onFace, onField, rayOnFace, type RoofFace } from "../solar.ts";
+import { bestFace, clampField, faceAt, faceCompass, fieldFace, fieldModules, GROUND, moveField, pointOnFace, proposeField, proposeGroundField, proposeWindow, proposeWallField, roofFaces, rowCounts, turnGroundField, fieldCenter, wallFaces, windowAsField, windowCorners, onFace, onField, rayOnFace, type RoofFace } from "../solar.ts";
 import type { SurfaceGrab, SurfaceRay } from "../viewer/viewer3d.ts";
 import { storedImageIds } from "../transfer.ts";
 import { type CarLinks, type Background, OUTDOOR_TOP, sidelightLayout, DEFAULT_WEATHER_EFFECTS, WEATHER_EFFECTS,
@@ -3015,12 +3015,12 @@ export class Fp3dEditor extends LitElement {
               @change=${(e: Event) => {
                 const key = (e.target as HTMLSelectElement).value;
                 const keep = { portrait: f.portrait, look: f.look, name: f.name, string: f.string, entity: f.entity, module_w: f.module_w, module_h: f.module_h, wp: f.wp };
-                // on another face the field starts again from a proposal that fits it
-                if (key === GROUND) set({ ...proposeGroundField(this._doc, f.id), ...keep });
+                // on another face the field keeps its modules and is laid out anew there (#258)
+                if (key === GROUND) set({ ...proposeGroundField(this._doc, f.id), ...keep, rows: f.rows, cols: f.cols });
                 const next = faces.find((x) => x.key === key);
-                if (next) set({ ...proposeField(next, f.id), ...keep, rotation: null, flip: false });
+                if (next) set(moveField(next, { ...f, ...keep }));
                 const wall = walls.find((x) => x.key === key);
-                if (wall) set({ ...proposeField(wall, f.id), ...keep, rows: 1, rotation: null, flip: false });
+                if (wall) set(moveField(wall, { ...f, ...keep, rows: 1 }));
               }}
             >
               ${face ? nothing : html`<option selected>${this.t("solar_face_gone")}</option>`}
