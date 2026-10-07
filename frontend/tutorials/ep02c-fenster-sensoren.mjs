@@ -26,13 +26,14 @@ const ENTITIES = [
 ];
 /** Camera views of the 3D half (plan metres as target). */
 const V = {
-  over: { theta: 0.3, phi: 0.95, radius: 20, target: { x: 7, y: 0.75, z: 4.25 } },
-  wtop: { theta: 0.05, phi: 0.95, radius: 7, target: { x: 5.5, y: 1.3, z: 0.4 } },
-  kueche: { theta: 0.1, phi: 0.95, radius: 7, target: { x: 12, y: 1.3, z: 0.4 } },
-  badwin: { theta: 3.05, phi: 0.95, radius: 6, target: { x: 9, y: 1.4, z: 8.1 } },
-  terr: { theta: 3.0, phi: 0.95, radius: 7.5, target: { x: 5.5, y: 1.1, z: 8.1 } },
-  glas: { theta: 1.5, phi: 0.95, radius: 7, target: { x: 3.9, y: 1.2, z: 7.25 } },
-  schlaf: { theta: 3.1, phi: 0.95, radius: 6, target: { x: 12.25, y: 1.3, z: 8.1 } },
+  // theta 0 looks from the south (plan bottom), pi from the north, -pi/2 from the west; windows from outside
+  over: { theta: 0.45, phi: 0.9, radius: 28, target: { x: 7, y: 0.75, z: 4.25 } },
+  wtop: { theta: 3.0, phi: 1.05, radius: 10, target: { x: 5.5, y: 1.3, z: 0 } },
+  kueche: { theta: 3.25, phi: 1.05, radius: 10, target: { x: 12, y: 1.3, z: 0 } },
+  badwin: { theta: 0.15, phi: 1.05, radius: 9, target: { x: 9, y: 1.5, z: 8.5 } },
+  terr: { theta: -0.15, phi: 1.05, radius: 10, target: { x: 5.5, y: 1.1, z: 8.5 } },
+  glas: { theta: -1.45, phi: 1.05, radius: 10, target: { x: 3.5, y: 1.2, z: 7.25 } },
+  schlaf: { theta: 0.1, phi: 1.05, radius: 9, target: { x: 12.25, y: 1.3, z: 8.5 } },
 };
 let cam = V.over;
 const look = async (to, seconds = 1.2) => {
@@ -180,7 +181,7 @@ await fill("Breite", "1,4");
 await sayOver("Wichtig ist die „Sensor-Art“. Ein Fensterkontakt meldet nur offen oder zu – das ist der Standard.");
 await scrollSide({ label: "Sensor-Art" }, 420, 0.6);
 await R.moveTo({ label: "Sensor-Art" }, 0.5);
-await sayOver("Ein „Griff-Sensor“ meldet offen, gekippt und zu – etwa ein Homematic-Fenstergriff. Ich wähle „Schlafzimmer Fenstergriff“.");
+await sayOver("Ein „Griff-Sensor“ meldet offen, gekippt und zu – das ist ein Fenstergriff mit drei Stellungen. Ich wähle „Schlafzimmer Fenstergriff“.");
 await R.pickOption("Sensor-Art", "Griff-Sensor (offen/gekippt/zu)", 0.5);
 await pickEntity("Griff-Sensor", "Griff", "Schlafzimmer Fenstergriff", 0.5);
 await sayOver("Gekippt kippt der Flügel in 3D, offen geht er auf – und zu ist zu.");
@@ -209,7 +210,7 @@ await sayOver("Zurück zum Wohnzimmerfenster: Der Rollladen fährt in 3D mit der
 await tapPlan(5.5, 0, 0.7);
 await look(V.wtop, 1.2);
 await travel("cover.wohnzimmer", 70, 15, 2);
-await sayOver("Meldet dein Rollladen die Position über einen eigenen Sensor – etwa Homematic „Level“ –, wählst du ihn unter „Positions-Sensor“. Dann fährt er auch während der Fahrt live.");
+await sayOver("Meldet dein Rollladen die Position über einen eigenen Sensor in Prozent, wählst du ihn unter „Positions-Sensor“. Dann fährt er auch während der Fahrt live.");
 await scrollSide(() => H.pickerBox("Rollladen"), 380, 0.5);
 await pickEntity("Positions-Sensor", "Level", "Wohnzimmer Rollladen Level", 0.5);
 await travel("sensor.wohnzimmer_rollladen_level", 70, 25, 1.6, true);

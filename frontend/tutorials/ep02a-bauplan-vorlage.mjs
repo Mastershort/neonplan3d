@@ -91,7 +91,7 @@ await R.clickOn({ text: "Vorlage (Grundriss-Bild)" }, 0.5);
 await sayOver("PNG, JPG oder WebP – ein Handyfoto geht auch, wenn es gerade von oben aufgenommen ist.");
 await scrollSide({ text: "Vorlage (Grundriss-Bild)" }, 150, 0.6);
 await pointPlan(-0.5, 0.5, 0.6);
-await sayOver("Das Bild liegt jetzt unter dem Raster, ein Kästchen ist ein Meter. Und man sieht sofort: Der Plan ist zu klein und schief.");
+await sayOver("Das Bild liegt jetzt unter dem Raster – ein Kästchen ist ein Meter, das Bild anfangs zwölf Meter breit. Man sieht sofort: Der Plan ist zu klein und schief.");
 {
   // along the crooked top wall of the picture
   const a = await bgPoint(...PTS.top_left);
@@ -134,13 +134,21 @@ await R.moveTo({ label: "Drehung" }, 0.5);
 await sayOver("Nach Augenmaß wird es aber nie ganz genau. Ich setze die Drehung zurück auf null und tippe auf „Fertig“.");
 await fill("Drehung", "0");
 await R.clickOn({ text: "Fertig", exact: true }, 0.5);
+await sayOver("Jetzt liegt das Bild fest und du zeichnest ungestört darüber – das sagt auch der Hinweis im Formular.");
+{
+  const vb = await R.locate({ text: "Verschieben, skalieren und drehen" });
+  await R.move(vb.x, vb.y + vb.h / 2 + 24, 0.5);
+}
+await R.hold(0.6);
 await R.moveTo({ text: "Gerade ausrichten" }, 0.5);
 
 // ---------------------------------------------------------------- 4. Straighten
 await chapter("Gerade ausrichten");
-await sayOver("Genauer geht es mit „Gerade ausrichten“: Tipp auf den Anfang einer langen Wand, die gerade sein soll – hier die Außenwand oben –");
+await sayOver("Genauer geht es mit „Gerade ausrichten“. Der Knopf heißt dann „Ausrichten abbrechen“ – falls du es dir anders überlegst.");
 await R.clickOn({ text: "Gerade ausrichten" }, 0.5);
 await R.moveTo({ text: "Ausrichten abbrechen" }, 0.4);
+await R.hold(0.8);
+await sayOver("Tipp auf den Anfang einer langen Wand, die gerade sein soll – hier die Außenwand oben –");
 {
   const a = await bgPoint(...PTS.top_left);
   await R.move(a.x, a.y, 0.7);
@@ -164,7 +172,7 @@ await R.moveTo({ label: "Drehung" }, 0.5);
 
 // ---------------------------------------------------------------- 5. Ruler
 await chapter("Maßstab mit dem Lineal");
-await sayOver("Jetzt der Maßstab. Mit dem Mausrad zoome ich etwas heraus – die Ansicht schiebst du, indem du auf einer leeren Stelle ziehst.");
+await sayOver("Jetzt der Maßstab. Mit dem Mausrad zoome ich etwas heraus – die Ansicht schiebst du, indem du auf einer leeren Stelle ziehst. Am Tablet geht beides mit zwei Fingern.");
 await R.move(820, 560, 0.5);
 for (let i = 0; i < 8; i++) {
   await R.page.mouse.wheel({ deltaY: 30 });
@@ -172,8 +180,10 @@ for (let i = 0; i < 8; i++) {
 }
 await R.move(1450, 900, 0.5);
 await R.drag(1440, 870, 0.6);
-await sayOver("Für das Lineal brauchst du eine Strecke, deren Länge du kennst – am besten die längste Maßkette im Plan: 14 Meter.");
+await sayOver("Für das Lineal brauchst du eine Strecke, deren Länge du kennst – am besten die längste Maßkette im Plan: 14 Meter. Auch hier heißt der Knopf jetzt „Lineal abbrechen“.");
 await R.clickOn({ text: "Maßstab mit Lineal" }, 0.5);
+await R.moveTo({ text: "Lineal abbrechen" }, 0.4);
+await R.hold(0.5);
 {
   const a = await bgPoint(...PTS.dim_left);
   const b = await bgPoint(...PTS.dim_right);
@@ -225,7 +235,7 @@ await R.moveTo({ text: "Vorlage entfernen" }, 0.5);
 // ---------------------------------------------------------------- 6. Tracing
 await chapter("Räume nachzeichnen");
 await catchUp();
-await H.view2d(70, 310, 290);
+await H.view2d(70, 310, 150);
 await scrollSide({ text: "Etage hinzufügen" }, 140, 0.5).catch(() => null);
 await sayOver("Rechteckige Räume ziehst du wie in Folge 1 mit „Rechteck“ auf – hier die Garage, von Ecke zu Ecke.");
 await R.clickOn({ text: "Rechteck", exact: true }, 0.5);
@@ -249,6 +259,7 @@ await R.clickOn({ text: "Rechteck", exact: true }, 0.45);
 await dragPlan([10, 0], [14, 4], 0.7);
 await R.clickOn({ text: "Rechteck", exact: true }, 0.45);
 await dragPlan([7.5, 4], [14, 5.5], 0.7);
+await sayOver("Die Ecken rasten an den Nachbarräumen ein – so bleiben keine Lücken zwischen den Räumen.");
 await R.clickOn({ text: "Rechteck", exact: true }, 0.45);
 await dragPlan([7.5, 5.5], [10.5, 8.5], 0.6);
 await R.clickOn({ text: "Rechteck", exact: true }, 0.45);
@@ -298,7 +309,7 @@ await R.clickOn({ text: "Alles zeigen", exact: true }, 0.5);
 
 // ---------------------------------------------------------------- 8. Walls
 await chapter("Wände: Stärke, Höhe, Theke, offen");
-await sayOver("Die Wände entstehen von selbst: Jede gemeinsame Kante wird eine Innenwand, jede Außenkante eine Außenwand.");
+await sayOver("Die Wände entstehen von selbst: Jede gemeinsame Kante wird eine Innenwand, jede Außenkante eine Außenwand. Ecken und T-Stöße werden sauber verschnitten.");
 await pointPlan(10, 2.8, 0.6);
 await R.hold(0.6);
 await pointPlan(14, 2, 0.6);
@@ -307,6 +318,7 @@ await scrollSide({ text: "Zurück zur Etage" }, 150, 0.6);
 await R.clickOn({ text: "Zurück zur Etage" }, 0.5);
 await scrollSide({ text: "Einstellungen" }, 260, 0.8);
 await R.clickOn({ text: "Einstellungen" }, 0.5);
+await scrollSide({ label: "Außenwand" }, 520, 0.6);
 await fill("Außenwand", "0,3");
 await R.moveTo({ label: "Innenwand" }, 0.5);
 await sayOver("Jetzt ins Wohnzimmer: Im Kasten „Wandhöhen“ steht jede Wand des Raums, benannt nach den Ecknummern im Plan, mit ihrer Länge.");
@@ -369,8 +381,8 @@ await sayOver("Jetzt die Kontrolle: „3D daneben“ zeigt das Haus direkt neben
 await R.clickOn({ text: "3D daneben", exact: true }, 0.6);
 await R.sleep(1500);
 await H.view2d(52, 60, 330);
-const D = { theta: 0.35, phi: 0.95, radius: 21 };
-const E = { theta: 1.1, phi: 0.8, radius: 18 };
+const D = { theta: 0.3, phi: 0.95, radius: 29, target: { x: 7, y: 0.75, z: 4.25 } };
+const E = { theta: 0.95, phi: 0.8, radius: 26, target: { x: 7, y: 0.75, z: 4.25 } };
 await H.view3d(D);
 await R.sleep(1200);
 await R.frame(1 / 25, 200);

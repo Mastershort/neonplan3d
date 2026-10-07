@@ -1,12 +1,14 @@
 """Turns a tutorial recording (frontend/tutorials/*.mjs) into an MP4 plus the files for voice-over and YouTube.
 
-Usage: python tools/make-tutorial.py <recording-dir> <out.mp4>
+Usage: python tools/make-tutorial.py <recording-dir> <out.mp4> [--en <epNN-narration-en.json>]
 
 Reads <recording-dir>/frames.txt (an ffmpeg concat list: each still is written once with its duration) and
 cues.json (chapters and narration lines with their start time). Writes, next to the MP4:
 - <name>.srt            subtitles with the narration (German), timed to the picture
 - <name>-chapters.txt   YouTube chapter marks ("0:00 Teaser" …), paste into the description
 - <name>-narration.txt  the narration with start time and the time available for each line (for the TTS voice)
+- with --en (the episode's mapping German line -> English line): <name>.en.srt and <name>-narration-en.txt,
+  the same timing with the English text (the English voice track lies on the same picture)
 
 The MP4 has no sound: the voice is a separate track (ElevenLabs or a recording), laid over it in the edit,
 so a voice can be exchanged without recording the picture again. Needs imageio-ffmpeg (bundles ffmpeg).
@@ -20,6 +22,7 @@ import sys
 import imageio_ffmpeg
 
 rec, out = Path(sys.argv[1]), Path(sys.argv[2])
+english = json.loads(Path(sys.argv[4]).read_text(encoding="utf-8")) if sys.argv[3:4] == ["--en"] else None
 data = json.loads((rec / "cues.json").read_text(encoding="utf-8"))
 duration = float(data["duration"])
 cues = data["cues"]
@@ -60,14 +63,27 @@ def clock(t: float, srt: bool = False) -> str:
 
 
 says = [c for c in cues if c["type"] == "say"]
-srt, narration = [], []
-for i, c in enumerate(says):
-    end = says[i + 1]["t"] if i + 1 < len(says) else duration
-    srt.append(f"{i + 1}\n{clock(c['t'], True)} --> {clock(end - 0.05, True)}\n{c['text']}\n")
-    narration.append(f"[{clock(c['t'])}] ({end - c['t']:.1f} s)  {c['text']}")
 stem = out.with_suffix("")
-Path(f"{stem}.srt").write_text("\n".join(srt), encoding="utf-8")
-Path(f"{stem}-narration.txt").write_text("\n".join(narration) + "\n", encoding="utf-8")
+
+
+def subtitles(text_of, suffix: str) -> None:
+    srt, narration = [], []
+    for i, c in enumerate(says):
+        end = says[i + 1]["t"] if i + 1 < len(says) else duration
+        text = text_of(c["text"])
+        srt.append(f"{i + 1}\n{clock(c['t'], True)} --> {clock(end - 0.05, True)}\n{text}\n")
+        narration.append(f"[{clock(c['t'])}] ({end - c['t']:.1f} s)  {text}")
+    srt_name = f"{stem}.en.srt" if suffix else f"{stem}.srt"
+    Path(srt_name).write_text("\n".join(srt), encoding="utf-8")
+    Path(f"{stem}-narration{suffix}.txt").write_text("\n".join(narration) + "\n", encoding="utf-8")
+
+
+subtitles(lambda text: text, "")
+if english is not None:
+    missing = [c["text"] for c in says if not english.get(c["text"])]
+    if missing:
+        sys.exit("no English line for: " + " | ".join(m[:60] for m in missing))
+    subtitles(lambda text: english[text], "-en")
 chapters = [f"{clock(c['t'])} {c['text']}" for c in cues if c["type"] == "chapter"]
 Path(f"{stem}-chapters.txt").write_text("\n".join(chapters) + "\n", encoding="utf-8")
 print(f"{out} - {clock(duration)}, {len(says)} narration lines, {len(chapters)} chapters")

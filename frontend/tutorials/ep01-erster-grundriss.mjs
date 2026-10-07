@@ -3,7 +3,8 @@
 // windows, a second floor, the 3D view with live room values.
 // Drives the preview with invented demo data (its areas: Wohnzimmer, Küche, Flur, Bad, Schlafzimmer, Kinderzimmer,
 // Arbeitszimmer …); the floor-plan picture is invented too (tutorials/assets/make-plan.py).
-// Usage (from frontend/): node tutorials/ep01-erster-grundriss.mjs <out-dir> [<voice-dir with durations.json>]
+// Usage (from frontend/): node tutorials/ep01-erster-grundriss.mjs <out-dir> [<voice-dir de> [<voice-dir en>]]
+//   (voice dirs: private/tutorial-audio/ep01/de and …/en; a line then lasts the longer of both plus 0.3 s)
 // Then: python ../tools/make-tutorial.py <out-dir> <out.mp4>
 
 import { join } from "node:path";
@@ -11,7 +12,7 @@ import { appVersion, narration, startRecorder } from "./recorder.mjs";
 
 const out = process.argv[2] ?? "tutorial-ep01";
 const R = await startRecorder({ outDir: out, width: 1920, height: 1080, lang: "de" });
-const N = narration(R, process.argv[3]);
+const N = narration(R, process.argv.slice(3));
 const { say, sayOver, chapter, catchUp } = N;
 /** sayOver that returns the time the line ends (to start the next steps just before it). */
 const sayOverEnd = async (text) => {

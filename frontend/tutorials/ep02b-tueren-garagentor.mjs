@@ -21,13 +21,14 @@ const { fill, tapPlan, pointPlan, side, scrollSide, pickEntity, pickerMove, view
 const BAD_TUER = ["binary_sensor.bad_tuer", "bad", "off", { friendly_name: "Bad Tür", device_class: "door" }];
 /** Camera views of the 3D half (plan metres as target). */
 const V = {
-  over: { theta: 0.3, phi: 0.95, radius: 20, target: { x: 7, y: 0.75, z: 4.25 } },
-  front: { theta: -1.3, phi: 0.85, radius: 6.5, target: { x: 13.4, y: 1, z: 4.75 } },
-  bad: { theta: 0.25, phi: 0.85, radius: 6.5, target: { x: 8.7, y: 1, z: 5.5 } },
-  schiebe: { theta: 0.25, phi: 0.85, radius: 6.5, target: { x: 12.4, y: 1, z: 5.5 } },
-  doppel: { theta: -1.2, phi: 0.85, radius: 7, target: { x: 9.8, y: 1, z: 3 } },
-  durch: { theta: -0.9, phi: 0.85, radius: 7, target: { x: 7.6, y: 1, z: 4.9 } },
-  garage: { theta: 0.15, phi: 1.0, radius: 8.5, target: { x: 1.75, y: 1.2, z: 6 } },
+  // theta 0 looks from the south (plan bottom), pi/2 from the east; the 3D half beside the plan needs a large radius
+  over: { theta: 0.45, phi: 0.9, radius: 28, target: { x: 7, y: 0.75, z: 4.25 } },
+  front: { theta: 1.35, phi: 1.0, radius: 10, target: { x: 14, y: 1.1, z: 4.75 } },
+  bad: { theta: 2.9, phi: 0.7, radius: 10, target: { x: 8.5, y: 0.8, z: 5.5 } },
+  schiebe: { theta: 2.9, phi: 0.7, radius: 10, target: { x: 12.45, y: 0.8, z: 5.5 } },
+  doppel: { theta: -1.75, phi: 0.7, radius: 10, target: { x: 10, y: 0.8, z: 3 } },
+  durch: { theta: 1.75, phi: 0.7, radius: 10, target: { x: 7.5, y: 0.8, z: 4.75 } },
+  garage: { theta: 0.1, phi: 1.0, radius: 11, target: { x: 1.75, y: 1.2, z: 6 } },
 };
 let cam = V.over;
 const look = async (to, seconds = 1.2) => {
@@ -73,6 +74,7 @@ await traceHouse(R, { walls: true });
 await H.addEntities([BAD_TUER]);
 await R.clickOn({ text: "3D daneben", exact: true }, 0.01);
 await R.sleep(1500);
+await R.clickOn({ text: "Wände hoch", exact: true }, 0.01);
 await H.view2d(58, 25, 330);
 await view3d(V.over);
 await R.sleep(1200);
@@ -106,8 +108,8 @@ await R.moveTo({ text: "Terrassentür", exact: true }, 0.5);
 await R.moveTo({ text: "Garagentor", exact: true }, 0.5);
 await R.moveTo({ text: "Glaswand", exact: true }, 0.5);
 await sayOver("Darunter „Breite“, „Mitte ab Ecke“ – also wo sie in der Wand sitzt – und „Höhe“. Laut Plan: ein Meter breit und 2,10 hoch.");
-await R.moveTo({ label: "Breite" }, 0.5);
 await R.moveTo({ label: "Mitte ab Ecke" }, 0.5);
+await fill("Breite", "1");
 await fill("Höhe", "2,1");
 await sayOver("Verschieben geht auch im Plan: die Tür an der Wand entlangziehen. Die Pfeiltasten schieben sie ebenfalls an der Wand entlang.");
 {
@@ -149,12 +151,13 @@ await R.pickOption("Stil", "Haustür mit Glasausschnitt", 0.5);
 
 // ---------------------------------------------------------------- 3. Interior doors
 await chapter("Innentüren und Kontakte");
-await sayOver("Jetzt die Badtür: wieder „Tür & Fenster“ und auf die Wand zwischen Flur und Bad. Innen wird es von selbst eine Zimmertür.");
+await sayOver("Jetzt die Badtür. Das Werkzeug springt nach jeder Öffnung auf „Auswählen“ zurück – also wieder „Tür & Fenster“ und auf die Wand zwischen Flur und Bad.");
+await R.clickOn({ text: "Schnitt", exact: true }, 0.5);
 await tool();
 await tapPlan(8.5, 5.5, 0.7);
 await H.sideTop();
 await look(V.bad, 1.3);
-await sayOver("80 Zentimeter Breite reichen hier. Und die Tür soll ins Bad aufgehen: „Öffnungsrichtung umdrehen“.");
+await sayOver("Innen wird es von selbst eine Zimmertür. 80 Zentimeter Breite reichen, und sie soll ins Bad aufgehen: „Öffnungsrichtung umdrehen“.");
 await fill("Breite", "0,8");
 await R.clickOn({ text: "Öffnungsrichtung umdrehen" }, 0.6);
 await R.hold(0.6);
@@ -183,13 +186,15 @@ await H.sideTop();
 await R.clickOn({ text: "Doppeltür", exact: true }, 0.5);
 await look(V.doppel, 1.2);
 await R.pickOption("Stil", "Glastür", 0.5);
-await sayOver("Bei zwei Flügeln heißt der Knopf „Hauptflügel wechseln“: Er bestimmt, welcher Flügel zuerst aufgeht. Und jeder Flügel kann einen eigenen Kontakt haben.");
+await sayOver("Bei zwei Flügeln heißen Knopf und Feld „Hauptflügel“: Sie bestimmen, welcher Flügel zuerst aufgeht. Und jeder Flügel kann einen eigenen Kontakt haben.");
 await R.moveTo({ text: "Hauptflügel wechseln" }, 0.5);
-await R.hold(0.6);
+await R.hold(0.4);
+await R.moveTo({ label: "Hauptflügel (vom Raum aus)" }, 0.5);
+await R.hold(0.4);
 await scrollSide({ label: "Ohne Sensor geschlossen zeigen" }, 820, 0.6);
 await pickerMove("Kontakt Hauptflügel", 0.5);
 await pickerMove("Kontakt zweiter Flügel", 0.5);
-await sayOver("Ohne Kontakt steht eine Tür in 3D halb offen, damit man sie als Tür erkennt. „Ohne Sensor geschlossen zeigen“ zeichnet sie zu.");
+await sayOver("Ohne Kontakt steht eine Tür in 3D halb offen – das steht auch im Hinweis ganz unten. „Ohne Sensor geschlossen zeigen“ zeichnet sie zu.");
 await R.hold(0.6);
 await R.clickOn({ label: "Ohne Sensor geschlossen zeigen" }, 0.5);
 await R.hold(0.6);
@@ -250,7 +255,7 @@ await R.hold(0.6);
 await side();
 await scrollSide({ text: "Grundriss gesperrt" }, 300, 0.4).catch(() => null);
 await R.moveTo({ text: "Grundriss gesperrt" }, 0.5).catch(() => null);
-await sayOver("Ein Klick auf „Grundriss gesperrt“ gibt ihn wieder frei. Und gelöscht wird mit „Löschen“ unten im Formular oder mit der Entf-Taste.");
+await sayOver("Ein Klick auf „Grundriss gesperrt“ oben im Formular gibt ihn wieder frei. Und gelöscht wird mit „Löschen“ unten im Formular oder mit der Entf-Taste.");
 await R.clickOn({ text: "Grundriss gesperrt" }, 0.5).catch(() => null);
 await scrollSide({ text: "Löschen", exact: true }, 700, 0.5);
 await R.moveTo({ text: "Löschen", exact: true }, 0.5);

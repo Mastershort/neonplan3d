@@ -8,7 +8,8 @@
 // Starts from a small house like the end of episode 1 (loaded invisibly); part b starts where part a ends.
 // The stair pack is served from private/packs/src/stairs.json by request interception (the recorder itself does not
 // serve private/), only for this episode.
-// Usage (from frontend/): node tutorials/ep03-etagen-treppen-keller.mjs <out-dir> a|b [<voice-dir with durations.json>]
+// Usage (from frontend/): node tutorials/ep03-etagen-treppen-keller.mjs <out-dir> a|b [<voice-dir de> [<voice-dir en>]]
+//   (voice dirs: private/tutorial-audio/ep03a/de and …/en, resp. ep03b)
 // Then: python ../tools/make-tutorial.py <out-dir> <out.mp4>
 
 import { existsSync, readFileSync } from "node:fs";
@@ -84,7 +85,7 @@ if (process.argv[3] === "dump") {
 
 // ---------------------------------------------------------------- the stair pack (paid pack, shown as an extension)
 const R = await startRecorder({ outDir: out, width: 1920, height: 1080, lang: "de" });
-const N = narration(R, process.argv[4]);
+const N = narration(R, process.argv.slice(4));
 const { say, sayOver, chapter, catchUp } = N;
 {
   const file = resolve(import.meta.dirname, "..", "..", "private", "packs", "src", "stairs.json");
@@ -597,7 +598,7 @@ if (PART === "a") {
   await R.hold(0.8);
   await sayOver("Ich mache das Treppenloch breiter, wie eine kleine Galerie – und ziehe sie absichtlich zu groß auf, bis ins Kinderzimmer.");
   await dragPlan(0.4, 4.0, 3.6, 6.4, 1.2);
-  await sayOver("Rot steht im Formular: Die Öffnung ragt über eine Raumgrenze und wird nicht ausgeschnitten.");
+  await sayOver("Im Formular steht dann ein Hinweis: Die Öffnung ragt über eine Raumgrenze und wird nicht ausgeschnitten.");
   await moveToText("Diese Öffnung ragt über eine Raumgrenze", 0.6);
   await R.hold(1.4);
   await sayOver("Also kleiner: „Tiefe“ 0,5 und „Y“ 6,2. Jetzt liegt sie ganz im Flur, und die Meldung ist weg.");

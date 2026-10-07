@@ -5,12 +5,21 @@ Usage:
       List the voices of the account (name, id, labels); --shared <lang> lists the public voice library instead.
   python tools/tts-elevenlabs.py samples <out-dir> <voice-id>...
       Speak the same few sentences from episode 1 with each voice: <out-dir>/<voice name>.mp3.
-  python tools/tts-elevenlabs.py lines <cues.json|lines.txt> <voice-id> <out-dir>
+  python tools/tts-elevenlabs.py lines <src> <voice-id> <out-dir> [--lang en] [--dry-run]
       Speak every narration line to its own mp3 (cached by a hash of voice + text: an unchanged line is never paid
-      twice) and write <out-dir>/durations.json (line text -> seconds). The episode scripts read it for their timing.
+      twice) and write <out-dir>/durations.json and index.json, both keyed by the GERMAN line (the text in the
+      episode script and in cues.json). The episode scripts read durations.json for their timing.
+      <src>: a recording's cues.json, a text file with one line per row, or an episode's narration mapping
+      frontend/tutorials/epNN-narration-en.json ({"<German line>": "<English line>"}). With --lang en (mapping
+      only) the English line is spoken, still keyed by the German one. --dry-run only lists what would be paid.
+      Keep <out-dir> in private/tutorial-audio/<episode>/<lang>/ (not in git, not in a temp folder).
   python tools/tts-elevenlabs.py track <recording-dir> <audio-dir> <out.wav|out.mp3>
       The full-length voice track: every line at its start time from <recording-dir>/cues.json, silence elsewhere,
       exactly as long as the video.
+  python tools/tts-elevenlabs.py mux <video.mp4> <voice.mp3> <out.mp4>
+      The video (copied, not re-encoded) with the voice as its audio track.
+  python tools/tts-elevenlabs.py quota
+      Characters used and left in the current ElevenLabs billing period.
 
 The API key comes from the environment variable ELEVENLABS_API_KEY, or else from
 C:/Users/Becke/.floorplan3d/elevenlabs-key.txt. It is never printed or written anywhere.
@@ -52,14 +61,32 @@ SPOKEN = [
     (r"Wand 2–3", "Wand zwei drei"),  # noqa: RUF001
     (r"\b2,75 Meter", "zwei Komma sieben fünf Meter"),
     (r"m²", "Quadratmeter"),
+    (r"↻ 90°", "90 Grad rechts herum"),
+    (r"(\d)°", r"\1 Grad"),  # "90° drehen"
+    (r"HA-Etage", "Home-Assistant-Etage"),
     (r"(\d),(\d)", r"\1 Komma \2"),  # any other decimal number: "4,5" -> "4 Komma 5"
     (r" & ", " und "),  # "Tür & Fenster"
     (" – ", ", "),  # noqa: RUF001
 ]
 
 
-def spoken(text: str) -> str:
-    for pattern, repl in SPOKEN:
+# The same for the English narration (German button names in it stay as they are).
+SPOKEN_EN = [
+    (r"\b3D\b", "3-D"),
+    (r"Ctrl\+Z", "Control Z"),
+    (r"Wand 2–3", "Wand two three"),  # noqa: RUF001
+    (r"↻ 90°", "90 degrees clockwise"),
+    (r"(\d)°", r"\1 degrees"),
+    (r"m²", "square metres"),
+    (r" & ", " and "),
+    (" – ", ", "),  # noqa: RUF001
+]
+
+
+def spoken(text: str, lang: str = "de") -> str:
+    """How a line is spoken. Never change a German rule that matches an existing line: its cached audio is keyed
+    by the spoken text, so the line would be paid again."""
+    for pattern, repl in SPOKEN_EN if lang == "en" else SPOKEN:
         text = re.sub(pattern, repl, text)
     return text
 
@@ -90,10 +117,10 @@ def request(path: str, body: dict | None = None, query: dict | None = None) -> b
         sys.exit(f"ElevenLabs {path}: HTTP {err.code} {detail}")
 
 
-def speak(text: str, voice: str, out: Path) -> None:
+def speak(text: str, voice: str, out: Path, lang: str = "de") -> None:
     audio = request(
         f"/v1/text-to-speech/{voice}",
-        {"text": spoken(text), "model_id": MODEL, "voice_settings": SETTINGS},
+        {"text": spoken(text, lang), "model_id": MODEL, "voice_settings": SETTINGS},
         {"output_format": "mp3_44100_128"},
     )
     out.parent.mkdir(parents=True, exist_ok=True)
@@ -127,18 +154,30 @@ def safe_name(name: str) -> str:
     return re.sub(r"[^\w\- ]+", "", name).strip() or "voice"
 
 
-def line_file(out_dir: Path, voice: str, text: str) -> Path:
-    digest = hashlib.sha1(f"{MODEL}|{voice}|{json.dumps(SETTINGS, sort_keys=True)}|{spoken(text)}".encode()).hexdigest()
+def line_file(out_dir: Path, voice: str, text: str, lang: str = "de") -> Path:
+    said = spoken(text, lang)
+    digest = hashlib.sha1(f"{MODEL}|{voice}|{json.dumps(SETTINGS, sort_keys=True)}|{said}".encode()).hexdigest()
     return out_dir / f"{digest[:16]}.mp3"
 
 
-def read_lines(src: Path) -> list[str]:
+def read_lines(src: Path, lang: str = "de") -> list[tuple[str, str]]:
+    """(German line, text to speak) for every narration line of <src>, in order, without repeats."""
     if src.suffix == ".json":
-        cues = json.loads(src.read_text(encoding="utf-8"))["cues"]
-        texts = [c["text"] for c in cues if c["type"] == "say"]
-    else:
-        texts = [t.strip() for t in src.read_text(encoding="utf-8").splitlines() if t.strip()]
-    return list(dict.fromkeys(texts))
+        data = json.loads(src.read_text(encoding="utf-8"))
+        if "cues" in data:
+            if lang != "de":
+                sys.exit("--lang en needs the narration mapping (epNN-narration-en.json), not cues.json")
+            texts = [c["text"] for c in data["cues"] if c["type"] == "say"]
+            return [(t, t) for t in dict.fromkeys(texts)]
+        return [(de, de if lang == "de" else en) for de, en in data.items()]
+    if lang != "de":
+        sys.exit("--lang en needs the narration mapping (epNN-narration-en.json)")
+    texts = [t.strip() for t in src.read_text(encoding="utf-8").splitlines() if t.strip()]
+    return [(t, t) for t in dict.fromkeys(texts)]
+
+
+def read_json(file: Path) -> dict:
+    return json.loads(file.read_text(encoding="utf-8")) if file.exists() else {}
 
 
 def cmd_voices(args: list[str]) -> None:
@@ -166,26 +205,36 @@ def cmd_samples(out_dir: Path, voices: list[str]) -> None:
         print(f"{out} ({seconds(out):.1f} s)")
 
 
-def cmd_lines(src: Path, voice: str, out_dir: Path) -> None:
+def cmd_lines(src: Path, voice: str, out_dir: Path, lang: str = "de", dry_run: bool = False) -> None:
     out_dir.mkdir(parents=True, exist_ok=True)
     durations_file = out_dir / "durations.json"
-    durations = json.loads(durations_file.read_text(encoding="utf-8")) if durations_file.exists() else {}
-    index = {}
-    texts = read_lines(src)
-    paid = 0
-    for i, text in enumerate(texts, 1):
-        file = line_file(out_dir, voice, text)
+    durations = read_json(durations_file)
+    # merged with the earlier runs: a line spoken before keeps its entry (a cache is never thrown away)
+    index = read_json(out_dir / "index.json").get("files", {})
+    lines = read_lines(src, lang)
+    paid = chars = 0
+    for i, (key, text) in enumerate(lines, 1):
+        if not text.strip():
+            sys.exit(f"no {lang} text for: {key[:70]}")
+        file = line_file(out_dir, voice, text, lang)
         if not file.exists():
-            speak(text, voice, file)
             paid += 1
-        durations[text] = round(seconds(file), 3)
-        index[text] = file.name
-        print(f"{i:3}/{len(texts)} {durations[text]:5.1f} s  {text[:70]}")
+            chars += len(spoken(text, lang))
+            if dry_run:
+                print(f"{i:3}/{len(lines)}   new    {text[:70]}")
+                continue
+            speak(text, voice, file, lang)
+        durations[key] = round(seconds(file), 3)
+        index[key] = file.name
+        print(f"{i:3}/{len(lines)} {durations[key]:5.1f} s  {text[:70]}")
+    if dry_run:
+        print(f"{len(lines)} lines, {paid} would be spoken ({chars} characters), {len(lines) - paid} from the cache")
+        return
     durations_file.write_text(json.dumps(durations, ensure_ascii=False, indent=1), encoding="utf-8")
     (out_dir / "index.json").write_text(
-        json.dumps({"voice": voice, "files": index}, ensure_ascii=False, indent=1), encoding="utf-8"
+        json.dumps({"voice": voice, "lang": lang, "files": index}, ensure_ascii=False, indent=1), encoding="utf-8"
     )
-    print(f"{len(texts)} lines, {paid} newly spoken, {len(texts) - paid} from the cache -> {durations_file}")
+    print(f"{len(lines)} lines, {paid} newly spoken ({chars} characters), {len(lines) - paid} from the cache")
 
 
 def cmd_track(rec: Path, audio_dir: Path, out: Path) -> None:
@@ -217,6 +266,20 @@ def cmd_track(rec: Path, audio_dir: Path, out: Path) -> None:
     print(f"{out}: {total / RATE:.1f} s, {len(says)} lines")
 
 
+def cmd_mux(video: Path, voice: Path, out: Path) -> None:
+    ffmpeg = imageio_ffmpeg.get_ffmpeg_exe()
+    cmd = [ffmpeg, "-y", "-v", "error", "-i", str(video), "-i", str(voice), "-map", "0:v", "-map", "1:a"]
+    cmd += ["-c:v", "copy", "-c:a", "aac", "-b:a", "192k", "-shortest", "-movflags", "+faststart", str(out)]
+    subprocess.run(cmd, check=True)
+    print(out)
+
+
+def cmd_quota() -> None:
+    data = json.loads(request("/v1/user/subscription"))
+    used, limit = data.get("character_count", 0), data.get("character_limit", 0)
+    print(f"{used} of {limit} characters used, {limit - used} left")
+
+
 def main() -> None:
     args = sys.argv[1:]
     if not args:
@@ -226,10 +289,16 @@ def main() -> None:
         cmd_voices(rest)
     elif cmd == "samples" and len(rest) >= 2:
         cmd_samples(Path(rest[0]), rest[1:])
-    elif cmd == "lines" and len(rest) == 3:
-        cmd_lines(Path(rest[0]), rest[1], Path(rest[2]))
+    elif cmd == "lines" and len(rest) >= 3:
+        flags = rest[3:]
+        lang = flags[flags.index("--lang") + 1] if "--lang" in flags else "de"
+        cmd_lines(Path(rest[0]), rest[1], Path(rest[2]), lang, "--dry-run" in flags)
     elif cmd == "track" and len(rest) == 3:
         cmd_track(Path(rest[0]), Path(rest[1]), Path(rest[2]))
+    elif cmd == "mux" and len(rest) == 3:
+        cmd_mux(Path(rest[0]), Path(rest[1]), Path(rest[2]))
+    elif cmd == "quota":
+        cmd_quota()
     else:
         sys.exit(__doc__)
 
