@@ -34,6 +34,8 @@ import imageio_ffmpeg
 API = "https://api.elevenlabs.io"
 MODEL = "eleven_multilingual_v2"
 KEY_FILE = Path.home() / ".floorplan3d" / "elevenlabs-key.txt"
+# the same file with an underscore in its name works as well
+KEY_FILES = (KEY_FILE, KEY_FILE.with_name("elevenlabs_key.txt"))
 SETTINGS = {"stability": 0.5, "similarity_boost": 0.75, "style": 0.0, "use_speaker_boost": True}
 RATE = 44100
 
@@ -62,8 +64,9 @@ def spoken(text: str) -> str:
 
 def api_key() -> str:
     key = os.environ.get("ELEVENLABS_API_KEY", "").strip()
-    if not key and KEY_FILE.exists():
-        key = KEY_FILE.read_text(encoding="utf-8").strip()
+    for file in KEY_FILES:
+        if not key and file.exists():
+            key = file.read_text(encoding="utf-8").strip()
     if not key:
         sys.exit(f"No ElevenLabs key: set ELEVENLABS_API_KEY or put it into {KEY_FILE}")
     return key
