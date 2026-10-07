@@ -59,7 +59,8 @@ export function wallFaces(b: Building, floorId?: string): RoofFace[] {
       const dx = w.b[0] - w.a[0];
       const dz = w.b[1] - w.a[1];
       const l = Math.hypot(dx, dz);
-      if (l < 1.2) continue;
+      // short walls too: a 0.92 m garden wall carries a single module (#295)
+      if (l < 0.5) continue;
       // exterior walls have their room on the left: the outer face lies on the right
       const nx = dz / l;
       const nz = -dx / l;
