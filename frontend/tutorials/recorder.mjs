@@ -5,17 +5,37 @@
 // start times, for the voice-over and the subtitles (tools/make-tutorial.py turns everything into an MP4).
 
 import { createServer } from "node:http";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { extname, join, normalize, resolve } from "node:path";
 import puppeteer from "puppeteer-core";
 
 const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".png": "image/png", ".jpg": "image/jpeg", ".json": "application/json", ".svg": "image/svg+xml" };
 
+/**
+ * Copy preview/ and the built app bundles into `dir` (for TUTORIAL_ROOT) and return the app version from the
+ * manifest, for the "aufgenommen mit NeonPlan 3D …" line.
+ */
+export function snapshot(dir) {
+  const repo = resolve(import.meta.dirname, "..", "..");
+  for (const part of ["preview", "custom_components/neonplan3d/frontend"]) {
+    cpSync(join(repo, part), join(dir, part), { recursive: true, filter: (src) => !/[\\/]screenshots([\\/]|$)/.test(src) });
+  }
+  cpSync(join(repo, "custom_components/neonplan3d/manifest.json"), join(dir, "custom_components/neonplan3d/manifest.json"));
+  return appVersion(dir);
+}
+/** The app version of the files the recorder serves (TUTORIAL_ROOT or the repo). */
+export function appVersion(root = process.env.TUTORIAL_ROOT || resolve(import.meta.dirname, "..", "..")) {
+  const file = join(root, "custom_components/neonplan3d/manifest.json");
+  return existsSync(file) ? JSON.parse(readFileSync(file, "utf-8")).version : "?";
+}
+
 /** Video frame rate of the finished MP4; a "frame" below is one step of the cursor or the camera. */
 export const FPS = 25;
 
 export async function startRecorder({ outDir, width = 1920, height = 1080, lang = "de" }) {
-  const root = resolve(import.meta.dirname, "..", "..");
+  // TUTORIAL_ROOT: a snapshot folder with preview/ and custom_components/neonplan3d/frontend/ (same layout as the
+  // repo), so a rebuild of the app during a recording cannot break it
+  const root = resolve(process.env.TUTORIAL_ROOT || resolve(import.meta.dirname, "..", ".."));
   mkdirSync(outDir, { recursive: true });
   const server = createServer((req, res) => {
     const path = normalize(decodeURIComponent(new URL(req.url, "http://x").pathname)).replace(/^[/\\]+/, "");
@@ -249,6 +269,62 @@ export async function startRecorder({ outDir, width = 1920, height = 1080, lang 
     },
   };
   return R;
+}
+
+/**
+ * Narration timing for an episode. With `audioDir` (the output of tools/tts-elevenlabs.py lines) a line lasts its
+ * measured length plus 0.3 s; without it (a draft) an estimate of about 2.9 words a second.
+ * `say` holds the picture while the line is spoken, `sayOver` lets the next steps run under it (the next line or
+ * chapter waits until it is said). `report()` lists every silence longer than `maxGap` seconds between two lines.
+ */
+export function narration(R, audioDir, { maxGap = 1 } = {}) {
+  const file = audioDir ? join(audioDir, "durations.json") : null;
+  const measured = file && existsSync(file) ? JSON.parse(readFileSync(file, "utf-8")) : null;
+  const missing = [];
+  const length = (text) => {
+    if (measured) {
+      if (text in measured) return measured[text] + 0.3;
+      missing.push(text);
+    }
+    return text.split(/\s+/).length / 2.9 + 0.3;
+  };
+  let busyUntil = 0;
+  let saidUntil = 0;
+  const gaps = [];
+  const catchUp = async () => {
+    if (busyUntil > R.time + 0.02) await R.hold(busyUntil - R.time);
+  };
+  const start = async (text) => {
+    await catchUp();
+    if (saidUntil && R.time - saidUntil > maxGap) gaps.push({ t: saidUntil, gap: R.time - saidUntil, before: text });
+    const d = length(text);
+    saidUntil = R.time + d;
+    return d;
+  };
+  return {
+    measured: !!measured,
+    length,
+    catchUp,
+    async say(text) {
+      const d = await start(text);
+      await R.say(text, d);
+      busyUntil = R.time;
+    },
+    async sayOver(text) {
+      const d = await start(text);
+      await R.say(text);
+      busyUntil = R.time + d;
+    },
+    async chapter(title) {
+      await catchUp();
+      R.chapter(title);
+    },
+    report() {
+      for (const g of gaps) console.log(`silence ${g.gap.toFixed(1)} s at ${g.t.toFixed(1)} s before: ${g.before.slice(0, 60)}`);
+      for (const m of missing) console.log(`no measured length (estimated): ${m.slice(0, 60)}`);
+      console.log(`${gaps.length} silences over ${maxGap} s, timing: ${measured ? "measured voice" : "estimate"}`);
+    },
+  };
 }
 
 // ---------------------------------------------------------------- page-side helpers (run in the browser)

@@ -70,4 +70,4 @@ Path(f"{stem}.srt").write_text("\n".join(srt), encoding="utf-8")
 Path(f"{stem}-narration.txt").write_text("\n".join(narration) + "\n", encoding="utf-8")
 chapters = [f"{clock(c['t'])} {c['text']}" for c in cues if c["type"] == "chapter"]
 Path(f"{stem}-chapters.txt").write_text("\n".join(chapters) + "\n", encoding="utf-8")
-print(f"{out} – {clock(duration)}, {len(says)} narration lines, {len(chapters)} chapters")
+print(f"{out} - {clock(duration)}, {len(says)} narration lines, {len(chapters)} chapters")
