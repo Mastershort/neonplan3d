@@ -1,0 +1,46 @@
+# Posts a published release into the Discord community's announcement channel (through a channel webhook):
+# the English part of the release notes (above the first "---"), a link, and a ping for the "Release pings" role.
+# Needs the repository secret DISCORD_RELEASE_WEBHOOK (the webhook URL of 📢・announcements); without it the job
+# does nothing.
+name: Discord release post
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Post to Discord
+        env:
+          WEBHOOK: ${{ secrets.DISCORD_RELEASE_WEBHOOK }}
+          NAME: ${{ github.event.release.name }}
+          TAG: ${{ github.event.release.tag_name }}
+          URL: ${{ github.event.release.html_url }}
+          BODY: ${{ github.event.release.body }}
+        run: |
+          if [ -z "$WEBHOOK" ]; then echo "no DISCORD_RELEASE_WEBHOOK secret – skipped"; exit 0; fi
+          python3 - <<'PY'
+          import json, os, urllib.request
+          body = os.environ["BODY"].split("\n---", 1)[0].strip()
+          if len(body) > 3500:
+              body = body[:3500].rsplit("\n", 1)[0] + "\n…"
+          payload = {
+              "content": "<@&1557398674689232997> NeonPlan 3D **" + os.environ["TAG"] + "** is out – update via HACS.",
+              "embeds": [{
+                  "title": os.environ["NAME"] or os.environ["TAG"],
+                  "url": os.environ["URL"],
+                  "description": body,
+                  "color": 0x22D3EE,
+                  "footer": {"text": "German release notes and all details: tap the title"},
+              }],
+              "allowed_mentions": {"roles": ["1557398674689232997"]},
+          }
+          req = urllib.request.Request(os.environ["WEBHOOK"], data=json.dumps(payload).encode(), headers={"Content-Type": "application/json", "User-Agent": "neonplan3d-release"})
+          urllib.request.urlopen(req, timeout=30)
+          print("posted")
+          PY
