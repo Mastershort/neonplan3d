@@ -5341,6 +5341,10 @@ export class Fp3dEditor extends LitElement {
             ${this.num(this.t("depth"), b.z1 - b.z0, (v) => this.setRect("d", v), 0.01, 0.05)}`
           : nothing}
       </div>
+      <div class="fp3d-actions">
+        <button class="fp3d-btn" title=${this.t("room_start_view_hint")} ?disabled=${!admin} @click=${() => this.rememberRoomView()}>${this.t("room_start_view")}</button>
+        ${room.start_view ? html`<button class="fp3d-btn" title=${this.t("room_start_view_reset")} ?disabled=${!admin} @click=${() => this.updateRoom({ start_view: null })}>↺</button>` : nothing}
+      </div>
       ${this.renderEdgeHeights(room)} ${this.renderRoomClimate(room)}
       <details class="fp3d-points" ?open=${!rect}>
         <summary>${this.t("points")} (${room.points.length})</summary>
@@ -6059,25 +6063,42 @@ export class Fp3dEditor extends LitElement {
         : nothing}`;
   }
 
-  /** This floor opens with the camera of the editor's 3D pane as it stands right now (#182). */
-  private rememberFloorView(): void {
+  /** The camera of the editor's 3D pane as it stands right now, rounded for the plan (null: no pane). */
+  private paneView(): StartView | null {
     const pane = this.renderRoot.querySelector("fp3d-view3d") as (HTMLElement & { currentView(): StartView | null }) | null;
     const v = pane?.currentView();
+    if (!v) return null;
+    const t = v.target;
+    return { theta: round(v.theta), phi: round(v.phi), radius: round(v.radius), ...(t ? { target: { x: round(t.x), y: round(t.y), z: round(t.z) } } : {}) };
+  }
+
+  /** This floor opens with the camera of the editor's 3D pane as it stands right now (#182). */
+  private rememberFloorView(): void {
+    const v = this.paneView();
     if (!v) {
       alert(this.t("floor_start_view_need_pane"));
       return;
     }
-    this.updateFloor({ start_view: { theta: round(v.theta), phi: round(v.phi), radius: round(v.radius) } });
+    this.updateFloor({ start_view: v });
+  }
+
+  /** Tapping this room in 3D flies to the camera of the editor's 3D pane as it stands right now (#282). */
+  private rememberRoomView(): void {
+    const v = this.paneView();
+    if (!v) {
+      alert(this.t("room_start_view_need_pane"));
+      return;
+    }
+    this.updateRoom({ start_view: v });
   }
 
   /** The camera the house opens with: the editor's 3D pane as it stands right now, or the default. */
   private renderStartView() {
     const set = this._doc.settings.start_view ?? null;
     const remember = () => {
-      const pane = this.renderRoot.querySelector("fp3d-view3d") as (HTMLElement & { currentView(): StartView | null }) | null;
-      const v = pane?.currentView();
+      const v = this.paneView();
       if (!v) return;
-      this.change((d) => (d.settings.start_view = { theta: round(v.theta), phi: round(v.phi), radius: round(v.radius) }));
+      this.change((d) => (d.settings.start_view = v));
     };
     return html`<details class="fp3d-section">
       <summary>${this.t("start_view")}</summary>
@@ -6089,7 +6110,9 @@ export class Fp3dEditor extends LitElement {
       ${set
         ? html`<p class="fp3d-sub">${this.t("start_view_saved")}</p>
             <p class="fp3d-sub">${this.t("start_view_card")}</p>
-            <code class="fp3d-code">start_view: { theta: ${set.theta}, phi: ${set.phi}, radius: ${set.radius} }</code>`
+            <code class="fp3d-code"
+              >start_view: { theta: ${set.theta}, phi: ${set.phi}, radius: ${set.radius}${set.target ? `, target: { x: ${set.target.x}, y: ${set.target.y}, z: ${set.target.z} }` : ""} }</code
+            >`
         : nothing}
     </details>`;
   }

@@ -2549,7 +2549,7 @@ export class Fp3dView3d extends LitElement {
   }
 
   /** The camera as it stands (for "remember this view as the start"). */
-  currentView(): { theta: number; phi: number; radius: number } | null {
+  currentView(): StartView | null {
     return this.viewer?.currentView() ?? null;
   }
 

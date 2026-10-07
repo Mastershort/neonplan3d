@@ -1,5 +1,6 @@
 // Configuration of the dashboard card, shared by the card and its visual editor (a bundle of its own).
 
+import type { StartView } from "./model.ts";
 import type { Quality, WallMode } from "./viewer/viewer3d.ts";
 
 export interface CardConfig {
@@ -7,8 +8,8 @@ export interface CardConfig {
   floor?: string;
   /** Start in this room (its id from the editor): a display for one room, e.g. for the kids. */
   room?: string;
-  /** A start view of this card's own (theta, phi, radius as the editor shows them); default: the plan's. */
-  start_view?: { theta: number; phi: number; radius: number };
+  /** A start view of this card's own (theta, phi, radius and target as the editor shows them); default: the plan's. */
+  start_view?: StartView;
   height?: number;
   walls?: WallMode;
   /** Pull floors apart in the house view (default true). */

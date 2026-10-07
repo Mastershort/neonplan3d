@@ -22,6 +22,8 @@ export interface Room {
   id: string;
   name: string;
   area_id: string | null;
+  /** The camera the room opens with when it is tapped in 3D (null: framed from above). */
+  start_view?: StartView | null;
   points: Vec2[];
   floor_material: string;
   /** Entities shown in the room's panel although they are not in the plan. */
@@ -514,6 +516,8 @@ export interface StartView {
   theta: number;
   phi: number;
   radius: number;
+  /** The point the camera looks at (m; null: the middle). For a floor or a room y counts from that floor. */
+  target?: { x: number; y: number; z: number } | null;
 }
 
 /**

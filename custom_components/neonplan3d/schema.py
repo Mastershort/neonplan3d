@@ -23,6 +23,22 @@ _ENTITY_REF = vol.Any(None, vol.All(str, vol.Length(max=255)))
 
 _SENSOR_REF = vol.Any(None, vol.All(str, vol.Length(max=255)))
 
+# a camera to open with: angles, distance and (optional) the point it looks at; for a floor or a room the
+# point's height is counted from that floor
+START_VIEW_SCHEMA = vol.Schema(
+    {
+        vol.Required("theta"): vol.All(vol.Coerce(float), vol.Range(min=-10, max=10)),
+        vol.Required("phi"): vol.All(vol.Coerce(float), vol.Range(min=0, max=3.2)),
+        vol.Required("radius"): vol.All(vol.Coerce(float), vol.Range(min=1, max=500)),
+        vol.Optional("target"): {
+            vol.Required("x"): vol.All(vol.Coerce(float), vol.Range(min=-1000, max=1000)),
+            vol.Required("y"): vol.All(vol.Coerce(float), vol.Range(min=-200, max=200)),
+            vol.Required("z"): vol.All(vol.Coerce(float), vol.Range(min=-1000, max=1000)),
+        },
+    },
+    extra=vol.ALLOW_EXTRA,
+)
+
 ROOM_SCHEMA = vol.Schema(
     {
         # room climate read from chosen sensors (None = automatic, "none" = no value)
@@ -39,6 +55,8 @@ ROOM_SCHEMA = vol.Schema(
         vol.Required("area_id"): vol.Any(None, vol.All(str, vol.Length(max=255))),
         vol.Required("points"): vol.All([_POINT], vol.Length(min=3, max=MAX_POINTS)),
         vol.Required("floor_material"): vol.All(str, vol.Length(max=32)),
+        # the camera this room opens with when it is tapped (None = framed from above)
+        vol.Optional("start_view", default=None): vol.Any(None, START_VIEW_SCHEMA),
         # entities shown in the room's panel although they are not in the plan
         vol.Optional("panel", default=list): vol.All([vol.All(str, vol.Length(max=255))], vol.Length(max=100)),
         # entities of the area kept out of the room panel
@@ -496,17 +514,7 @@ FLOOR_SCHEMA = vol.Schema(
         # floor of Home Assistant's floor registry this floor stands for
         vol.Optional("ha_floor", default=None): vol.Any(None, vol.All(str, vol.Length(max=255))),
         # the camera this floor opens with (None = the house view's side)
-        vol.Optional("start_view", default=None): vol.Any(
-            None,
-            vol.Schema(
-                {
-                    vol.Required("theta"): vol.All(vol.Coerce(float), vol.Range(min=-10, max=10)),
-                    vol.Required("phi"): vol.All(vol.Coerce(float), vol.Range(min=0, max=3.2)),
-                    vol.Required("radius"): vol.All(vol.Coerce(float), vol.Range(min=1, max=500)),
-                },
-                extra=vol.ALLOW_EXTRA,
-            ),
-        ),
+        vol.Optional("start_view", default=None): vol.Any(None, START_VIEW_SCHEMA),
     },
     extra=vol.ALLOW_EXTRA,
 )
@@ -555,17 +563,7 @@ SETTINGS_SCHEMA = vol.Schema(
         # favourites of the house in the central menu of the 3D view (scenes, scripts, switches …)
         vol.Optional("favorites", default=list): vol.All([vol.All(str, vol.Length(max=255))], vol.Length(max=40)),
         # the camera the house view opens with (None = fitted from the front left)
-        vol.Optional("start_view", default=None): vol.Any(
-            None,
-            vol.Schema(
-                {
-                    vol.Required("theta"): vol.All(vol.Coerce(float), vol.Range(min=-10, max=10)),
-                    vol.Required("phi"): vol.All(vol.Coerce(float), vol.Range(min=0, max=3.2)),
-                    vol.Required("radius"): vol.All(vol.Coerce(float), vol.Range(min=1, max=500)),
-                },
-                extra=vol.ALLOW_EXTRA,
-            ),
-        ),
+        vol.Optional("start_view", default=None): vol.Any(None, START_VIEW_SCHEMA),
         vol.Optional("roof", default=lambda: {"type": "none", "pitch": 35, "overhang": 0.4}): ROOF_SCHEMA,
         # the weather entity for the weather outside (None = the first one)
         vol.Optional("weather_entity", default=None): vol.Any(None, vol.All(str, vol.Length(max=255))),

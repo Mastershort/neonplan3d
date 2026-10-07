@@ -43,7 +43,7 @@ import {
   type BufferGeometry,
   type Material,
 } from "three";
-import type { Building, Floor, Furniture, Room } from "../model.ts";
+import type { Building, Floor, Furniture, Room, StartView } from "../model.ts";
 import { recolorLamps, SHADE_SENTINEL, shadeFactors } from "./lamp-colors.ts";
 import { centroid, pointInPolygon, openingStyle, WALL_LAMP_Y } from "../model.ts";
 import { roofRider, roofUnderAt, sectionCutsBelow } from "../roof-sections.ts";
@@ -572,7 +572,7 @@ export class FloorplanViewer {
   /** Heatmap colour per room id (null: normal floors). */
   private roomTint: Map<string, [number, number, number]> | null = null;
   private houseRadius = 20;
-  private startView: { theta: number; phi: number; radius: number } | null = null;
+  private startView: StartView | null = null;
   private fpsStart = 0;
 
   constructor(host: HTMLElement, options: ViewerOptions = {}) {
@@ -729,6 +729,15 @@ export class FloorplanViewer {
     const fv = this.floors.find((f) => f.floor.rooms.some((r) => r.id === roomId));
     const room = fv?.floor.rooms.find((r) => r.id === roomId);
     if (!fv || !room) return;
+    // a room may open with a camera of its own (#282)
+    const own = room.start_view;
+    if (own) {
+      const base = fv.floor.elevation + fv.ty;
+      const [mx, mz] = centroid(room.points);
+      const t = own.target ?? { x: mx, y: 0.3, z: mz };
+      this.controls.flyTo({ target: new Vector3(t.x, t.y + base, t.z), radius: own.radius, phi: own.phi, theta: own.theta });
+      return;
+    }
     const [cx, cz] = centroid(room.points);
     const xs = room.points.map((p) => p[0]);
     const zs = room.points.map((p) => p[1]);
@@ -1266,14 +1275,24 @@ export class FloorplanViewer {
   }
 
   /** The camera the house view opens with (null: fitted from the front left). */
-  setStartView(view: { theta: number; phi: number; radius: number } | null): void {
+  setStartView(view: StartView | null): void {
     this.startView = view;
   }
 
-  /** The camera as it stands: angles and distance (the target is the house). */
-  currentView(): { theta: number; phi: number; radius: number } {
+  /**
+   * The camera as it stands: angles, distance and the point it looks at – with a floor opened, that
+   * point's height counts from the floor (it opens there however the floors are stacked).
+   */
+  currentView(): StartView {
     const v = this.controls.view;
-    return { theta: v.theta, phi: v.phi, radius: v.radius };
+    const base = this.floorBase(this.floorId);
+    return { theta: v.theta, phi: v.phi, radius: v.radius, target: { x: v.target.x, y: v.target.y - base, z: v.target.z } };
+  }
+
+  /** Height of a floor as it is shown now (0 for the house view). */
+  private floorBase(floorId: string | null): number {
+    const fv = floorId === null ? undefined : this.floorMap.get(floorId);
+    return fv ? fv.floor.elevation + fv.ty : 0;
   }
 
   dispose(): void {
@@ -2716,6 +2735,9 @@ export class FloorplanViewer {
     const start = own ?? this.startView;
     const useRadius = !!start && (house || !!own);
     if (start && useRadius) this.controls.maxRadius = Math.max(this.controls.maxRadius, start.radius * 1.5);
+    // the start view's framing (#206): the point it looks at, counted from the opened floor
+    const at = useRadius ? start!.target : null;
+    if (at) center.set(at.x, at.y + (own ? this.floorBase(this.floorId) : 0), at.z);
     this.controls.flyTo({ target: center, radius: useRadius ? start!.radius : radius, phi: start ? start.phi : 0.85, theta: start ? start.theta : -0.6 }, duration);
   }
 
