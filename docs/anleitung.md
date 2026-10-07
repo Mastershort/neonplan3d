@@ -647,7 +647,7 @@ In der Hausansicht hängt ein Hologramm aus Glas am größten Solarfeld (ohne Fe
 
 Auch ohne Solaranlage: Jedes Gerät mit Leistungssensor (Fernseher, Waschmaschine, Kühlschrank, Wärmepumpe, PC, Wallbox) kann eine kleine Glaskarte über sich tragen – Leistung jetzt, Verbrauch heute und die Tageskurve aus den Statistiken seines Sensors. Im Möbelformular den Haken **Hologramm über dem Gerät** setzen – genauso im Formular eines platzierten Geräts mit Leistungssensor, etwa einer smarten Steckdose. Stehen Geräte dicht nebeneinander (Waschmaschine und Trockner), weichen ihre Karten einander nach oben aus. Die Karten zeigen sich in der Hausansicht und auf der Etage des Geräts; Antippen klappt sie zusammen. Zehn Karten kosten weniger als eine Leitung, auch auf dem Wandtablet.
 
-In einem geöffneten Raum erscheinen nur die Karten der Geräte in diesem Raum. In den Hologramm-Einstellungen blendet **Geräte-Karten auch in der Hausansicht** sie in der Hausansicht aus (dann nur auf ihrer Etage und in ihrem Raum), und **Geräte-Karten ausblenden unter (W)** lässt Karten verschwinden, solange ihr Gerät weniger zieht – etwa 1 W für „aus“.
+In den Hologramm-Einstellungen blendet **Geräte-Karten auch in der Hausansicht** sie in der Hausansicht aus (dann nur auf ihrer Etage), **Geräte-Karten im geöffneten Raum** zeigt beim Öffnen eines Raums die Karten seiner Geräte, und **Geräte-Karten ausblenden unter (W)** lässt Karten verschwinden, solange ihr Gerät weniger zieht – etwa 1 W für „aus“.
 
 Der Knopf **Hologramme** in der Energieleiste (neben ⚡) blendet alle Karten aus und wieder ein – praktisch, wenn viele Geräte eine tragen. In der Karte gibt es den Knopf ebenfalls, oder du legst es mit `holograms` fest.
 

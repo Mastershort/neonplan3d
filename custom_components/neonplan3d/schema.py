@@ -464,6 +464,7 @@ HOLOGRAM_SCHEMA = vol.Schema(
         vol.Optional("mirror", default=True): bool,
         # device cards hide while their device draws less than this (W; 0 = always shown)
         vol.Optional("device_house", default=True): bool,
+        vol.Optional("device_room", default=False): bool,
         vol.Optional("device_min_w", default=0): vol.All(vol.Coerce(float), vol.Range(min=0, max=100000)),
     },
     extra=vol.ALLOW_EXTRA,

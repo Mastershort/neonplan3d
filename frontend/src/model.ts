@@ -414,6 +414,8 @@ export interface HologramSettings {
   device_min_w?: number;
   /** Device cards also in the house view (default); false: only on their floor and in their room (#226). */
   device_house?: boolean;
+  /** Device cards of an opened room show in the room view (off by default: the room view had no cards before, #235). */
+  device_room?: boolean;
 }
 
 export const DEFAULT_HOLOGRAM: HologramSettings = { field: null, size: 1, right: 0, up: 0 };

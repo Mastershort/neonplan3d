@@ -645,7 +645,7 @@ In the house view a glass hologram hangs on the largest solar field (beside the 
 
 Also without a solar system: every device with a power sensor (TV, washing machine, fridge, heat pump, PC, wallbox) can carry a small glass card over itself – power now, today's consumption and the day curve from its sensor's statistics. Tick **Hologram over the device** in the furniture form – or in the form of a placed device with a power sensor, such as a smart plug. When devices stand close together (washer and dryer), their cards step out of each other's way. The cards show in the house view and on the device's floor; a tap folds them. Ten cards cost less than one cable, on the wall tablet too.
 
-An opened room shows only the cards of the devices in that room. In the hologram settings, **Device cards in the house view too** keeps them out of the house view (then only on their floor and in their room), and **Hide device cards below (W)** hides a card while its device draws less – e.g. 1 W for "off".
+In the hologram settings, **Device cards in the house view too** keeps them out of the house view (then only on their floor), **Device cards in an opened room** shows the cards of a room's devices when you open it, and **Hide device cards below (W)** hides a card while its device draws less – e.g. 1 W for "off".
 
 The **Holograms** button in the energy bar (next to ⚡) hides all cards and shows them again – handy when many devices carry one. The card has the button too, or you fix it with `holograms`.
 

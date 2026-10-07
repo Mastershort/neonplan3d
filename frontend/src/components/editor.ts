@@ -3270,6 +3270,10 @@ export class Fp3dEditor extends LitElement {
           ><input type="checkbox" .checked=${h.device_house !== false} ?disabled=${!admin} @change=${(e: Event) => set({ device_house: (e.target as HTMLInputElement).checked ? undefined : false })} />
           ${this.t("holo_device_house")}</label
         >
+        <label class="fp3d-check fp3d-wide" title=${this.t("holo_device_room_hint")}
+          ><input type="checkbox" .checked=${!!h.device_room} ?disabled=${!admin} @change=${(e: Event) => set({ device_room: (e.target as HTMLInputElement).checked || undefined })} />
+          ${this.t("holo_device_room")}</label
+        >
         <label class="fp3d-check fp3d-wide" title=${this.t("holo_mirror_hint")}
           ><input type="checkbox" .checked=${h.mirror !== false} ?disabled=${!admin} @change=${(e: Event) => set({ mirror: (e.target as HTMLInputElement).checked ? undefined : false })} />
           ${this.t("holo_mirror")}</label
