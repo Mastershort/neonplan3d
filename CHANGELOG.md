@@ -4,6 +4,25 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 [releases page](https://github.com/Mastershort/neonplan3d/releases). Ideas and votes:
 [Discussions → Ideas](https://github.com/Mastershort/neonplan3d/discussions/categories/ideas).
 
+## 1.12.6
+
+### New
+
+- Start view per room: angle, zoom and framing; tapping the room in 3D flies there (#282 by RobertSorgenfrei).
+- The start view of the house and of a floor also remembers the point the camera looks at (#206 by janoschbatschi).
+- Settings: switch for the sunlight patches through the windows (#266 by ciechompl).
+- Hologram settings: switch "Mirrored from behind (like glass)", on by default (#271 by barney798).
+- Discord community, linked in the editor's help section and on the Extensions page.
+
+### Fixed
+
+- Select fields in the editor kept showing the value of the item before after switching items.
+- Robot vacuum with dock (pack) offers vacuum entities and glows while cleaning (#273 by ElVincenco).
+- Motorised curtain (pack) can follow a cover entity and glows while open (#286 by frops83).
+- Heatmap legend: no wrong "no matching sensors" line on the first tap; it sits above the star button.
+- "Add rooms from HA areas" shows the number in brackets.
+- Online demo: no grey boxes for furniture of packs the demo does not have.
+
 ## 1.12.5
 
 ### Fixed
