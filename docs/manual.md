@@ -447,7 +447,7 @@ The 3D view has three levels:
 
 | Switch | Effect |
 |---|---|
-| **Tall walls** / **Cut** | Walls at full height, the front ones as tinted glass, or all walls cut at hip height – tall furniture (wardrobe, stairs, tall units) is cut with them, so it hides nothing behind it |
+| **Tall walls** / **Cut** | Walls at full height, the front ones as tinted glass, or all walls cut at hip height – tall furniture (wardrobe, stairs, tall units) is cut with them, so it hides nothing behind it. Each device remembers the choice |
 | **Apart** / **Stacked** | In the house view: floors pulled apart or on top of each other |
 | **Roof stays** | In the house view: the roof stays while zooming in instead of lifting and fading (in the editor's roof and energy tools it always stays) |
 | **Dimmed** / **Stacked** / **Alone** | With an open floor: what happens to the floors below |
@@ -468,6 +468,8 @@ At the top right:
 | **Auto** / **Tablet** / **High** | Quality level. Tablet leaves out patterns, shadows and halos and is chosen automatically on Fire tablets. High adds light cones under spots |
 | **Neon** / **Blueprint** / **Day** | The look. The colour well beside it sets an **accent colour of your own**: in the neon look lines and glowing edges take it, the buttons and pins in every look; ↺ brings the cyan back |
 | **None** / **Important** / **All** | Which device markers appear. Important shows only devices without their own 3D model and values such as watts or the running app |
+| **◧ / ◨** | Floor pictures, star, search and eye on the left or on the right – handy when the view sits at the left edge of a dashboard |
+| **⌖ Keep view** | Switching from floor to floor keeps the camera where it is; only its height follows |
 | **FPS** | Frame rate, slowest frame and the reason for every drawn frame. At rest it reads 0 fps |
 
 At the far right of the header stands the installed version (e.g. v1.11.0); hovering it shows which version the integration in Home Assistant reports.
@@ -643,6 +645,8 @@ In the house view a glass hologram hangs on the largest solar field (beside the 
 
 Also without a solar system: every device with a power sensor (TV, washing machine, fridge, heat pump, PC, wallbox) can carry a small glass card over itself – power now, today's consumption and the day curve from its sensor's statistics. Tick **Hologram over the device** in the furniture form – or in the form of a placed device with a power sensor, such as a smart plug. When devices stand close together (washer and dryer), their cards step out of each other's way. The cards show in the house view and on the device's floor; a tap folds them. Ten cards cost less than one cable, on the wall tablet too.
 
+An opened room shows only the cards of the devices in that room. In the hologram settings, **Device cards in the house view too** keeps them out of the house view (then only on their floor and in their room), and **Hide device cards below (W)** hides a card while its device draws less – e.g. 1 W for "off".
+
 The **Holograms** button in the energy bar (next to ⚡) hides all cards and shows them again – handy when many devices carry one. The card has the button too, or you fix it with `holograms`.
 
 **Wall tablet:** on the tablet level the holograms run without the glass effect and the cables at half the frame rate.
@@ -784,6 +788,8 @@ room: room_ab12cd34     # start in this room (id from the editor), e.g. a displa
 height: 420             # height in pixels
 fill: false             # fill the screen below the header
 walls: auto             # auto | cut
+controls_side: left     # left | right: floor pictures, star, search and eye on the right
+keep_view: false        # true: floor switches keep the camera
 explode: true           # pull floors apart in the house view
 floor_stack: dim        # floors below: dim | stacked | single
 quality: auto           # auto | low | high

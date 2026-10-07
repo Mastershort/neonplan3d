@@ -87,6 +87,20 @@ export type MarkerMode = "none" | "important" | "all";
 
 
 
+/**
+ * An own button lights up while the entity it works on is active (#188): the entity of "more info", or the
+ * entity_id a service call targets (a single one).
+ */
+/** The room a point of a floor lies in (for device cards shown in their room). */
+function roomAt(floor: { rooms: readonly { id: string; points: [number, number][] }[] }, x: number, z: number): string | null {
+  return floor.rooms.find((r) => r.points.length >= 3 && pointInPolygon([x, z], r.points))?.id ?? null;
+}
+
+function ownButtonOn(hass: HomeAssistant, btn: CustomButton): boolean {
+  const target = btn.action === "more_info" ? btn.target : btn.data?.entity_id;
+  return typeof target === "string" && isActive(hass.states[target]);
+}
+
 export class Fp3dView3d extends LitElement {
   static properties = {
     hass: { attribute: false },
@@ -148,6 +162,8 @@ export class Fp3dView3d extends LitElement {
     roomLabels: { attribute: false },
     floorStack: { attribute: false },
     panelOpen: { attribute: false },
+    controlsRight: { attribute: false },
+    keepView: { attribute: false },
     alerts: { attribute: false },
     alertJump: { attribute: false },
     scenes: { attribute: false },
@@ -272,6 +288,10 @@ export class Fp3dView3d extends LitElement {
   private declare _low: boolean;
   /** A room panel (or sheet) is open next to the view: on small screens the view's own controls hide. */
   declare panelOpen: boolean;
+  /** The floor pictures, star, search and eye on the right instead of the left (#285). */
+  declare controlsRight: boolean;
+  /** Floor switches keep the camera (#191). */
+  declare keepView: boolean;
   /** The stage is narrower than 700 px (smaller floor pictures, phone layout). */
   private declare _narrowStage: boolean;
   private resizeObs: ResizeObserver | null = null;
@@ -399,6 +419,8 @@ export class Fp3dView3d extends LitElement {
     this.floorStack = "dim";
     this._low = false;
     this.panelOpen = false;
+    this.controlsRight = false;
+    this.keepView = false;
     this._narrowStage = false;
     this.alerts = true;
     this.alertJump = false;
@@ -448,6 +470,19 @@ export class Fp3dView3d extends LitElement {
 
   protected firstUpdated(): void {
     this.observeStage();
+    // the mouse wheel over a hologram card zooms the view like anywhere else on the stage (#239)
+    this.renderRoot.addEventListener(
+      "wheel",
+      (e) => {
+        const ev = e as WheelEvent;
+        if (!(ev.target as Element | null)?.closest?.(".fp3d-holo")) return;
+        const canvas = this.renderRoot.querySelector("canvas");
+        if (!canvas) return;
+        ev.preventDefault();
+        canvas.dispatchEvent(new WheelEvent("wheel", ev));
+      },
+      { passive: false },
+    );
     void this.start();
   }
 
@@ -497,6 +532,7 @@ export class Fp3dView3d extends LitElement {
         },
       });
       this.viewer.setWallMode(this.wallMode);
+      this.viewer.setKeepView(this.keepView);
       this.viewer.setTheme(this.theme);
       this.viewer.setAccent(this.accent ?? null);
       this.viewer.setFurnishMode(this.furnish);
@@ -567,6 +603,7 @@ export class Fp3dView3d extends LitElement {
     if (changed.has("floorId")) v.setFloor(this.floorId);
     if (changed.has("roomId") && (this.roomId || changed.get("roomId"))) v.selectRoom(this.roomId);
     if (changed.has("wallMode")) v.setWallMode(this.wallMode);
+    if (changed.has("keepView")) v.setKeepView(this.keepView);
     if (changed.has("explode")) v.setExplode(this.explode);
     if (changed.has("keepRoof")) v.setKeepRoof(this.keepRoof);
     if (changed.has("floorStack")) v.setFloorStack(this.floorStack);
@@ -737,7 +774,7 @@ export class Fp3dView3d extends LitElement {
       const floorId = face.wall?.floorId ?? (face.unbounded ? (b.floors.find((f) => f.elevation === Math.min(...b.floors.map((x) => x.elevation)))?.id ?? b.floors[0].id) : [...b.floors].sort((p, q) => q.elevation - p.elevation)[0].id);
       return { p: [c[0] + face.n[0] * 0.05, c[1] + face.n[1] * 0.05, c[2] + face.n[2] * 0.05] as [number, number, number], n: [face.n[0], face.n[1], face.n[2]] as [number, number, number], floorId, size, roof: true, views: "house" as const };
     };
-    const anchors: { p: [number, number, number]; n: [number, number, number]; floorId: string; size: number; roof: boolean; views: "house" | "all" }[] = [];
+    const anchors: { p: [number, number, number]; n: [number, number, number]; floorId: string; size: number; roof: boolean; views: "house" | "all" | "floor"; room?: string | null }[] = [];
     const cards: HoloCard[] = [];
     const anyEnergy = summary.grid !== null || summary.battery !== null || summary.solar !== null;
     const free = holo.place === "free" && Number.isFinite(holo.x) && Number.isFinite(holo.z);
@@ -830,7 +867,9 @@ export class Fp3dView3d extends LitElement {
         }
       }
     }
-    // device holograms: a small card over every device the editor marked, on its floor and in the house view
+    // device holograms: a small card over every device the editor marked, on its floor, in its room and – unless
+    // switched off (#226) – in the house view
+    const deviceViews = holo.device_house === false ? ("floor" as const) : ("all" as const);
     if (pro) {
       for (const floor of b.floors) {
         for (const f of floor.furniture) {
@@ -840,7 +879,7 @@ export class Fp3dView3d extends LitElement {
           if (!sensor && !c) continue;
           // anchors are building coordinates: the floor's elevation plus the device's top on its floor (#151)
           const top = floor.elevation + mountBase(floor, f) + f.h;
-          anchors.push({ p: [f.x, top + 0.1, f.z], n: [0, 1, 0], floorId: floor.id, size: holo.size * 0.7, roof: false, views: "all" });
+          anchors.push({ p: [f.x, top + 0.1, f.z], n: [0, 1, 0], floorId: floor.id, size: holo.size * 0.7, roof: false, views: deviceViews, room: roomAt(floor, f.x, f.z) });
           cards.push({
             kind: "device",
             name: f.name || furnitureName(hass, f.type),
@@ -855,7 +894,7 @@ export class Fp3dView3d extends LitElement {
           const sensor = powerSensorFor(hass, pl.entity_id);
           if (!sensor) continue;
           const top = floor.elevation + (pl.y ?? 0.4) + 0.2;
-          anchors.push({ p: [pl.x, top, pl.z], n: [0, 1, 0], floorId: floor.id, size: holo.size * 0.7, roof: false, views: "all" });
+          anchors.push({ p: [pl.x, top, pl.z], n: [0, 1, 0], floorId: floor.id, size: holo.size * 0.7, roof: false, views: deviceViews, room: roomAt(floor, pl.x, pl.z) });
           cards.push({ kind: "device", name: pl.name || entityName(hass, pl.entity_id), w: readPower(hass.states[sensor]), dayIds: [sensor], battery: null });
         }
       }
@@ -1145,6 +1184,10 @@ export class Fp3dView3d extends LitElement {
       return;
     }
     if (main && on !== this._holoOn) this._holoOn = on;
+    // a device card can stay away while its device is (nearly) off (#244)
+    const card = this._holos[index];
+    const minW = (this.building?.settings.roof.hologram ?? DEFAULT_HOLOGRAM).device_min_w ?? 0;
+    if (card?.kind === "device" && minW > 0 && (card.w ?? 0) < minW) on = false;
     const hidden = !on;
     if (el.hidden !== hidden) el.hidden = hidden;
     if (link && link.hasAttribute("hidden") !== hidden) link.toggleAttribute("hidden", hidden);
@@ -1199,7 +1242,7 @@ export class Fp3dView3d extends LitElement {
   private renderHologram() {
     const e = this._energy;
     // the editor keeps the energy bar off but asks for the holograms in its energy tool
-    if (!(hasFeature("energy_pro") || hasFeature("sound") || hasFeature("auto_pro")) || this.roomId || !(this.showEnergy || this.holograms) || !this.holoVisible()) return nothing;
+    if (!(hasFeature("energy_pro") || hasFeature("sound") || hasFeature("auto_pro")) || !(this.showEnergy || this.holograms) || !this.holoVisible()) return nothing;
     // the plants' cards belong to the house view – with a single floor that floor is the house view (#255)
     const house = this.floorId === null || (this.building?.floors.length ?? 0) <= 1;
     const plants = !!e && (e.solar !== null || e.grid !== null || e.battery !== null) && house;
@@ -2260,6 +2303,7 @@ export class Fp3dView3d extends LitElement {
               ${own.map(
                 (btn) => html`<button
                   class="fp3d-chip fp3d-own-btn"
+                  aria-pressed=${ownButtonOn(hass, btn)}
                   @click=${(e: Event) => {
                     runButton(hass, e.currentTarget as HTMLElement, btn);
                     if (btn.action !== "service") this._central = false;
@@ -2667,7 +2711,7 @@ export class Fp3dView3d extends LitElement {
     const stage = STAGE[this.theme] ?? STAGE.neon;
     const style = `--fp3d-sky:${mix(stage.night[0], stage.day[0])};--fp3d-ground:${mix(stage.night[1], stage.day[1])}`;
     return html`<div
-      class="fp3d-stage ${this.roomLabels ? "" : "fp3d-no-room-names"} ${this._low ? "fp3d-low" : ""} ${this.panelOpen ? "fp3d-panel-open" : ""} ${this._alerts.length ? "fp3d-has-alerts" : ""} ${this._through ? "fp3d-through-on" : ""} ${this._flash ? "fp3d-flash" : ""}"
+      class="fp3d-stage ${this.roomLabels ? "" : "fp3d-no-room-names"} ${this._low ? "fp3d-low" : ""} ${this.panelOpen ? "fp3d-panel-open" : ""} ${this.controlsRight ? "fp3d-side-right" : ""} ${this._alerts.length ? "fp3d-has-alerts" : ""} ${this._through ? "fp3d-through-on" : ""} ${this._flash ? "fp3d-flash" : ""}"
       style=${style}
     >
       ${this._error ? html`<p class="fp3d-error">${this._error}</p>` : nothing} ${this.clean ? nothing : this.renderEnergy()} ${this.renderHologram()} ${this.clean ? nothing : this.renderLegend()}
@@ -3897,6 +3941,18 @@ export class Fp3dView3d extends LitElement {
         .fp3d-has-alerts .fp3d-legend {
           top: 110px;
         }
+      }
+      /* the view's own controls on the right (#285); the room panel opens there, so they make way for it */
+      .fp3d-side-right :is(.fp3d-thumbs, .fp3d-find-btn, .fp3d-central-btn, .fp3d-central, .fp3d-eye-clean, .fp3d-find, .fp3d-legend) {
+        left: auto;
+        right: 12px;
+      }
+      .fp3d-side-right .fp3d-eye {
+        left: auto;
+        right: 56px;
+      }
+      .fp3d-side-right.fp3d-panel-open :is(.fp3d-thumbs, .fp3d-find-btn, .fp3d-central-btn, .fp3d-central, .fp3d-eye-clean, .fp3d-find, .fp3d-legend) {
+        display: none;
       }
       /* a room sheet covers the lower half: the view's own controls step aside */
       @container fp3d ((max-width: 700px) or ((orientation: portrait) and (max-width: 1000px))) {

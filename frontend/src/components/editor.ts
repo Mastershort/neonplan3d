@@ -387,7 +387,13 @@ export class Fp3dEditor extends LitElement {
       /* no storage */
     }
     this._backupBusy = false;
+    // the 3D pane's wall view stays as it was last set on this device (#309)
     this._wall3d = "cut";
+    try {
+      if (localStorage.getItem("neonplan3d.walls3d") === "auto") this._wall3d = "auto";
+    } catch {
+      // no storage: the default
+    }
     this._doc3d = this._doc;
     this._sideOpen = false;
     let pinned = true;
@@ -687,8 +693,8 @@ export class Fp3dEditor extends LitElement {
       ${this.houseTool
         ? nothing
         : html`<div class="fp3d-seg fp3d-3d-walls">
-            <button aria-pressed=${this._wall3d === "auto"} @click=${() => (this._wall3d = "auto")}>${this.t("walls_auto")}</button>
-            <button aria-pressed=${this._wall3d === "cut"} @click=${() => (this._wall3d = "cut")}>${this.t("walls_cut")}</button>
+            <button aria-pressed=${this._wall3d === "auto"} @click=${() => this.setWall3d("auto")}>${this.t("walls_auto")}</button>
+            <button aria-pressed=${this._wall3d === "cut"} @click=${() => this.setWall3d("cut")}>${this.t("walls_cut")}</button>
           </div>`}
       ${this.render3dBar()}
       <fp3d-view3d
@@ -739,6 +745,15 @@ export class Fp3dEditor extends LitElement {
         }}
       ></fp3d-view3d>
     </div>`;
+  }
+
+  private setWall3d(mode: WallMode): void {
+    this._wall3d = mode;
+    try {
+      localStorage.setItem("neonplan3d.walls3d", mode);
+    } catch {
+      // no storage: not remembered
+    }
   }
 
   protected updated(): void {
@@ -3250,6 +3265,11 @@ export class Fp3dEditor extends LitElement {
               ${this.num(this.t("holo_right"), h.right, (v) => set({ right: Math.min(30, Math.max(-30, round(v))) }), 0.25)}
               ${this.num(this.t("holo_up"), h.up, (v) => set({ up: Math.min(30, Math.max(-30, round(v))) }), 0.25)}`}
         ${this.num(this.t("holo_size"), h.size, (v) => set({ size: Math.min(3, Math.max(0.3, round(v))) }), 0.1, 0.3)}
+        ${this.num(this.t("holo_device_min_w"), h.device_min_w ?? 0, (v) => set({ device_min_w: Math.max(0, Math.round(v)) }), 1, 0)}
+        <label class="fp3d-check fp3d-wide" title=${this.t("holo_device_house_hint")}
+          ><input type="checkbox" .checked=${h.device_house !== false} ?disabled=${!admin} @change=${(e: Event) => set({ device_house: (e.target as HTMLInputElement).checked ? undefined : false })} />
+          ${this.t("holo_device_house")}</label
+        >
         <label class="fp3d-check fp3d-wide" title=${this.t("holo_mirror_hint")}
           ><input type="checkbox" .checked=${h.mirror !== false} ?disabled=${!admin} @change=${(e: Event) => set({ mirror: (e.target as HTMLInputElement).checked ? undefined : false })} />
           ${this.t("holo_mirror")}</label

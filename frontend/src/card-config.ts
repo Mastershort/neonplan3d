@@ -12,6 +12,10 @@ export interface CardConfig {
   start_view?: StartView;
   height?: number;
   walls?: WallMode;
+  /** The floor pictures, star, search and eye on the right instead of the left (#285). */
+  controls_side?: "left" | "right";
+  /** Switching floors keeps the camera (#191). */
+  keep_view?: boolean;
   /** Pull floors apart in the house view (default true). */
   explode?: boolean;
   /** A "Cameras" button that opens the camera wall, every camera's live picture (Pro: camera cockpit). */

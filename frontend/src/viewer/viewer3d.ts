@@ -507,7 +507,7 @@ export class FloorplanViewer {
   /** The roof: one group with a part per floor it sits on (each part follows its floor). */
   private roof: { group: Group; parts: { group: Group; floorId: string; rideId: string; base: number; lift: boolean }[]; solid: MeshBasicMaterial; lines: LineBasicMaterial; glass: MeshBasicMaterial; live: MeshBasicMaterial; lives: SolarLive[] } | null = null;
   /** The hologram's anchor: a point on the solar field (building coordinates) and the field's normal. */
-  private anchors: { p: [number, number, number]; n: [number, number, number]; floorId: string; size: number; roof: boolean; views: "house" | "all" }[] = [];
+  private anchors: { p: [number, number, number]; n: [number, number, number]; floorId: string; size: number; roof: boolean; views: "house" | "all" | "floor"; room?: string | null }[] = [];
   /** Told where the anchor lies on screen after every frame, how large the hologram should be and whether its front faces the camera. */
   private anchorCb: ((index: number, x: number, y: number, visible: boolean, scale: number, facing: boolean) => void) | null = null;
   /** Energie Pro: production level (0..1) per solar field; the overlays animate while any is above zero. */
@@ -573,6 +573,9 @@ export class FloorplanViewer {
   private roomTint: Map<string, [number, number, number]> | null = null;
   private houseRadius = 20;
   private startView: StartView | null = null;
+  private keepView = false;
+  /** The next fit keeps the camera (a floor-to-floor switch with keepView). */
+  private keepNext = false;
   private fpsStart = 0;
 
   constructor(host: HTMLElement, options: ViewerOptions = {}) {
@@ -687,7 +690,13 @@ export class FloorplanViewer {
   }
 
   /** Show one floor (null = the whole house). */
+  /** Switching from one floor to another keeps the camera where it is (only its height follows), #191. */
+  setKeepView(on: boolean): void {
+    this.keepView = on;
+  }
+
   setFloor(floorId: string | null, animate = true): void {
+    this.keepNext = this.keepView && floorId !== null && this.floorId !== null && floorId !== this.floorId;
     this.floorId = floorId;
     this.roomId = null;
     this.labelsDirty = true;
@@ -842,7 +851,7 @@ export class FloorplanViewer {
    * The holograms' anchors: points on the solar fields with their normals (they ride up with the roof and
    * show in the house view only), and points over devices (shown on their floor as well).
    */
-  setAnchors(anchors: { p: [number, number, number]; n: [number, number, number]; floorId: string; size: number; roof: boolean; views: "house" | "all" }[]): void {
+  setAnchors(anchors: { p: [number, number, number]; n: [number, number, number]; floorId: string; size: number; roof: boolean; views: "house" | "all" | "floor"; room?: string | null }[]): void {
     this.anchors = anchors;
     this.labelsDirty = true;
     this.invalidate();
@@ -2739,6 +2748,13 @@ export class FloorplanViewer {
     // the start view's framing (#206): the point it looks at, counted from the opened floor
     const at = useRadius ? start!.target : null;
     if (at) center.set(at.x, at.y + (own ? this.floorBase(this.floorId) : 0), at.z);
+    if (this.keepNext) {
+      // the same angle, distance and spot – only lifted to the opened floor
+      this.keepNext = false;
+      const cur = this.controls.view;
+      this.controls.flyTo({ target: new Vector3(cur.target.x, center.y, cur.target.z), radius: cur.radius, phi: cur.phi, theta: cur.theta }, duration);
+      return;
+    }
     this.controls.flyTo({ target: center, radius: useRadius ? start!.radius : radius, phi: start ? start.phi : 0.85, theta: start ? start.theta : -0.6 }, duration);
   }
 
@@ -3555,8 +3571,13 @@ export class FloorplanViewer {
       // view only, a device's also on its own floor
       this.anchors.forEach((a, i) => {
         const fv = this.floorMap.get(a.floorId);
+        // an opened room shows the device cards of that room only; "floor" cards stay out of the house view (#226, #235)
+        if ((this.roomId !== null && a.room !== this.roomId) || (a.views === "floor" && this.floorId === null)) {
+          this.anchorCb!(i, 0, 0, false, 1, true);
+          return;
+        }
         // a single floor is the house view as well (#255)
-        if (this.floorId !== null && this.floors.length > 1 && (a.views !== "all" || a.floorId !== this.floorId)) {
+        if (this.floorId !== null && this.floors.length > 1 && (a.views === "house" || a.floorId !== this.floorId)) {
           this.anchorCb!(i, 0, 0, false, 1, true);
           return;
         }

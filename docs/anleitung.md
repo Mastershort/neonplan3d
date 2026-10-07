@@ -449,7 +449,7 @@ Die 3D-Ansicht hat drei Ebenen:
 
 | Schalter | Wirkung |
 |---|---|
-| **Wände hoch** / **Schnitt** | Wände in voller Höhe, die vorderen als getöntes Glas, oder alle Wände in Hüfthöhe geschnitten – hohe Möbel (Schrank, Treppe, Hochschrank) werden mitgeschnitten, damit sie nichts dahinter verdecken |
+| **Wände hoch** / **Schnitt** | Wände in voller Höhe, die vorderen als getöntes Glas, oder alle Wände in Hüfthöhe geschnitten – hohe Möbel (Schrank, Treppe, Hochschrank) werden mitgeschnitten, damit sie nichts dahinter verdecken. Die Wahl merkt sich jedes Gerät |
 | **Auseinander** / **Gestapelt** | In der Hausansicht: Etagen auseinandergezogen oder aufeinander |
 | **Dach bleibt** | In der Hausansicht: Das Dach bleibt beim Heranzoomen liegen, statt sich zu heben und auszublenden (im Editor gilt das im Werkzeug Dach und Energie immer) |
 | **Abgedunkelt** / **Gestapelt** / **Einzeln** | Bei einer offenen Etage: Was mit den Etagen darunter passiert |
@@ -470,6 +470,8 @@ Oben rechts stehen:
 | **Auto** / **Tablet** / **Hoch** | Qualitätsstufe. Tablet lässt Muster, Schatten und Halos weg und wird auf Fire-Tablets automatisch gewählt. Hoch zeigt zusätzlich Lichtkegel unter Spots |
 | **Neon** / **Blueprint** / **Tag** | Der Look. Das Farbfeld daneben setzt eine **eigene Akzentfarbe**: Im Neon-Look nehmen Linien und Leuchtkanten sie an, die Knöpfe und Pins in jedem Look; ↺ bringt das Cyan zurück |
 | **Keine** / **Wichtige** / **Alle** | Welche Gerätesymbole erscheinen. Wichtige zeigt nur Geräte ohne eigenes 3D-Modell und Werte wie Watt oder die laufende App |
+| **◧ / ◨** | Etagenbilder, Stern, Suche und Auge links oder rechts – praktisch, wenn die Ansicht am linken Rand des Dashboards sitzt |
+| **⌖ Ansicht halten** | Beim Wechsel von Etage zu Etage bleibt die Kamera, wo sie ist; nur die Höhe wandert mit |
 | **FPS** | Bildrate, langsamstes Bild und Grund für jedes gezeichnete Bild. Im Ruhezustand steht dort 0 B/s |
 
 Ganz rechts in der Kopfzeile steht die installierte Version (z. B. v1.11.0); der Mauszeiger darauf zeigt, welche Version die Integration in Home Assistant meldet.
@@ -645,6 +647,8 @@ In der Hausansicht hängt ein Hologramm aus Glas am größten Solarfeld (ohne Fe
 
 Auch ohne Solaranlage: Jedes Gerät mit Leistungssensor (Fernseher, Waschmaschine, Kühlschrank, Wärmepumpe, PC, Wallbox) kann eine kleine Glaskarte über sich tragen – Leistung jetzt, Verbrauch heute und die Tageskurve aus den Statistiken seines Sensors. Im Möbelformular den Haken **Hologramm über dem Gerät** setzen – genauso im Formular eines platzierten Geräts mit Leistungssensor, etwa einer smarten Steckdose. Stehen Geräte dicht nebeneinander (Waschmaschine und Trockner), weichen ihre Karten einander nach oben aus. Die Karten zeigen sich in der Hausansicht und auf der Etage des Geräts; Antippen klappt sie zusammen. Zehn Karten kosten weniger als eine Leitung, auch auf dem Wandtablet.
 
+In einem geöffneten Raum erscheinen nur die Karten der Geräte in diesem Raum. In den Hologramm-Einstellungen blendet **Geräte-Karten auch in der Hausansicht** sie in der Hausansicht aus (dann nur auf ihrer Etage und in ihrem Raum), und **Geräte-Karten ausblenden unter (W)** lässt Karten verschwinden, solange ihr Gerät weniger zieht – etwa 1 W für „aus“.
+
 Der Knopf **Hologramme** in der Energieleiste (neben ⚡) blendet alle Karten aus und wieder ein – praktisch, wenn viele Geräte eine tragen. In der Karte gibt es den Knopf ebenfalls, oder du legst es mit `holograms` fest.
 
 **Wandtablet:** Auf der Tablet-Stufe laufen die Hologramme ohne Glaseffekt, die Leitungen mit halber Bildrate.
@@ -786,6 +790,8 @@ room: room_ab12cd34     # in diesem Raum starten (ID aus dem Editor), z. B. ein 
 height: 420             # Höhe in Pixeln
 fill: false             # den Bildschirm unter der Kopfzeile füllen
 walls: auto             # auto | cut
+controls_side: left     # left | right: Etagenbilder, Stern, Suche und Auge rechts
+keep_view: false        # true: Etagenwechsel ohne neuen Kameraflug
 explode: true           # Etagen in der Hausansicht auseinanderziehen
 floor_stack: dim        # Etagen darunter: dim | stacked | single
 quality: auto           # auto | low | high

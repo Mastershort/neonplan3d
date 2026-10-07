@@ -410,6 +410,10 @@ export interface HologramSettings {
   up: number;
   /** Seen from behind its field the card shows its back, mirrored like glass (default); false keeps it readable. */
   mirror?: boolean;
+  /** Device cards hide while their device draws less than this many watts (0 / unset: always shown, #244). */
+  device_min_w?: number;
+  /** Device cards also in the house view (default); false: only on their floor and in their room (#226). */
+  device_house?: boolean;
 }
 
 export const DEFAULT_HOLOGRAM: HologramSettings = { field: null, size: 1, right: 0, up: 0 };

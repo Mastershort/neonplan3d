@@ -65,6 +65,8 @@ export class Floorplan3dPanel extends LitElement {
     _selDevice: { state: true },
     _floorStack: { state: true },
     _roomNames: { state: true },
+    _controlsRight: { state: true },
+    _keepView: { state: true },
     _trail: { state: true },
     _cameraWall: { state: true },
     _clean: { state: true },
@@ -101,6 +103,8 @@ export class Floorplan3dPanel extends LitElement {
   /** Floors below an opened floor, and whether room names show (both kept per device). */
   private declare _floorStack: FloorStack;
   private declare _roomNames: boolean;
+  private declare _controlsRight: boolean;
+  private declare _keepView: boolean;
   /** Motion trail of the last half hour in 3D. */
   private declare _trail: boolean;
   private declare _cameraWall: boolean;
@@ -126,7 +130,8 @@ export class Floorplan3dPanel extends LitElement {
     this._editorReady = !!customElements.get("fp3d-editor");
     this._floorId = null;
     this._roomId = null;
-    this._wallMode = "auto";
+    // the wall view stays as it was last set on this device (#309)
+    this._wallMode = prefs.get("walls") === "cut" ? "cut" : "auto";
     this._explode = prefs.get("explode") !== "0";
     this._keepRoof = prefs.get("roof") === "1";
     const quality = prefs.get("quality");
@@ -146,6 +151,8 @@ export class Floorplan3dPanel extends LitElement {
     const stack = prefs.get("floor_stack");
     this._floorStack = stack === "stacked" || stack === "single" ? stack : "dim";
     this._roomNames = prefs.get("room_names") !== "0";
+    this._controlsRight = prefs.get("controls") === "right";
+    this._keepView = prefs.get("keep_view") === "1";
     this._trail = prefs.get("trail") === "1";
     this._cameraWall = false;
     this._clean = prefs.get("clean") === "1";
@@ -189,6 +196,11 @@ export class Floorplan3dPanel extends LitElement {
     }
     if (!roomId) return;
     this._roomId = roomId === this._roomId ? null : roomId;
+  }
+
+  private setWallMode(mode: WallMode): void {
+    this._wallMode = mode;
+    prefs.set("walls", mode);
   }
 
   private setKeepRoof(on: boolean): void {
@@ -509,7 +521,32 @@ export class Floorplan3dPanel extends LitElement {
                     </button>`,
                 )}
               </div>
-              <div class="fp3d-seg fp3d-quality">
+              <div class="fp3d-seg fp3d-quality" role="group" aria-label=${this.t("controls_side")} title=${this.t("controls_side")}>
+                ${([false, true] as const).map(
+                  (right) =>
+                    html`<button
+                      aria-pressed=${this._controlsRight === right}
+                      title=${this.t(right ? "controls_right" : "controls_left")}
+                      aria-label=${this.t(right ? "controls_right" : "controls_left")}
+                      @click=${() => {
+                        this._controlsRight = right;
+                        prefs.set("controls", right ? "right" : "left");
+                      }}
+                    >
+                      ${right ? "◨" : "◧"}
+                    </button>`,
+                )}
+                <button
+                  aria-pressed=${this._keepView}
+                  title=${`${this.t("keep_view")}: ${this.t("keep_view_hint")}`}
+                  aria-label=${this.t("keep_view")}
+                  @click=${() => {
+                    this._keepView = !this._keepView;
+                    prefs.set("keep_view", this._keepView ? "1" : "0");
+                  }}
+                >
+                  ⌖
+                </button>
                 <button
                   aria-pressed=${this._stats}
                   title=${this.t("fps_title")}
@@ -681,7 +718,7 @@ export class Floorplan3dPanel extends LitElement {
           ${this._navWrap ? "\u2194" : "\u2261"}
         </button>
       </nav>`}
-      <div class="fp3d-stage-wrap ${this._roomId ? "fp3d-room-open" : ""}">
+      <div class="fp3d-stage-wrap ${this._roomId ? "fp3d-room-open" : ""} ${this._controlsRight ? "fp3d-side-right" : ""}">
         <fp3d-view3d
           class="fp3d-body"
           .hass=${this.hass}
@@ -689,6 +726,8 @@ export class Floorplan3dPanel extends LitElement {
           .packs=${this.data.packs}
           .floorStack=${this._floorStack}
           .roomLabels=${this._roomNames}
+          .controlsRight=${this._controlsRight}
+          .keepView=${this._keepView}
           ?trail=${this._trail}
           .cameraWall=${this._cameraWall}
           @camera-wall-close=${() => (this._cameraWall = false)}
@@ -739,8 +778,8 @@ export class Floorplan3dPanel extends LitElement {
           : nothing}
         ${this._clean ? nothing : html`<div class="fp3d-overlay">
           <div class="fp3d-seg">
-            <button aria-pressed=${this._wallMode === "auto"} @click=${() => (this._wallMode = "auto")}>${this.t("walls_auto")}</button>
-            <button aria-pressed=${this._wallMode === "cut"} @click=${() => (this._wallMode = "cut")}>${this.t("walls_cut")}</button>
+            <button aria-pressed=${this._wallMode === "auto"} @click=${() => this.setWallMode("auto")}>${this.t("walls_auto")}</button>
+            <button aria-pressed=${this._wallMode === "cut"} @click=${() => this.setWallMode("cut")}>${this.t("walls_cut")}</button>
           </div>
           ${b.floors.length > 1 && !this._floorId
             ? html`<div class="fp3d-seg">
@@ -1165,6 +1204,11 @@ export class Floorplan3dPanel extends LitElement {
         .fp3d-room-open .fp3d-overlay {
           display: none;
         }
+      }
+      /* search and eye on the right (#285): the bar leaves room there instead */
+      .fp3d-side-right .fp3d-overlay {
+        left: 12px;
+        right: 100px;
       }
       .fp3d-overlay {
         position: absolute;

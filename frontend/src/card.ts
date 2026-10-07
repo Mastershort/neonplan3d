@@ -15,6 +15,15 @@ import type { WallMode } from "./viewer/viewer3d.ts";
 
 type HeatMode = NonNullable<CardConfig["heatmap"]>;
 
+function savedWalls(): WallMode | null {
+  try {
+    const v = localStorage.getItem("neonplan3d.card_walls");
+    return v === "auto" || v === "cut" ? v : null;
+  } catch {
+    return null;
+  }
+}
+
 export class Floorplan3dCard extends LitElement {
   static properties = {
     hass: { attribute: false },
@@ -59,7 +68,7 @@ export class Floorplan3dCard extends LitElement {
     super();
     this._roomId = null;
     this._floorId = undefined;
-    this._walls = null;
+    this._walls = savedWalls();
     this._heat = null;
     this._explode = null;
     this._fullscreen = false;
@@ -142,11 +151,21 @@ clearTimeout(this.cleanTimer);
     return { type: "custom:neonplan3d-card" };
   }
 
+  /** A wall view picked on the card stays for the next visit on this device (#309). */
+  private setWalls(mode: WallMode): void {
+    this._walls = mode;
+    try {
+      localStorage.setItem("neonplan3d.card_walls", mode);
+    } catch {
+      // no storage: not remembered
+    }
+  }
+
   setConfig(config: CardConfig): void {
     if (config.height !== undefined && !(config.height > 100)) throw new Error("height must be a number of pixels above 100");
     this._config = config;
     this._floorId = undefined;
-    this._walls = null;
+    this._walls = savedWalls();
     this._heat = null;
     this._explode = null;
     this._orbit = false;
@@ -244,6 +263,8 @@ clearTimeout(this.cleanTimer);
               .holograms=${this._config?.holograms ?? null}
               .floorThumbs=${this.thumbs}
               .roomLabels=${c?.room_names !== false}
+              .controlsRight=${c?.controls_side === "right"}
+              .keepView=${c?.keep_view === true}
               .floorStack=${c?.floor_stack ?? "dim"}
               .panelOpen=${!!this._roomId && c?.room_panel !== false}
               .alerts=${c?.alerts !== false}
@@ -300,8 +321,8 @@ clearTimeout(this.cleanTimer);
               ${c?.camera_wall ? html`<button class="fp3d-chip" aria-pressed=${this._cameraWall} title=${t("camera_wall_hint")} @click=${() => (this._cameraWall = !this._cameraWall)}>${t("cameras_short")}</button>` : nothing}
               ${shows("walls")
                 ? html`<div class="fp3d-seg">
-                    <button aria-pressed=${walls === "auto"} @click=${() => (this._walls = "auto")}>${t("walls_auto")}</button>
-                    <button aria-pressed=${walls === "cut"} @click=${() => (this._walls = "cut")}>${t("walls_cut")}</button>
+                    <button aria-pressed=${walls === "auto"} @click=${() => this.setWalls("auto")}>${t("walls_auto")}</button>
+                    <button aria-pressed=${walls === "cut"} @click=${() => this.setWalls("cut")}>${t("walls_cut")}</button>
                   </div>`
                 : nothing}
               ${shows("floors") && b.floors.length > 1 && !floorId
