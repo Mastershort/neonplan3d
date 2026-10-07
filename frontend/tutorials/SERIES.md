@@ -24,6 +24,13 @@ idle pauses are not.
    draft repeats it and says newer versions may have more options.
 6. **Length: at most 7–8 minutes** (Torsten). Topics that belong together stay in one episode. If the checklist does not fit into 8 minutes at a snappy pace, split the episode into „Teil 1“ / „Teil 2“ – never drop a checklist item and never slow down.
 
+## Mentioning the extensions
+
+The free product does everything shown in the basics – say so where it fits. In the other episodes point to the
+extensions now and then, briefly and naturally, where they really fit (e.g. more furniture in the furniture packs,
+Energie Pro in the devices or roof episode when solar fields come up, the camera cockpit with the cameras): one
+sentence, at most once or twice per episode, never a sales pitch, no prices.
+
 ## Recording while the app is being developed
 
 The main session keeps building the app. Record from a **snapshot**: copy `preview/` and
@@ -42,8 +49,8 @@ Titles are German (the channel is German); an English version follows later with
 | 1 | Dein erster Grundriss | 2, 3, 4.1–4.4 (basics), 4.6 (intro only) | in progress – floor, rooms, HA areas, walls, short floor-plan picture intro |
 | 2 | Bauplan als Vorlage: Grundriss, Türen und Fenster | 4.6 in full, 4.3 „Freie Form“, 4.4, 4.7 | picture: upload, opacity, show/hide, „Verschieben, skalieren und drehen“ (move, scale, turn handles), ruler / measuring a known length, straightening; trace the plan: L-shaped room with „Freie Form“, add a point on an edge, drag corners, free walls („Wand“), wall thickness/height per edge, split a wall, „Keine Wand“, half-height wall; then doors and windows on the traced plan: every type and style (Haustür, Terrassentür, Doppeltür, Schiebetür, Durchbruch, Garagentor, window styles), width/height/sill, „Anschlag wechseln“, opening direction, contact sensor (contact / handle / tilt), Rollladen with position, „Markieren wenn geschlossen“, live open/closed in 3D. Likely two parts. |
 | 3 | Etagen, Treppen und Keller | 4.2 in full, 4.16, 4.18 | add/sort floors, HA floors, height above ground, ceiling height, cellar below ground, shift/turn a floor, „Alle Etagen mitnehmen“, floor start view, stairs (straight, L, U, spiral; direction; which floor they belong to), floor openings (Bodenöffnung) so the stairs go through, „3D daneben“, checking it in 3D (Auseinander/Gestapelt) |
-| 4 | Erweiterungen: Shop verbinden und Möbel-Packs | 7 | before any furniture episode: the Extensions page, connecting the shop, entering the licence key, installing/updating packs and Pro extensions, what is free (built-in furniture) and what a sampler pack is, where new items appear in the furniture library – no prices on screen, never a real licence key (use the demo's shop mode `?shop`) |
-| 5 | Möbel: platzieren, drehen, anpassen | 4.8, 4.9, 4.12, 4.14, 4.15 | library and search, placing, moving, **rotating in detail** (rotation handle in the plan, ↺ 90° / ↻ 90°, the „Drehung (°)“ field, 45° steps in 3D beside, „Spiegeln“), size fields, „Höhe über Boden“ (wall cabinet, shelf), stacking (lamp on a table), „Fixieren“, „Duplizieren“, delete, right-click menu, keyboard shortcuts, „Räume einrichten“, electric furniture (entity, power sensor, glow, two halves), parking spots + vehicles, robot vacuum with room sensor. Likely two parts. |
+| 4 | Möbel: platzieren, drehen, anpassen | 4.8, 4.9, 4.12, 4.14, 4.15 | **only built-in (free) furniture** – the point is that everything works with the free product; near the start and at the end say in one sentence that extensions with more furniture exist and that the next episode shows them; library and search, placing, moving, **rotating in detail** (rotation handle in the plan, ↺ 90° / ↻ 90°, the „Drehung (°)“ field, 45° steps in 3D beside, „Spiegeln“), size fields, „Höhe über Boden“ (wall cabinet, shelf), stacking (lamp on a table), „Fixieren“, „Duplizieren“, delete, right-click menu, keyboard shortcuts, „Räume einrichten“, electric furniture (entity, power sensor, glow, two halves), parking spots + vehicles, robot vacuum with room sensor. Likely two parts. |
+| 5 | Erweiterungen: Shop verbinden und Möbel-Packs | 7 | right after the furniture episode: the Extensions page, connecting the shop, entering the licence key, installing/updating packs and Pro extensions, what is free (built-in furniture) and what a sampler pack is, where new items appear in the furniture library – no prices on screen, never a real licence key (use the demo's shop mode `?shop`) |
 | 6 | Geräte, Lampen und Kameras | 4.10, 4.11, 4.13 | device list of a room, placing a device, markers and symbols („Symbol in 3D“, own mdi icon), lamps: ceiling/floor/table/wall mount, colour/brightness from HA, glow scale, colour entity for relays, „Vor dem Schalten nachfragen“, hiding devices, cameras: placement, wall/ceiling mount, view cone |
 | 7 | Dächer Teil 1: Satteldach, Walmdach & Co. | 4.19 (simple roof, roof sections, shapes) | simple roof in Settings vs. „Dachflächen (frei)“, suggestion from the rooms, drawing/selecting/moving/resizing a roof section, floor selector, every **Form** (Sattel, Walm, Krüppelwalm, Zelt, Mansard, Pult, Flach, Attika) shown in 3D one after another, Firstrichtung, Traufe and Neigung per side, „Seiten tauschen“, Wandoberkante, „Sitzt auf Etage“, Firsthöhe, overlapping sections (Anbau runs under the main roof), „Neu aus den Räumen erzeugen“, „Zurück zu einem Dach“, Fixieren |
 | 8 | Dächer Teil 2: Gauben, Dachfenster, Dachschrägen, Carport | 4.19 (rest) | „+ Gaube“ (move, width, heights, shape), Zwerchgiebel, Kniestock/sloped ceilings in the attic, flat roof as free outline („Umriss des Geschosses übernehmen“, „Zurück zum Rechteck“), „+ Dachfenster“ (move, blind, contact, tilt contact, window motor), Überdachung (terrace roof, carport), „Dach bleibt“ in 3D |
@@ -57,4 +64,4 @@ live, Klang & Kino, Auto Pro) come after the basics.
 
 ## Order of production
 
-In the order of the table (episode 4, the shop, must come before the furniture episode). Two agents may record at the same time.
+In the order of the table. Two agents may record at the same time.
