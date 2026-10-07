@@ -23,17 +23,30 @@ body:
     validations:
       required: true
   - type: dropdown
-    id: area
+    id: part
     attributes:
-      label: Area / Bereich
+      label: Which part? / Welcher Teil?
+      description: Pick all that fit – it sorts your report automatically. / Alles auswählen, was passt – so wird die Meldung automatisch einsortiert.
       multiple: true
       options:
+        - Plan editor / Grundriss & Editor
         - 3D view / 3D-Ansicht
-        - Plan editor / Editor
-        - Devices and control / Geräte und Bedienung
-        - Furniture / Möbel
         - Dashboard card / Dashboard-Karte
+        - Devices & control / Geräte & Bedienung
+        - Roof & solar fields / Dach & Solarfelder
+        - Outdoor & garden / Außen & Garten
+        - Furniture & packs / Möbel & Packs
+        - Energy Pro / Energie Pro
+        - Camera Cockpit / Kamera-Cockpit
+        - Weather Outside / Wetter draußen
+        - Sound & Cinema / Klang & Kino
+        - Car Pro / Auto Pro
+        - Live Screens / Live-Bildschirme
+        - Shop & licence / Shop & Lizenz
+        - Installation & update / Installation & Update
         - Other / Sonstiges
+    validations:
+      required: true
   - type: textarea
     id: more
     attributes:

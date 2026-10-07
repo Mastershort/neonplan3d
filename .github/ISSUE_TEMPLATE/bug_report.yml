@@ -23,16 +23,27 @@ body:
     validations:
       required: true
   - type: dropdown
-    id: where
+    id: part
     attributes:
-      label: Where does it happen? / Wo tritt es auf?
+      label: Which part? / Welcher Teil?
+      description: Pick all that fit – it sorts your report automatically. / Alles auswählen, was passt – so wird die Meldung automatisch einsortiert.
       multiple: true
       options:
+        - Plan editor / Grundriss & Editor
         - 3D view / 3D-Ansicht
-        - Plan editor / Editor
         - Dashboard card / Dashboard-Karte
-        - Extensions, packs, licence / Erweiterungen, Packs, Lizenz
-        - Installation, update / Installation, Update
+        - Devices & control / Geräte & Bedienung
+        - Roof & solar fields / Dach & Solarfelder
+        - Outdoor & garden / Außen & Garten
+        - Furniture & packs / Möbel & Packs
+        - Energy Pro / Energie Pro
+        - Camera Cockpit / Kamera-Cockpit
+        - Weather Outside / Wetter draußen
+        - Sound & Cinema / Klang & Kino
+        - Car Pro / Auto Pro
+        - Live Screens / Live-Bildschirme
+        - Shop & licence / Shop & Lizenz
+        - Installation & update / Installation & Update
         - Other / Sonstiges
     validations:
       required: true
