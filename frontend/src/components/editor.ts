@@ -3848,7 +3848,7 @@ export class Fp3dEditor extends LitElement {
     const fits = (t: string): boolean => {
       if (kind === "light") return isLamp(t);
       if (kind === "climate") return t === "radiator";
-      if (entityId.startsWith("vacuum.")) return t === "robot_vacuum";
+      if (entityId.startsWith("vacuum.")) return t === "robot_vacuum" || (isPackType(t) && t.endsWith(":robot_vacuum"));
       if (kind === "media") return hasScreen(t) || (isElectric(t) && speakerish.test(t));
       return isElectric(t) && !isLamp(t);
     };
@@ -6170,7 +6170,8 @@ export class Fp3dEditor extends LitElement {
             : f.type === "robot_vacuum"
               ? id.startsWith("vacuum.")
               : // or a status sensor (a 3D printer's print status: running, idle, finish …)
-                /^(switch|media_player|fan|input_boolean|climate)\./.test(id) || isStatusSensor(hass.states[id]),
+                // (a robot vacuum from a pack, e.g. the one with its dock, follows its vacuum entity)
+                /^(switch|media_player|fan|input_boolean|climate|vacuum)\./.test(id) || isStatusSensor(hass.states[id]),
     );
     const power = this.entityOptions((id) => this.isPowerSensor(id));
     const doorSensors = f.type === "fridge_smart" ? this.entityOptions((id) => id.startsWith("binary_sensor.")) : [];

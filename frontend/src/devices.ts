@@ -320,6 +320,8 @@ export function isStatusSensor(st: HassEntity | undefined): boolean {
 /** "Active" drives the glow of a device marker: light on, cover open, heating, playing, window open … */
 export function isActive(st: HassEntity | undefined): boolean {
   if (!st) return false;
+  // a robot vacuum (the pack's robot with its dock): busy while cleaning or on its way back
+  if (st.entity_id.startsWith("vacuum.")) return st.state === "cleaning" || st.state === "returning";
   switch (kindOf(st.entity_id)) {
     case "light":
     case "switch":
