@@ -49,7 +49,13 @@ export async function startRecorder({ outDir, width = 1920, height = 1080, lang 
   await new Promise((ok) => server.listen(0, "127.0.0.1", ok));
   const base = `http://127.0.0.1:${server.address().port}/preview/index.html`;
   const executablePath = [process.env.CHROME_PATH, "C:/Program Files/Google/Chrome/Application/chrome.exe", "/usr/bin/google-chrome", "/usr/bin/chromium"].filter(Boolean).find((p) => existsSync(p));
-  const browser = await puppeteer.launch({ executablePath, headless: true, args: ["--use-angle=swiftshader", "--enable-unsafe-swiftshader", "--ignore-gpu-blocklist"] });
+  // the graphics card renders about ten times faster than software (on Windows: ANGLE on Direct3D 11, the dedicated
+  // GPU); TUTORIAL_SOFTWARE=1 falls back to SwiftShader, e.g. on a machine without a usable GPU
+  const gpu = process.platform === "win32" && !process.env.TUTORIAL_SOFTWARE;
+  const args = gpu
+    ? ["--use-angle=d3d11", "--enable-gpu", "--ignore-gpu-blocklist", "--force_high_performance_gpu"]
+    : ["--use-angle=swiftshader", "--enable-unsafe-swiftshader", "--ignore-gpu-blocklist"];
+  const browser = await puppeteer.launch({ executablePath, headless: true, args });
   const page = await browser.newPage();
   await page.setViewport({ width, height, deviceScaleFactor: 1 });
 
@@ -276,18 +282,24 @@ export async function startRecorder({ outDir, width = 1920, height = 1080, lang 
 
 /**
  * Narration timing for an episode. With `audioDir` (the output of tools/tts-elevenlabs.py lines) a line lasts its
- * measured length plus 0.3 s; without it (a draft) an estimate of about 2.9 words a second.
+ * measured length plus 0.3 s; without it (a draft) an estimate of about 2.9 words a second. `audioDir` may also be a
+ * list (the German and the English voice): a line then lasts the longer of the two plus 0.3 s, so neither track is
+ * cut off. Every durations.json is keyed by the German line.
  * `say` holds the picture while the line is spoken, `sayOver` lets the next steps run under it (the next line or
  * chapter waits until it is said). `report()` lists every silence longer than `maxGap` seconds between two lines.
  */
 export function narration(R, audioDir, { maxGap = 1 } = {}) {
-  const file = audioDir ? join(audioDir, "durations.json") : null;
-  const measured = file && existsSync(file) ? JSON.parse(readFileSync(file, "utf-8")) : null;
+  const dirs = (Array.isArray(audioDir) ? audioDir : [audioDir]).filter(Boolean);
+  const files = dirs.map((d) => join(d, "durations.json")).filter((f) => existsSync(f));
+  if (files.length < dirs.length) throw new Error(`no durations.json in ${dirs.join(", ")}`);
+  const all = files.map((f) => JSON.parse(readFileSync(f, "utf-8")));
+  const measured = all.length ? all : null;
   const missing = [];
   const length = (text) => {
     if (measured) {
-      if (text in measured) return measured[text] + 0.3;
-      missing.push(text);
+      const known = measured.filter((m) => text in m).map((m) => m[text]);
+      if (known.length < measured.length) missing.push(text);
+      if (known.length) return Math.max(...known) + 0.3;
     }
     return text.split(/\s+/).length / 2.9 + 0.3;
   };
