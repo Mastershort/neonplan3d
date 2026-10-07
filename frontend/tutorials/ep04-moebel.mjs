@@ -15,7 +15,7 @@
 // Then: python ../tools/make-tutorial.py <out-dir> <out.mp4>
 
 import { appVersion, narration, startRecorder } from "./recorder.mjs";
-import { helpers } from "./ep02-common.mjs";
+import { helpers, tap } from "./ep02-common.mjs";
 
 const out = process.argv[2] ?? "tutorial-ep04";
 const PART = process.argv[3] === "b" ? "b" : "a";
@@ -115,7 +115,7 @@ R.page.on("dialog", (d) => void d.accept());
 
 // ---------------------------------------------------------------- helpers
 const editorOpen = async () => {
-  await R.clickOn({ text: "Editor", exact: true }, 0.01);
+  await tap(R, { text: "Editor", exact: true });
   await R.sleep(700);
 };
 /** A fresh install: no packs at all (no demo pack, no Pro features) – only the built-in furniture. */
@@ -470,9 +470,9 @@ if (PART === "a") {
   await editorOpen();
   await loadState(houseEp03(), "eg");
   await furnish(PACKAGES);
-  await R.clickOn({ text: "3D", exact: true, nth: 0 }, 0.01);
+  await tap(R, { text: "3D", exact: true, nth: 0 });
   await R.sleep(1500);
-  await R.clickOn({ text: "Erdgeschoss", exact: true, nth: 0 }, 0.01);
+  await tap(R, { text: "Erdgeschoss", exact: true, nth: 0 });
   await R.sleep(2500);
   {
     const A = { theta: 0.35, phi: 0.95, radius: 15 };
@@ -538,6 +538,14 @@ if (PART === "a") {
   await sayOver("Mehrere Wörter gehen auch, in beliebiger Reihenfolge. Escape leert das Feld wieder.");
   await typeOver("tisch rund");
   await R.hold(0.6);
+  await sayOver("Ein Sonderfall ist die „Arbeitsplatte“: eine freie Platte ohne Unterbau, für Lücken in der Küche oder einen selbst gebauten Schreibtisch. Ihre Höhe ist die Oberkante.");
+  await typeOver("arbeitsplatte");
+  await R.moveTo({ text: "Arbeitsplatte", exact: true, nth: 0 }, 0.5);
+  await R.frame(1.2, 600);
+  await R.moveTo({ text: "Arbeitsplatte", exact: true, nth: 1 }, 0.5);
+  await R.frame(0.6, 400);
+  await catchUp();
+  await R.clickOn("input.fp3d-search", 0.4);
   await R.key("Escape");
   await sayOver("Ganz unten führt „Erweiterungen öffnen“ zu mehr Möbeln – die zeige ich dir in Folge fünf. Heute nehmen wir nur die eingebauten.");
   await scrollSide({ text: "Erweiterungen öffnen" }, 900, 0.8);
@@ -714,6 +722,9 @@ if (PART === "a") {
   await R.hold(0.6);
   await R.clickOn({ text: "Höhe automatisch" }, 0.5);
   await R.hold(0.6);
+  await sayOver("Deckenleuchten, Treppe und Stellplatz haben dieses Feld nicht: Sie hängen an der Decke oder liegen auf dem Boden.");
+  await R.moveTo({ label: "Höhe über Boden" }, 0.5);
+  await R.hold(0.4);
 
   // ---------------------------------------------------------------- stacking
   await chapter("Lampe auf dem Tisch");
@@ -755,7 +766,7 @@ if (PART === "a") {
   await dragPlan(sofa.x, sofa.z, sofa.x + 1.2, sofa.z + 0.4, 1.1);
   await R.hold(0.3);
   await R.clickOn({ text: "Alles zeigen", exact: true }, 0.5);
-  await sayOver("Löschen geht nur nach einer Rückfrage.");
+  await sayOver("Löschen geht nur nach einer Rückfrage. Und in der 3D-Hälfte bleibt ein fixiertes Möbel genauso stehen.");
   await muteDialogs(true);
   await h.side(0.3);
   await press("Entf", "Delete");
@@ -843,7 +854,7 @@ if (PART === "a") {
   await sayOver("Zum Schluss der schnelle Weg: einen ganzen Raum auf einmal. Ich wähle „Auswählen“, tippe das Schlafzimmer an – und unten „Einrichten …“.");
   await R.clickOn({ text: "Auswählen", exact: true }, 0.5);
   await tapRoom(8, 6, "r_schlafen");
-  await setPane("eg", 8, 6.2, { theta: 5.7, phi: 0.55, radius: 7 });
+  await setPane("eg", 8, 6, { theta: 0.25, phi: 0.45, radius: 8.5 });
   await scrollSide({ text: "Einrichten …" }, 380, 0.8);
   await R.clickOn({ text: "Einrichten …" }, 0.5);
   await sayOver("Neun Pakete stehen zur Wahl, und unter jedem steht, was dazugehört.");
@@ -927,9 +938,9 @@ if (PART === "a") {
   await startB();
   await finishB();
   await R.hideCursor();
-  await R.clickOn({ text: "3D", exact: true, nth: 0 }, 0.01);
+  await tap(R, { text: "3D", exact: true, nth: 0 });
   await R.sleep(1500);
-  await R.clickOn({ text: "Erdgeschoss", exact: true, nth: 0 }, 0.01);
+  await tap(R, { text: "Erdgeschoss", exact: true, nth: 0 });
   await R.sleep(2500);
   {
     const A = { theta: 0.5, phi: 0.85, radius: 13 };
@@ -948,9 +959,9 @@ if (PART === "a") {
   // ---------------------------------------------------------------- intro
   await chapter("Was wir heute machen");
   await startB();
-  await R.clickOn({ text: "3D daneben", exact: true }, 0.01);
+  await tap(R, { text: "3D daneben", exact: true });
   await R.sleep(1500);
-  await R.clickOn({ text: "Alles zeigen", exact: true }, 0.01);
+  await tap(R, { text: "Alles zeigen", exact: true });
   await setPane("eg", 5.5, 3, { theta: 0.5, phi: 0.85, radius: 15 });
   await R.sleep(800);
   await R.hideCursor(false);
@@ -1030,7 +1041,7 @@ if (PART === "a") {
     const b = await R.editor(`const f = e.floor.furniture.find((f) => f.type === "bed"); return { x: f.x, z: f.z };`);
     await R.clickOn({ text: "Auswählen", exact: true }, 0.4);
     await tapPlan(b.x, b.z + 0.3, 0.6);
-    await setPane("eg", b.x, b.z + 0.4, { theta: 5.7, phi: 0.55, radius: 6 });
+    await setPane("eg", b.x, b.z + 0.4, { theta: 5.7, phi: 0.55, radius: 7.5 });
   }
   await sideTop(0.3);
   await scrollSide({ label: "Zustand von" }, 420, 0.5);
@@ -1113,10 +1124,10 @@ if (PART === "a") {
   await R.hideCursor();
   {
     const A = { theta: 0.3, phi: 0.85, radius: 16 };
-    const B = { theta: 1.1, phi: 0.72, radius: 14 };
-    await setPane("eg", 6.2, 3.4, A, true);
+    const B = { theta: 1.0, phi: 0.7, radius: 10.5 };
+    await setPane("eg", 7, 3, A, true);
     await sayOver("Der Fernseher leuchtet, der Heizkörper glüht, die Waschmaschine läuft, im Bett liegt jemand links – und der Saugroboter fährt durch die Küche.");
-    await glidePane("eg", 6.2, 3.4, A, B, 9, true);
+    await glidePane("eg", 7, 3, A, B, 9, true);
   }
   await R.hideCursor(false);
 
