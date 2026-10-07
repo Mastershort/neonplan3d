@@ -4,6 +4,14 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 [releases page](https://github.com/Mastershort/neonplan3d/releases). Ideas and votes:
 [Discussions → Ideas](https://github.com/Mastershort/neonplan3d/discussions/categories/ideas).
 
+## Unreleased
+
+### Fixed
+
+- **Saving failed** after setting an outdoor area's height or slope back to 0 ("expected float at …outdoor[…].offset") – it saves again; changes kept in the browser can be taken over (#242 by rolandarends).
+- Pergolas with a slope: the beams and rafters follow the slope instead of lying level (#242).
+- A hub device for the whole house (one MQTT or KNX device whose entities lie in several areas): its room thermometers count for the room climate again, and a power sensor only goes to an entity in its own area instead of the first device placed; a binary sensor without a class shows up when it was given an area by hand (#243 by bert-MI4U).
+
 ## 1.12.4
 
 ### Fixed

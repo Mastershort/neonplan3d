@@ -341,6 +341,12 @@ async def test_outdoor_roof_and_north_get_defaults(hass: HomeAssistant, hass_ws_
     assert got["floors"][0]["ha_floor"] is None
     assert got["floors"][0]["rooms"][0]["panel"] == []
 
+    # a height offset or slope set back to 0 arrives as None from the editor and still saves (#242)
+    cleared = copy.deepcopy(building)
+    cleared["floors"][0]["outdoor"][0].update({"type": "pergola", "offset": None, "slope": None})
+    await client.send_json_auto_id({"type": "neonplan3d/building/save", "building": cleared})
+    assert (await client.receive_json())["success"]
+
     bad = copy.deepcopy(building)
     bad["floors"][0]["outdoor"][0]["type"] = "volcano"
     await client.send_json_auto_id({"type": "neonplan3d/building/save", "building": bad})

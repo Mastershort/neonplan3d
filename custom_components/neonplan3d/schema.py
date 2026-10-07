@@ -302,9 +302,10 @@ OUTDOOR_SCHEMA = vol.Schema(
         vol.Optional("height", default=None): vol.Any(None, vol.All(vol.Coerce(float), vol.Range(min=0.1, max=6))),
         vol.Optional("outline", default=True): bool,
         # height offset in m (a driveway down to a lower garage, a raised terrace)
-        vol.Optional("offset", default=0.0): vol.All(vol.Coerce(float), vol.Range(min=-10, max=10)),
+        # (None = 0: the editor clears the field when it is set back to 0, #242)
+        vol.Optional("offset", default=0.0): vol.Any(None, vol.All(vol.Coerce(float), vol.Range(min=-10, max=10))),
         # fall in m across the area along slope_dir (the high edge sits at the offset)
-        vol.Optional("slope", default=0.0): vol.All(vol.Coerce(float), vol.Range(min=0, max=20)),
+        vol.Optional("slope", default=0.0): vol.Any(None, vol.All(vol.Coerce(float), vol.Range(min=0, max=20))),
         vol.Optional("slope_dir", default="x"): vol.In(["x", "-x", "z", "-z"]),
         # fences and pergolas: the closing edge is left out; pergola: X-bracing on the sides
         vol.Optional("open", default=False): bool,

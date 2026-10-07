@@ -51,15 +51,39 @@ export function outdoorHoles(areas: OutdoorArea[], index: number): Vec2[][] {
   return holes;
 }
 
-/** A thin box along the segment p -> q (a beam, a rafter), `w` wide, from y0 up to y1. */
-function pushBeam(buf: GeoBuffer, p: Vec2, q: Vec2, w: number, y0: number, y1: number, side: number, top: number): void {
+/**
+ * A thin box along the segment p -> q (a beam, a rafter), `w` wide, from y0 up to y1 at p. `rise` lifts the q end
+ * by that much, so a beam on a sloped pergola follows the slope (#242).
+ */
+function pushBeam(buf: GeoBuffer, p: Vec2, q: Vec2, w: number, y0: number, y1: number, side: number, top: number, rise = 0): void {
   const dx = q[0] - p[0];
   const dz = q[1] - p[1];
   const l = Math.hypot(dx, dz);
   if (l < 1e-6) return;
   const nx = (-dz / l) * w * 0.5;
   const nz = (dx / l) * w * 0.5;
-  pushPrism(buf, ccw([[p[0] + nx, p[1] + nz], [q[0] + nx, q[1] + nz], [q[0] - nx, q[1] - nz], [p[0] - nx, p[1] - nz]]), y0, y1, side, top, { aoFrom: y0 - 1 });
+  if (Math.abs(rise) < 1e-4) {
+    pushPrism(buf, ccw([[p[0] + nx, p[1] + nz], [q[0] + nx, q[1] + nz], [q[0] - nx, q[1] - nz], [p[0] - nx, p[1] - nz]]), y0, y1, side, top, { aoFrom: y0 - 1 });
+    return;
+  }
+  // a sloped box: both faces of every quad, so it shows from any side without caring about the winding
+  const a = (y: number, s: number): number[] => [p[0] + nx * s, y, p[1] + nz * s];
+  const b = (y: number, s: number): number[] => [q[0] + nx * s, y + rise, q[1] + nz * s];
+  const quad = (v: number[][], c: Color) => {
+    buf.tri(v[0], v[1], v[2], c, c, c, undefined, ALWAYS);
+    buf.tri(v[0], v[2], v[3], c, c, c, undefined, ALWAYS);
+    buf.tri(v[0], v[2], v[1], c, c, c, undefined, ALWAYS);
+    buf.tri(v[0], v[3], v[2], c, c, c, undefined, ALWAYS);
+  };
+  const topC = new Color(top);
+  const sideC = new Color(shade(side, 0.9));
+  const lowC = new Color(shade(side, 0.6));
+  quad([a(y1, 1), b(y1, 1), b(y1, -1), a(y1, -1)], topC);
+  quad([a(y0, 1), b(y0, 1), b(y0, -1), a(y0, -1)], lowC);
+  quad([a(y0, 1), b(y0, 1), b(y1, 1), a(y1, 1)], sideC);
+  quad([a(y0, -1), b(y0, -1), b(y1, -1), a(y1, -1)], sideC);
+  quad([a(y0, 1), a(y0, -1), a(y1, -1), a(y1, 1)], sideC);
+  quad([b(y0, 1), b(y0, -1), b(y1, -1), b(y1, 1)], sideC);
 }
 
 export function pushOutdoor(buf: GeoBuffer, lines: LineBuffer, floor: Floor): void {
@@ -144,7 +168,7 @@ export function pushOutdoor(buf: GeoBuffer, lines: LineBuffer, floor: Floor): vo
           const p = poly[i];
           const q = poly[(i + 1) % poly.length];
           const topP = groundAt(p[0], p[1]) + h;
-          pushBeam(buf, p, q, 0.12, topP - 0.16, topP, look.side, look.color);
+          pushBeam(buf, p, q, 0.12, topP - 0.16, topP, look.side, look.color, groundAt(q[0], q[1]) - groundAt(p[0], p[1]));
           if (a.bracing) {
             const gp = groundAt(p[0], p[1]);
             const gq = groundAt(q[0], q[1]);
@@ -164,7 +188,7 @@ export function pushOutdoor(buf: GeoBuffer, lines: LineBuffer, floor: Floor): vo
             const p: Vec2 = alongX ? [t, b.z0 + 0.06] : [b.x0 + 0.06, t];
             const q: Vec2 = alongX ? [t, b.z1 - 0.06] : [b.x1 - 0.06, t];
             const topP = groundAt(p[0], p[1]) + h;
-            pushBeam(buf, p, q, 0.06, topP - 0.04, topP + 0.08, look.side, look.color);
+            pushBeam(buf, p, q, 0.06, topP - 0.04, topP + 0.08, look.side, look.color, groundAt(q[0], q[1]) - groundAt(p[0], p[1]));
           }
         }
         outline((x, z) => groundAt(x, z) + h + 0.004);

@@ -589,3 +589,32 @@ test("a desk's monitor does not take the room's smart speaker, a placed device s
   const placed = furnitureEntities(hass, [{ ...newFloor("eg", "EG", 0), rooms: [room], furniture: [tv], placements: [{ entity_id: "media_player.echo_show_buero", x: 3.8, z: 2.8, y: null }] }]);
   assert.equal(placed.get("t")?.entity ?? null, null);
 });
+
+test("a hub device for a whole house (MQTT): room sensors count, power sensors stay in their area (#243)", async () => {
+  const { powerSensorFor } = await import("./energy.ts");
+  const st = (entity_id: string, state: string, attributes: Record<string, unknown> = {}) => ({ entity_id, state, attributes });
+  const hass = {
+    language: "en",
+    areas: { living: { area_id: "living", name: "Living" }, kitchen: { area_id: "kitchen", name: "Kitchen" } },
+    devices: { hub: { id: "hub", area_id: null } },
+    entities: {
+      "light.living": { entity_id: "light.living", device_id: "hub", area_id: "living" },
+      "switch.kitchen": { entity_id: "switch.kitchen", device_id: "hub", area_id: "kitchen" },
+      "sensor.living_temp": { entity_id: "sensor.living_temp", device_id: "hub", area_id: "living" },
+      "sensor.kitchen_power": { entity_id: "sensor.kitchen_power", device_id: "hub", area_id: "kitchen" },
+    },
+    states: {
+      "light.living": st("light.living", "on"),
+      "switch.kitchen": st("switch.kitchen", "on"),
+      "sensor.living_temp": st("sensor.living_temp", "21.5", { device_class: "temperature", unit_of_measurement: "°C" }),
+      "sensor.kitchen_power": st("sensor.kitchen_power", "120", { device_class: "power", unit_of_measurement: "W" }),
+    },
+  } as unknown as HomeAssistant;
+  const room: Room = { id: "r", name: "Living", area_id: "living", points: [[0, 0], [3, 0], [3, 3], [0, 3]], floor_material: "wood" };
+  const floor = { ...newFloor("eg", "EG", 0), rooms: [room] };
+  // the hub also has lights and switches, yet its room thermometer is the room's temperature
+  assert.deepEqual(roomClimateSensors(hass, floor, room, "temperature"), ["sensor.living_temp"]);
+  // the kitchen meter belongs to the kitchen switch, not to the living room light
+  assert.equal(powerSensorFor(hass, "switch.kitchen"), "sensor.kitchen_power");
+  assert.equal(powerSensorFor(hass, "light.living"), null);
+});

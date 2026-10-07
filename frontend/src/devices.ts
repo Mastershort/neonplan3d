@@ -102,7 +102,9 @@ export function isRelevant(hass: HomeAssistant, entityId: string): boolean {
   if (!st) return false;
   const dc = st.attributes.device_class as string | undefined;
   if (kind === "sensor") return dc ? SENSOR_CLASSES.has(dc) : METER_UNITS.has(String(st.attributes.unit_of_measurement ?? ""));
-  if (kind === "binary") return !!dc && BINARY_CLASSES.has(dc);
+  // a binary sensor without a class is mostly noise of an integration – unless its own entity was given an
+  // area by hand (a "storm" flag of a home automation bus, #243): then it is meant to be seen
+  if (kind === "binary") return dc ? BINARY_CLASSES.has(dc) : !!entry?.area_id;
   return true;
 }
 
@@ -124,6 +126,8 @@ interface Registry {
   unassigned: string[];
   /** Domains of each device's visible, non-config entities (to tell a 3D printer from a thermometer). */
   domains: Map<string, Set<string>>;
+  /** Devices whose entities lie in several areas (hubs). */
+  hubs: Set<string>;
 }
 
 /** Sensor classes that never make a marker, even without an area (diagnostics of the device itself). */
@@ -153,9 +157,12 @@ function registryOf(hass: HomeAssistant): Registry {
   const power = new Map<string, string[]>();
   const unassigned: string[] = [];
   const domains = new Map<string, Set<string>>();
+  // the areas a device's entities lie in: a hub (one MQTT or KNX device for a whole house) spans several
+  const deviceAreas = new Map<string, Set<string>>();
   for (const id of Object.keys(hass.entities ?? {})) {
     const entry = hass.entities![id];
     const device = entry.device_id;
+    if (device && entry.area_id) (deviceAreas.get(device) ?? deviceAreas.set(device, new Set()).get(device)!).add(entry.area_id);
     if (device && isPower(hass, id)) (power.get(device) ?? power.set(device, []).get(device)!).push(id);
     if (device && !entry.hidden && !entry.entity_category) (domains.get(device) ?? domains.set(device, new Set()).get(device)!).add(domainOf(id));
     const relevant = isRelevant(hass, id);
@@ -183,7 +190,8 @@ function registryOf(hass: HomeAssistant): Registry {
       return ka - kb || entityName(hass, a, areaName).localeCompare(entityName(hass, b, areaName));
     });
   }
-  registry = { entities: hass.entities, devices: hass.devices, states: hass.states, stateCount: Object.keys(hass.states).length, areas, power, unassigned, domains };
+  const hubs = new Set([...deviceAreas].filter(([, set]) => set.size > 1).map(([device]) => device));
+  registry = { entities: hass.entities, devices: hass.devices, states: hass.states, stateCount: Object.keys(hass.states).length, areas, power, unassigned, domains, hubs };
   return registry;
 }
 
@@ -222,7 +230,8 @@ const NOT_ROOM_NAME =
 /** Whether a sensor measures the room itself (not a device's inner temperature). */
 export function isRoomClimateSensor(hass: HomeAssistant, entityId: string): boolean {
   const device = hass.entities?.[entityId]?.device_id;
-  const domains = device ? registryOf(hass).domains.get(device) : undefined;
+  // a hub's entities are spread over the house: its lights and switches say nothing about this sensor (#243)
+  const domains = device && !registryOf(hass).hubs.has(device) ? registryOf(hass).domains.get(device) : undefined;
   if (domains && [...domains].some((d) => NOT_A_ROOM_SENSOR.has(d))) return false;
   return !NOT_ROOM_NAME.test(`${entityId} ${hass.states[entityId]?.attributes.friendly_name ?? ""}`);
 }
@@ -275,6 +284,11 @@ export function roomClimateValue(hass: HomeAssistant, floor: Floor | null, room:
 }
 
 /** Power sensors of a device, in registry order (a shared array: do not change it). */
+/** Whether a device is a hub whose entities lie in several areas (one MQTT/KNX device for a whole house). */
+export function isHubDevice(hass: HomeAssistant, deviceId: string): boolean {
+  return !!hass.entities && registryOf(hass).hubs.has(deviceId);
+}
+
 export function powerSensorsOf(hass: HomeAssistant, deviceId: string): string[] {
   if (!hass.entities) return [];
   return registryOf(hass).power.get(deviceId) ?? [];

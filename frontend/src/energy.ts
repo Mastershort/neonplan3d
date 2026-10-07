@@ -9,7 +9,7 @@
 import { generateWalls } from "./geometry/walls.ts";
 import type { Building, CableRoute, EnergySettings, Floor, Furniture, Room, SolarField, Vec2 } from "./model.ts";
 import { fieldCenter, fieldFace, fieldSize, roofFaces, topFloor, wallFaces } from "./solar.ts";
-import { powerSensorsOf } from "./devices.ts";
+import { entityAreaId, isHubDevice, powerSensorsOf } from "./devices.ts";
 import { pointInPolygon, signedArea } from "./model.ts";
 import type { HassEntity, HomeAssistant } from "./types.ts";
 
@@ -171,12 +171,18 @@ function isPowerSensor(hass: HomeAssistant, id: string): boolean {
   return id.startsWith("sensor.") && hass.states[id]?.attributes.device_class === "power";
 }
 
-/** Power sensor of a placed entity: the entity itself, or a power sensor of the same device. */
+/**
+ * Power sensor of a placed entity: the entity itself, or a power sensor of the same device. On a hub (one
+ * device for a whole house, its entities in several areas) only a power sensor in the entity's own area
+ * counts, else every light of the house would get the first meter of the hub (#243).
+ */
 export function powerSensorFor(hass: HomeAssistant, entityId: string): string | null {
   if (isPowerSensor(hass, entityId)) return entityId;
   const device = hass.entities?.[entityId]?.device_id;
   if (!device) return null;
-  return powerSensorsOf(hass, device).find((e) => e !== entityId) ?? null;
+  const hub = isHubDevice(hass, device);
+  const area = hub ? entityAreaId(hass, entityId) : null;
+  return powerSensorsOf(hass, device).find((e) => e !== entityId && (!hub || (area !== null && entityAreaId(hass, e) === area))) ?? null;
 }
 
 /** Placed entities that report power, with their position and current power. */
