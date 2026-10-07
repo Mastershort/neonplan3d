@@ -3,6 +3,7 @@
 The picture covers the plan from (-1.5, -1.5) m, 12 m wide, 150 px per metre. Usage: python make-plan.py
 """
 
+import json
 import math
 from pathlib import Path
 
@@ -163,3 +164,166 @@ for z in (0, 4.5, 7.5):
 d.text(P(6.6, 8.75), "GRUNDRISS ERDGESCHOSS   M 1:100", font=F(30, True), fill=INK)
 img.save(Path(__file__).with_name("bauplan-eg.png"))
 print(img.size)
+
+
+# ---------------------------------------------------------------------------------------------------------------
+# Episode 2: a second invented plan with an L-shaped living room, a garage, a half-height counter and a room
+# divider - scanned slightly crooked (turned by ANGLE) for straightening and scaling with the ruler.
+# The unturned picture covers the plan from (-1.5, -1.5) m, 17 m wide, 100 px per metre; bauplan-l.json lists
+# key points as fractions of the finished (turned) picture, for the episode script.
+
+S = 100
+X0, Z0 = -1.5, -1.5
+W, H = 17.0, 11.5
+ANGLE = 2.5  # degrees, counter-clockwise like a crooked scan
+img = Image.new("RGB", (int(W * S), int(H * S)), (252, 251, 247))
+d = ImageDraw.Draw(img)
+EXT2 = 0.30
+f = F(26)
+
+# exterior walls (the L-shaped outline: garage on the left, the house from x = 3.5)
+for w in [(0, 0, 14, 0), (14, 0, 14, 8.5), (3.5, 8.5, 14, 8.5), (3.5, 6, 3.5, 8.5), (0, 6, 3.5, 6), (0, 0, 0, 6)]:
+    wall(*w, EXT2)
+# interior walls
+# (no wall between the dining area and the hall: z = 4 from x 7.5 to 10 is open)
+for w in [
+    (3.5, 0, 3.5, 6),
+    (10, 2, 10, 4),
+    (10, 4, 14, 4),
+    (7.5, 4, 7.5, 8.5),
+    (7.5, 5.5, 14, 5.5),
+    (10.5, 5.5, 10.5, 8.5),
+]:
+    wall(*w, INT)
+# living room / kitchen: a counter (half height) from z 0 to 2, a full wall from z 2 to 4
+a, b = P(10 - INT / 2, 0), P(10 + INT / 2, 2)
+d.rectangle([a, b], outline=INK, width=2)
+for k in range(1, 8):
+    z = k * 0.25
+    d.line([P(10 - INT / 2, z - 0.1), P(10 + INT / 2, z)], fill=INK, width=1)
+# room divider in the living room (half height)
+a, b = P(3.5, 5 - 0.05), P(5.5, 5 + 0.05)
+d.rectangle([a, b], outline=INK, width=2)
+for k in range(1, 12):
+    x = 3.5 + k * 0.17
+    d.line([P(x - 0.08, 5 + 0.05), P(x, 5 - 0.05)], fill=INK, width=1)
+
+
+def gap_v(x, z0, z1, t):
+    d.rectangle([P(x - t / 2, z0), P(x + t / 2, z1)], fill=(252, 251, 247))
+
+
+def gap_h(z, x0, x1, t):
+    d.rectangle([P(x0, z - t / 2), P(x1, z + t / 2)], fill=(252, 251, 247))
+
+
+def window_h(cx, z, w, t=EXT2):
+    gap_h(z, cx - w / 2, cx + w / 2, t)
+    for off in (-t / 2, 0, t / 2):
+        d.line([P(cx - w / 2, z + off), P(cx + w / 2, z + off)], fill=INK, width=2)
+    for x in (cx - w / 2, cx + w / 2):
+        d.line([P(x, z - t / 2), P(x, z + t / 2)], fill=INK, width=2)
+
+
+def window_v(x, cz, w, t=EXT2):
+    gap_v(x, cz - w / 2, cz + w / 2, t)
+    for off in (-t / 2, 0, t / 2):
+        d.line([P(x + off, cz - w / 2), P(x + off, cz + w / 2)], fill=INK, width=2)
+    for z in (cz - w / 2, cz + w / 2):
+        d.line([P(x - t / 2, z), P(x + t / 2, z)], fill=INK, width=2)
+
+
+def leaf_arc(hx, hz, tx, tz, ex, ez):
+    """A door leaf from the hinge (hx, hz) to (tx, tz), and its swing arc towards (ex, ez) on the wall."""
+    d.line([P(hx, hz), P(tx, tz)], fill=INK, width=3)
+    r = math.hypot(tx - hx, tz - hz)
+    a0 = math.degrees(math.atan2(tz - hz, tx - hx))
+    a1 = math.degrees(math.atan2(ez - hz, ex - hx))
+    lo, hi = sorted([a0 % 360, a1 % 360])
+    if hi - lo > 180:
+        lo, hi = hi, lo + 360
+    d.arc([P(hx - r, hz - r), P(hx + r, hz + r)], lo, hi, fill=INK, width=1)
+
+
+# doors
+gap_v(7.5, 4.25, 5.25, INT)  # passage hall -> living room (no door)
+gap_h(5.5, 8.1, 8.9, INT)  # bathroom door
+leaf_arc(8.1, 5.5 + INT / 2, 8.1, 6.3, 8.9, 5.5 + INT / 2)
+gap_h(5.5, 12.0, 12.9, INT)  # bedroom: sliding door
+d.line([P(12.0, 5.5 - 0.1), P(12.95, 5.5 - 0.1)], fill=INK, width=3)
+d.line([P(11.95, 5.5 + 0.1), P(12.9, 5.5 + 0.1)], fill=INK, width=1)
+gap_v(10, 2.2, 3.8, INT)  # dining area -> kitchen: double door
+leaf_arc(10 - INT / 2, 2.2, 9.2, 2.2, 10 - INT / 2, 3.0)
+leaf_arc(10 - INT / 2, 3.8, 9.2, 3.8, 10 - INT / 2, 3.0)
+gap_v(14, 4.25, 5.25, EXT2)  # front door
+leaf_arc(14 - EXT2 / 2, 4.25, 13.0, 4.25, 14 - EXT2 / 2, 5.25)
+# windows, terrace door, glass wall, garage door
+window_h(5.5, 0, 1.6)
+window_h(12, 0, 1.2)
+window_h(9, 8.5, 0.8)
+window_h(12.25, 8.5, 1.4)
+gap_h(8.5, 4.6, 6.4, EXT2)  # terrace door, two leaves
+leaf_arc(4.6, 8.5 - EXT2 / 2, 4.6, 7.6, 5.5, 8.5 - EXT2 / 2)
+leaf_arc(6.4, 8.5 - EXT2 / 2, 6.4, 7.6, 5.5, 8.5 - EXT2 / 2)
+window_v(3.5, 7.25, 2.0)  # glass wall
+gap_h(6, 0.5, 3.0, EXT2)  # garage door (dashed: it opens upwards)
+for k in range(10):
+    x = 0.5 + k * 0.25
+    d.line([P(x, 6), P(x + 0.15, 6)], fill=INK, width=3)
+
+
+def label2(x, z, name, area):
+    for text, fnt, dy in ((name, F(30, True), -18), (area, F(24), 18)):
+        tw = d.textlength(text, font=fnt)
+        px, py = P(x, z)
+        d.text((px - tw / 2, py + dy - fnt.size / 2), text, font=fnt, fill=INK)
+
+
+label2(1.75, 3.0, "GARAGE", "21,00 m²")
+label2(6.0, 2.2, "WOHNEN / ESSEN", "44,00 m²")
+label2(12.0, 2.0, "KÜCHE", "16,00 m²")
+label2(10.75, 4.75, "FLUR", "9,75 m²")
+label2(9.0, 7.0, "BAD", "9,00 m²")
+label2(12.25, 7.0, "SCHLAFEN", "10,50 m²")
+d.text(P(4.0, 5.2), "Raumteiler h = 1,20", font=F(20), fill=INK)
+d.text(P(8.55, 0.9), "Theke h = 1,10", font=F(20), fill=INK)
+
+f = F(24)
+dim_h(0, 3.5, -0.8, "3,50")
+dim_h(3.5, 10, -0.8, "6,50")
+dim_h(10, 14, -0.8, "4,00")
+dim_h(0, 14, 9.4, "14,00")
+dim_v(0, 6, -0.8, "6,00")
+for x in (0, 3.5, 10, 14):
+    d.line([P(x, -0.25), P(x, -0.95)], fill=INK, width=1)
+d.text(P(9.0, 9.75), "GRUNDRISS ERDGESCHOSS   M 1:100", font=F(22, True), fill=INK)
+
+# scanned crooked: turn the sheet and keep track of a few points
+w0, h0 = img.size
+turned = img.rotate(ANGLE, resample=Image.BICUBIC, expand=True, fillcolor=(252, 251, 247))
+w1, h1 = turned.size
+a = math.radians(ANGLE)
+
+
+def frac(x, z):
+    """A plan point as a fraction (u, v) of the turned picture."""
+    px, py = P(x, z)
+    dx, dy = px - w0 / 2, py - h0 / 2
+    # PIL turns counter-clockwise on screen (y down)
+    rx = dx * math.cos(a) + dy * math.sin(a)
+    ry = -dx * math.sin(a) + dy * math.cos(a)
+    return [round((rx + w1 / 2) / w1, 6), round((ry + h1 / 2) / h1, 6)]
+
+
+turned.save(Path(__file__).with_name("bauplan-l.png"))
+points = {
+    "corner": frac(0, 0),
+    "top_left": frac(0, 0),
+    "top_right": frac(14, 0),
+    "dim_left": frac(0, 9.4),
+    "dim_right": frac(14, 9.4),
+    "angle": ANGLE,
+    "aspect": h1 / w1,
+}
+Path(__file__).with_name("bauplan-l.json").write_text(json.dumps(points, indent=1))
+print(turned.size)

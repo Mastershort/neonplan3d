@@ -52,6 +52,8 @@ SPOKEN = [
     (r"Wand 2–3", "Wand zwei drei"),  # noqa: RUF001
     (r"\b2,75 Meter", "zwei Komma sieben fünf Meter"),
     (r"m²", "Quadratmeter"),
+    (r"(\d),(\d)", r"\1 Komma \2"),  # any other decimal number: "4,5" -> "4 Komma 5"
+    (r" & ", " und "),  # "Tür & Fenster"
     (" – ", ", "),  # noqa: RUF001
 ]
 

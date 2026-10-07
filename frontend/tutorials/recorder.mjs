@@ -160,11 +160,14 @@ export async function startRecorder({ outDir, width = 1920, height = 1080, lang 
 
     /**
      * Pick an option of a select field found by its label: click the field, show its option list as an overlay
-     * (a native dropdown is not in headless screenshots), move to the option, click it, then set the value.
+     * (the native dropdown would only show up now and then, half cut off, in headless screenshots), move to the
+     * option, click it, then set the value. The click on the field only shows the ring: a real click would open the
+     * native dropdown next to the overlay.
      */
     async pickOption(label, option, seconds = 0.6) {
       const box = await R.moveTo({ label }, seconds);
-      await R.click();
+      await page.evaluate(placeCursor, box.x, box.y, true);
+      for (let i = 0; i < 8; i++) await frame(1 / FPS, 25);
       const list = await page.evaluate(showOptions, label, box);
       if (!list) throw new Error(`no select: ${label}`);
       await frame(0.5, 60);

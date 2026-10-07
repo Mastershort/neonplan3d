@@ -13,6 +13,14 @@ const out = process.argv[2] ?? "tutorial-ep01";
 const R = await startRecorder({ outDir: out, width: 1920, height: 1080, lang: "de" });
 const N = narration(R, process.argv[3]);
 const { say, sayOver, chapter, catchUp } = N;
+/** sayOver that returns the time the line ends (to start the next steps just before it). */
+const sayOverEnd = async (text) => {
+  await sayOver(text);
+  return R.time + N.length(text);
+};
+const holdUntil = async (t) => {
+  if (t - R.time > 0.02) await R.hold(t - R.time);
+};
 const PLAN = join(import.meta.dirname, "assets", "bauplan-eg.png");
 // record from a snapshot (TUTORIAL_ROOT, see SERIES.md); the version line goes on the title and outro cards
 const VERSION = `<br><span style="font-size:20px;opacity:.7">aufgenommen mit NeonPlan 3D ${appVersion()}</span>`;
@@ -174,8 +182,8 @@ await rect(6, 0, 9.5, 4.5, 1.1);
 await sayOver("Genauso zeichne ich darunter Flur, Bad und Schlafzimmer – immer an den Wänden der Vorlage entlang.");
 await rect(0, 4.5, 3, 7.5, 0.7);
 await rect(3, 4.5, 6, 7.5, 0.7);
-await rect(6, 4.5, 9.5, 7.5, 0.7);
 await sayOver("Die Räume heißen noch „Raum 1“ bis „Raum 5“. Für L-förmige Räume gibt es übrigens „Freie Form“.");
+await rect(6, 4.5, 9.5, 7.5, 0.7);
 await R.moveTo({ text: "Freie Form", exact: true }, 0.6);
 
 // ---------------------------------------------------------------- 5. Link the rooms to Home Assistant areas
@@ -185,11 +193,14 @@ await tapPlan(3, 1.6, 0.6);
 await sayOver("Darüber weiß NeonPlan, welche Lichter, Sensoren und Rollläden in welchem Raum sind. Noch steht hier „Kein Bereich“,");
 await R.moveTo({ label: "Bereich" }, 0.6);
 await R.hold(1.6);
-await sayOver("und unten bei „Geräte“ nur ein Hinweis.");
-await scrollSide("Geräte", 300, 0.6);
-await R.moveTo({ text: "Dieser Bereich" }, 0.5);
-await catchUp();
-await scrollSide("Raum", 140, 0.6);
+{
+  const end = await sayOverEnd("und unten bei „Geräte“ nur ein Hinweis.");
+  await scrollSide("Geräte", 300, 0.6);
+  await R.moveTo({ text: "Dieser Bereich" }, 0.5);
+  // scroll back while the line ends, so the next one follows without a pause
+  await holdUntil(end - 0.9);
+  await scrollSide("Raum", 140, 0.6);
+}
 await sayOver("Also: auf „Bereich“ klicken und das Wohnzimmer wählen.");
 await R.pickOption("Bereich", "Wohnzimmer", 0.6);
 await sayOver("Schon heißt der Raum Wohnzimmer: Ohne eigenen Namen übernimmt er den Namen des Bereichs.");
@@ -199,19 +210,21 @@ await R.moveTo({ label: "Name" }, 0.6);
 await sayOver("Und bei den Geräten stehen jetzt zwölf Geräte aus dem Wohnzimmer – Lichter, Rollladen, Heizung, Fernseher und Sensoren.");
 await scrollSide("Geräte", 200, 0.6);
 await R.moveTo({ text: "Dieser Bereich" }, 0.5);
-await sayOver("Unter „Raumklima“ siehst du, woher die Temperatur kommt: „Automatisch“ nimmt die Sensoren aus dem Bereich.");
-await scrollSide("Raumklima", 330, 0.6);
-await R.clickOn({ text: "Raumklima" }, 0.5);
-await catchUp();
-await scrollSide("Raum", 140, 0.6);
+{
+  const end = await sayOverEnd("Unter „Raumklima“ siehst du, woher die Temperatur kommt: „Automatisch“ nimmt die Sensoren aus dem Bereich.");
+  await scrollSide("Raumklima", 330, 0.6);
+  await R.clickOn({ text: "Raumklima" }, 0.5);
+  await holdUntil(end - 0.9);
+  await scrollSide("Raum", 140, 0.6);
+}
 await sayOver("Die anderen Räume gehen schnell: „Zurück zur Etage“, Raum antippen, Bereich wählen. Raum 2 wird die Küche.");
 await link(7.75, 1.6, "Küche", 0.55);
 await sayOver("Raum 3 wird der Flur, Raum 4 das Bad und Raum 5 das Schlafzimmer.");
 await link(1.5, 6.6, "Flur", 0.4);
-await link(4.5, 6.6, "Bad", 0.4);
 await sayOver("In der Liste stehen alle Bereiche aus deinem Home Assistant – auch die fürs Obergeschoss.");
-await link(7.75, 6.6, "Schlafzimmer", 0.4);
+await link(4.5, 6.6, "Bad", 0.4);
 await sayOver("Fehlt dir ein Bereich, legst du ihn in Home Assistant unter Einstellungen an. Danach steht er hier in der Liste.");
+await link(7.75, 6.6, "Schlafzimmer", 0.4);
 await back(0.5);
 await pointPlan(4.75, 4.5, 0.6);
 
@@ -249,8 +262,8 @@ await opening(3, 0);
 await R.clickOn({ text: "Fenster", exact: true }, 0.6);
 await sayOver("Und eins für die Küche.");
 await opening(7.75, 0);
-await R.clickOn({ text: "Fenster", exact: true }, 0.6);
 await sayOver("Kontakte und Rollläden sucht sich NeonPlan selbst aus dem Bereich des Raums – noch ein Grund für die Verknüpfung.");
+await R.clickOn({ text: "Fenster", exact: true }, 0.6);
 await pointPlan(7.75, 0, 0.6);
 
 // ---------------------------------------------------------------- 8. A second floor
@@ -274,8 +287,8 @@ await R.pickOption("Bereich", "Kinderzimmer", 0.5);
 await sayOver("und daneben das Arbeitszimmer. Die Ecken rasten wieder von selbst ein.");
 await back(0.5);
 await rect(4.5, 0, 9.5, 7.5, 0.9);
-await R.pickOption("Bereich", "Arbeitszimmer", 0.5);
 await sayOver("Gespeichert wird von selbst – oben rechts steht „Gespeichert“.");
+await R.pickOption("Bereich", "Arbeitszimmer", 0.5);
 await R.move(1830, 34, 0.6);
 
 // ---------------------------------------------------------------- 9. 3D
