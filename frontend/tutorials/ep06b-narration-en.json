@@ -13,7 +13,7 @@
  "„Leuchtstärke in 3D“ sagt, wie kräftig die Leuchte in 3D strahlt: unter 100 Prozent gedämpfter, darüber kräftiger. In Home Assistant schaltet das nichts.": "“Glow in 3D” – „Leuchtstärke in 3D“ – sets how strongly the lamp shines in 3D: below 100 percent it's softer, above it's brighter. It doesn't switch anything in Home Assistant.",
  "„Höhe über Boden“ hängt sie höher oder tiefer, „Höhe automatisch“ setzt sie zurück.": "“Height above floor” – „Höhe über Boden“ – hangs it higher or lower, and “Automatic height” resets it.",
  "Bei der Pendelleuchte über dem Esstisch wählst du unter „Form“, wie sie aussieht: Schirm, Kugel, Kegel oder Trommel.": "For the pendant light above the dining table, you choose its look under “Shape” – „Form“: shade, globe, cone or drum.",
- "Ihre Höhe ist die Abhängung unter der Decke.": "Its height is how far it hangs down from the ceiling.",
+ "Ihre Höhe ist die Abhängung unter der Decke – also wie weit sie von der Decke herunterhängt, etwa über dem Esstisch.": "Its height is how far it hangs down from the ceiling – say, above the dining table.",
  "Eine Tischlampe stellt sich von selbst auf das Möbel darunter – hier auf den Nachttisch.": "A table lamp sits on the piece of furniture below it by itself – here on the nightstand.",
  "LED-Streifen rasten wie Wandleuchten an der Wand ein und hängen von sich aus direkt unter der Decke.": "LED strips snap onto the wall just like wall lights, and by default they hang right below the ceiling.",
  "Unter 1 Meter Höhe – an der Sockelleiste oder hinter dem Schrank – strahlen sie nach oben an die Wand, höher montierte nach unten.": "Below one metre – along the skirting board or behind a cabinet – they shine up the wall; mounted higher, they shine down.",

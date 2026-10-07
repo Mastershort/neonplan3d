@@ -856,14 +856,14 @@ if (PART === "b") {
   await pane("eg", 8.0, 2.9, { theta: -0.6, phi: 1.05, radius: 4.2, y: 1.4 });
   await scrollSide({ label: "Form" }, 600, 0.5).catch(() => {});
   await R.pickOption("Form", "Schirm", 0.5);
-  await R.hold(0.3);
+  await R.hold(0.2);
   await R.pickOption("Form", "Kegel", 0.3);
-  await R.hold(0.3);
+  await R.hold(0.2);
+  await sayOver("Ihre Höhe ist die Abhängung unter der Decke – also wie weit sie von der Decke herunterhängt, etwa über dem Esstisch.");
   await R.pickOption("Form", "Trommel", 0.3);
   await R.hold(0.3);
   await R.pickOption("Form", "Kugel", 0.3);
-  await sayOver("Ihre Höhe ist die Abhängung unter der Decke.");
-  await R.moveTo({ label: "Höhe (m)" }, 0.6);
+  await R.moveTo({ label: "Höhe (m)" }, 0.5);
   await sayOver("Eine Tischlampe stellt sich von selbst auf das Möbel darunter – hier auf den Nachttisch.");
   await tapItem("lamp_table", 0.7);
   await pane("eg", 3.3, 7.6, { theta: 2.7, phi: 1.0, radius: 3.4, y: 0.6 });
@@ -971,6 +971,14 @@ if (PART === "b") {
     await R.page.mouse.click(p.x, p.y);
     await R.sleep(80);
     await R.page.mouse.click(p.x, p.y);
+    await R.sleep(150);
+    // the second double tap is not always taken (it follows the first too closely): switch the room back on the
+    // way it would
+    const off = await R.page.evaluate(() => window.fp3dPanel.hass.states["light.esstisch"].state !== "on");
+    if (off) {
+      console.log("double tap on: fallback");
+      for (const id of ["light.esstisch", "light.kueche_links", "light.kueche_rechts", "light.kueche"]) await service("light", "turn_on", { entity_id: id });
+    }
     await live(R.time + 1.2);
     await R.clickOn('button[aria-label="Schließen"]', 0.4).catch(() => {});
   }
@@ -1017,9 +1025,10 @@ if (PART === "b") {
   await R.clickOn('button[aria-label="Schließen"]', 0.01).catch(() => {});
   // evening: the living room's lights off, so the cone on the floor stands out (set up before the line)
   for (const id of ["light.wohnzimmer_decke", "light.stehlampe", "light.led_band", "light.pixeluhr"]) await service("light", "turn_off", { entity_id: id });
+  await service("media_player", "turn_off", { entity_id: "media_player.fernseher" });
   await h.setState("binary_sensor.wohnzimmer_kamera_bewegung", "off");
   await h.setState("binary_sensor.wohnzimmer_kamera_person", "off");
-  await cam("eg", 2.4, 2.0, { theta: -0.75, phi: 0.72, radius: 8.5, y: 0.3 });
+  await cam("eg", 1.6, 1.6, { theta: -0.75, phi: 0.72, radius: 6.8, y: 0.6 });
   await R.sleep(700);
   {
     const p = await point3d("eg", 0.2, 2.2, 0.2);
@@ -1027,12 +1036,18 @@ if (PART === "b") {
   }
   await R.hold(0.5);
   await sayOver("Meldet ein Bewegungs- oder Präsenzsensor der Kamera Bewegung, wird der Kegel rot.");
-  await live(R.time + 1.0);
+  // the demo reports motion now and then: hold the sensors at "off" until the moment it turns red
+  await live(R.time + 1.2, async () => {
+    if (await R.page.evaluate(() => ["binary_sensor.wohnzimmer_kamera_bewegung", "binary_sensor.wohnzimmer_kamera_person"].some((id) => window.fp3dPanel.hass.states[id].state !== "off"))) {
+      await h.setState("binary_sensor.wohnzimmer_kamera_bewegung", "off");
+      await h.setState("binary_sensor.wohnzimmer_kamera_person", "off");
+    }
+  });
   await h.setState("binary_sensor.wohnzimmer_kamera_bewegung", "on");
   await live(R.time + 1.6);
   await sayOver("Ein Tipp auf die Kamera oder auf ihren Kegel öffnet das Standbild, das sich alle paar Sekunden erneuert. Der Kegel ist die viel größere Tippfläche.");
   {
-    const p = await point3d("eg", 1.9, 0.02, 2.0);
+    const p = await point3d("eg", 1.2, 0.02, 1.3);
     await R.move(p.x, p.y, 0.7);
     await R.click();
     await R.hold(0.8);
