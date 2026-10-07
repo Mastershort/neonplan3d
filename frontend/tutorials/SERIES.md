@@ -24,6 +24,15 @@ idle pauses are not.
    draft repeats it and says newer versions may have more options.
 6. **Length: at most 7–8 minutes** (Torsten). Topics that belong together stay in one episode. If the checklist does not fit into 8 minutes at a snappy pace, split the episode into „Teil 1“ / „Teil 2“ – never drop a checklist item and never slow down.
 
+## Titles and descriptions (YouTube)
+
+Written like a person writes them, not like typical AI text – that is very noticeable on the internet now:
+no emojis, no "🚀 In diesem Video …", no lists of hashtags, no "Ultimate guide", no exclamation-mark chains,
+no "Tauche ein in …", no "Entdecke …", no em-dash chains. Plain, specific sentences in Torsten's voice ("Ich
+zeige dir …", "In dieser Folge …"), what the viewer will be able to do afterwards, then the chapter list, the
+links, the version line. Titles: concrete and searchable ("NeonPlan 3D Tutorial 3: Etagen, Treppen und Keller
+anlegen"), no clickbait, no emoji, no ALL CAPS. The same rules for the English title/description.
+
 ## Mentioning the extensions
 
 The free product does everything shown in the basics – say so where it fits. In the other episodes point to the
@@ -46,6 +55,7 @@ Titles are German (the channel is German); an English version follows later with
 
 | # | Title | Manual sections | Must contain (besides everything in those sections) |
 |---|---|---|---|
+| 0 | Teaser: Das ist NeonPlan 3D | everything | **the first video of the playlist**, 2–3 minutes, made to make people want to watch the series: the full demo house at its best – camera flights, lights switching live, open windows glowing, blinds moving, heatmap, weather (rain/snow/thunder, day/night, sun through the windows), Energie Pro flows and holograms, cameras, the room panel, search, the wall-tablet look, a quick glimpse of the editor (drawing a room, the floor-plan picture, the 3D pane beside), the dashboard card. Fast cuts between short scenes, narration over everything, no button-by-button explaining. Say: free and open source, runs on old wall tablets, extensions (furniture packs, Pro) exist; end with "In dieser Playlist zeige ich dir Schritt für Schritt …" and the first episode. Same quality rules, German + English track. No checklist needed – but every major feature must appear at least once. |
 | 1 | Dein erster Grundriss | 2, 3, 4.1–4.4 (basics), 4.6 (intro only) | in progress – floor, rooms, HA areas, walls, short floor-plan picture intro |
 | 2 | Bauplan als Vorlage: Grundriss, Türen und Fenster | 4.6 in full, 4.3 „Freie Form“, 4.4, 4.7 | picture: upload, opacity, show/hide, „Verschieben, skalieren und drehen“ (move, scale, turn handles), ruler / measuring a known length, straightening; trace the plan: L-shaped room with „Freie Form“, add a point on an edge, drag corners, free walls („Wand“), wall thickness/height per edge, split a wall, „Keine Wand“, half-height wall; then doors and windows on the traced plan: every type and style (Haustür, Terrassentür, Doppeltür, Schiebetür, Durchbruch, Garagentor, window styles), width/height/sill, „Anschlag wechseln“, opening direction, contact sensor (contact / handle / tilt), Rollladen with position, „Markieren wenn geschlossen“, live open/closed in 3D. Likely two parts. |
 | 3 | Etagen, Treppen und Keller | 4.2 in full, 4.16, 4.18 | add/sort floors, HA floors, height above ground, ceiling height, cellar below ground, shift/turn a floor, „Alle Etagen mitnehmen“, floor start view, stairs (straight, L, U, spiral; direction; which floor they belong to), floor openings (Bodenöffnung) so the stairs go through, „3D daneben“, checking it in 3D (Auseinander/Gestapelt) |
