@@ -51,6 +51,34 @@ await R.page.evaluateOnNewDocument(() => {
     // no storage
   }
 });
+// Home Assistant draws mdi icons with its <ha-icon> element; the preview's mock has none, so an own symbol would
+// stay empty. A tiny stand-in with the one icon the episode uses (the mdi "coffee" path) – recording only.
+await R.page.evaluateOnNewDocument(() => {
+  const PATHS = { "mdi:coffee": "M2,21H20V19H2M20,8H18V5H20M20,3H4V13A4,4 0 0,0 8,17H14A4,4 0 0,0 18,13V10H20A2,2 0 0,0 22,8V5C22,3.89 21.1,3 20,3Z" };
+  const define = () => {
+    if (customElements.get("ha-icon")) return;
+    customElements.define(
+      "ha-icon",
+      class extends HTMLElement {
+        static get observedAttributes() {
+          return ["icon"];
+        }
+        set icon(v) {
+          this.setAttribute("icon", v);
+        }
+        get icon() {
+          return this.getAttribute("icon");
+        }
+        attributeChangedCallback() {
+          const d = PATHS[this.getAttribute("icon")] ?? "";
+          this.style.display = "inline-flex";
+          this.innerHTML = d ? `<svg viewBox="0 0 24 24" style="width:var(--mdc-icon-size,24px);height:var(--mdc-icon-size,24px)"><path fill="currentColor" d="${d}"/></svg>` : "";
+        }
+      },
+    );
+  };
+  if (window.customElements) define();
+});
 // confirm() of the app: accepted at once (a native dialog is not in the screenshots; fakeConfirm shows it)
 R.page.on("dialog", (d) => void d.accept());
 
@@ -317,9 +345,9 @@ if (PART === "a") {
   await quiet({ text: "Erdgeschoss", exact: true, nth: 0 }, 1200);
   await quiet('button[aria-label="Bedienelemente ausblenden – nur die 3D-Ansicht bleibt"]', 700);
   {
-    const a = { theta: -0.35, phi: 0.95, radius: 9.5 };
-    const b = { theta: 0.35, phi: 0.82, radius: 7.6 };
-    await cam("eg", 4.2, 2.6, a);
+    const a = { theta: -0.75, phi: 0.78, radius: 12.5, y: 0.3 };
+    const b = { theta: -0.2, phi: 0.7, radius: 10, y: 0.3 };
+    await cam("eg", 4.0, 2.3, a);
     await R.sleep(1500);
     await R.title("Geräte, Lampen und Kameras", `NeonPlan 3D · Folge 6 · Teil 1${VERSION}`);
     const l1 = "Lampen, die in 3D genau so leuchten wie bei dir, Sensoren mit ihren Werten und Kameras mit ihrem Blickfeld.";
@@ -330,7 +358,7 @@ if (PART === "a") {
     const n1 = Math.max(1, Math.round((end - t0) * FPS));
     for (let i = 1; i <= n1; i++) {
       const k = ease(((i / n1) * (end - t0)) / total);
-      await cam("eg", 4.2, 2.6, { theta: a.theta + (b.theta - a.theta) * k, phi: a.phi + (b.phi - a.phi) * k, radius: a.radius + (b.radius - a.radius) * k });
+      await cam("eg", 4.0, 2.3, { theta: a.theta + (b.theta - a.theta) * k, phi: a.phi + (b.phi - a.phi) * k, radius: a.radius + (b.radius - a.radius) * k, y: 0.3 });
       await R.frame(1 / FPS, 15);
     }
     await R.untitle();
@@ -339,7 +367,7 @@ if (PART === "a") {
     const n2 = Math.max(1, Math.round((end - t1) * FPS));
     for (let i = 1; i <= n2; i++) {
       const k = ease((t1 - t0 + (i / n2) * (end - t1)) / total);
-      await cam("eg", 4.2, 2.6, { theta: a.theta + (b.theta - a.theta) * k, phi: a.phi + (b.phi - a.phi) * k, radius: a.radius + (b.radius - a.radius) * k });
+      await cam("eg", 4.0, 2.3, { theta: a.theta + (b.theta - a.theta) * k, phi: a.phi + (b.phi - a.phi) * k, radius: a.radius + (b.radius - a.radius) * k, y: 0.3 });
       await R.frame(1 / FPS, 15);
     }
   }
@@ -676,6 +704,367 @@ if (PART === "a") {
     let end = await line("In Teil 2 geht es um Lampen und Kameras.");
     await live(end);
     end = await line("Links zur Online-Demo und zur Anleitung stehen in der Beschreibung. Und NeonPlan 3D läuft auch auf alten Wandtablets. Bis gleich in Teil 2!");
+    await live(end + 0.6);
+  }
+}
+
+// ================================================================ part b
+if (PART === "b") {
+  /** Point the editor's 3D pane ("3D daneben") at a plan point of a floor. */
+  const pane = (floorId, x, z, c) =>
+    R.page.evaluate(
+      (floorId, x, z, c) => {
+        const e = document.querySelector("neonplan3d-panel").shadowRoot.querySelector("fp3d-editor");
+        const v = e.renderRoot.querySelector("fp3d-view3d");
+        const viewer = Object.values(v).find((o) => o && o.floors && o.floorMap);
+        const fv = viewer.floorMap.get(floorId);
+        const t = fv.group.position.clone().set(x, c.y ?? 0, z);
+        fv.group.localToWorld(t);
+        const view = viewer.controls.view;
+        view.target.copy(t);
+        Object.assign(view, { theta: c.theta, phi: c.phi, radius: c.radius });
+        viewer.invalidate();
+      },
+      floorId,
+      x,
+      z,
+      c,
+    );
+  const paneCentre = () =>
+    R.page.evaluate(() => {
+      const e = document.querySelector("neonplan3d-panel").shadowRoot.querySelector("fp3d-editor");
+      const r = e.renderRoot.querySelector("fp3d-view3d").getBoundingClientRect();
+      return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+    });
+
+  // ---------------------------------------------------------------- 1. Teaser: the kitchen's coloured lights, the camera cone
+  await chapter("Teaser");
+  await R.open("");
+  await R.hideCursor();
+  await quiet({ text: "Erdgeschoss", exact: true, nth: 0 }, 1200);
+  await quiet('button[aria-label="Bedienelemente ausblenden – nur die 3D-Ansicht bleibt"]', 700);
+  {
+    const a = { theta: 0.5, phi: 0.75, radius: 13, y: 0.3 };
+    const b = { theta: -0.35, phi: 0.68, radius: 10.5, y: 0.3 };
+    await cam("eg", 5.5, 2.3, a);
+    await R.sleep(1500);
+    await R.title("Geräte, Lampen und Kameras", `NeonPlan 3D · Folge 6 · Teil 2${VERSION}`);
+    const l1 = "Lampen, die in Farbe und Helligkeit genau wie bei dir leuchten, und Kameras mit ihrem Blickfeld im Raum.";
+    const l2 = "Das ist Teil 2 von Folge 6: Lampen und Kameras.";
+    const total = N.length(l1) + N.length(l2);
+    const t0 = R.time;
+    const step = async (end) => {
+      const t1 = R.time;
+      const n = Math.max(1, Math.round((end - t1) * FPS));
+      for (let i = 1; i <= n; i++) {
+        const k = ease(Math.min(1, (t1 - t0 + (i / n) * (end - t1)) / total));
+        await cam("eg", 5.5, 2.3, { theta: a.theta + (b.theta - a.theta) * k, phi: a.phi + (b.phi - a.phi) * k, radius: a.radius + (b.radius - a.radius) * k, y: 0.3 });
+        await R.frame(1 / FPS, 15);
+      }
+    };
+    await step(await line(l1));
+    await R.untitle();
+    await step(await line(l2));
+  }
+
+  // ---------------------------------------------------------------- 2. Intro, 3D beside
+  await chapter("Worum es heute geht");
+  await R.open("");
+  await editorOpen();
+  await R.move(900, 560, 0.01);
+  await sayOver("In Teil 1 ging es um die Geräteliste und ums Platzieren. Jetzt schauen wir uns Lampen und Kameras genauer an.");
+  await R.move(700, 500, 1.2);
+  await sayOver("Damit du siehst, was passiert, schalte ich „3D daneben“ ein – die 3D-Ansicht neben dem Plan.");
+  await R.clickOn({ text: "3D daneben", exact: true }, 0.6);
+  await R.sleep(2500);
+  // full walls in the pane: the cut at 1.15 m would hide pendants and wall lights
+  await R.clickOn({ text: "Wände hoch", exact: true }, 0.5);
+  await fitPlan();
+  await pane("eg", 2.2, 6.3, { theta: -0.5, phi: 0.75, radius: 8, y: 0.3 });
+  await R.hold(0.5);
+
+  // ---------------------------------------------------------------- 3. Lamps in the library, a wall light
+  await chapter("Leuchten aus der Bibliothek");
+  await sayOver("Leuchten sind Möbel mit einem verknüpften Licht. Ich tippe das Schlafzimmer an – im Werkzeug „Möbel“ stehen sie ganz oben unter „Leuchten“.");
+  await tapRoom(3.7, 5.2, "schlafen");
+  await R.clickOn({ text: "Möbel", exact: true }, 0.5);
+  await R.hold(0.5);
+  await sayOver("Deckenleuchte, Einbauspot, Aufbau-Spot, LED-Panel, Pendelleuchte, Stehlampe, Deckenfluter, Tischlampe, Wandleuchte, LED-Streifen, Wegleuchte und Garten-Spot.");
+  for (const name of ["Deckenleuchte", "Einbauspot", "Aufbau-Spot", "LED-Panel", "Pendelleuchte", "Stehlampe", "Deckenfluter", "Tischlampe", "Wandleuchte", "LED-Streifen", "Wegleuchte", "Garten-Spot"]) {
+    await R.moveTo({ text: name, exact: true }, 0.3);
+    await R.hold(0.15);
+  }
+  await sayOver("Ich nehme eine Wandleuchte. Ziehe ich sie an die Wand, rastet sie ein – Wandleuchten hängen von sich aus auf 1,75 Metern.");
+  await R.clickOn({ text: "Wandleuchte", exact: true }, 0.4);
+  await R.hold(0.4);
+  {
+    const f = await R.editor(`const f = e.furnitureItem; return [f.x, f.z];`);
+    const a = await R.planPoint(f[0], f[1]);
+    await R.move(a.x, a.y, 0.5);
+    // the 10 cm lamp sits under the plan's size handles, so a real drag grabs a handle: the item follows the cursor
+    // the way a drag moves it (the editor's own wall snap at the end)
+    const n = FAST ? 2 : 25;
+    await R.page.evaluate((x, y) => {
+      const c = document.getElementById("tut-cursor");
+      if (c) c.style.transform = `translate(${x - 4}px, ${y - 2}px)`;
+    }, a.x, a.y);
+    for (let i = 1; i <= n; i++) {
+      const k = ease(i / n);
+      const x = f[0] + (4.3 - f[0]) * k;
+      const z = f[1] + (5.3 - f[1]) * k;
+      const q = await R.planPoint(x, z);
+      await R.editor(`const f = e.furnitureItem; const snap = ${i === n} ? e.snapToWall({ ...f, x: ${x}, z: ${z} }) : null; e.change((_, floor) => Object.assign(floor.furniture.find((m) => m.id === f.id), snap ?? { x: ${Math.round(x * 100) / 100}, z: ${Math.round(z * 100) / 100} }), undefined, ${i === n});`);
+      await R.move(q.x, q.y, 1 / FPS);
+    }
+    await R.frame(0.2, 100);
+    const at = await R.editor(`const f = e.furnitureItem; return f ? [f.x, f.z, f.rotation] : null;`);
+    console.log(`wall light at ${JSON.stringify(at)}`);
+  }
+  await R.clickOn({ text: "Auswählen", exact: true }, 0.5);
+  await pane("eg", 4.2, 5.4, { theta: -1.5, phi: 1.2, radius: 3.6, y: 1.5 });
+  await R.hold(0.3);
+  await sayOver("Unter „Licht oder Schalter“ wählst du das Licht aus Home Assistant – ich nehme den Nachttisch.");
+  await scrollSide({ label: "Licht oder Schalter" }, 520, 0.6).catch(() => {});
+  await pickEntity("Licht oder Schalter", "Nacht", "Nachttisch", 0.5);
+  await R.hold(0.6);
+  await sayOver("Mehrere Leuchten dürfen demselben Licht folgen: Die Tischlampe hängt am selben Licht, beide leuchten jetzt zusammen.");
+  await pane("eg", 3.7, 6.6, { theta: -1.0, phi: 1.0, radius: 5.2, y: 0.9 });
+  {
+    const b = await paneCentre();
+    await R.move(b.x, b.y, 0.8);
+  }
+  await R.hold(1.0);
+  await sayOver("Statt eines Lichts geht auch ein Schalter, etwa ein Relais fürs Deckenlicht. Die Leuchte strahlt dann, solange er an ist.");
+  await pickerMove("Licht oder Schalter", 0.6);
+  await sayOver("Schaltet so ein Relais eine Lampe, die selbst Farbe und Helligkeit kennt, trägst du die Lampe unter „Farbe und Helligkeit von“ ein: An und Aus kommt vom Schalter, die Farbe von dort.");
+  await pickerMove("Farbe und Helligkeit von", 0.6);
+  await R.hold(1.5);
+  await moveToText("Für Lampen, die ein Relais", 0.6);
+  await sayOver("„Leuchtstärke in 3D“ sagt, wie kräftig die Leuchte in 3D strahlt: unter 100 Prozent gedämpfter, darüber kräftiger. In Home Assistant schaltet das nichts.");
+  await fill("Leuchtstärke in 3D", "150");
+  await R.hold(1.2);
+  await sayOver("„Höhe über Boden“ hängt sie höher oder tiefer, „Höhe automatisch“ setzt sie zurück.");
+  await scrollSide({ label: "Höhe über Boden" }, 500, 0.5).catch(() => {});
+  await fill("Höhe über Boden", "2,1");
+  await R.hold(0.8);
+  await R.clickOn({ text: "Höhe automatisch", exact: true }, 0.5);
+
+  // ---------------------------------------------------------------- 4. Pendant, table and floor lamps
+  await chapter("Pendel-, Tisch- und Stehlampen");
+  await sayOver("Bei der Pendelleuchte über dem Esstisch wählst du unter „Form“, wie sie aussieht: Schirm, Kugel, Kegel oder Trommel.");
+  await tapItem("lamp_pendant", 0.7);
+  await pane("eg", 8.0, 2.9, { theta: -0.6, phi: 1.05, radius: 4.2, y: 1.4 });
+  await scrollSide({ label: "Form" }, 600, 0.5).catch(() => {});
+  await R.pickOption("Form", "Schirm", 0.5);
+  await R.hold(0.3);
+  await R.pickOption("Form", "Kegel", 0.3);
+  await R.hold(0.3);
+  await R.pickOption("Form", "Trommel", 0.3);
+  await R.hold(0.3);
+  await R.pickOption("Form", "Kugel", 0.3);
+  await sayOver("Ihre Höhe ist die Abhängung unter der Decke.");
+  await R.moveTo({ label: "Höhe (m)" }, 0.6);
+  await sayOver("Eine Tischlampe stellt sich von selbst auf das Möbel darunter – hier auf den Nachttisch.");
+  await tapItem("lamp_table", 0.7);
+  await pane("eg", 3.3, 7.6, { theta: 2.7, phi: 1.0, radius: 3.4, y: 0.6 });
+  await R.hold(1.0);
+
+  // ---------------------------------------------------------------- 5. LED strips
+  await chapter("LED-Streifen");
+  await sayOver("LED-Streifen rasten wie Wandleuchten an der Wand ein und hängen von sich aus direkt unter der Decke.");
+  {
+    const f = await R.editor(`const f = e.floor.furniture.find((f) => f.type === "led_strip" && !f.upright); return { id: f.id, x: f.x, z: f.z };`);
+    await tapPlan(f.x, f.z + 0.02, 0.7);
+    if ((await R.editor(`return e._furnitureId;`)) !== f.id) await R.editor(`e.selectItem("furniture", ${JSON.stringify(f.id)});`);
+  }
+  await pane("eg", 2.6, 0.6, { theta: 0.15, phi: 1.2, radius: 5.5, y: 1.3 });
+  await R.hold(0.6);
+  await sayOver("Unter 1 Meter Höhe – an der Sockelleiste oder hinter dem Schrank – strahlen sie nach oben an die Wand, höher montierte nach unten.");
+  await scrollSide({ label: "Höhe über Boden" }, 500, 0.5).catch(() => {});
+  await fill("Höhe über Boden", "0,3");
+  await R.hold(1.6);
+  await R.clickOn({ text: "Höhe automatisch", exact: true }, 0.5);
+  await sayOver("Ein Streifen unterhalb der Schnitthöhe bleibt auch bei geschnittenen Wänden sichtbar.");
+  await R.move(1150, 700, 1.0);
+  await sayOver("„Neigung um die Länge“ legt den Streifen an eine Dachschräge oder kippt ihn zur Seite. „Senkrecht“ stellt ihn hochkant – wie die Lichtsäule hier am Fenster.");
+  await R.moveTo({ label: "Neigung um die Länge" }, 0.5);
+  await R.hold(0.8);
+  await R.moveTo({ text: "Senkrecht" }, 0.4);
+  await R.hold(0.6);
+  await pane("eg", 0.3, 1.3, { theta: 1.45, phi: 1.05, radius: 5, y: 1.1 });
+  await pointPlan(0.12, 1.2, 0.7);
+  await sayOver("Und läuft in Home Assistant ein Farbeffekt wie ein Farbwechsel, ist er in 3D animiert.");
+  await live(R.time + 0.5);
+  await catchUp();
+
+  // ---------------------------------------------------------------- 6. Spots
+  await chapter("Spots setzen");
+  await sayOver("Für Einbauspots gibt es am Raum „Spots setzen“. Es legt ein Raster aus Leuchten an, die alle einem Licht folgen – etwa sechs Spots an einem Dimmer.");
+  await tapRoom(3.7, 5.2, "schlafen", 0.7);
+  await scrollSide({ text: "Spots setzen", exact: true }, 640, 0.6);
+  await R.clickOn({ text: "Spots setzen", exact: true }, 0.5);
+  await R.hold(0.5);
+  await sayOver("Du wählst die Leuchte, die Spalten und Reihen und das Licht.");
+  await R.moveTo({ label: "Leuchte" }, 0.5);
+  await R.hold(0.4);
+  await fill("Spalten", "3");
+  await fill("Reihen", "2");
+  await pickerMove("Licht oder Schalter", 0.5);
+  await sayOver("„6 Leuchten setzen“ – fertig. Jeder Spot lässt sich danach einzeln verschieben, wie jedes Möbel.");
+  await R.clickOn({ text: "6 Leuchten setzen" }, 0.5);
+  await pane("eg", 2.2, 6.3, { theta: 0.3, phi: 0.62, radius: 7.5, y: 0.3 });
+  await R.hold(1.2);
+
+  // ---------------------------------------------------------------- 7. Lamps live in 3D
+  await chapter("Lampen live in 3D");
+  await sayOver("In 3D leuchtet jede Lampe in Farbe und Helligkeit, wie Home Assistant sie meldet. Boden und Wände leuchten mit, und zwei farbige Deckenleuchten mischen sich.");
+  await R.clickOn({ text: "3D", exact: true }, 0.6);
+  await R.sleep(1000);
+  await quiet({ text: "Küche", exact: true }, 1500);
+  await R.clickOn('button[aria-label="Schließen"]', 0.01).catch(() => {});
+  {
+    const a = { theta: -0.2, phi: 0.75, radius: 8.5, y: 0.5 };
+    const b = { theta: 0.25, phi: 0.7, radius: 7.5, y: 0.5 };
+    await cam("eg", 8.0, 2.4, a);
+    await R.sleep(600);
+    await glide("eg", 8.0, 2.4, a, b, 3.5);
+    await sayOver("In den Nachbarraum fällt das Licht nur durch Türen.");
+    await glide("eg", 8.0, 2.4, b, { theta: 0.45, phi: 0.72, radius: 7.5, y: 0.5 }, 2.0);
+  }
+  await sayOver("Ein Tipp schaltet die Lampe, sie blinkt kurz zur Bestätigung.");
+  {
+    const p = await point3d("eg", 8.0, 1.75, 2.9);
+    await R.move(p.x, p.y, 0.6);
+    await R.click();
+    await live(R.time + 1.2);
+    await R.click();
+    await live(R.time + 0.8);
+  }
+  await sayOver("Senkrecht wischen dimmt – der Wert erscheint am Finger.");
+  {
+    const p = await point3d("eg", 8.0, 1.75, 2.9);
+    await R.move(p.x, p.y, 0.3);
+    await R.page.mouse.down();
+    await R.move(p.x, p.y - 160, 1.4);
+    await R.move(p.x, p.y - 60, 0.8);
+    await R.page.mouse.up();
+    await live(R.time + 0.6);
+  }
+  await sayOver("Lange drücken öffnet das Schnellmenü: Helligkeit, Farbtemperatur und Farben.");
+  {
+    const p = await point3d("eg", 8.0, 1.75, 2.9);
+    await R.move(p.x, p.y, 0.4);
+    await longPress(0.8);
+    await R.hold(1.0);
+  }
+  await sayOver("Ein Doppeltipp auf den Raum schaltet alle Lichter des Raums aus – und wieder an.");
+  {
+    // close the quick menu with a tap beside it, then double tap the kitchen floor
+    const p = await point3d("eg", 6.7, 0, 2.2);
+    await R.move(p.x, p.y, 0.6);
+    await R.page.mouse.click(p.x, p.y);
+    await R.frame(0.6, 600);
+    await R.page.mouse.click(p.x, p.y);
+    await R.sleep(80);
+    await R.page.mouse.click(p.x, p.y);
+    await live(R.time + 1.6);
+    await R.page.mouse.click(p.x, p.y);
+    await R.sleep(80);
+    await R.page.mouse.click(p.x, p.y);
+    await live(R.time + 1.2);
+    await R.clickOn('button[aria-label="Schließen"]', 0.4).catch(() => {});
+  }
+
+  // ---------------------------------------------------------------- 8. Cameras in the editor
+  await chapter("Kameras ausrichten");
+  await sayOver("Kameras platzierst du wie jedes Gerät. Im Plan zeigt ein Kegel, wohin die Kamera schaut.");
+  await editorOpen(true);
+  await tapDevice("camera.wohnzimmer", 0.7);
+  await pane("eg", 2.6, 2.0, { theta: -0.75, phi: 0.75, radius: 9, y: 0.3 });
+  await R.hold(0.6);
+  await sayOver("Unter „Montage“ hängt sie an der Wand und schaut in eine Richtung – die Drehung. An der Decke ist sie ein Dome, der rundum schaut.");
+  await R.pickOption("Montage", "Decke (Dome, rundum)", 0.5);
+  await R.hold(1.2);
+  await R.pickOption("Montage", "Wand (Blickrichtung = Drehung)", 0.4);
+  await R.hold(0.4);
+  await sayOver("Der Griff an der Spitze des Kegels dreht die Kamera und setzt zugleich die Reichweite.");
+  {
+    const hnd = await R.editor(`const el = e.renderRoot.querySelector('[data-aim] .fp3d-hit'); if (!el) return null; const r = el.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 };`);
+    await R.move(hnd.x, hnd.y, 0.6);
+    const a = await R.planPoint(4.2, 3.4);
+    await R.drag(a.x, a.y, 1.0);
+  }
+  await sayOver("Genauer geht es mit Zahlen: „Sichtwinkel“, „Reichweite“ und „Neigung nach unten“.");
+  await fill("Sichtwinkel", "110");
+  await R.hold(0.4);
+  await R.moveTo({ label: "Reichweite" }, 0.4);
+  await R.hold(0.4);
+  await R.moveTo({ label: "Neigung nach unten" }, 0.4);
+  await sayOver("„Sichtkegel in 3D zeigen“ blendet den Kegel für diese Kamera aus und wieder ein.");
+  await R.clickOn({ text: "Sichtkegel in 3D zeigen" }, 0.5);
+  await R.hold(0.8);
+  await R.clickOn({ text: "Sichtkegel in 3D zeigen" }, 0.3);
+  await sayOver("In 3D endet der Kegel an der ersten Wand: Eine Innenkamera sieht nicht durch die Wand ins Nachbarzimmer.");
+  await pane("eg", 3.0, 2.3, { theta: -0.4, phi: 0.6, radius: 10, y: 0.3 });
+  await R.move(1150, 560, 0.8);
+
+  // ---------------------------------------------------------------- 9. Cameras in 3D
+  await chapter("Kameras in 3D");
+  await sayOver("In 3D hängt die Kamera als kleines Modell an der Wand, ihr Sichtfeld liegt als Kegel auf dem Boden.");
+  await R.clickOn({ text: "3D", exact: true }, 0.6);
+  await R.sleep(1000);
+  await quiet({ text: "Wohnzimmer", exact: true }, 1500);
+  await R.clickOn('button[aria-label="Schließen"]', 0.01).catch(() => {});
+  // evening: the living room's lights off, so the cone on the floor stands out (set up before the line)
+  for (const id of ["light.wohnzimmer_decke", "light.stehlampe", "light.led_band", "light.pixeluhr"]) await service("light", "turn_off", { entity_id: id });
+  await h.setState("binary_sensor.wohnzimmer_kamera_bewegung", "off");
+  await h.setState("binary_sensor.wohnzimmer_kamera_person", "off");
+  await cam("eg", 2.4, 2.0, { theta: -0.75, phi: 0.72, radius: 8.5, y: 0.3 });
+  await R.sleep(700);
+  {
+    const p = await point3d("eg", 0.2, 2.2, 0.2);
+    await R.move(p.x, p.y, 0.7);
+  }
+  await R.hold(0.5);
+  await sayOver("Meldet ein Bewegungs- oder Präsenzsensor der Kamera Bewegung, wird der Kegel rot.");
+  await live(R.time + 1.0);
+  await h.setState("binary_sensor.wohnzimmer_kamera_bewegung", "on");
+  await live(R.time + 1.6);
+  await sayOver("Ein Tipp auf die Kamera oder auf ihren Kegel öffnet das Standbild, das sich alle paar Sekunden erneuert. Der Kegel ist die viel größere Tippfläche.");
+  {
+    const p = await point3d("eg", 1.9, 0.02, 2.0);
+    await R.move(p.x, p.y, 0.7);
+    await R.click();
+    await R.hold(0.8);
+  }
+  await sayOver("Ein Tipp aufs Bild öffnet das Livebild von Home Assistant.");
+  await R.moveTo(".qm-camera", 0.6).catch(() => {});
+  await R.hold(0.6);
+  await sayOver("Mit dem Kamera-Cockpit, einer Pro-Erweiterung, schaust du außerdem durch die Kamera in die 3D-Ansicht und siehst alle Livebilder auf einer Kamera-Wand.");
+  await R.moveTo({ text: "Durch die Kamera schauen" }, 0.6).catch(() => {});
+  await R.hold(1.0);
+  await R.moveTo({ text: "Kameras", exact: true }, 0.8).catch(() => {});
+
+  // ---------------------------------------------------------------- 10. Outro
+  await chapter("Zusammenfassung");
+  await catchUp();
+  await R.open("");
+  await R.hideCursor();
+  await quiet({ text: "Erdgeschoss", exact: true, nth: 0 }, 1200);
+  await quiet('button[aria-label="Bedienelemente ausblenden – nur die 3D-Ansicht bleibt"]', 700);
+  {
+    const a = { theta: -0.6, phi: 0.95, radius: 13 };
+    const b = { theta: 0.4, phi: 0.85, radius: 11 };
+    await cam("eg", 5.5, 3.5, a);
+    await R.sleep(700);
+    const end = await line("Kurz zusammengefasst: Leuchten sind Möbel mit einem Licht, mit Form, Höhe und Leuchtstärke. Kameras zeigen mit ihrem Kegel, was sie sehen.");
+    await glide("eg", 5.5, 3.5, a, b, end - R.time);
+  }
+  await R.title("Nächste Folge: Dächer, Teil 1", `NeonPlan 3D – läuft auch auf alten Wandtablets${VERSION}`);
+  {
+    let end = await line("In der nächsten Folge geht es um Dächer: Satteldach, Walmdach und Co.");
+    await live(end);
+    end = await line("Links zur Online-Demo und zur Anleitung stehen in der Beschreibung. Und NeonPlan 3D läuft auch auf alten Wandtablets. Bis zum nächsten Mal!");
     await live(end + 0.6);
   }
 }
