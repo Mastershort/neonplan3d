@@ -285,7 +285,13 @@ def upload_caption(video_id: str, lang: str, name: str, srt: Path, existing: dic
 def apply(folders: list[Path], dry: bool, synthetic: bool | None) -> None:
     videos = {v.get("fileDetails", {}).get("fileName", ""): v for v in my_videos()}
     playlist = ensure_playlist(dry)
-    items = [read_upload(f) for f in folders]
+    items = []
+    for f in folders:
+        try:
+            items.append(read_upload(f))
+        except RuntimeError as e:
+            # an episode still in the making (no video yet) is skipped
+            print(f"skipped: {e}")
     for it in sorted(items, key=lambda x: x["stem"]):
         v = videos.get(it["file"])
         print(f"{it['file']}: {'found ' + v['id'] if v else 'NOT on YouTube yet - upload it in YouTube Studio first'}")
