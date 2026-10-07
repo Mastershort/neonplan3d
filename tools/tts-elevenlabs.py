@@ -59,6 +59,7 @@ SPOKEN = [
     (r"\b3D\b", "3-D"),
     (r"Strg\+Z", "Steuerung plus Z"),
     (r"Wand 2–3", "Wand zwei drei"),  # noqa: RUF001
+    (r"Wand 3–4", "Wand drei vier"),  # noqa: RUF001
     (r"\b2,75 Meter", "zwei Komma sieben fünf Meter"),
     (r"m²", "Quadratmeter"),
     (r"↻ 90°", "90 Grad rechts herum"),
@@ -75,6 +76,7 @@ SPOKEN_EN = [
     (r"\b3D\b", "3-D"),
     (r"Ctrl\+Z", "Control Z"),
     (r"Wand 2–3", "Wand two three"),  # noqa: RUF001
+    (r"Wand 3–4", "Wand three four"),  # noqa: RUF001
     (r"↻ 90°", "90 degrees clockwise"),
     (r"(\d)°", r"\1 degrees"),
     (r"m²", "square metres"),

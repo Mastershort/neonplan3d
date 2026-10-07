@@ -3,16 +3,16 @@
 // an L-shaped room with "Freie Form", corners, "+" on an edge, the point list, arrow keys) and the walls (thickness,
 // heights, splitting a wall for a counter, "Keine Wand", a free-standing half-height wall), checked in 3D beside.
 // The picture is invented and deliberately crooked and too small (tutorials/assets/make-plan.py, bauplan-l.png).
-// Usage (from frontend/): node tutorials/ep02a-bauplan-vorlage.mjs <out-dir> [<voice-dir with durations.json>]
+// Usage (from frontend/): node tutorials/ep02a-bauplan-vorlage.mjs <out-dir> [<de voice-dir> <en voice-dir>] (each with durations.json)
 // Then: python ../tools/make-tutorial.py <out-dir> <out.mp4>
 
 import { narration, startRecorder } from "./recorder.mjs";
-import { PLAN, PTS, VERSION, fastMode, helpers, traceHouse } from "./ep02-common.mjs";
+import { PLAN, PTS, VERSION, fastMode, helpers, tap, traceHouse } from "./ep02-common.mjs";
 
 const out = process.argv[2] ?? "tutorial-ep02a";
 const R = await startRecorder({ outDir: out, width: 1920, height: 1080, lang: "de" });
 fastMode(R);
-const N = narration(R, process.argv[3]);
+const N = narration(R, process.argv.slice(3));
 const { say, sayOver, chapter, catchUp } = N;
 const H = helpers(R);
 const { fill, tapPlan, pointPlan, dragPlan, side, scrollSide, rowMove, rowClick, bgPoint, planElement } = H;
@@ -39,7 +39,7 @@ await chapter("Teaser");
 await R.open("empty");
 await R.hideCursor();
 await traceHouse(R, { walls: true, openings: true });
-await R.clickOn({ text: "3D", exact: true }, 0.01);
+await tap(R, { text: "3D", exact: true });
 await R.sleep(2500);
 const A = { theta: 0.25, phi: 0.95, radius: 22 };
 const B = { theta: 0.95, phi: 0.8, radius: 19 };
@@ -56,14 +56,14 @@ await R.glide(B, C, 5);
 // ---------------------------------------------------------------- 1. Intro
 await chapter("Was wir heute machen");
 await R.open("empty");
-await R.clickOn({ text: "Editor", exact: true }, 0.01);
+await tap(R, { text: "Editor", exact: true });
 await R.sleep(500);
 await R.hideCursor(false);
 await sayOver("In Teil 1 legen wir den Bauplan unter, richten ihn gerade aus und bringen ihn mit dem Lineal auf den richtigen Maßstab.");
 await R.move(800, 520, 0.6);
 await R.hold(1);
 await R.moveTo({ text: "Freie Form", exact: true }, 0.6);
-await sayOver("Dann zeichnen wir die Räume nach und stellen die Wände ein. Türen und Fenster kommen in Teil 2.");
+await sayOver("Dann zeichnen wir die Räume nach und stellen die Wände ein. Türen kommen in Teil 2, Fenster in Teil 3.");
 await R.hold(1.2);
 await R.moveTo({ text: "Wand", exact: true }, 0.5);
 await R.hold(0.8);
@@ -381,8 +381,8 @@ await sayOver("Jetzt die Kontrolle: „3D daneben“ zeigt das Haus direkt neben
 await R.clickOn({ text: "3D daneben", exact: true }, 0.6);
 await R.sleep(1500);
 await H.view2d(52, 60, 330);
-const D = { theta: 0.3, phi: 0.95, radius: 29, target: { x: 7, y: 0.75, z: 4.25 } };
-const E = { theta: 0.95, phi: 0.8, radius: 26, target: { x: 7, y: 0.75, z: 4.25 } };
+const D = { theta: 0.3, phi: 0.95, radius: 32, target: { x: 7, y: 0.75, z: 4.25 } };
+const E = { theta: 0.95, phi: 0.8, radius: 30, target: { x: 7, y: 0.75, z: 4.25 } };
 await H.view3d(D);
 await R.sleep(1200);
 await R.frame(1 / 25, 200);
@@ -400,8 +400,8 @@ await H.glide3d(D, E, 6);
 
 // ---------------------------------------------------------------- 11. Outro
 await chapter("Wie geht es weiter");
-await R.title("Teil 2: Türen und Fenster", `NeonPlan 3D – läuft auch auf alten Wandtablets${VERSION}`);
-await say("Das war Teil 1: Bauplan einrichten, Räume nachzeichnen, Wände einstellen. In Teil 2 kommen Türen, Fenster und das Garagentor dazu – mit Kontakten und Rollläden.");
+await R.title("Teil 2: Türen und Garagentor", `NeonPlan 3D – läuft auch auf alten Wandtablets${VERSION}`);
+await say("Das war Teil 1: Bauplan einrichten, Räume nachzeichnen, Wände einstellen. In Teil 2 kommen die Türen und das Garagentor dazu, in Teil 3 die Fenster – mit Kontakten und Rollläden.");
 await say("Links zur Online-Demo und zur Anleitung findest du in der Beschreibung. Und NeonPlan läuft auch auf alten Wandtablets. Bis gleich in Teil 2!");
 await R.hold(0.6);
 

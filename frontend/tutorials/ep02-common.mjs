@@ -33,6 +33,13 @@ export function fastMode(R) {
   R.type = (text) => type(text, 0.01);
 }
 
+/** Click an element without recording frames (for invisible setup steps before a part starts). */
+export async function tap(R, target) {
+  const b = await R.locate(target);
+  await R.page.mouse.click(b.x, b.y);
+  await R.sleep(400);
+}
+
 export function helpers(R) {
   const editorEval = (fn, ...args) =>
     R.page.evaluate(
@@ -338,10 +345,10 @@ export function helpers(R) {
  */
 export async function traceHouse(R, { walls = true, openings = false } = {}) {
   const h = helpers(R);
-  await R.clickOn({ text: "Editor", exact: true }, 0.01);
+  await tap(R, { text: "Editor", exact: true });
   await R.sleep(500);
-  await R.clickOn({ text: "Etage hinzufügen" }, 0.01);
-  await R.clickOn({ text: "Erdgeschoss", nth: 0 }, 0.01);
+  await tap(R, { text: "Etage hinzufügen" });
+  await tap(R, { text: "Erdgeschoss", nth: 0 });
   await R.sleep(500);
   const png = "data:image/png;base64," + readFileSync(PLAN).toString("base64");
   await R.page.evaluate((png) => window.fp3dPanel.hass.callWS({ type: "neonplan3d/image/set", image_id: "img_plan", data: png }), png);

@@ -4,16 +4,16 @@
 // contact + tilt sensor, tilt angle sensor), blinds with a live position sensor, and everything live in 3D.
 // The handle sensor, the tilt angle sensor, the blind level sensor and the bathroom door contact are added to the
 // demo's mock Home Assistant at runtime (invented, like the rest of the demo).
-// Usage (from frontend/): node tutorials/ep02c-fenster-sensoren.mjs <out-dir> [<voice-dir with durations.json>]
+// Usage (from frontend/): node tutorials/ep02c-fenster-sensoren.mjs <out-dir> [<de voice-dir> <en voice-dir>] (each with durations.json)
 // Then: python ../tools/make-tutorial.py <out-dir> <out.mp4>
 
 import { narration, startRecorder } from "./recorder.mjs";
-import { VERSION, fastMode, helpers, traceHouse } from "./ep02-common.mjs";
+import { VERSION, fastMode, helpers, tap, traceHouse } from "./ep02-common.mjs";
 
 const out = process.argv[2] ?? "tutorial-ep02c";
 const R = await startRecorder({ outDir: out, width: 1920, height: 1080, lang: "de" });
 fastMode(R);
-const N = narration(R, process.argv[3]);
+const N = narration(R, process.argv.slice(3));
 const { say, sayOver, chapter, catchUp } = N;
 const H = helpers(R);
 const { fill, tapPlan, pointPlan, scrollSide, pickEntity, pickerMove, view3d, glide3d, setState } = H;
@@ -57,7 +57,7 @@ await chapter("Teaser");
 await R.open("empty");
 await R.hideCursor();
 await traceHouse(R, { walls: true, openings: true });
-await R.clickOn({ text: "3D", exact: true }, 0.01);
+await tap(R, { text: "3D", exact: true });
 await R.sleep(2500);
 const A = { theta: -0.2, phi: 0.85, radius: 19 };
 const B = { theta: 0.5, phi: 0.9, radius: 20 };
@@ -82,10 +82,10 @@ await H.addEntities(ENTITIES);
 await H.editorEval(
   `e.change((doc, f) => { const d = f.openings.find((o) => o.room_id === "flur" && o.edge === 2 && o.offset === 5.5); if (d) Object.assign(d, { contact: "binary_sensor.bad_tuer", mark: "closed" }); });`,
 );
-await R.clickOn({ text: "3D daneben", exact: true }, 0.01);
+await tap(R, { text: "3D daneben", exact: true });
 await R.sleep(1500);
 await H.view2d(58, 25, 330);
-await R.clickOn({ text: "Wände hoch", exact: true }, 0.01);
+await tap(R, { text: "Wände hoch", exact: true });
 await view3d(V.over);
 await R.sleep(1200);
 await R.hideCursor(false);
@@ -123,7 +123,7 @@ await sayOver("Beim Kontakt steht „Automatisch (Terrassentür)“ – der erst
 await pickerMove("Kontakt", 0.5, 0);
 await R.hold(1.2);
 await pickEntity("Kontakt", "", "Keiner", 0.4, 0);
-await sayOver("Die Küche bekommt ein Fenster mit Sprossen: auf die Wand, oben „Fenster“, Stil „Mit Sprossen“.");
+await sayOver("Die Küche bekommt ein Fenster mit Sprossen: auf die Wand, oben „Fenster“, Stil „Mit Sprossen“. Die Sprossen teilen das Glas in kleine Felder.");
 await tool();
 await tapPlan(12, 0, 0.7);
 await H.sideTop();
@@ -136,7 +136,7 @@ await pickerMove("Rollladen", 0.5);
 await R.hold(0.5);
 await pickerMove("Kontakt", 0.5);
 await R.hold(0.6);
-await sayOver("Im Bad sitzt das Fenster höher: 80 Zentimeter breit, Brüstung 1,3 Meter, Höhe 0,8.");
+await sayOver("Im Bad sitzt das Fenster höher: 80 Zentimeter breit, Brüstung 1,3 Meter, Höhe 0,8. So schaut von draußen niemand hinein.");
 await tool();
 await tapPlan(9, 8.5, 0.7);
 await H.sideTop();
@@ -196,6 +196,7 @@ await pickEntity("Kipp-Sensor", "gekippt", "Schlafzimmer Fenster gekippt", 0.5);
 await R.hold(0.6);
 await sayOver("Optional liefert ein „Kippwinkel-Sensor“ den Winkel in Grad. Dann kippt der Flügel genau so weit – mit Feldern für den Winkel „ganz gekippt“, einen Offset und die Zählrichtung.");
 await pickEntity("Kippwinkel-Sensor", "Kippwinkel", "Schlafzimmer Kippwinkel", 0.5);
+await scrollSide({ label: "Winkel für" }, 640, 0.5);
 await setState("sensor.schlafzimmer_kippwinkel", "6");
 await R.moveTo({ label: "Winkel für" }, 0.5);
 await R.moveTo({ label: "Offset" }, 0.5);
@@ -232,16 +233,17 @@ await R.clickOn({ text: "3D", exact: true }, 0.6);
 await R.sleep(1500);
 await catchUp();
 await R.hideCursor();
-const D = { theta: 0.15, phi: 0.9, radius: 20 };
-const E = { theta: 0.9, phi: 0.8, radius: 18 };
+const D = { theta: 0.2, phi: 0.85, radius: 25 };
+const M = { theta: 0.5, phi: 0.8, radius: 24 };
+const E = { theta: 0.8, phi: 0.75, radius: 24 };
 await R.view(D);
 await R.sleep(1000);
 await sayOver("Offene Fenster und Türen leuchten warm, gekippte kippen, Rollläden und Garagentor fahren mit – alles live aus Home Assistant.");
-await R.glide(D, { theta: 0.5, phi: 0.85, radius: 19 }, 3);
+await R.glide(D, M, 3);
 await setState("binary_sensor.haustuer", "on");
 await travel("cover.garagentor", 60, 100, 1.5);
 await sayOver("Und die Badtür leuchtet, solange sie zu ist – genau wie in Teil 2 eingestellt.");
-await R.glide({ theta: 0.5, phi: 0.85, radius: 19 }, E, 4);
+await R.glide(M, E, 4);
 
 // ---------------------------------------------------------------- 6. Outro
 await chapter("Wie geht es weiter");

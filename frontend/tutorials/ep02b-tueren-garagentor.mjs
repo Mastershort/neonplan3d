@@ -4,16 +4,16 @@
 // the area, and picked by hand), "Ohne Sensor geschlossen zeigen", the garage door with its motor, "Markieren in 3D"
 // and the plan lock, each change seen live in the 3D half beside the plan.
 // The bathroom door contact ("Bad Tür") is added to the demo's mock Home Assistant at runtime (invented, like the rest).
-// Usage (from frontend/): node tutorials/ep02b-tueren-garagentor.mjs <out-dir> [<voice-dir with durations.json>]
+// Usage (from frontend/): node tutorials/ep02b-tueren-garagentor.mjs <out-dir> [<de voice-dir> <en voice-dir>] (each with durations.json)
 // Then: python ../tools/make-tutorial.py <out-dir> <out.mp4>
 
 import { narration, startRecorder } from "./recorder.mjs";
-import { VERSION, fastMode, helpers, traceHouse } from "./ep02-common.mjs";
+import { VERSION, fastMode, helpers, tap, traceHouse } from "./ep02-common.mjs";
 
 const out = process.argv[2] ?? "tutorial-ep02b";
 const R = await startRecorder({ outDir: out, width: 1920, height: 1080, lang: "de" });
 fastMode(R);
-const N = narration(R, process.argv[3]);
+const N = narration(R, process.argv.slice(3));
 const { say, sayOver, chapter, catchUp } = N;
 const H = helpers(R);
 const { fill, tapPlan, pointPlan, side, scrollSide, pickEntity, pickerMove, view3d, glide3d, setState } = H;
@@ -51,7 +51,7 @@ await chapter("Teaser");
 await R.open("empty");
 await R.hideCursor();
 await traceHouse(R, { walls: true, openings: true });
-await R.clickOn({ text: "3D", exact: true }, 0.01);
+await tap(R, { text: "3D", exact: true });
 await R.sleep(2500);
 const A = { theta: 1.0, phi: 0.85, radius: 19 };
 const B = { theta: 0.35, phi: 0.9, radius: 21 };
@@ -72,9 +72,9 @@ await chapter("Was wir heute machen");
 await R.open("empty");
 await traceHouse(R, { walls: true });
 await H.addEntities([BAD_TUER]);
-await R.clickOn({ text: "3D daneben", exact: true }, 0.01);
+await tap(R, { text: "3D daneben", exact: true });
 await R.sleep(1500);
-await R.clickOn({ text: "Wände hoch", exact: true }, 0.01);
+await tap(R, { text: "Wände hoch", exact: true });
 await H.view2d(58, 25, 330);
 await view3d(V.over);
 await R.sleep(1200);
@@ -255,11 +255,10 @@ await R.hold(0.6);
 await side();
 await scrollSide({ text: "Grundriss gesperrt" }, 300, 0.4).catch(() => null);
 await R.moveTo({ text: "Grundriss gesperrt" }, 0.5).catch(() => null);
-await sayOver("Ein Klick auf „Grundriss gesperrt“ oben im Formular gibt ihn wieder frei. Und gelöscht wird mit „Löschen“ unten im Formular oder mit der Entf-Taste.");
+await sayOver("Ein Klick auf „Grundriss gesperrt“ oben im Formular gibt ihn wieder frei. Und gelöscht wird mit „Löschen“ unten im Formular oder mit der Entfernen-Taste.");
 await R.clickOn({ text: "Grundriss gesperrt" }, 0.5).catch(() => null);
 await scrollSide({ text: "Löschen", exact: true }, 700, 0.5);
 await R.moveTo({ text: "Löschen", exact: true }, 0.5);
-await catchUp();
 await look(V.over, 1.5);
 
 // ---------------------------------------------------------------- 7. Outro
