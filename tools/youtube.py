@@ -24,12 +24,17 @@ import json
 from pathlib import Path
 import re
 import secrets
+import socket
 import sys
 import time
 import urllib.error
 import urllib.parse
 import urllib.request
 import webbrowser
+
+# IPv6 to Google does not get through on this network (each call waited for its timeout): IPv4 only
+_getaddrinfo = socket.getaddrinfo
+socket.getaddrinfo = lambda host, port, family=0, *args, **kw: _getaddrinfo(host, port, socket.AF_INET, *args, **kw)
 
 HOME = Path.home() / ".floorplan3d"
 CLIENT = HOME / "youtube_client.json"
@@ -76,7 +81,7 @@ def login() -> None:
             "response_type": "code",
             "scope": SCOPE,
             "access_type": "offline",
-            "prompt": "consent",
+            "prompt": "select_account consent",
             "state": state,
         }
     )
@@ -165,7 +170,10 @@ def call(
 
 def my_videos() -> list[dict]:
     """All videos of the channel with their file names (fileDetails is only visible to the owner)."""
-    ch = call("GET", "/channels", {"part": "contentDetails", "mine": "true"})["items"][0]
+    items = call("GET", "/channels", {"part": "contentDetails,snippet", "mine": "true"}).get("items", [])
+    if not items:
+        sys.exit("This sign-in has no YouTube channel: sign in again and pick the channel (brand account).")
+    ch = items[0]
     uploads = ch["contentDetails"]["relatedPlaylists"]["uploads"]
     ids: list[str] = []
     token = None
