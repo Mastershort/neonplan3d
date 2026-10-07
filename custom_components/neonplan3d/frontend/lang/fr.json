@@ -556,6 +556,7 @@
  "help_hint": "Signale les problèmes comme issue sur GitHub et les souhaits comme discussion – rien ne se perd, et tout le monde voit où ça en est.",
  "help_issue": "Signaler un problème",
  "help_idea": "Proposer une idée",
+ "help_discord": "Communauté sur Discord",
  "furn_name": "Nom (optionnel)",
  "furn_mirror": "Miroir",
  "furn_mirror_hint": "Inverser gauche et droite – le canapé d'angle dans l'autre sens, l'armoire avec la porte de l'autre côté, la cuisine en miroir.",

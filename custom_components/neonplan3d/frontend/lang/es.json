@@ -556,6 +556,7 @@
  "help_hint": "Informa de los problemas como issue en GitHub y de los deseos como discusión: así nada se pierde y todos ven el estado.",
  "help_issue": "Informar de un problema",
  "help_idea": "Proponer una idea",
+ "help_discord": "Comunidad en Discord",
  "furn_name": "Nombre (opcional)",
  "furn_mirror": "Reflejar",
  "furn_mirror_hint": "Intercambiar izquierda y derecha: el sofá en L al revés, el armario con la puerta al otro lado, la cocina reflejada.",

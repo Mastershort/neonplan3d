@@ -12,6 +12,8 @@
 
 📖 **Manual:** [English](https://mastershort.de/en/neonplan3d/manual/?lang=en) · [Deutsch](https://mastershort.de/neonplan3d/anleitung/?lang=de) (also in this repository: [manual.md](docs/manual.md), [anleitung.md](docs/anleitung.md))
 
+💬 **Community:** [Join the Discord](https://discord.gg/SSdVVFsev7) – show your 3D home, ask questions, share ideas.
+
 🗺️ **What comes next:** [Roadmap](ROADMAP.md) – free features, planned Pro add-ons and furniture packs, with the wishes they come from.
 
 ## What it does
