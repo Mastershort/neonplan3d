@@ -406,6 +406,8 @@ export interface HologramSettings {
   /** Offset from the field's middle along the eave (m, + = right) and up the slope (m). */
   right: number;
   up: number;
+  /** Seen from behind its field the card shows its back, mirrored like glass (default); false keeps it readable. */
+  mirror?: boolean;
 }
 
 export const DEFAULT_HOLOGRAM: HologramSettings = { field: null, size: 1, right: 0, up: 0 };

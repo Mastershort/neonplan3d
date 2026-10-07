@@ -572,6 +572,8 @@
  "holo_field": "Sur le champ solaire",
  "holo_field_auto": "Automatique (le plus grand champ)",
  "holo_size": "Taille (1 = normale)",
+ "holo_mirror": "Miroir vu de derrière (comme du verre)",
+ "holo_mirror_hint": "Vues de l'arrière du champ solaire, les cartes montrent leur dos, en miroir comme une vitre. Désactivé : elles restent lisibles de partout.",
  "holo_right": "Décalage latéral (m, + = droite)",
  "holo_up": "Décalage vers le haut (m, vers le faîte)",
  "holo_place": "Accroché",

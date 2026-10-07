@@ -572,6 +572,8 @@
  "holo_field": "Aan het zonneveld",
  "holo_field_auto": "Automatisch (grootste veld)",
  "holo_size": "Grootte (1 = normaal)",
+ "holo_mirror": "Gespiegeld van achteren (zoals glas)",
+ "holo_mirror_hint": "Van de achterkant van het zonneveld tonen de kaarten hun achterkant, gespiegeld als een glasplaat. Uit: ze blijven overal leesbaar.",
  "holo_right": "Zijwaartse verschuiving (m, + = rechts)",
  "holo_up": "Verschuiving omhoog (m, de helling op)",
  "holo_place": "Hangt",

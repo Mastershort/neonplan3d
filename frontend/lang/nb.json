@@ -572,6 +572,8 @@
  "holo_field": "På solcellefeltet",
  "holo_field_auto": "Automatisk (største felt)",
  "holo_size": "Størrelse (1 = normal)",
+ "holo_mirror": "Speilvendt bakfra (som glass)",
+ "holo_mirror_hint": "Sett fra baksiden av solfeltet viser kortene baksiden, speilvendt som en glassrute. Av: de kan leses fra alle kanter.",
  "holo_right": "Sideforskyvning (m, + = høyre)",
  "holo_up": "Forskyvning oppover (m, oppover takflaten)",
  "holo_place": "Plassering",

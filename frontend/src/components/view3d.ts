@@ -1128,7 +1128,7 @@ export class Fp3dView3d extends LitElement {
   /**
    * Hangs a hologram card on its anchor (called by the viewer after every frame): a thin line rises from
    * the solar field to the card's lower left corner; the card keeps its size in the world and, seen from
-   * behind the field, hangs on the other side (lower right corner).
+   * behind the field, shows its back (mirrored) or, switched off, hangs readable on the other side.
    */
   /** Cards placed in this frame (screen boxes), so the next one can step aside (D178). */
   private holoBoxes: { i: number; x0: number; x1: number; y0: number; y1: number }[] = [];
@@ -1173,8 +1173,12 @@ export class Fp3dView3d extends LitElement {
       cy = hit.y0 - 6;
     }
     this.holoBoxes.push({ i: index, x0, x1, y0: cy - h, y1: cy });
-    // seen from behind the field the card moves to the other side but stays readable (#271)
-    el.style.transform = `translate(${x0.toFixed(1)}px, ${cy.toFixed(1)}px) scale(${s.toFixed(3)}) translate(0, -100%)`;
+    // seen from behind the field the card shows its back, mirrored like glass – or, switched off, it stays
+    // readable on the other side (#271)
+    const mirror = facing || (this.building?.settings.roof.hologram ?? DEFAULT_HOLOGRAM).mirror !== false;
+    el.style.transform = mirror
+      ? `translate(${cx.toFixed(1)}px, ${cy.toFixed(1)}px) scale(${(facing ? s : -s).toFixed(3)}, ${s.toFixed(3)}) translate(0, -100%)`
+      : `translate(${x0.toFixed(1)}px, ${cy.toFixed(1)}px) scale(${s.toFixed(3)}) translate(0, -100%)`;
     if (link) {
       const line = link.firstElementChild as SVGLineElement | null;
       const dot = link.lastElementChild as SVGCircleElement | null;

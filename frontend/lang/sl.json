@@ -572,6 +572,8 @@
  "holo_field": "Na sončnem polju",
  "holo_field_auto": "Samodejno (največje polje)",
  "holo_size": "Velikost (1 = običajno)",
+ "holo_mirror": "Od zadaj zrcaljeno (kot steklo)",
+ "holo_mirror_hint": "Gledano z zadnje strani sončnega polja kartice kažejo hrbtno stran, zrcaljeno kot steklo. Izklopljeno: ostanejo berljive z vseh strani.",
  "holo_right": "Bočni zamik (m, + = desno)",
  "holo_up": "Zamik navzgor (m, po naklonu navzgor)",
  "holo_place": "Visi",

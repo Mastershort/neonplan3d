@@ -442,6 +442,8 @@ HOLOGRAM_SCHEMA = vol.Schema(
         vol.Optional("size", default=1.0): vol.All(vol.Coerce(float), vol.Range(min=0.3, max=3)),
         vol.Optional("right", default=0.0): vol.All(vol.Coerce(float), vol.Range(min=-30, max=30)),
         vol.Optional("up", default=0.0): vol.All(vol.Coerce(float), vol.Range(min=-30, max=30)),
+        # seen from behind the field the card shows its back, mirrored like glass (off: always readable)
+        vol.Optional("mirror", default=True): bool,
     },
     extra=vol.ALLOW_EXTRA,
 )

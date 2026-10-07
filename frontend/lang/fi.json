@@ -572,6 +572,8 @@
  "holo_field": "Aurinkopaneelikentällä",
  "holo_field_auto": "Automaattinen (suurin kenttä)",
  "holo_size": "Koko (1 = normaali)",
+ "holo_mirror": "Peilattu takaa (kuin lasi)",
+ "holo_mirror_hint": "Aurinkokentän takaa katsottuna kortit näyttävät takapuolensa peilattuna kuin lasiruutu. Pois: ne pysyvät luettavina joka suunnasta.",
  "holo_right": "Sivusiirtymä (m, + = oikealle)",
  "holo_up": "Siirtymä ylöspäin (m, rinnettä ylös)",
  "holo_place": "Sijainti",

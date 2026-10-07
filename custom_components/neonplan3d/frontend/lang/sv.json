@@ -572,6 +572,8 @@
  "holo_field": "På solfältet",
  "holo_field_auto": "Automatiskt (största fältet)",
  "holo_size": "Storlek (1 = normal)",
+ "holo_mirror": "Spegelvänd bakifrån (som glas)",
+ "holo_mirror_hint": "Sedda från baksidan av solfältet visar korten sin baksida, spegelvänd som en glasruta. Av: de går att läsa från alla håll.",
  "holo_right": "Sidoförskjutning (m, + = höger)",
  "holo_up": "Förskjutning uppåt (m, uppför lutningen)",
  "holo_place": "Hänger",

@@ -572,6 +572,8 @@
  "holo_field": "En el campo solar",
  "holo_field_auto": "Automático (el campo más grande)",
  "holo_size": "Tamaño (1 = normal)",
+ "holo_mirror": "Reflejado desde atrás (como cristal)",
+ "holo_mirror_hint": "Vistas desde detrás del campo solar, las tarjetas muestran su reverso, reflejado como un cristal. Desactivado: se leen desde cualquier lado.",
  "holo_right": "Desplazamiento lateral (m, + = derecha)",
  "holo_up": "Desplazamiento hacia arriba (m, hacia la cumbrera)",
  "holo_place": "Colgado",

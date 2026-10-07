@@ -572,6 +572,8 @@
  "holo_field": "Nad polem fotowoltaicznym",
  "holo_field_auto": "Automatycznie (największe pole)",
  "holo_size": "Rozmiar (1 = normalny)",
+ "holo_mirror": "Lustrzane od tyłu (jak szkło)",
+ "holo_mirror_hint": "Oglądane od tyłu pola fotowoltaicznego karty pokazują swój tył, odbity jak w szybie. Wyłączone: pozostają czytelne z każdej strony.",
  "holo_right": "Przesunięcie w bok (m, + = w prawo)",
  "holo_up": "Przesunięcie w górę (m, w górę połaci)",
  "holo_place": "Wisi",

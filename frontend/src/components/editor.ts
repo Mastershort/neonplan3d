@@ -3250,6 +3250,10 @@ export class Fp3dEditor extends LitElement {
               ${this.num(this.t("holo_right"), h.right, (v) => set({ right: Math.min(30, Math.max(-30, round(v))) }), 0.25)}
               ${this.num(this.t("holo_up"), h.up, (v) => set({ up: Math.min(30, Math.max(-30, round(v))) }), 0.25)}`}
         ${this.num(this.t("holo_size"), h.size, (v) => set({ size: Math.min(3, Math.max(0.3, round(v))) }), 0.1, 0.3)}
+        <label class="fp3d-check fp3d-wide" title=${this.t("holo_mirror_hint")}
+          ><input type="checkbox" .checked=${h.mirror !== false} ?disabled=${!admin} @change=${(e: Event) => set({ mirror: (e.target as HTMLInputElement).checked ? undefined : false })} />
+          ${this.t("holo_mirror")}</label
+        >
       </div>
     </section>`;
   }

@@ -572,6 +572,8 @@
  "holo_field": "Na solárním poli",
  "holo_field_auto": "Automaticky (největší pole)",
  "holo_size": "Velikost (1 = normální)",
+ "holo_mirror": "Zezadu zrcadlově (jako sklo)",
+ "holo_mirror_hint": "Při pohledu ze zadní strany solárního pole ukazují karty svou zadní stranu, zrcadlově jako skleněná tabule. Vypnuto: zůstanou čitelné odkudkoli.",
  "holo_right": "Posun do strany (m, + = vpravo)",
  "holo_up": "Posun nahoru (m, po spádu)",
  "holo_place": "Umístění",

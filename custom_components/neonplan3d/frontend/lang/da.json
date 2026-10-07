@@ -572,6 +572,8 @@
  "holo_field": "På solcellefeltet",
  "holo_field_auto": "Automatisk (største felt)",
  "holo_size": "Størrelse (1 = normal)",
+ "holo_mirror": "Spejlvendt bagfra (som glas)",
+ "holo_mirror_hint": "Set fra bagsiden af solfeltet viser kortene deres bagside, spejlvendt som en glasrude. Fra: de kan læses fra alle sider.",
  "holo_right": "Sideforskydning (m, + = højre)",
  "holo_up": "Forskydning opad (m, op ad hældningen)",
  "holo_place": "Hænger",

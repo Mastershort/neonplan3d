@@ -572,6 +572,8 @@
  "holo_field": "Sul campo solare",
  "holo_field_auto": "Automatico (campo più grande)",
  "holo_size": "Dimensione (1 = normale)",
+ "holo_mirror": "Specchiato da dietro (come vetro)",
+ "holo_mirror_hint": "Viste dal retro del campo solare, le schede mostrano il retro, specchiato come una lastra di vetro. Disattivato: restano leggibili da ogni lato.",
  "holo_right": "Spostamento laterale (m, + = destra)",
  "holo_up": "Spostamento verso l'alto (m, verso il colmo)",
  "holo_place": "Appeso",

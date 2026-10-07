@@ -572,6 +572,8 @@
  "holo_field": "Pe câmpul solar",
  "holo_field_auto": "Automat (cel mai mare câmp)",
  "holo_size": "Mărime (1 = normal)",
+ "holo_mirror": "Oglindit din spate (ca sticla)",
+ "holo_mirror_hint": "Văzute din spatele câmpului solar, cardurile își arată spatele, oglindit ca un geam. Dezactivat: rămân lizibile din orice parte.",
  "holo_right": "Decalaj lateral (m, + = dreapta)",
  "holo_up": "Decalaj în sus (m, în susul pantei)",
  "holo_place": "Poziție",
