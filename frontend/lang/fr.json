@@ -321,6 +321,8 @@
  "weather_entity": "Entité météo",
  "weather_effects": "Effets météo en 3D",
  "rain_warning": "Alerte : fenêtre ouverte sous la pluie",
+ "sun_patches": "Soleil à travers les fenêtres",
+ "sun_patches_hint": "Avec le nord réglé, la lumière du soleil (sun.sun) tombe par les fenêtres en taches claires sur le sol. Décoché : pas de taches de soleil.",
  "weather_effect_rain": "Pluie",
  "weather_effect_snow": "Neige",
  "weather_effect_fog": "Brouillard (grise la scène)",

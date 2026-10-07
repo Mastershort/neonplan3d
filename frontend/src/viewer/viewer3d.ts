@@ -2209,7 +2209,8 @@ export class FloorplanViewer {
    * projected along the sun's rays onto the floor as a warm, soft patch.
    */
   private buildSun(fv: FloorView): void {
-    const sun = this.sun;
+    // the patches of sunlight can be switched off in the settings (#266)
+    const sun = this.building?.settings.sun_patches === false ? null : this.sun;
     const north = (this.building?.settings.north ?? 0) * DEG;
     // clouds take most of the sunlight
     const cloud = this.weather?.cloud ?? 0;

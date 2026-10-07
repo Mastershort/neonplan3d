@@ -321,6 +321,8 @@
  "weather_entity": "Entidad meteorológica",
  "weather_effects": "Efectos meteorológicos en 3D",
  "rain_warning": "Aviso: ventana abierta mientras llueve",
+ "sun_patches": "Luz del sol por las ventanas",
+ "sun_patches_hint": "Con el norte ajustado, la luz del sol (sun.sun) entra por las ventanas como manchas claras en el suelo. Sin marcar: el suelo queda sin manchas de sol.",
  "weather_effect_rain": "Lluvia",
  "weather_effect_snow": "Nieve",
  "weather_effect_fog": "Niebla (agrisa la escena)",

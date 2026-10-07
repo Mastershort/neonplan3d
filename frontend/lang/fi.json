@@ -321,6 +321,8 @@
  "weather_entity": "Sääkohde",
  "weather_effects": "Säätehosteet 3D:ssä",
  "rain_warning": "Varoitus: ikkuna auki sateella",
+ "sun_patches": "Auringonvalo ikkunoista",
+ "sun_patches_hint": "Kun pohjoissuunta on asetettu, auringonvalo (sun.sun) lankeaa ikkunoista lattialle vaaleina läikkinä. Ilman valintaa ei aurinkoläikkiä.",
  "weather_effect_rain": "Sade",
  "weather_effect_snow": "Lumi",
  "weather_effect_fog": "Sumu (harmaannuttaa näkymän)",

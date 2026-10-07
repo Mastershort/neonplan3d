@@ -321,6 +321,8 @@
  "weather_entity": "Entità meteo",
  "weather_effects": "Effetti meteo in 3D",
  "rain_warning": "Avviso: finestra aperta mentre piove",
+ "sun_patches": "Luce del sole dalle finestre",
+ "sun_patches_hint": "Con il nord impostato, la luce del sole (sun.sun) entra dalle finestre come macchie chiare sul pavimento. Deselezionato: nessuna macchia di sole.",
  "weather_effect_rain": "Pioggia",
  "weather_effect_snow": "Neve",
  "weather_effect_fog": "Nebbia (ingrigisce la scena)",

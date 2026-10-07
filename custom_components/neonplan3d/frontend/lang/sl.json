@@ -321,6 +321,8 @@
  "weather_entity": "Vremenska entiteta",
  "weather_effects": "Vremenski učinki v 3D",
  "rain_warning": "Opozorilo: okno je odprto, medtem ko dežuje",
+ "sun_patches": "Sončna svetloba skozi okna",
+ "sun_patches_hint": "Z nastavljenim severom sončna svetloba (sun.sun) pada skozi okna kot svetle lise na tla. Brez kljukice: brez sončnih lis.",
  "weather_effect_rain": "Dež",
  "weather_effect_snow": "Sneg",
  "weather_effect_fog": "Megla (posivi prizor)",

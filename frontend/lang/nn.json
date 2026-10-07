@@ -321,6 +321,8 @@
  "weather_entity": "Vêrentitet",
  "weather_effects": "Vêreffektar i 3D",
  "rain_warning": "Åtvaring: vindauge ope medan det regnar",
+ "sun_patches": "Sollys gjennom vindauga",
+ "sun_patches_hint": "Med nordretning sett fell sollyset (sun.sun) gjennom vindauga som lyse flekkar på golvet. Utan hake: ingen solflekkar.",
  "weather_effect_rain": "Regn",
  "weather_effect_snow": "Snø",
  "weather_effect_fog": "Skodde (gjer scena grå)",

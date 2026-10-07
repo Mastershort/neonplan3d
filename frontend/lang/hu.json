@@ -321,6 +321,8 @@
  "weather_entity": "Időjárás-entitás",
  "weather_effects": "Időjárás-effektek 3D-ben",
  "rain_warning": "Figyelmeztetés: esőben nyitott ablak",
+ "sun_patches": "Napfény az ablakokon át",
+ "sun_patches_hint": "Beállított északi iránynál a napfény (sun.sun) világos foltokként esik be az ablakokon a padlóra. Kikapcsolva nincsenek napfoltok.",
  "weather_effect_rain": "Eső",
  "weather_effect_snow": "Hó",
  "weather_effect_fog": "Köd (elszürkíti a jelenetet)",

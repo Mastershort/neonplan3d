@@ -321,6 +321,8 @@
  "weather_entity": "Weerentiteit",
  "weather_effects": "Weereffecten in 3D",
  "rain_warning": "Waarschuwing: raam open terwijl het regent",
+ "sun_patches": "Zonlicht door de ramen",
+ "sun_patches_hint": "Met ingestelde noordrichting valt het zonlicht (sun.sun) als lichte vlekken door de ramen op de vloer. Uitgevinkt: geen zonvlekken.",
  "weather_effect_rain": "Regen",
  "weather_effect_snow": "Sneeuw",
  "weather_effect_fog": "Mist (maakt het beeld grijs)",

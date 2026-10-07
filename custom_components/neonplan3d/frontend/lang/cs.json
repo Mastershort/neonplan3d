@@ -321,6 +321,8 @@
  "weather_entity": "Entita počasí",
  "weather_effects": "Efekty počasí ve 3D",
  "rain_warning": "Varování: okno otevřené, zatímco prší",
+ "sun_patches": "Sluneční světlo okny",
+ "sun_patches_hint": "S nastaveným severem dopadá sluneční světlo (sun.sun) okny na podlahu jako světlé skvrny. Bez zaškrtnutí žádné sluneční skvrny.",
  "weather_effect_rain": "Déšť",
  "weather_effect_snow": "Sníh",
  "weather_effect_fog": "Mlha (zešedí scénu)",

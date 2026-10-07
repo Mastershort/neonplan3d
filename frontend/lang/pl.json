@@ -321,6 +321,8 @@
  "weather_entity": "Encja pogody",
  "weather_effects": "Efekty pogody w 3D",
  "rain_warning": "Ostrzeżenie: okno otwarte, a pada deszcz",
+ "sun_patches": "Światło słoneczne przez okna",
+ "sun_patches_hint": "Przy ustawionej północy światło słońca (sun.sun) wpada przez okna jako jasne plamy na podłodze. Bez zaznaczenia: bez plam słońca.",
  "weather_effect_rain": "Deszcz",
  "weather_effect_snow": "Śnieg",
  "weather_effect_fog": "Mgła (szarzy scenę)",

@@ -321,6 +321,8 @@
  "weather_entity": "Entitate meteo",
  "weather_effects": "Efecte meteo în 3D",
  "rain_warning": "Avertizare: fereastră deschisă cât plouă",
+ "sun_patches": "Lumina soarelui prin ferestre",
+ "sun_patches_hint": "Cu nordul setat, lumina soarelui (sun.sun) cade prin ferestre ca pete luminoase pe podea. Nebifat: fără pete de soare.",
  "weather_effect_rain": "Ploaie",
  "weather_effect_snow": "Zăpadă",
  "weather_effect_fog": "Ceață (estompează scena în gri)",

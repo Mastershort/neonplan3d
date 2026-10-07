@@ -321,6 +321,8 @@
  "weather_entity": "Vejr-entitet",
  "weather_effects": "Vejreffekter i 3D",
  "rain_warning": "Advarsel: vindue åbent, mens det regner",
+ "sun_patches": "Sollys gennem vinduerne",
+ "sun_patches_hint": "Med nordretning indstillet falder sollyset (sun.sun) gennem vinduerne som lyse pletter på gulvet. Uden flueben: ingen solpletter.",
  "weather_effect_rain": "Regn",
  "weather_effect_snow": "Sne",
  "weather_effect_fog": "Tåge (gør scenen grå)",

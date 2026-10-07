@@ -505,6 +505,8 @@ export interface BuildingSettings {
   weather_effects?: WeatherEffect[] | null;
   /** Warning for a window open while it rains (default on). */
   rain_warning?: boolean;
+  /** Sunlight falls through the windows as patches on the floor (default on, #266). */
+  sun_patches?: boolean;
   /** Plan lock: rooms, walls, doors, windows and outdoor areas cannot be moved by accident. */
   lock_plan?: boolean;
   /** The camera the house view opens with (3D view, card, kiosk); null = fitted from the front left. */

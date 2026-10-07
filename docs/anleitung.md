@@ -525,7 +525,7 @@ Die Lupe unten links öffnet **„Wo ist …?“**. Tippe einen Gerätenamen ode
 
 ![Sonnenlicht](images/view-sun.jpg)
 
-Ist die Nordrichtung eingestellt, fällt das Sonnenlicht aus `sun.sun` durch die Fenster, die zur Sonne zeigen, als weiche Flecken auf den Boden. Heruntergelassene Rollläden verkleinern die Flecken. Tagsüber wird der Himmel hinter dem Haus heller.
+Ist die Nordrichtung eingestellt, fällt das Sonnenlicht aus `sun.sun` durch die Fenster, die zur Sonne zeigen, als weiche Flecken auf den Boden. Heruntergelassene Rollläden verkleinern die Flecken. Wer die Flecken nicht mag, schaltet sie unter **Einstellungen** mit **Sonnenlicht durch die Fenster** ab. Tagsüber wird der Himmel hinter dem Haus heller.
 
 ### 5.8 Warnungen
 

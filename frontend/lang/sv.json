@@ -321,6 +321,8 @@
  "weather_entity": "Väderentitet",
  "weather_effects": "Vädereffekter i 3D",
  "rain_warning": "Varning: fönster öppet medan det regnar",
+ "sun_patches": "Solljus genom fönstren",
+ "sun_patches_hint": "Med norr inställt faller solljuset (sun.sun) genom fönstren som ljusa fläckar på golvet. Utan bock: inga solfläckar.",
  "weather_effect_rain": "Regn",
  "weather_effect_snow": "Snö",
  "weather_effect_fog": "Dimma (gör scenen grå)",

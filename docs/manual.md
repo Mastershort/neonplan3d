@@ -523,7 +523,7 @@ The magnifier at the bottom left opens **"Where is …?"**. Type a device or roo
 
 ![Sunlight](images/view-sun.jpg)
 
-With north set, sunlight from `sun.sun` falls through the windows facing the sun as soft patches on the floor. Lowered blinds make the patches smaller. By day the sky behind the house gets lighter.
+With north set, sunlight from `sun.sun` falls through the windows facing the sun as soft patches on the floor. Lowered blinds make the patches smaller. If you do not like the patches, switch off **Sunlight through the windows** in **Settings**. By day the sky behind the house gets lighter.
 
 ### 5.8 Warnings
 
