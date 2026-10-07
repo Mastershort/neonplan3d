@@ -221,7 +221,7 @@ Rollläden und Kontakte ordnet NeonPlan 3D über den Bereich automatisch zu. Du 
 
 ![Die Möbelbibliothek](images/editor-library.jpg)
 
-Das Werkzeug **Möbel** öffnet rechts die Bibliothek mit 40 eingebauten Modellen in den Abschnitten Leuchten, Wohnen, Essen, Küche, Schlafen, Bad & Hauswirtschaft und Arbeiten & Sonstiges. Darunter folgen deine installierten Möbel-Packs. Die **Arbeitsplatte** (Küche sowie Arbeiten & Sonstiges) ist eine freie Platte ohne Unterbau, für Lücken in der Küche oder einen selbst gebauten Schreibtisch; ihre **Höhe** ist die Oberkante, voreingestellt 91 cm. Das Suchfeld oben filtert alle Abschnitte und bleibt beim Scrollen stehen; es findet deutsche und englische Namen und den Pack-Namen, mehrere Wörter in beliebiger Reihenfolge („sofa ecke“), Escape leert es. Die Abschnitte klappen auf und zu. Fährst du mit der Maus über einen Eintrag, zeigt eine kleine 3D-Vorschau das Möbel.
+Das Werkzeug **Möbel** öffnet rechts die Bibliothek mit über 50 eingebauten Modellen in den Abschnitten Leuchten, Wohnen, Essen, Küche, Schlafen, Bad & Hauswirtschaft und Arbeiten & Sonstiges. Darunter folgen deine installierten Möbel-Packs. Die **Arbeitsplatte** (Küche sowie Arbeiten & Sonstiges) ist eine freie Platte ohne Unterbau, für Lücken in der Küche oder einen selbst gebauten Schreibtisch; ihre **Höhe** ist die Oberkante, voreingestellt 91 cm. Das Suchfeld oben filtert alle Abschnitte und bleibt beim Scrollen stehen; es findet deutsche und englische Namen und den Pack-Namen, mehrere Wörter in beliebiger Reihenfolge („sofa ecke“), Escape leert es. Die Abschnitte klappen auf und zu. Fährst du mit der Maus über einen Eintrag, zeigt eine kleine 3D-Vorschau das Möbel.
 
 **Symbole an den Einträgen:**
 
@@ -730,7 +730,7 @@ Danach:
 
 ### 7.2 Pro-Erweiterungen
 
-Die mittlere Kachelreihe zeigt die drei Pro-Erweiterungen. Aktive tragen ein ✓, gesperrte ein 🔒 und den Link „Im Shop ansehen“.
+Die mittlere Kachelreihe zeigt die Pro-Erweiterungen. Aktive tragen ein ✓, gesperrte ein 🔒 und den Link „Im Shop ansehen“.
 
 ### 7.3 Möbel-Packs
 

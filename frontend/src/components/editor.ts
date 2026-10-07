@@ -5734,7 +5734,9 @@ export class Fp3dEditor extends LitElement {
           >${this.t("furniture_type")}
           <select ?disabled=${!admin} @change=${(e: Event) => this.updateFurniture({ type: (e.target as HTMLSelectElement).value })}>
             ${FURNITURE_TYPES.map((t) => html`<option value=${t} ?selected=${t === f.type}>${this.t(`furn_${t}` as I18nKey)}</option>`)}
-            ${(this.packs ?? []).map(
+            ${(this.packs ?? [])
+              .filter((pack) => pack.items.length)
+              .map(
               (pack) => html`<optgroup label=${packName(pack, (this.hass?.language ?? "de"))}>
                 ${pack.items.map((it) => {
                   const t = packType(pack.id, it.id);
@@ -6648,7 +6650,10 @@ export class Fp3dEditor extends LitElement {
           q,
         ),
       )}
-      ${(this.packs ?? []).map((pack) =>
+      ${(this.packs ?? [])
+        // feature-only packs (Pro add-ons) bring no furniture: no empty section
+        .filter((pack) => pack.items.length)
+        .map((pack) =>
         this.librarySection(
           `pack:${pack.id}`,
           packName(pack, lang),

@@ -219,7 +219,7 @@ NeonPlan 3D matches covers and contacts through the area automatically. You can 
 
 ![The furniture library](images/editor-library.jpg)
 
-The **Furniture** tool opens the library with 40 built-in models in the sections Lights, Living, Dining, Kitchen, Sleeping, Bath & laundry and Work & other. Your installed furniture packs follow below. The **Worktop** (Kitchen and Work & other) is a free top without a base, for gaps in the kitchen or a self-built desk; its **height** is the top edge, 91 cm by default. The search field filters all sections and stays put while you scroll; it finds English and German names and the pack name, several words in any order ("corner sofa"), Escape clears it. Sections fold open and closed. Hover over an entry for a small 3D preview.
+The **Furniture** tool opens the library with more than 50 built-in models in the sections Lights, Living, Dining, Kitchen, Sleeping, Bath & laundry and Work & other. Your installed furniture packs follow below. The **Worktop** (Kitchen and Work & other) is a free top without a base, for gaps in the kitchen or a self-built desk; its **height** is the top edge, 91 cm by default. The search field filters all sections and stays put while you scroll; it finds English and German names and the pack name, several words in any order ("corner sofa"), Escape clears it. Sections fold open and closed. Hover over an entry for a small 3D preview.
 
 **Symbols on the entries:**
 
@@ -728,7 +728,7 @@ After that:
 
 ### 7.2 Pro add-ons
 
-The middle row of tiles shows the three Pro add-ons. Active ones carry a ✓, locked ones a 🔒 and the link "See in the shop".
+The middle row of tiles shows the Pro add-ons. Active ones carry a ✓, locked ones a 🔒 and the link "See in the shop".
 
 ### 7.3 Furniture packs
 
