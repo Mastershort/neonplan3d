@@ -1,8 +1,8 @@
 blank_issues_enabled: false
 contact_links:
-  - name: 🗳️ Ideas & voting / Ideen & Abstimmung
+  - name: 💡 Ideas and wishes / Ideen und Wünsche
     url: https://github.com/Mastershort/neonplan3d/discussions/categories/ideas
-    about: Suggest features and vote with 👍 on what you want most. / Wünsche vorschlagen und mit 👍 abstimmen.
+    about: Feature wishes go here, not into issues – vote with 👍 on what you want most. / Wünsche bitte hier statt als Issue – und mit 👍 abstimmen.
   - name: 💬 Discord community
     url: https://discord.gg/SSdVVFsev7
     about: Chat, show your 3D home and help each other. / Austausch, dein 3D-Zuhause zeigen, gegenseitig helfen.
