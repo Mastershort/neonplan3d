@@ -215,8 +215,8 @@ const press = async (label, key, times = 1) => {
   await R.frame(0.3, 120);
 };
 /** Move the cursor onto any element whose text contains `text` (innermost last match). */
-const moveToText = async (text, seconds = 0.5) => {
-  const box = await R.page.evaluate((text) => {
+const textBox = (text) =>
+  R.page.evaluate((text) => {
     const walk = function* (root) {
       for (const el of root.querySelectorAll("*")) {
         yield el;
@@ -228,12 +228,14 @@ const moveToText = async (text, seconds = 0.5) => {
       if (!/^(P|SPAN|DIV|LABEL|BUTTON|B)$/.test(el.tagName)) continue;
       if (!el.textContent.includes(text)) continue;
       const r = el.getBoundingClientRect();
-      if (r.width > 0 && r.height > 0 && r.top < innerHeight && r.bottom > 0) hit = el;
+      if (r.width > 0 && r.height > 0) hit = el;
     }
     if (!hit) return null;
     const r = hit.getBoundingClientRect();
     return { x: r.left + Math.min(r.width / 2, 120), y: r.top + Math.min(r.height / 2, 14) };
   }, text);
+const moveToText = async (text, seconds = 0.5) => {
+  const box = await textBox(text);
   if (!box) throw new Error(`text not found: ${text}`);
   await R.move(box.x, box.y, seconds);
 };
@@ -388,7 +390,8 @@ const tapArea = async (x, z, seconds = 0.5) => {
 };
 /** The plan view fitting a plan rectangle (x0, z0, x1, z1). */
 const viewFor = ([x0, z0, x1, z1]) =>
-  R.editor(`const { w, h } = e._size; const s = Math.min((w - 40) / ${x1 - x0}, (h - 70) / ${z1 - z0});
+  R.editor(`const r = e.renderRoot.querySelector("svg").getBoundingClientRect(); const v = e.renderRoot.querySelector("fp3d-view3d")?.getBoundingClientRect();
+    const w = (v && v.width > 0 && v.left > r.left ? v.left : r.right) - r.left, h = r.height; const s = Math.min((w - 40) / ${x1 - x0}, (h - 70) / ${z1 - z0});
     return { scale: s, ox: w / 2 - ${(x0 + x1) / 2} * s, oy: (h - 30) / 2 - ${(z0 + z1) / 2} * s };`);
 const setPlan = async (rectangle) => {
   const v = await viewFor(rectangle);
@@ -509,14 +512,6 @@ const show3d = async () => {
   await R.sleep(800);
 };
 
-// PROBE-START
-if (process.env.EP09_CAMS) {
-  await start(GARDEN_B, FURNITURE_B);
-  for (const c of JSON.parse(process.env.EP09_CAMS)) { await setCam(cam(...c)); await R.frame(0.1, 1500); }
-  await R.finish();
-  process.exit(0);
-}
-// PROBE-END
 // ================================================================ PART 1: Flächen
 if (PART === "a") {
   // ---------------------------------------------------------------- teaser
@@ -731,14 +726,16 @@ if (PART === "a") {
   await quickFill("Höhenversatz", "0,6");
   await quickFill("Gefälle (m)", "0,6");
   await pick("Fällt nach", "unten (+Z)", 0.4);
-  await tapArea(1.7, -5, 0.5);
-  await quickFill("Höhenversatz", "0,6");
-  await quickFill("Gefälle (m)", "0,6");
-  await pick("Fällt nach", "unten (+Z)", 0.4);
   {
     const line = "So baust du auch einen Hang im Garten oder eine Rampe. Zaunpfosten und Leuchten stellen sich später auf die schräge Fläche.";
+    await catchUp();
+    const t0 = R.time;
     await sayOver(line);
-    await glideLine(cam(-2.0, 0.95, 28, 6, -3), line);
+    await tapArea(1.7, -5, 0.5);
+    await quickFill("Höhenversatz", "0,6");
+    await quickFill("Gefälle (m)", "0,6");
+    await pick("Fällt nach", "unten (+Z)", 0.4);
+    await glide3d(cam(-2.0, 0.95, 28, 6, -3), Math.max(1.2, t0 + N.length(line) - R.time - 0.3));
   }
 
   // ---------------------------------------------------------------- outro
@@ -866,7 +863,7 @@ if (PART === "a") {
   await sayOver("Bei „Licht oder Schalter“ wähle ich das Licht aus Home Assistant, hier die Wegleuchten.");
   await reveal({ label: "Licht oder Schalter" });
   await h.pickEntity("Licht oder Schalter", "weg", "Garten Wegleuchten");
-  await sayOver("„Duplizieren“ macht zwei weitere daraus. Ich verteile sie am Weg – alle folgen demselben Licht.");
+  await sayOver("„Duplizieren“ macht zwei weitere daraus. Ich verteile sie am Weg, alle zweieinhalb Meter – und alle folgen demselben Licht.");
   for (const p of LAMPS.slice(1)) {
     await clickSide({ text: "Duplizieren", exact: true }, 0.5);
     await R.frame(0.2, 400);
@@ -890,7 +887,7 @@ if (PART === "a") {
   await placeXY(...SPOT);
   await reveal({ label: "Licht oder Schalter" });
   await h.pickEntity("Licht oder Schalter", "pool", "Pool Spot");
-  await fillSide("Leuchtstärke in 3D (%)", "150");
+  await fillSide("Leuchtstärke in 3D (%)", "150", true);
   {
     const line = "Wegleuchte, Garten-Spot und Wandleuchte außen beleuchten alle Außenflächen und die Fassade. Abends sieht das so aus.";
     await sayOver(line);
@@ -933,27 +930,31 @@ if (PART === "a") {
   await R.frame(0.3, 400);
   await clickSide(libItem("Stellplatz"), 0.5);
   await R.frame(0.3, 500);
-  await dragItem(...PARK, 0.9);
+  await fillSide("Drehung (°)", "0", true);
+  await placeXY(...PARK);
   await sayOver("Er markiert, wo ein Auto steht. Bei „Sensor Auto anwesend“ wähle ich den Sensor, der das Auto in der Einfahrt meldet.");
+  await reveal({ label: "Sensor" });
   await h.pickEntity("Sensor", "einfahrt", "Auto in der Einfahrt");
   {
     const line = "Das Fahrzeug selbst kommt aus dem Pack „Fahrzeuge“ – das zeigt Folge 4.";
     await sayOver(line);
-    await R.moveTo({ label: "Fahrzeug" }, 0.5);
+    await h.scrollSide(() => textBox("Kein Fahrzeug-Pack"), 420, 0.5);
+    await moveToText("Kein Fahrzeug-Pack", 0.5);
     await glideLine(cam(-2.5, 1.0, 18, 11, -3), line);
   }
 
   // ---------------------------------------------------------------- plan lock
   await chapter("Grundriss sperren");
-  await R.clickOn({ text: "Auswählen", exact: true }, 0.5);
   await sayOver("Ist der Garten fertig, sperrst du ihn mit dem Schloss „Grundriss“ oben in der Leiste. Dann verrutschen Räume, Wände, Türen und Außenflächen nicht mehr aus Versehen.");
-  await R.clickOn({ text: "Grundriss" , nth: 0 }, 0.6);
+  await R.clickOn({ text: "Auswählen", exact: true }, 0.4);
+  await R.clickOn({ text: "Grundriss", nth: 0 }, 0.5);
   await R.frame(0.4, 400);
   await dragPlan(6, -5, 6, -3, 0.8);
   await R.frame(0.3, 300);
   await sayOver("Möbel und Leuchten bleiben frei. Ein zweiter Klick hebt die Sperre wieder auf.");
-  await R.moveTo({ text: "Grundriss", nth: 0 }, 0.5);
-  await R.hold(0.8);
+  await R.hold(1.2);
+  await R.clickOn({ text: "Grundriss", nth: 0 }, 0.5);
+  await R.frame(0.4, 300);
 
   // ---------------------------------------------------------------- result
   await chapter("Der Garten in 3D");
