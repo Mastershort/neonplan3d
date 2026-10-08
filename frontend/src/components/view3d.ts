@@ -19,6 +19,8 @@ import { carState, type CarState, roomClimateValue,
   tempUnit,
   robotRoom,
   robotRoomSensor,
+  roomNamed,
+  carEntities,
   isStatusSensor,
   floorControls,
   favoriteCall,
@@ -75,7 +77,7 @@ import { coverPositionable, lightAbilities } from "./quick-menu.ts";
 import "./quick-menu.ts";
 import { load3d } from "../load3d.ts";
 import { detectionKind, scaleGlow, buildMarkers, cameraMotionSensors, openMoreInfo, stateText, toggleEntity } from "../markers.ts";
-import { furnitureFootprint, isLamp, LAMP_MODEL, outdoorGround, pointInPolygon, surfaceHeight, type Building, type Furniture, type StartView } from "../model.ts";
+import { centroid, furnitureFootprint, isLamp, LAMP_MODEL, outdoorGround, pointInPolygon, surfaceHeight, type Building, type Furniture, type StartView } from "../model.ts";
 import { floorCounts, floorInfoText, personsInRooms } from "../presence.ts";
 import { controls, tokens } from "../styles.ts";
 import type { HassEntity, HomeAssistant } from "../types.ts";
@@ -192,6 +194,8 @@ export class Fp3dView3d extends LitElement {
   /** The replayed moment as last seen; the replay's ticks reach the view through its listener. */
   private seenT = 0;
   private replayTicked = false;
+  /** The replay's focus counter as last seen (an event was tapped: the view shows where). */
+  private seenFocus = 0;
   private unlistenReplay: (() => void) | null = null;
   /** The last sync showed something that follows the clock (a camera's detection pin). */
   private detecting = false;
@@ -656,6 +660,8 @@ export class Fp3dView3d extends LitElement {
     if (changed.has("quality") && changed.get("quality") !== undefined) {
       v.setQuality(this.quality);
       this._low = v.low;
+      // a replay ticks as often as the new quality allows
+      this.replay?.setQuality(this.quality, v.low);
     }
     if (changed.has("showStats")) v.setStats(this.showStats);
     if (changed.has("building")) this.findIndex = null;
@@ -744,7 +750,7 @@ export class Fp3dView3d extends LitElement {
         pin: true,
       })),
     ]);
-    v.setTrail(trail);
+    v.setTrail(trail, this.replay ? this.robotPaths(hass, b) : []);
     v.setPickTargets(furniture.targets, this.openingTargets());
     v.setScreens(furniture.screens);
     v.setFridgeDoors(fridgeDoors(hass, b.floors));
@@ -1085,8 +1091,16 @@ export class Fp3dView3d extends LitElement {
     const r = this.replay;
     if (!r || !this.isConnected) return;
     this.seenT = r.t;
+    this.seenFocus = r.focusSeq;
     this.unlistenReplay = r.listen(() => {
-      if (this.replay !== r || (r.t === this.seenT && r.seek === this.seenSeek)) return;
+      if (this.replay !== r) return;
+      if (r.focusSeq !== this.seenFocus) {
+        this.seenFocus = r.focusSeq;
+        if (r.focus) this.showEntity(r.focus);
+      }
+      // a fast replay skipped a light that went on and off between two ticks: it flashes
+      if (r.pulses.length) this.viewer?.flashDevices(r.pulses);
+      if (r.t === this.seenT && r.seek === this.seenSeek) return;
       this.seenT = r.t;
       // nothing on screen follows the clock: a tick costs nothing (a changed state comes with a new hass)
       if (r.seek === this.seenSeek && !this.trail && !this.detecting && !this._holos.length) return;
@@ -1094,6 +1108,33 @@ export class Fp3dView3d extends LitElement {
       this.replayTicked = true;
       this.requestUpdate();
     });
+  }
+
+  /**
+   * Time travel: shows where an entity is (an event was tapped, or the camera follows the events) – its
+   * device, else the room of its window or its area – flying there on its floor.
+   */
+  private showEntity(entity: string): void {
+    const hass = this.hass;
+    const b = this.building;
+    if (!hass || !b) return;
+    const item = (this.findIndex ??= searchIndex(hass, b)).find((it) => it.entity === entity);
+    if (item) {
+      this.goTo(item);
+      return;
+    }
+    const area = hass.entities?.[entity]?.area_id ?? hass.devices?.[hass.entities?.[entity]?.device_id ?? ""]?.area_id ?? null;
+    for (const floor of b.floors) {
+      const opening = floor.openings.find((o) => {
+        const l = this.openingLinks?.get(o.id);
+        return !!l && [l.contact, l.tilt, l.contact2, l.tilt2, l.cover].includes(entity);
+      });
+      const room = floor.rooms.find((r) => r.points.length >= 3 && (opening ? r.id === opening.room_id : !!area && r.area_id === area));
+      if (!room) continue;
+      const [x, z] = centroid(room.points);
+      this.goTo({ kind: "device", name: room.name, where: "", floorId: floor.id, roomId: room.id, entity, icon: null, x, z, y: 1 });
+      return;
+    }
   }
 
   /** Now – or, during time travel, the replayed moment. */
@@ -1117,7 +1158,16 @@ export class Fp3dView3d extends LitElement {
     // the room sensors and the warnings always: the heatmap and the warnings can be switched on while travelling
     const warnings = alertEntities(alertSources(hass, b, this.weatherEntityId));
     const entities = watchedEntities(hass, b, { openings, furniture, heat: true, warnings, weatherEntityId: this.weatherEntityId });
-    return { entities, openings: [...openings], furniture: [...furniture], low: this._low };
+    // Auto Pro: the cars' own trackers (home or away only); a person's tracker is never one of them
+    const cars = hasFeature("auto_pro")
+      ? b.floors.flatMap((fl) =>
+          fl.furniture
+            .filter((f) => f.type === "parking")
+            .flatMap((f) => [typeof f.entity === "string" ? f.entity : null, f.car ? carEntities(hass, f).tracker : null])
+            .filter((id): id is string => !!id && id.startsWith("device_tracker.")),
+        )
+      : [];
+    return { entities, openings: [...openings], furniture: [...furniture], low: this._low, cars, energy: hasFeature("energy_pro"), auto: hasFeature("auto_pro") };
   }
 
   /** Shows the hint of a Pro add-on that is not installed (with the shop link). */
@@ -1241,6 +1291,17 @@ export class Fp3dView3d extends LitElement {
 
   /** Fetch today's solar statistics every five minutes while there are sensors to watch (none: the curve goes). */
   private watchSolarDay(ids: string[]): void {
+    const r = this.replay;
+    if (r) {
+      // time travel: the replayed day's statistics up to the replayed moment (no fetching)
+      clearInterval(this.holoTimer);
+      this.holoTimer = undefined;
+      const key = `tt|${ids.join(",")}|${Math.floor(r.t / 300000)}`;
+      if (key === this.holoIds) return;
+      this.holoIds = key;
+      this._rows = ids.length ? r.stats(ids, new Date(r.t).setHours(0, 0, 0, 0), r.t + 1) : null;
+      return;
+    }
     const key = ids.join(",");
     if (key === this.holoIds) return;
     this.holoIds = key;
@@ -1487,7 +1548,7 @@ export class Fp3dView3d extends LitElement {
   private dayOf(card: HoloCard) {
     if (!this._rows || !card.dayIds.length) return null;
     const rows = Object.fromEntries(card.dayIds.filter((id) => this._rows![id]).map((id) => [id, this._rows![id]]));
-    return Object.keys(rows).length ? solarDayFromStats(rows) : null;
+    return Object.keys(rows).length ? solarDayFromStats(rows, new Date(this.now())) : null;
   }
 
   private renderHoloCard(card: HoloCard, index: number, e: EnergySummary) {
@@ -1826,6 +1887,31 @@ export class Fp3dView3d extends LitElement {
     }
     this.watchCameras(this.cameraScreens > 0 || !!this._through || this.cameraWall);
     return { markers, consumers, screens, targets };
+  }
+
+  /** Time travel: each running robot's way through the rooms it cleaned so far (their centres, in order). */
+  private robotPaths(hass: HomeAssistant, b: Building): { floorId: string; points: [number, number][] }[] {
+    const r = this.replay;
+    if (!r) return [];
+    const out: { floorId: string; points: [number, number][] }[] = [];
+    for (const floor of b.floors) {
+      const rooms = floor.rooms.filter((room) => room.points.length >= 3);
+      for (const f of floor.furniture) {
+        if (f.type !== "robot_vacuum") continue;
+        const entity = this.furnitureLinks?.get(f.id)?.entity ?? null;
+        if (!entity) continue;
+        const names = r.robotRooms(entity, robotRoomSensor(hass, entity, f.room_sensor));
+        const points: [number, number][] = [];
+        for (const name of names) {
+          const room = roomNamed(hass, rooms, name);
+          const c = room ? (centroid(room.points) as [number, number]) : null;
+          const last = points[points.length - 1];
+          if (c && (!last || last[0] !== c[0] || last[1] !== c[1])) points.push([c[0], c[1]]);
+        }
+        if (points.length) out.push({ floorId: floor.id, points });
+      }
+    }
+    return out;
   }
 
   /** The trail's spots right now: history rows plus the sensors that are on. */

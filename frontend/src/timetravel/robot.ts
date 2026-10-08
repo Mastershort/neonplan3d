@@ -24,7 +24,10 @@ export function robotRun(vacuum: Track | undefined, rooms: Track | undefined, t:
     if (!NONE.has(s.toLowerCase()) && out[out.length - 1] !== s) out.push(s);
   };
   if (rooms) {
-    for (let i = Math.max(0, indexAt(rooms.times, start)); i < rooms.times.length && rooms.times[i] <= t; i++) add(rooms.values[rooms.vals[i]].s);
+    // the room the sensor still names from the last run does not count (a report just before the start does)
+    let i = Math.max(0, indexAt(rooms.times, start));
+    if (rooms.times[i] < start - 60000) i++;
+    for (; i < rooms.times.length && rooms.times[i] <= t; i++) add(rooms.values[rooms.vals[i]].s);
   } else for (let i = k; i <= at; i++) add(vacuum.values[vacuum.vals[i]].a?.current_room);
   return out;
 }

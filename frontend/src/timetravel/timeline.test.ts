@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { buildTimeline, Cursor, findGaps, indexAt, type WireDay } from "./timeline.ts";
+import { appendRow, buildTimeline, Cursor, findGaps, indexAt, mergeTimelines, rowCount, statRows, thinPulses, timelineBytes, type WireDay } from "./timeline.ts";
 
 const DAY = 1_800_000_000; // seconds
 
@@ -89,4 +89,60 @@ test("gaps: stretches where most entities have nothing are found, short ones are
   assert.equal(gaps.length, 1);
   assert.equal(gaps[0][0], (DAY + 3600) * 1000);
   assert.equal(gaps[0][1], (DAY + 7200) * 1000);
+});
+
+test("an older day fetched later joins the timeline: rows in order, the seam's repeat dropped, statistics on one grid", () => {
+  const newer = buildTimeline([day()]);
+  const older = buildTimeline([
+    day({
+      day_start: DAY - 86400,
+      end: DAY,
+      entities: { "light.a": { t: [0, 86000], v: [0, 1], tab: ["on", "off"] }, "switch.old": { t: [0], v: [0], tab: ["on"] } },
+      stats: { "sensor.t": { start: DAY - 600, step: 300, mean: [18, 19] } },
+      missing: [],
+    }),
+  ]);
+  const tl = mergeTimelines(newer, older);
+  assert.equal(tl.start, (DAY - 86400) * 1000);
+  assert.equal(tl.end, (DAY + 86400) * 1000);
+  const a = tl.tracks.get("light.a")!;
+  // "off" at the end of the older day and "off" at the start of the newer one: one row
+  assert.deepEqual([...a.times], [(DAY - 86400) * 1000, (DAY - 400) * 1000, (DAY + 60) * 1000, (DAY + 180) * 1000]);
+  assert.deepEqual([...a.vals].map((k) => a.values[k].s), ["on", "off", "on", "off"]);
+  assert.ok(tl.tracks.has("switch.old"));
+  const s = tl.series.get("sensor.t")!;
+  assert.equal(s.start, (DAY - 600) * 1000);
+  assert.deepEqual([...s.mean.slice(0, 4)], [18, 19, 20, 21]);
+  assert.equal(rowCount(tl), 4 + 1 + 2);
+  assert.ok(timelineBytes(tl) > 0);
+});
+
+test("a busy week: short motion pulses are thinned, longer ones stay", () => {
+  const tl = buildTimeline([
+    day({
+      entities: { "binary_sensor.m": { t: [0, 100, 130, 1000, 1200, 2000, 2010], v: [0, 1, 0, 1, 0, 1, 0], tab: ["off", "on"] } },
+      stats: {},
+      missing: [],
+    }),
+  ]);
+  const dropped = thinPulses(tl, ["binary_sensor.m"]);
+  const m = tl.tracks.get("binary_sensor.m")!;
+  assert.equal(dropped, 4);
+  assert.deepEqual([...m.times], [DAY * 1000, (DAY + 1000) * 1000, (DAY + 1200) * 1000]);
+  assert.deepEqual([...m.since], [...m.times]);
+});
+
+test("live rows join at the end only; five-minute rows come from statistics or states", () => {
+  const tl = buildTimeline([day()]);
+  const a = tl.tracks.get("light.a")!;
+  assert.equal(appendRow(a, (DAY + 100) * 1000, { s: "on", a: null }), false);
+  assert.equal(appendRow(a, (DAY + 90000) * 1000, { s: "off", a: null }), false);
+  assert.equal(appendRow(a, (DAY + 90000) * 1000, { s: "on", a: { brightness: 128 } }), true);
+  assert.equal(a.times.length, 4);
+  const rows = statRows(tl, ["sensor.t", "light.a", "nothing.x"], DAY * 1000, (DAY + 1200) * 1000);
+  assert.deepEqual(
+    rows["sensor.t"].map((r) => r.mean),
+    [20, 21, 22],
+  );
+  assert.deepEqual(Object.keys(rows), ["sensor.t"]);
 });

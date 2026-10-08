@@ -1008,7 +1008,11 @@ export function roomKey(name: string): string {
 
 /** The room a robot reports (sensor state, else the vacuum's current_room attribute), matched by room or area name. */
 export function robotRoom<R extends { name: string; area_id?: string | null }>(hass: HomeAssistant, rooms: readonly R[], vacuum: string | null, sensor: string | null): R | null {
-  const raw = sensor ? hass.states[sensor]?.state : vacuum ? hass.states[vacuum]?.attributes.current_room : undefined;
+  return roomNamed(hass, rooms, sensor ? hass.states[sensor]?.state : vacuum ? hass.states[vacuum]?.attributes.current_room : undefined);
+}
+
+/** The room a robot's name for it means ("Küche", "kitchen", the area's id). */
+export function roomNamed<R extends { name: string; area_id?: string | null }>(hass: HomeAssistant, rooms: readonly R[], raw: unknown): R | null {
   if (typeof raw !== "string" || !raw || raw === "unknown" || raw === "unavailable") return null;
   const want = roomKey(raw);
   if (!want) return null;
