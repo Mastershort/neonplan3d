@@ -711,7 +711,7 @@ Auto Pro hängt am **Stellplatz**, nicht am Fahrzeug-Möbel. Steht dein Auto als
 
 ![Zeitreise: die Etage um 07:42 mit Zeitleiste](images/view-timetravel.jpg)
 
-Die Zeitreise spielt die letzten 24 Stunden im Haus ab – aus dem Verlauf, den Home Assistant ohnehin aufzeichnet (Recorder): Lichter mit Helligkeit und Farbe, Türen und Fenster, Rollläden, Bewegung, Heizung, Fernseher und Lautsprecher, Temperaturen, Leistung, Wetter und Sonnenstand. Alles bleibt in Home Assistant, und **nichts wird geschaltet** – die Zeitreise zeigt nur.
+Die Zeitreise spielt die letzten 24 Stunden – auf Wunsch die letzten 7 Tage – im Haus ab, aus dem Verlauf, den Home Assistant ohnehin aufzeichnet (Recorder): Lichter mit Helligkeit und Farbe, Türen und Fenster, Rollläden, Bewegung, Heizung, Fernseher und Lautsprecher, Temperaturen, Leistung, Wetter und Sonnenstand. Alles bleibt in Home Assistant, und **nichts wird geschaltet** – die Zeitreise zeigt nur.
 
 **Starten:** Unten in der Schalterleiste **⏪ Zeitreise** antippen; in der Dashboard-Karte erscheint der Knopf mit `time_travel: true` (Kapitel 8). Die Ansicht bekommt einen bernsteinfarbenen Rahmen, oben in der Mitte steht groß der gezeigte Moment („Do 07:42 · vor 6 h 14 min“). Sie beginnt angehalten, eine Stunde vor jetzt. **● Live** oder **Esc** führt zurück in die Gegenwart; in der Karte auch die Rückkehr zur Startansicht (`idle_return`).
 
@@ -723,8 +723,10 @@ Die Zeitreise spielt die letzten 24 Stunden im Haus ab – aus dem Verlauf, den 
 | **▶** / **⏸** | Abspielen und Anhalten. Am Ende angekommen, beginnt ▶ wieder von vorn |
 | **Leiste** | Antippen oder ziehen springt zu diesem Moment. Dunkle Flächen sind die Nacht (nach dem Sonnenstand am Standort von Home Assistant), grau ist die Zeit, aus der der Recorder noch nichts hat, schraffiert eine Lücke – Home Assistant war aus oder startete neu |
 | **Punkte** | Ereignisse. Ein Tipp springt hin und hält an, langes Drücken zeigt, was passiert ist. Liegen mehrere dicht beieinander, werden sie ein Punkt mit Zahl in der Farbe des wichtigsten |
-| **360×** | Das Tempo: 60× (eine Stunde in einer Minute), 360× (in 10 Sekunden, Standard), 900× (in 4 Sekunden), 3600× (in einer Sekunde) |
-| **● Live** | Zurück in die Gegenwart |
+| **24 h** / **7 T** | Der Zeitraum: der letzte Tag oder die letzte Woche (siehe „Mehrere Tage“) |
+| **☰** | Die Seitenleiste mit **Ereignisse**, **Während du weg warst** und **Tag** |
+| **360×** | Das Tempo: 60× (eine Stunde in einer Minute), 360× (in 10 Sekunden, Standard), 900× (in 4 Sekunden), 3600× (in einer Sekunde), in der Woche auch 14400× (ein Tag in 6 Sekunden) |
+| **● Live** | Zurück in die Gegenwart. Läuft die Wiedergabe bis jetzt, steht dort „Gegenwart erreicht · Live“ |
 
 Am PC: **Leertaste** spielt ab oder hält an, die **Pfeiltasten** springen 5 Minuten (mit Umschalt eine Stunde).
 
@@ -738,13 +740,33 @@ Am PC: **Leertaste** spielt ab oder hält an, die **Pfeiltasten** springen 5 Min
 - Temperatur, Feuchte, CO₂ und Leistung aus den Fünf-Minuten-Statistiken, gleitend dazwischen – auch als **Heatmap** und **Werte**
 - Warnungen, wie sie damals waren (Rauch, Wasser, Fenster offen bei Regen)
 - Wetter draußen (mit dem Pro „Wetter draußen“) aus dem Verlauf der Wetter-Entität, Sonne und Sonnenlicht nach dem damaligen Sonnenstand
-- Energie (mit Energie Pro): die Werte oben, die Glaskarten und die Leitungen mit den damaligen Leistungen; die Tageskurven der Glaskarten zeigen weiter den heutigen Tag
+- Energie (mit Energie Pro): die Werte oben, die Glaskarten und die Leitungen mit den damaligen Leistungen; die Tageskurven der Glaskarten zeigen den Tag des gezeigten Moments bis zu diesem Moment
+- Auto (mit Auto Pro): ob das Auto auf seinem Stellplatz steht und sein Ladestand – aus den Entitäten des Autos selbst (Tracker des Autos nur als „zu Hause“ oder „weg“, nie der Ort). Tracker von Personen bleiben draußen, auch wenn ein Stellplatz einen nutzt
+- Musik und Fernseher: spielt oder nicht, Titel und Lautstärke-Ringe von damals (ohne Cover-Bild – das gibt es nur live)
+- Saugroboter: sein Zustand und, während er saugt, eine grüne Spur durch die Räume, die er in dieser Runde schon gereinigt hat (aus seinem Raum-Sensor oder dem Attribut `current_room`)
+- Kurze Schaltungen bei hohem Tempo: Ein Licht, das zwischen zwei Bildern an- und wieder ausging, blitzt kurz auf, statt unterzugehen
 
-Nicht dabei sind Kamerabilder (der Recorder speichert keine) sowie Personen und Tracker – auch der Standort eines Autos unterwegs. Was der Recorder nicht aufzeichnet, steht als „unbekannt“ da.
+Nicht dabei sind Kamerabilder (der Recorder speichert keine) sowie Personen und ihre Tracker. Was der Recorder nicht aufzeichnet, steht als „unbekannt“ da.
 
-**Wandtablet:** Beim Abspielen rechnet die Ansicht auf der Stufe **Tablet** zweimal in der Sekunde (Auto viermal, Hoch sechsmal), angehalten läuft gar nichts (0 B/s). Der Verlauf eines Tages wird einmal geladen und braucht nur wenige hundert Kilobyte; geändert wird nur, was sich wirklich ändert.
+**Mehrere Tage:** **24 h** wechselt auf **7 T**. Der letzte Tag ist sofort da, ältere Tage lädt die Zeitreise im Hintergrund nach, den neuesten zuerst und immer nur einen auf einmal; auf der Leiste steht dabei „lade Mo …“. Um Mitternacht steht der Wochentag mit Datum auf der Leiste. Was der Recorder nicht mehr hat (`purge_keep_days`), bleibt grau mit „Recorder: 5 Tage“. Ein sehr belebtes Haus hält die Woche unter 10 MB: Dafür fallen bei Bedarf sehr kurze Bewegungs-Meldungen (unter einer Minute) weg. Auf der Stufe **Tablet** reicht die Woche zwei Tage zurück – außer die Karte setzt `time_travel_range: 7d`.
 
-**Voraussetzungen:** der Recorder von Home Assistant (er läuft standardmäßig) und Home Assistant nach dem Update einmal neu gestartet. Wie weit der Verlauf zurückreicht, bestimmt `purge_keep_days` des Recorders (Standard 10 Tage); die Zeitreise braucht davon 24 Stunden.
+**Bis in die Gegenwart:** Spielt die Zeitreise bis kurz vor jetzt, kommen die Änderungen seit dem Start der Zeitreise dazu, und die Wiedergabe läuft bis in die Gegenwart. Dort hält sie an und bietet **Live** an.
+
+![Zeitreise: die Seitenleiste mit den Ereignissen](images/view-timetravel-events.jpg)
+
+**Ereignisse (☰):** alle Ereignisse nach Stunden, die neuesten oben – auch die, die keinen Punkt auf der Leiste bekommen (ein Fenster wird geöffnet, mit Energie Pro „Speicher voll“ und die höchste PV-Leistung des Tages). Die Filter **Sicherheit**, **Türen & Fenster**, **Geräte** und **Energie** blenden Gruppen aus. Ein Tipp springt zum Moment und fliegt zum Raum. **Kamera folgt Ereignissen** fliegt beim Abspielen mit; **Bei wichtigen Ereignissen anhalten** (Alarm, Rauch, Gas, Kohlenmonoxid, Wasser) hält ab 900× dort an, statt vorbeizurauschen.
+
+![Zeitreise: Während du weg warst](images/view-timetravel-away.jpg)
+
+**Während du weg warst:** was zwischen zwei Momenten passiert ist – ohne Personen. Die Zeitreise schlägt selbst eine ruhige Zeit vor (mindestens zwei Stunden ohne Bewegung im Haus, überwiegend am Tag), daneben „letzter Zeitreise“ oder eine eigene Uhrzeit („seit 08:00“). Die Liste nennt Alarme, wie oft Türen und Fenster geöffnet wurden, Bewegung, Lichter, die anblieben (mit Dauer), Fenster, die offen standen, und Geräte, die liefen. Ein Tipp springt hin.
+
+![Zeitreise: Tagesübersicht mit Vortag](images/view-timetravel-day.jpg)
+
+**Tag:** die Übersicht für den Tag am Abspielkopf – je Raum, wie lange Licht brannte, ein Fenster offen stand und geheizt wurde, dazu die tiefste und höchste Temperatur; mit Energie Pro PV, Verbrauch, Netzbezug, Einspeisung (kWh) und Autarkie. **Mit dem Vortag vergleichen** stellt die Zahlen des Vortags darunter, **⟲ Gestern um diese Zeit** springt 24 Stunden zurück (die Woche wird dafür bei Bedarf geladen).
+
+**Wandtablet:** Beim Abspielen rechnet die Ansicht auf der Stufe **Tablet** zweimal in der Sekunde (Auto viermal, Hoch sechsmal; ein Wechsel der Stufe gilt sofort), angehalten läuft gar nichts (0 B/s). Der Verlauf eines Tages wird einmal geladen und braucht nur wenige hundert Kilobyte; geändert wird nur, was sich wirklich ändert. Auf der Stufe Tablet beginnt die Zeitreise mit 24 Stunden und hält höchstens zwei Tage.
+
+**Voraussetzungen:** der Recorder von Home Assistant (er läuft standardmäßig) und Home Assistant nach dem Update einmal neu gestartet. Wie weit der Verlauf zurückreicht, bestimmt `purge_keep_days` des Recorders (Standard 10 Tage); die Zeitreise braucht davon 24 Stunden, für die ganze Woche mindestens 7 Tage. Wer die Woche nutzen will, lässt `purge_keep_days` also bei 7 oder mehr.
 
 ---
 
@@ -866,8 +888,8 @@ weather_entity: weather.home
 holograms: true         # Pro: Hologramme immer an/aus; weglassen = Schalter in der Karte
 camera_wall: false      # Pro: Knopf „Kameras“ unten in der Karte öffnet die Kamera-Wand
 time_travel: false      # Pro: Knopf „Zeitreise“ unten in der Karte spielt die letzten 24 Stunden ab (nur ansehen)
-time_travel_speed: 360  # Tempo der Zeitreise: 60 | 360 | 900 | 3600 (eine Stunde in 1 min, 10 s, 4 s, 1 s)
-time_travel_range: 24h  # wie weit die Zeitreise zurückreicht (vorerst 24 Stunden)
+time_travel_speed: 360  # Tempo der Zeitreise: 60 | 360 | 900 | 3600 | 14400 (eine Stunde in 1 min, 10 s, 4 s, 1 s; ein Tag in 6 s, nur in der Woche)
+time_travel_range: 24h  # Start der Zeitreise: 24h oder 7d (die Woche; auch auf der Stufe Tablet, die sonst zwei Tage hält)
 roof_fade: true         # false: Dach bleibt beim Heranzoomen auf dem Haus
 start_view: { theta: 0.8, phi: 1.0, radius: 20 }   # eigene Startansicht dieser Karte; die Zeile steht im Editor unter Startansicht (weglassen = die des Plans)
 idle_return: 0          # Sekunden ohne Berührung bis zur Startansicht
