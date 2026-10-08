@@ -72,6 +72,16 @@ test("lights placed as devices become lamps of their mount type", () => {
   assert.equal(normalizeBuilding(b).floors[0].furniture.length, 2);
 });
 
+test("a light turned back into a device pin stays a pin", () => {
+  const b = emptyBuilding();
+  const floor = newFloor("eg", "EG", 0);
+  floor.placements = [{ entity_id: "light.decke", x: 1, z: 2, y: null, mount: "wall", pin: true }];
+  b.floors = [floor];
+  const out = normalizeBuilding(b).floors[0];
+  assert.deepEqual(out.placements.map((p) => p.entity_id), ["light.decke"]);
+  assert.equal(out.furniture.length, 0);
+});
+
 test("a table lamp stands on the furniture below it", () => {
   const floor = newFloor("eg", "EG", 0);
   floor.furniture = [item("nightstand", 1, 1, 0.5), item("table", 4, 1, 0.75), item("sofa", 7, 1, 0.8)];

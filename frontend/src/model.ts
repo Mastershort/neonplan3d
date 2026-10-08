@@ -210,6 +210,8 @@ export interface Placement {
   y: number | null;
   /** Lights: how the lamp is mounted; null = ceiling. */
   mount?: LampMount | null;
+  /** A light kept as a device pin on purpose ("Wieder als Geräte-Pin"): not turned into a lamp on load. */
+  pin?: boolean;
   /** Turn around the vertical axis (degrees): wall lamps, spots, displays face that way. */
   rotation?: number;
   /** Cameras: opening angle of the field of view (degrees) and how far it reaches (m); null = default. */
@@ -859,10 +861,15 @@ export const LAMP_TYPES = new Set<string>([
 /** Default height of the bottom of a wall light above the floor (metres). */
 export const WALL_LAMP_Y = 1.75;
 
-/** Items that can be lifted off the floor (a wall cabinet, a shelf, a wall light, an LED strip): everything but lamps hung from the ceiling and the ceiling-mounted pack items. */
+/**
+ * Items whose height above the floor can be set (a wall cabinet, a shelf, a wall light, an LED strip, a beam
+ * under a sloped ceiling): everything but lamps hung from the ceiling. Ceiling-mounted pack items without a
+ * light (a downstand beam, ceiling beams) start under the ceiling and can be lowered (#287).
+ */
 export function canLift(f: Pick<Furniture, "type">): boolean {
   if (["lamp_ceiling", "lamp_downlight", "lamp_spot", "lamp_panel", "lamp_pendant", "stairs", "stairwell", "parking"].includes(f.type)) return false;
-  return packItem(f.type)?.mount !== "ceiling";
+  const item = packItem(f.type);
+  return !(item?.mount === "ceiling" && item.light);
 }
 
 export function isLamp(type: string): boolean {
@@ -1142,7 +1149,8 @@ export function normalizeBuilding(b: Building): Building {
     f.placements = f.placements.map((p) => ({ ...p, mount: p.mount ?? null, rotation: p.rotation ?? 0 }));
     f.furniture = f.furniture.map((m) => ({ ...m, entity: m.entity ?? null, power: m.power ?? null }));
     // lights placed as devices (before lamps existed) become lamps of their mount type
-    const lights = f.placements.filter((p) => p.entity_id.startsWith("light."));
+    // (a light turned back into a pin on purpose stays a pin)
+    const lights = f.placements.filter((p) => p.entity_id.startsWith("light.") && !p.pin);
     if (lights.length) {
       const type: Record<LampMount, FurnitureType> = { ceiling: "lamp_ceiling", floor: "lamp_floor", table: "lamp_table", wall: "lamp_wall" };
       for (const p of lights) {
@@ -1150,7 +1158,7 @@ export function normalizeBuilding(b: Building): Building {
         const [w, d, h] = FURNITURE_SIZE[t];
         f.furniture.push({ id: `lamp_${p.entity_id.slice(6).replace(/[^A-Za-z0-9_\-.]/g, "_")}`.slice(0, 64), type: t, x: p.x, z: p.z, rotation: 0, w, d, h, variant: null, entity: p.entity_id, power: null });
       }
-      f.placements = f.placements.filter((p) => !p.entity_id.startsWith("light."));
+      f.placements = f.placements.filter((p) => !p.entity_id.startsWith("light.") || p.pin);
     }
     f.openings = f.openings.map((o) => ({
       ...o,

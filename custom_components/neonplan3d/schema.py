@@ -267,6 +267,8 @@ PLACEMENT_SCHEMA = vol.Schema(
         vol.Required("y"): vol.Any(None, _LENGTH),
         # lights: how the lamp is mounted (None = ceiling)
         vol.Optional("mount", default=None): vol.Any(None, vol.In(["ceiling", "floor", "table", "wall"])),
+        # a light kept as a device pin on purpose (not turned into a lamp on load)
+        vol.Optional("pin"): bool,
         # turn around the vertical axis (degrees)
         vol.Optional("rotation", default=0.0): vol.Coerce(float),
         # cameras: opening angle (degrees) and reach (m) of the field of view; None = default

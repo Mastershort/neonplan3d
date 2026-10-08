@@ -3913,7 +3913,7 @@ export class Fp3dEditor extends LitElement {
   private furnitureToDevice(f: Furniture): void {
     const id = f.entity;
     if (!this.isAdmin || !id || id === "none") return;
-    const pl: Placement = { entity_id: id, x: f.x, z: f.z, y: null, rotation: f.rotation, ...(f.name ? { name: f.name } : {}) };
+    const pl: Placement = { entity_id: id, x: f.x, z: f.z, y: null, rotation: f.rotation, ...(f.name ? { name: f.name } : {}), ...(id.startsWith("light.") ? { pin: true } : {}) };
     this.change((_, floor) => {
       floor.furniture = floor.furniture.filter((m) => m.id !== f.id);
       if (!floor.placements.some((p) => p.entity_id === id)) floor.placements.push(pl);
