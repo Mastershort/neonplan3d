@@ -67,6 +67,8 @@ SPOKEN = [
     (r"HA-Etage", "Home-Assistant-Etage"),
     (r"(\d),(\d)", r"\1 Komma \2"),  # any other decimal number: "4,5" -> "4 Komma 5"
     (r" & ", " und "),  # "Tür & Fenster"
+    (r"CO₂", "C O 2"),
+    (r"(?<=[a-z])_(?=[a-z])", " "),  # YAML keys: "idle_return" -> "idle return"
     (" – ", ", "),  # noqa: RUF001
 ]
 
@@ -81,6 +83,8 @@ SPOKEN_EN = [
     (r"(\d)°", r"\1 degrees"),
     (r"m²", "square metres"),
     (r" & ", " and "),
+    (r"CO₂", "C O 2"),
+    (r"(?<=[a-z])_(?=[a-z])", " "),
     (" – ", ", "),  # noqa: RUF001
 ]
 

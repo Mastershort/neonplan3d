@@ -221,7 +221,7 @@ Rollläden und Kontakte ordnet NeonPlan 3D über den Bereich automatisch zu. Du 
 
 ![Die Möbelbibliothek](images/editor-library.jpg)
 
-Das Werkzeug **Möbel** öffnet rechts die Bibliothek mit über 50 eingebauten Modellen in den Abschnitten Leuchten, Wohnen, Essen, Küche, Schlafen, Bad & Hauswirtschaft und Arbeiten & Sonstiges. Darunter folgen deine installierten Möbel-Packs. Die **Arbeitsplatte** (Küche sowie Arbeiten & Sonstiges) ist eine freie Platte ohne Unterbau, für Lücken in der Küche oder einen selbst gebauten Schreibtisch; ihre **Höhe** ist die Oberkante, voreingestellt 91 cm. Das Suchfeld oben filtert alle Abschnitte und bleibt beim Scrollen stehen; es findet deutsche und englische Namen und den Pack-Namen, mehrere Wörter in beliebiger Reihenfolge („sofa ecke“), Escape leert es. Die Abschnitte klappen auf und zu. Fährst du mit der Maus über einen Eintrag, zeigt eine kleine 3D-Vorschau das Möbel.
+Das Werkzeug **Möbel** öffnet rechts die Bibliothek mit über 50 eingebauten Modellen in den Abschnitten Leuchten, Wohnen, Essen, Küche, Schlafen, Bad & Hauswirtschaft und Arbeiten & Sonstiges. Darunter folgen deine installierten Möbel-Packs. Die **Arbeitsplatte** (Küche sowie Arbeiten & Sonstiges) ist eine freie Platte ohne Unterbau, für Lücken in der Küche oder einen selbst gebauten Schreibtisch; ihre **Höhe** ist die Oberkante, voreingestellt 91 cm. Unter Wohnen stehen neben dem Sofa ein **Ecksofa (L-Form)** und eine **Wohnlandschaft (U-Form)**; mit **Spiegeln** sitzt der Schenkel des Ecksofas auf der anderen Seite. Das Suchfeld oben filtert alle Abschnitte und bleibt beim Scrollen stehen; es findet deutsche und englische Namen und den Pack-Namen, mehrere Wörter in beliebiger Reihenfolge („sofa ecke“), Escape leert es. Die Abschnitte klappen auf und zu. Fährst du mit der Maus über einen Eintrag, zeigt eine kleine 3D-Vorschau das Möbel.
 
 **Symbole an den Einträgen:**
 
@@ -339,6 +339,7 @@ Seine Bahnen machen einen Bogen um Möbel, die auf dem Boden stehen: Schränke, 
 ### 4.16 Treppen und Bodenöffnungen
 
 - Die **Treppe** aus der Bibliothek steigt von der markierten Vorderkante nach hinten an. Reicht sie bis zur Etage darüber, schneidet sie dort die Treppenöffnung in die Decke.
+- Die **U-Treppe mit Podest** (Arbeiten & Sonstiges) hat zwei Läufe nebeneinander: Sie steigt links von der markierten Vorderkante nach hinten, wendet am Podest und kommt rechts wieder nach vorn hoch. **Spiegeln** dreht die Laufrichtung um. Wie die gerade Treppe bekommt sie beim Einfügen die Höhe bis zur Etage darüber und schneidet dort die Öffnung in die Decke. Voreingestellt ist sie 2,10 × 2,70 m groß.
 - Mit dem Werkzeug **Bodenöffnung** ziehst du ein Loch direkt in den Boden einer Etage auf, etwa über dem Treppenaufgang oder für eine Galerie. Von oben sieht man hindurch. Die Öffnung muss ganz in einem Raum liegen. Mehrere Öffnungen dürfen sich überlappen, so entsteht zum Beispiel eine L-Form.
 - Weitere Treppen und Geländer bringt das Pack **Treppen & Geländer**.
 

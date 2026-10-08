@@ -219,7 +219,7 @@ NeonPlan 3D matches covers and contacts through the area automatically. You can 
 
 ![The furniture library](images/editor-library.jpg)
 
-The **Furniture** tool opens the library with more than 50 built-in models in the sections Lights, Living, Dining, Kitchen, Sleeping, Bath & laundry and Work & other. Your installed furniture packs follow below. The **Worktop** (Kitchen and Work & other) is a free top without a base, for gaps in the kitchen or a self-built desk; its **height** is the top edge, 91 cm by default. The search field filters all sections and stays put while you scroll; it finds English and German names and the pack name, several words in any order ("corner sofa"), Escape clears it. Sections fold open and closed. Hover over an entry for a small 3D preview.
+The **Furniture** tool opens the library with more than 50 built-in models in the sections Lights, Living, Dining, Kitchen, Sleeping, Bath & laundry and Work & other. Your installed furniture packs follow below. The **Worktop** (Kitchen and Work & other) is a free top without a base, for gaps in the kitchen or a self-built desk; its **height** is the top edge, 91 cm by default. Under Living, next to the sofa, there are a **Corner sofa (L-shaped)** and a **U-shaped sofa**; **Mirror** puts the corner sofa's side section on the other side. The search field filters all sections and stays put while you scroll; it finds English and German names and the pack name, several words in any order ("corner sofa"), Escape clears it. Sections fold open and closed. Hover over an entry for a small 3D preview.
 
 **Symbols on the entries:**
 
@@ -337,6 +337,7 @@ Its lanes keep clear of furniture standing on the floor: cabinets, sofas, beds, 
 ### 4.16 Stairs and floor openings
 
 - The **Stairs** from the library rise from the marked front edge towards the back. If they reach the floor above, they cut the stairwell into its floor.
+- The **U-stair with landing** (Work & other) has two flights side by side: it rises on the left from the marked front edge towards the back, turns at the landing and comes back up on the right towards the front. **Mirror** turns it the other way. Like the straight stairs it gets the height up to the floor above when you add it and cuts the opening into that floor. Its default size is 2.10 × 2.70 m.
 - The **Floor opening** tool draws a hole straight into a floor, e.g. above the staircase or for a gallery. From above you look through it. The opening must lie within one room. Several openings may overlap, for example to make an L shape.
 - More stairs and railings come with the **Stairs & railings** pack.
 

@@ -775,6 +775,8 @@ export const FURNITURE_TYPES = [
   "lamp_garden",
   "radiator",
   "sofa",
+  "sofa_l",
+  "sofa_u",
   "armchair",
   "stool",
   "coffee_table",
@@ -815,6 +817,7 @@ export const FURNITURE_TYPES = [
   "tall_cabinet",
   "coat_rack",
   "stairs",
+  "stairs_u",
   "robot_vacuum",
   "inverter",
   "home_battery",
@@ -829,12 +832,12 @@ export const FURNITURE_TYPES = [
 /** Furniture library sections (the editor lists them in this order). */
 export const FURNITURE_GROUPS: Record<string, FurnitureType[]> = {
   lights: ["lamp_ceiling", "lamp_downlight", "lamp_spot", "lamp_panel", "lamp_pendant", "lamp_floor", "lamp_uplight", "lamp_table", "lamp_wall", "led_strip", "lamp_bollard", "lamp_garden"],
-  living: ["sofa", "armchair", "stool", "coffee_table", "tv_board", "tv_wall", "sideboard", "shelf", "plant", "rug"],
+  living: ["sofa", "sofa_l", "sofa_u", "armchair", "stool", "coffee_table", "tv_board", "tv_wall", "sideboard", "shelf", "plant", "rug"],
   dining: ["table", "table_round", "chair", "bench", "corner_bench", "bar_stool"],
   kitchen: ["kitchen", "kitchen_wall", "kitchen_tall", "island", "worktop", "sink", "stove", "dishwasher", "fridge"],
   sleeping: ["bed", "bunk_bed", "nightstand", "wardrobe", "dresser"],
   bath: ["bathtub", "shower", "wc", "washbasin", "washer", "dryer"],
-  work: ["desk", "worktop", "office_chair", "tall_cabinet", "coat_rack", "radiator", "stairs", "robot_vacuum"],
+  work: ["desk", "worktop", "office_chair", "tall_cabinet", "coat_rack", "radiator", "stairs", "stairs_u", "robot_vacuum"],
   vehicles: ["parking"],
 };
 
@@ -867,9 +870,28 @@ export const WALL_LAMP_Y = 1.75;
  * light (a downstand beam, ceiling beams) start under the ceiling and can be lowered (#287).
  */
 export function canLift(f: Pick<Furniture, "type">): boolean {
-  if (["lamp_ceiling", "lamp_downlight", "lamp_spot", "lamp_panel", "lamp_pendant", "stairs", "stairwell", "parking"].includes(f.type)) return false;
+  if (["lamp_ceiling", "lamp_downlight", "lamp_spot", "lamp_panel", "lamp_pendant", "stairwell", "parking"].includes(f.type) || STAIR_TYPES.has(f.type)) return false;
   const item = packItem(f.type);
   return !(item?.mount === "ceiling" && item.light);
+}
+
+/** Built-in stairs: they reach up to the next floor and cut its opening (the straight one and the U-stair). */
+export const STAIR_TYPES = new Set<string>(["stairs", "stairs_u"]);
+
+/**
+ * Layout of the built-in U-stair (w × d, height h): n risers of equal height, the landing at the back is
+ * the top of riser k. The first flight never has fewer treads than the second; both share one going.
+ */
+export function stairsULayout(w: number, d: number, h: number) {
+  const n = Math.max(4, Math.round(h / 0.18));
+  const k = Math.floor(n / 2) + 1;
+  const steps1 = k - 1;
+  const steps2 = n - k;
+  const gap = Math.min(0.12, w * 0.06);
+  const fw = (w - gap) / 2;
+  const landing = Math.min(fw, d * 0.45);
+  const run = (d - landing) / steps1;
+  return { n, k, steps1, steps2, gap, fw, landing, run, rise: h / n };
 }
 
 export function isLamp(type: string): boolean {
@@ -985,6 +1007,9 @@ export type FurnitureType = (typeof FURNITURE_TYPES)[number];
 /** Default size (width x, depth z, height) of new furniture in metres. */
 export const FURNITURE_SIZE: Record<FurnitureType, [number, number, number]> = {
   sofa: [2.2, 0.9, 0.82],
+  // corner sofas: the seats are as deep as the straight sofa's (0.9 m)
+  sofa_l: [2.6, 1.8, 0.82],
+  sofa_u: [3.0, 2.2, 0.82],
   armchair: [0.85, 0.85, 0.8],
   table: [1.6, 0.9, 0.75],
   chair: [0.46, 0.5, 0.9],
@@ -1017,6 +1042,8 @@ export const FURNITURE_SIZE: Record<FurnitureType, [number, number, number]> = {
   plant: [0.45, 0.45, 1.1],
   rug: [2.0, 1.4, 0.01],
   stairs: [1.0, 3.2, 2.75],
+  // two flights of 1 m side by side with a small eye between them, a landing at the back
+  stairs_u: [2.1, 2.7, 2.75],
   stool: [0.55, 0.55, 0.42],
   lamp_ceiling: [0.4, 0.4, 0.08],
   lamp_downlight: [0.1, 0.1, 0.02],

@@ -5,7 +5,7 @@
 
 import { Color } from "three";
 import type { Furniture, Vec2 } from "../model.ts";
-import { builtinBase } from "../model.ts";
+import { builtinBase, stairsULayout } from "../model.ts";
 import { mountBase, packItem, packScreen, type PackItem } from "../packs.ts";
 import type { Floor } from "../model.ts";
 import { ALWAYS, DEG, EDGE_TOP, GeoBuffer, LineBuffer, pushLoft, pushLyingCyl, pushPrism, shade } from "./geo.ts";
@@ -217,6 +217,82 @@ function sofa(b: Builder, w: number, d: number, h: number, seats: number): void 
     const cx1 = cx0 + cw - 0.04;
     b.pad(cx0, cx1, seatH - 0.08, seatH + 0.05, z0 + back + 0.02, z1 - 0.06, C.cushion, C.cushion, 0.04);
     b.loft([cx0 + 0.01, cx1 - 0.01, z0 + back * 0.55, z0 + back + 0.14], [cx0 + 0.03, cx1 - 0.03, z0 + back * 0.4, z0 + back * 0.4 + 0.06], seatH + 0.03, h * 0.93, C.cushion);
+  }
+}
+
+/**
+ * Corner sofa in the straight sofa's style: a back along the rear and along the left side (-x), for a
+ * U-sofa along the right side too. The open ends at the front carry the arms; the L's other arm sits at
+ * the right end of the rear section. Mirroring puts the L's side section on the right.
+ */
+function cornerSofa(b: Builder, w: number, d: number, h: number, u: boolean): void {
+  const x0 = -w / 2;
+  const x1 = w / 2;
+  const z0 = -d / 2;
+  const z1 = d / 2;
+  // seat depth of every section (incl. its back), like the straight sofa's 0.9 m
+  const dep = Math.max(0.3, Math.min(0.95, d * 0.5, w * (u ? 0.34 : 0.45)));
+  const back = Math.min(0.24, dep * 0.28);
+  const arm = Math.min(0.2, dep * 0.24);
+  const seatH = h * 0.5;
+  const armH = h * 0.72;
+  const sides = u ? [-1, 1] : [-1];
+  // tapered legs under the corners of the outline
+  const leg = (x: number, z: number) => b.loft([x - 0.015, x + 0.015, z - 0.015, z + 0.015], [x - 0.025, x + 0.025, z - 0.025, z + 0.025], 0, 0.07, C.wood);
+  leg(x0 + 0.06, z0 + 0.06);
+  leg(x1 - 0.06, z0 + 0.06);
+  if (!u) leg(x1 - 0.06, z0 + dep - 0.06);
+  for (const sx of sides) {
+    leg(sx * (w / 2 - 0.06), z1 - 0.06);
+    leg(sx * (w / 2 - dep + 0.06), z1 - 0.06);
+  }
+  // frames: the rear section across the whole width, the side sections in front of it
+  b.pad(x0, x1, 0.07, seatH - 0.08, z0 + 0.02, z0 + dep, C.fabric, C.fabricTop, 0.04, EDGE_FURN);
+  for (const sx of sides) {
+    const [a0, a1] = sx < 0 ? [x0 + 0.02, x0 + dep] : [x1 - dep, x1 - 0.02];
+    b.pad(a0, a1, 0.07, seatH - 0.08, z0 + dep - 0.02, z1, C.fabric, C.fabricTop, 0.04, EDGE_FURN);
+  }
+  // backs lean a little: their tops are thinner than their bases
+  b.loft([x0, x1, z0, z0 + back], [x0 + 0.01, x1 - 0.01, z0, z0 + back * 0.5], seatH - 0.08, h, C.fabric, C.fabricTop, EDGE_FURN);
+  for (const sx of sides) {
+    if (sx < 0) b.loft([x0, x0 + back, z0 + back, z1], [x0, x0 + back * 0.5, z0 + back, z1 - 0.01], seatH - 0.08, h, C.fabric, C.fabricTop, EDGE_FURN);
+    else b.loft([x1 - back, x1, z0 + back, z1], [x1 - back * 0.5, x1, z0 + back, z1 - 0.01], seatH - 0.08, h, C.fabric, C.fabricTop, EDGE_FURN);
+  }
+  // arms: at the front end of each side section, and (L) at the right end of the rear section
+  for (const sx of sides) {
+    const [a0, a1] = sx < 0 ? [x0 + back, x0 + dep] : [x1 - dep, x1 - back];
+    b.pad(a0, a1, seatH - 0.08, armH, z1 - arm, z1, C.fabric, C.fabricTop, 0.04, EDGE_FURN);
+  }
+  if (!u) b.pad(x1 - arm, x1, seatH - 0.08, armH, z0 + 0.02, z0 + dep - 0.02, C.fabric, C.fabricTop, 0.04, EDGE_FURN);
+  // seat and back cushions along x (rear section, the corners included) ...
+  const ra = x0 + back;
+  const rb = u ? x1 - back : x1 - arm;
+  const nx = Math.max(1, Math.round((rb - ra) / 0.62));
+  const cw = (rb - ra) / nx;
+  for (let i = 0; i < nx; i++) {
+    const cx0 = ra + cw * i + 0.02;
+    const cx1 = cx0 + cw - 0.04;
+    b.pad(cx0, cx1, seatH - 0.08, seatH + 0.05, z0 + back + 0.02, z0 + dep - 0.04, C.cushion, C.cushion, 0.04);
+    b.loft([cx0 + 0.01, cx1 - 0.01, z0 + back * 0.55, z0 + back + 0.14], [cx0 + 0.03, cx1 - 0.03, z0 + back * 0.4, z0 + back * 0.4 + 0.06], seatH + 0.03, h * 0.93, C.cushion);
+  }
+  // ... and along z (side sections, in front of the rear one)
+  const za = z0 + dep;
+  const zb = z1 - arm;
+  if (zb - za < 0.2) return;
+  const nz = Math.max(1, Math.round((zb - za) / 0.62));
+  const cd = (zb - za) / nz;
+  for (const sx of sides) {
+    for (let i = 0; i < nz; i++) {
+      const cz0 = za + cd * i + 0.02;
+      const cz1 = cz0 + cd - 0.04;
+      if (sx < 0) {
+        b.pad(x0 + back + 0.02, x0 + dep - 0.04, seatH - 0.08, seatH + 0.05, cz0, cz1, C.cushion, C.cushion, 0.04);
+        b.loft([x0 + back * 0.55, x0 + back + 0.14, cz0 + 0.01, cz1 - 0.01], [x0 + back * 0.4, x0 + back * 0.4 + 0.06, cz0 + 0.03, cz1 - 0.03], seatH + 0.03, h * 0.93, C.cushion);
+      } else {
+        b.pad(x1 - dep + 0.04, x1 - back - 0.02, seatH - 0.08, seatH + 0.05, cz0, cz1, C.cushion, C.cushion, 0.04);
+        b.loft([x1 - back - 0.14, x1 - back * 0.55, cz0 + 0.01, cz1 - 0.01], [x1 - back * 0.4 - 0.06, x1 - back * 0.4, cz0 + 0.03, cz1 - 0.03], seatH + 0.03, h * 0.93, C.cushion);
+      }
+    }
   }
 }
 
@@ -531,6 +607,62 @@ function stairs(b: Builder, w: number, d: number, h: number): void {
     const z = d / 2 - run * (i + 0.5);
     const y = rise * (i + 1);
     b.seg(xr, y, z, xr, y + rail, z, EDGE_FAINT);
+  }
+}
+
+/**
+ * U-stair: the first flight rises on the left half (-x) from the front towards the back, a landing across
+ * the whole width turns it, the second flight comes back up on the right half to the front. Mirroring
+ * turns it the other way. A handrail runs along the eye between the flights.
+ */
+function stairsU(b: Builder, w: number, d: number, h: number): void {
+  const { k, steps1, steps2, fw, landing, run, rise } = stairsULayout(w, d, h);
+  const xa0 = -w / 2;
+  const xa1 = -w / 2 + fw;
+  const xb0 = w / 2 - fw;
+  const xb1 = w / 2;
+  const zl = -d / 2 + landing;
+  for (let i = 0; i < steps1; i++) {
+    const z1 = d / 2 - run * i;
+    const y1 = rise * (i + 1);
+    b.box(xa0, xa1, 0, y1, z1 - run, z1, C.wood, C.woodTop);
+    b.seg(xa0, y1, z1, xa1, y1, z1, EDGE_FURN);
+  }
+  b.seg(xa0, 0, d / 2, xa0, rise, d / 2, EDGE_FURN);
+  // the landing across both flights: solid under the first flight's half, a slab over the second's
+  const yl = rise * k;
+  const slab = 0.2;
+  b.box(xa0, xa1, 0, yl, -d / 2, zl, C.wood, C.woodTop);
+  b.box(xa1, xb1, Math.max(0, yl - slab), yl, -d / 2, zl, C.wood, C.woodTop);
+  b.seg(xa0, yl, zl, xa1, yl, zl, EDGE_FURN);
+  // the second flight rises from the landing towards the front as stepped slabs (open below, so it
+  // does not stand like a wall); its top step is the upper floor
+  for (let j = 0; j < steps2; j++) {
+    const z0 = zl + run * j;
+    const y1 = rise * (k + 1 + j);
+    b.box(xb0, xb1, Math.max(0, y1 - rise - slab), y1, z0, z0 + run, C.wood, C.woodTop);
+    b.seg(xb0, y1, z0, xb1, y1, z0, EDGE_FURN);
+  }
+  // stringer lines along the outer sides
+  b.seg(xa0, rise, d / 2, xa0, yl, zl, EDGE_FAINT);
+  b.seg(xb1, yl, zl, xb1, h, zl + run * (steps2 - 1), EDGE_FAINT);
+  // handrail along the eye and around the landing; it ends where the second flight passes the ceiling
+  const rail = 0.9;
+  const ra = xa1 - 0.03;
+  const rb = xb0 + 0.03;
+  const zr = zl - 0.03;
+  const last = Math.max(1, steps2 - 4);
+  b.seg(ra, rise + rail, d / 2 - run / 2, ra, yl + rail, zr, EDGE_GLOW);
+  b.seg(ra, yl + rail, zr, rb, yl + rail, zr, EDGE_GLOW);
+  b.seg(rb, yl + rail, zr, rb, rise * (k + last) + rail, zl + run * (last - 0.5), EDGE_GLOW);
+  for (let i = 0; i < steps1; i += 3) {
+    const z = d / 2 - run * (i + 0.5);
+    b.seg(ra, rise * (i + 1), z, ra, rise * (i + 1) + rail, z, EDGE_FAINT);
+  }
+  for (const x of [ra, rb]) b.seg(x, yl, zr, x, yl + rail, zr, EDGE_FAINT);
+  for (let j = 2; j < last; j += 3) {
+    const z = zl + run * (j + 0.5);
+    b.seg(rb, rise * (k + 1 + j), z, rb, rise * (k + 1 + j) + rail, z, EDGE_FAINT);
   }
 }
 
@@ -951,6 +1083,12 @@ function buildFurniture(buf: GeoBuffer, lines: LineBuffer, shadow: GeoBuffer, f:
     case "armchair":
       sofa(b, w, d, h, 1);
       break;
+    case "sofa_l":
+      cornerSofa(b, w, d, h, false);
+      break;
+    case "sofa_u":
+      cornerSofa(b, w, d, h, true);
+      break;
     case "bed":
       bed(b, w, d, h);
       break;
@@ -1011,6 +1149,9 @@ function buildFurniture(buf: GeoBuffer, lines: LineBuffer, shadow: GeoBuffer, f:
       return; // flat, no contact shadow
     case "stairs":
       stairs(b, w, d, h);
+      break;
+    case "stairs_u":
+      stairsU(b, w, d, h);
       break;
     case "stairwell":
       return; // only a hole in the floor (see stairHoles in build.ts), nothing to draw

@@ -128,6 +128,28 @@ test("stairs cut a hole into the floor above", () => {
   assert.deepEqual(stairHoles([lower, upper], lower), []);
 });
 
+test("a U-stair reaching the floor above cuts its opening there, like the straight stair", () => {
+  const stair: Furniture = { id: "u", type: "stairs_u", x: 2, z: 1.5, rotation: 0, w: 2.1, d: 2.7, h: 2.75, variant: null };
+  const lower = floorWith([rect("a", 0, 0, 5, 4)], [], [stair]);
+  const upper = { ...floorWith([rect("b", 0, 0, 5, 4)]), id: "u", elevation: 2.75 };
+  const holes = stairHoles([lower, upper], upper);
+  assert.equal(holes.length, 1);
+  near(Math.abs(area2(holes[0])), 2.1 * 2.7, 1e-6);
+  // a U-stair that ends well below the next floor (a split level) cuts nothing
+  const short = floorWith([rect("a", 0, 0, 5, 4)], [], [{ ...stair, h: 1.4 }]);
+  assert.deepEqual(stairHoles([short, upper], upper), []);
+});
+
+function area2(poly: [number, number][]): number {
+  let a = 0;
+  for (let i = 0; i < poly.length; i++) {
+    const p = poly[i];
+    const q = poly[(i + 1) % poly.length];
+    a += p[0] * q[1] - q[0] * p[1];
+  }
+  return a / 2;
+}
+
 test("clipping a wall footprint along its axis", () => {
   const poly: [number, number][] = [
     [0, 0],

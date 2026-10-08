@@ -92,7 +92,7 @@ function orientation(buf: GeoBuffer): number {
 
 test("a mirrored item keeps its faces pointing outwards (#159)", () => {
   setPacks([PACK]);
-  for (const type of ["sofa", "bed", "fridge", "pack:t.cars:wedge"]) {
+  for (const type of ["sofa", "sofa_l", "sofa_u", "stairs_u", "bed", "fridge", "pack:t.cars:wedge"]) {
     const vol = (mirror: boolean) => {
       const buf = new GeoBuffer();
       const f: Furniture = { id: "f", type, x: 0, z: 0, rotation: 30, w: 2, d: 1, h: 1, variant: null, entity: null, power: null, mirror };
@@ -124,3 +124,30 @@ test("a mirrored pack lamp is drawn mirrored and still faces outwards", async ()
 function near2(a: number, b: number) {
   assert.ok(Math.abs(a - b) < 1e-6, `${a} != ${b}`);
 }
+
+test("the U-stair: both flights share one going, the landing turns it and the top step reaches the floor above", async () => {
+  const { stairsULayout } = await import("../model.ts");
+  for (const h of [2.6, 2.75, 2.77, 3.0]) {
+    const l = stairsULayout(2.1, 2.7, h);
+    assert.equal(l.steps1 + 1 + l.steps2, l.n);
+    assert.ok(l.steps1 >= l.steps2 && l.steps2 >= 1);
+    assert.ok(Math.abs(l.landing + l.run * l.steps1 - 2.7) < 1e-9);
+    assert.ok(l.rise > 0.16 && l.rise < 0.2, `rise ${l.rise}`);
+  }
+  const f: Furniture = { id: "u", type: "stairs_u", x: 0, z: 0, rotation: 0, w: 2.1, d: 2.7, h: 2.75, variant: null };
+  const buf = new GeoBuffer();
+  pushFurniture(buf, new LineBuffer(), new GeoBuffer(), f);
+  const pts = (pred: (x: number, y: number, z: number) => boolean) => {
+    const out: number[][] = [];
+    for (let i = 0; i < buf.p.length; i += 3) if (pred(buf.p[i], buf.p[i + 1], buf.p[i + 2])) out.push([buf.p[i], buf.p[i + 1], buf.p[i + 2]]);
+    return out;
+  };
+  // the top step sits on the right half (+x) at the front; mirrored it moves to the left half
+  const top = pts((_, y) => Math.abs(y - 2.75) < 1e-6);
+  assert.ok(top.length > 0 && top.every(([x, , z]) => x > 0 && z > 0), "top step at the front right");
+  const mbuf = new GeoBuffer();
+  pushFurniture(mbuf, new LineBuffer(), new GeoBuffer(), { ...f, mirror: true });
+  let mirroredLeft = true;
+  for (let i = 0; i < mbuf.p.length; i += 3) if (Math.abs(mbuf.p[i + 1] - 2.75) < 1e-6 && mbuf.p[i] > 0) mirroredLeft = false;
+  assert.ok(mirroredLeft, "mirrored: top step at the front left");
+});
