@@ -189,6 +189,12 @@ export class Fp3dView3d extends LitElement {
   private infoTimer: ReturnType<typeof setTimeout> | undefined;
   /** The replay's jump counter as last seen (a jump sets doors and blinds at once). */
   private seenSeek = 0;
+  /** The replayed moment as last seen; the replay's ticks reach the view through its listener. */
+  private seenT = 0;
+  private replayTicked = false;
+  private unlistenReplay: (() => void) | null = null;
+  /** The last sync showed something that follows the clock (a camera's detection pin). */
+  private detecting = false;
   /** How long the last full sync took (ms, smoothed), shown with the stats. */
   private syncMs = 0;
   declare floorId: string | null;
@@ -458,6 +464,7 @@ export class Fp3dView3d extends LitElement {
 
   connectedCallback(): void {
     super.connectedCallback();
+    this.listenReplay();
     if (this.hasUpdated) {
       this.observeStage();
       if (!this.viewer) void this.start();
@@ -466,6 +473,8 @@ export class Fp3dView3d extends LitElement {
 
   disconnectedCallback(): void {
     super.disconnectedCallback();
+    this.unlistenReplay?.();
+    this.unlistenReplay = null;
     this.resizeObs?.disconnect();
     this.resizeObs = null;
     clearInterval(this.alertTimer);
@@ -614,7 +623,11 @@ export class Fp3dView3d extends LitElement {
     }
     if (changed.has("building") || changed.has("theme") || changed.has("floorThumbs") || changed.has("packs")) this.scheduleThumbs();
     const forced = ["building", "markerMode", "heatMode", "flows", "alerts", "dimmed"].some((k) => changed.has(k));
-    if (forced || changed.has("hass")) this.syncDevices(forced);
+    // time travel: a tick moves the clock even when no replayed state changed – the trail and a camera's
+    // detections follow it (one sync per tick at most, and only when they are shown)
+    const ticked = this.replayTicked && !!this.replay;
+    this.replayTicked = false;
+    if (forced || changed.has("hass") || ticked) this.syncDevices(forced, ticked && (this.trail || this.detecting));
     if (changed.has("autoOrbit")) v.setAutoOrbit(this.autoOrbit ? 0.06 : 0);
     if (changed.has("_thumbs") || changed.has("_narrowStage")) v.setLabelInset(this._thumbs.length ? (this.narrowThumbs ? 136 : 184) : 0);
     if (changed.has("floorId")) v.setFloor(this.floorId);
@@ -635,7 +648,10 @@ export class Fp3dView3d extends LitElement {
     if (changed.has("selectedFurniture")) v.selectFurniture(this.selectedFurniture);
     if (changed.has("selectedDevice")) v.setSelectedDevice(this.selectedDevice);
     if (changed.has("trail") || changed.has("replay")) this.watchTrail();
-    if (changed.has("replay") && !this.replay) this._info = null;
+    if (changed.has("replay")) {
+      this.listenReplay();
+      if (!this.replay) this._info = null;
+    }
     if (changed.has("weather") || changed.has("weatherEntityId")) this.syncDevices(true);
     if (changed.has("quality") && changed.get("quality") !== undefined) {
       v.setQuality(this.quality);
@@ -650,7 +666,7 @@ export class Fp3dView3d extends LitElement {
    * when a watched entity changed (or the building). Openings are matched with entities again when
    * the building or the entity registry changes.
    */
-  private syncDevices(force: boolean): void {
+  private syncDevices(force: boolean, timed = false): void {
     const v = this.viewer;
     const b = this.building;
     if (!v || !b || !this.hass) return;
@@ -670,10 +686,11 @@ export class Fp3dView3d extends LitElement {
       });
       force = true;
     }
-    const changed = force || this.watched.some((id) => this.shownStates.get(id) !== hass.states[id]);
+    const changed = force || timed || this.watched.some((id) => this.shownStates.get(id) !== hass.states[id]);
     // time travel: after a jump doors and blinds stand at once instead of swinging there
     const jump = !!this.replay && this.replay.seek !== this.seenSeek;
     this.seenSeek = this.replay?.seek ?? 0;
+    this.seenT = this.replay?.t ?? 0;
     if (!changed) return;
     const began = this.showStats ? performance.now() : 0;
     this.shownStates = new Map(this.watched.map((id) => [id, hass.states[id]]));
@@ -687,6 +704,8 @@ export class Fp3dView3d extends LitElement {
     const byDevice = new Map(consumers.filter((c) => c.id !== c.powerEntity).map((c) => [c.id, c.power]));
     this.confirmSet = confirmEntities(hass, b.floors);
     const trail = this.trail ? this.trailNow(hass, b) : [];
+    const detections = hasFeature("camera_cockpit") && !this.dimmed ? this.detectionPins(hass, deviceMarkers) : [];
+    this.detecting = detections.length > 0;
     const pro = hasFeature("energy_pro");
     // Auto Pro: spots whose car stands there get a card, so their pin steps aside
     const carSpots = new Set(
@@ -707,7 +726,7 @@ export class Fp3dView3d extends LitElement {
       // Energie Pro: the street end of the grid cable carries a pin with what comes in or goes out
       ...(pro && (this.flows ?? this._flows) && !this.dimmed && summary.grid !== null ? [this.gridPin(hass, b, summary.grid)] : []).filter((m): m is NonNullable<typeof m> => !!m),
       // Kamera-Cockpit: what a camera detects right now stands in front of it as a pin
-      ...(hasFeature("camera_cockpit") && !this.dimmed ? this.detectionPins(hass, deviceMarkers) : []),
+      ...detections,
       // trail spots carry a pin with the time of the motion; the same sensor again stacks its pins
       ...trail.map((p, i) => ({
         id: `trail:${i}`,
@@ -950,7 +969,8 @@ export class Fp3dView3d extends LitElement {
         };
         anchors.push(anchor);
         cards.push(card);
-        this.mediaGrace.set(id, { until: Date.now() + 45000, card, source: sound[sound.length - 1], anchor });
+        // (a card of the past does not stand in for a live one afterwards)
+        if (!this.ro) this.mediaGrace.set(id, { until: Date.now() + 45000, card, source: sound[sound.length - 1], anchor });
       };
       // one card per player: furniture linked to it by hand first (a wall speaker given the Echo Show),
       // then a device placed in the plan, then furniture that found the player by itself
@@ -1056,6 +1076,24 @@ export class Fp3dView3d extends LitElement {
     // the holograms' day curves: the sensors' statistics, fetched now and then while the sun is watched
     this.watchSolarDay([...new Set(cards.flatMap((c) => c.dayIds))]);
     if (began) this.syncMs = this.syncMs * 0.8 + (performance.now() - began) * 0.2;
+  }
+
+  /** Time travel: follows the replay's ticks (a moved clock renders again; the states come with the hass). */
+  private listenReplay(): void {
+    this.unlistenReplay?.();
+    this.unlistenReplay = null;
+    const r = this.replay;
+    if (!r || !this.isConnected) return;
+    this.seenT = r.t;
+    this.unlistenReplay = r.listen(() => {
+      if (this.replay !== r || (r.t === this.seenT && r.seek === this.seenSeek)) return;
+      this.seenT = r.t;
+      // nothing on screen follows the clock: a tick costs nothing (a changed state comes with a new hass)
+      if (r.seek === this.seenSeek && !this.trail && !this.detecting && !this._holos.length) return;
+      // handled in updated(), after the host has handed over the new hass of the same tick
+      this.replayTicked = true;
+      this.requestUpdate();
+    });
   }
 
   /** Now – or, during time travel, the replayed moment. */
@@ -1517,18 +1555,22 @@ export class Fp3dView3d extends LitElement {
     </div>`;
   }
 
-  /** New warnings start the pulse (and a jump to the room when wanted); none stops it. */
+  /**
+   * New warnings start the pulse (and a jump to the room when wanted); none stops it. The past's warnings
+   * glow without a pulse (no timer while the replay is paused) and are not remembered as seen, so going
+   * back to live does not take them for new ones.
+   */
   private setAlerts(alerts: Alert[]): void {
     const keys = alerts.map((a) => `${a.kind}:${a.entity}`);
-    const fresh = alerts.filter((_, i) => !this.seenAlerts.has(keys[i]));
-    this.seenAlerts = new Set(keys);
+    const fresh = this.ro ? [] : alerts.filter((_, i) => !this.seenAlerts.has(keys[i]));
+    if (!this.ro) this.seenAlerts = new Set(keys);
     if (keys.join() !== this._alerts.map((a) => `${a.kind}:${a.entity}`).join()) this._alerts = alerts;
-    if (alerts.length && !this.alertTimer) this.alertTimer = setInterval(() => !document.hidden && this.applyTint(), this._low ? 200 : 100);
-    if (!alerts.length && this.alertTimer) {
+    if (alerts.length && !this.alertTimer && !this.ro) this.alertTimer = setInterval(() => !document.hidden && this.applyTint(), this._low ? 200 : 100);
+    if ((!alerts.length || this.ro) && this.alertTimer) {
       clearInterval(this.alertTimer);
       this.alertTimer = undefined;
     }
-    if (fresh.length && this.alertJump && !this.ro) this.jumpTo(fresh[0]);
+    if (fresh.length && this.alertJump) this.jumpTo(fresh[0]);
   }
 
   /** Show where a warning is: its floor and room, or the house for an alarm. */
@@ -1612,7 +1654,7 @@ export class Fp3dView3d extends LitElement {
     v.setRoomInfo(info);
     if (this._alerts.length) {
       tint ??= new Map();
-      const k = 0.55 + 0.45 * Math.sin(performance.now() / 160);
+      const k = this.ro ? 1 : 0.55 + 0.45 * Math.sin(performance.now() / 160);
       for (const a of this._alerts) {
         const c = alertColor(a.kind).map((x) => x * k) as [number, number, number];
         if (a.roomId) tint.set(a.roomId, c);

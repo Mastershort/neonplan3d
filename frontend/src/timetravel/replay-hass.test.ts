@@ -111,6 +111,66 @@ test("replay: unchanged states stay the same objects; a tick without a change re
   assert.equal(c.states["light.a"], a.states["light.a"]);
 });
 
+test("replay: a live state change keeps the replayed object – cameras included – and nothing live leaks in", () => {
+  const { hass } = live();
+  const r = new Replay(timeline(), { requested: ["light.a", "sensor.t", "binary_sensor.gone"] });
+  const h1 = r.hassAt(hass, at(4000));
+  const cam = h1.states["camera.c"];
+  assert.equal(cam.attributes.entity_picture, undefined);
+  // Home Assistant sends a new object with new states: a new camera token, a scene and the light switched,
+  // a name changed, a door that has no history opened
+  const st = hass.states;
+  const tick = {
+    ...hass,
+    states: {
+      ...st,
+      "camera.c": { ...st["camera.c"], attributes: { ...st["camera.c"].attributes, entity_picture: "/api/camera_proxy/camera.c?token=y" } },
+      "scene.s": { ...st["scene.s"], state: "2026-10-08T10:00:00" },
+      "light.a": { ...st["light.a"], state: "off", attributes: { ...st["light.a"].attributes, friendly_name: "Neu" } },
+      "binary_sensor.gone": { ...st["binary_sensor.gone"], state: "off" },
+    },
+  } as HomeAssistant;
+  const h2 = r.hassAt(tick, at(4000));
+  // the very same object: the 3D view has nothing to compare
+  assert.equal(h2, h1);
+  assert.equal(h2.states["camera.c"], cam);
+  assert.equal(h2.states["scene.s"], st["scene.s"]);
+  assert.equal(h2.states["light.a"].attributes.friendly_name, "Lampe");
+  assert.equal(h2.states["binary_sensor.gone"].state, "unknown");
+  // the clock moves on: the changed light is new, everything else stays the same object
+  const h3 = r.hassAt(tick, at(7300));
+  assert.notEqual(h3, h1);
+  assert.equal(h3.states["light.a"].state, "off");
+  assert.equal(h3.states["light.a"].attributes.friendly_name, "Lampe");
+  assert.equal(h3.states["camera.c"], cam);
+  assert.equal(h3.states["scene.s"], st["scene.s"]);
+  assert.equal(h3.states["sensor.t"], h1.states["sensor.t"]);
+  // a registry change makes a new object with the new registry, the states stay the same objects
+  const reg = { ...tick, entities: { ...hass.entities } } as HomeAssistant;
+  const h4 = r.hassAt(reg, at(7300));
+  assert.notEqual(h4, h3);
+  assert.equal(h4.entities, reg.entities);
+  assert.equal(h4.states["camera.c"], cam);
+  assert.equal(h4.states["light.a"], h3.states["light.a"]);
+  assert.equal(h4.states["scene.s"], st["scene.s"]);
+});
+
+test("replay: the states at the start of the time travel are the ones kept, not those of the first replayed moment", () => {
+  const { hass } = live();
+  const start = hass.states;
+  const later = { ...hass, states: { ...start, "scene.s": { ...start["scene.s"], state: "later" } } } as HomeAssistant;
+  const h = new Replay(timeline(), { requested: [], states: start }).hassAt(later, at(4000));
+  assert.equal(h.states["scene.s"], start["scene.s"]);
+});
+
+test("replay: a state unchanged since before the window has no change time (the window start is not one)", () => {
+  const { hass } = live();
+  const r = new Replay(timeline(), { requested: ["light.a"] });
+  assert.equal(r.hassAt(hass, at(100)).states["light.a"].last_changed, undefined);
+  assert.equal(r.hassAt(hass, at(4000)).states["light.a"].last_changed, new Date(at(3600)).toISOString());
+  assert.equal(r.hassAt(hass, at(8000)).states["light.a"].last_changed, new Date(at(7200)).toISOString());
+});
+
 test("replay: a closing blind moves between its two reports", () => {
   const { hass } = live();
   const h = createReplayHass(hass, timeline(), at(1015), { requested: ["cover.b"] });
@@ -163,6 +223,8 @@ test("the request: the view's entities and the rooms' devices, measurements as s
   // a big home: the view's own entities first, up to the limit
   const few = historyRequest(hass, b, spec, 2);
   assert.deepEqual([...few.entities, ...few.stats], ["cover.b", "sensor.t"]);
+  // the rest is not fetched but not live either: it reads "unknown" in the past
+  assert.deepEqual(few.overflow, ["binary_sensor.gone", "sun.sun", "light.a"]);
 });
 
 test("roles: a front door, a room door, a garage door and windows from the openings; sensors by their class", () => {

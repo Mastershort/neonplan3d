@@ -39,6 +39,8 @@ export class Session implements TimeTravelSession {
   readonly start: number;
   readonly end: number;
   private live: HomeAssistant;
+  /** The states when the time travel began: nothing live after that shows in the past. */
+  private readonly startStates: HomeAssistant["states"];
   private replayer: Replay | null = null;
   private timer: ReturnType<typeof setTimeout> | undefined;
   private last = 0;
@@ -54,6 +56,7 @@ export class Session implements TimeTravelSession {
   constructor(opts: StartOptions) {
     this.opts = opts;
     this.live = opts.live;
+    this.startStates = opts.live.states;
     this.end = Date.now();
     this.start = this.end - RANGE_MS;
     const session = this;
@@ -61,6 +64,7 @@ export class Session implements TimeTravelSession {
       t: this.end,
       seek: 0,
       rows: (ids, from, to) => session.replayer?.rows(ids, from, to) ?? {},
+      listen: (fn) => session.listen(fn),
     };
     document.addEventListener("visibilitychange", this.onVisible);
     void this.load();
@@ -74,6 +78,10 @@ export class Session implements TimeTravelSession {
 
   private notify(): void {
     for (const fn of this.listeners) fn();
+  }
+
+  get playing(): boolean {
+    return !!this.playback?.playing;
   }
 
   get t(): (key: string, vars?: Record<string, string | number>) => string {
@@ -124,7 +132,8 @@ export class Session implements TimeTravelSession {
     const timeline = buildTimeline(days);
     this.timeline = timeline;
     const privateIds = building.presence.flatMap((p) => [p.sensor]).filter((x): x is string => !!x);
-    this.replayer = new Replay(timeline, { requested: [...req.entities, ...req.stats, ...privateIds], location: this.location });
+    // entities beyond the limit are replayed too (as "unknown"): their live state does not belong into the past
+    this.replayer = new Replay(timeline, { requested: [...req.entities, ...req.stats, ...req.overflow, ...privateIds], location: this.location, states: this.startStates });
     const fetched = new Set([...timeline.tracks.keys(), ...timeline.series.keys()]);
     const weather = [building.settings.weather_entity, ...req.entities.filter((id) => id.startsWith("weather."))].find((id) => !!id && fetched.has(id)) ?? null;
     this.events = findEvents({ timeline, roles: eventRoles(live, building, spec, fetched), weather });
@@ -156,7 +165,10 @@ export class Session implements TimeTravelSession {
     return out;
   }
 
-  /** Builds Home Assistant at the playback's moment; the host renders again only when a state changed. */
+  /**
+   * Builds Home Assistant at the playback's moment; the host renders again only when a state changed.
+   * The listeners (time bar, 3D view) hear of every tick.
+   */
   private apply(jump: boolean): void {
     const pb = this.playback;
     if (!pb || !this.replayer || this.disposed) return;
@@ -172,7 +184,8 @@ export class Session implements TimeTravelSession {
 
   setLive(hass: HomeAssistant): void {
     this.live = hass;
-    // the host is rendering already: the new replayed object is read there, no extra round
+    // the host is rendering already: the new replayed object is read there, no extra round (a live state
+    // change keeps the replayed object; only a registry, config or language change makes a new one)
     if (this.replayer && this.playback) this.hass = this.replayer.hassAt(hass, this.playback.t);
   }
 

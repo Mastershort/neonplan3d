@@ -21,8 +21,11 @@ export function isStatSensor(hass: HomeAssistant, id: string): boolean {
   return Number.isFinite(Number(st.state)) || st.state === "unavailable" || st.state === "unknown";
 }
 
-/** The entities to fetch: states with their history, numeric measurements as statistics. */
-export function historyRequest(hass: HomeAssistant, building: Building, spec: HistorySpec, max = MAX_ENTITIES): { entities: string[]; stats: string[] } {
+/**
+ * The entities to fetch: states with their history, numeric measurements as statistics; `overflow` are
+ * those beyond the limit (not fetched, but not live either: they read "unknown" in the past).
+ */
+export function historyRequest(hass: HomeAssistant, building: Building, spec: HistorySpec, max = MAX_ENTITIES): { entities: string[]; stats: string[]; overflow: string[] } {
   const privateIds = new Set(building.presence.flatMap((p) => [p.person, p.sensor]).filter((x): x is string => !!x));
   const areas = new Set(building.floors.flatMap((f) => f.rooms.map((r) => r.area_id)).filter((x): x is string => !!x));
   const fromAreas: string[] = [];
@@ -36,10 +39,11 @@ export function historyRequest(hass: HomeAssistant, building: Building, spec: Hi
   }
   const weather = Object.keys(hass.states).filter((id) => id.startsWith("weather."));
   const wanted = [...new Set([...spec.entities, "sun.sun", ...(building.settings.weather_entity ? [building.settings.weather_entity] : []), ...weather.slice(0, 1), ...fromAreas])];
-  const ids = wanted.filter((id) => id.includes(".") && !EXCLUDED.has(domainOf(id)) && !privateIds.has(id) && !!hass.states[id]).slice(0, max);
+  const all = wanted.filter((id) => id.includes(".") && !EXCLUDED.has(domainOf(id)) && !privateIds.has(id) && !!hass.states[id]);
+  const ids = all.slice(0, max);
   const stats = ids.filter((id) => isStatSensor(hass, id));
   const statSet = new Set(stats);
-  return { entities: ids.filter((id) => !statSet.has(id)), stats };
+  return { entities: ids.filter((id) => !statSet.has(id)), stats, overflow: all.slice(max) };
 }
 
 export type Role = "door" | "garage" | "lock" | "alarm" | "smoke" | "gas" | "co" | "water" | "window" | "motion" | "robot" | "washer" | "weather";

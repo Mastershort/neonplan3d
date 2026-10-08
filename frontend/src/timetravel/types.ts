@@ -22,6 +22,11 @@ export interface ReplayInfo {
   seek: number;
   /** History rows (as Home Assistant's history answers them) of some entities between two moments. */
   rows(ids: readonly string[], from: number, to: number): Record<string, HistoryRow[]>;
+  /**
+   * Called on every tick and jump (also when no replayed state changed), for what follows the clock:
+   * the motion trail, a camera's detections, the "now" mark of a day curve. Returns the unsubscribe.
+   */
+  listen(fn: () => void): () => void;
 }
 
 export type Speed = 60 | 360 | 900 | 3600;
@@ -46,6 +51,8 @@ export interface TimeTravelSession {
   /** Home Assistant as it was at the replayed moment (null while the history loads). */
   readonly hass: HomeAssistant | null;
   readonly replay: ReplayInfo;
+  /** Playback runs (an idle return leaves an unattended replay alone). */
+  readonly playing: boolean;
   /** The live Home Assistant changed (registry, language): the replay follows. */
   setLive(hass: HomeAssistant): void;
   exit(): void;

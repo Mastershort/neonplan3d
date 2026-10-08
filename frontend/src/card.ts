@@ -135,6 +135,11 @@ export class Floorplan3dCard extends LitElement {
 
   /** Back to the start view (room closed, start floor, camera reset); the screensaver may start. */
   private returnHome(): void {
+    // a replay that plays on its own (a wall tablet showing the day) is not left alone; paused, it ends
+    if (this.tt.session?.playing) {
+      this.armIdle();
+      return;
+    }
     this.tt.stop();
     this._roomId = this._config?.room ?? null;
     this._floorId = undefined;

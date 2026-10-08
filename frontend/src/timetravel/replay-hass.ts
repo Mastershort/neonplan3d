@@ -1,6 +1,8 @@
 // Time travel: Home Assistant as it was at a moment. The registries, areas, floors, config and language
 // stay the live ones (same objects); the states are rebuilt from the history. A state that did not change
 // stays the very same object, so the 3D view – which compares the objects – only works on real changes.
+// Live states never reach the past: what has no history stays as it was when the time travel began, and
+// a live state change costs no more than a look at the registries.
 // Nothing can be switched from the past: service calls throw, and only reading commands reach Home Assistant.
 
 import type { HistoryRow } from "../trail.ts";
@@ -93,6 +95,8 @@ interface Slot {
 export interface ReplayOptions {
   /** Every entity whose past is replayed (fetched; without data it reads "unknown"). */
   requested: Iterable<string>;
+  /** The states when the time travel began (default: those of the first call): the rest stays at them. */
+  states?: HomeAssistant["states"];
   /** Home Assistant's location, for the sun at the replayed moment. */
   location?: { lat: number; lon: number } | null;
 }
@@ -107,8 +111,10 @@ export class Replay {
   private readonly slots = new Map<string, Slot>();
   private readonly steps = new Map<string, number>();
   private live: HomeAssistant | null = null;
-  private liveStates: HomeAssistant["states"] | null = null;
-  private base: Record<string, HassEntity> = {};
+  /** The states when the time travel began; static attributes (name, unit) come from them. */
+  private frozen: HomeAssistant["states"] | null;
+  /** Everything that is not replayed, as it was at the start (people left out, cameras without a picture). */
+  private base: Record<string, HassEntity> | null = null;
   private states: Record<string, HassEntity> = {};
   private hass: HomeAssistant | null = null;
 
@@ -117,28 +123,33 @@ export class Replay {
     this.cursor = new Cursor(timeline);
     this.cursor.tracks.forEach((tr, i) => this.trackAt.set(tr.id, i));
     this.location = opts.location ?? null;
+    this.frozen = opts.states ?? null;
     this.requested = [...new Set([...opts.requested, ...timeline.tracks.keys(), ...timeline.series.keys()])].filter((id) => !HIDDEN.some((p) => id.startsWith(p)));
   }
 
   /** Home Assistant at t; the same object as last time when nothing changed. */
   hassAt(live: HomeAssistant, t: number): HomeAssistant {
-    let dirty = live !== this.live;
-    if (live.states !== this.liveStates) {
-      this.liveStates = live.states;
+    const frozen = (this.frozen ??= live.states);
+    let dirty = false;
+    if (!this.base) {
       this.base = {};
-      for (const [id, st] of Object.entries(live.states)) {
+      for (const [id, st] of Object.entries(frozen)) {
         if (HIDDEN.some((p) => id.startsWith(p))) continue;
         // a camera's picture is the live one: it does not belong into the past
         this.base[id] = id.startsWith("camera.") && st.attributes.entity_picture ? { ...st, attributes: withoutKeys(st.attributes, ["entity_picture", "access_token"]) } : st;
       }
       dirty = true;
     }
-    this.live = live;
+    // only the registries, the config or the language make a new object; a live state change does not
+    if (!this.sameContext(live)) {
+      this.live = live;
+      dirty = true;
+    }
     this.cursor.at(t);
     const changed: string[] = [];
     for (const id of this.requested) {
       const before = this.slots.get(id);
-      const slot = this.slot(id, t, live.states[id], before);
+      const slot = this.slot(id, t, frozen[id], before);
       if (slot !== before) {
         this.slots.set(id, slot);
         changed.push(id);
@@ -155,12 +166,23 @@ export class Replay {
       this.states = { ...this.states };
       for (const id of changed) this.states[id] = this.slots.get(id)!.obj;
     }
-    this.hass = readOnlyHass(live, this.states);
+    this.hass = readOnlyHass(this.live!, this.states);
     return this.hass;
   }
 
-  /** The state of one entity at t: the previous slot when it reads the same. */
-  private slot(id: string, t: number, live: HassEntity | undefined, before: Slot | undefined): Slot {
+  /** The live object differs from the one in use only in its states (a state change, not a registry one). */
+  private sameContext(live: HomeAssistant): boolean {
+    const was = this.live as unknown as Record<string, unknown> | null;
+    if (!was) return false;
+    if (was === (live as unknown)) return true;
+    const now = live as unknown as Record<string, unknown>;
+    for (const k in now) if (k !== "states" && now[k] !== was[k]) return false;
+    for (const k in was) if (!(k in now)) return false;
+    return true;
+  }
+
+  /** The state of one entity at t (`start`: its state when the time travel began): the previous slot when it reads the same. */
+  private slot(id: string, t: number, start: HassEntity | undefined, before: Slot | undefined): Slot {
     const i = this.trackAt.get(id);
     const series = this.timeline.series.get(id);
     let key: string;
@@ -174,7 +196,7 @@ export class Replay {
       make = () => ({
         entity_id: id,
         state: at.elevation > -0.833 ? "above_horizon" : "below_horizon",
-        attributes: { ...withoutKeys(live?.attributes ?? {}, DYNAMIC.sun), elevation: el, azimuth: az, rising },
+        attributes: { ...withoutKeys(start?.attributes ?? {}, DYNAMIC.sun), elevation: el, azimuth: az, rising },
       });
     } else if (i !== undefined && this.cursor.idx[i] >= 0) {
       const track = this.cursor.tracks[i];
@@ -183,25 +205,27 @@ export class Replay {
       const pos = id.startsWith("cover.") ? this.coverPos(track, k, t) : null;
       key = pos === null ? `${k}` : `${k}:${pos}`;
       make = () => {
-        const attrs = { ...withoutKeys(live?.attributes ?? {}, DYNAMIC[domainOf(id)]), ...(v.a ?? {}) };
+        const attrs = { ...withoutKeys(start?.attributes ?? {}, DYNAMIC[domainOf(id)]), ...(v.a ?? {}) };
         if (pos !== null) attrs.current_position = pos;
         if (id === "sun.sun" && attrs.elevation === undefined) Object.assign(attrs, { elevation: v.s === "above_horizon" ? 25 : -12, azimuth: 180 });
-        return { entity_id: id, state: v.s, attributes: attrs, last_changed: new Date(track.since[k]).toISOString() };
+        // a state unchanged since before the window has no known change time (the window start is not one)
+        const since = track.since[k];
+        return since > this.timeline.start ? { entity_id: id, state: v.s, attributes: attrs, last_changed: new Date(since).toISOString() } : { entity_id: id, state: v.s, attributes: attrs };
       };
     } else if (series) {
       const value = seriesValue(series, t);
-      const step = this.stepOf(id, series, live);
+      const step = this.stepOf(id, series, start);
       const q = quantise(value, step);
       key = `n${q}`;
-      make = () => ({ entity_id: id, state: q, attributes: live?.attributes ?? {}, last_changed: new Date(t).toISOString() });
+      make = () => ({ entity_id: id, state: q, attributes: start?.attributes ?? {}, last_changed: new Date(t).toISOString() });
     } else {
       // nothing recorded at t (before the first row, excluded from the recorder, or too new)
       key = "none";
-      make = () => ({ entity_id: id, state: "unknown", attributes: withoutKeys(live?.attributes ?? {}, DYNAMIC[domainOf(id)]) });
+      make = () => ({ entity_id: id, state: "unknown", attributes: withoutKeys(start?.attributes ?? {}, DYNAMIC[domainOf(id)]) });
     }
-    // a live update that changed only the state (a power sensor every second) keeps the attributes object
-    if (before && before.key === key && before.attrs === live?.attributes) return before;
-    return { key, attrs: live?.attributes, obj: make() };
+    // the attributes come from the states at the start, so the same key is the same object
+    if (before && before.key === key && before.attrs === start?.attributes) return before;
+    return { key, attrs: start?.attributes, obj: make() };
   }
 
   private coverPos(track: Track, k: number, t: number): number | null {
@@ -212,11 +236,11 @@ export class Replay {
     return coverPosition(t, { t: track.times[k], state: v.s, pos: pos(v) }, next);
   }
 
-  private stepOf(id: string, series: Series, live: HassEntity | undefined): number {
+  private stepOf(id: string, series: Series, start: HassEntity | undefined): number {
     let step = this.steps.get(id);
     if (step === undefined) {
       const sample = series.mean.find((m) => !Number.isNaN(m)) ?? 0;
-      step = quantStep(live?.attributes.unit_of_measurement, this.live?.entities?.[id]?.display_precision, sample);
+      step = quantStep(start?.attributes.unit_of_measurement, this.live?.entities?.[id]?.display_precision, sample);
       this.steps.set(id, step);
     }
     return step;
