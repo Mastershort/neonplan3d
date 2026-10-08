@@ -541,6 +541,8 @@ SETTINGS_SCHEMA = vol.Schema(
         vol.Required("grid"): vol.All(vol.Coerce(float), vol.Range(min=0.01, max=1)),
         # direction of north in the plan, degrees clockwise from "up"
         vol.Optional("north", default=0): vol.All(vol.Coerce(float), vol.Range(min=-360, max=360)),
+        # lengths in the editor: metric or imperial (None = Home Assistant's unit system); storage stays metric
+        vol.Optional("units", default=None): vol.Any(None, vol.In(["metric", "imperial"])),
         # plan lock: rooms, walls, doors, windows and outdoor areas cannot be moved by accident
         vol.Optional("lock_plan", default=False): bool,
         # stations and playlists for the speakers' quick menu (media_player.play_media type + content id)

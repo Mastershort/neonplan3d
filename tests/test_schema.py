@@ -5,6 +5,7 @@ from custom_components.neonplan3d.schema import (
     HOLOGRAM_SCHEMA,
     OPENING_SCHEMA,
     ROOM_SCHEMA,
+    SETTINGS_SCHEMA,
     START_VIEW_SCHEMA,
 )
 
@@ -49,3 +50,10 @@ def test_plant_cards_in_floor_views_are_off_by_default() -> None:
     """The house balance and plant cards in floor views is a switch, off by default (#193)."""
     assert HOLOGRAM_SCHEMA({})["plant_floor"] is False
     assert HOLOGRAM_SCHEMA({"plant_floor": True})["plant_floor"] is True
+
+
+def test_length_units_follow_home_assistant_unless_set() -> None:
+    """Feet and inches are a display setting (#117): None follows Home Assistant, storage stays metric."""
+    base = {"wall_exterior": 0.3, "wall_interior": 0.12, "grid": 0.05}
+    assert SETTINGS_SCHEMA(base)["units"] is None
+    assert SETTINGS_SCHEMA({**base, "units": "imperial"})["units"] == "imperial"

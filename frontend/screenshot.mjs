@@ -184,6 +184,8 @@ const shots = [
   // outdoor areas as a free shape (#97): the tool's shape switch and a finished bed drawn corner by corner
   { name: "editor-outdoor-free", query: "", width: 1400, height: 900, editor: true, editorScript: "e._tool = 'outdoor'; e._outdoorFree = true; e._draft = [[2, 12], [6, 11.2], [9, 12.5], [8.5, 15], [4, 15.5], [1.5, 14.2]]; e._cursor = [2.4, 12.6]; e.fit();", afterWait: 1200 },
   { name: "view-outdoor-free", query: "", width: 1280, height: 800, editor: true, editorScript: "e._tool = 'outdoor'; e._outdoorFree = true; e._draft = [[2, 12], [6, 11.2], [9, 12.5], [8.5, 15], [4, 15.5], [1.5, 14.2]]; e.closeDraft(); e.updateOutdoor({ type: 'bed' });", afterWait: 1500, then3d: "Erdgeschoss", camera: { theta: 0.3, phi: 0.9, radius: 22 } },
+  // feet and inches (#117): the room form, the plan's areas and a selected item's size in imperial
+  { name: "editor-imperial", query: "?lang=en", width: 1400, height: 900, editor: true, editorScript: "e._doc.settings.units = 'imperial'; e.setDoc(structuredClone(e._doc)); e._roomId = 'wohnen';", afterWait: 1200 },
   { name: "view-attic-floor", query: "", width: 1280, height: 800, editor: true, editorScript: ATTIC_SCRIPT, afterWait: 1500, then3d: "Obergeschoss", camera: { theta: 0.5, phi: 1.0, radius: 14 } },
   { name: "editor-attic", query: "", width: 1400, height: 900, editor: true, editorScript: ATTIC_SCRIPT + " setTimeout(() => { e._floorId = 'og'; e._tool = 'select'; e._roofId = null; e.fit(); }, 1200);", afterWait: 2500 },
   { name: "promo-roof-day", query: "", width: 1280, height: 800, editor: true, editorScript: FARM_SCRIPT, then3d: "Alle Etagen", then3dAlso: ["Gestapelt", "Tag"], camera: { theta: 2.3, phi: 0.95, radius: 52 } },

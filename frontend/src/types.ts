@@ -54,7 +54,7 @@ export interface HomeAssistant {
   entities?: Record<string, HassEntityEntry>;
   devices?: Record<string, HassDevice>;
   states: Record<string, HassEntity>;
-  config?: { unit_system?: { temperature?: string }; latitude?: number; longitude?: number; time_zone?: string };
+  config?: { unit_system?: { temperature?: string; length?: string }; latitude?: number; longitude?: number; time_zone?: string };
   connection: HassConnection;
   callWS<T>(msg: Record<string, unknown>): Promise<T>;
   callService(domain: string, service: string, data?: Record<string, unknown>): Promise<unknown>;

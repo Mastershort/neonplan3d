@@ -1,5 +1,6 @@
 // Sidebar page: 3D view and editor.
 
+import { formatImperial, lengthUnit, parseLength } from "./units.ts";
 import { css, html, LitElement, nothing, type PropertyValues } from "lit";
 import { BuildingController } from "./building-controller.ts";
 import { loadEditor } from "./load-editor.ts";
@@ -362,16 +363,20 @@ export class Floorplan3dPanel extends LitElement {
   private renderSizeFields(id: string) {
     const f = this.data.building?.floors.flatMap((fl) => fl.furniture).find((m) => m.id === id);
     if (!f) return nothing;
+    // feet and inches where the plan or Home Assistant says so (#117)
+    const imperial = lengthUnit(this.hass, this.data.building?.settings.units) === "imperial";
+    const show = (v: number) => (imperial ? formatImperial(v) : String(Math.round(v * 100) / 100));
+    const read = (text: string) => (imperial ? parseLength(text, "imperial") : parseFloat(text.replace(",", ".")));
     const field = (key: "w" | "d" | "h", label: string) => html`<label class="fp3d-size" title=${this.t(`size_${key}` as I18nKey)}
       >${label}
       <input
-        type="number"
+        type=${imperial ? "text" : "number"}
         inputmode="decimal"
         step="0.05"
         min="0.05"
-        .value=${String(Math.round(f[key] * 100) / 100)}
+        .value=${show(f[key])}
         @change=${(e: Event) => {
-          const v = parseFloat((e.target as HTMLInputElement).value.replace(",", "."));
+          const v = read((e.target as HTMLInputElement).value) ?? NaN;
           if (Number.isFinite(v) && v > 0) this.editFurniture(id, (m) => (m[key] = Math.round(v * 1000) / 1000));
         }}
     /></label>`;
@@ -381,13 +386,13 @@ export class Floorplan3dPanel extends LitElement {
       ? html`<label class="fp3d-size" title=${this.t("mount_height")}
             >↕
             <input
-              type="number"
+              type=${imperial ? "text" : "number"}
               inputmode="decimal"
               step="0.05"
               min="0"
-              .value=${String(Math.round((f.mount_y ?? mountBase(floor, f)) * 100) / 100)}
+              .value=${show(f.mount_y ?? mountBase(floor, f))}
               @change=${(e: Event) => {
-                const v = parseFloat((e.target as HTMLInputElement).value.replace(",", "."));
+                const v = read((e.target as HTMLInputElement).value) ?? NaN;
                 if (Number.isFinite(v) && v >= 0) this.editFurniture(id, (m) => (m.mount_y = Math.round(v * 1000) / 1000));
               }}
           /></label>

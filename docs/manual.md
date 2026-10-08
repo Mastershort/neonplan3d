@@ -177,6 +177,7 @@ Walls are created automatically: every shared edge of two rooms becomes an inter
 |---|---|
 | **Exterior wall (m)**, **Interior wall (m)** | Wall thicknesses |
 | **Grid (m)** | Drawing step |
+| **Lengths** | **Automatic** follows Home Assistant's unit system, otherwise **Metres** or **Feet and inches**. With feet and inches the editor shows every length, dimension and area (ft²) that way and understands input like `8' 2"`, `98in`, `8.2ft` or even `2.5m`. The plan always stores metres, so you can switch at any time |
 | **North** | Degrees clockwise from up. Needed for sunlight |
 | **Roof** | No roof, flat roof or gable roof, with pitch and overhang. For a gable roof, **Ridge** sets whether the ridge runs along the long or the short side (e.g. terraced house). **Roof sections (custom)** builds the roof from several parts, see [4.19](#419-roof) |
 | **Weather entity** | Which weather entity drives the weather outside, see [6.2](#62-weather-outside) |

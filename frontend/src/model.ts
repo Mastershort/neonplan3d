@@ -516,6 +516,8 @@ export interface BuildingSettings {
   wall_exterior: number;
   wall_interior: number;
   grid: number;
+  /** Lengths in the editor: metres or feet and inches (null = Home Assistant's unit system, #117). Storage stays metric. */
+  units?: "metric" | "imperial" | null;
   /** Direction of north in the plan, degrees clockwise from "up" (for the sun). */
   north: number;
   roof: RoofSettings;

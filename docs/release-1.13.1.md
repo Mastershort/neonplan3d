@@ -1,7 +1,8 @@
-Six wishes from the issues that were promised for "the next update" – here they are. As always, anything that changes the look is a setting you switch on.
+Six wishes from the issues that were promised for "the next update", and feet and inches for US users – here they are. As always, anything that changes the look is a setting you switch on.
 
 ### New
 
+- **Feet and inches:** Editor → Settings → **Lengths**: Automatic (follows Home Assistant's unit system), Metres or Feet and inches. Every length field, dimension and area (ft²) in the editor follows, and you can type `8' 2"`, `98in`, `8.2ft` or `2.5m`. The plan still stores metres (discussion #117 by Valkster70).
 - **Outdoor areas as a free form:** in the Outdoor tool, choose **▭ Rectangle** or **✎ Free form** beside "Undo" and place the corners one by one – curved beds, slanted plot borders, an L-shaped path (#97 by rolandarends).
 - **Ceiling height per room:** a field in the room form; the room's walls end there (unless a neighbouring room is taller) and its ceiling lamps hang from it – a 2.5 m living room beside a 5 m garage on the same floor (#30 by wiesi12).
 - **Ceiling lamps under a sloped roof** hang from the roof's underside instead of floating above it (#168 by denisb88).
@@ -15,10 +16,11 @@ Settings → System → Updates. HACS only looks for new versions every few hour
 
 ---
 
-Sechs Wünsche aus den Issues, die ich „fürs nächste Update“ zugesagt hatte – hier sind sie. Wie immer gilt: Was das Aussehen ändert, ist eine Einstellung, die du selbst einschaltest.
+Sechs Wünsche aus den Issues, die ich „fürs nächste Update“ zugesagt hatte, dazu Fuß und Zoll für US-Nutzer – hier sind sie. Wie immer gilt: Was das Aussehen ändert, ist eine Einstellung, die du selbst einschaltest.
 
 ### Neu
 
+- **Fuß und Zoll:** Editor → Einstellungen → **Längen**: Automatisch (folgt dem Einheitensystem von Home Assistant), Meter oder Fuß und Zoll. Alle Längenfelder, Maße und Flächen (ft²) im Editor folgen, und du kannst `8' 2"`, `98in`, `8.2ft` oder `2.5m` eintippen. Gespeichert wird weiter in Metern (Diskussion #117 von Valkster70).
 - **Außenflächen als freie Form:** Im Werkzeug **Außen** neben „Rückgängig“ **▭ Rechteck** oder **✎ Freie Form** wählen und die Ecken einzeln setzen – geschwungene Beete, schräge Grundstücksgrenzen, ein L-förmiger Weg (#97 von rolandarends).
 - **Deckenhöhe pro Raum:** ein Feld im Raumformular; die Wände des Raums enden dort (außer ein Nachbarraum ist höher), und seine Deckenleuchten hängen an dieser Decke – 2,5 m im Wohnraum neben einer 5 m hohen Garage auf derselben Etage (#30 von wiesi12).
 - **Deckenleuchten unter einer Dachschräge** hängen an der Dachunterseite statt darüber in der Luft (#168 von denisb88).

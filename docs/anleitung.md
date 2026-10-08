@@ -179,6 +179,7 @@ Unten in der Seitenleiste klappt **Einstellungen** auf:
 |---|---|
 | **Außenwand (m)**, **Innenwand (m)** | Wandstärken |
 | **Raster (m)** | Schrittweite beim Zeichnen |
+| **Längen** | **Automatisch** folgt dem Einheitensystem von Home Assistant, sonst **Meter** oder **Fuß und Zoll**. Mit Fuß und Zoll zeigt der Editor alle Längen, Maße und Flächen (ft²) so an und versteht Eingaben wie `8' 2"`, `98in`, `8.2ft` oder auch `2.5m`. Gespeichert wird immer in Metern, du kannst also jederzeit umschalten |
 | **Nordrichtung** | Grad im Uhrzeigersinn von oben. Wird für das Sonnenlicht gebraucht |
 | **Dach** | Kein Dach, Flachdach oder Satteldach, mit Dachneigung und Dachüberstand. Beim Satteldach legt **First** fest, ob der First entlang der langen oder der kurzen Seite läuft (z. B. Reihenhaus). **Dachflächen (frei)** baut das Dach aus mehreren Teilen, siehe [4.19](#419-dach) |
 | **Wetter-Entität** | Welche Wetter-Entität das Wetter draußen liefert, siehe [6.2](#62-wetter-draußen) |

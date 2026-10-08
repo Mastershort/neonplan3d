@@ -7,6 +7,7 @@ import { download, exportFile, parseExport } from "../transfer.ts";
 import { carEntities, type CarEntities, areaEntities, autoPlace, CLIMATE_CLASSES, defaultHeight, entityName, entityAreaId, furnitureEntities, groupByDevice, hasScreen, isMediaFurniture, isPlaceable, isRoomClimateSensor, kindOf, openingEntities, otherAreaEntities, pictureRuleMatches, roomClimateSensors, unassignedEntities, windowPosition, type ClimateKey } from "../devices.ts";
 import { furnitureSymbol } from "./furniture2d.ts";
 import { netRoomArea } from "../geometry/area.ts";
+import { areaText, formatImperial, lengthText, lengthUnit, parseLength, unitLabel, type LengthUnit } from "../units.ts";
 import { closeGaps, suggestedThickness } from "../geometry/gaps.ts";
 import { keepInRoom, snapToWall } from "../geometry/snap.ts";
 import { holeInRoom } from "../geometry/holes.ts";
@@ -561,14 +562,14 @@ export class Fp3dEditor extends LitElement {
       const num = (key: "w" | "d" | "h", label: string, min = 0.05) => html`<label class="fp3d-3d-size" title=${this.t(`size_${key}` as I18nKey)}
         >${label}
         <input
-          type="number"
+          type=${this.unit === "imperial" ? "text" : "number"}
           inputmode="decimal"
           step="0.05"
           min=${min}
-          .value=${String(Math.round(f[key] * 100) / 100)}
+          .value=${this.unit === "imperial" ? formatImperial(f[key]) : String(Math.round(f[key] * 100) / 100)}
           @change=${(e: Event) => {
-            const v = parseFloat((e.target as HTMLInputElement).value.replace(",", "."));
-            if (Number.isFinite(v) && v >= min) this.updateFurniture({ [key]: Math.round(v * 1000) / 1000 });
+            const v = this.readLen((e.target as HTMLInputElement).value);
+            if (v !== null && v >= min) this.updateFurniture({ [key]: Math.round(v * 1000) / 1000 });
           }}
         />
       </label>`;
@@ -579,14 +580,14 @@ export class Fp3dEditor extends LitElement {
           ? html`<label class="fp3d-3d-size" title=${this.t("mount_height")}
               >↕
               <input
-                type="number"
+                type=${this.unit === "imperial" ? "text" : "number"}
                 inputmode="decimal"
                 step="0.05"
                 min="0"
-                .value=${String(Math.round((f.mount_y ?? mountBase(this.floor!, f)) * 100) / 100)}
+                .value=${this.unit === "imperial" ? formatImperial(f.mount_y ?? mountBase(this.floor!, f)) : String(Math.round((f.mount_y ?? mountBase(this.floor!, f)) * 100) / 100)}
                 @change=${(e: Event) => {
-                  const v = parseFloat((e.target as HTMLInputElement).value.replace(",", "."));
-                  if (Number.isFinite(v) && v >= 0) this.updateFurniture({ mount_y: Math.round(v * 1000) / 1000 });
+                  const v = this.readLen((e.target as HTMLInputElement).value);
+                  if (v !== null && v >= 0) this.updateFurniture({ mount_y: Math.round(v * 1000) / 1000 });
                 }}
               />
             </label>`
@@ -1982,18 +1983,18 @@ export class Fp3dEditor extends LitElement {
       <h3>${this.t("measure")}</h3>
       ${!first
         ? html`<p class="fp3d-sub">${this.t("measure_start")}</p>`
-        : html`<p class="fp3d-sub">${this.t("measure_from", { x: len(first[0]), z: len(first[1]) })}</p>
+        : html`<p class="fp3d-sub">${this.t("measure_from", { x: this.m(first[0]), z: this.m(first[1]) })}</p>
             <div class="fp3d-form">
               <label class="fp3d-field fp3d-wide"
-                >${this.t("measure_length")}
+                >${unitLabel(this.t("measure_length"), this.unit)}
                 <input
                   class="fp3d-measure-input"
-                  type="number"
+                  type=${this.unit === "imperial" ? "text" : "number"}
                   inputmode="decimal"
                   step="0.01"
                   min="0.05"
-                  .value=${String(this._measureLen)}
-                  @input=${(e: Event) => (this._measureLen = parseFloat((e.target as HTMLInputElement).value.replace(",", ".")) || 0)}
+                  .value=${this.lenValue(this._measureLen)}
+                  @change=${(e: Event) => (this._measureLen = this.readLen((e.target as HTMLInputElement).value) ?? 0)}
                   @keydown=${(e: KeyboardEvent) => {
                     const dir = { ArrowRight: "right", ArrowLeft: "left", ArrowUp: "up", ArrowDown: "down" }[e.key] as Direction | undefined;
                     if (dir) {
@@ -2008,7 +2009,7 @@ export class Fp3dEditor extends LitElement {
             </div>
             ${draft.length > 1
               ? html`<ol class="fp3d-measure-list">
-                  ${draft.slice(1).map((p, i) => html`<li>${len(Math.hypot(p[0] - draft[i][0], p[1] - draft[i][1]))} m</li>`)}
+                  ${draft.slice(1).map((p, i) => html`<li>${this.m(Math.hypot(p[0] - draft[i][0], p[1] - draft[i][1]))}</li>`)}
                 </ol>`
               : nothing}
             <div class="fp3d-actions">
@@ -2018,8 +2019,8 @@ export class Fp3dEditor extends LitElement {
             ${draft.length >= 3 ? html`<p class="fp3d-sub">${this.t("measure_gap", { gap: len(gap) })}</p>` : nothing}`}
       <h4 class="fp3d-lib-head">${this.t("rect_by_size")}</h4>
       <div class="fp3d-form">
-        ${this.num(this.t("width"), this._rectSize[0], (v) => (this._rectSize = [Math.max(0.1, v), this._rectSize[1]]), 0.01, 0.1)}
-        ${this.num(this.t("depth"), this._rectSize[1], (v) => (this._rectSize = [this._rectSize[0], Math.max(0.1, v)]), 0.01, 0.1)}
+        ${this.len(this.t("width"), this._rectSize[0], (v) => (this._rectSize = [Math.max(0.1, v), this._rectSize[1]]), 0.01, 0.1)}
+        ${this.len(this.t("depth"), this._rectSize[1], (v) => (this._rectSize = [this._rectSize[0], Math.max(0.1, v)]), 0.01, 0.1)}
         <button class="fp3d-btn fp3d-wide" @click=${() => this.rectBySize()}>${this.t("rect_add")}</button>
       </div>
       <p class="fp3d-sub">${this.t("measure_hint")}</p>
@@ -2089,11 +2090,11 @@ export class Fp3dEditor extends LitElement {
     return html`<section>
       <div class="fp3d-h3row"><h3>${this.t("free_wall")}</h3>${this.fixButton("wall", w.id)}</div>
       <div class="fp3d-form">
-        ${this.num(this.t("x"), mid[0], (v) => moveTo(0, v))} ${this.num(this.t("z"), mid[1], (v) => moveTo(1, v))}
+        ${this.len(this.t("x"), mid[0], (v) => moveTo(0, v))} ${this.len(this.t("z"), mid[1], (v) => moveTo(1, v))}
         <p class="fp3d-sub fp3d-wide">${this.t("wall_pos_hint")}</p>
-        ${this.num(this.t("wall_length"), length, setLength, 0.01, 0.1)}
-        ${this.num(this.t("wall_thickness"), w.thickness ?? this._doc.settings.wall_interior, (v) => this.updateFreeWall({ thickness: Math.min(1, Math.max(0.02, v)) }), 0.01, 0.02)}
-        ${this.num(this.t("wall_height"), w.height ?? this.floor?.height ?? 2.5, (v) => this.updateFreeWall({ height: v >= (this.floor?.height ?? 2.5) - 0.005 ? null : Math.max(0.05, v) }), 0.05, 0.05)}
+        ${this.len(this.t("wall_length"), length, setLength, 0.01, 0.1)}
+        ${this.len(this.t("wall_thickness"), w.thickness ?? this._doc.settings.wall_interior, (v) => this.updateFreeWall({ thickness: Math.min(1, Math.max(0.02, v)) }), 0.01, 0.02)}
+        ${this.len(this.t("wall_height"), w.height ?? this.floor?.height ?? 2.5, (v) => this.updateFreeWall({ height: v >= (this.floor?.height ?? 2.5) - 0.005 ? null : Math.max(0.05, v) }), 0.05, 0.05)}
       </div>
       ${admin
         ? html`<div class="fp3d-actions">
@@ -2504,7 +2505,7 @@ export class Fp3dEditor extends LitElement {
       const geom = sec.shape === "flat" || sec.shape === "parapet" ? null : sectionGeometry(sec, { u0: 0, u1: 0, a: 0, b: 0 });
       const ridge = geom ? svg`${geom.ridges.map(([p, q]) => line(fr.at(p[0], p[1]), fr.at(q[0], q[1])))}` : nothing;
       const [cx, cy] = this.toScreen(fr.at((fr.u0 + fr.u1) / 2, fr.w / 2));
-      const label = `${this.roofFixed(sec) ? "🔒 " : ""}${i + 1} · ${sec.dormer ? this.t("roof_dormer") : sec.open ? this.t("roof_open_short") : this.t(`roof_shape_${sec.shape}` as I18nKey)} · ${formatNumber(this.hass, ridgeHeight(sec), 1)} m`;
+      const label = `${this.roofFixed(sec) ? "🔒 " : ""}${i + 1} · ${sec.dormer ? this.t("roof_dormer") : sec.open ? this.t("roof_open_short") : this.t(`roof_shape_${sec.shape}` as I18nKey)} · ${this.m(ridgeHeight(sec), 1)}`;
       return svg`<g data-roof=${sec.id} class=${`fp3d-roof-sec${sel ? " fp3d-roof-sel" : ""}`}>
           <polygon points=${pts.map((p) => p.join(",")).join(" ")} />
           <g class="fp3d-roof-ridge">${ridge}</g>
@@ -2668,10 +2669,10 @@ export class Fp3dEditor extends LitElement {
               ${faces.map((x) => html`<option value=${x.key} ?selected=${x.key === w.face}>${this.faceLabel(x)}</option>`)}
             </select></label
           >
-          ${this.num(this.t("width"), w.w ?? 0.78, (v) => set({ w: Math.max(0.3, Math.min(4, round(v))) }), 0.01, 0.3)}
-          ${this.num(this.t("height_m"), w.h ?? 1.18, (v) => set({ h: Math.max(0.3, Math.min(4, round(v))) }), 0.01, 0.3)}
-          ${this.num(this.t("solar_u"), w.u, (v) => set({ u: round(v) }), 0.05)}
-          ${this.num(this.t("solar_v"), w.v, (v) => set({ v: round(v) }), 0.05)}
+          ${this.len(this.t("width"), w.w ?? 0.78, (v) => set({ w: Math.max(0.3, Math.min(4, round(v))) }), 0.01, 0.3)}
+          ${this.len(this.t("height_m"), w.h ?? 1.18, (v) => set({ h: Math.max(0.3, Math.min(4, round(v))) }), 0.01, 0.3)}
+          ${this.len(this.t("solar_u"), w.u, (v) => set({ u: round(v) }), 0.05)}
+          ${this.len(this.t("solar_v"), w.v, (v) => set({ v: round(v) }), 0.05)}
           ${this.entitySelect(this.t("cover_entity"), w.cover ?? null, undefined, covers, (v) => set({ cover: v === "none" ? null : v }))}
           ${this.entitySelect(this.t("contact_entity"), w.contact ?? null, undefined, contacts, (v) => set({ contact: v === "none" ? null : v }))}
           ${this.entitySelect(this.t("roof_window_tilt"), w.tilt ?? null, undefined, contacts, (v) => set({ tilt: v === "none" ? null : v }))}
@@ -2826,7 +2827,7 @@ export class Fp3dEditor extends LitElement {
             </div>
             ${sel
               ? html`<div class="fp3d-form">
-                    ${this.num(this.t("cable_height"), sel.height, (v) => this.change((d) => {
+                    ${this.len(this.t("cable_height"), sel.height, (v) => this.change((d) => {
                       const c = d.settings.roof.cables?.find((x) => x.id === sel.id);
                       if (c) c.height = Math.min(30, Math.max(0, round(v)));
                     }), 0.05, 0)}
@@ -2875,7 +2876,7 @@ export class Fp3dEditor extends LitElement {
       const floor = this._doc.floors.find((x) => x.id === floorId);
       const room = floor?.rooms.find((r) => r.id === roomId);
       const where = free ? this.t("solar_wall_free") : room ? `${room.name}${edge != null ? ` ${edge + 1}–${((edge + 1) % room.points.length) + 1}` : ""}` : "";
-      return `${this.t("solar_wall")} ${floor?.name ?? ""} · ${where ? `${where} · ` : ""}${this.t(`compass_${faceCompass(face, this._doc.settings.north ?? 0)}` as I18nKey)} · ${formatNumber(this.hass, face.lu, 2)} m`;
+      return `${this.t("solar_wall")} ${floor?.name ?? ""} · ${where ? `${where} · ` : ""}${this.t(`compass_${faceCompass(face, this._doc.settings.north ?? 0)}` as I18nKey)} · ${this.m(face.lu, 2)}`;
     }
     const sections = this._doc.settings.roof.sections ?? [];
     const part = face.section ? this.t("solar_section", { n: sections.findIndex((x) => x.id === face.section) + 1 }) : this.t("solar_main");
@@ -3132,8 +3133,8 @@ export class Fp3dEditor extends LitElement {
           <button aria-pressed=${f.look === "blue"} ?disabled=${!admin} @click=${() => set({ look: "blue" })}>${this.t("solar_look_blue")}</button>
         </div>
         <div class="fp3d-form">
-          ${this.num(this.t("solar_module_w"), f.module_w ?? 1.13, (v) => set({ module_w: Math.max(0.3, Math.min(3, round(v))) }), 0.01, 0.3)}
-          ${this.num(this.t("solar_module_h"), f.module_h ?? 1.72, (v) => set({ module_h: Math.max(0.3, Math.min(3, round(v))) }), 0.01, 0.3)}
+          ${this.len(this.t("solar_module_w"), f.module_w ?? 1.13, (v) => set({ module_w: Math.max(0.3, Math.min(3, round(v))) }), 0.01, 0.3)}
+          ${this.len(this.t("solar_module_h"), f.module_h ?? 1.72, (v) => set({ module_h: Math.max(0.3, Math.min(3, round(v))) }), 0.01, 0.3)}
           ${this.num(this.t("solar_wp"), f.wp ?? 400, (v) => set({ wp: Math.max(50, Math.min(1500, Math.round(v))) }), 5, 50)}
         </div>
         <div class="fp3d-actions">
@@ -3143,13 +3144,13 @@ export class Fp3dEditor extends LitElement {
         ${this._solarPick ? html`<p class="fp3d-sub">${this.t("solar_pick_hint")}</p>` : nothing}
         <div class="fp3d-form">
           ${ground
-            ? html`${this.num(this.t("solar_base"), f.base ?? 0, (v) => set({ base: v > 0.001 ? Math.min(60, round(v)) : null }), 0.05, 0)}
+            ? html`${this.len(this.t("solar_base"), f.base ?? 0, (v) => set({ base: v > 0.001 ? Math.min(60, round(v)) : null }), 0.05, 0)}
                 ${this.num(this.t("solar_rotation"), f.rotation ?? 0, (v) => set(turnGroundField(this._doc, f, v)), 5)}
                 <div class="fp3d-actions">
                   <button class="fp3d-chip" ?disabled=${!admin} @click=${() => set(turnGroundField(this._doc, f, (f.rotation ?? 0) - 15))}>↺ 15°</button>
                   <button class="fp3d-chip" ?disabled=${!admin} @click=${() => set(turnGroundField(this._doc, f, (f.rotation ?? 0) + 15))}>↻ 15°</button>
                 </div>`
-            : html`${this.num(this.t("solar_u"), f.u, (v) => set({ u: round(v) }), 0.05)} ${this.num(this.t(face?.wall ? "solar_v_wall" : "solar_v"), f.v, (v) => set({ v: round(v) }), 0.05)}`}
+            : html`${this.len(this.t("solar_u"), f.u, (v) => set({ u: round(v) }), 0.05)} ${this.num(this.t(face?.wall ? "solar_v_wall" : "solar_v"), f.v, (v) => set({ v: round(v) }), 0.05)}`}
           ${face?.wall
             ? html`${this.num(this.t("solar_tilt_wall"), f.tilt ?? 0, (v) => set({ tilt: Math.max(0, Math.min(90, Math.round(v))) }), 5, 0)}
                 <label class="fp3d-check fp3d-wide"
@@ -3237,7 +3238,7 @@ export class Fp3dEditor extends LitElement {
               ${sections.map(
                 (x, i) => html`<div class="fp3d-row">
                   <button class="fp3d-dev-name" @click=${() => (this._roofId = x.id)}>
-                    <span>${i + 1} · ${x.dormer ? this.t("roof_dormer") : this.t(`roof_shape_${x.shape}` as I18nKey)} · ${formatNumber(this.hass, Math.abs(x.x1 - x.x0), 1)} × ${formatNumber(this.hass, Math.abs(x.z1 - x.z0), 1)} m · ${this.t("roof_ridge_height")} ${formatNumber(this.hass, ridgeHeight(x), 1)} m</span>
+                    <span>${i + 1} · ${x.dormer ? this.t("roof_dormer") : this.t(`roof_shape_${x.shape}` as I18nKey)} · ${this.m(Math.abs(x.x1 - x.x0), 1)} × ${this.m(Math.abs(x.z1 - x.z0), 1)} · ${this.t("roof_ridge_height")} ${this.m(ridgeHeight(x), 1)}</span>
                   </button>
                 </div>`,
               )}
@@ -3299,8 +3300,8 @@ export class Fp3dEditor extends LitElement {
         </label>
         ${free
           ? html`<p class="fp3d-sub fp3d-wide">${this.t("holo_free_hint")}</p>
-              ${this.num("X (m)", h.x ?? 0, (v) => set({ x: round(v) }), 0.25)} ${this.num("Z (m)", h.z ?? 0, (v) => set({ z: round(v) }), 0.25)}
-              ${this.num(this.t("holo_height"), h.height ?? 3, (v) => set({ height: Math.min(60, Math.max(0, round(v))) }), 0.25, 0)}`
+              ${this.len("X (m)", h.x ?? 0, (v) => set({ x: round(v) }), 0.25)} ${this.len("Z (m)", h.z ?? 0, (v) => set({ z: round(v) }), 0.25)}
+              ${this.len(this.t("holo_height"), h.height ?? 3, (v) => set({ height: Math.min(60, Math.max(0, round(v))) }), 0.25, 0)}`
           : !fields.length
             ? html`<p class="fp3d-sub fp3d-wide">${this.t("holo_no_field")}</p>`
           : html`<label class="fp3d-field fp3d-wide"
@@ -3310,8 +3311,8 @@ export class Fp3dEditor extends LitElement {
                   ${fields.map((f, i) => html`<option value=${f.id} ?selected=${f.id === h.field}>${name(f, i)}</option>`)}
                 </select>
               </label>
-              ${this.num(this.t("holo_right"), h.right, (v) => set({ right: Math.min(30, Math.max(-30, round(v))) }), 0.25)}
-              ${this.num(this.t("holo_up"), h.up, (v) => set({ up: Math.min(30, Math.max(-30, round(v))) }), 0.25)}`}
+              ${this.len(this.t("holo_right"), h.right, (v) => set({ right: Math.min(30, Math.max(-30, round(v))) }), 0.25)}
+              ${this.len(this.t("holo_up"), h.up, (v) => set({ up: Math.min(30, Math.max(-30, round(v))) }), 0.25)}`}
         ${this.num(this.t("holo_size"), h.size, (v) => set({ size: Math.min(3, Math.max(0.3, round(v))) }), 0.1, 0.3)}
         ${this.num(this.t("holo_device_min_w"), h.device_min_w ?? 0, (v) => set({ device_min_w: Math.max(0, Math.round(v)) }), 1, 0)}
         <label class="fp3d-check fp3d-wide" title=${this.t("holo_device_house_hint")}
@@ -3543,7 +3544,8 @@ export class Fp3dEditor extends LitElement {
     const flat = sec.shape === "flat" || sec.shape === "parapet";
     const pent = sec.shape === "pent";
     const n = (sections: RoofSection[]) => sections.findIndex((x) => x.id === sec.id) + 1;
-    const num = (label: string, value: number, apply: (v: number) => void, step = 0.05, min = 0) => this.num(label, value, (v) => apply(Math.max(min, round(v))), step, min);
+    const num = (label: string, value: number, apply: (v: number) => void, step = 0.05, min = 0) => this.len(label, value, (v) => apply(Math.max(min, round(v))), step, min);
+    const deg = (label: string, value: number, apply: (v: number) => void) => this.num(label, value, (v) => apply(Math.max(0, round(v))), 1, 0);
     const planLocked = !!this._doc.settings.lock_plan;
     return html`<button class="fp3d-btn fp3d-back" @click=${() => (this._roofId = null)}>‹ ${this.t("roof_sections")}</button>
       <section>
@@ -3579,8 +3581,8 @@ export class Fp3dEditor extends LitElement {
             ? num(this.t("roof_height"), sec.eave_a, (v) => set({ eave_a: v, eave_b: v }))
             : html`${num(`${this.t("roof_eave")} ${pent ? "" : sideA}`, sec.eave_a, (v) => set({ eave_a: v }))}
               ${pent ? nothing : num(`${this.t("roof_eave")} ${sideB}`, sec.eave_b, (v) => set({ eave_b: v }))}
-              ${num(`${this.t("roof_pitch_short")} ${pent ? "" : sideA}`, sec.pitch_a, (v) => set({ pitch_a: Math.min(75, v) }), 1, 0)}
-              ${pent ? nothing : num(`${this.t("roof_pitch_short")} ${sideB}`, sec.pitch_b, (v) => set({ pitch_b: Math.min(75, v) }), 1, 0)}`}
+              ${deg(`${this.t("roof_pitch_short")} ${pent ? "" : sideA}`, sec.pitch_a, (v) => set({ pitch_a: Math.min(75, v) }))}
+              ${pent ? nothing : deg(`${this.t("roof_pitch_short")} ${sideB}`, sec.pitch_b, (v) => set({ pitch_b: Math.min(75, v) }))}`}
           ${num(this.t("roof_base"), sec.base, (v) => set({ base: v }))}
           <label class="fp3d-field" title=${this.t("roof_on_floor_hint")}
             >${this.t("roof_on_floor")}
@@ -3611,7 +3613,7 @@ export class Fp3dEditor extends LitElement {
             </div>
             <p class="fp3d-sub">${this.t(sec.points ? "roof_points_hint" : "roof_outline_hint")}</p>`
           : nothing}
-        <p class="fp3d-sub">${this.t("roof_ridge_height")}: ${formatNumber(this.hass, ridgeHeight(sec), 2)} m · ${this.t("roof_section_hint")}</p>
+        <p class="fp3d-sub">${this.t("roof_ridge_height")}: ${this.m(ridgeHeight(sec), 2)} · ${this.t("roof_section_hint")}</p>
         ${admin
           ? html`<div class="fp3d-actions">
               ${flat
@@ -4753,18 +4755,18 @@ export class Fp3dEditor extends LitElement {
           >
             <span
               ><b>${this.t("wall_n", { a: i + 1, b: ((i + 1) % n) + 1 })}${part === undefined ? "" : ` · ${this.t("wall_part", { n: part + 1 })}`}</b><br /><span class="fp3d-muted"
-                >${formatNumber(this.hass, partLen, 2)} m</span
+                >${this.m(partLen, 2)}</span
               ></span
             >
             ${h === 0
               ? html`<span class="fp3d-muted">${this.t("wall_none")}</span>`
-              : this.num(this.t("wall_height"), h ?? H, (v) => set(v >= H - 0.005 ? null : Math.max(0.05, v)), 0.05, 0.05)}
+              : this.len(this.t("wall_height"), h ?? H, (v) => set(v >= H - 0.005 ? null : Math.max(0.05, v)), 0.05, 0.05)}
             ${this.isAdmin && h !== null ? html`<button class="fp3d-btn" title=${this.t("wall_height_full")} @click=${() => set(null)}>↥</button>` : nothing}
             ${this.isAdmin && h !== 0 ? html`<button class="fp3d-btn" title=${this.t("wall_none_hint")} @click=${() => set(0)}>${this.t("wall_none")}</button>` : nothing}
             ${this.isAdmin && partLen >= 0.4 ? html`<button class="fp3d-btn" title=${this.t("wall_split_hint")} @click=${() => this.splitEdge(room, i, part)}>✂</button>` : nothing}
             ${(part === undefined || part === 0) && h !== 0
               ? html`<span class="fp3d-wide fp3d-split-row" title=${this.t("wall_thickness_hint")}
-                  >${this.num(this.t("edge_thickness"), room.wall_thickness?.[i] ?? (outer.has(i) ? s.wall_exterior : s.wall_interior), (v) => {
+                  >${this.len(this.t("edge_thickness"), room.wall_thickness?.[i] ?? (outer.has(i) ? s.wall_exterior : s.wall_interior), (v) => {
                     const def = outer.has(i) ? s.wall_exterior : s.wall_interior;
                     const t = Math.min(1.5, Math.max(0.02, Math.round(v * 1000) / 1000));
                     setThick(i, Math.abs(t - def) < 0.0005 ? null : t);
@@ -4774,7 +4776,7 @@ export class Fp3dEditor extends LitElement {
               : nothing}
             ${part !== undefined && part > 0 && (room.wall_splits?.[i] ?? []).some((d) => Math.abs(d - starts[part]) < 1e-3)
               ? html`<span class="fp3d-wide fp3d-split-row"
-                  >${this.num(this.t("wall_split_at"), starts[part], (v) => this.moveSplit(room, i, starts[part], v), 0.05, 0.1)}
+                  >${this.len(this.t("wall_split_at"), starts[part], (v) => this.moveSplit(room, i, starts[part], v), 0.05, 0.1)}
                   ${this.isAdmin ? html`<button class="fp3d-btn" title=${this.t("wall_join_hint")} @click=${() => this.joinSplit(room, i, starts[part], part)}>⨉</button>` : nothing}</span
                 >`
               : nothing}
@@ -4831,15 +4833,15 @@ export class Fp3dEditor extends LitElement {
           </select></label
         >
         ${rect
-          ? html`${this.num(this.t("x"), b.x0, (v) => setRect("x", v))} ${this.num(this.t("z"), b.z0, (v) => setRect("z", v))}
-            ${this.num(this.t("width"), b.x1 - b.x0, (v) => setRect("w", v), 0.01, 0.1)} ${this.num(this.t("depth"), b.z1 - b.z0, (v) => setRect("d", v), 0.01, 0.1)}`
+          ? html`${this.len(this.t("x"), b.x0, (v) => setRect("x", v))} ${this.len(this.t("z"), b.z0, (v) => setRect("z", v))}
+            ${this.len(this.t("width"), b.x1 - b.x0, (v) => setRect("w", v), 0.01, 0.1)} ${this.len(this.t("depth"), b.z1 - b.z0, (v) => setRect("d", v), 0.01, 0.1)}`
           : nothing}
         ${outdoorStanding(a.type)
-          ? this.num(this.t("outdoor_height"), a.height ?? OUTDOOR_TOP[a.type], (v) => this.updateOutdoor({ height: Math.min(6, Math.max(0.1, round(v))) }), 0.05, 0.1)
+          ? this.len(this.t("outdoor_height"), a.height ?? OUTDOOR_TOP[a.type], (v) => this.updateOutdoor({ height: Math.min(6, Math.max(0.1, round(v))) }), 0.05, 0.1)
           : nothing}
-        ${this.num(this.t("outdoor_offset"), a.offset ?? 0, (v) => this.updateOutdoor({ offset: Math.min(10, Math.max(-10, round(v))) || null }), 0.05)}
+        ${this.len(this.t("outdoor_offset"), a.offset ?? 0, (v) => this.updateOutdoor({ offset: Math.min(10, Math.max(-10, round(v))) || null }), 0.05)}
         ${a.type !== "pool"
-          ? html`${this.num(this.t("outdoor_slope"), a.slope ?? 0, (v) => this.updateOutdoor({ slope: Math.min(20, Math.max(0, round(v))) || null }), 0.05, 0)}
+          ? html`${this.len(this.t("outdoor_slope"), a.slope ?? 0, (v) => this.updateOutdoor({ slope: Math.min(20, Math.max(0, round(v))) || null }), 0.05, 0)}
               <label class="fp3d-field"
                 >${this.t("outdoor_slope_dir")}
                 <select ?disabled=${!admin} @change=${(e: Event) => this.updateOutdoor({ slope_dir: (e.target as HTMLSelectElement).value as SlopeDir })}>
@@ -4889,7 +4891,7 @@ export class Fp3dEditor extends LitElement {
       <g pointer-events="none">${floor.rooms.map((r) => {
         const [cx, cy] = this.toScreen(centroid(r.points));
         return svg`<text class="fp3d-room-name" x=${cx} y=${cy - 2}>${r.name}</text>
-          <text class="fp3d-room-area" x=${cx} y=${cy + 14}>${this.t("area_m2", { a: formatNumber(this.hass, polygonArea(r.points), 1) })}</text>`;
+          <text class="fp3d-room-area" x=${cx} y=${cy + 14}>${this.area(polygonArea(r.points))}</text>`;
       })}</g>
     `;
   }
@@ -4947,7 +4949,7 @@ export class Fp3dEditor extends LitElement {
         ? (() => {
             // behind the item, away from the turn handle in front
             const [lx, ly] = this.toScreen([f.x + Math.sin(a) * (f.d / 2 + 18 / k), f.z - Math.cos(a) * (f.d / 2 + 18 / k)]);
-            return svg`<text class="fp3d-dim" x=${lx} y=${ly + 4}>${formatNumber(this.hass, f.w, 2)} × ${formatNumber(this.hass, f.d, 2)} m</text>`;
+            return svg`<text class="fp3d-dim" x=${lx} y=${ly + 4}>${this.m(f.w, 2)} × ${this.m(f.d, 2)}</text>`;
           })()
         : nothing}
       ${sel && f.locked ? svg`<text class="fp3d-lock" x=${hx} y=${hy + 5}>🔒</text>` : nothing}
@@ -5130,7 +5132,7 @@ export class Fp3dEditor extends LitElement {
       }
       const screenLen = Math.hypot(bx - ax, by - ay);
       return svg`
-        ${screenLen > 50 ? svg`<text class="fp3d-dim" x=${mx + nx * 16} y=${my + ny * 16 + 4}>${formatNumber(this.hass, len, 2)} m</text>` : nothing}
+        ${screenLen > 50 ? svg`<text class="fp3d-dim" x=${mx + nx * 16} y=${my + ny * 16 + 4}>${this.m(len, 2)}</text>` : nothing}
         ${screenLen > 36 ? svg`<g data-mid=${i} class="fp3d-mid"><circle cx=${mx} cy=${my} r="14" class="fp3d-hit" /><circle cx=${mx} cy=${my} r="6" /><path d="M${mx - 3} ${my}h6M${mx} ${my - 3}v6" /></g>` : nothing}
       `;
     });
@@ -5150,7 +5152,7 @@ export class Fp3dEditor extends LitElement {
       const l = Math.hypot(drag.end[0] - drag.start[0], drag.end[1] - drag.start[1]);
       return svg`<g pointer-events="none">
         <line class="fp3d-draft fp3d-draft-wall" x1=${x0} y1=${y0} x2=${x1} y2=${y1} />
-        <text class="fp3d-dim" x=${(x0 + x1) / 2} y=${(y0 + y1) / 2 - 10}>${formatNumber(this.hass, l, 2)} m</text>
+        <text class="fp3d-dim" x=${(x0 + x1) / 2} y=${(y0 + y1) / 2 - 10}>${this.m(l, 2)}</text>
       </g>`;
     }
     if (drag?.kind === "rect") {
@@ -5160,7 +5162,7 @@ export class Fp3dEditor extends LitElement {
       const d = Math.abs(drag.end[1] - drag.start[1]);
       return svg`<g pointer-events="none">
         <rect class="fp3d-draft" x=${Math.min(x0, x1)} y=${Math.min(y0, y1)} width=${Math.abs(x1 - x0)} height=${Math.abs(y1 - y0)} />
-        <text class="fp3d-dim" x=${(x0 + x1) / 2} y=${Math.min(y0, y1) - 8}>${formatNumber(this.hass, w, 2)} × ${formatNumber(this.hass, d, 2)} m</text>
+        <text class="fp3d-dim" x=${(x0 + x1) / 2} y=${Math.min(y0, y1) - 8}>${this.m(w, 2)} × ${this.m(d, 2)}</text>
       </g>`;
     }
     if (this._tool !== "polygon" && this._tool !== "measure" && !this.drawingPoints) return nothing;
@@ -5172,7 +5174,7 @@ export class Fp3dEditor extends LitElement {
         // every segment's length, the one to the pointer too (free form as with the other tools, #351)
         const a = pts[i];
         if (Math.hypot(b[0] - a[0], b[1] - a[1]) < 30) return nothing;
-        return svg`<text class="fp3d-dim" x=${(a[0] + b[0]) / 2} y=${(a[1] + b[1]) / 2 - 6}>${formatNumber(this.hass, Math.hypot(world[i + 1][0] - world[i][0], world[i + 1][1] - world[i][1]), 2)} m</text>`;
+        return svg`<text class="fp3d-dim" x=${(a[0] + b[0]) / 2} y=${(a[1] + b[1]) / 2 - 6}>${this.m(Math.hypot(world[i + 1][0] - world[i][0], world[i + 1][1] - world[i][1]), 2)}</text>`;
       })}
       ${this._draft.map((p, i) => {
         const [x, y] = this.toScreen(p);
@@ -5190,6 +5192,52 @@ export class Fp3dEditor extends LitElement {
       ${g.z !== undefined ? svg`<line class="fp3d-guide" x1="0" y1=${this.toScreen([0, g.z])[1]} x2=${w} y2=${this.toScreen([0, g.z])[1]} />` : nothing}
       ${g.point ? svg`<circle class="fp3d-snap" cx=${this.toScreen(g.point)[0]} cy=${this.toScreen(g.point)[1]} r="9" />` : nothing}
     </g>`;
+  }
+
+  /** Metres or feet and inches, as the plan's setting (or Home Assistant) says (#117). */
+  private get unit(): LengthUnit {
+    return lengthUnit(this.hass, this._doc.settings.units);
+  }
+
+  /** A length with its unit for labels: "2,45 m" or 8' 0.5". */
+  private m(v: number, digits = 2): string {
+    return lengthText(v, this.unit, (x) => formatNumber(this.hass, x, digits));
+  }
+
+  private area(v: number): string {
+    return areaText(Math.abs(v), this.unit, (x) => formatNumber(this.hass, x, 1));
+  }
+
+  /** The value of a length input: metres, or feet and inches as text. */
+  private lenValue(v: number): string {
+    return this.unit === "imperial" ? formatImperial(v) : String(round(v));
+  }
+
+  /** A length typed into an input, in metres (null: not a length). */
+  private readLen(text: string): number | null {
+    if (this.unit === "imperial") return parseLength(text, "imperial");
+    const v = parseFloat(text.replace(",", "."));
+    return Number.isFinite(v) ? v : null;
+  }
+
+  /** A length field: a number field in metres, a text field in feet and inches (8' 2", 98in, 2.5m all work). */
+  private len(label: string, value: number, onChange: (v: number) => void, step = 0.01, min?: number) {
+    if (this.unit !== "imperial") return this.num(label, value, onChange, step, min);
+    return html`<label class="fp3d-field"
+      >${unitLabel(label, "imperial")}
+      <input
+        type="text"
+        inputmode="text"
+        spellcheck="false"
+        .value=${formatImperial(value)}
+        ?disabled=${!this.isAdmin}
+        @change=${(e: Event) => {
+          const input = e.target as HTMLInputElement;
+          const v = parseLength(input.value, "imperial");
+          if (v !== null) onChange(min !== undefined ? Math.max(min, v) : v);
+          else input.value = formatImperial(value);
+        }}
+    /></label>`;
   }
 
   private num(label: string, value: number, onChange: (v: number) => void, step = 0.01, min?: number) {
@@ -5339,7 +5387,7 @@ export class Fp3dEditor extends LitElement {
                 >${this.t("floor_name")}
                 <input .value=${floor.name} ?disabled=${!admin} @change=${(e: Event) => this.updateFloor({ name: (e.target as HTMLInputElement).value })}
               /></label>
-              ${this.num(this.t("elevation"), floor.elevation, (v) => this.updateFloor({ elevation: v }))}
+              ${this.len(this.t("elevation"), floor.elevation, (v) => this.updateFloor({ elevation: v }))}
               ${admin
                 ? html`<div class="fp3d-field fp3d-wide fp3d-shift" title=${this.t("floor_shift_hint")}>
                     <span>${this.t("floor_shift")}</span>
@@ -5355,7 +5403,7 @@ export class Fp3dEditor extends LitElement {
                     >
                   </div>`
                 : nothing}
-              ${this.num(this.t("height"), floor.height, (v) => this.updateFloor({ height: Math.max(1, v) }), 0.05, 1)}
+              ${this.len(this.t("height"), floor.height, (v) => this.updateFloor({ height: Math.max(1, v) }), 0.05, 1)}
               ${Object.keys(this.hass?.floors ?? {}).length
                 ? html`<label class="fp3d-field fp3d-wide"
                     >${this.t("ha_floor")}
@@ -5422,7 +5470,7 @@ export class Fp3dEditor extends LitElement {
       <div class="fp3d-room-list">
         ${floor.rooms.map(
           (r) => html`<button class="fp3d-row" @click=${() => this.selectItem("room", r.id)}>
-            <span>${r.name}</span><span class="fp3d-muted">${this.t("area_m2", { a: formatNumber(this.hass, polygonArea(r.points), 1) })}</span>
+            <span>${r.name}</span><span class="fp3d-muted">${this.area(polygonArea(r.points))}</span>
           </button>`,
         )}
       </div>
@@ -5438,7 +5486,7 @@ export class Fp3dEditor extends LitElement {
       <div class="fp3d-room-list">
         ${own.map(
           (o) => html`<button class="fp3d-row" @click=${() => (this.selectItem("opening", o.id), this.renderRoot.querySelector(".fp3d-side")?.scrollTo(0, 0))}>
-            <span>${this.t(`preset_${openingPreset(o)}` as I18nKey)}</span><span class="fp3d-muted">${formatNumber(this.hass, o.width, 2)} m</span>
+            <span>${this.t(`preset_${openingPreset(o)}` as I18nKey)}</span><span class="fp3d-muted">${this.m(o.width, 2)}</span>
           </button>`,
         )}
       </div>
@@ -5470,34 +5518,34 @@ export class Fp3dEditor extends LitElement {
           </select></label
         >
         ${rect
-          ? html`${this.num(this.t("x"), b.x0, (v) => this.setRect("x", v))} ${this.num(this.t("z"), b.z0, (v) => this.setRect("z", v))}
-            ${this.num(this.t("width"), b.x1 - b.x0, (v) => this.setRect("w", v), 0.01, 0.05)}
-            ${this.num(this.t("depth"), b.z1 - b.z0, (v) => this.setRect("d", v), 0.01, 0.05)}`
+          ? html`${this.len(this.t("x"), b.x0, (v) => this.setRect("x", v))} ${this.len(this.t("z"), b.z0, (v) => this.setRect("z", v))}
+            ${this.len(this.t("width"), b.x1 - b.x0, (v) => this.setRect("w", v), 0.01, 0.05)}
+            ${this.len(this.t("depth"), b.z1 - b.z0, (v) => this.setRect("d", v), 0.01, 0.05)}`
           : nothing}
       </div>
       <div class="fp3d-form">
         <label class="fp3d-field" title=${this.t("room_ceiling_hint")}
-          >${this.t("room_ceiling")}
+          >${unitLabel(this.t("room_ceiling"), this.unit)}
           <input
-            type="number"
+            type=${this.unit === "imperial" ? "text" : "number"}
             step="0.05"
             min="1"
-            placeholder=${String(this.floor?.height ?? "")}
-            .value=${room.ceiling_height != null ? String(room.ceiling_height) : ""}
+            placeholder=${this.floor ? this.lenValue(this.floor.height) : ""}
+            .value=${room.ceiling_height != null ? this.lenValue(room.ceiling_height) : ""}
             ?disabled=${!admin}
             @change=${(e: Event) => {
-              const raw = (e.target as HTMLInputElement).value.trim().replace(",", ".");
-              const v = Number(raw);
-              this.updateRoom({ ceiling_height: raw === "" || !Number.isFinite(v) || v <= 0 ? null : Math.min(30, Math.max(1, v)) });
+              const raw = (e.target as HTMLInputElement).value.trim();
+              const v = raw === "" ? null : this.readLen(raw);
+              this.updateRoom({ ceiling_height: v === null || v <= 0 ? null : Math.min(30, Math.max(1, v)) });
             }}
         /></label>
-        <p class="fp3d-sub">${this.t("room_ceiling_hint")}</p>
+        <p class="fp3d-sub fp3d-wide">${this.t("room_ceiling_hint")}</p>
       </div>
       <div class="fp3d-actions">
         <button class="fp3d-btn" title=${this.t("room_start_view_hint")} ?disabled=${!admin} @click=${() => this.rememberRoomView()}>${this.t("room_start_view")}</button>
         ${room.start_view ? html`<button class="fp3d-btn" title=${this.t("room_start_view_reset")} ?disabled=${!admin} @click=${() => this.updateRoom({ start_view: null })}>↺</button>` : nothing}
       </div>
-      <p class="fp3d-sub" title=${this.t("room_area_net_hint")}>${this.t("room_area_net", { a: formatNumber(this.hass, Math.abs(polygonArea(room.points)), 1), n: formatNumber(this.hass, netRoomArea(room, this.floor!, { exterior: this._doc.settings.wall_exterior, interior: this._doc.settings.wall_interior }), 1) })}</p>
+      <p class="fp3d-sub" title=${this.t("room_area_net_hint")}>${this.t("room_area_net", { a: this.area(polygonArea(room.points)), n: this.area(netRoomArea(room, this.floor!, { exterior: this._doc.settings.wall_exterior, interior: this._doc.settings.wall_interior })) })}</p>
       <p class="fp3d-sub fp3d-room-id">${this.t("room_id")} <code title=${this.t("license_copy")} @click=${() => void navigator.clipboard?.writeText(room.id).catch(() => undefined)}>${room.id}</code></p>
       ${this.renderEdgeHeights(room)} ${this.renderRoomClimate(room)} ${this.renderRoomOpenings(room)}
       <details class="fp3d-points" ?open=${!rect}>
@@ -5505,7 +5553,7 @@ export class Fp3dEditor extends LitElement {
         ${room.points.map(
           (p, i) => html`<div class="fp3d-point ${i === this._vertex ? "fp3d-point-sel" : ""}">
             <span class="fp3d-muted">${i + 1}</span>
-            ${this.num(this.t("x"), p[0], (v) => this.setPoint(i, 0, v))} ${this.num(this.t("z"), p[1], (v) => this.setPoint(i, 1, v))}
+            ${this.len(this.t("x"), p[0], (v) => this.setPoint(i, 0, v))} ${this.len(this.t("z"), p[1], (v) => this.setPoint(i, 1, v))}
             ${admin
               ? html`<button class="fp3d-btn" title=${this.t("delete_point")} ?disabled=${room.points.length <= 3} @click=${() => this.deleteVertex(i)}>
                   ×
@@ -5806,10 +5854,10 @@ export class Fp3dEditor extends LitElement {
           </div>`
         : nothing}
       <div class="fp3d-form">
-        ${this.num(this.t("width"), o.width, (v) => this.updateOpening({ width: Math.max(0.3, v) }), 0.01, 0.3)}
-        ${this.num(this.t("opening_position"), o.offset, (v) => this.updateOpening({ offset: Math.max(0, v) }), 0.01, 0)}
-        ${window ? this.num(this.t("sill"), o.sill, (v) => this.updateOpening({ sill: Math.max(0, v) }), 0.01, 0) : nothing}
-        ${this.num(this.t("opening_height"), o.height, (v) => this.updateOpening({ height: Math.max(0.3, v) }), 0.01, 0.3)}
+        ${this.len(this.t("width"), o.width, (v) => this.updateOpening({ width: Math.max(0.3, v) }), 0.01, 0.3)}
+        ${this.len(this.t("opening_position"), o.offset, (v) => this.updateOpening({ offset: Math.max(0, v) }), 0.01, 0)}
+        ${window ? this.len(this.t("sill"), o.sill, (v) => this.updateOpening({ sill: Math.max(0, v) }), 0.01, 0) : nothing}
+        ${this.len(this.t("opening_height"), o.height, (v) => this.updateOpening({ height: Math.max(0.3, v) }), 0.01, 0.3)}
         ${garage ? nothing : this.renderStyleSelect(o)}
         ${this.renderSidelightFields(o)}
         <label class="fp3d-field fp3d-wide" title=${this.t("opening_mark_hint")}
@@ -5908,10 +5956,10 @@ export class Fp3dEditor extends LitElement {
               : nothing}
           </select></label
         >
-        ${this.num(this.t("x"), f.x, (v) => this.updateFurniture({ x: v }))} ${this.num(this.t("z"), f.z, (v) => this.updateFurniture({ z: v }))}
-        ${this.num(this.t("width"), f.w, (v) => this.updateFurniture({ w: Math.max(0.05, v) }), 0.01, 0.05)}
-        ${this.num(this.t("depth"), f.d, (v) => this.updateFurniture({ d: Math.max(0.05, v) }), 0.01, 0.05)}
-        ${this.num(this.t("height_m"), f.h, (v) => this.updateFurniture({ h: Math.max(0.005, v) }), 0.01, 0)}
+        ${this.len(this.t("x"), f.x, (v) => this.updateFurniture({ x: v }))} ${this.len(this.t("z"), f.z, (v) => this.updateFurniture({ z: v }))}
+        ${this.len(this.t("width"), f.w, (v) => this.updateFurniture({ w: Math.max(0.05, v) }), 0.01, 0.05)}
+        ${this.len(this.t("depth"), f.d, (v) => this.updateFurniture({ d: Math.max(0.05, v) }), 0.01, 0.05)}
+        ${this.len(this.t("height_m"), f.h, (v) => this.updateFurniture({ h: Math.max(0.005, v) }), 0.01, 0)}
         ${this.num(this.t("rotation"), f.rotation, (v) => this.updateFurniture({ rotation: ((v % 360) + 360) % 360 }), 1)}
         ${isLamp(f.type)
           ? nothing
@@ -5927,7 +5975,7 @@ export class Fp3dEditor extends LitElement {
               >`
           : nothing}
         ${canLift(f) && this.floor
-          ? html`${this.num(this.t("mount_height"), f.mount_y ?? mountBase(this.floor, f), (v) => this.updateFurniture({ mount_y: Math.max(0, v) }), 0.01, 0)}
+          ? html`${this.len(this.t("mount_height"), f.mount_y ?? mountBase(this.floor, f), (v) => this.updateFurniture({ mount_y: Math.max(0, v) }), 0.01, 0)}
               ${f.mount_y != null ? html`<button class="fp3d-btn fp3d-field-btn" ?disabled=${!admin} @click=${() => this.updateFurniture({ mount_y: null })}>${this.t("height_auto")}</button>` : nothing}`
           : nothing}
       </div>
@@ -6088,7 +6136,7 @@ export class Fp3dEditor extends LitElement {
         const [x1, y1] = this.toScreen(p);
         const [x2, y2] = this.toScreen(q);
         return svg`<line class="fp3d-headroom" x1=${x1} y1=${y1} x2=${x2} y2=${y2} />
-          <text class="fp3d-headroom-label" x=${(x1 + x2) / 2} y=${(y1 + y2) / 2 - 4}>${formatNumber(this.hass, h, 1)} m</text>`;
+          <text class="fp3d-headroom-label" x=${(x1 + x2) / 2} y=${(y1 + y2) / 2 - 4}>${this.m(h, 1)}</text>`;
       }),
     )}`;
   }
@@ -6398,8 +6446,8 @@ export class Fp3dEditor extends LitElement {
                 ${this.t("furn_plant_card")}</label
               >
               ${f.plant_card !== false
-                ? html`${this.num(this.t("holo_right"), f.plant_right ?? 0, (v) => this.updateFurniture({ plant_right: Math.min(30, Math.max(-30, round(v))) || undefined }), 0.25)}
-                  ${this.num(this.t("holo_up"), f.plant_up ?? 0, (v) => this.updateFurniture({ plant_up: Math.min(30, Math.max(-30, round(v))) || undefined }), 0.25)}`
+                ? html`${this.len(this.t("holo_right"), f.plant_right ?? 0, (v) => this.updateFurniture({ plant_right: Math.min(30, Math.max(-30, round(v))) || undefined }), 0.25)}
+                  ${this.len(this.t("holo_up"), f.plant_up ?? 0, (v) => this.updateFurniture({ plant_up: Math.min(30, Math.max(-30, round(v))) || undefined }), 0.25)}`
                 : nothing}`
             : nothing}
       </div>
@@ -6911,12 +6959,12 @@ export class Fp3dEditor extends LitElement {
                 </select></label
               >`
             : nothing}
-        ${this.num(this.t("x"), pl.x, (v) => this.updateDevice({ x: v }))} ${this.num(this.t("z"), pl.z, (v) => this.updateDevice({ z: v }))}
-        ${this.num(this.t("marker_height"), pl.y ?? auto, (v) => this.updateDevice({ y: Math.max(0, v) }), 0.05, 0)}
+        ${this.len(this.t("x"), pl.x, (v) => this.updateDevice({ x: v }))} ${this.len(this.t("z"), pl.z, (v) => this.updateDevice({ z: v }))}
+        ${this.len(this.t("marker_height"), pl.y ?? auto, (v) => this.updateDevice({ y: Math.max(0, v) }), 0.05, 0)}
         ${this.num(this.t("rotation"), pl.rotation ?? 0, (v) => this.updateDevice({ rotation: ((v % 360) + 360) % 360 }), 1)}
         ${kind === "camera"
           ? html`${this.num(this.t("camera_fov"), pl.fov ?? (pl.mount === "ceiling" ? 360 : 90), (v) => this.updateDevice({ fov: Math.min(360, Math.max(10, v)) }), 5, 10)}
-            ${this.num(this.t("camera_reach"), pl.reach ?? (pl.mount === "ceiling" ? 3 : 4.5), (v) => this.updateDevice({ reach: Math.min(50, Math.max(0.5, v)) }), 0.5, 0.5)}
+            ${this.len(this.t("camera_reach"), pl.reach ?? (pl.mount === "ceiling" ? 3 : 4.5), (v) => this.updateDevice({ reach: Math.min(50, Math.max(0.5, v)) }), 0.5, 0.5)}
             ${this.num(this.t("camera_tilt"), pl.tilt ?? (pl.mount === "ceiling" ? 65 : 20), (v) => this.updateDevice({ tilt: Math.min(90, Math.max(0, v)) }), 5, 0)}
             <label class="fp3d-check fp3d-wide"
               ><input type="checkbox" .checked=${pl.cone !== false} ?disabled=${!admin} @change=${(ev: Event) => this.updateDevice({ cone: (ev.target as HTMLInputElement).checked ? null : false })} />
@@ -7172,9 +7220,9 @@ export class Fp3dEditor extends LitElement {
           >${this.t("background_upload")}<input type="file" accept="image/png,image/jpeg,image/webp" @change=${this.uploadBackground}
         /></label>
         ${bg
-          ? html`${this.num(this.t("x"), bg.x, (v) => this.updateFloor({ background: { ...bg, x: v } }))}
-              ${this.num(this.t("z"), bg.z, (v) => this.updateFloor({ background: { ...bg, z: v } }))}
-              ${this.num(this.t("background_width"), bg.width, (v) => this.updateFloor({ background: { ...bg, width: Math.max(0.1, v) } }), 0.01, 0.1)}
+          ? html`${this.len(this.t("x"), bg.x, (v) => this.updateFloor({ background: { ...bg, x: v } }))}
+              ${this.len(this.t("z"), bg.z, (v) => this.updateFloor({ background: { ...bg, z: v } }))}
+              ${this.len(this.t("background_width"), bg.width, (v) => this.updateFloor({ background: { ...bg, width: Math.max(0.1, v) } }), 0.01, 0.1)}
               ${this.num(this.t("background_rotation"), bg.rotation ?? 0, (v) => this.updateFloor({ background: { ...bg, rotation: Math.round(v * 10) / 10 } }), 0.5)}
               ${this.isAdmin
                 ? html`<button
@@ -7203,10 +7251,10 @@ export class Fp3dEditor extends LitElement {
                   ${this._bgRuler
                     ? this._bgRuler.length < 2
                       ? html`<p class="fp3d-sub fp3d-wide">${this.t(this._bgRuler.length ? "bg_ruler_second" : "bg_ruler_first")}</p>`
-                      : html`<p class="fp3d-sub fp3d-wide">${this.t("bg_ruler_length_hint", { m: formatNumber(this.hass, Math.hypot(this._bgRuler[1][0] - this._bgRuler[0][0], this._bgRuler[1][1] - this._bgRuler[0][1]), 2) })}</p>
+                      : html`<p class="fp3d-sub fp3d-wide">${this.t("bg_ruler_length_hint", { m: this.m(Math.hypot(this._bgRuler[1][0] - this._bgRuler[0][0], this._bgRuler[1][1] - this._bgRuler[0][1])) })}</p>
                           <label class="fp3d-field"
-                            >${this.t("bg_ruler_length")}
-                            <input type="number" min="0.01" step="0.01" .value=${this._bgRulerLen ? String(this._bgRulerLen) : ""} @input=${(e: Event) => (this._bgRulerLen = Number((e.target as HTMLInputElement).value.replace(",", ".")) || 0)} @keydown=${(e: KeyboardEvent) => e.key === "Enter" && this.applyBgRuler(this._bgRulerLen)}
+                            >${unitLabel(this.t("bg_ruler_length"), this.unit)}
+                            <input type=${this.unit === "imperial" ? "text" : "number"} min="0.01" step="0.01" .value=${this._bgRulerLen ? this.lenValue(this._bgRulerLen) : ""} @input=${(e: Event) => (this._bgRulerLen = this.readLen((e.target as HTMLInputElement).value) ?? 0)} @keydown=${(e: KeyboardEvent) => e.key === "Enter" && this.applyBgRuler(this._bgRulerLen)}
                           /></label>
                           <button class="fp3d-btn fp3d-primary" ?disabled=${!(this._bgRulerLen > 0)} @click=${() => this.applyBgRuler(this._bgRulerLen)}>${this.t("bg_ruler_apply")}</button>`
                     : nothing}`
@@ -7393,9 +7441,20 @@ export class Fp3dEditor extends LitElement {
     return html`<details class="fp3d-section">
       <summary>${this.t("settings")}</summary>
       <div class="fp3d-form">
-        ${this.num(this.t("wall_exterior"), s.wall_exterior, (v) => set({ wall_exterior: Math.min(1, Math.max(0.02, v)) }), 0.01, 0.02)}
-        ${this.num(this.t("wall_interior"), s.wall_interior, (v) => set({ wall_interior: Math.min(1, Math.max(0.02, v)) }), 0.01, 0.02)}
-        ${this.num(this.t("grid"), s.grid, (v) => set({ grid: Math.min(1, Math.max(0.01, v)) }), 0.01, 0.01)}
+        ${this.len(this.t("wall_exterior"), s.wall_exterior, (v) => set({ wall_exterior: Math.min(1, Math.max(0.02, v)) }), 0.01, 0.02)}
+        ${this.len(this.t("wall_interior"), s.wall_interior, (v) => set({ wall_interior: Math.min(1, Math.max(0.02, v)) }), 0.01, 0.02)}
+        ${this.len(this.t("grid"), s.grid, (v) => set({ grid: Math.min(1, Math.max(0.01, v)) }), 0.01, 0.01)}
+        <label class="fp3d-field" title=${this.t("units_hint")}
+          >${this.t("units")}
+          <select @change=${(e: Event) => {
+            const v = (e.target as HTMLSelectElement).value;
+            set({ units: v === "metric" || v === "imperial" ? v : null });
+          }}>
+            <option value="auto" ?selected=${!s.units}>${this.t("units_auto", { unit: this.t(lengthUnit(this.hass, null) === "imperial" ? "units_imperial" : "units_metric") })}</option>
+            <option value="metric" ?selected=${s.units === "metric"}>${this.t("units_metric")}</option>
+            <option value="imperial" ?selected=${s.units === "imperial"}>${this.t("units_imperial")}</option>
+          </select></label
+        >
         ${this.num(this.t("north"), s.north, (v) => set({ north: ((Math.round(v) % 360) + 360) % 360 }), 1)}
         <label class="fp3d-field fp3d-wide"
           >${this.t("roof")}
@@ -7422,7 +7481,7 @@ export class Fp3dEditor extends LitElement {
             >`
           : nothing}
         ${s.roof.type === "gable" ? this.num(this.t("roof_pitch"), s.roof.pitch, (v) => set({ roof: { ...s.roof, pitch: Math.min(60, Math.max(5, v)) } }), 1, 5) : nothing}
-        ${s.roof.type !== "none" ? this.num(this.t("roof_overhang"), s.roof.overhang, (v) => set({ roof: { ...s.roof, overhang: Math.min(2, Math.max(0, v)) } }), 0.05, 0) : nothing}
+        ${s.roof.type !== "none" ? this.len(this.t("roof_overhang"), s.roof.overhang, (v) => set({ roof: { ...s.roof, overhang: Math.min(2, Math.max(0, v)) } }), 0.05, 0) : nothing}
         ${this.hass
           ? this.entitySelect(this.t("weather_entity"), s.weather_entity ?? null, weatherEntity(this.hass, null), this.entityOptions((id) => id.startsWith("weather.")), (v) => set({ weather_entity: v }))
           : nothing}
