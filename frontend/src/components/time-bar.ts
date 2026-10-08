@@ -180,7 +180,7 @@ export class Fp3dTimeBar extends LitElement {
     const pb = s?.playback;
     // the day summary follows the playhead's day; the sheet's toggles their state
     const day = this._sheet === "day" && pb ? dayStart(pb.t) : 0;
-    return `${s?.state}|${s?.error}|${Math.round((s?.progress ?? 0) * 20)}|${pb?.playing}|${pb?.speed}|${s?.events.length}|${s?.allEvents.length}|${s?.range}|${s?.loadingDay}|${s?.full}|${s?.version}|${s?.atNow}|${s?.follow}|${s?.stopImportant}|${day}`;
+    return `${s?.state}|${s?.error}|${Math.round((s?.progress ?? 0) * 20)}|${pb?.playing}|${pb?.speed}|${s?.events.length}|${s?.allEvents.length}|${s?.range}|${s?.maxDays}|${s?.loadingDay}|${s?.full}|${s?.version}|${s?.atNow}|${s?.follow}|${s?.stopImportant}|${day}`;
   }
 
   /** Every change of the session: the clock and the playhead directly; a re-render only when needed. */

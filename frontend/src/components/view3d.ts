@@ -1528,7 +1528,7 @@ export class Fp3dView3d extends LitElement {
       <div class="fp3d-holo-sheen"></div>
       <div class="fp3d-holo-scan"></div>
       <div class="fp3d-holo-body">
-        <div class="fp3d-holo-head"><span>⚡ ${card.name}</span><span class="fp3d-holo-live">● ${t("holo_live")}</span></div>
+        <div class="fp3d-holo-head"><span>⚡ ${card.name}</span><span class="fp3d-holo-live">${this.replay ? "⏪" : `● ${t("holo_live")}`}</span></div>
         <div class="fp3d-holo-big"><b>${formatPower(hass, card.w ?? 0)}</b><span>${t("holo_dev_now")}</span></div>
         ${open && day ? html`<div class="fp3d-holo-sub">${t("holo_today")} <b>${formatNumber(hass, day.kwh, 1)} kWh</b> · ${t("holo_peak")} <b>${formatPower(hass, day.peak)}</b></div>` : nothing}
         ${open && curve
@@ -1573,7 +1573,7 @@ export class Fp3dView3d extends LitElement {
       <div class="fp3d-holo-sheen"></div>
       <div class="fp3d-holo-scan"></div>
       <div class="fp3d-holo-body">
-        <div class="fp3d-holo-head"><span>☀ ${card.name}</span><span class="fp3d-holo-live">● ${t("holo_live")}</span></div>
+        <div class="fp3d-holo-head"><span>☀ ${card.name}</span><span class="fp3d-holo-live">${this.replay ? "⏪" : `● ${t("holo_live")}`}</span></div>
         <div class="fp3d-holo-big"><b>${formatPower(hass, big)}</b><span>${t(main && e.solar === null ? "holo_house_now" : "holo_pv_now")}</span></div>
         ${open
           ? html`${main && this._plants.length > 1

@@ -65,8 +65,6 @@ export class Session implements TimeTravelSession {
   /** The end of the replay: when the time travel began, moved on by the live edge. */
   end: number;
   range: Range;
-  /** Days the week view may hold (fewer at the tablet level). */
-  readonly maxDays: number;
   /** The day being fetched in the background (its start), null when none is. */
   loadingDay: number | null = null;
   /** No more older days: the memory limit was reached. */
@@ -118,8 +116,6 @@ export class Session implements TimeTravelSession {
     this.t = withTexts(opts.t, () => this.live.language);
     this.end = Date.now();
     this.range = opts.range === "7d" ? "7d" : "24h";
-    // a wall tablet holds two days, unless the card asks for the week
-    this.maxDays = (opts.quality === "low" || opts.spec.low) && opts.range !== "7d" ? 2 : 7;
     const closed = Number(pref("closed"));
     this.lastClosed = Number.isFinite(closed) && closed > 0 && closed < this.end ? closed : null;
     const session = this;
@@ -151,6 +147,11 @@ export class Session implements TimeTravelSession {
 
   get playing(): boolean {
     return !!this.playback?.playing;
+  }
+
+  /** Days the week view may hold: a wall tablet two, unless the card asks for the week (time_travel_range: 7d). */
+  get maxDays(): number {
+    return (this.quality === "low" || this.low) && this.opts.range !== "7d" ? 2 : 7;
   }
 
   /** The start of the shown range: a day, or the days of the week view (loaded or not yet). */
@@ -307,7 +308,7 @@ export class Session implements TimeTravelSession {
         if (timelineBytes(merged) > MAX_BYTES) this.full = true;
         const pb = this.playback;
         if (!pb) continue;
-        pb.setRange(this.range === "7d" ? merged.start : Math.max(merged.start, this.end - DAY), this.end);
+        pb.setRange(Math.max(merged.start, this.start), this.end);
         if (this.wanted !== null && this.wanted >= pb.start) {
           pb.seek(this.wanted);
           this.wanted = null;
@@ -330,7 +331,7 @@ export class Session implements TimeTravelSession {
     if (range === this.range || !pb || !this.timeline) return;
     this.range = range;
     const t = pb.t;
-    pb.setRange(range === "7d" ? this.timeline.start : Math.max(this.timeline.start, this.end - DAY), this.end, range === "7d" ? WEEK_SPEEDS : SPEEDS);
+    pb.setRange(Math.max(this.timeline.start, this.start), this.end, range === "7d" ? WEEK_SPEEDS : SPEEDS);
     // a week at ten seconds an hour would take half an hour
     if (range === "7d" && pb.speed < 900) pb.speed = 3600;
     this.updateNights();
@@ -387,8 +388,18 @@ export class Session implements TimeTravelSession {
 
   /** The view's quality changed: the replay ticks as often as it allows from the next tick on. */
   setQuality(quality: "auto" | "low" | "high", low: boolean): void {
+    const days = this.maxDays;
     this.quality = quality;
     this.low = low;
+    // the tablet level holds fewer days: the week view shrinks to them (or grows again)
+    const pb = this.playback;
+    if (days === this.maxDays || this.range !== "7d" || !pb || !this.timeline) return;
+    const t = pb.t;
+    pb.setRange(Math.max(this.timeline.start, this.start), this.end);
+    this.updateNights();
+    if (pb.t !== t) this.apply(true);
+    else this.notify();
+    void this.loadOlder();
   }
 
   play(): void {

@@ -290,6 +290,13 @@ const shots = [
   { name: "view-timetravel-right", query: "?tt=15:10", width: 1280, height: 800, click: "◨", then: "Erdgeschoss" },
   { name: "tablet-timetravel", query: "?tt=20:40", width: 800, height: 1280, click: "Erdgeschoss", then: "Wohnzimmer" },
   { name: "phone-timetravel", query: "?tt=07:42", width: 390, height: 844, click: "Erdgeschoss" },
+  // phase 2/3: the week (older days load one after another), the events sheet, "while you were away", the day summary, energy
+  { name: "view-timetravel-7d", query: "?tt=-30h", width: 1280, height: 800, click: "Erdgeschoss", viewScript: "const p = v.getRootNode().host; const s = p.tt.session; const bar = p.renderRoot.querySelector('fp3d-time-bar'); s.setRange('7d');", afterWait: 3500 },
+  { name: "view-timetravel-events", query: "?tt=10:20", width: 1280, height: 800, click: "Erdgeschoss", viewScript: "const p = v.getRootNode().host; const s = p.tt.session; const bar = p.renderRoot.querySelector('fp3d-time-bar'); bar._sheet = 'events';", afterWait: 1200 },
+  { name: "view-timetravel-away", query: "?tt=11:30", width: 1280, height: 800, click: "Erdgeschoss", viewScript: "const p = v.getRootNode().host; const s = p.tt.session; const bar = p.renderRoot.querySelector('fp3d-time-bar'); bar._sheet = 'away';", afterWait: 1200 },
+  { name: "view-timetravel-day", query: "?tt=-26h", width: 1280, height: 800, click: "Erdgeschoss", viewScript: "const p = v.getRootNode().host; const s = p.tt.session; const bar = p.renderRoot.querySelector('fp3d-time-bar'); s.setRange('7d'); bar._sheet = 'day'; setTimeout(() => (bar._compare = true), 2500);", afterWait: 3500 },
+  { name: "view-timetravel-energy", query: "?tt=13:00&flows", width: 1280, height: 800, wait: 1500 },
+  { name: "tablet-timetravel-7d", query: "?tt=-20h", width: 800, height: 1280, click: "Tablet", then: "Erdgeschoss", viewScript: "const p = v.getRootNode().host; const s = p.tt.session; const bar = p.renderRoot.querySelector('fp3d-time-bar'); s.setRange('7d');", afterWait: 3000 },
   { name: "card-timetravel", query: "?card&tt", width: 1400, height: 900, click: "⏪ Zeitreise" },
   { name: "view-timetravel-locked", query: "?nopro", width: 1280, height: 800, click: "🔒 Zeitreise" },
   { name: "card-alert", query: "?card&alerts", width: 1400, height: 900 },
@@ -382,7 +389,7 @@ for (const shot of shots.filter((s) => !only || only.includes(s.name))) {
       const v = document.querySelector("neonplan3d-panel").shadowRoot.querySelector("fp3d-view3d");
       new Function("v", code)(v);
     }, shot.viewScript);
-    await new Promise((r) => setTimeout(r, 1500));
+    await new Promise((r) => setTimeout(r, 1500 + (shot.afterWait ?? 0)));
   }
   if (shot.editorScript) {
     await page.evaluate((code) => {

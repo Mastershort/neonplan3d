@@ -53,6 +53,7 @@ function buildEvents() {
   add("cover.kueche", start, "closed", { current_position: 0 });
   add("cover.garagentor", start, "closed", { current_position: 0 });
   add("vacuum.saugi", start, "docked");
+  add("device_tracker.zweitwagen", start, "home");
   add("lock.van", start, "locked");
   add("alarm_control_panel.haus", start, "disarmed");
   add("weather.zuhause", start, "clear-night", { cloud_coverage: 10, wind_speed: 6, wind_speed_unit: "km/h" });
@@ -62,10 +63,14 @@ function buildEvents() {
   add("climate.wohnzimmer", start, "heat", { hvac_action: "idle", current_temperature: 19.6, temperature: 18 });
   add("climate.schlafzimmer", start, "heat", { hvac_action: "idle", current_temperature: 17.8, temperature: 17 });
 
+  const RADIO = ["Morgenmagazin", "Nachrichten", "Frühstücksradio", "Wetter und Verkehr"];
+  const SHOWS = ["Serie", "Tatort", "Dokumentation", "Fußball", "Quiz am Abend"];
   for (let back = DAYS; back >= 0; back--) {
     const day = midnight(back);
     const r = rng(1000 + back);
     const weekday = new Date(day).getDay();
+    // the last two days: someone left in a hurry – the hall light stays on and the kitchen window open until noon
+    const hurry = back <= 1;
     // morning: bedside lamp, bathroom, warm kitchen light from 20 to 60 %, coffee, radio
     light("light.nachttisch", at(day, 6.3, 3, r), at(day, 6.6, 3, r), { brightness: 51, color_mode: "color_temp", color_temp_kelvin: 2700 });
     span("binary_sensor.bett_links", at(day, 6.35, 3, r), at(day, 23.25, 8, r), "off", "on");
@@ -74,12 +79,14 @@ function buildEvents() {
     const k0 = at(day, 6.5, 2, r);
     for (let i = 0; i <= 8; i++) add("light.kueche", k0 + i * 225000, "on", { brightness: Math.round((20 + i * 5) * 2.55), color_mode: "color_temp", color_temp_kelvin: 2700 });
     add("light.kueche", at(day, 8.17, 4, r), "off");
-    light("light.flur", at(day, 6.67, 2, r), at(day, 7.75, 2, r), { brightness: 120, color_mode: "color_temp", color_temp_kelvin: 3000 });
+    light("light.flur", at(day, 6.67, 2, r), hurry ? at(day, 17.5, 2, r) : at(day, 7.75, 2, r), { brightness: 120, color_mode: "color_temp", color_temp_kelvin: 3000 });
     span("switch.kaffeemaschine", at(day, 6.85, 2, r), at(day, 7.15, 2, r));
-    add("media_player.kueche_lautsprecher", at(day, 7.0, 3, r), "playing", { media_title: "Morgenmagazin", app_name: "Radio", volume_level: 0.35 });
+    const radio = RADIO[back % RADIO.length];
+    add("media_player.kueche_lautsprecher", at(day, 7.0, 3, r), "playing", { media_title: radio, app_name: "Radio", volume_level: 0.35 });
+    add("media_player.kueche_lautsprecher", at(day, 7.35, 3, r), "playing", { media_title: "Blue Train", media_artist: "John Coltrane", app_name: "Radio", volume_level: 0.5 });
     const radioOff = at(day, 7.67, 3, r);
     add("media_player.kueche_lautsprecher", radioOff, "idle", { volume_level: 0.35 });
-    add("media_player.bad_lautsprecher", at(day, 6.6, 2, r), "playing", { media_title: "Morgenmagazin", app_name: "Radio", volume_level: 0.3 });
+    add("media_player.bad_lautsprecher", at(day, 6.6, 2, r), "playing", { media_title: radio, app_name: "Radio", volume_level: 0.3 });
     add("media_player.bad_lautsprecher", at(day, 7.08, 2, r), "idle", { volume_level: 0.3 });
     span("binary_sensor.kueche_praesenz", at(day, 6.52, 2, r), at(day, 7.7, 2, r));
     for (const h of [6.55, 7.05, 12.4, 18.6, 19.2]) span("binary_sensor.kuehlschrank_tuer", at(day, h, 3, r), at(day, h, 3, r) + 25000);
@@ -88,7 +95,7 @@ function buildEvents() {
     const shut = at(day, 7.33, 3, r);
     span("binary_sensor.schlafzimmer_fenster", tilt, shut);
     span("binary_sensor.schlafzimmer_kipp", tilt, shut);
-    span("binary_sensor.kueche_fenster", at(day, 7.1, 4, r), at(day, 7.3, 4, r));
+    span("binary_sensor.kueche_fenster", at(day, 7.1, 4, r), hurry ? at(day, 12.1, 4, r) : at(day, 7.3, 4, r));
     // heating in the morning and the evening
     add("climate.wohnzimmer", at(day, 5.5, 0, r), "heat", { hvac_action: "heating", current_temperature: 19.5, temperature: 21.5 });
     add("climate.wohnzimmer", at(day, 7.0, 0, r), "heat", { hvac_action: "idle", current_temperature: 21.4, temperature: 18 });
@@ -122,10 +129,17 @@ function buildEvents() {
     add("cover.garagentor", g2 + 80000, "closing", { current_position: 100 });
     add("cover.garagentor", g2 + 95000, "closed", { current_position: 0 });
     const home = g2 + 150000;
+    // the second car (its own tracker, home or away only) runs errands on weekdays
+    if (weekday >= 1 && weekday <= 5) {
+      add("device_tracker.zweitwagen", at(day, 8.2, 5, r), "not_home");
+      add("device_tracker.zweitwagen", at(day, 16.9, 5, r), "home");
+    }
     span("binary_sensor.haustuer", home, home + 30000);
     span("binary_sensor.flur_bewegung", home, home + 45000);
     // the robot at ten, the washing machine from eleven to twenty to one, home office upstairs
-    add("vacuum.saugi", at(day, 10.0, 1, r), "cleaning");
+    // the robot reports the room it cleans (the trail through the rooms follows it)
+    const v0 = at(day, 10.0, 1, r);
+    ["Wohnzimmer", "Küche", "Flur", "Bad"].forEach((room, i) => add("vacuum.saugi", v0 + i * 690000, "cleaning", { current_room: room }));
     add("vacuum.saugi", at(day, 10.8, 2, r), "returning");
     add("vacuum.saugi", at(day, 10.87, 2, r), "docked");
     span("binary_sensor.wohnzimmer_kamera_bewegung", at(day, 10.1, 1, r), at(day, 10.7, 1, r));
@@ -153,7 +167,8 @@ function buildEvents() {
     light("light.pool", at(day, 18.8, 2, r), at(day, 22.5, 2, r), { brightness: 200, color_mode: "hs", rgb_color: [40, 200, 255] });
     light("light.haustuer", at(day, 18.8, 2, r), at(day, 23.17, 1, r), { brightness: 200, color_mode: "color_temp", color_temp_kelvin: 2700 });
     const tv = at(day, 20.25, 2, r);
-    add("media_player.fernseher", tv, "playing", { app_name: "Netflix", media_title: "Serie", volume_level: 0.35 });
+    add("media_player.fernseher", tv, "playing", { app_name: "Netflix", media_title: SHOWS[back % SHOWS.length], volume_level: 0.35 });
+    add("media_player.fernseher", tv + 3600000, "playing", { app_name: "Netflix", media_title: SHOWS[back % SHOWS.length], volume_level: 0.45 });
     add("media_player.fernseher", at(day, 22.5, 4, r), "off");
     light("light.led_band", tv, at(day, 22.5, 4, r), { brightness: 160, color_mode: "hs", rgb_color: [120, 90, 255] });
     light("light.bad", at(day, 22.6, 3, r), at(day, 22.9, 3, r), { brightness: 220, color_mode: "color_temp", color_temp_kelvin: 4000 });
@@ -242,7 +257,8 @@ export function demoHistory(msg, states) {
   const stats = {};
   const missing = [];
   for (const id of [...(msg.entity_ids ?? []), ...(msg.statistic_ids ?? [])]) {
-    if (id.startsWith("person.") || id.startsWith("device_tracker.")) continue;
+    // people never; a car's own tracker only as home or away (as the integration answers it)
+    if (id.startsWith("person.") || (id.startsWith("device_tracker.") && !(msg.car_trackers ?? []).includes(id))) continue;
     const sample = numeric(id, start * 1000);
     if (sample !== null) {
       const first = Math.ceil(start / STEP) * STEP;
