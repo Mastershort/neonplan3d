@@ -1,6 +1,6 @@
 // Time travel: which entities to fetch (and how), and what each one means for the event markers.
 
-import type { Building, Floor, Opening } from "../model.ts";
+import type { Building, Floor, Furniture, Opening } from "../model.ts";
 import type { HomeAssistant } from "../types.ts";
 import type { HistorySpec } from "./types.ts";
 
@@ -45,7 +45,6 @@ export function historyRequest(hass: HomeAssistant, building: Building, spec: Hi
 export type Role = "door" | "garage" | "lock" | "alarm" | "smoke" | "gas" | "co" | "water" | "window" | "motion" | "robot" | "washer" | "weather";
 
 const SAFETY: Record<string, Role> = { smoke: "smoke", gas: "gas", carbon_monoxide: "co", moisture: "water" };
-const MOTION = new Set(["motion", "occupancy", "presence"]);
 const FRONT_STYLES = new Set(["front", "front_glass", "sidelight", "sidelights"]);
 const APPLIANCES = new Set(["washer", "dryer", "dishwasher"]);
 
@@ -80,6 +79,24 @@ export function exteriorDoor(floor: Floor, o: Opening): boolean {
   return !floor.rooms.some((r) => r.id !== room.id && r.points.length >= 3 && inside(out, r.points));
 }
 
+/**
+ * The power sensors of washing machines, dryers and dishwashers in the plan: linked to the item, else a
+ * power sensor placed right next to it (the plug the machine hangs on).
+ */
+export function appliancePower(hass: HomeAssistant, building: Building, spec: HistorySpec): Map<string, Furniture> {
+  const out = new Map<string, Furniture>();
+  const links = new Map(spec.furniture);
+  for (const floor of building.floors)
+    for (const f of floor.furniture) {
+      if (!APPLIANCES.has(f.type)) continue;
+      const linked = links.get(f.id)?.power;
+      const near = floor.placements.find((p) => hass.states[p.entity_id]?.attributes.device_class === "power" && Math.hypot(p.x - f.x, p.z - f.z) <= 1.2)?.entity_id;
+      const id = linked ?? near;
+      if (id && !out.has(id)) out.set(id, f);
+    }
+  return out;
+}
+
 /** What each fetched entity means for the events (doors, windows, safety sensors, robots, appliances). */
 export function eventRoles(hass: HomeAssistant, building: Building, spec: HistorySpec, fetched: ReadonlySet<string>): Map<string, Role> {
   const roles = new Map<string, Role>();
@@ -96,9 +113,7 @@ export function eventRoles(hass: HomeAssistant, building: Building, spec: Histor
         if (exteriorDoor(floor, o)) for (const id of [l.contact, l.contact2]) set(id, "door");
       } else for (const id of [l.contact, l.tilt, l.contact2, l.tilt2]) set(id, "window");
     }
-  const furniture = new Map(spec.furniture);
-  for (const floor of building.floors)
-    for (const f of floor.furniture) if (APPLIANCES.has(f.type)) set(furniture.get(f.id)?.power, "washer");
+  for (const id of appliancePower(hass, building, spec).keys()) set(id, "washer");
   for (const id of fetched) {
     if (roles.has(id)) continue;
     const domain = domainOf(id);
@@ -111,7 +126,8 @@ export function eventRoles(hass: HomeAssistant, building: Building, spec: Histor
     else if (domain === "binary_sensor") {
       if (SAFETY[cls]) set(id, SAFETY[cls]);
       else if (cls === "garage_door") set(id, "garage");
-      else if (MOTION.has(cls)) set(id, "motion");
+      // motion only: occupancy and presence sensors (a bed, a desk) tell about people, not about the house
+      else if (cls === "motion") set(id, "motion");
     }
   }
   return roles;

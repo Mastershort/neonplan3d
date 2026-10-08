@@ -4,7 +4,7 @@
 
 import type { HomeAssistant } from "../types.ts";
 import "../components/time-bar.ts";
-import { eventRoles, historyRequest } from "./classify.ts";
+import { appliancePower, eventRoles, historyRequest } from "./classify.ts";
 import { findEvents, type TTEvent } from "./events.ts";
 import { eventNear, parseMoment, Playback, tickMs } from "./playback.ts";
 import { Replay } from "./replay-hass.ts";
@@ -31,6 +31,8 @@ export class Session implements TimeTravelSession {
   playback: Playback | null = null;
   timeline: Timeline | null = null;
   events: TTEvent[] = [];
+  /** Names for events whose entity says little (a power sensor stands for its washing machine). */
+  names = new Map<string, string>();
   gaps: [number, number][] = [];
   nights: [number, number][] = [];
   readonly opts: StartOptions;
@@ -123,6 +125,7 @@ export class Session implements TimeTravelSession {
     const fetched = new Set([...timeline.tracks.keys(), ...timeline.series.keys()]);
     const weather = [building.settings.weather_entity, ...req.entities.filter((id) => id.startsWith("weather."))].find((id) => !!id && fetched.has(id)) ?? null;
     this.events = findEvents({ timeline, roles: eventRoles(live, building, spec, fetched), weather });
+    for (const [id, f] of appliancePower(live, building, spec)) this.names.set(id, f.name || this.t(`furn_${f.type}`));
     this.gaps = findGaps(timeline);
     const loc = this.location;
     this.nights = loc ? nightBands(loc.lat, loc.lon, this.start, this.end) : this.sunNights(timeline);

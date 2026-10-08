@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { emptyBuilding, newFloor, type Opening } from "../model.ts";
 import type { HassEntity, HomeAssistant } from "../types.ts";
-import { eventRoles, exteriorDoor, historyRequest } from "./classify.ts";
+import { appliancePower, eventRoles, exteriorDoor, historyRequest } from "./classify.ts";
 import { createReplayHass, Replay, ReplayReadOnly, WS_ALLOWED } from "./replay-hass.ts";
 import { buildTimeline } from "./timeline.ts";
 import type { HistorySpec } from "./types.ts";
@@ -203,4 +203,25 @@ test("roles: a front door, a room door, a garage door and windows from the openi
   assert.equal(roles.get("binary_sensor.pir"), "motion");
   assert.equal(roles.get("lock.door"), "lock");
   assert.equal(roles.get("vacuum.robo"), "robot");
+});
+
+test("a washing machine is watched through its linked power sensor, else a power plug placed next to it", () => {
+  const b = emptyBuilding();
+  const floor = newFloor("eg", "EG", 0);
+  const item = (id: string, type: string, x: number) => ({ id, type, x, z: 1, w: 0.6, d: 0.6, h: 0.85, rotation: 0, variant: null });
+  floor.furniture = [item("wm", "washer", 2), item("dw", "dishwasher", 6), item("sofa", "sofa", 4)];
+  floor.placements = [
+    { entity_id: "sensor.plug_wm", x: 2.5, z: 1.2, y: null },
+    { entity_id: "sensor.plug_far", x: 9, z: 9, y: null },
+  ];
+  b.floors = [floor];
+  const st = (id: string) => [id, { entity_id: id, state: "3", attributes: { device_class: "power" } }];
+  const hass = { states: Object.fromEntries([st("sensor.plug_wm"), st("sensor.plug_far"), st("sensor.dw_power")]) } as unknown as HomeAssistant;
+  const spec: HistorySpec = { entities: [], openings: [], furniture: [["dw", { entity: null, power: "sensor.dw_power" }]], low: false };
+  const found = appliancePower(hass, b, spec);
+  assert.deepEqual([...found.keys()].sort(), ["sensor.dw_power", "sensor.plug_wm"]);
+  assert.equal(found.get("sensor.plug_wm")?.type, "washer");
+  const roles = eventRoles(hass, b, spec, new Set(["sensor.plug_wm", "sensor.dw_power", "sensor.plug_far"]));
+  assert.equal(roles.get("sensor.plug_wm"), "washer");
+  assert.equal(roles.get("sensor.plug_far"), undefined);
 });

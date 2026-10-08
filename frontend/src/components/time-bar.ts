@@ -186,7 +186,7 @@ export class Fp3dTimeBar extends LitElement {
 
   private eventText(e: TTEvent): string {
     const s = this.session!;
-    const name = (s.opts.live.states[e.entity]?.attributes.friendly_name as string | undefined) ?? e.entity;
+    const name = s.names.get(e.entity) ?? (s.opts.live.states[e.entity]?.attributes.friendly_name as string | undefined) ?? e.entity;
     return s.t(`tt_ev_${e.kind}`, { name });
   }
 
@@ -565,14 +565,14 @@ export class Fp3dTimeBar extends LitElement {
     }
     .tick {
       position: absolute;
-      bottom: 0;
+      top: 0;
       width: 1px;
-      height: 6px;
+      height: 5px;
       background: rgba(200, 215, 240, 0.28);
       pointer-events: none;
     }
     .tick-major {
-      height: 10px;
+      height: 9px;
       background: rgba(200, 215, 240, 0.5);
     }
     .tick-day {
@@ -582,20 +582,20 @@ export class Fp3dTimeBar extends LitElement {
     .tick span {
       position: absolute;
       left: 3px;
-      top: -24px;
+      top: 22px;
       font-size: 10px;
+      line-height: 11px;
       font-weight: 500;
       color: var(--fp3d-muted, #8a9bb8);
       white-space: nowrap;
     }
     .tick-day span {
-      top: 1px;
       color: var(--tt);
       font-weight: 700;
     }
     .mark {
       position: absolute;
-      top: 5px;
+      top: 6px;
       width: 14px;
       height: 14px;
       margin-left: -7px;
@@ -610,7 +610,7 @@ export class Fp3dTimeBar extends LitElement {
       width: 18px;
       height: 18px;
       margin-left: -9px;
-      top: 3px;
+      top: 4px;
     }
     .mark span {
       display: block;

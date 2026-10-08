@@ -915,7 +915,8 @@ export class Fp3dView3d extends LitElement {
         seenMedia.add(id);
         // a cloud speaker (Alexa, Google) drops out or reports "idle" for a moment between songs:
         // its last card stands in for a short while instead of blinking away
-        const graced = this.mediaGrace.get(id);
+        // (not while travelling in time: the last live card does not belong into the past)
+        const graced = this.ro ? undefined : this.mediaGrace.get(id);
         // what it plays: the title, else the app or the source (a receiver on "TV", a speaker on Bluetooth)
         const label = [st.attributes.media_title, st.attributes.app_name, st.attributes.source].find((v): v is string => typeof v === "string" && !!v.trim()) ?? "";
         const showing = !isUnavailable(st) && (st.state === "playing" || (st.state === "paused" && !!label) || (st.state === "on" && !!st.attributes.source));
@@ -2387,7 +2388,7 @@ export class Fp3dView3d extends LitElement {
   private mediaCardUp(hass: HomeAssistant, id: string): boolean {
     const st = hass.states[id];
     if (!st || kindOf(id) !== "media") return false;
-    if ((this.mediaGrace.get(id)?.until ?? 0) > Date.now() && isUnavailable(st)) return true;
+    if (!this.ro && (this.mediaGrace.get(id)?.until ?? 0) > Date.now() && isUnavailable(st)) return true;
     const label = [st.attributes.media_title, st.attributes.app_name, st.attributes.source].some((v) => typeof v === "string" && !!v.trim());
     return !isUnavailable(st) && (st.state === "playing" || (st.state === "paused" && label));
   }
@@ -3375,12 +3376,39 @@ export class Fp3dView3d extends LitElement {
       .fp3d-replay .fp3d-alert-banner {
         top: 74px;
       }
+      /* the star (central menu) rests while travelling: the heat legend takes its place */
+      .fp3d-replay .fp3d-legend {
+        bottom: calc(56px + var(--fp3d-bottom-inset, 0px));
+      }
+      .fp3d-replay .fp3d-energy {
+        max-width: calc(50% - 96px);
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        scrollbar-width: none;
+        pointer-events: auto;
+      }
+      .fp3d-replay .fp3d-energy > * {
+        flex: none;
+      }
+      @container fp3d (max-width: 700px) {
+        .fp3d-replay .fp3d-energy {
+          top: 68px;
+          max-width: calc(100% - 24px);
+        }
+        .fp3d-replay .fp3d-alert-banner,
+        .fp3d-replay .fp3d-legend {
+          top: 116px;
+        }
+        .fp3d-replay.fp3d-has-alerts .fp3d-legend {
+          top: 164px;
+        }
+      }
       .fp3d-info {
         grid-template-columns: auto;
         z-index: 5;
       }
-      .fp3d-info b {
-        font-size: 14px;
+      .fp3d-swipe.fp3d-info b {
+        font-size: 15px;
       }
       .fp3d-swipe span {
         font-size: 12px;
