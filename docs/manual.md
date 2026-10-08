@@ -716,6 +716,8 @@ Car Pro lives on the **parking spot**, not on the vehicle furniture. If your car
 
 ![Time travel: the floor at 07:42 with the time bar](images/view-timetravel.jpg)
 
+> **🧪 Supporter beta:** Time travel is the first add-on that comes as a beta with the [Supporter Pass](https://mastershort.de/en/neonplan3d/supporters/) first. Supporters test it early and give feedback in the Discord channel **#beta-feedback** (button **Feedback on Discord** under *Extensions*, or **🧪 BETA** at the top of the time bar). Once it is finished, everyone can buy it on its own in the shop. Until then *Extensions* marks it "Beta · supporters first".
+
 Time travel replays the last 24 hours – or, if you like, the last 7 days – in the house, from the history Home Assistant records anyway (the recorder): lights with brightness and colour, doors and windows, blinds, motion, heating, TV and speakers, temperatures, power, weather and the sun's position. Everything stays in Home Assistant, and **nothing is switched** – time travel only shows.
 
 **Start:** tap **⏪ Time travel** in the switch bar at the bottom; in the dashboard card the button appears with `time_travel: true` (chapter 8). The view gets an amber frame, and the moment shown stands large at the top centre ("Thu 07:42 · 6 h 14 min ago"). It starts paused, one hour before now. **● Live** or **Esc** takes you back to the present; in the card the return to the start view does too (`idle_return`).

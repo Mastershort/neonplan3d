@@ -718,6 +718,8 @@ Auto Pro hängt am **Stellplatz**, nicht am Fahrzeug-Möbel. Steht dein Auto als
 
 ![Zeitreise: die Etage um 07:42 mit Zeitleiste](images/view-timetravel.jpg)
 
+> **🧪 Supporter-Beta:** Die Zeitreise ist die erste Erweiterung, die zuerst als Beta nur mit dem [Supporter-Pass](https://mastershort.de/neonplan3d/unterstuetzer/) kommt. Supporter testen sie vorab und geben im Discord-Kanal **#beta-feedback** Rückmeldung (Knopf **Feedback auf Discord** unter *Erweiterungen*, oder **🧪 BETA** oben in der Zeitleiste). Sobald sie fertig ist, gibt es sie für alle einzeln im Shop. Unter *Erweiterungen* ist sie bis dahin mit „Beta · zuerst für Supporter“ markiert.
+
 Die Zeitreise spielt die letzten 24 Stunden – auf Wunsch die letzten 7 Tage – im Haus ab, aus dem Verlauf, den Home Assistant ohnehin aufzeichnet (Recorder): Lichter mit Helligkeit und Farbe, Türen und Fenster, Rollläden, Bewegung, Heizung, Fernseher und Lautsprecher, Temperaturen, Leistung, Wetter und Sonnenstand. Alles bleibt in Home Assistant, und **nichts wird geschaltet** – die Zeitreise zeigt nur.
 
 **Starten:** Unten in der Schalterleiste **⏪ Zeitreise** antippen; in der Dashboard-Karte erscheint der Knopf mit `time_travel: true` (Kapitel 8). Die Ansicht bekommt einen bernsteinfarbenen Rahmen, oben in der Mitte steht groß der gezeigte Moment („Do 07:42 · vor 6 h 14 min“). Sie beginnt angehalten, eine Stunde vor jetzt. **● Live** oder **Esc** führt zurück in die Gegenwart; in der Karte auch die Rückkehr zur Startansicht (`idle_return`).

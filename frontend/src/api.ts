@@ -170,6 +170,8 @@ export interface LicenseStatus {
   /** Packs and Pro add-ons not owned yet (empty without a key or with an older shop). */
   offers?: ShopOffer[];
   loyalty?: ShopLoyalty | null;
+  /** Supporter-Pass holders: the code that unlocks the supporter role on Discord (/supporter). */
+  supporter?: { code: string; until: string | null } | null;
   /** Pack updates installed from the shop, newest last. */
   updates?: PackUpdate[];
 }

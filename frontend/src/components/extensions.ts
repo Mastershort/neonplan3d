@@ -17,6 +17,7 @@ import {
   type CatalogPack,
   type LicenseStatus,
 } from "../api.ts";
+import { DISCORD_URL, isBeta, supporterUrl } from "../beta.ts";
 import { FEATURES, knownFeature, manualUrl, shopUrl, unlockedFeatures } from "../features.ts";
 import { translate, type I18nKey } from "../i18n.ts";
 import { packName, type FurniturePack } from "../packs.ts";
@@ -78,18 +79,23 @@ export class Extensions extends LitElement {
           <a class="fp3d-btn" href=${manualUrl(this.hass?.language, "extensions")} target="_blank" rel="noopener">📖 ${this.t("manual")}</a>
         </div>
       </header>
-      ${this.renderUpdates()} ${this.renderOffers()} ${this.renderShop()}
+      ${this.renderUpdates()} ${this.renderSupporter()} ${this.renderOffers()} ${this.renderShop()}
       <section class="fp3d-ext-card">
         <h3>${this.t("ext_pro")}</h3>
         <div class="fp3d-ext-pro">
           ${FEATURES.map(
-            (f) => html`<div class="fp3d-ext-feature ${unlocked.has(f) ? "fp3d-ext-on" : ""}">
+            (f) => html`<div class="fp3d-ext-feature ${unlocked.has(f) ? "fp3d-ext-on" : ""} ${isBeta(f) ? "fp3d-ext-beta" : ""}">
               <b>${unlocked.has(f) ? "✓" : "🔒"} ${this.t(`pro_name_${f}` as I18nKey)}</b>
+              ${isBeta(f) ? html`<span class="fp3d-beta-tag">🧪 ${this.t(unlocked.has(f) ? "beta_yours" : "beta_supporters")}</span>` : nothing}
               <span class="fp3d-sub">${this.t(`pro_feature_${f}` as I18nKey)}</span>
+              ${isBeta(f) ? html`<span class="fp3d-sub">${this.t(unlocked.has(f) ? "beta_yours_hint" : "beta_supporters_hint")}</span>` : nothing}
               <span class="fp3d-ext-links">
                 ${unlocked.has(f)
-                  ? html`<span class="fp3d-ext-state">${this.t("ext_active")}</span>`
-                  : html`<a class="fp3d-ext-link" href=${shopUrl(this.hass?.language)} target="_blank" rel="noopener">${this.t("ext_get")}</a>`}
+                  ? html`<span class="fp3d-ext-state">${this.t("ext_active")}</span>
+                      ${isBeta(f) ? html`<a class="fp3d-ext-link" href=${DISCORD_URL} target="_blank" rel="noopener">💬 ${this.t("beta_feedback")}</a>` : nothing}`
+                  : isBeta(f)
+                    ? html`<a class="fp3d-ext-link" href=${supporterUrl(this.hass?.language)} target="_blank" rel="noopener">💙 ${this.t("beta_become")}</a>`
+                    : html`<a class="fp3d-ext-link" href=${shopUrl(this.hass?.language)} target="_blank" rel="noopener">${this.t("ext_get")}</a>`}
                 <a class="fp3d-ext-link" href=${manualUrl(this.hass?.language, f)} target="_blank" rel="noopener">${this.t("manual_more")}</a>
               </span>
             </div>`,
@@ -157,6 +163,34 @@ export class Extensions extends LitElement {
   }
 
   /** New in the shop: packs and Pro add-ons not owned yet, and the customer's loyalty code. */
+  /** Supporter-Pass holders: their Discord code, typed into /supporter there, unlocks the beta channel. */
+  private renderSupporter() {
+    const sup = this._license?.active ? this._license.supporter : null;
+    if (!sup) return nothing;
+    return html`<section class="fp3d-ext-card fp3d-offers">
+      <h3>💙 ${this.t("supporter_title")}</h3>
+      <p class="fp3d-sub">${this.t("supporter_intro")}</p>
+      <div class="fp3d-loyalty">
+        <code>${sup.code}</code>
+        <button
+          class="fp3d-btn"
+          @click=${async () => {
+            try {
+              await navigator.clipboard.writeText(`/supporter ${sup.code}`);
+              this._licenseMsg = { ok: true, text: this.t("license_copied") };
+            } catch {
+              /* no clipboard: the code stays readable */
+            }
+          }}
+        >
+          ${this.t("license_copy")}
+        </button>
+        <a class="fp3d-btn fp3d-primary" href=${DISCORD_URL} target="_blank" rel="noopener">💬 ${this.t("supporter_open")}</a>
+      </div>
+      <p class="fp3d-sub">${this.t("supporter_how", { code: sup.code })}</p>
+    </section>`;
+  }
+
   private renderOffers() {
     const lic = this._license;
     if (!lic?.active) return nothing;
@@ -350,6 +384,9 @@ export class Extensions extends LitElement {
       .fp3d-updates p {
         margin: 4px 0;
       }
+      .fp3d-loyalty a {
+        text-decoration: none;
+      }
       .fp3d-loyalty {
         display: flex;
         flex-wrap: wrap;
@@ -473,6 +510,18 @@ export class Extensions extends LitElement {
       }
       .fp3d-ext-on {
         border-color: var(--fp3d-accent);
+      }
+      .fp3d-ext-beta {
+        border-style: dashed;
+      }
+      .fp3d-beta-tag {
+        justify-self: start;
+        padding: 2px 8px;
+        border-radius: 999px;
+        background: color-mix(in srgb, var(--fp3d-accent) 18%, transparent);
+        color: var(--fp3d-accent);
+        font-size: 12px;
+        font-weight: 700;
       }
       .fp3d-ext-state {
         color: var(--fp3d-accent);

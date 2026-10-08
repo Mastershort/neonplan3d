@@ -106,7 +106,7 @@ async def test_activate_install_and_update(hass: HomeAssistant, hass_ws_client, 
         {"id": "shop.living", "name": "Wohnzimmer", "release": 1, "url": "https://shop/x", "installed": None}
     ]
     # an older shop sends no offers and no loyalty code
-    assert status["offers"] == [] and status["loyalty"] is None
+    assert status["offers"] == [] and status["loyalty"] is None and status["supporter"] is None
     sent = aioclient_mock.mock_calls[-1][2]
     # the version goes along, so the shop can ask an old installation to update first
     assert {k: v for k, v in sent.items() if k != "version"} == {"key": "NP-ABCD-EFGH-2345-6789", "instance": fp}
@@ -133,6 +133,7 @@ async def test_activate_install_and_update(hass: HomeAssistant, hass_ws_client, 
         {"id": "bad", "name": "No link", "url": "http://insecure"},
     ]
     catalog["loyalty"] = {"code": "NP-TREUE-AB12CD", "percent": 10}
+    catalog["supporter"] = {"code": "NPS-7KQ4-X2M9", "until": "2027-12-31"}
     aioclient_mock.post(f"{lic.SHOP_API}/catalog", json=catalog)
     aioclient_mock.post(
         f"{lic.SHOP_API}/pack", text=_sign(private, keys, {**PAYLOAD, "instance": fp, "licensee": "Anna", "release": 2})
@@ -149,6 +150,7 @@ async def test_activate_install_and_update(hass: HomeAssistant, hass_ws_client, 
     assert [(u["id"], u["release"]) for u in status["updates"]] == [("shop.living", 2)]
     assert status["offers"][0]["image"] is None and status["offers"][0]["kind"] == "pack"
     assert status["loyalty"] == {"code": "NP-TREUE-AB12CD", "percent": 10}
+    assert status["supporter"] == {"code": "NPS-7KQ4-X2M9", "until": "2027-12-31"}
 
     # the request carries our own User-Agent (the host blocks aiohttp's default one)
     assert aioclient_mock.mock_calls[-1][3]["User-Agent"].startswith("NeonPlan3D/")
@@ -180,7 +182,7 @@ async def test_activate_install_and_update(hass: HomeAssistant, hass_ws_client, 
     await client.send_json_auto_id({"type": "neonplan3d/license/remove"})
     status = (await client.receive_json())["result"]
     assert not status["active"] and len(hass.data[DOMAIN].packs) == 1
-    assert status["offers"] == [] and status["loyalty"] is None
+    assert status["offers"] == [] and status["loyalty"] is None and status["supporter"] is None
 
 
 async def test_a_pack_bound_elsewhere_is_refused_on_import(hass: HomeAssistant, hass_ws_client, monkeypatch) -> None:

@@ -159,6 +159,7 @@ async def async_fetch_catalog(hass: HomeAssistant, key: str, instance: str) -> d
         "packs": packs,
         "offers": _offers(data.get("offers")),
         "loyalty": _loyalty(data.get("loyalty")),
+        "supporter": _supporter(data.get("supporter")),
     }
 
 
@@ -205,6 +206,18 @@ def _loyalty(raw: Any) -> dict[str, Any] | None:
     return {"code": code, "percent": percent}
 
 
+def _supporter(raw: Any) -> dict[str, Any] | None:
+    """A Supporter-Pass holder's Discord code: typed into /supporter on Discord, it unlocks the supporter
+    role and the beta channels there."""
+    if not isinstance(raw, dict):
+        return None
+    code = str(raw.get("code") or "")
+    until = str(raw.get("until") or "")
+    if not re.fullmatch(r"[A-Z0-9-]{4,30}", code):
+        return None
+    return {"code": code, "until": until if re.fullmatch(r"\d{4}-\d{2}-\d{2}", until) else None}
+
+
 async def async_fetch_pack(hass: HomeAssistant, key: str, instance: str, pack_id: str) -> str:
     """A bought pack, signed for this installation."""
     return await _post(hass, "pack", {"key": key, "instance": instance, "pack": pack_id})
@@ -226,6 +239,7 @@ def status(data: FloorplanData, instance: str) -> dict[str, Any]:
         "packs": [{**p, "installed": installed.get(p["id"])} for p in lic.get("catalog", [])],
         "offers": lic.get("offers", []) if key else [],
         "loyalty": lic.get("loyalty") if key else None,
+        "supporter": lic.get("supporter") if key else None,
         "updates": lic.get("updates", []),
     }
 
@@ -241,6 +255,7 @@ async def async_activate(hass: HomeAssistant, data: FloorplanData, key: str) -> 
         "catalog": catalog["packs"],
         "offers": catalog["offers"],
         "loyalty": catalog["loyalty"],
+        "supporter": catalog["supporter"],
         "checked_at": time.time(),
         "error": None,
     }
@@ -256,6 +271,7 @@ async def async_remove(hass: HomeAssistant, data: FloorplanData) -> dict[str, An
         "catalog": [],
         "offers": [],
         "loyalty": None,
+        "supporter": None,
         "checked_at": None,
         "error": None,
     }
@@ -320,6 +336,7 @@ async def async_refresh(hass: HomeAssistant, data: FloorplanData, install_update
             "catalog": catalog["packs"],
             "offers": catalog["offers"],
             "loyalty": catalog["loyalty"],
+            "supporter": catalog["supporter"],
             "checked_at": time.time(),
             "error": None,
         }

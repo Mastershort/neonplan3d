@@ -47,6 +47,7 @@
             ]
           : [],
         loyalty: params.has("shop") ? { code: "NP-TREUE-DEMO42", percent: 10 } : null,
+        supporter: params.has("shop") ? { code: "NPS-DEMO-7KQ4", until: "2027-12-31" } : null,
         updates: params.has("shop") ? [{ id: "mastershort.kitchen", name: "Küche", release: 2, added: 10, at: Date.now() / 1000 - 600 }] : [],
       };
       let building = params.has("empty") ? { version: 1, floors: [], settings: { wall_exterior: 0.24, wall_interior: 0.12, grid: 0.05 } } : DEMO_BUILDING;
