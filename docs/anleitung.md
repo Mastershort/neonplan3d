@@ -457,6 +457,7 @@ Die 3D-Ansicht hat drei Ebenen:
 | **Raumnamen** | Namen der Räume ein- oder ausblenden |
 | **Spur** | Bewegungsspur, Pro, siehe [6.1](#61-kamera-cockpit) |
 | **Wetter** | Wetter draußen, Pro, siehe [6.2](#62-wetter-draußen) |
+| **⏪ Zeitreise** | Die letzten 24 Stunden im Haus abspielen, nur ansehen, Pro, siehe [6.7](#67-zeitreise) |
 | **≡ / ↔** (rechts in der Etagen- und Raumleiste) | Die Leiste oben auf mehrere Zeilen umbrechen, wenn viele Räume nicht in eine Zeile passen, oder zurück in eine Zeile; in einer Zeile scrollt sie seitlich, am PC auch mit dem Mausrad. In der Hausansicht steht vor den Räumen jeder Etage ihr Name |
 | **⚙** (nur auf dem Handy, oben neben der Version) | Klappt die Ansichtsoptionen Qualität, Look, Symbole und FPS auf und wieder zu; so braucht der Kopf auf dem Handy nur zwei Zeilen |
 | **Auge** (unten links, neben der Lupe) | Blendet alles aus, was nicht die 3D-Ansicht ist: Kopfzeile, Etagen- und Raumleiste, Energiewerte, Etagenbilder, Schalter. Übrig bleibt die Bühne – auf dem Handy die halbe Bildschirmhöhe mehr. Ein Tipp aufs Auge holt alles zurück; ein Raum lässt sich weiter antippen. Das Gerät merkt sich die Wahl |
@@ -705,6 +706,45 @@ Auto Pro hängt am **Stellplatz**, nicht am Fahrzeug-Möbel. Steht dein Auto als
 
 **Wandtablet:** keine Animation nötig – Auto Pro läuft auf jeder Stufe gleich.
 
+### 6.7 Zeitreise
+
+![Zeitreise: die Etage um 07:42 mit Zeitleiste](images/view-timetravel.jpg)
+
+Die Zeitreise spielt die letzten 24 Stunden im Haus ab – aus dem Verlauf, den Home Assistant ohnehin aufzeichnet (Recorder): Lichter mit Helligkeit und Farbe, Türen und Fenster, Rollläden, Bewegung, Heizung, Fernseher und Lautsprecher, Temperaturen, Leistung, Wetter und Sonnenstand. Alles bleibt in Home Assistant, und **nichts wird geschaltet** – die Zeitreise zeigt nur.
+
+**Starten:** Unten in der Schalterleiste **⏪ Zeitreise** antippen; in der Dashboard-Karte erscheint der Knopf mit `time_travel: true` (Kapitel 8). Die Ansicht bekommt einen bernsteinfarbenen Rahmen, oben in der Mitte steht groß der gezeigte Moment („Do 07:42 · vor 6 h 14 min“). Sie beginnt angehalten, eine Stunde vor jetzt. **● Live** oder **Esc** führt zurück in die Gegenwart; in der Karte auch die Rückkehr zur Startansicht (`idle_return`).
+
+**Die Zeitleiste unten:**
+
+| Element | Wirkung |
+|---|---|
+| **⏮** / **⏭** | Zum vorigen oder nächsten Ereignis springen; die Wiedergabe hält dort an |
+| **▶** / **⏸** | Abspielen und Anhalten. Am Ende angekommen, beginnt ▶ wieder von vorn |
+| **Leiste** | Antippen oder ziehen springt zu diesem Moment. Dunkle Flächen sind die Nacht (nach dem Sonnenstand am Standort von Home Assistant), grau ist die Zeit, aus der der Recorder noch nichts hat, schraffiert eine Lücke – Home Assistant war aus oder startete neu |
+| **Punkte** | Ereignisse. Ein Tipp springt hin und hält an, langes Drücken zeigt, was passiert ist. Liegen mehrere dicht beieinander, werden sie ein Punkt mit Zahl in der Farbe des wichtigsten |
+| **360×** | Das Tempo: 60× (eine Stunde in einer Minute), 360× (in 10 Sekunden, Standard), 900× (in 4 Sekunden), 3600× (in einer Sekunde) |
+| **● Live** | Zurück in die Gegenwart |
+
+Am PC: **Leertaste** spielt ab oder hält an, die **Pfeiltasten** springen 5 Minuten (mit Umschalt eine Stunde).
+
+**Ereignisse:** die Haustür (eine Tür mit Kontakt in einer Außenwand oder im Haustür-Look), Garagentor und Tor, ein Schloss wird entriegelt, der Alarm löst aus, Rauch, Gas, Kohlenmonoxid, Wasser, ein Fenster steht offen, während es regnet, Bewegung in der Nacht (23 bis 5 Uhr, nur Bewegungsmelder), der Saugroboter startet und ist fertig, Waschmaschine, Trockner und Spülmaschine sind fertig (die Leistung fällt nach einem Lauf; der Leistungssensor hängt am Möbel oder ist als Gerät direkt daneben platziert). Dasselbe kurz hintereinander zählt einmal. **Personen sind nie ein Ereignis**, und wo jemand war, zeigt die Zeitreise nicht.
+
+**Nur ansehen:** Ein Tipp auf ein Gerät zeigt seinen damaligen Zustand („An · 35 % · seit 19:29“). Das Raumfenster zeigt die Werte des Moments, nimmt aber keine Eingaben an. Stern-Menü, Szenen-Knöpfe, Wischen, Doppeltipp, Schnellmenü, Kamera-Wand und die Knöpfe auf den Glaskarten ruhen, bis du wieder live bist.
+
+**Was die Zeitreise zeigt:**
+
+- Lichter mit Helligkeit, Farbe und Farbtemperatur, Rollläden mit Position (fahrend dazwischen), Fenster offen oder gekippt, Türen, Garagentore
+- Temperatur, Feuchte, CO₂ und Leistung aus den Fünf-Minuten-Statistiken, gleitend dazwischen – auch als **Heatmap** und **Werte**
+- Warnungen, wie sie damals waren (Rauch, Wasser, Fenster offen bei Regen)
+- Wetter draußen (mit dem Pro „Wetter draußen“) aus dem Verlauf der Wetter-Entität, Sonne und Sonnenlicht nach dem damaligen Sonnenstand
+- Energie (mit Energie Pro): die Werte oben, die Glaskarten und die Leitungen mit den damaligen Leistungen; die Tageskurven der Glaskarten zeigen weiter den heutigen Tag
+
+Nicht dabei sind Kamerabilder (der Recorder speichert keine) sowie Personen und Tracker – auch der Standort eines Autos unterwegs. Was der Recorder nicht aufzeichnet, steht als „unbekannt“ da.
+
+**Wandtablet:** Beim Abspielen rechnet die Ansicht auf der Stufe **Tablet** zweimal in der Sekunde (Auto viermal, Hoch sechsmal), angehalten läuft gar nichts (0 B/s). Der Verlauf eines Tages wird einmal geladen und braucht nur wenige hundert Kilobyte; geändert wird nur, was sich wirklich ändert.
+
+**Voraussetzungen:** der Recorder von Home Assistant (er läuft standardmäßig) und Home Assistant nach dem Update einmal neu gestartet. Wie weit der Verlauf zurückreicht, bestimmt `purge_keep_days` des Recorders (Standard 10 Tage); die Zeitreise braucht davon 24 Stunden.
+
 ---
 
 ## 7. Erweiterungen, Shop und Möbel-Packs
@@ -776,7 +816,7 @@ Die Karte `custom:neonplan3d-card` bringt die 3D-Ansicht in jedes Dashboard. Sie
 |---|---|
 | **Ansicht** | Etage oder ganzes Haus, Größe fest oder bildschirmfüllend, Höhe, Look, Wände, Qualität, Etagen darunter |
 | **Anzeigen** | Symbole, Heatmap, Schalter in der Karte, Etagen-Miniaturen, Raumnamen, Raumfenster, Vollbild-Knopf, Etagen auseinander, Leistungsanzeige |
-| **Funktionen** | Warnungen, Sprung zur Warnung, Szenen-Knöpfe, Bewegungsspur, Wetter mit Wetter-Entität |
+| **Funktionen** | Warnungen, Sprung zur Warnung, Szenen-Knöpfe, Bewegungsspur, Kamera-Wand, Zeitreise, Wetter mit Wetter-Entität |
 | **Wandtablet (Kiosk)** | Rückkehr zur Startansicht, Nachtdimmung, Kamerafahrt als Bildschirmschoner |
 
 ![Karte mit Szenen](images/card-scenes.jpg)
@@ -824,6 +864,9 @@ weather: true           # Pro: Wetter draußen
 weather_entity: weather.home
 holograms: true         # Pro: Hologramme immer an/aus; weglassen = Schalter in der Karte
 camera_wall: false      # Pro: Knopf „Kameras“ unten in der Karte öffnet die Kamera-Wand
+time_travel: false      # Pro: Knopf „Zeitreise“ unten in der Karte spielt die letzten 24 Stunden ab (nur ansehen)
+time_travel_speed: 360  # Tempo der Zeitreise: 60 | 360 | 900 | 3600 (eine Stunde in 1 min, 10 s, 4 s, 1 s)
+time_travel_range: 24h  # wie weit die Zeitreise zurückreicht (vorerst 24 Stunden)
 roof_fade: true         # false: Dach bleibt beim Heranzoomen auf dem Haus
 start_view: { theta: 0.8, phi: 1.0, radius: 20 }   # eigene Startansicht dieser Karte; die Zeile steht im Editor unter Startansicht (weglassen = die des Plans)
 idle_return: 0          # Sekunden ohne Berührung bis zur Startansicht
@@ -873,6 +916,7 @@ Das normale Backup von Home Assistant sichert NeonPlan 3D ebenfalls vollständig
 - Plan, Bilder und Packs liegen in Home Assistant unter `.storage`. Nichts davon verlässt deine Installation.
 - NeonPlan 3D verbindet sich nur dann mit dem Internet, wenn du einen Lizenzschlüssel einträgst. Dann fragt es einmal am Tag bei mastershort.de nach Updates und sendet dabei den Schlüssel und die anonyme Installations-Kennung.
 - Kamerabilder, Verlaufsdaten und Zustände bleiben in Home Assistant und werden nur im Browser angezeigt.
+- Die Zeitreise liest den Verlauf aus dem Recorder von Home Assistant, nur für die Geräte des Plans. Personen und ihre Tracker liest sie nie.
 
 ---
 
@@ -909,6 +953,9 @@ Wände fangen Tipps ab. In der Raumansicht zählen nur Dinge im Raum. Trifft es 
 
 **Die Ansicht ruckelt auf dem Tablet.**
 Qualität auf **Tablet** stellen und mit **FPS** prüfen, was zeichnet. Im Leerlauf sollte dort 0 B/s stehen. Läuft dauerhaft etwas, steht der Grund daneben, etwa ein Farbeffekt einer Lampe.
+
+**Die Zeitreise zeigt nichts, „unbekannt“ oder Lücken.**
+Die Zeitreise nimmt den Verlauf aus dem Recorder von Home Assistant. Steht dort „Ohne den Recorder … gibt es keinen Verlauf“, ist der Recorder abgeschaltet (`recorder:` in der `configuration.yaml`). Steht ein Gerät auf „unbekannt“, ist es vom Recorder ausgeschlossen (`exclude:` unter `recorder:`) oder erst seit Kurzem da. Graue Flächen am Anfang der Leiste: Der Recorder hat noch keine 24 Stunden gesammelt (frisch eingerichtet, oder `purge_keep_days` ist kleiner als 1). Schraffierte Flächen: Home Assistant war in dieser Zeit aus oder startete neu. Temperaturen und Leistungen kommen aus den Fünf-Minuten-Statistiken; ein Sensor ohne Zustandsklasse (`state_class: measurement`) wird stattdessen aus seinen Zuständen gezeigt. Meldet die Leiste „Bitte Home Assistant neu starten“, läuft im Hintergrund noch eine ältere Version.
 
 **Das Sonnenlicht fällt durch die falschen Fenster.**
 Unter Einstellungen die **Nordrichtung** prüfen: Grad im Uhrzeigersinn von „oben“ im Plan.

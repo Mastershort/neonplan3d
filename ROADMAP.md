@@ -46,7 +46,7 @@ Available today: **Camera Cockpit**, **Weather outside**, **Live screens**, **En
 
 | Add-on | What it brings |
 |---|---|
-| **Time travel** | A time slider replays the last 24 hours (later 7 days) in the house: lights, doors, windows, motion, energy – "what happened yesterday at 3 am?" |
+| **Time travel** – coming in 1.13 | A time slider replays the last 24 hours (later 7 days) in the house: lights, doors, windows, blinds, motion, heating, weather, with event markers – "what happened yesterday at 3 am?" View only, nothing is switched |
 | **Room climate Pro** | A flowing climate map from all sensors, mould risk per room, ventilation hints, heating curves |
 | **Tech Pro** | Wi-Fi map, network devices with their state, system health (discussion #54) |
 | **Garden & Pool Pro** | Irrigation with zones and spray animation, robot mower paths, pool with temperature and pump (discussion #76) |
@@ -125,7 +125,7 @@ Bereits erhältlich: **Kamera-Cockpit**, **Wetter draußen**, **Bildschirme live
 
 | Erweiterung | Was sie bringt |
 |---|---|
-| **Zeitreise** | Ein Zeitregler spielt die letzten 24 Stunden (später 7 Tage) im Haus ab: Lichter, Türen, Fenster, Bewegung, Energie – „Was war gestern um 3 Uhr?“ |
+| **Zeitreise** – kommt mit 1.13 | Ein Zeitregler spielt die letzten 24 Stunden (später 7 Tage) im Haus ab: Lichter, Türen, Fenster, Rollläden, Bewegung, Heizung, Wetter, mit Ereignis-Markern – „Was war gestern um 3 Uhr?“ Nur ansehen, nichts wird geschaltet |
 | **Raumklima Pro** | Fließende Klimakarte aus allen Sensoren, Schimmel-Risiko je Raum, Lüftungs-Hinweise, Heizverläufe |
 | **Technik Pro** | WLAN-Karte, Netzwerkgeräte mit Zustand, Systemzustand (Diskussion #54) |
 | **Garten & Pool Pro** | Bewässerung mit Zonen und Sprüh-Animation, Mähroboter-Bahnen, Pool mit Temperatur und Pumpe (Diskussion #76) |

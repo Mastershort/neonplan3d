@@ -3390,8 +3390,13 @@ export class Fp3dView3d extends LitElement {
       .fp3d-replay .fp3d-energy > * {
         flex: none;
       }
+      /* the warnings sit below the clock, so the energy values stay at the top */
+      .fp3d-replay.fp3d-has-alerts .fp3d-energy {
+        top: 10px;
+      }
       @container fp3d (max-width: 700px) {
-        .fp3d-replay .fp3d-energy {
+        .fp3d-replay .fp3d-energy,
+        .fp3d-replay.fp3d-has-alerts .fp3d-energy {
           top: 68px;
           max-width: calc(100% - 24px);
         }

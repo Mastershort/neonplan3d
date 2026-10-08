@@ -80,6 +80,8 @@ export class Fp3dTimeBar extends LitElement {
     const target = e.composedPath()[0] as HTMLElement | undefined;
     if (!s?.playback || e.ctrlKey || e.metaKey || e.altKey || (target && /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName)) || target?.isContentEditable) return;
     if (e.key === " ") {
+      // a focused button takes the space itself
+      if (target?.tagName === "BUTTON") return;
       e.preventDefault();
       s.toggle();
     } else if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
