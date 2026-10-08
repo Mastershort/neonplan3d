@@ -5,6 +5,7 @@
 import type { Role } from "./classify.ts";
 import { seriesValue } from "./numeric.ts";
 import { indexAt, type Timeline, type Track } from "./timeline.ts";
+import { dayStart, hourOf, hourStart, nextDay } from "./tz.ts";
 
 export type EventKind =
   | "alarm"
@@ -82,7 +83,7 @@ export const OPEN: ReadonlySet<string> = new Set(["on", "open", "opening", "tilt
 
 /** Late evening to early morning (local time): motion then is worth a marker. */
 export function sleepTime(t: number): boolean {
-  const h = new Date(t).getHours();
+  const h = hourOf(t);
   return h >= 23 || h < 5;
 }
 
@@ -156,7 +157,7 @@ export interface EventInput {
   /** When motion is worth an event (default: late evening to early morning). */
   night?: (t: number) => boolean;
   /** Energie Pro: the solar power and battery charge sensors (a full battery, the day's solar peak). */
-  energy?: { solar: readonly string[]; soc: readonly string[] } | null;
+  energy?: EnergyInput | null;
 }
 
 /** A sensor's value at the centre of every five-minute slot between two moments (statistics or rows). */
@@ -176,8 +177,18 @@ export function sampled(timeline: Timeline, id: string, from: number, to: number
   return out;
 }
 
-/** Energy moments: the battery full (99 % after below 95 %), the solar peak of every day (above 100 W). */
-export function energyEvents(timeline: Timeline, energy: { solar: readonly string[]; soc: readonly string[] }): TTEvent[] {
+export interface EnergyInput {
+  solar: readonly string[];
+  soc: readonly string[];
+  /** The sun below the horizon at a moment (today's solar peak is final only then); unknown: never. */
+  sunDown?: (t: number) => boolean;
+}
+
+/**
+ * Energy moments: the battery full (99 % after below 95 %), the solar peak of every day (above 100 W).
+ * The last day's peak only once the day is over or the sun has set (before, it would wander with the live edge).
+ */
+export function energyEvents(timeline: Timeline, energy: EnergyInput): TTEvent[] {
   const out: TTEvent[] = [];
   const step = 300000;
   const from = Math.floor(timeline.start / step) * step;
@@ -204,7 +215,7 @@ export function energyEvents(timeline: Timeline, energy: { solar: readonly strin
     };
     for (let i = 0; i < n; i++) {
       const t = from + (i + 0.5) * step;
-      const d = new Date(t).setHours(0, 0, 0, 0);
+      const d = dayStart(t);
       if (d !== day) {
         if (day >= 0) flush();
         day = d;
@@ -213,8 +224,8 @@ export function energyEvents(timeline: Timeline, energy: { solar: readonly strin
       for (const s of sums) if (!Number.isNaN(s[i])) w += Math.max(0, s[i]);
       if (w > best.w) best = { t, w };
     }
-    // today's peak is only one once the sun is down (or the replay ends there)
-    flush();
+    // the last day's peak is only one once the day is over or the sun is down
+    if (day >= 0 && (timeline.end >= nextDay(day) || !!energy.sunDown?.(timeline.end))) flush();
   }
   return out;
 }
@@ -307,7 +318,7 @@ export function groupByHour(events: readonly TTEvent[], show: ReadonlySet<Catego
   for (let i = events.length - 1; i >= 0; i--) {
     const e = events[i];
     if (!show.has(CATEGORY[e.kind])) continue;
-    const hour = new Date(e.t).setMinutes(0, 0, 0);
+    const hour = hourStart(e.t);
     const g = out[out.length - 1];
     if (g && g.hour === hour) g.events.unshift(e);
     else out.push({ hour, events: [e] });

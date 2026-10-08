@@ -45,6 +45,8 @@ export interface Track {
   values: Value[];
   /** When the state (not just an attribute) last changed, per row (ms). */
   since: Float64Array;
+  /** Motion pulses thinned out of a busy week (their start times): still counted, no longer replayed. */
+  dropped?: Float64Array;
 }
 
 export interface Series {
@@ -69,7 +71,7 @@ export interface Timeline {
 
 const valueOf = (w: WireValue): Value => (typeof w === "string" ? { s: w, a: null } : { s: String(w[0]), a: w[1] && typeof w[1] === "object" ? w[1] : null });
 
-const keyOf = (v: Value) => `${v.s}\u0000${v.a ? JSON.stringify(v.a) : ""}`;
+export const keyOf = (v: Value) => `${v.s}\u0000${v.a ? JSON.stringify(v.a) : ""}`;
 
 /**
  * Builds the timeline from one or more answers (days, or batches of entities over the same window).
@@ -228,10 +230,11 @@ const NO_DATA = new Set(["unavailable", "unknown"]);
  * Stretches where the recorder has (nearly) nothing: most entities unavailable or without a row, e.g. while
  * Home Assistant was restarting or switched off. Sampled every `stepMs`; gaps shorter than `minMs` are dropped.
  */
-export function findGaps(timeline: Timeline, stepMs = 5 * 60000, share = 0.6, minMs = 10 * 60000): [number, number][] {
+export function findGaps(timeline: Timeline, stepMs = 5 * 60000, share = 0.6, minMs = 10 * 60000, after = -Infinity): [number, number][] {
   const cursor = new Cursor(timeline);
   if (!cursor.tracks.length) return [];
-  const from = timeline.oldest ?? timeline.start;
+  // `after`: only the stretch from there on (the live edge looks at the new minutes only)
+  const from = Math.max(timeline.oldest ?? timeline.start, after);
   const out: [number, number][] = [];
   let open: number | null = null;
   for (let t = from; t <= timeline.end; t += stepMs) {
@@ -288,6 +291,7 @@ function joinTracks(older: Track, newer: Track): Track {
     vals.push(v);
   }
   const track: Track = { id: older.id, times: Float64Array.from(times), vals: Uint32Array.from(vals), values, since: new Float64Array(times.length) };
+  if (older.dropped || newer.dropped) track.dropped = Float64Array.from([...(older.dropped ?? []), ...(newer.dropped ?? [])]).sort();
   fillSince(track);
   return track;
 }
@@ -350,9 +354,11 @@ export const THIN_ROWS = 300_000;
 
 /**
  * Drops the short pulses (off – on – off within `minMs`) of the given tracks, motion sensors that fire all
- * day. The tracks are rebuilt in place; returns the number of rows dropped.
+ * day – but only those within `coverMs` after a pulse that stays, so every quiet stretch and every hour with
+ * motion stays as it was. A dropped pulse's start is kept in `dropped` (it still counts). The tracks are
+ * rebuilt in place; returns the number of rows dropped.
  */
-export function thinPulses(timeline: Timeline, ids: Iterable<string>, minMs = 60000): number {
+export function thinPulses(timeline: Timeline, ids: Iterable<string>, minMs = 60000, coverMs = 5 * 60000): number {
   let dropped = 0;
   for (const id of ids) {
     const track = timeline.tracks.get(id);
@@ -360,9 +366,22 @@ export function thinPulses(timeline: Timeline, ids: Iterable<string>, minMs = 60
     const n = track.times.length;
     const s = (k: number) => track.values[track.vals[k]].s;
     const keep: number[] = [];
+    const gone: number[] = [];
+    // when the last kept motion ended (null: none kept yet)
+    let covered: number | null = null;
     for (let k = 0; k < n; k++) {
       const prev = keep.length ? keep[keep.length - 1] : -1;
-      if (prev >= 0 && s(prev) === "off" && s(k) === "on" && k + 1 < n && s(k + 1) === "off" && track.times[k + 1] - track.times[k] < minMs) {
+      if (
+        prev >= 0 &&
+        covered !== null &&
+        s(prev) === "off" &&
+        s(k) === "on" &&
+        k + 1 < n &&
+        s(k + 1) === "off" &&
+        track.times[k + 1] - track.times[k] < minMs &&
+        track.times[k] - covered <= coverMs
+      ) {
+        gone.push(track.times[k]);
         k++;
         dropped += 2;
         continue;
@@ -372,6 +391,7 @@ export function thinPulses(timeline: Timeline, ids: Iterable<string>, minMs = 60
         dropped++;
         continue;
       }
+      if (prev >= 0 && s(prev) === "on" && s(k) !== "on") covered = track.times[k];
       keep.push(k);
     }
     if (keep.length === n) continue;
@@ -380,49 +400,128 @@ export function thinPulses(timeline: Timeline, ids: Iterable<string>, minMs = 60
     track.times = times;
     track.vals = vals;
     track.since = new Float64Array(keep.length);
+    if (gone.length) track.dropped = Float64Array.from([...(track.dropped ?? []), ...gone]).sort();
     fillSince(track);
   }
   return dropped;
 }
 
+/** The value table's index per key, kept with the track (live rows look values up without a search). */
+const indexes = new WeakMap<Track, Map<string, number>>();
+
+function valueIndex(track: Track): Map<string, number> {
+  let index = indexes.get(track);
+  if (!index || index.size !== track.values.length) {
+    index = new Map(track.values.map((v, i) => [keyOf(v), i]));
+    indexes.set(track, index);
+  }
+  return index;
+}
+
+/**
+ * Adds rows at the end of a track (live changes, in time order): the arrays are built once for all of them.
+ * A row before the last one or a repeated value is left out; returns the rows added.
+ */
+export function appendRows(track: Track, rows: readonly { t: number; v: Value }[]): number {
+  const index = valueIndex(track);
+  const n = track.times.length;
+  let lastT = n ? track.times[n - 1] : -Infinity;
+  let lastV = n ? track.vals[n - 1] : -1;
+  const times: number[] = [];
+  const vals: number[] = [];
+  for (const r of rows) {
+    if (r.t < lastT) continue;
+    const key = keyOf(r.v);
+    let v = index.get(key);
+    if (v === lastV) continue;
+    if (v === undefined) {
+      v = track.values.length;
+      track.values.push(r.v);
+      index.set(key, v);
+    }
+    times.push(r.t);
+    vals.push(v);
+    lastT = r.t;
+    lastV = v;
+  }
+  if (!times.length) return 0;
+  const m = n + times.length;
+  const t2 = new Float64Array(m);
+  t2.set(track.times);
+  t2.set(times, n);
+  const v2 = new Uint32Array(m);
+  v2.set(track.vals);
+  v2.set(vals, n);
+  const since = new Float64Array(m);
+  since.set(track.since);
+  for (let i = n; i < m; i++) since[i] = i > 0 && track.values[v2[i - 1]].s === track.values[v2[i]].s ? since[i - 1] : t2[i];
+  track.times = t2;
+  track.vals = v2;
+  track.since = since;
+  return times.length;
+}
+
 /** Adds a row at the end of a track (a live change); a row before the last one or a repeated value is left out. */
 export function appendRow(track: Track, t: number, value: Value): boolean {
-  const n = track.times.length;
-  if (n && t < track.times[n - 1]) return false;
-  const key = keyOf(value);
-  let v = track.values.findIndex((x) => keyOf(x) === key);
-  if (n && v === track.vals[n - 1]) return false;
-  if (v < 0) {
-    v = track.values.length;
-    track.values.push(value);
+  return appendRows(track, [{ t, v: value }]) > 0;
+}
+
+/** Puts live values of a numeric sensor into their five-minute slots (a slot already filled stays); returns the slots filled. */
+export function appendSeriesValues(series: Series, rows: readonly { t: number; value: number }[]): number {
+  let last = -1;
+  for (const r of rows) if (Number.isFinite(r.value) && r.t >= series.start) last = Math.max(last, Math.floor((r.t - series.start) / series.step));
+  if (last < 0) return 0;
+  if (last >= series.mean.length) {
+    const mean = new Float32Array(last + 1).fill(NaN);
+    mean.set(series.mean);
+    series.mean = mean;
   }
-  const times = new Float64Array(n + 1);
-  times.set(track.times);
-  times[n] = t;
-  const vals = new Uint32Array(n + 1);
-  vals.set(track.vals);
-  vals[n] = v;
-  const since = new Float64Array(n + 1);
-  since.set(track.since);
-  since[n] = n && track.values[track.vals[n - 1]].s === value.s ? track.since[n - 1] : t;
-  track.times = times;
-  track.vals = vals;
-  track.since = since;
-  return true;
+  let added = 0;
+  for (const r of rows) {
+    if (!Number.isFinite(r.value) || r.t < series.start) continue;
+    const slot = Math.floor((r.t - series.start) / series.step);
+    if (!Number.isNaN(series.mean[slot])) continue;
+    series.mean[slot] = r.value;
+    added++;
+  }
+  return added;
 }
 
 /** Puts a live value of a numeric sensor into its five-minute slot (a slot the statistics filled stays). */
 export function appendSeriesValue(series: Series, t: number, value: number): boolean {
-  if (!Number.isFinite(value) || t < series.start) return false;
-  const slot = Math.floor((t - series.start) / series.step);
-  if (slot >= series.mean.length) {
-    const mean = new Float32Array(slot + 1).fill(NaN);
-    mean.set(series.mean);
-    series.mean = mean;
+  return appendSeriesValues(series, [{ t, value }]) > 0;
+}
+
+/** A new track from live rows (an entity the recorder had nothing of). */
+export function newTrack(id: string, rows: readonly { t: number; v: Value }[]): Track | null {
+  const track: Track = { id, times: new Float64Array(0), vals: new Uint32Array(0), values: [], since: new Float64Array(0) };
+  return appendRows(track, rows) ? track : null;
+}
+
+/**
+ * Leaves out everything before `from` (fewer days to hold): each track keeps its row at `from` (the state
+ * then), the statistics their slots from there on.
+ */
+export function trimTimeline(timeline: Timeline, from: number): Timeline {
+  if (from <= timeline.start) return timeline;
+  const tracks = new Map<string, Track>();
+  for (const [id, tr] of timeline.tracks) {
+    const k = Math.max(0, indexAt(tr.times, from));
+    if (k === 0) {
+      tracks.set(id, tr);
+      continue;
+    }
+    const track: Track = { id, times: tr.times.slice(k), vals: tr.vals.slice(k), values: tr.values, since: tr.since.slice(k) };
+    if (tr.dropped) track.dropped = tr.dropped.filter((t) => t >= from);
+    tracks.set(id, track);
   }
-  if (!Number.isNaN(series.mean[slot])) return false;
-  series.mean[slot] = value;
-  return true;
+  const series = new Map<string, Series>();
+  for (const [id, s] of timeline.series) {
+    const skip = Math.max(0, Math.floor((from - s.start) / s.step));
+    series.set(id, skip ? { id, start: s.start + skip * s.step, step: s.step, mean: s.mean.slice(skip) } : s);
+  }
+  const oldest = timeline.oldest !== null && timeline.oldest > from ? timeline.oldest : null;
+  return { ...timeline, start: from, oldest, tracks, series };
 }
 
 /** Five-minute rows (as the recorder's statistics answer them) of some entities between two moments. */

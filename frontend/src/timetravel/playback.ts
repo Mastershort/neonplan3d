@@ -3,6 +3,7 @@
 
 import type { TTEvent } from "./events.ts";
 import type { Speed } from "./types.ts";
+import { atClock } from "./tz.ts";
 
 /** Replay speeds: one hour takes a minute, 10 seconds (the default), 4 seconds or one second. */
 export const SPEEDS: readonly Speed[] = [60, 360, 900, 3600];
@@ -87,6 +88,20 @@ export function eventNear(events: readonly TTEvent[], t: number, dir: 1 | -1, ma
   return null;
 }
 
+/** The events between two moments (inclusive), from a list in time order. */
+export function eventsIn<T extends { t: number }>(events: readonly T[], from: number, to: number): T[] {
+  let lo = 0;
+  let hi = events.length;
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1;
+    if (events[mid].t < from) lo = mid + 1;
+    else hi = mid;
+  }
+  let end = lo;
+  while (end < events.length && events[end].t <= to) end++;
+  return lo === 0 && end === events.length ? (events as T[]) : events.slice(lo, end);
+}
+
 /** The first event between two moments (after `from`, up to `to`) that `pick` wants. */
 export function crossedEvent(events: readonly TTEvent[], from: number, to: number, pick: (e: TTEvent) => boolean): TTEvent | null {
   if (!(to > from)) return null;
@@ -112,7 +127,6 @@ export function parseMoment(text: string | null | undefined, now: number): numbe
   if (rel) return now - Number(rel[1].replace(",", ".")) * (rel[2].toLowerCase() === "h" ? 3600000 : 60000);
   const clock = /^(\d{1,2}):(\d{2})$/.exec(s);
   if (!clock || Number(clock[1]) > 23 || Number(clock[2]) > 59) return null;
-  const d = new Date(now);
-  d.setHours(Number(clock[1]), Number(clock[2]), 0, 0);
-  return d.getTime() > now ? d.getTime() - 86400000 : d.getTime();
+  const at = atClock(now, Number(clock[1]), Number(clock[2]));
+  return at > now ? atClock(at - 86400000, Number(clock[1]), Number(clock[2])) : at;
 }

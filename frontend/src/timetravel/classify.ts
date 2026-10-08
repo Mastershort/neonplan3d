@@ -21,15 +21,53 @@ export function isStatSensor(hass: HomeAssistant, id: string): boolean {
   return Number.isFinite(Number(st.state)) || st.state === "unavailable" || st.state === "unknown";
 }
 
+/** Where something or someone is: never part of the past (a phone's address, a car's coordinates, a Wi-Fi name). */
+const LOCATION_CLASSES = new Set(["geocoded_location", "location"]);
+const LOCATION_NAME = /location|address|geocoded|ssid|bssid|standort|adresse/i;
+
+/** An entity that tells a place: its class or key, coordinates among its attributes, or its name. */
+export function locationLike(hass: HomeAssistant, id: string): boolean {
+  const attrs = hass.states[id]?.attributes ?? {};
+  const key = hass.entities?.[id]?.translation_key ?? "";
+  if (LOCATION_CLASSES.has(String(attrs.device_class ?? "")) || LOCATION_CLASSES.has(key)) return true;
+  if ("latitude" in attrs || "longitude" in attrs) return true;
+  return LOCATION_NAME.test(`${id} ${String(attrs.friendly_name ?? "")} ${key}`);
+}
+
+/** The trackers of people (their phones, watches): private, also as a car's. */
+export function personTrackers(hass: HomeAssistant): Set<string> {
+  const out = new Set<string>();
+  for (const st of Object.values(hass.states))
+    if (st.entity_id.startsWith("person.") && Array.isArray(st.attributes.device_trackers)) for (const id of st.attributes.device_trackers) if (typeof id === "string") out.add(id);
+  return out;
+}
+
+/** The devices people carry (a person's tracker belongs to them): none of their entities is replayed. */
+export function personalDevices(hass: HomeAssistant, trackers: Iterable<string> = personTrackers(hass)): Set<string> {
+  const out = new Set<string>();
+  for (const id of trackers) {
+    const dev = hass.entities?.[id]?.device_id;
+    if (dev) out.add(dev);
+  }
+  return out;
+}
+
 /**
  * The entities to fetch: states with their history, numeric measurements as statistics; `overflow` are
- * those beyond the limit (not fetched, but not live either: they read "unknown" in the past).
+ * those beyond the limit (not fetched, but not live either: they read "unknown" in the past); `hidden` are
+ * private ones left out (places, the devices people carry), which read "unknown" in the past too.
  */
-export function historyRequest(hass: HomeAssistant, building: Building, spec: HistorySpec, max = MAX_ENTITIES): { entities: string[]; stats: string[]; overflow: string[]; cars: string[] } {
+export function historyRequest(
+  hass: HomeAssistant,
+  building: Building,
+  spec: HistorySpec,
+  max = MAX_ENTITIES,
+): { entities: string[]; stats: string[]; overflow: string[]; cars: string[]; hidden: string[] } {
   const privateIds = new Set(building.presence.flatMap((p) => [p.person, p.sensor]).filter((x): x is string => !!x));
   // a person's own trackers stay private even when a parking spot uses one
-  for (const st of Object.values(hass.states))
-    if (st.entity_id.startsWith("person.") && Array.isArray(st.attributes.device_trackers)) for (const id of st.attributes.device_trackers) if (typeof id === "string") privateIds.add(id);
+  const trackers = personTrackers(hass);
+  for (const id of trackers) privateIds.add(id);
+  const carried = personalDevices(hass, trackers);
   const cars = new Set((spec.cars ?? []).filter((id) => id.startsWith("device_tracker.") && !privateIds.has(id) && !!hass.states[id]));
   const areas = new Set(building.floors.flatMap((f) => f.rooms.map((r) => r.area_id)).filter((x): x is string => !!x));
   const fromAreas: string[] = [];
@@ -43,11 +81,21 @@ export function historyRequest(hass: HomeAssistant, building: Building, spec: Hi
   }
   const weather = Object.keys(hass.states).filter((id) => id.startsWith("weather."));
   const wanted = [...new Set([...cars, ...spec.entities, "sun.sun", ...(building.settings.weather_entity ? [building.settings.weather_entity] : []), ...weather.slice(0, 1), ...fromAreas])];
-  const all = wanted.filter((id) => id.includes(".") && (cars.has(id) || !EXCLUDED.has(domainOf(id))) && !privateIds.has(id) && !!hass.states[id]);
+  const hidden: string[] = [];
+  const all = wanted.filter((id) => {
+    if (!id.includes(".") || (!cars.has(id) && EXCLUDED.has(domainOf(id))) || privateIds.has(id) || !hass.states[id]) return false;
+    if (cars.has(id)) return true;
+    const dev = hass.entities?.[id]?.device_id;
+    if ((dev && carried.has(dev)) || locationLike(hass, id)) {
+      hidden.push(id);
+      return false;
+    }
+    return true;
+  });
   const ids = all.slice(0, max);
   const stats = ids.filter((id) => isStatSensor(hass, id));
   const statSet = new Set(stats);
-  return { entities: ids.filter((id) => !statSet.has(id)), stats, overflow: all.slice(max), cars: ids.filter((id) => cars.has(id)) };
+  return { entities: ids.filter((id) => !statSet.has(id)), stats, overflow: all.slice(max), cars: ids.filter((id) => cars.has(id)), hidden };
 }
 
 export type Role = "door" | "garage" | "lock" | "alarm" | "smoke" | "gas" | "co" | "water" | "window" | "window_more" | "motion" | "robot" | "washer" | "weather";

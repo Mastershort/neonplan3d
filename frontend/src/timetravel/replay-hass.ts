@@ -111,7 +111,7 @@ const FLASHY = new Set(["light", "switch", "input_boolean", "binary_sensor", "fa
 /** The replay of one fetched history: Home Assistant at any moment of it. */
 export class Replay {
   readonly timeline: Timeline;
-  readonly cursor: Cursor;
+  cursor: Cursor;
   private readonly requested: string[];
   private readonly trackAt = new Map<string, number>();
   private readonly location: { lat: number; lon: number } | null;
@@ -135,6 +135,18 @@ export class Replay {
     this.frozen = opts.states ?? null;
     const allowed = new Set([...(opts.allowed ?? [])].filter((id) => id.startsWith("device_tracker.")));
     this.requested = [...new Set([...opts.requested, ...timeline.tracks.keys(), ...timeline.series.keys()])].filter((id) => allowed.has(id) || !HIDDEN.some((p) => id.startsWith(p)));
+  }
+
+  /**
+   * Tracks were added to the timeline (an entity the recorder had nothing of got live rows): the cursor takes
+   * them in. The rows of the other tracks stay where they were, so their states stay the same objects.
+   */
+  refresh(): void {
+    const t = this.cursor.t;
+    this.cursor = new Cursor(this.timeline);
+    this.trackAt.clear();
+    this.cursor.tracks.forEach((tr, i) => this.trackAt.set(tr.id, i));
+    if (Number.isFinite(t)) this.cursor.at(t);
   }
 
   /** Home Assistant at t; the same object as last time when nothing changed. `jump`: no pulses are looked for. */

@@ -10,6 +10,7 @@ import { changes, IMPORTANT, OPEN, spans, type TTEvent } from "./events.ts";
 import { seriesValue } from "./numeric.ts";
 import type { RoomEntities } from "./rooms.ts";
 import { indexAt, type Timeline, type Track, type Value } from "./timeline.ts";
+import { hourOf } from "./tz.ts";
 
 const HOUR = 3600000;
 
@@ -73,7 +74,7 @@ export function awaySuggestion(stretches: readonly [number, number][]): [number,
     const [a, b] = stretches[i];
     let day = 0;
     for (let t = a; t < b; t += 600000) {
-      const h = new Date(t).getHours();
+      const h = hourOf(t);
       if (h >= 7 && h < 22) day += Math.min(600000, b - t);
     }
     if (day >= HOUR) return [a, b];
@@ -121,8 +122,10 @@ export function awaySummary(input: AwayInput): AwayRow[] {
   const count = (kind: AwayKind, entity: string, t: number) => {
     const key = `${kind}:${entity}`;
     const r = grouped.get(key);
-    if (r) r.count++;
-    else {
+    if (r) {
+      r.count++;
+      r.t = Math.min(r.t, t);
+    } else {
       const row: AwayRow = { kind, entity, t, count: 1, ms: 0 };
       grouped.set(key, row);
       rows.push(row);
@@ -139,6 +142,8 @@ export function awaySummary(input: AwayInput): AwayRow[] {
     const track = timeline.tracks.get(id);
     if (!track) continue;
     for (const c of changes(track)) if (c.from !== null && c.t >= from && c.t <= to && c.to === "on" && c.from !== "on") count("motion", id, c.t);
+    // the pulses thinned out of a busy week still count
+    if (track.dropped) for (const t of track.dropped) if (t >= from && t <= to) count("motion", id, t);
   }
   const lasting = (kind: AwayKind, id: string, list: [number, number][], minMs: number) => {
     const inside = union(list, from, to);

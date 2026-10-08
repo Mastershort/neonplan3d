@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { appendRow, buildTimeline, Cursor, findGaps, indexAt, mergeTimelines, rowCount, statRows, thinPulses, timelineBytes, type WireDay } from "./timeline.ts";
+import { appendRow, appendRows, buildTimeline, Cursor, findGaps, indexAt, mergeTimelines, rowCount, statRows, thinPulses, timelineBytes, trimTimeline, type WireDay } from "./timeline.ts";
 
 const DAY = 1_800_000_000; // seconds
 
@@ -117,19 +117,58 @@ test("an older day fetched later joins the timeline: rows in order, the seam's r
   assert.ok(timelineBytes(tl) > 0);
 });
 
-test("a busy week: short motion pulses are thinned, longer ones stay", () => {
+test("a busy week: short motion pulses right after kept motion are thinned (still counted), a lone one stays", () => {
   const tl = buildTimeline([
     day({
-      entities: { "binary_sensor.m": { t: [0, 100, 130, 1000, 1200, 2000, 2010], v: [0, 1, 0, 1, 0, 1, 0], tab: ["off", "on"] } },
+      entities: {
+        "binary_sensor.m": { t: [0, 100, 130, 200, 210, 1000, 1200, 1250, 1260, 2000, 2010], v: [0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0], tab: ["off", "on"] },
+      },
       stats: {},
       missing: [],
     }),
   ]);
   const dropped = thinPulses(tl, ["binary_sensor.m"]);
   const m = tl.tracks.get("binary_sensor.m")!;
+  // 200 (70 s after a kept pulse) and 1250 (50 s after the long one) go; 100 (the first) and 2000 (800 s later) stay
   assert.equal(dropped, 4);
-  assert.deepEqual([...m.times], [DAY * 1000, (DAY + 1000) * 1000, (DAY + 1200) * 1000]);
+  assert.deepEqual(
+    [...m.times].map((t) => t / 1000 - DAY),
+    [0, 100, 130, 1000, 1200, 2000, 2010],
+  );
   assert.deepEqual([...m.since], [...m.times]);
+  assert.deepEqual(
+    [...m.dropped!].map((t) => t / 1000 - DAY),
+    [200, 1250],
+  );
+});
+
+test("live rows in one go: arrays built once, values looked up, out-of-order and repeated rows left out", () => {
+  const tl = buildTimeline([day()]);
+  const a = tl.tracks.get("light.a")!;
+  const t = (s: number) => (DAY + s) * 1000;
+  const added = appendRows(a, [
+    { t: t(90000), v: { s: "on", a: { brightness: 128 } } },
+    { t: t(90000), v: { s: "on", a: { brightness: 128 } } },
+    { t: t(89000), v: { s: "off", a: null } },
+    { t: t(90100), v: { s: "on", a: { brightness: 200 } } },
+    { t: t(90200), v: { s: "off", a: null } },
+  ]);
+  assert.equal(added, 3);
+  assert.deepEqual([...a.times].slice(-3), [t(90000), t(90100), t(90200)]);
+  assert.equal(a.values.length, 3);
+  // the state stayed "on" across the brightness change
+  assert.equal(a.since[a.times.length - 2], t(90000));
+});
+
+test("trimming: the days before a moment go, each track keeps its state at that moment", () => {
+  const tl = buildTimeline([day()]);
+  const cut = (DAY + 150) * 1000;
+  const trimmed = trimTimeline(tl, cut);
+  assert.equal(trimmed.start, cut);
+  const a = trimmed.tracks.get("light.a")!;
+  assert.deepEqual([...a.times], [(DAY + 60) * 1000, (DAY + 180) * 1000]);
+  assert.equal(trimmed.series.get("sensor.t")!.mean.length, 4);
+  assert.equal(trimTimeline(tl, (DAY + 900) * 1000).series.get("sensor.t")!.mean.length, 1);
 });
 
 test("live rows join at the end only; five-minute rows come from statistics or states", () => {

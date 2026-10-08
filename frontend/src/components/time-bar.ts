@@ -9,6 +9,7 @@ import type { Session } from "../timetravel/entry.ts";
 import { CATEGORY, clusterEvents, groupByHour, type Category, type Cluster, type EventKind, type TTEvent } from "../timetravel/events.ts";
 import { parseMoment } from "../timetravel/playback.ts";
 import type { AwayRow, DaySummary, RoomDay } from "../timetravel/summary.ts";
+import { dayStart, hourOf, hourStart, zoneOption } from "../timetravel/tz.ts";
 
 const ICONS = {
   prev: "M6 6h2v12H6zM20 6v12l-10-6z",
@@ -50,9 +51,6 @@ const AWAY_COLOR: Record<AwayRow["kind"], string> = {
 };
 
 type Sheet = "events" | "away" | "day";
-
-/** Local midnight of the day of t. */
-const dayStart = (t: number) => new Date(t).setHours(0, 0, 0, 0);
 
 export class Fp3dTimeBar extends LitElement {
   static properties = {
@@ -221,7 +219,7 @@ export class Fp3dTimeBar extends LitElement {
   }
 
   private weekday(t: number): string {
-    return new Date(t).toLocaleDateString(this.language, { weekday: "short" }).replace(/\.$/, "");
+    return new Date(t).toLocaleDateString(this.language, { weekday: "short", ...zoneOption() }).replace(/\.$/, "");
   }
 
   /** "Di 07:42": weekday and time in the user's language. */
@@ -258,7 +256,7 @@ export class Fp3dTimeBar extends LitElement {
   }
 
   private time(t: number): string {
-    return new Date(t).toLocaleTimeString(this.language, { hour: "2-digit", minute: "2-digit" });
+    return new Date(t).toLocaleTimeString(this.language, { hour: "2-digit", minute: "2-digit", ...zoneOption() });
   }
 
   // ---- scrubbing on the track ----
@@ -362,26 +360,27 @@ export class Fp3dTimeBar extends LitElement {
     const hours = week ? (w / (s.end - s.start)) * 3600000 * 3 >= 12 ? 3 : 6 : 1;
     const every = w >= 640 ? 3 : 6;
     const ticks = [];
-    const d = new Date(s.start);
-    d.setMinutes(0, 0, 0);
-    if (d.getTime() < s.start) d.setHours(d.getHours() + 1);
-    for (; d.getTime() <= s.end; d.setHours(d.getHours() + 1)) {
-      const h = d.getHours();
+    // the hours of the time zone in use (the profile's: Home Assistant's or the browser's)
+    let at = hourStart(s.start);
+    if (at < s.start) at += 3600000;
+    for (; at <= s.end; at += 3600000) {
+      const h = hourOf(at);
       if (h % hours) continue;
       const midnight = h === 0;
       const label = midnight
         ? week
-          ? `${this.weekday(d.getTime())} ${d.getDate()}.`
-          : this.weekday(d.getTime())
+          ? `${this.weekday(at)} ${new Date(at).toLocaleDateString(this.language, { day: "numeric", ...zoneOption() }).replace(/\.$/, "")}.`
+          : this.weekday(at)
         : !week && h % every === 0
-          ? this.time(d.getTime())
+          ? this.time(at)
           : "";
-      ticks.push(html`<b class="tick ${midnight ? "tick-day" : label ? "tick-major" : ""}" style="left:${pct(d.getTime())}">${label ? html`<span>${label}</span>` : nothing}</b>`);
+      ticks.push(html`<b class="tick ${midnight ? "tick-day" : label ? "tick-major" : ""}" style="left:${pct(at)}">${label ? html`<span>${label}</span>` : nothing}</b>`);
     }
-    const sig = `${w}|${s.events.length}|${s.start}|${s.end}|${s.version}`;
+    // only the events on the track (a week loaded before stays in memory in the 24-hour view)
+    const sig = `${w}|${s.events.length}|${s.start}|${s.end}|${s.version}|${loaded}`;
     if (sig !== this.clusterSig) {
       this.clusterSig = sig;
-      this.clusters = clusterEvents(s.events, (t) => this.xOf(t), w < 500 ? 18 : 14);
+      this.clusters = clusterEvents(s.shownEvents(), (t) => this.xOf(t), w < 500 ? 18 : 14);
     }
     return html`${s.nights.map(([a, b]) => band(a, b, "night"))} ${before} ${oldest !== null && oldest > loaded ? band(loaded, oldest, "nodata") : nothing}
       ${s.gaps.map(([a, b]) => band(a, b, "gap"))} ${ticks}
@@ -426,7 +425,7 @@ export class Fp3dTimeBar extends LitElement {
     const t = s.t;
     const cats: Category[] = ["safety", "openings", "devices", ...(s.energy ? (["energy"] as Category[]) : [])];
     const groups = groupByHour(
-      s.allEvents.filter((e) => s.energy || CATEGORY[e.kind] !== "energy"),
+      s.shownEvents(true).filter((e) => s.energy || CATEGORY[e.kind] !== "energy"),
       this._filters,
     );
     let shown = 0;
@@ -508,18 +507,26 @@ export class Fp3dTimeBar extends LitElement {
     const pb = s.playback!;
     const day = dayStart(pb.t);
     const sum = s.daySummary(day);
-    const prev = this._compare ? s.daySummary(dayStart(day - 12 * 3600000)) : null;
+    const prevDay = dayStart(day - 12 * 3600000);
+    const prev = this._compare ? s.daySummary(prevDay) : null;
+    // the day before is fetched when the range does not reach it (after this render: it tells the bar)
+    if (this._compare && (!prev || prev.from > prevDay + 60000)) queueMicrotask(() => s.ensureLoaded(prevDay));
+    // a day the loaded range only partly covers says so (it would compare a part with a whole day)
+    const partial = (d: DaySummary | null, start: number) => (d && d.from > start + 60000 ? t("tt_day_partial", { time: this.time(d.from) }) : "");
     const num = (v: number, digits = 1) => v.toLocaleString(this.language, { maximumFractionDigits: digits, minimumFractionDigits: digits });
     const hrs = (ms: number) => (ms >= 60000 ? `${num(ms / 3600000)} h` : "–");
     const temp = (r: RoomDay | null | undefined) => (r && r.tMin !== null && r.tMax !== null ? `${num(r.tMin)}–${num(r.tMax)}°` : "–");
     const cells = (r: RoomDay | null | undefined) => html`<td>${r ? hrs(r.lightMs) : "–"}</td><td>${r ? hrs(r.windowMs) : "–"}</td><td>${r ? hrs(r.heatMs) : "–"}</td><td>${temp(r)}</td>`;
-    const date = new Date(day).toLocaleDateString(this.language, { weekday: "short", day: "numeric", month: "numeric" });
+    const date = new Date(day).toLocaleDateString(this.language, { weekday: "short", day: "numeric", month: "numeric", ...zoneOption() });
     const energy = (d: DaySummary | null) => d?.energy ?? null;
     const e = energy(sum);
     const pe = energy(prev);
     const kwh = (v: number | undefined) => (v === undefined ? "–" : `${num(v)} kWh`);
     const pctOf = (v: number | null | undefined) => (v === null || v === undefined ? "–" : `${Math.round(v * 100)} %`);
+    const beforeNote = this._compare ? (prev ? partial(prev, prevDay) : s.loadingDay !== null ? t("tt_loading") : "") : "";
     return html`<h4>${t("tt_day_title", { day: date })}</h4>
+      ${partial(sum, day) ? html`<p class="since">${partial(sum, day)}</p>` : nothing}
+      ${beforeNote ? html`<p class="since">${t("tt_day_before")}: ${beforeNote}</p>` : nothing}
       <div class="filters">
         <button class="fchip" @click=${() => s.yesterday()}>⟲ ${t("tt_yesterday")}</button>
         <button class="fchip" aria-pressed=${this._compare} @click=${() => (this._compare = !this._compare)}>${t("tt_day_compare")}</button>
@@ -561,7 +568,7 @@ export class Fp3dTimeBar extends LitElement {
     const tabs: Sheet[] = ["events", "away", "day"];
     return html`<aside class="sheet" role="dialog" aria-label=${t("tt_sheet")}>
       <header>
-        ${tabs.map((k) => html`<button class="tab" aria-pressed=${tab === k} @click=${() => (this._sheet = k)}>${t(k === "events" ? "tt_tab_events" : k === "away" ? "tt_away_title" : "tt_tab_day")}</button>`)}
+        ${tabs.map((k) => html`<button class="tab" aria-pressed=${tab === k} title=${k === "away" ? t("tt_away_title") : nothing} @click=${() => (this._sheet = k)}>${t(k === "events" ? "tt_tab_events" : k === "away" ? "tt_tab_away" : "tt_tab_day")}</button>`)}
         <button class="x" title=${t("tt_close")} aria-label=${t("tt_close")} @click=${() => (this._sheet = null)}>×</button>
       </header>
       <div class="body">${tab === "events" ? this.renderEvents() : tab === "away" ? this.renderAway() : this.renderDay()}</div>

@@ -7,7 +7,7 @@ import type { Role } from "./classify.ts";
 import type { TTEvent } from "./events.ts";
 import { roomEntities, roomOf } from "./rooms.ts";
 import { awaySuggestion, awaySummary, compareDays, dayEnergy, daySummary, minMax, quietStretches, spansWhere, union } from "./summary.ts";
-import { buildTimeline, type WireEntity } from "./timeline.ts";
+import { buildTimeline, thinPulses, type WireEntity } from "./timeline.ts";
 
 const DAY = 1_800_000_000;
 const H = 3600;
@@ -188,4 +188,27 @@ test("the day's energy: kWh from the balance every five minutes, self-sufficienc
   assert.ok(Math.abs(e.use - 1.5) < 1e-9);
   assert.ok(Math.abs(e.self! - 2 / 3) < 1e-9);
   assert.equal(dayEnergy(() => ({ solar: null, grid: null, consumption: null }) as unknown as EnergySummary, 0, hour), null);
+});
+
+test("a thinned busy week: the quiet stretches and the motion count stay as they were", () => {
+  // short pulses every two minutes from 9:00 to 10:00, then nothing until a lone pulse at 15:00
+  const pulses: [number, string][] = [[0, "off"]];
+  for (let s = 9 * H; s < 10 * H; s += 120) pulses.push([s, "on"], [s + 20, "off"]);
+  pulses.push([15 * H, "on"], [15 * H + 20, "off"]);
+  const tl = timeline({ "binary_sensor.m": rows(...pulses) });
+  const before = quietStretches(tl, ["binary_sensor.m"], tl.start, tl.end);
+  const away = (from: number, to: number) => awaySummary({ timeline: tl, roles: new Map(), events: [], lights: [], motion: ["binary_sensor.m"], from, to });
+  const counted = away(tl.start, tl.end).find((r) => r.kind === "motion")!.count;
+  const window = away(ms(9 * H + 30 * 60), ms(9 * H + 40 * 60)).find((r) => r.kind === "motion")!.count;
+  const dropped = thinPulses(tl, ["binary_sensor.m"]);
+  assert.ok(dropped > 0);
+  // the lone pulse at 15:00 stays: the afternoon is not one long quiet stretch
+  const after = quietStretches(tl, ["binary_sensor.m"], tl.start, tl.end);
+  assert.equal(after.length, before.length);
+  after.forEach(([a, b], i) => {
+    assert.ok(Math.abs(a - before[i][0]) <= 5 * 60000, "starts within five minutes");
+    assert.equal(b, before[i][1]);
+  });
+  assert.equal(away(tl.start, tl.end).find((r) => r.kind === "motion")!.count, counted);
+  assert.equal(away(ms(9 * H + 30 * 60), ms(9 * H + 40 * 60)).find((r) => r.kind === "motion")!.count, window);
 });

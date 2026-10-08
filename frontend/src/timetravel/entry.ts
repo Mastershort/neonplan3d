@@ -9,14 +9,15 @@ import "../components/time-bar.ts";
 import { appliancePower, eventRoles, historyRequest, type Role } from "./classify.ts";
 import { findEvents, IMPORTANT, MINOR, type TTEvent } from "./events.ts";
 import { LiveLog } from "./live.ts";
-import { crossedEvent, eventNear, parseMoment, Playback, SPEEDS, tickMs, WEEK_SPEEDS } from "./playback.ts";
+import { crossedEvent, eventNear, eventsIn, parseMoment, Playback, SPEEDS, tickMs, WEEK_SPEEDS } from "./playback.ts";
 import { Replay } from "./replay-hass.ts";
 import { robotRun } from "./robot.ts";
 import { roomEntities, roomOf, type RoomEntities } from "./rooms.ts";
-import { nightBands } from "./sun.ts";
+import { isNight, nightBands } from "./sun.ts";
 import { awaySuggestion, awaySummary, dayEnergy, daySummary, energyAt, energyIds, quietStretches, type AwayRow, type DaySummary } from "./summary.ts";
 import { withTexts } from "./texts.ts";
-import { buildTimeline, findGaps, mergeTimelines, rowCount, statRows, thinPulses, THIN_ROWS, timelineBytes, type Timeline, type WireDay } from "./timeline.ts";
+import { buildTimeline, findGaps, indexAt, mergeTimelines, rowCount, statRows, thinPulses, THIN_ROWS, timelineBytes, trimTimeline, type Timeline, type WireDay } from "./timeline.ts";
+import { nextDay, setZone, zoneOf } from "./tz.ts";
 import type { Range, ReplayInfo, StartOptions, TimeTravelSession } from "./types.ts";
 
 export type { TimeTravelSession } from "./types.ts";
@@ -29,6 +30,10 @@ const STAT_BATCH = 250;
 export const MAX_BYTES = 10 * 1024 * 1024;
 /** Within this much replayed time of the end, the live changes are added (the live edge). */
 const EDGE_MS = 60000;
+/** The live changes join the timeline about this often anyway (with a live update, never by a timer). */
+const FLUSH_MS = 60000;
+/** Events, gaps and summaries are worked out again at most this often while the live edge plays. */
+const DERIVE_MS = 10000;
 
 export type SessionState = "loading" | "ready" | "error";
 
@@ -94,8 +99,16 @@ export class Session implements TimeTravelSession {
   private last = 0;
   private followAt = 0;
   private eventsAt = 0;
+  /** When the live changes last joined the timeline. */
+  private flushedAt = 0;
+  /** New live rows whose events, gaps and summaries are still to be worked out. */
+  private derivePending = false;
+  /** Up to where the gaps were looked for. */
+  private gapsTo = 0;
   /** A jump that waits for an older day ("yesterday at this time" from the first day). */
   private wanted: number | null = null;
+  /** A day the comparison needs although the shown range does not reach it (its start). */
+  private needFrom: number | null = null;
   private olderRunning = false;
   private disposed = false;
   private daySummaries = new Map<string, DaySummary>();
@@ -114,6 +127,7 @@ export class Session implements TimeTravelSession {
     this.quality = opts.quality;
     this.low = opts.spec.low;
     this.t = withTexts(opts.t, () => this.live.language);
+    setZone(zoneOf(opts.live));
     this.end = Date.now();
     this.range = opts.range === "7d" ? "7d" : "24h";
     const closed = Number(pref("closed"));
@@ -225,8 +239,9 @@ export class Session implements TimeTravelSession {
     }
     if (!timeline) return;
     const privateIds = building.presence.flatMap((p) => [p.sensor]).filter((x): x is string => !!x);
-    // entities beyond the limit are replayed too (as "unknown"): their live state does not belong into the past
-    this.requested = [...req.entities, ...req.stats, ...req.overflow, ...privateIds];
+    // entities beyond the limit are replayed too (as "unknown"): their live state does not belong into the past;
+    // the private ones (places, the devices people carry) read "unknown" as well
+    this.requested = [...req.entities, ...req.stats, ...req.overflow, ...req.hidden, ...privateIds];
     this.cars = req.cars;
     const links = new Map(spec.furniture);
     this.devices = spec.energy ? deviceSensors(building, (f) => links.get(f.id)?.power ?? null) : null;
@@ -238,8 +253,10 @@ export class Session implements TimeTravelSession {
     const at = typeof this.opts.at === "number" ? this.opts.at : parseMoment(this.opts.at ?? null, this.end);
     this.playback = new Playback(timeline.start, this.end, at ?? this.end - 3600000, this.opts.speed ?? undefined, this.range === "7d" ? WEEK_SPEEDS : SPEEDS);
     // the live changes from now on: the playback can run into the present
-    this.liveLog = new LiveLog([...req.entities, ...req.stats], this.startStates);
+    // (also those beyond the limit: from the start on their live states are known)
+    this.liveLog = new LiveLog([...req.entities, ...req.stats, ...req.overflow], this.startStates, this.end);
     this.liveLog.record(this.live.states, Date.now());
+    this.flushedAt = Date.now();
     this.state = "ready";
     this.apply(true);
     if (this.range === "7d") void this.loadOlder();
@@ -249,17 +266,19 @@ export class Session implements TimeTravelSession {
   private setTimeline(timeline: Timeline): void {
     const { building, spec } = this.opts;
     const live = this.live;
+    // the roles of the new timeline first: the thinning needs its motion sensors
+    const fetched = new Set([...timeline.tracks.keys(), ...timeline.series.keys()]);
+    this.roles = eventRoles(live, building, spec, fetched);
     // a busy week: the short motion pulses go first
     if (rowCount(timeline) > THIN_ROWS) thinPulses(timeline, this.motion());
     this.timeline = timeline;
     this.version++;
     this.daySummaries.clear();
     this.replayer = new Replay(timeline, { requested: this.requested, location: this.location, states: this.startStates, allowed: this.cars });
-    const fetched = new Set([...timeline.tracks.keys(), ...timeline.series.keys()]);
-    this.roles = eventRoles(live, building, spec, fetched);
     this.weather ??= [building.settings.weather_entity, ...Object.keys(live.states).filter((id) => id.startsWith("weather."))].find((id) => !!id && fetched.has(id)) ?? null;
     this.findEvents();
     this.gaps = findGaps(timeline);
+    this.gapsTo = timeline.end;
     this.updateNights();
   }
 
@@ -268,9 +287,28 @@ export class Session implements TimeTravelSession {
     if (!timeline) return;
     const { building, spec } = this.opts;
     const d = this.devices;
-    const energy = d && spec.energy ? { solar: building.energy.solar ? [building.energy.solar] : d.solar, soc: building.energy.battery_soc ? [building.energy.battery_soc] : d.soc } : null;
+    const energy =
+      d && spec.energy
+        ? { solar: building.energy.solar ? [building.energy.solar] : d.solar, soc: building.energy.battery_soc ? [building.energy.battery_soc] : d.soc, sunDown: (t: number) => this.sunDown(t) }
+        : null;
     this.allEvents = findEvents({ timeline, roles: this.roles, weather: this.weather, energy });
     this.events = this.allEvents.filter((e) => !MINOR.has(e.kind));
+  }
+
+  /** The sun below the horizon at t (Home Assistant's location, else the replayed sun.sun; unknown: no). */
+  private sunDown(t: number): boolean {
+    const loc = this.location;
+    if (loc) return isNight(loc.lat, loc.lon, t);
+    const sun = this.timeline?.tracks.get("sun.sun");
+    const k = sun ? indexAt(sun.times, t) : -1;
+    return !!sun && k >= 0 && sun.values[sun.vals[k]].s === "below_horizon";
+  }
+
+  /** The events within the range the playhead can reach (older days of a week stay loaded in the 24-hour view). */
+  shownEvents(all = false): TTEvent[] {
+    const pb = this.playback;
+    const list = all ? this.allEvents : this.events;
+    return pb ? eventsIn(list, Math.max(pb.start, this.start), this.end) : list;
   }
 
   private motion(): string[] {
@@ -287,9 +325,11 @@ export class Session implements TimeTravelSession {
     if (this.olderRunning) return;
     this.olderRunning = true;
     try {
-      while (!this.disposed && this.range === "7d" && this.timeline && !this.full) {
+      while (!this.disposed && this.timeline && !this.full) {
         const to = this.timeline.start;
-        if (to <= this.start + 60000) break;
+        // the week's days, or the day the comparison asks for
+        const target = Math.min(this.range === "7d" ? this.start : Infinity, this.needFrom ?? Infinity);
+        if (to <= target + 60000) break;
         const limit = this.recorderStart;
         // nothing older is kept by the recorder (or its data began within the loaded days)
         if ((limit !== null && to <= limit) || (this.timeline.oldest !== null && this.timeline.oldest > this.timeline.start)) break;
@@ -309,12 +349,14 @@ export class Session implements TimeTravelSession {
         const pb = this.playback;
         if (!pb) continue;
         pb.setRange(Math.max(merged.start, this.start), this.end);
+        let jumped = false;
         if (this.wanted !== null && this.wanted >= pb.start) {
           pb.seek(this.wanted);
           this.wanted = null;
+          jumped = true;
         }
-        // the replay is new: every state is handed over once (doors stand where they are)
-        this.apply(true, false);
+        // the replay is new: every state is handed over once (doors stand where they are, after a jump at once)
+        this.apply(true, jumped);
       }
     } finally {
       this.olderRunning = false;
@@ -331,9 +373,8 @@ export class Session implements TimeTravelSession {
     if (range === this.range || !pb || !this.timeline) return;
     this.range = range;
     const t = pb.t;
+    // the speed chosen stays (every day speed is a week speed too)
     pb.setRange(Math.max(this.timeline.start, this.start), this.end, range === "7d" ? WEEK_SPEEDS : SPEEDS);
-    // a week at ten seconds an hour would take half an hour
-    if (range === "7d" && pb.speed < 900) pb.speed = 3600;
     this.updateNights();
     if (pb.t !== t) this.apply(true);
     else this.notify();
@@ -379,11 +420,25 @@ export class Session implements TimeTravelSession {
 
   setLive(hass: HomeAssistant): void {
     this.live = hass;
+    setZone(zoneOf(hass));
+    const now = Date.now();
     // live changes are noted for the live edge (a look at each replayed entity, nothing more)
-    this.liveLog?.record(hass.states, Date.now());
+    this.liveLog?.record(hass.states, now);
+    // about once a minute they join the timeline anyway (also while paused: a live update is the trigger,
+    // no timer), so they never pile up; a playhead standing at the present stays there
+    const pb = this.playback;
+    let moved = false;
+    if (this.state === "ready" && pb && this.liveLog && ((this.liveLog.pending && now - this.flushedAt >= FLUSH_MS) || (this.derivePending && now - this.eventsAt > DERIVE_MS))) {
+      const atEnd = !pb.playing && pb.t >= pb.end - 1000;
+      this.edge(now);
+      if (atEnd) pb.seek(pb.end);
+      this.replay.t = pb.t;
+      moved = true;
+    }
     // the host is rendering already: the new replayed object is read there, no extra round (a live state
     // change keeps the replayed object; only a registry, config or language change makes a new one)
-    if (this.replayer && this.playback) this.hass = this.replayer.hassAt(hass, this.playback.t);
+    if (this.replayer && pb) this.hass = this.replayer.hassAt(hass, pb.t);
+    if (moved) this.notify();
   }
 
   /** The view's quality changed: the replay ticks as often as it allows from the next tick on. */
@@ -393,11 +448,21 @@ export class Session implements TimeTravelSession {
     this.low = low;
     // the tablet level holds fewer days: the week view shrinks to them (or grows again)
     const pb = this.playback;
-    if (days === this.maxDays || this.range !== "7d" || !pb || !this.timeline) return;
+    if (days === this.maxDays || !pb || !this.timeline) return;
+    // the days beyond them are let go (the memory is what the tablet level is for)
+    const keep = this.end - this.maxDays * DAY;
+    const trim = this.timeline.start < keep - 60000;
+    if (trim) {
+      this.setTimeline(trimTimeline(this.timeline, keep));
+      this.full = false;
+      if (this.needFrom !== null && this.needFrom < keep) this.needFrom = null;
+      if (this.wanted !== null && this.wanted < keep) this.wanted = null;
+    } else if (this.range !== "7d") return;
     const t = pb.t;
     pb.setRange(Math.max(this.timeline.start, this.start), this.end);
     this.updateNights();
-    if (pb.t !== t) this.apply(true);
+    // a trimmed timeline has a new replay: every state is handed over once
+    if (trim || pb.t !== t) this.apply(true, pb.t !== t);
     else this.notify();
     void this.loadOlder();
   }
@@ -417,6 +482,8 @@ export class Session implements TimeTravelSession {
     this.playback?.pause();
     clearTimeout(this.timer);
     this.timer = undefined;
+    // live rows that came while playing: worked out now (no timer runs while paused)
+    if (this.derivePending) this.derive(Date.now());
     this.notify();
   }
 
@@ -439,7 +506,7 @@ export class Session implements TimeTravelSession {
   step(dir: 1 | -1): void {
     const pb = this.playback;
     if (!pb) return;
-    const e = eventNear(this.events, pb.t, dir);
+    const e = eventNear(this.shownEvents(), pb.t, dir);
     this.seek(e ? e.t : dir > 0 ? pb.end : pb.start, true);
   }
 
@@ -496,6 +563,18 @@ export class Session implements TimeTravelSession {
     return awaySummary({ timeline, roles: this.roles, events: this.allEvents, lights: [...timeline.tracks.keys()].filter((id) => id.startsWith("light.")), motion: this.motion(), from, to });
   }
 
+  /**
+   * The comparison needs the day that begins at `day`: fetched in the background when the range does not
+   * reach it (as far as the days the view may hold allow). Asked once per day.
+   */
+  ensureLoaded(day: number): void {
+    const timeline = this.timeline;
+    if (!timeline || timeline.start <= day + 60000 || (this.needFrom !== null && this.needFrom <= day)) return;
+    if (day < this.end - this.maxDays * DAY - DAY) return;
+    this.needFrom = day;
+    void this.loadOlder();
+  }
+
   /** The summary of the local day that begins at `day` (kept until the timeline grows). */
   daySummary(day: number): DaySummary | null {
     const timeline = this.timeline;
@@ -504,7 +583,7 @@ export class Session implements TimeTravelSession {
     let s = this.daySummaries.get(key);
     if (!s) {
       // the next midnight (a day with a clock change is 23 or 25 hours long)
-      const next = new Date(day + DAY + 3 * 3600000).setHours(0, 0, 0, 0);
+      const next = nextDay(day);
       const from = Math.max(day, timeline.start);
       const to = Math.min(next, timeline.end);
       const d = this.devices;
@@ -549,25 +628,50 @@ export class Session implements TimeTravelSession {
         }
       }
       if (pb.playing) this.schedule();
-      else this.notify();
+      else {
+        // stopped at the end: the live rows of the last seconds are worked out too
+        if (this.derivePending) this.derive(Date.now());
+        this.notify();
+      }
     }, tickMs(this.quality, this.low));
   }
 
-  /** Adds the live changes since the time travel began and moves the end to now. */
-  private edge(): void {
+  /** Adds the live changes since the time travel began and moves the end (and the shown range) to now. */
+  private edge(now = Date.now()): void {
     const pb = this.playback;
     const timeline = this.timeline;
     if (!pb || !timeline || !this.liveLog) return;
-    const now = Date.now();
-    if (now - this.end < 1000 && !this.liveLog.pending) return;
-    const added = this.liveLog.flush(timeline, now);
+    if (now - this.end < 1000 && !this.liveLog.pending && !this.derivePending) return;
+    const { added, created } = this.liveLog.flush(timeline, now);
+    this.flushedAt = now;
     this.end = now;
-    pb.setRange(pb.start, now);
-    // the markers of the new rows (not more often than every ten seconds)
-    if (added && now - this.eventsAt > 10000) {
-      this.eventsAt = now;
-      this.findEvents();
-    }
+    // the start moves with the end: the playhead never stands left of the track
+    pb.setRange(Math.max(timeline.start, this.start), now);
+    if (created) this.replayer?.refresh();
+    if (added || created) this.derivePending = true;
+    // the markers, gaps and summaries of the new rows: not more often than every ten seconds while playing,
+    // and once more after the last rows (a trailing round)
+    if (this.derivePending && (!pb.playing || now - this.eventsAt > DERIVE_MS)) this.derive(now);
+  }
+
+  /** Events, gaps, nights and the summaries of the grown timeline. */
+  private derive(now: number): void {
+    const timeline = this.timeline;
+    if (!timeline) return;
+    this.derivePending = false;
+    this.eventsAt = now;
+    this.findEvents();
+    // only the new stretch is searched for gaps (a gap running on at the seam is joined)
+    const after = Math.max(timeline.start, this.gapsTo - 30 * 60000);
+    const kept = this.gaps.filter(([a]) => a < after).map(([a, b]) => [a, Math.min(b, after)] as [number, number]);
+    const fresh = findGaps(timeline, undefined, undefined, undefined, after);
+    const seam = kept[kept.length - 1];
+    if (seam && fresh.length && seam[1] >= after && fresh[0][0] <= after) seam[1] = fresh.shift()![1];
+    this.gaps = [...kept, ...fresh];
+    this.gapsTo = timeline.end;
+    this.updateNights();
+    this.version++;
+    this.daySummaries.clear();
   }
 
   exit(): void {

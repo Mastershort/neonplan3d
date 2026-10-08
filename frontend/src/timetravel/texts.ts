@@ -25,7 +25,7 @@ export const TT_DE: Record<string, string> = {
   tt_ev_pv_peak: "Höchste PV-Leistung des Tages",
   tt_away_title: "Während du weg warst",
   tt_away_since: "Seit",
-  tt_away_last: "letzter Zeitreise",
+  tt_away_last: "seit der letzten Zeitreise",
   tt_away_quiet: "ruhig {from}–{to}",
   tt_away_none: "Nichts passiert – alles ruhig.",
   tt_away_door: "{name}: {n}× geöffnet",
@@ -45,6 +45,7 @@ export const TT_DE: Record<string, string> = {
   tt_day_compare: "Mit dem Vortag vergleichen",
   tt_day_before: "Vortag",
   tt_day_none: "Für diesen Tag gibt es noch keine Werte.",
+  tt_day_partial: "unvollständig (ab {time})",
   tt_yesterday: "Gestern um diese Zeit",
 };
 
@@ -72,7 +73,7 @@ export const TT_EN: Record<string, string> = {
   tt_ev_pv_peak: "Highest solar power of the day",
   tt_away_title: "While you were away",
   tt_away_since: "Since",
-  tt_away_last: "last time travel",
+  tt_away_last: "since the last time travel",
   tt_away_quiet: "quiet {from}–{to}",
   tt_away_none: "Nothing happened – all quiet.",
   tt_away_door: "{name}: opened {n}×",
@@ -92,6 +93,7 @@ export const TT_EN: Record<string, string> = {
   tt_day_compare: "Compare with the day before",
   tt_day_before: "Day before",
   tt_day_none: "There are no values for this day yet.",
+  tt_day_partial: "incomplete (from {time})",
   tt_yesterday: "Yesterday at this time",
 };
 

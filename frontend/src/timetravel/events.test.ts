@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { Role } from "./classify.ts";
 import { clusterEvents, energyEvents, findEvents, groupByHour, machineDone, MINOR, RANK } from "./events.ts";
+import { eventNear, eventsIn } from "./playback.ts";
 import { buildTimeline, type WireEntity } from "./timeline.ts";
 
 const DAY = 1_800_000_000;
@@ -112,6 +113,31 @@ test("energy moments: the battery full after it was low, the solar peak of the d
   const peak = ev.filter((e) => e.kind === "pv_peak");
   assert.equal(peak.length, 1);
   assert.equal((peak[0].t / 1000 - DAY) / 300, 2.5);
+});
+
+test("the solar peak of the last day only once the sun is down (it does not wander with the live edge)", () => {
+  // a timeline that ends in the afternoon of its only day
+  const noon = new Date(2027, 5, 15, 12, 0).getTime() / 1000;
+  const tl = buildTimeline([{ day_start: noon - 6 * H, end: noon + 3 * H, oldest: null, keep_days: 10, entities: {}, stats: { "sensor.pv": { start: noon - 6 * H, step: 300, mean: Array.from({ length: 108 }, (_, i) => (i > 72 && i < 90 ? 3000 : 500)) } }, missing: [] }]);
+  const peaks = (sunDown?: (t: number) => boolean) => energyEvents(tl, { solar: ["sensor.pv"], soc: [], sunDown }).filter((e) => e.kind === "pv_peak");
+  assert.equal(peaks().length, 0);
+  assert.equal(peaks(() => false).length, 0);
+  assert.equal(peaks(() => true).length, 1);
+});
+
+test("events on the track only: a week's events stay out of the 24-hour bar and its steps", () => {
+  const ev = (t: number) => ({ t, kind: "door" as const, entity: "x" });
+  const list = [ev(-500), ev(-100), ev(0), ev(50), ev(100), ev(200)];
+  assert.deepEqual(
+    eventsIn(list, 0, 100).map((e) => e.t),
+    [0, 50, 100],
+  );
+  assert.equal(eventsIn(list, -1000, 1000), list);
+  // clustered on a track from 0 to 100: no marker left of it
+  const clusters = clusterEvents(eventsIn(list, 0, 100), (t) => t, 14);
+  assert.ok(clusters.every((c) => c.x >= 0 && c.x <= 100));
+  assert.equal(eventNear(eventsIn(list, 0, 200), 10, -1, 0)?.t, 0);
+  assert.equal(eventNear(eventsIn(list, 0, 200), 0, -1, 0), null);
 });
 
 test("a window opened is an event for the sheet only; the sheet groups by hour, newest first, by category", () => {
