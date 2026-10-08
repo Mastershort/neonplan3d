@@ -45,7 +45,10 @@ export class Session implements TimeTravelSession {
   private disposed = false;
   private readonly listeners = new Set<() => void>();
   private readonly onVisible = () => {
-    if (!document.hidden && this.playback?.playing) this.schedule();
+    if (document.hidden || !this.playback?.playing) return;
+    // the hidden time does not count: playback goes on where it stopped
+    this.last = performance.now();
+    this.schedule();
   };
 
   constructor(opts: StartOptions) {
