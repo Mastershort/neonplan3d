@@ -1005,15 +1005,16 @@ if (PART === "b") {
   await statsCallout();
   await liveFor(N.length("Die „Leistungsanzeige“ zeigt es: Steht alles still, zeichnet die Karte kein einziges Bild – „Ruhe, null Bilder pro Sekunde“.") - 0.8, () => statsCallout());
   {
-    const line = "Erst wenn sich etwas bewegt, zeichnet sie – und schreibt dazu, warum. Hier dreht sich die Kamera.";
+    const line = "Erst wenn sich etwas bewegt, zeichnet sie – und schreibt dazu, warum. Hier läuft der Farbeffekt einer Lampe.";
     await sayOver(line);
-    // a tap on the living room: the camera flies, the display says why it draws (mirrored big)
-    const p = await point3d("eg", WOHNEN[1], 0.05, WOHNEN[2]);
-    await R.move(p.x, p.y, 0.5);
-    await R.click();
-    await liveFor(2.2, () => statsCallout());
-    await R.clickOn("button.fp3d-rp-close", 0.5);
-    await liveFor(1.4, () => statsCallout());
+    // the LED strip's colour loop runs: the display says why it draws (mirrored big)
+    await R.move(1100, 600, 0.5);
+    await setState("light.led_band", "on", { effect: "colorloop" });
+    // the display needs a moment of real time to measure (no video time passes)
+    await R.sleep(1500);
+    await liveFor(3.4, () => statsCallout());
+    await setState("light.led_band", "on", { effect: "none" });
+    await liveFor(1.0, () => statsCallout());
   }
   await sayOver("Die Stufe „Tablet“ spart am meisten: keine Muster, Schatten, Halos und Partikel, Animationen mit halber Bildrate.");
   await scrollEd("Ansicht", 40, 0.6);
