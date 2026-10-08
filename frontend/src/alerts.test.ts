@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { alertEntities, alertSources, alertText, findAlerts } from "./alerts.ts";
+import { alertEntities, alertSources, alertText, findAlerts, isOutage } from "./alerts.ts";
 import type { OpeningEntities } from "./devices.ts";
 import { emptyBuilding, newFloor, type Opening } from "./model.ts";
 import type { HomeAssistant } from "./types.ts";
@@ -81,4 +81,27 @@ test("the rain warning can be switched off on its own", () => {
   b.settings.rain_warning = false;
   const alerts = findAlerts(hass, b, alertSources(hass, b), links);
   assert.equal(alerts.filter((a) => a.kind === "window_rain").length, 0);
+});
+
+test("a power outage: grid sensors off, helpers on, a UPS on battery, a low mains voltage (#214)", () => {
+  const st = (entity_id: string, state: string, attributes: Record<string, unknown> = {}) => ({ entity_id, state, attributes });
+  assert.equal(isOutage(st("binary_sensor.netz", "off", { device_class: "power" })), true);
+  assert.equal(isOutage(st("binary_sensor.netz", "on", { device_class: "power" })), false);
+  assert.equal(isOutage(st("binary_sensor.stromausfall", "on")), true);
+  assert.equal(isOutage(st("input_boolean.stromausfall", "on")), true);
+  assert.equal(isOutage(st("sensor.ups_status", "OB DISCHRG")), true);
+  assert.equal(isOutage(st("sensor.ups_status", "OL")), false);
+  assert.equal(isOutage(st("sensor.netzspannung", "0", { unit_of_measurement: "V" })), true);
+  assert.equal(isOutage(st("sensor.netzspannung", "231", { unit_of_measurement: "V" })), false);
+  assert.equal(isOutage(st("sensor.netzbezug", "0", { unit_of_measurement: "W" })), false);
+  assert.equal(isOutage(st("binary_sensor.netz", "unavailable", { device_class: "power" })), false);
+
+  const b = emptyBuilding();
+  b.settings.outage_entity = "binary_sensor.netz";
+  const hass = { language: "de", areas: {}, entities: {}, devices: {}, states: { "binary_sensor.netz": st("binary_sensor.netz", "off", { device_class: "power", friendly_name: "Netz" }) } } as unknown as HomeAssistant;
+  const sources = alertSources(hass, b);
+  assert.deepEqual(alertEntities(sources), ["binary_sensor.netz"]);
+  const alerts = findAlerts(hass, b, sources, new Map());
+  assert.deepEqual(alerts.map((a) => a.kind), ["power_outage"]);
+  assert.equal(alertText(hass, b, alerts[0]), "Stromausfall: Netz");
 });

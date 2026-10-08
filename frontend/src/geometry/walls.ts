@@ -195,7 +195,11 @@ export function generateWalls(rooms: readonly Room[], options: WallOptions, free
   // a wall's own height: the lowest one set on its room edges (shared walls take the lower setting)
   const heightOf = (list: Segment[]): number | undefined => {
     const hs = list.map(heightSet).filter((h): h is number => typeof h === "number" && h > 0);
-    return hs.length ? Math.min(...hs) : undefined;
+    if (hs.length) return Math.min(...hs);
+    // rooms with a ceiling of their own (#30): the wall reaches the taller of its rooms; a room without one
+    // keeps the full floor height
+    const cs = list.map((s) => rooms.find((r) => r.id === s.room)?.ceiling_height);
+    return cs.every((c): c is number => typeof c === "number" && c > 0) ? Math.max(...cs) : undefined;
   };
   // a thickness set on a room edge (D149); a shared wall takes the thicker setting of its two rooms
   const thickOf = (list: Segment[]): number | undefined => {

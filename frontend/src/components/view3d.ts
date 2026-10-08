@@ -26,7 +26,7 @@ import { carState, type CarState, roomClimateValue,
   favoriteCall,
   runButton,
 } from "../devices.ts";
-import { alertColor, alertEntities, alertSources, alertText, findAlerts, type Alert, type AlertSources } from "../alerts.ts";
+import { alertColor, alertEntities, alertSources, alertText, findAlerts, isOutage, type Alert, type AlertSources } from "../alerts.ts";
 import { iconPath, iconSvg, mdiIcon } from "../icons.ts";
 import { deviceSensors, energySummary, fetchSolarRows, fieldLevels, fieldPowers, findConsumers, flowColor, flowSegments, gridPoint, powerSensorFor, readPower, solarCurvePath, solarDayFromStats, type Consumer, type EnergySummary, type StatRow } from "../energy.ts";
 import { fieldFace, fieldSize } from "../solar.ts";
@@ -61,6 +61,8 @@ const DETECT_ICONS: Record<string, string> = {
 
 /** The pin at the street end of the grid cable. */
 const GRID_ICON = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg>';
+/** The grid connection during a power outage: the bolt crossed out (#214). */
+const GRID_OFF_ICON = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/><path d="M3 3l18 18"/></svg>';
 import { STAGE, type Theme } from "../themes.ts";
 import { HEAT_SCALES, heatColor, heatGradient, roomValues, type HeatMode } from "../heatmap.ts";
 import { furnitureName } from "../furniture-names.ts";
@@ -77,6 +79,7 @@ import { coverPositionable, lightAbilities } from "./quick-menu.ts";
 import "./quick-menu.ts";
 import { load3d } from "../load3d.ts";
 import { detectionKind, scaleGlow, buildMarkers, cameraMotionSensors, openMoreInfo, stateText, toggleEntity } from "../markers.ts";
+import { roofUnderAt, sectionCutsBelow } from "../roof-sections.ts";
 import { centroid, furnitureFootprint, isLamp, LAMP_MODEL, LIFT_SPOTS, outdoorGround, pointInPolygon, spotDepth, surfaceHeight, type Building, type Furniture, type StartView } from "../model.ts";
 import { floorCounts, floorInfoText, personsInRooms } from "../presence.ts";
 import { controls, tokens } from "../styles.ts";
@@ -793,6 +796,8 @@ export class Fp3dView3d extends LitElement {
     const fields = [...(b.settings.roof.solar ?? [])].sort((p, q) => q.rows * q.cols - p.rows * p.cols);
     const strings = b.settings.roof.strings ?? [];
     const inverterOf = (f: SolarField) => (f.string ? strings.find((x) => x.id === f.string)?.inverter : null) ?? null;
+    // the house balance and the plant cards: the house view only, or also the floor of their field (#193)
+    const plantViews = holo.plant_floor ? ("all" as const) : ("house" as const);
     const anchorOn = (f: SolarField, right: number, up: number, size: number) => {
       const face = fieldFace(b, f);
       if (!face) return null;
@@ -801,7 +806,7 @@ export class Fp3dView3d extends LitElement {
       const sv = f.v + fd / 2 + up;
       const c: [number, number, number] = [face.o[0] + face.eu[0] * u + face.es[0] * sv, face.o[1] + face.eu[1] * u + face.es[1] * sv, face.o[2] + face.eu[2] * u + face.es[2] * sv];
       const floorId = face.wall?.floorId ?? (face.unbounded ? (b.floors.find((f) => f.elevation === Math.min(...b.floors.map((x) => x.elevation)))?.id ?? b.floors[0].id) : [...b.floors].sort((p, q) => q.elevation - p.elevation)[0].id);
-      return { p: [c[0] + face.n[0] * 0.05, c[1] + face.n[1] * 0.05, c[2] + face.n[2] * 0.05] as [number, number, number], n: [face.n[0], face.n[1], face.n[2]] as [number, number, number], floorId, size, roof: true, views: "house" as const };
+      return { p: [c[0] + face.n[0] * 0.05, c[1] + face.n[1] * 0.05, c[2] + face.n[2] * 0.05] as [number, number, number], n: [face.n[0], face.n[1], face.n[2]] as [number, number, number], floorId, size, roof: true, views: plantViews };
     };
     const anchors: { p: [number, number, number]; n: [number, number, number]; floorId: string; size: number; roof: boolean; views: "house" | "all" | "floor"; room?: string | null }[] = [];
     const cards: HoloCard[] = [];
@@ -846,7 +851,7 @@ export class Fp3dView3d extends LitElement {
       const dx = holo.x! - cx;
       const dz = holo.z! - cz;
       const len = Math.hypot(dx, dz);
-      anchors.push({ p: [holo.x!, (Number.isFinite(ground) ? ground : 0) + (holo.height ?? 3), holo.z!], n: len > 0.01 ? [dx / len, 0, dz / len] : [1, 0, 0], floorId: topFloor.id, size: holo.size, roof: true, views: "house" });
+      anchors.push({ p: [holo.x!, (Number.isFinite(ground) ? ground : 0) + (holo.height ?? 3), holo.z!], n: len > 0.01 ? [dx / len, 0, dz / len] : [1, 0, 0], floorId: topFloor.id, size: holo.size, roof: true, views: plantViews });
       cards.push({ kind: "main", name: translate(hass, "holo_title"), w: null, dayIds: solarIds, battery: null });
     } else if (pro && anyEnergy && b.floors.some((f) => f.rooms.length)) {
       // no solar field in the plan (a meter and a battery only): the hologram hangs beside the house
@@ -866,7 +871,7 @@ export class Fp3dView3d extends LitElement {
           topFloor = f;
         }
       }
-      anchors.push({ p: [x1 + 0.6, top + 0.4, (z0 + z1) / 2], n: [1, 0, 0], floorId: topFloor.id, size: holo.size, roof: true, views: "house" });
+      anchors.push({ p: [x1 + 0.6, top + 0.4, (z0 + z1) / 2], n: [1, 0, 0], floorId: topFloor.id, size: holo.size, roof: true, views: plantViews });
       cards.push({ kind: "main", name: translate(hass, "holo_title"), w: null, dayIds: solarIds, battery: null });
     }
     if (pro && summary.solar !== null) {
@@ -1272,6 +1277,10 @@ export class Fp3dView3d extends LitElement {
     const g = gridPoint(b);
     if (!g) return null;
     const idle = Math.abs(grid) < 5;
+    const outageId = b.settings.outage_entity;
+    if (outageId && isOutage(hass.states[outageId])) {
+      return { id: "grid", floorId: g.floorId, roomId: null, x: g.end[0], z: g.end[1], y: 0.9 + g.height, icon: GRID_OFF_ICON, name: translate(hass, "holo_grid"), text: translate(hass, "power_outage"), active: true, unavailable: false, glow: null, pin: true };
+    }
     return {
       id: "grid",
       floorId: g.floorId,
@@ -2107,6 +2116,17 @@ export class Fp3dView3d extends LitElement {
     return parts.join(" · ");
   }
 
+  /** The ceiling height on a floor at a point: the floor height, a room's own ceiling (#30), or lower under a roof slope (#168). */
+  private ceilingAt(floor: Building["floors"][number], x: number, z: number): number {
+    // a room with a ceiling of its own (#30)
+    const own = floor.rooms.find((r) => r.ceiling_height && r.points.length >= 3 && pointInPolygon([x, z], r.points))?.ceiling_height;
+    const room = own ? Math.min(floor.height, own) : floor.height;
+    const b = this.building;
+    if (!b || !(b.settings.roof.sections ?? []).some((sec) => sectionCutsBelow(sec, floor.elevation + floor.height))) return room;
+    const under = roofUnderAt(b, x, z);
+    return under === null ? room : Math.max(0.5, Math.min(room, under - floor.elevation));
+  }
+
   /** A lamp: its 3D model glows with the linked light and is tapped directly. */
   private lampMarker(hass: HomeAssistant, floor: Building["floors"][number], f: Furniture, entity: string | null): DeviceMarker & { fromFurniture: boolean } {
     const st = entity ? hass.states[entity] : undefined;
@@ -2115,7 +2135,7 @@ export class Fp3dView3d extends LitElement {
     // a height above the floor set by hand wins (a table lamp on a shelf, a floor lamp on a platform);
     // an LED strip outside the house counts from the ground there (a path light flush with the lawn)
     const inRoom = floor.rooms.some((r) => r.points.length >= 3 && pointInPolygon([f.x, f.z], r.points));
-    const base = model === "strip" && !inRoom
+    const base0 = model === "strip" && !inRoom
       ? outdoorGround(floor, f.x, f.z) + (f.mount_y ?? 0)
       : f.mount_y != null && !item
       ? f.mount_y
@@ -2127,8 +2147,13 @@ export class Fp3dView3d extends LitElement {
           ? outdoorGround(floor, f.x, f.z)
           : 0;
     const room = floor.rooms.find((r) => r.points.length >= 3 && pointInPolygon([f.x, f.z], r.points));
+    // under a sloped roof the ceiling is the roof's underside: lamps hung from it follow the slope (#168)
+    const ceiling = this.ceilingAt(floor, f.x, f.z);
+    const hung = (item ? item.mount === "ceiling" : ["ceiling", "downlight", "spot", "panel", "pendant"].includes(model)) && f.mount_y == null;
+    const slopeDrop = hung ? floor.height - ceiling : 0;
+    const base = item && hung ? Math.max(0, base0 - slopeDrop) : base0;
     // a spot lowered by hand hangs from its own "ceiling" (under a wall cabinet, #311)
-    const top = LIFT_SPOTS.has(f.type) && f.mount_y != null ? Math.min(floor.height, f.mount_y + spotDepth(f.type, f.h)) : undefined;
+    const top = LIFT_SPOTS.has(f.type) && f.mount_y != null ? Math.min(floor.height, f.mount_y + spotDepth(f.type, f.h)) : slopeDrop > 0.01 ? ceiling : undefined;
     const H = top ?? floor.height;
     // pack lamps: the marker sits above the lamp (below it when it hangs from the ceiling)
     const y = item

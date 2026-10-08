@@ -245,3 +245,16 @@ test("an interior wall continuing an outer wall in line sits flush with it (#179
   near(bSide, 0);
   near(inner.left + inner.right, INT);
 });
+
+test("rooms with a ceiling of their own: walls end at the taller room, a room without one keeps the floor height (#30)", () => {
+  const room = (id: string, x0: number, x1: number, ceiling_height?: number) => ({ id, name: id, area_id: null, points: [[x0, 0], [x1, 0], [x1, 3], [x0, 3]] as [number, number][], floor_material: "wood", ceiling_height });
+  const { walls } = generateWalls([room("wohnen", 0, 4, 2.5), room("flur", 4, 6, 2.6), room("garage", 6, 10)], { exterior: 0.24, interior: 0.12 }, []);
+  const at = (x: number) => walls.find((w) => !w.exterior && Math.abs(w.a[0] - x) < 1e-6 && Math.abs(w.b[0] - x) < 1e-6)!;
+  // living room 2.5 and hall 2.6: the taller one; hall and garage (floor height): full height
+  assert.equal(at(4).height, 2.6);
+  assert.equal(at(6).height, undefined);
+  // the living room's outer walls end at its ceiling, the garage's stand at full height
+  const outer = walls.filter((w) => w.exterior);
+  assert.ok(outer.filter((w) => w.roomLeft === "wohnen" || w.roomRight === "wohnen").every((w) => w.height === 2.5));
+  assert.ok(outer.filter((w) => w.roomLeft === "garage" || w.roomRight === "garage").every((w) => w.height === undefined));
+});

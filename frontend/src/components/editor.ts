@@ -6,6 +6,7 @@ import { fetchImage, listHistory, restoreSnapshot, storeImage, takeSnapshot, typ
 import { download, exportFile, parseExport } from "../transfer.ts";
 import { carEntities, type CarEntities, areaEntities, autoPlace, CLIMATE_CLASSES, defaultHeight, entityName, entityAreaId, furnitureEntities, groupByDevice, hasScreen, isMediaFurniture, isPlaceable, isRoomClimateSensor, kindOf, openingEntities, otherAreaEntities, pictureRuleMatches, roomClimateSensors, unassignedEntities, windowPosition, type ClimateKey } from "../devices.ts";
 import { furnitureSymbol } from "./furniture2d.ts";
+import { netRoomArea } from "../geometry/area.ts";
 import { closeGaps, suggestedThickness } from "../geometry/gaps.ts";
 import { keepInRoom, snapToWall } from "../geometry/snap.ts";
 import { holeInRoom } from "../geometry/holes.ts";
@@ -211,6 +212,7 @@ export class Fp3dEditor extends LitElement {
     _rectSize: { state: true },
     _tool: { state: true },
     _draft: { state: true },
+    _outdoorFree: { state: true },
     _cursor: { state: true },
     _guides: { state: true },
     _view: { state: true },
@@ -317,6 +319,8 @@ export class Fp3dEditor extends LitElement {
   private declare _spots: { type: FurnitureType; rows: number; cols: number; entity: string | null } | null;
   private declare _tool: Tool;
   private declare _draft: Vec2[];
+  /** Outdoor tool: corner by corner like a free-form room instead of a dragged rectangle (#97). */
+  private declare _outdoorFree: boolean;
   private declare _cursor: Vec2 | null;
   private declare _guides: Guides;
   private declare _view: { scale: number; ox: number; oy: number };
@@ -421,6 +425,7 @@ export class Fp3dEditor extends LitElement {
     this._rectSize = [4, 3];
     this._tool = "select";
     this._draft = [];
+    this._outdoorFree = false;
     this._cursor = null;
     this._guides = {};
     this._view = { scale: 50, ox: 40, oy: 40 };
@@ -1235,12 +1240,12 @@ export class Fp3dEditor extends LitElement {
       } else this.drag = { kind: "pan", last: local };
       return;
     }
-    if (this._tool === "rect" || this._tool === "outdoor" || this._tool === "hole") {
+    if (this._tool === "rect" || (this._tool === "outdoor" && !this._outdoorFree) || this._tool === "hole") {
       const start = this.snap(world, undefined, e.altKey);
       this.drag = { kind: "rect", start, end: start, outdoor: this._tool === "outdoor", hole: this._tool === "hole" };
       return;
     }
-    if (this._tool === "polygon" || this._tool === "measure") {
+    if (this._tool === "polygon" || this._tool === "measure" || (this._tool === "outdoor" && this._outdoorFree)) {
       this.drag = { kind: "tap", startScreen: local, last: local, panning: false };
       return;
     }
@@ -1910,6 +1915,11 @@ export class Fp3dEditor extends LitElement {
     return hits[0]?.id ?? null;
   }
 
+  /** Corners are set one by one: the free-form room, and an outdoor area drawn as a free shape. */
+  private get drawingPoints(): boolean {
+    return this._tool === "polygon" || (this._tool === "outdoor" && this._outdoorFree);
+  }
+
   private addDraftPoint(p: Vec2, screen: [number, number]): void {
     const draft = this._draft;
     if (draft.length >= 3) {
@@ -1925,7 +1935,10 @@ export class Fp3dEditor extends LitElement {
   }
 
   private closeDraft(): void {
-    if (this._draft.length >= 3 && polygonArea(this._draft) > 0.05) this.addRoom(this._draft);
+    if (this._draft.length >= 3 && Math.abs(polygonArea(this._draft)) > 0.05) {
+      if (this._tool === "outdoor") this.addOutdoor(this._draft);
+      else this.addRoom(this._draft);
+    }
     this._draft = [];
     this._cursor = null;
     this._guides = {};
@@ -2191,9 +2204,9 @@ export class Fp3dEditor extends LitElement {
       if (this.nudge(dx * step, dz * step)) e.preventDefault();
     } else if (e.key.toLowerCase() === "r" && !mod && this._furnitureId) {
       this.rotateFurniture(e.shiftKey ? -90 : 90);
-    } else if (e.key === "Backspace" && this._tool === "polygon") {
+    } else if (e.key === "Backspace" && this.drawingPoints) {
       this._draft = this._draft.slice(0, -1);
-    } else if (e.key === "Enter" && this._tool === "polygon") {
+    } else if (e.key === "Enter" && this.drawingPoints) {
       this.closeDraft();
     } else if (e.key === "Escape") {
       if (this._ctx) {
@@ -3309,6 +3322,10 @@ export class Fp3dEditor extends LitElement {
           ><input type="checkbox" .checked=${!!h.device_room} ?disabled=${!admin} @change=${(e: Event) => set({ device_room: (e.target as HTMLInputElement).checked || undefined })} />
           ${this.t("holo_device_room")}</label
         >
+        <label class="fp3d-check fp3d-wide" title=${this.t("holo_plant_floor_hint")}
+          ><input type="checkbox" .checked=${!!h.plant_floor} ?disabled=${!admin} @change=${(e: Event) => set({ plant_floor: (e.target as HTMLInputElement).checked || undefined })} />
+          ${this.t("holo_plant_floor")}</label
+        >
         <label class="fp3d-check fp3d-wide" title=${this.t("holo_mirror_hint")}
           ><input type="checkbox" .checked=${h.mirror !== false} ?disabled=${!admin} @change=${(e: Event) => set({ mirror: (e.target as HTMLInputElement).checked ? undefined : false })} />
           ${this.t("holo_mirror")}</label
@@ -4352,6 +4369,12 @@ export class Fp3dEditor extends LitElement {
               <button aria-pressed=${this._split} title=${this.t("split_3d_hint")} @click=${() => this.toggleSplit()}>${this.t("split_3d")}</button>
               ${this.isAdmin ? html`<button aria-pressed=${!!this._doc.settings.lock_plan} title=${this.t("lock_plan_hint")} @click=${() => this.toggleLockPlan()}>${this.t("lock_plan")}</button>` : nothing}
             </div>
+            ${this._tool === "outdoor"
+              ? html`<div class="fp3d-seg" role="group" aria-label=${this.t("tool_outdoor")}>
+                  <button aria-pressed=${!this._outdoorFree} @click=${() => ((this._outdoorFree = false), (this._draft = []))}>▭ ${this.t("outdoor_shape_rect")}</button>
+                  <button aria-pressed=${this._outdoorFree} @click=${() => ((this._outdoorFree = true), (this._draft = []))}>✎ ${this.t("outdoor_shape_free")}</button>
+                </div>`
+              : nothing}
             ${walls?.warnings.length ? html`<span class="fp3d-warn">${this.t("overlap_warning")}</span>` : nothing}
           </div>
           <div class="fp3d-stage-pair ${this._split ? "fp3d-split" : ""}" style=${this._split && !this.narrow ? `--fp3d-split:${Math.round(this._splitRatio * 100)}%` : ""}>
@@ -4400,7 +4423,7 @@ export class Fp3dEditor extends LitElement {
               ${this._tool === "roof" ? svg`${this.renderRoofSections()}${this.renderRoofWindows()}` : this._tool === "energy" ? svg`${this.renderRoofSections()}${this.renderSolarFields()}${this.renderCables()}${this.renderEnergyMarkers()}` : nothing} ${this.renderDraft()} ${this.renderGuides()}
             </svg>
             ${this.renderContext()}
-            <p class="fp3d-hint ${this._fixedHint ? "fp3d-hint-fixed" : ""}">${!floor ? this.t("hint_empty") : this._fixedHint ? this.t("fixed_drag_hint") : this.t(`hint_${this._tool}` as I18nKey)}</p>
+            <p class="fp3d-hint ${this._fixedHint ? "fp3d-hint-fixed" : ""}">${!floor ? this.t("hint_empty") : this._fixedHint ? this.t("fixed_drag_hint") : this._tool === "outdoor" && this._outdoorFree ? this.t("hint_outdoor_free") : this.t(`hint_${this._tool}` as I18nKey)}</p>
           </div>
           ${this._split && !this.narrow
             ? html`<div class="fp3d-split-handle" title=${this.t("split_handle_hint")} @pointerdown=${this.onSplitDown}></div>`
@@ -5140,7 +5163,7 @@ export class Fp3dEditor extends LitElement {
         <text class="fp3d-dim" x=${(x0 + x1) / 2} y=${Math.min(y0, y1) - 8}>${formatNumber(this.hass, w, 2)} × ${formatNumber(this.hass, d, 2)} m</text>
       </g>`;
     }
-    if (this._tool !== "polygon" && this._tool !== "measure") return nothing;
+    if (this._tool !== "polygon" && this._tool !== "measure" && !this.drawingPoints) return nothing;
     const world = [...this._draft, ...(this._cursor && this._draft.length ? [this._cursor] : [])];
     const pts = world.map((p) => this.toScreen(p));
     return svg`<g pointer-events="none">
@@ -5452,10 +5475,29 @@ export class Fp3dEditor extends LitElement {
             ${this.num(this.t("depth"), b.z1 - b.z0, (v) => this.setRect("d", v), 0.01, 0.05)}`
           : nothing}
       </div>
+      <div class="fp3d-form">
+        <label class="fp3d-field" title=${this.t("room_ceiling_hint")}
+          >${this.t("room_ceiling")}
+          <input
+            type="number"
+            step="0.05"
+            min="1"
+            placeholder=${String(this.floor?.height ?? "")}
+            .value=${room.ceiling_height != null ? String(room.ceiling_height) : ""}
+            ?disabled=${!admin}
+            @change=${(e: Event) => {
+              const raw = (e.target as HTMLInputElement).value.trim().replace(",", ".");
+              const v = Number(raw);
+              this.updateRoom({ ceiling_height: raw === "" || !Number.isFinite(v) || v <= 0 ? null : Math.min(30, Math.max(1, v)) });
+            }}
+        /></label>
+        <p class="fp3d-sub">${this.t("room_ceiling_hint")}</p>
+      </div>
       <div class="fp3d-actions">
         <button class="fp3d-btn" title=${this.t("room_start_view_hint")} ?disabled=${!admin} @click=${() => this.rememberRoomView()}>${this.t("room_start_view")}</button>
         ${room.start_view ? html`<button class="fp3d-btn" title=${this.t("room_start_view_reset")} ?disabled=${!admin} @click=${() => this.updateRoom({ start_view: null })}>↺</button>` : nothing}
       </div>
+      <p class="fp3d-sub" title=${this.t("room_area_net_hint")}>${this.t("room_area_net", { a: formatNumber(this.hass, Math.abs(polygonArea(room.points)), 1), n: formatNumber(this.hass, netRoomArea(room, this.floor!, { exterior: this._doc.settings.wall_exterior, interior: this._doc.settings.wall_interior }), 1) })}</p>
       <p class="fp3d-sub fp3d-room-id">${this.t("room_id")} <code title=${this.t("license_copy")} @click=${() => void navigator.clipboard?.writeText(room.id).catch(() => undefined)}>${room.id}</code></p>
       ${this.renderEdgeHeights(room)} ${this.renderRoomClimate(room)} ${this.renderRoomOpenings(room)}
       <details class="fp3d-points" ?open=${!rect}>
@@ -7403,6 +7445,16 @@ export class Fp3dEditor extends LitElement {
           ><input type="checkbox" .checked=${s.rain_warning !== false} @change=${(ev: Event) => set({ rain_warning: (ev.target as HTMLInputElement).checked })} />
           ${this.t("rain_warning")}</label
         >
+        ${this.hass
+          ? html`${this.entitySelect(
+                this.t("outage_entity"),
+                s.outage_entity ?? null,
+                undefined,
+                this.entityOptions((id) => /^(binary_sensor|sensor|input_boolean|switch)\./.test(id)),
+                (v) => set({ outage_entity: v === "none" ? null : v }),
+              )}
+              <p class="fp3d-sub fp3d-wide">${this.t("outage_entity_hint")}</p>`
+          : nothing}
         <label class="fp3d-check fp3d-wide" title=${this.t("sun_patches_hint")}
           ><input type="checkbox" .checked=${s.sun_patches !== false} @change=${(ev: Event) => set({ sun_patches: (ev.target as HTMLInputElement).checked })} />
           ${this.t("sun_patches")}</label

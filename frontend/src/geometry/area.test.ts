@@ -1,0 +1,22 @@
+import assert from "node:assert/strict";
+import { test } from "node:test";
+import { newFloor, type Room } from "../model.ts";
+import { netRoomArea } from "./area.ts";
+
+const rect = (id: string, x0: number, z0: number, x1: number, z1: number): Room => ({ id, name: id, area_id: null, points: [[x0, z0], [x1, z0], [x1, z1], [x0, z1]], floor_material: "wood" });
+const opts = { exterior: 0.3, interior: 0.2 };
+
+test("net area: outer walls grow outwards, a shared wall takes half its thickness from each room (#216)", () => {
+  const floor = { ...newFloor("eg", "EG", 0), rooms: [rect("a", 0, 0, 4, 3), rect("b", 4, 0, 7, 3)] };
+  assert.ok(Math.abs(netRoomArea(floor.rooms[0], floor, opts) - (12 - 0.1 * 3)) < 1e-6);
+  assert.ok(Math.abs(netRoomArea(floor.rooms[1], floor, opts) - (9 - 0.1 * 3)) < 1e-6);
+  // a room on its own keeps its drawn area
+  const alone = { ...newFloor("og", "OG", 3), rooms: [rect("c", 0, 0, 4, 3)] };
+  assert.ok(Math.abs(netRoomArea(alone.rooms[0], alone, opts) - 12) < 1e-6);
+});
+
+test("net area: a free wall in front of the outer wall takes its footprint and the gap behind it", () => {
+  const floor = { ...newFloor("eg", "EG", 0), rooms: [rect("flur", 0, 0, 4, 3)], walls: [{ id: "vw", a: [0.3, 0.5] as [number, number], b: [0.3, 2.5] as [number, number], thickness: 0.1 }] };
+  // wall 0.1 × 2 m, gap 0.3 − 0.05 = 0.25 m over 2 m
+  assert.ok(Math.abs(netRoomArea(floor.rooms[0], floor, opts) - (12 - 0.2 - 0.5)) < 1e-6);
+});

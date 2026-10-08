@@ -68,6 +68,8 @@ ROOM_SCHEMA = vol.Schema(
             [vol.Any(None, vol.All([vol.All(vol.Coerce(float), vol.Range(min=0.05, max=200))], vol.Length(max=16)))],
             vol.Length(max=MAX_POINTS),
         ),
+        # ceiling height of the room (None = the floor height)
+        vol.Optional("ceiling_height"): vol.Any(None, vol.All(vol.Coerce(float), vol.Range(min=1, max=30))),
         # thickness of the wall on each edge in m (None = the building's exterior / interior thickness)
         vol.Optional("wall_thickness"): vol.All(
             [vol.Any(None, vol.All(vol.Coerce(float), vol.Range(min=0.02, max=1.5)))],
@@ -472,6 +474,8 @@ HOLOGRAM_SCHEMA = vol.Schema(
         # device cards hide while their device draws less than this (W; 0 = always shown)
         vol.Optional("device_house", default=True): bool,
         vol.Optional("device_room", default=False): bool,
+        # the house balance and the plant cards also in a floor view
+        vol.Optional("plant_floor", default=False): bool,
         vol.Optional("device_min_w", default=0): vol.All(vol.Coerce(float), vol.Range(min=0, max=100000)),
     },
     extra=vol.ALLOW_EXTRA,
@@ -581,6 +585,8 @@ SETTINGS_SCHEMA = vol.Schema(
         # which weather effects the 3D view shows (None = all but fog)
         # warning for a window open while it rains
         vol.Optional("rain_warning", default=True): bool,
+        # an entity that reports a power outage (None = no outage warning)
+        vol.Optional("outage_entity", default=None): vol.Any(None, vol.All(str, vol.Length(max=255))),
         # sunlight through the windows as patches on the floor
         vol.Optional("sun_patches", default=True): bool,
         vol.Optional("weather_effects", default=None): vol.Any(

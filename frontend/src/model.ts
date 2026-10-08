@@ -38,6 +38,11 @@ export interface Room {
    */
   wall_heights?: WallHeight[];
   /**
+   * Ceiling height of this room in m (null = the floor height): its walls end there unless a neighbour is
+   * taller, and its ceiling lamps hang from it – a 2.5 m living room beside a 5 m garage (#30).
+   */
+  ceiling_height?: number | null;
+  /**
    * Thickness of the wall on each edge in m (index = edge); null = the building's exterior or interior
    * thickness. A wall two rooms share takes the thicker of their settings (D149).
    */
@@ -423,6 +428,8 @@ export interface HologramSettings {
   device_house?: boolean;
   /** Device cards of an opened room show in the room view (off by default: the room view had no cards before, #235). */
   device_room?: boolean;
+  /** The house balance and the plant cards also in a floor view, on the floor of their field (off by default, #193). */
+  plant_floor?: boolean;
 }
 
 export const DEFAULT_HOLOGRAM: HologramSettings = { field: null, size: 1, right: 0, up: 0 };
@@ -518,6 +525,8 @@ export interface BuildingSettings {
   weather_effects?: WeatherEffect[] | null;
   /** Warning for a window open while it rains (default on). */
   rain_warning?: boolean;
+  /** An entity that reports a power outage (a grid or UPS sensor); null = no outage warning (#214). */
+  outage_entity?: string | null;
   /** Sunlight falls through the windows as patches on the floor (default on, #266). */
   sun_patches?: boolean;
   /** Plan lock: rooms, walls, doors, windows and outdoor areas cannot be moved by accident. */

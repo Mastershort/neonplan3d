@@ -3638,7 +3638,8 @@ export class FloorplanViewer {
           return;
         }
         // the roof lifts and fades when the camera comes close: an anchor on it rides up with it
-        const p = new Vector3(a.p[0], a.p[1] + (fv?.y ?? 0) + (a.roof ? (1 - this.roofO) * 2.2 : 0), a.p[2]);
+        // (in a floor view the roof is gone: its cards stay where the roof would be, #193)
+        const p = new Vector3(a.p[0], a.p[1] + (fv?.y ?? 0) + (a.roof && (this.floorId === null || this.floors.length <= 1) ? (1 - this.roofO) * 2.2 : 0), a.p[2]);
         const toCamera = this.camera.position.clone().sub(p);
         const dist = toCamera.length();
         const facing = toCamera.normalize().dot(new Vector3(a.n[0], a.n[1], a.n[2])) >= 0;

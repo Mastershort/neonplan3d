@@ -1,6 +1,12 @@
 """Start views of the house, a floor and a room (#206, #282)."""
 
-from custom_components.neonplan3d.schema import FURNITURE_SCHEMA, OPENING_SCHEMA, ROOM_SCHEMA, START_VIEW_SCHEMA
+from custom_components.neonplan3d.schema import (
+    FURNITURE_SCHEMA,
+    HOLOGRAM_SCHEMA,
+    OPENING_SCHEMA,
+    ROOM_SCHEMA,
+    START_VIEW_SCHEMA,
+)
 
 ROOM = {"id": "r1", "name": "Bad", "area_id": None, "points": [[0, 0], [2, 0], [2, 2]], "floor_material": "tiles"}
 
@@ -30,3 +36,16 @@ def test_inverted_contact_and_plant_card_offsets() -> None:
     assert "plant_right" not in FURNITURE_SCHEMA(inv)
     moved = FURNITURE_SCHEMA({**inv, "plant_right": 1.5, "plant_up": -2})
     assert (moved["plant_right"], moved["plant_up"]) == (1.5, -2.0)
+
+
+def test_room_ceiling_height() -> None:
+    """A room may have a ceiling of its own (#30); none keeps the floor height."""
+    assert "ceiling_height" not in ROOM_SCHEMA(ROOM)
+    assert ROOM_SCHEMA({**ROOM, "ceiling_height": 2.5})["ceiling_height"] == 2.5
+    assert ROOM_SCHEMA({**ROOM, "ceiling_height": None})["ceiling_height"] is None
+
+
+def test_plant_cards_in_floor_views_are_off_by_default() -> None:
+    """The house balance and plant cards in floor views is a switch, off by default (#193)."""
+    assert HOLOGRAM_SCHEMA({})["plant_floor"] is False
+    assert HOLOGRAM_SCHEMA({"plant_floor": True})["plant_floor"] is True
