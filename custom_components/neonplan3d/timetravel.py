@@ -92,8 +92,8 @@ def collect(
     entities: dict[str, Any] = {}
     for ids, with_attributes in ((plain, False), (rich, True)):
         for entity_id, items in _states(hass, start_dt, end_dt, ids, with_attributes).items():
-            if (rows := entity_rows(entity_id, items, start, end)) is not None:
-                entities[entity_id] = rows
+            if (columns := entity_rows(entity_id, items, start, end)) is not None:
+                entities[entity_id] = columns
 
     wanted = dict.fromkeys([*entity_ids, *statistic_ids])
     return {
