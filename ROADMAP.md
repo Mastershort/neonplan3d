@@ -30,7 +30,7 @@ What comes next. The order follows your wishes (issues and 👍 in [Discussions 
 | Curved walls | Wall arcs, windows follow | #63 |
 | Roofs | Gable at one end and hip at the other in one section; windows in dormers; windows with a slanted top under the slope; a roof flush against a wall; a chimney through the roof | #209, discussions #207, #203, #172 |
 | Blinds and covers | Interior blinds (inside the glass), several cover entities per window, Somfy "My" position | discussions #112, #197, #204 |
-| Gates in fences | A swing or sliding gate as part of a fence or wall outside, linked to the gate opener (a cover entity) – it opens and closes in 3D, a tap opens or closes it | discussion #175 |
+| Driveway gates and garden gates | Driveway gates (swing or sliding, one or two leaves) and gates in fences and walls (garden gate, side door without a lintel), linked to the gate opener (a cover, lock or switch entity) and a contact – they open and close live in 3D, a tap opens or closes them (with a question first) | discussion #175, #297 |
 | Doors with locks | Electronic door locks and garage doors opened by a switch, with lock/unlock and open buttons | discussion #173 |
 | Scenes and menu | Scenes higher up in the room panel; main menu/favourites open at start and larger; own buttons light up while on; an own tap action per device (a script, scene or automation, e.g. the TV starts "TV mode") | #188, discussions #174, #196 |
 | Small tablets and phones | Zoom in the start view, larger 3D and room card on small tablets, keep the camera when switching floors, a compact editor menu on phones | #191, #206, discussions #190, #200 |
@@ -109,7 +109,7 @@ Was als Nächstes kommt. Die Reihenfolge richtet sich nach euren Wünschen (Issu
 | Runde Wände | Wandbögen, Fenster folgen | #63 |
 | Dächer | Giebel an einem und Walm am anderen Ende eines Abschnitts; Fenster in Gauben; Fenster mit schräger Oberkante unter der Dachschräge; Dach bündig an eine Wand; Schornstein durchs Dach | #209, Diskussionen #207, #203, #172 |
 | Rollläden und Rollos | Rollos innen (hinter dem Glas), mehrere Rollladen-Entitäten je Fenster, Somfy-„My“-Position | Diskussionen #112, #197, #204 |
-| Tore im Zaun | Dreh- oder Schiebetor als Teil eines Zauns oder einer Mauer draußen, verknüpft mit dem Torantrieb (Cover-Entität) – es fährt in 3D auf und zu, ein Tipp öffnet oder schließt es | Diskussion #175 |
+| Einfahrtstore und Gartentore | Einfahrtstore (Dreh- oder Schiebetor, ein- oder zweiflügelig) und Tore in Zäunen und Mauern (Gartentor, Pforte ohne Sturz), verknüpft mit dem Torantrieb (Cover-, Schloss- oder Schalter-Entität) und einem Kontakt – sie fahren in 3D live auf und zu, ein Tipp öffnet oder schließt sie (mit Rückfrage) | Diskussion #175, #297 |
 | Türen mit Schloss | Elektrische Türschlösser und Garagentore per Schalter, mit Ver-/Entriegeln und Öffnen | Diskussion #173 |
 | Szenen und Menü | Szenen weiter oben im Raumfenster; Hauptmenü/Favoriten beim Start offen und größer; eigene Knöpfe leuchten, wenn sie an sind; eine eigene Tipp-Aktion je Gerät (Skript, Szene oder Automation, z. B. der Fernseher startet den „Fernseh-Modus“) | #188, Diskussionen #174, #196 |
 | Kleine Tablets und Handys | Zoom in der Startansicht, größere 3D-Ansicht und Raumkarte auf kleinen Tablets, Kamera beim Etagenwechsel behalten, kompaktes Editor-Menü auf dem Handy | #191, #206, Diskussionen #190, #200 |
