@@ -36,11 +36,13 @@ const editorConfig = (viewerHash) => ({
   outfile: `${out}/neonplan3d-editor.js`,
   define: { __FP3D_VIEWER_HASH__: JSON.stringify(viewerHash), __FP3D_LANG_HASH__: JSON.stringify(langHash) },
 });
+// the time travel (Pro) only loads when it starts; its texts come from the main bundle
+const timeTravelConfig = { ...common, entryPoints: ["src/timetravel/entry.ts"], outfile: `${out}/neonplan3d-timetravel.js` };
 // The main bundle loads the 3D bundle with a hash of its content in the URL, so a new 3D bundle is
 // never taken from the browser cache (the integration version only changes after a restart).
 // the frontend knows its own version, to notice a backend that still runs an older one
 const version = JSON.parse(readFileSync("../custom_components/neonplan3d/manifest.json", "utf8")).version;
-const mainConfig = (viewerHash, editorHash, cardEditorHash) => ({
+const mainConfig = (viewerHash, editorHash, cardEditorHash, timeTravelHash) => ({
   ...common,
   entryPoints: ["src/main.ts"],
   outfile: `${out}/neonplan3d.js`,
@@ -48,6 +50,7 @@ const mainConfig = (viewerHash, editorHash, cardEditorHash) => ({
     __FP3D_VIEWER_HASH__: JSON.stringify(viewerHash),
     __FP3D_EDITOR_HASH__: JSON.stringify(editorHash),
     __FP3D_CARD_EDITOR_HASH__: JSON.stringify(cardEditorHash),
+    __FP3D_TIMETRAVEL_HASH__: JSON.stringify(timeTravelHash),
     __FP3D_VERSION__: JSON.stringify(version),
     __FP3D_LANG_HASH__: JSON.stringify(langHash),
   },
@@ -74,19 +77,21 @@ function copyFonts() {
   }
 }
 
-// raised 2026-10-06 for the 1.12 round (outdoor round, hip-end solar, marker names): still small enough for old wall tablets
-const BUDGET = { "neonplan3d.js": 435 * 1024, "neonplan3d-3d.js": 740 * 1024, "neonplan3d-editor.js": 540 * 1024, "neonplan3d-card-editor.js": 170 * 1024 };
+// raised 2026-10-06 for the 1.12 round (outdoor round, hip-end solar, marker names): still small enough for old wall tablets;
+// main raised to 440 KB on 2026-10-08 for the time travel's switch, texts and read-only guards (its own code loads lazily)
+const BUDGET = { "neonplan3d.js": 440 * 1024, "neonplan3d-timetravel.js": 80 * 1024, "neonplan3d-3d.js": 740 * 1024, "neonplan3d-editor.js": 540 * 1024, "neonplan3d-card-editor.js": 170 * 1024 };
 
 copyFonts();
 if (watch) {
   // in watch mode the hash is not tracked; a dev reload fetches the bundle anyway
-  for (const c of [viewerConfig, editorConfig("dev"), cardEditorConfig, mainConfig("dev", "dev", "dev")]) await (await context(c)).watch();
+  for (const c of [viewerConfig, editorConfig("dev"), cardEditorConfig, timeTravelConfig, mainConfig("dev", "dev", "dev", "dev")]) await (await context(c)).watch();
 } else {
   await build(viewerConfig);
   const editor = editorConfig(hashOf(viewerConfig.outfile));
   await build(editor);
   await build(cardEditorConfig);
-  await build(mainConfig(hashOf(viewerConfig.outfile), hashOf(editor.outfile), hashOf(cardEditorConfig.outfile)));
+  await build(timeTravelConfig);
+  await build(mainConfig(hashOf(viewerConfig.outfile), hashOf(editor.outfile), hashOf(cardEditorConfig.outfile), hashOf(timeTravelConfig.outfile)));
   let over = false;
   for (const [file, limit] of Object.entries(BUDGET)) {
     const size = statSync(`${out}/${file}`).size;

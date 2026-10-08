@@ -456,6 +456,7 @@ The 3D view has three levels:
 | **Room names** | Show or hide the room names |
 | **Trail** | Motion trail, Pro, see [6.1](#61-camera-cockpit) |
 | **Weather** | Weather outside, Pro, see [6.2](#62-weather-outside) |
+| **⏪ Time travel** | Replay the last 24 hours in the house, view only, Pro, see [6.7](#67-time-travel) |
 | **≡ / ↔** (right end of the floor and room bar) | Wrap the bar at the top onto several lines when many rooms do not fit in one, or back to one line; in one line it scrolls sideways, on a PC with the mouse wheel too. In the house view the rooms of every floor follow its name |
 | **⚙** (phones only, top, next to the version) | Opens and folds the view options quality, look, markers and FPS; so the header takes only two lines on a phone |
 | **Eye** (bottom left, next to the magnifier) | Hides everything that is not the 3D view: header, floor and room bar, energy values, floor pictures, switches. The stage alone remains – half a screen more on a phone. A tap on the eye brings it all back; rooms can still be tapped. The device remembers the choice |
@@ -704,6 +705,45 @@ Car Pro lives on the **parking spot**, not on the vehicle furniture. If your car
 
 **Wall tablet:** no animation needed – Car Pro runs the same on every level.
 
+### 6.7 Time travel
+
+![Time travel: the floor at 07:42 with the time bar](images/view-timetravel.jpg)
+
+Time travel replays the last 24 hours in the house – from the history Home Assistant records anyway (the recorder): lights with brightness and colour, doors and windows, blinds, motion, heating, TV and speakers, temperatures, power, weather and the sun's position. Everything stays in Home Assistant, and **nothing is switched** – time travel only shows.
+
+**Start:** tap **⏪ Time travel** in the switch bar at the bottom; in the dashboard card the button appears with `time_travel: true` (chapter 8). The view gets an amber frame, and the moment shown stands large at the top centre ("Thu 07:42 · 6 h 14 min ago"). It starts paused, one hour before now. **● Live** or **Esc** takes you back to the present; in the card the return to the start view does too (`idle_return`).
+
+**The time bar at the bottom:**
+
+| Element | What it does |
+|---|---|
+| **⏮** / **⏭** | Jump to the previous or next event; playback pauses there |
+| **▶** / **⏸** | Play and pause. At the end, ▶ starts from the beginning again |
+| **Track** | Tap or drag to jump to that moment. Dark areas are the night (from the sun's position at Home Assistant's location), grey is time the recorder has nothing of yet, hatched is a gap – Home Assistant was off or restarting |
+| **Dots** | Events. A tap jumps there and pauses, a long press tells what happened. Several close together become one dot with a number, in the colour of the most important one |
+| **360×** | The speed: 60× (one hour in one minute), 360× (in 10 seconds, default), 900× (in 4 seconds), 3600× (in one second) |
+| **● Live** | Back to the present |
+
+On a PC: **space** plays or pauses, the **arrow keys** jump 5 minutes (with Shift one hour).
+
+**Events:** the front door (a door with a contact in an outer wall or with the front door look), garage door and gate, a lock is unlocked, the alarm goes off, smoke, gas, carbon monoxide, water, a window is open while it rains, motion at night (11 pm to 5 am, motion sensors only), the robot vacuum starts and is done, washing machine, dryer and dishwasher are done (the power drops after a run; the power sensor is linked to the item or placed as a device right next to it). The same thing again shortly after counts once. **People are never an event**, and time travel does not show where anyone was.
+
+**View only:** a tap on a device shows its state at that moment ("On · 35 % · since 19:29"). The room panel shows the values of the moment but takes no input. The star menu, scene buttons, swiping, double tap, quick menu, camera wall and the buttons on the glass cards rest until you are live again.
+
+**What time travel shows:**
+
+- lights with brightness, colour and colour temperature, blinds with their position (moving in between), windows open or tilted, doors, garage doors
+- temperature, humidity, CO₂ and power from the five-minute statistics, smooth in between – also as **heatmap** and **values**
+- warnings as they were (smoke, water, window open in the rain)
+- the weather outside (with the Pro "Weather outside") from the weather entity's history, the sun and sunlight from the sun's position at the time
+- energy (with Energy Pro): the values at the top, the glass cards and the cables with the power of that moment; the day curves of the glass cards keep showing today
+
+Not included are camera pictures (the recorder keeps none) and people and trackers – including the location of a car that is away. Whatever the recorder does not record reads "unknown".
+
+**Wall tablet:** while playing, the view updates twice a second at the **Tablet** level (Auto four times, High six times); paused, nothing runs at all (0 B/s). A day of history is loaded once and needs only a few hundred kilobytes; only what really changes is redrawn.
+
+**Requirements:** Home Assistant's recorder (it runs by default) and Home Assistant restarted once after the update. How far back the history reaches is set by the recorder's `purge_keep_days` (default 10 days); time travel needs 24 hours of it.
+
 ---
 
 ## 7. Extensions, shop and furniture packs
@@ -775,7 +815,7 @@ The card `custom:neonplan3d-card` brings the 3D view into any dashboard. It load
 |---|---|
 | **View** | One floor or the whole house, fixed size or full screen, height, look, walls, quality, floors below |
 | **Show** | Markers, heatmap, switches in the card, floor pictures, room names, room panel, full-screen button, floors apart, performance display |
-| **Features** | Warnings, jump to a warning, scene buttons, motion trail, weather with weather entity |
+| **Features** | Warnings, jump to a warning, scene buttons, motion trail, camera wall, time travel, weather with weather entity |
 | **Wall tablet (kiosk)** | Back to the start view, night dimming, camera turn as screensaver |
 
 ![A card with scenes](images/card-scenes.jpg)
@@ -823,6 +863,9 @@ weather: true           # Pro: weather outside
 weather_entity: weather.home
 holograms: true         # Pro: holograms always on/off; leave out = a switch in the card
 camera_wall: false      # Pro: a "Cameras" button at the bottom of the card opens the camera wall
+time_travel: false      # Pro: a "Time travel" button at the bottom of the card replays the last 24 hours (view only)
+time_travel_speed: 360  # time travel speed: 60 | 360 | 900 | 3600 (one hour in 1 min, 10 s, 4 s, 1 s)
+time_travel_range: 24h  # how far back time travel reaches (24 hours for now)
 roof_fade: true         # false: the roof stays on the house while zooming in
 start_view: { theta: 0.8, phi: 1.0, radius: 20 }   # a start view of this card's own; the line is shown in the editor under Start view (leave out = the plan's)
 idle_return: 0          # seconds without a touch until the start view
@@ -872,6 +915,7 @@ Home Assistant's own backup includes NeonPlan 3D completely as well.
 - The plan, pictures and packs are stored in Home Assistant under `.storage`. None of it leaves your installation.
 - NeonPlan 3D only connects to the internet if you enter a licence key. Then it asks mastershort.de once a day for updates and sends the key and the anonymous installation id.
 - Camera pictures, history and states stay in Home Assistant and are only shown in the browser.
+- Time travel reads the history from Home Assistant's recorder, only for the devices of the plan. It never reads people or their trackers.
 
 ---
 
@@ -908,6 +952,9 @@ Walls catch taps. In the room view only things in the room count. If it still hi
 
 **The view stutters on the tablet.**
 Set quality to **Tablet** and check with **FPS** what is drawing. At rest it should read 0 fps. If something keeps running, the reason is shown next to it, e.g. a lamp's colour effect.
+
+**Time travel shows nothing, "unknown" or gaps.**
+Time travel takes the history from Home Assistant's recorder. If the bar says "Without Home Assistant's recorder there is no history", the recorder is switched off (`recorder:` in `configuration.yaml`). A device reading "unknown" is excluded from the recorder (`exclude:` under `recorder:`) or new. Grey areas at the start of the bar: the recorder has not collected 24 hours yet (freshly set up, or `purge_keep_days` is below 1). Hatched areas: Home Assistant was off or restarting then. Temperatures and power come from the five-minute statistics; a sensor without a state class (`state_class: measurement`) is shown from its states instead. If the bar says "Please restart Home Assistant", an older version still runs in the background.
 
 **Sunlight falls through the wrong windows.**
 Check **North** under Settings: degrees clockwise from "up" in the plan.

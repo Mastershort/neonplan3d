@@ -1,0 +1,53 @@
+// Time travel: what the main bundle and the lazily loaded time travel bundle share (types only).
+
+import type { FurnitureLinks, OpeningEntities } from "../devices.ts";
+import type { Building } from "../model.ts";
+import type { HistoryRow } from "../trail.ts";
+import type { HomeAssistant } from "../types.ts";
+
+/** What the 3D view shows and how its doors, windows and furniture are linked (for the history and events). */
+export interface HistorySpec {
+  entities: string[];
+  openings: [string, OpeningEntities][];
+  furniture: [string, FurnitureLinks][];
+  /** The view runs at the tablet level (fewer updates per second). */
+  low: boolean;
+}
+
+/** The moment the view replays; handed to the 3D view (the same object for the whole session). */
+export interface ReplayInfo {
+  /** The replayed moment (ms). */
+  t: number;
+  /** Counts jumps (scrubbing, events): doors and blinds stand at once instead of moving there. */
+  seek: number;
+  /** History rows (as Home Assistant's history answers them) of some entities between two moments. */
+  rows(ids: readonly string[], from: number, to: number): Record<string, HistoryRow[]>;
+}
+
+export type Speed = 60 | 360 | 900 | 3600;
+
+export interface StartOptions {
+  live: HomeAssistant;
+  building: Building;
+  spec: HistorySpec;
+  quality: "auto" | "low" | "high";
+  speed?: number | null;
+  /** Where to start: a moment (ms) or a link's text ("07:42", "-3h"); null: an hour ago. */
+  at?: number | string | null;
+  /** Texts in the user's language (the bundle has no texts of its own). */
+  t: (key: string, vars?: Record<string, string | number>) => string;
+  /** The replayed states or the session changed: the host renders again. */
+  onChange: () => void;
+  /** The user went back to live. */
+  onExit: () => void;
+}
+
+export interface TimeTravelSession {
+  /** Home Assistant as it was at the replayed moment (null while the history loads). */
+  readonly hass: HomeAssistant | null;
+  readonly replay: ReplayInfo;
+  /** The live Home Assistant changed (registry, language): the replay follows. */
+  setLive(hass: HomeAssistant): void;
+  exit(): void;
+  dispose(): void;
+}

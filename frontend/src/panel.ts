@@ -16,9 +16,12 @@ import { keepInRoom, snapToWall } from "./geometry/snap.ts";
 import { furnitureName } from "./furniture-names.ts";
 import { confirmEntities, defaultHeight, entityName, kindOf } from "./devices.ts";
 import { canLift, type LampMount } from "./model.ts";
-import { mountBase } from "./packs.ts";
+import { mountBase, packsVersion } from "./packs.ts";
 import { hasFeature } from "./features.ts";
 import { getLicense, unseenOffers, unseenUpdates } from "./api.ts";
+import { TimeTravel } from "./load-timetravel.ts";
+import type { HistorySpec } from "./timetravel/types.ts";
+import type { Feature } from "./features.ts";
 import type { FloorStack, Quality, WallMode } from "./viewer/viewer3d.ts";
 
 type Mode = "view" | "editor" | "extensions";
@@ -120,6 +123,10 @@ export class Floorplan3dPanel extends LitElement {
   private declare _weather: boolean;
 
   private readonly data = new BuildingController(this);
+  /** Time travel (Pro): the last 24 hours replayed, read-only. */
+  private readonly tt = new TimeTravel(this);
+  /** A ?tt= link was looked at (it starts the time travel once). */
+  private ttLinked = false;
 
 
   constructor() {
@@ -166,7 +173,10 @@ export class Floorplan3dPanel extends LitElement {
   }
 
   protected willUpdate(changed: PropertyValues): void {
-    if (changed.has("hass") && this.hass) this.data.setHass(this.hass);
+    if (changed.has("hass") && this.hass) {
+      this.data.setHass(this.hass);
+      this.tt.session?.setLive(this.hass);
+    }
     // a language beyond German and English: its texts are fetched first, then everything renders
     if (changed.has("hass") && this.hass && !languageReady(this.hass.language)) void loadLanguage(this.hass.language).then(() => this.requestUpdate());
     const b = this.data.building;
@@ -182,6 +192,7 @@ export class Floorplan3dPanel extends LitElement {
 
   private setMode(mode: Mode): void {
     if (mode === this._mode) return;
+    this.tt.stop();
     if (mode === "view") void this.data.flush();
     this._mode = mode;
   }
@@ -400,7 +411,33 @@ export class Floorplan3dPanel extends LitElement {
   }
 
   private view3d() {
-    return this.renderRoot.querySelector("fp3d-view3d") as (HTMLElement & { resetView(): void; lookThrough(entityId: string): void }) | null;
+    return this.renderRoot.querySelector("fp3d-view3d") as (HTMLElement & { resetView(): void; lookThrough(entityId: string): void; historyEntities(): HistorySpec; proHint(f: Feature): void }) | null;
+  }
+
+  /** Time travel on or off; without the Pro add-on its hint shows. `at`: a start moment from a link. */
+  private toggleTimeTravel(at: string | null = null): void {
+    if (this.tt.active) {
+      this.tt.stop();
+      return;
+    }
+    const view = this.view3d();
+    const b = this.data.building;
+    if (!view || !b || !this.hass) return;
+    if (!hasFeature("time_travel")) {
+      view.proHint("time_travel");
+      return;
+    }
+    this._furnish = false;
+    this._cameraWall = false;
+    this.tt.start({ live: this.hass, building: b, spec: view.historyEntities(), quality: this._quality, at, t: (k, vars) => translate(this.hass, k as I18nKey, vars) });
+  }
+
+  protected updated(): void {
+    // a link with ?tt=07:42 or ?tt=-3h opens the time travel there, once the plan and the packs are loaded
+    if (this.ttLinked || !this.data.building || !packsVersion() || this._mode !== "view" || !this.view3d()) return;
+    this.ttLinked = true;
+    const at = new URLSearchParams(location.search).get("tt");
+    if (at !== null && hasFeature("time_travel")) this.toggleTimeTravel(at);
   }
 
   private back(): void {
@@ -410,7 +447,10 @@ export class Floorplan3dPanel extends LitElement {
   }
 
   private readonly onKey = (e: KeyboardEvent) => {
-    if (e.key === "Escape" && this._mode === "view") this.back();
+    if (e.key !== "Escape" || this._mode !== "view") return;
+    // Esc first leaves the time travel, then goes up a level
+    if (this.tt.active) this.tt.stop();
+    else this.back();
   };
 
   connectedCallback(): void {
@@ -430,6 +470,7 @@ export class Floorplan3dPanel extends LitElement {
   disconnectedCallback(): void {
     super.disconnectedCallback();
     window.removeEventListener("keydown", this.onKey);
+    this.tt.stop();
   }
 
   protected render() {
@@ -666,6 +707,7 @@ export class Floorplan3dPanel extends LitElement {
     }
     const floor = b.floors.find((f) => f.id === this._floorId);
     const roomFloors = floor ? [floor] : b.floors;
+    const tt = this.tt.active;
     return html`
       ${this._clean ? nothing : html`<nav class="fp3d-nav ${this._navWrap ? "fp3d-nav-wrap" : ""}" @wheel=${this.onNavWheel}>
         ${b.floors.length > 1
@@ -718,10 +760,11 @@ export class Floorplan3dPanel extends LitElement {
           ${this._navWrap ? "\u2194" : "\u2261"}
         </button>
       </nav>`}
-      <div class="fp3d-stage-wrap ${this._roomId ? "fp3d-room-open" : ""} ${this._controlsRight ? "fp3d-side-right" : ""}">
+      <div class="fp3d-stage-wrap ${this._roomId ? "fp3d-room-open" : ""} ${this._controlsRight ? "fp3d-side-right" : ""} ${tt ? "fp3d-tt" : ""}">
         <fp3d-view3d
           class="fp3d-body"
-          .hass=${this.hass}
+          .hass=${this.tt.hass(this.hass)}
+          .replay=${this.tt.session?.replay ?? null}
           .building=${b}
           .packs=${this.data.packs}
           .floorStack=${this._floorStack}
@@ -729,7 +772,7 @@ export class Floorplan3dPanel extends LitElement {
           .controlsRight=${this._controlsRight}
           .keepView=${this._keepView}
           ?trail=${this._trail}
-          .cameraWall=${this._cameraWall}
+          .cameraWall=${this._cameraWall && !tt}
           @camera-wall-close=${() => (this._cameraWall = false)}
           @camera-wall-open=${() => (this._cameraWall = true)}
           .clean=${this._clean}
@@ -749,7 +792,7 @@ export class Floorplan3dPanel extends LitElement {
           .heatMode=${this._heat}
           .theme=${this._theme}
           .accent=${this._accent}
-          ?furnish=${this._furnish}
+          ?furnish=${this._furnish && !tt}
           .selectedFurniture=${this._selFurniture}
           @furniture-select=${(e: CustomEvent<{ id: string | null }>) => (this._selFurniture = e.detail.id)}
           @furniture-move=${this.moveFurniture}
@@ -769,13 +812,15 @@ export class Floorplan3dPanel extends LitElement {
           ? html`<fp3d-room-panel
               class="fp3d-room-panel"
               @camera-look=${(e: CustomEvent<{ entity: string }>) => this.view3d()?.lookThrough(e.detail.entity)}
-              .hass=${this.hass}
+              .hass=${this.tt.hass(this.hass)}
+              ?readOnly=${tt}
               .room=${b.floors.flatMap((f) => f.rooms).find((r) => r.id === this._roomId) ?? null}
               .floor=${b.floors.find((f) => f.rooms.some((r) => r.id === this._roomId)) ?? null}
               .confirmEntities=${confirmEntities(this.hass, b.floors)}
               @close=${() => (this._roomId = null)}
             ></fp3d-room-panel>`
           : nothing}
+        ${this.tt.session ? html`<fp3d-time-bar .session=${this.tt.session}></fp3d-time-bar>` : nothing}
         ${this._clean ? nothing : html`<div class="fp3d-overlay">
           <div class="fp3d-seg">
             <button aria-pressed=${this._wallMode === "auto"} @click=${() => this.setWallMode("auto")}>${this.t("walls_auto")}</button>
@@ -861,6 +906,9 @@ export class Floorplan3dPanel extends LitElement {
             }}
           >
             ${hasFeature("weather") ? "" : "🔒 "}${this.t("weather_short")}
+          </button>
+          <button class="fp3d-chip fp3d-tt-chip" aria-pressed=${tt} title=${this.t("tt_hint")} @click=${() => this.toggleTimeTravel()}>
+            ${hasFeature("time_travel") ? "⏪" : "🔒"} ${this.t("tt_chip")}
           </button>
           ${this._roomId || (this._floorId && b.floors.length > 1)
             ? html`<button class="fp3d-chip" @click=${() => this.back()}>${this.t("back")}</button>`
@@ -1190,6 +1238,23 @@ export class Floorplan3dPanel extends LitElement {
       .fp3d-furnish-bar {
         bottom: 68px;
       }
+      /* time travel: its bar at the bottom; the switches, the buttons of the view and the room panel above it */
+      .fp3d-tt > * {
+        --fp3d-tt-h: 64px;
+      }
+      .fp3d-tt fp3d-view3d {
+        --fp3d-bottom-inset: calc(52px + var(--fp3d-tt-h));
+      }
+      .fp3d-tt .fp3d-overlay {
+        bottom: calc(var(--fp3d-tt-h) + 4px);
+      }
+      .fp3d-tt .fp3d-room-panel {
+        bottom: calc(var(--fp3d-tt-h) + 6px);
+      }
+      .fp3d-tt-chip[aria-pressed="true"] {
+        background: #ffb020;
+        color: #1a1200;
+      }
       /* phones and portrait tablets: panel as a sheet at the bottom, the switches step aside */
       @container fp3d ((max-width: 700px) or ((orientation: portrait) and (max-width: 1000px))) {
         .fp3d-room-panel {
@@ -1203,6 +1268,16 @@ export class Floorplan3dPanel extends LitElement {
         }
         .fp3d-room-open .fp3d-overlay {
           display: none;
+        }
+        /* phones: the time bar takes two rows; the switches make way for it */
+        .fp3d-tt > * {
+          --fp3d-tt-h: 100px;
+        }
+        .fp3d-tt .fp3d-overlay {
+          display: none;
+        }
+        .fp3d-tt fp3d-view3d {
+          --fp3d-bottom-inset: var(--fp3d-tt-h);
         }
       }
       /* search and eye on the right (#285): the bar leaves room there instead */

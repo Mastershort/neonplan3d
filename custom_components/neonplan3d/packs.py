@@ -131,7 +131,16 @@ ITEM_SCHEMA = vol.Schema(
 )
 
 # Pro features this version knows; a pack with a newer one needs a newer NeonPlan 3D
-KNOWN_FEATURES = ["camera_cockpit", "weather", "screens", "fridge_smart", "energy_pro", "sound", "auto_pro"]
+KNOWN_FEATURES = [
+    "camera_cockpit",
+    "weather",
+    "screens",
+    "fridge_smart",
+    "energy_pro",
+    "sound",
+    "auto_pro",
+    "time_travel",
+]
 
 PAYLOAD_SCHEMA = vol.Schema(
     {

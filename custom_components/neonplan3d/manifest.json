@@ -1,6 +1,7 @@
 {
   "domain": "neonplan3d",
   "name": "NeonPlan 3D",
+  "after_dependencies": ["recorder"],
   "codeowners": ["@Mastershort"],
   "config_flow": true,
   "dependencies": ["frontend", "http", "panel_custom", "websocket_api"],

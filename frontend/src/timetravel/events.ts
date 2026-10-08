@@ -1,0 +1,202 @@
+// Time travel: the moments worth jumping to – the front door, the garage, a lock, the alarm, smoke, gas,
+// water, a window open in the rain, motion at night, the robot and a finished washing machine. People are
+// never an event (who was where stays private).
+
+import type { Role } from "./classify.ts";
+import { seriesValue } from "./numeric.ts";
+import type { Timeline, Track } from "./timeline.ts";
+
+export type EventKind = "alarm" | "smoke" | "gas" | "co" | "water" | "rain" | "door" | "lock" | "garage" | "motion" | "washer" | "robot_start" | "robot_done";
+
+export interface TTEvent {
+  t: number;
+  kind: EventKind;
+  entity: string;
+}
+
+/** How much an event matters: the highest one of a cluster gives it its look. */
+export const RANK: Record<EventKind, number> = {
+  alarm: 100,
+  smoke: 95,
+  gas: 95,
+  co: 95,
+  water: 90,
+  rain: 70,
+  door: 50,
+  lock: 45,
+  garage: 40,
+  motion: 35,
+  washer: 25,
+  robot_done: 20,
+  robot_start: 15,
+};
+
+const RAIN = new Set(["rainy", "pouring", "lightning-rainy", "hail", "snowy-rainy"]);
+const OPEN = new Set(["on", "open", "opening", "tilted"]);
+
+/** Late evening to early morning (local time): motion then is worth a marker. */
+export function sleepTime(t: number): boolean {
+  const h = new Date(t).getHours();
+  return h >= 23 || h < 5;
+}
+
+/** Each change of a track: the time, the state before and after. */
+function* changes(track: Track): Generator<{ t: number; from: string | null; to: string }> {
+  let prev: string | null = null;
+  for (let k = 0; k < track.times.length; k++) {
+    const s = track.values[track.vals[k]].s;
+    if (s !== prev) yield { t: track.times[k], from: prev, to: s };
+    prev = s;
+  }
+}
+
+/** Where a track reads one of the states, as [start, end] pairs. */
+function spans(track: Track, states: ReadonlySet<string>, end: number): [number, number][] {
+  const out: [number, number][] = [];
+  let open: number | null = null;
+  for (const c of changes(track)) {
+    const on = states.has(c.to);
+    if (on && open === null) open = c.t;
+    if (!on && open !== null) {
+      out.push([open, c.t]);
+      open = null;
+    }
+  }
+  if (open !== null) out.push([open, end]);
+  return out;
+}
+
+/** A power sensor's values over time (rows of its states, or its five-minute means). */
+function powerPoints(timeline: Timeline, id: string): { t: number; w: number }[] {
+  const track = timeline.tracks.get(id);
+  if (track) {
+    const out: { t: number; w: number }[] = [];
+    for (let k = 0; k < track.times.length; k++) {
+      const w = Number(track.values[track.vals[k]].s);
+      if (Number.isFinite(w)) out.push({ t: track.times[k], w });
+    }
+    return out;
+  }
+  const s = timeline.series.get(id);
+  if (!s) return [];
+  const out: { t: number; w: number }[] = [];
+  for (let i = 0; i < s.mean.length; i++) {
+    const t = s.start + (i + 0.5) * s.step;
+    const w = seriesValue(s, t);
+    if (Number.isFinite(w)) out.push({ t, w });
+  }
+  return out;
+}
+
+/** A machine's run: above `on` W for a while, done when it falls below `off` W after at least `minRunMs`. */
+export function machineDone(points: readonly { t: number; w: number }[], on = 10, off = 5, minRunMs = 20 * 60000): number[] {
+  const out: number[] = [];
+  let since: number | null = null;
+  for (const p of points) {
+    if (since === null && p.w > on) since = p.t;
+    else if (since !== null && p.w < off) {
+      if (p.t - since >= minRunMs) out.push(p.t);
+      since = null;
+    }
+  }
+  return out;
+}
+
+export interface EventInput {
+  timeline: Timeline;
+  roles: ReadonlyMap<string, Role>;
+  /** The weather entity whose rain counts (null: no rain events). */
+  weather: string | null;
+  /** When motion is worth an event (default: late evening to early morning). */
+  night?: (t: number) => boolean;
+}
+
+/** Every event of the timeline, in time order; the same thing again within a few minutes counts once. */
+export function findEvents({ timeline, roles, weather, night = sleepTime }: EventInput): TTEvent[] {
+  const raw: TTEvent[] = [];
+  const add = (t: number, kind: EventKind, entity: string) => {
+    if (t >= timeline.start && t <= timeline.end) raw.push({ t, kind, entity });
+  };
+  const rainTrack = weather ? timeline.tracks.get(weather) : undefined;
+  const rain = rainTrack ? spans(rainTrack, RAIN, timeline.end) : [];
+  for (const [id, role] of roles) {
+    if (role === "washer") {
+      for (const t of machineDone(powerPoints(timeline, id))) add(t, "washer", id);
+      continue;
+    }
+    const track = timeline.tracks.get(id);
+    if (!track) continue;
+    if (role === "window") {
+      // open while it rained: one event per window and shower, when both first met
+      for (const [o0, o1] of spans(track, OPEN, timeline.end))
+        for (const [r0, r1] of rain) if (o0 < r1 && r0 < o1) add(Math.max(o0, r0), "rain", id);
+      continue;
+    }
+    for (const c of changes(track)) {
+      if (c.from === null) continue;
+      switch (role) {
+        case "door":
+          if (OPEN.has(c.to) && !OPEN.has(c.from)) add(c.t, "door", id);
+          break;
+        case "garage":
+          if ((c.to === "on" || c.to === "open" || c.to === "opening") && (c.from === "off" || c.from === "closed" || c.from === "closing")) add(c.t, "garage", id);
+          break;
+        case "lock":
+          if ((c.to === "unlocked" || c.to === "open") && (c.from === "locked" || c.from === "locking")) add(c.t, "lock", id);
+          break;
+        case "alarm":
+          if (c.to === "triggered") add(c.t, "alarm", id);
+          break;
+        case "smoke":
+        case "gas":
+        case "co":
+        case "water":
+          if (c.to === "on" && c.from !== "on") add(c.t, role, id);
+          break;
+        case "motion":
+          if (c.to === "on" && c.from === "off" && night(c.t)) add(c.t, "motion", id);
+          break;
+        case "robot":
+          if (c.to === "cleaning" && c.from !== "cleaning" && c.from !== "paused") add(c.t, "robot_start", id);
+          else if (c.to === "docked" && (c.from === "cleaning" || c.from === "returning" || c.from === "paused")) add(c.t, "robot_done", id);
+          break;
+      }
+    }
+  }
+  raw.sort((a, b) => a.t - b.t || RANK[b.kind] - RANK[a.kind]);
+  // the same thing again soon after counts once (a door opened twice, motion all night long)
+  const last = new Map<string, number>();
+  return raw.filter((e) => {
+    const key = `${e.kind}:${e.entity}`;
+    const prev = last.get(key);
+    const quiet = e.kind === "motion" ? 30 * 60000 : 5 * 60000;
+    if (prev !== undefined && e.t - prev < quiet) return false;
+    last.set(key, e.t);
+    return true;
+  });
+}
+
+export interface Cluster {
+  /** Where the cluster sits on the bar (px) and the moment a tap jumps to (its most important event). */
+  x: number;
+  t: number;
+  top: TTEvent;
+  events: TTEvent[];
+}
+
+/** Events closer than `minPx` on the bar become one marker, shown as its most important event. */
+export function clusterEvents(events: readonly TTEvent[], xOf: (t: number) => number, minPx = 14): Cluster[] {
+  const out: Cluster[] = [];
+  for (const e of events) {
+    const x = xOf(e.t);
+    const c = out[out.length - 1];
+    if (c && x - c.x < minPx) {
+      c.events.push(e);
+      if (RANK[e.kind] > RANK[c.top.kind]) {
+        c.top = e;
+        c.t = e.t;
+      }
+    } else out.push({ x, t: e.t, top: e, events: [e] });
+  }
+  return out;
+}

@@ -18,6 +18,7 @@ from .const import DOMAIN, SIGNAL_BUILDING_UPDATED
 from .packs import MAX_PACK_SIZE, PackError, parts_of, verify_pack
 from .schema import BUILDING_SCHEMA, IMAGE_DATA
 from .storage import FloorplanData, complete
+from .timetravel import ws_timetravel_history
 
 _IMAGE_ID = vol.All(str, vol.Length(min=1, max=64), vol.Match(r"^[A-Za-z0-9_\-.]+$"))
 
@@ -45,6 +46,7 @@ def async_register_commands(hass: HomeAssistant) -> None:
         ws_license_refresh,
         ws_backup_export,
         ws_backup_import,
+        ws_timetravel_history,
     ):
         websocket_api.async_register_command(hass, command)
 

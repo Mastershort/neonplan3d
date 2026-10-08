@@ -5,13 +5,16 @@ import { css, html, LitElement, nothing, type PropertyValues } from "lit";
 import { BuildingController } from "./building-controller.ts";
 import "./components/room-panel.ts";
 import "./components/view3d.ts";
-import { languageReady, loadLanguage, translate } from "./i18n.ts";
+import { languageReady, loadLanguage, translate, type I18nKey } from "./i18n.ts";
 import { controls, tokens } from "./styles.ts";
 import type { HomeAssistant } from "./types.ts";
 import type { CardConfig, CardControl } from "./card-config.ts";
 import { nightActive } from "./kiosk.ts";
 import { loadCardEditor } from "./load-card-editor.ts";
 import type { WallMode } from "./viewer/viewer3d.ts";
+import { hasFeature, type Feature } from "./features.ts";
+import { TimeTravel } from "./load-timetravel.ts";
+import type { HistorySpec } from "./timetravel/types.ts";
 
 type HeatMode = NonNullable<CardConfig["heatmap"]>;
 
@@ -63,6 +66,8 @@ export class Floorplan3dCard extends LitElement {
   private nightTimer: ReturnType<typeof setInterval> | undefined;
 
   private readonly data = new BuildingController(this);
+  /** Time travel (Pro, card option time_travel): the last 24 hours replayed, read-only. */
+  private readonly tt = new TimeTravel(this);
 
   constructor() {
     super();
@@ -101,11 +106,36 @@ export class Floorplan3dCard extends LitElement {
   }
 
   private view3d() {
-    return this.shadowRoot?.querySelector("fp3d-view3d") as (HTMLElement & { resetView(): void; lookThrough(entityId: string): void }) | null;
+    return this.shadowRoot?.querySelector("fp3d-view3d") as (HTMLElement & { resetView(): void; lookThrough(entityId: string): void; historyEntities(): HistorySpec; proHint(f: Feature): void }) | null;
   }
+
+  /** Time travel on or off; without the Pro add-on its hint shows. */
+  private toggleTimeTravel(): void {
+    if (this.tt.active) {
+      this.tt.stop();
+      return;
+    }
+    const view = this.view3d();
+    const b = this.data.building;
+    if (!view || !b || !this.hass) return;
+    if (!hasFeature("time_travel")) {
+      view.proHint("time_travel");
+      return;
+    }
+    this._cameraWall = false;
+    const c = this._config;
+    this.tt.start({ live: this.hass, building: b, spec: view.historyEntities(), quality: c?.quality ?? "auto", speed: c?.time_travel_speed ?? null, t: (k, vars) => translate(this.hass, k as I18nKey, vars) });
+  }
+
+  /** Esc leaves the time travel; any key counts as a touch. */
+  private readonly onKey = (e: KeyboardEvent) => {
+    if (e.key === "Escape") this.tt.stop();
+    this.touch();
+  };
 
   /** Back to the start view (room closed, start floor, camera reset); the screensaver may start. */
   private returnHome(): void {
+    this.tt.stop();
     this._roomId = this._config?.room ?? null;
     this._floorId = undefined;
     this.view3d()?.resetView();
@@ -131,6 +161,7 @@ export class Floorplan3dCard extends LitElement {
   disconnectedCallback(): void {
     super.disconnectedCallback();
     document.removeEventListener("fullscreenchange", this.onFullscreen);
+    this.tt.stop();
 clearTimeout(this.cleanTimer);
         clearTimeout(this.idleTimer);
     clearInterval(this.nightTimer);
@@ -186,6 +217,7 @@ clearTimeout(this.cleanTimer);
   protected willUpdate(changed: PropertyValues): void {
     if (changed.has("hass") && this.hass) {
       this.data.setHass(this.hass);
+      this.tt.session?.setLive(this.hass);
       // a language beyond German and English: its texts are fetched first, then everything renders
       if (!languageReady(this.hass.language)) void loadLanguage(this.hass.language).then(() => this.requestUpdate());
       const night = nightActive(this._config?.night, this.hass);
@@ -233,15 +265,17 @@ clearTimeout(this.cleanTimer);
     // full screen, the screen below the dashboard header, or a fixed height
     const size = this._fullscreen ? "100vh" : c?.fill ? "calc(100vh - var(--header-height, 56px) - 16px)" : `${height}px`;
     // the bar of switches at the bottom (the back button belongs to it)
-    const bar = !!b && !this._clean && (canGoBack || (!!c?.controls && !(this._roomId && c.room_panel !== false)));
+    const bar = !!b && !this._clean && (canGoBack || ((!!c?.controls || !!c?.time_travel) && !(this._roomId && c.room_panel !== false)));
+    const tt = this.tt.active;
     const eye = c?.controls_hidden !== undefined || (c?.controls_hide_after ?? 0) > 0;
     const t = (k: Parameters<typeof translate>[1]) => translate(this.hass, k);
     const accent = /^#[0-9a-f]{6}$/i.test(c?.accent ?? "") ? c!.accent : null;
-    return html`<ha-card class=${this._night ? "fp3d-night" : ""} style=${accent ? `--fp3d-accent:${accent}` : ""} @pointerdown=${this.touch} @keydown=${this.touch} @wheel=${this.touch}>
-      <div class="fp3d-card-body" style="height:${size}">
+    return html`<ha-card class=${this._night ? "fp3d-night" : ""} style=${accent ? `--fp3d-accent:${accent}` : ""} @pointerdown=${this.touch} @keydown=${this.onKey} @wheel=${this.touch}>
+      <div class="fp3d-card-body ${tt ? "fp3d-tt" : ""}" style="height:${size}">
         ${b && b.floors.some((f) => f.rooms.length)
           ? html`<fp3d-view3d
-              .hass=${this.hass}
+              .hass=${this.tt.hass(this.hass)}
+              .replay=${this.tt.session?.replay ?? null}
               .building=${b}
               .packs=${this.data.packs}
               .floorId=${floorId}
@@ -271,7 +305,7 @@ clearTimeout(this.cleanTimer);
               .alertJump=${!!c?.alert_jump}
               .scenes=${c?.scenes !== false}
               ?trail=${!!c?.motion_trail}
-              .cameraWall=${this._cameraWall}
+              .cameraWall=${this._cameraWall && !tt}
               @camera-wall-close=${() => (this._cameraWall = false)}
               @camera-wall-open=${() => (this._cameraWall = true)}
               .clean=${this._clean}
@@ -286,7 +320,7 @@ clearTimeout(this.cleanTimer);
               .dimmed=${this._night}
               .autoOrbit=${this._orbit}
               .startView=${c?.start_view ?? null}
-              style=${bar ? "--fp3d-bottom-inset: 52px" : ""}
+              style=${tt ? `--fp3d-bottom-inset: ${bar ? "calc(52px + var(--fp3d-tt-h))" : "var(--fp3d-tt-h)"}` : bar ? "--fp3d-bottom-inset: 52px" : ""}
               @room-tap=${(e: CustomEvent<{ floorId: string; roomId: string | null }>) => {
                 // in the house view (or on another floor) a tap first opens the whole floor
                 if (this.canSwitch && (b?.floors.length ?? 0) > 1 && e.detail.floorId && floorId !== e.detail.floorId) {
@@ -308,7 +342,8 @@ clearTimeout(this.cleanTimer);
           ? html`<fp3d-room-panel
               @camera-look=${(e: CustomEvent<{ entity: string }>) => this.view3d()?.lookThrough(e.detail.entity)}
               class="fp3d-card-panel"
-              .hass=${this.hass}
+              .hass=${this.tt.hass(this.hass)}
+              ?readOnly=${tt}
               .room=${b.floors.flatMap((f) => f.rooms).find((r) => r.id === this._roomId) ?? null}
               .floor=${b.floors.find((f) => f.rooms.some((r) => r.id === this._roomId)) ?? null}
               .confirmEntities=${confirmEntities(this.hass, b.floors)}
@@ -318,6 +353,11 @@ clearTimeout(this.cleanTimer);
         ${bar && b
           ? html`<div class="fp3d-card-controls">
               ${canGoBack ? html`<button class="fp3d-chip" @click=${() => this.back()}>${t("back")}</button>` : nothing}
+              ${c?.time_travel
+                ? html`<button class="fp3d-chip fp3d-tt-chip" aria-pressed=${tt} title=${t("tt_hint")} @click=${() => this.toggleTimeTravel()}>
+                    ${hasFeature("time_travel") ? "⏪" : "🔒"} ${t("tt_chip")}
+                  </button>`
+                : nothing}
               ${c?.camera_wall ? html`<button class="fp3d-chip" aria-pressed=${this._cameraWall} title=${t("camera_wall_hint")} @click=${() => (this._cameraWall = !this._cameraWall)}>${t("cameras_short")}</button>` : nothing}
               ${shows("walls")
                 ? html`<div class="fp3d-seg">
@@ -343,6 +383,7 @@ clearTimeout(this.cleanTimer);
                 : nothing}
             </div>`
           : nothing}
+        ${this.tt.session ? html`<fp3d-time-bar .session=${this.tt.session}></fp3d-time-bar>` : nothing}
         ${c?.fullscreen_button && !this._clean && !(this._roomId && c.room_panel !== false)
           ? html`<button class="fp3d-card-full" title=${t(this._fullscreen ? "fullscreen_exit" : "fullscreen")} aria-label=${t(this._fullscreen ? "fullscreen_exit" : "fullscreen")} @click=${() => this.toggleFullscreen()}>
               ${this._fullscreen ? "✕" : "⛶"}
@@ -374,6 +415,20 @@ clearTimeout(this.cleanTimer);
       }
       .fp3d-card-controls > * {
         pointer-events: auto;
+      }
+      /* time travel: its bar at the bottom, the switches and the room panel above it */
+      .fp3d-tt > * {
+        --fp3d-tt-h: 64px;
+      }
+      .fp3d-tt .fp3d-card-controls {
+        bottom: calc(var(--fp3d-tt-h) + 2px);
+      }
+      .fp3d-tt .fp3d-card-panel {
+        bottom: calc(var(--fp3d-tt-h) + 4px);
+      }
+      .fp3d-tt-chip[aria-pressed="true"] {
+        background: #ffb020;
+        color: #1a1200;
       }
       .fp3d-card-dash {
         width: auto;
@@ -444,6 +499,10 @@ clearTimeout(this.cleanTimer);
           width: auto;
           height: 55%;
           justify-content: flex-end;
+        }
+        /* the time bar takes two rows here */
+        .fp3d-tt > * {
+          --fp3d-tt-h: 100px;
         }
       }
     `,
