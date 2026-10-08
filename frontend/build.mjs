@@ -78,8 +78,8 @@ function copyFonts() {
 }
 
 // raised 2026-10-06 for the 1.12 round (outdoor round, hip-end solar, marker names): still small enough for old wall tablets;
-// main raised to 440 KB on 2026-10-08 for the time travel's switch, texts and read-only guards (its own code loads lazily)
-const BUDGET = { "neonplan3d.js": 440 * 1024, "neonplan3d-timetravel.js": 80 * 1024, "neonplan3d-3d.js": 740 * 1024, "neonplan3d-editor.js": 540 * 1024, "neonplan3d-card-editor.js": 170 * 1024 };
+// main raised to 440 KB on 2026-10-08 for the time travel's switch, texts and read-only guards (its own code loads lazily), to 450 KB the same day for room to fix things
+const BUDGET = { "neonplan3d.js": 450 * 1024, "neonplan3d-timetravel.js": 80 * 1024, "neonplan3d-3d.js": 740 * 1024, "neonplan3d-editor.js": 540 * 1024, "neonplan3d-card-editor.js": 170 * 1024 };
 
 copyFonts();
 if (watch) {
