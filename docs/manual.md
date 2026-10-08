@@ -709,7 +709,7 @@ Car Pro lives on the **parking spot**, not on the vehicle furniture. If your car
 
 ![Time travel: the floor at 07:42 with the time bar](images/view-timetravel.jpg)
 
-Time travel replays the last 24 hours in the house – from the history Home Assistant records anyway (the recorder): lights with brightness and colour, doors and windows, blinds, motion, heating, TV and speakers, temperatures, power, weather and the sun's position. Everything stays in Home Assistant, and **nothing is switched** – time travel only shows.
+Time travel replays the last 24 hours – or, if you like, the last 7 days – in the house, from the history Home Assistant records anyway (the recorder): lights with brightness and colour, doors and windows, blinds, motion, heating, TV and speakers, temperatures, power, weather and the sun's position. Everything stays in Home Assistant, and **nothing is switched** – time travel only shows.
 
 **Start:** tap **⏪ Time travel** in the switch bar at the bottom; in the dashboard card the button appears with `time_travel: true` (chapter 8). The view gets an amber frame, and the moment shown stands large at the top centre ("Thu 07:42 · 6 h 14 min ago"). It starts paused, one hour before now. **● Live** or **Esc** takes you back to the present; in the card the return to the start view does too (`idle_return`).
 
@@ -721,8 +721,10 @@ Time travel replays the last 24 hours in the house – from the history Home Ass
 | **▶** / **⏸** | Play and pause. At the end, ▶ starts from the beginning again |
 | **Track** | Tap or drag to jump to that moment. Dark areas are the night (from the sun's position at Home Assistant's location), grey is time the recorder has nothing of yet, hatched is a gap – Home Assistant was off or restarting |
 | **Dots** | Events. A tap jumps there and pauses, a long press tells what happened. Several close together become one dot with a number, in the colour of the most important one |
-| **360×** | The speed: 60× (one hour in one minute), 360× (in 10 seconds, default), 900× (in 4 seconds), 3600× (in one second) |
-| **● Live** | Back to the present |
+| **24 h** / **7 d** | The range: the last day or the last week (see "Several days") |
+| **☰** | The side sheet with **Events**, **While you were away** and **Day** |
+| **360×** | The speed: 60× (one hour in one minute), 360× (in 10 seconds, default), 900× (in 4 seconds), 3600× (in one second), over the week also 14400× (a day in 6 seconds) |
+| **● Live** | Back to the present. When playback runs up to now, it reads "Present reached · Live" |
 
 On a PC: **space** plays or pauses, the **arrow keys** jump 5 minutes (with Shift one hour).
 
@@ -736,13 +738,33 @@ On a PC: **space** plays or pauses, the **arrow keys** jump 5 minutes (with Shif
 - temperature, humidity, CO₂ and power from the five-minute statistics, smooth in between – also as **heatmap** and **values**
 - warnings as they were (smoke, water, window open in the rain)
 - the weather outside (with the Pro "Weather outside") from the weather entity's history, the sun and sunlight from the sun's position at the time
-- energy (with Energy Pro): the values at the top, the glass cards and the cables with the power of that moment; the day curves of the glass cards keep showing today
+- energy (with Energy Pro): the values at the top, the glass cards and the cables with the power of that moment; the day curves of the glass cards show the day of the moment shown, up to that moment
+- car (with Auto Pro): whether the car stands in its parking spot and its charge – from the car's own entities (the car's tracker only as "home" or "away", never the place). People's trackers stay out, even when a parking spot uses one
+- music and TV: playing or not, title and volume rings of that time (without the cover picture – there is one only live)
+- robot vacuum: its state and, while it cleans, a green trail through the rooms it has cleaned in this run so far (from its room sensor or the `current_room` attribute)
+- short switching at high speed: a light that went on and off between two frames flashes briefly instead of being missed
 
-Not included are camera pictures (the recorder keeps none) and people and trackers – including the location of a car that is away. Whatever the recorder does not record reads "unknown".
+Not included are camera pictures (the recorder keeps none) and people and their trackers. Whatever the recorder does not record reads "unknown".
 
-**Wall tablet:** while playing, the view updates twice a second at the **Tablet** level (Auto four times, High six times); paused, nothing runs at all (0 B/s). A day of history is loaded once and needs only a few hundred kilobytes; only what really changes is redrawn.
+**Several days:** **24 h** switches to **7 d**. The last day is there at once, older days load in the background, the newest first and always one at a time; the track says "loading Mon …" meanwhile. At midnight the weekday and date stand on the track. What the recorder no longer has (`purge_keep_days`) stays grey with "Recorder: 5 days". A very busy house keeps the week below 10 MB: if needed, very short motion reports (under a minute) are dropped for that. At the **Tablet** level the week reaches back two days – unless the card sets `time_travel_range: 7d`.
 
-**Requirements:** Home Assistant's recorder (it runs by default) and Home Assistant restarted once after the update. How far back the history reaches is set by the recorder's `purge_keep_days` (default 10 days); time travel needs 24 hours of it.
+**Into the present:** when time travel plays up to shortly before now, the changes since time travel started are added, and playback runs into the present. There it stops and offers **Live**.
+
+![Time travel: the side sheet with the events](images/view-timetravel-events.jpg)
+
+**Events (☰):** all events by hour, newest at the top – also those that get no dot on the track (a window is opened, with Energy Pro "battery full" and the day's highest solar power). The filters **Safety**, **Doors & windows**, **Devices** and **Energy** hide groups. A tap jumps to the moment and flies to the room. **Camera follows events** flies along while playing; **Stop at important events** (alarm, smoke, gas, carbon monoxide, water) stops there from 900× on instead of rushing past.
+
+![Time travel: while you were away](images/view-timetravel-away.jpg)
+
+**While you were away:** what happened between two moments – without people. Time travel suggests a quiet time itself (at least two hours without motion in the house, mostly by day), next to it "last time travel" or a time of your own ("since 08:00"). The list names alarms, how often doors and windows were opened, motion, lights that stayed on (with duration), windows that stood open and appliances that ran. A tap jumps there.
+
+![Time travel: day summary with the day before](images/view-timetravel-day.jpg)
+
+**Day:** the summary of the day at the playhead – per room how long a light was on, a window open and the heating on, plus the lowest and highest temperature; with Energy Pro solar, consumption, grid import, export (kWh) and self-sufficiency. **Compare with the day before** puts the day before's numbers below, **⟲ Yesterday at this time** jumps back 24 hours (the week is loaded for it if needed).
+
+**Wall tablet:** while playing, the view updates twice a second at the **Tablet** level (Auto four times, High six times; a change of the level applies at once); paused, nothing runs at all (0 B/s). A day of history is loaded once and needs only a few hundred kilobytes; only what really changes is redrawn. At the Tablet level time travel starts with 24 hours and holds two days at most.
+
+**Requirements:** Home Assistant's recorder (it runs by default) and Home Assistant restarted once after the update. How far back the history reaches is set by the recorder's `purge_keep_days` (default 10 days); time travel needs 24 hours of it, the whole week at least 7 days. If you want the week, keep `purge_keep_days` at 7 or more.
 
 ---
 
@@ -864,8 +886,8 @@ weather_entity: weather.home
 holograms: true         # Pro: holograms always on/off; leave out = a switch in the card
 camera_wall: false      # Pro: a "Cameras" button at the bottom of the card opens the camera wall
 time_travel: false      # Pro: a "Time travel" button at the bottom of the card replays the last 24 hours (view only)
-time_travel_speed: 360  # time travel speed: 60 | 360 | 900 | 3600 (one hour in 1 min, 10 s, 4 s, 1 s)
-time_travel_range: 24h  # how far back time travel reaches (24 hours for now)
+time_travel_speed: 360  # time travel speed: 60 | 360 | 900 | 3600 | 14400 (one hour in 1 min, 10 s, 4 s, 1 s; a day in 6 s, week only)
+time_travel_range: 24h  # time travel starts with: 24h or 7d (the week; also at the Tablet level, which else holds two days)
 roof_fade: true         # false: the roof stays on the house while zooming in
 start_view: { theta: 0.8, phi: 1.0, radius: 20 }   # a start view of this card's own; the line is shown in the editor under Start view (leave out = the plan's)
 idle_return: 0          # seconds without a touch until the start view

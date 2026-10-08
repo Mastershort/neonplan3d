@@ -80,10 +80,10 @@ export interface CardConfig {
   weather_entity?: string;
   /** Pro: a "Time travel" button replays the last 24 hours in the card (read-only). */
   time_travel?: boolean;
-  /** How far back the time travel reaches: 24 hours (longer ranges come later). */
-  time_travel_range?: "24h";
-  /** Replay speed: one hour in a minute (60), 10 s (360, default), 4 s (900) or 1 s (3600). */
-  time_travel_speed?: 60 | 360 | 900 | 3600;
+  /** How far back the time travel starts: 24 hours (default) or the week ("7d" also on a wall tablet, which else holds two days). */
+  time_travel_range?: "24h" | "7d";
+  /** Replay speed: one hour in a minute (60), 10 s (360, default), 4 s (900), 1 s (3600) or, over the week, a day in 6 s (14400). */
+  time_travel_speed?: 60 | 360 | 900 | 3600 | 14400;
   /** Kiosk: seconds without a touch after which the card returns to its start view (0 = never). */
   idle_return?: number;
   /** Kiosk: dim at night – "off", "sun" (sun.sun below the horizon) or a time range "22:00-06:00". */

@@ -258,7 +258,8 @@ test("roles: a front door, a room door, a garage door and windows from the openi
   assert.equal(roles.get("binary_sensor.front"), "door");
   assert.equal(roles.get("binary_sensor.inner"), undefined);
   assert.equal(roles.get("binary_sensor.win"), "window");
-  assert.equal(roles.get("binary_sensor.win_tilt"), "window");
+  // the tilt sensor counts for the rain only (the contact tells the window was opened)
+  assert.equal(roles.get("binary_sensor.win_tilt"), "window_more");
   assert.equal(roles.get("cover.win"), undefined);
   assert.equal(roles.get("cover.gar"), "garage");
   assert.equal(roles.get("binary_sensor.smoke"), "smoke");
@@ -286,4 +287,48 @@ test("a washing machine is watched through its linked power sensor, else a power
   const roles = eventRoles(hass, b, spec, new Set(["sensor.plug_wm", "sensor.dw_power", "sensor.plug_far"]));
   assert.equal(roles.get("sensor.plug_wm"), "washer");
   assert.equal(roles.get("sensor.plug_far"), undefined);
+});
+
+test("replay: a light on and off again between two ticks is a pulse; a jump looks for none", () => {
+  const { hass } = live();
+  const r = new Replay(timeline(), { requested: [] });
+  r.hassAt(hass, at(100), true);
+  r.hassAt(hass, at(8000), false);
+  assert.deepEqual(r.pulses, ["light.a"]);
+  r.hassAt(hass, at(100), true);
+  r.hassAt(hass, at(8000), true);
+  assert.deepEqual(r.pulses, []);
+});
+
+test("replay: a car's own tracker is replayed (home or away), every other tracker and person stays out", () => {
+  const { hass } = live();
+  const tl = buildTimeline([
+    {
+      day_start: DAY,
+      end: DAY + 86400,
+      oldest: null,
+      keep_days: 10,
+      entities: { "device_tracker.car": { t: [0, 3600], v: [0, 1], tab: ["home", "not_home"] } },
+      stats: {},
+      missing: [],
+    },
+  ]);
+  hass.states["device_tracker.car"] = { entity_id: "device_tracker.car", state: "home", attributes: { latitude: 52.1, longitude: 13.2, friendly_name: "Auto" } };
+  const r = new Replay(tl, { requested: ["device_tracker.car", "device_tracker.phone"], allowed: ["device_tracker.car"] });
+  const past = r.hassAt(hass, at(4000));
+  assert.equal(past.states["device_tracker.car"].state, "not_home");
+  assert.equal(past.states["device_tracker.car"].attributes.latitude, undefined);
+  assert.equal(past.states["device_tracker.car"].attributes.friendly_name, "Auto");
+});
+
+test("the request: a car's tracker is fetched for Auto Pro, a person's own tracker never", () => {
+  const { hass } = live();
+  hass.states["device_tracker.car"] = { entity_id: "device_tracker.car", state: "home", attributes: {} };
+  hass.states["person.mia"] = { entity_id: "person.mia", state: "home", attributes: { device_trackers: ["device_tracker.phone"] } };
+  const b = emptyBuilding();
+  const spec: HistorySpec = { entities: ["cover.b"], openings: [], furniture: [], low: false, cars: ["device_tracker.car", "device_tracker.phone"] };
+  const req = historyRequest(hass, b, spec);
+  assert.deepEqual(req.cars, ["device_tracker.car"]);
+  assert.ok(req.entities.includes("device_tracker.car"));
+  assert.ok(!req.entities.includes("device_tracker.phone"));
 });

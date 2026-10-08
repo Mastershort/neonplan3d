@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { DEFAULT_SPEED, eventNear, parseMoment, Playback, SPEEDS, tickMs } from "./playback.ts";
+import { crossedEvent, DEFAULT_SPEED, eventNear, parseMoment, Playback, SPEEDS, tickMs, WEEK_SPEEDS } from "./playback.ts";
 
 test("playback: plays at its speed, stops at the end, starts over, jumps within the range", () => {
   const p = new Playback(0, 3600000, 0);
@@ -44,4 +44,30 @@ test("a start moment from a link: a clock time today (or yesterday) or a time ag
   assert.equal(parseMoment("25:00", now), null);
   assert.equal(parseMoment("", now), null);
   assert.equal(parseMoment(null, now), null);
+});
+
+test("the week: a day in six seconds; a new range keeps the moment inside and a speed it offers", () => {
+  const p = new Playback(0, 7 * 86400000, 86400000, 14400, WEEK_SPEEDS);
+  assert.equal(p.speed, 14400);
+  p.play();
+  p.advance(1000);
+  assert.equal(p.t, 86400000 + 14400000);
+  p.setRange(6 * 86400000, 7 * 86400000, SPEEDS);
+  assert.equal(p.t, 6 * 86400000);
+  assert.equal(p.speed, 3600);
+  // the live edge moves the end on
+  p.setRange(p.start, 8 * 86400000);
+  assert.equal(p.end, 8 * 86400000);
+});
+
+test("a fast replay finds the first event it rushed past", () => {
+  const ev = [
+    { t: 100, kind: "door" as const, entity: "a" },
+    { t: 200, kind: "water" as const, entity: "b" },
+    { t: 300, kind: "smoke" as const, entity: "c" },
+  ];
+  assert.equal(crossedEvent(ev, 100, 400, () => true)?.entity, "b");
+  assert.equal(crossedEvent(ev, 0, 400, (e) => e.kind === "smoke")?.entity, "c");
+  assert.equal(crossedEvent(ev, 300, 400, () => true), null);
+  assert.equal(crossedEvent(ev, 400, 100, () => true), null);
 });

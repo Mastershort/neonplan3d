@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { Role } from "./classify.ts";
-import { clusterEvents, findEvents, machineDone, RANK } from "./events.ts";
+import { clusterEvents, energyEvents, findEvents, groupByHour, machineDone, MINOR, RANK } from "./events.ts";
 import { buildTimeline, type WireEntity } from "./timeline.ts";
 
 const DAY = 1_800_000_000;
@@ -99,4 +99,42 @@ test("markers closer than a few pixels become one, shown as the most important e
   assert.equal(clusters[0].t, 5);
   assert.equal(clusters[0].events.length, 3);
   assert.equal(clusters[1].top.kind, "washer");
+});
+
+test("energy moments: the battery full after it was low, the solar peak of the day", () => {
+  const tl = timeline({}, {
+    "sensor.soc": { start: DAY, step: 300, mean: [90, 96, 99.5, 100, 94, 99] },
+    "sensor.pv": { start: DAY, step: 300, mean: [0, 800, 2500, 1200, 50, 0] },
+  });
+  const ev = energyEvents(tl, { solar: ["sensor.pv"], soc: ["sensor.soc"] });
+  const full = ev.filter((e) => e.kind === "battery_full").map((e) => (e.t / 1000 - DAY) / 300);
+  assert.deepEqual(full, [2.5, 5.5]);
+  const peak = ev.filter((e) => e.kind === "pv_peak");
+  assert.equal(peak.length, 1);
+  assert.equal((peak[0].t / 1000 - DAY) / 300, 2.5);
+});
+
+test("a window opened is an event for the sheet only; the sheet groups by hour, newest first, by category", () => {
+  const tl = timeline({
+    "binary_sensor.win": rows([0, "off"], [9 * H, "on"], [10 * H, "off"]),
+    "binary_sensor.tilt": rows([0, "off"], [9 * H + 60, "on"]),
+    "binary_sensor.front": rows([0, "off"], [9 * H + 600, "on"], [9 * H + 630, "off"]),
+  });
+  const roles = new Map<Role, Role>() as unknown as Map<string, Role>;
+  roles.set("binary_sensor.win", "window");
+  roles.set("binary_sensor.tilt", "window_more");
+  roles.set("binary_sensor.front", "door");
+  const ev = findEvents({ timeline: tl, roles, weather: null });
+  assert.deepEqual(
+    ev.map((e) => [e.kind, e.entity]),
+    [
+      ["window", "binary_sensor.win"],
+      ["door", "binary_sensor.front"],
+    ],
+  );
+  assert.ok(MINOR.has("window"));
+  const groups = groupByHour(ev, new Set(["openings"]));
+  assert.equal(groups.length, 1);
+  assert.deepEqual(groups[0].events.map((e) => e.kind), ["window", "door"]);
+  assert.deepEqual(groupByHour(ev, new Set(["safety"])), []);
 });

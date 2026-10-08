@@ -25,8 +25,12 @@ export function isStatSensor(hass: HomeAssistant, id: string): boolean {
  * The entities to fetch: states with their history, numeric measurements as statistics; `overflow` are
  * those beyond the limit (not fetched, but not live either: they read "unknown" in the past).
  */
-export function historyRequest(hass: HomeAssistant, building: Building, spec: HistorySpec, max = MAX_ENTITIES): { entities: string[]; stats: string[]; overflow: string[] } {
+export function historyRequest(hass: HomeAssistant, building: Building, spec: HistorySpec, max = MAX_ENTITIES): { entities: string[]; stats: string[]; overflow: string[]; cars: string[] } {
   const privateIds = new Set(building.presence.flatMap((p) => [p.person, p.sensor]).filter((x): x is string => !!x));
+  // a person's own trackers stay private even when a parking spot uses one
+  for (const st of Object.values(hass.states))
+    if (st.entity_id.startsWith("person.") && Array.isArray(st.attributes.device_trackers)) for (const id of st.attributes.device_trackers) if (typeof id === "string") privateIds.add(id);
+  const cars = new Set((spec.cars ?? []).filter((id) => id.startsWith("device_tracker.") && !privateIds.has(id) && !!hass.states[id]));
   const areas = new Set(building.floors.flatMap((f) => f.rooms.map((r) => r.area_id)).filter((x): x is string => !!x));
   const fromAreas: string[] = [];
   for (const [id, entry] of Object.entries(hass.entities ?? {})) {
@@ -38,15 +42,15 @@ export function historyRequest(hass: HomeAssistant, building: Building, spec: Hi
     fromAreas.push(id);
   }
   const weather = Object.keys(hass.states).filter((id) => id.startsWith("weather."));
-  const wanted = [...new Set([...spec.entities, "sun.sun", ...(building.settings.weather_entity ? [building.settings.weather_entity] : []), ...weather.slice(0, 1), ...fromAreas])];
-  const all = wanted.filter((id) => id.includes(".") && !EXCLUDED.has(domainOf(id)) && !privateIds.has(id) && !!hass.states[id]);
+  const wanted = [...new Set([...cars, ...spec.entities, "sun.sun", ...(building.settings.weather_entity ? [building.settings.weather_entity] : []), ...weather.slice(0, 1), ...fromAreas])];
+  const all = wanted.filter((id) => id.includes(".") && (cars.has(id) || !EXCLUDED.has(domainOf(id))) && !privateIds.has(id) && !!hass.states[id]);
   const ids = all.slice(0, max);
   const stats = ids.filter((id) => isStatSensor(hass, id));
   const statSet = new Set(stats);
-  return { entities: ids.filter((id) => !statSet.has(id)), stats, overflow: all.slice(max) };
+  return { entities: ids.filter((id) => !statSet.has(id)), stats, overflow: all.slice(max), cars: ids.filter((id) => cars.has(id)) };
 }
 
-export type Role = "door" | "garage" | "lock" | "alarm" | "smoke" | "gas" | "co" | "water" | "window" | "motion" | "robot" | "washer" | "weather";
+export type Role = "door" | "garage" | "lock" | "alarm" | "smoke" | "gas" | "co" | "water" | "window" | "window_more" | "motion" | "robot" | "washer" | "weather";
 
 const SAFETY: Record<string, Role> = { smoke: "smoke", gas: "gas", carbon_monoxide: "co", moisture: "water" };
 const FRONT_STYLES = new Set(["front", "front_glass", "sidelight", "sidelights"]);
@@ -115,7 +119,11 @@ export function eventRoles(hass: HomeAssistant, building: Building, spec: Histor
       if (o.type === "garage") for (const id of [l.contact, l.cover]) set(id, "garage");
       else if (o.type === "door") {
         if (exteriorDoor(floor, o)) for (const id of [l.contact, l.contact2]) set(id, "door");
-      } else for (const id of [l.contact, l.tilt, l.contact2, l.tilt2]) set(id, "window");
+      } else {
+        // the first sensor of a window tells it was opened; the others (tilt, a second sash) count for the rain
+        const ids = [l.contact, l.tilt, l.contact2, l.tilt2].filter((id): id is string => !!id && fetched.has(id));
+        ids.forEach((id, i) => set(id, i ? "window_more" : "window"));
+      }
     }
   for (const id of appliancePower(hass, building, spec).keys()) set(id, "washer");
   for (const id of fetched) {

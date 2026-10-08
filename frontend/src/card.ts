@@ -124,7 +124,7 @@ export class Floorplan3dCard extends LitElement {
     }
     this._cameraWall = false;
     const c = this._config;
-    this.tt.start({ live: this.hass, building: b, spec: view.historyEntities(), quality: c?.quality ?? "auto", speed: c?.time_travel_speed ?? null, t: (k, vars) => translate(this.hass, k as I18nKey, vars) });
+    this.tt.start({ live: this.hass, building: b, spec: view.historyEntities(), quality: c?.quality ?? "auto", speed: c?.time_travel_speed ?? null, range: c?.time_travel_range ?? null, t: (k, vars) => translate(this.hass, k as I18nKey, vars) });
   }
 
   /** Esc leaves the time travel; any key counts as a touch. */

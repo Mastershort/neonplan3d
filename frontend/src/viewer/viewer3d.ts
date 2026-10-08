@@ -3321,12 +3321,35 @@ export class FloorplanViewer {
   }
 
   /** Motion trail: a disc where motion was reported and ribbons between the spots in time order, fading with age. */
-  setTrail(spots: TrailSpot[]): void {
+  /**
+   * The motion trail (spots with their age) and, while travelling in time, the robots' ways through the rooms
+   * they cleaned (green lines through the rooms' centres).
+   */
+  setTrail(spots: TrailSpot[], paths: { floorId: string; points: [number, number][] }[] = []): void {
     const col = (age: number) => new Color(0.25 - 0.2 * age, 0.95 - 0.83 * age, 1 - 0.7 * age);
     const dark = new Color(0, 0, 0);
+    const green = new Color(0.3, 1, 0.6);
     const y = 0.02;
     for (const fv of this.floors) {
       const buf = new GeoBuffer();
+      for (const path of paths) {
+        if (path.floorId !== fv.floor.id) continue;
+        path.points.forEach(([x, z], i) => {
+          const prev = path.points[i - 1];
+          if (prev) {
+            const len = Math.hypot(x - prev[0], z - prev[1]) || 1;
+            const nx = (-(z - prev[1]) / len) * 0.1;
+            const nz = ((x - prev[0]) / len) * 0.1;
+            buf.tri([prev[0] + nx, y, prev[1] + nz], [x + nx, y, z + nz], [x - nx, y, z - nz], green, green, green);
+            buf.tri([prev[0] + nx, y, prev[1] + nz], [x - nx, y, z - nz], [prev[0] - nx, y, prev[1] - nz], green, green, green);
+          }
+          for (let k = 0; k < 10; k++) {
+            const a0 = (k / 10) * Math.PI * 2;
+            const a1 = ((k + 1) / 10) * Math.PI * 2;
+            buf.tri([x, y, z], [x + Math.cos(a1) * 0.35, y, z + Math.sin(a1) * 0.35], [x + Math.cos(a0) * 0.35, y, z + Math.sin(a0) * 0.35], green, dark, dark);
+          }
+        });
+      }
       let prev: TrailSpot | null = null;
       for (const p of spots) {
         if (p.floorId !== fv.floor.id) continue;
@@ -3378,6 +3401,13 @@ export class FloorplanViewer {
     const dir = new Vector3(-Math.sin(a) * Math.cos(tilt), -Math.sin(tilt), Math.cos(a) * Math.cos(tilt));
     this.controls.flyTo({ target: new Vector3(d.x, y, d.z).addScaledVector(dir, 3.15), radius: 3, phi: Math.PI / 2 - tilt, theta: Math.atan2(Math.sin(a), -Math.cos(a)) }, 900);
     return true;
+  }
+
+  /** Devices that went on and back off too quickly to see (a fast replay): they flash once. */
+  flashDevices(ids: readonly string[]): void {
+    const until = performance.now() + FLASH_MS;
+    for (const id of ids) this.flashes.set(id, until);
+    if (ids.length) this.invalidate();
   }
 
   /** Fly to a point of a floor (search) and let the device there flash. */
