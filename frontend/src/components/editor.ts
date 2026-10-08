@@ -6,7 +6,7 @@ import { fetchImage, listHistory, restoreSnapshot, storeImage, takeSnapshot, typ
 import { download, exportFile, parseExport } from "../transfer.ts";
 import { carEntities, type CarEntities, areaEntities, autoPlace, CLIMATE_CLASSES, defaultHeight, entityName, entityAreaId, furnitureEntities, groupByDevice, hasScreen, isMediaFurniture, isPlaceable, isRoomClimateSensor, kindOf, openingEntities, otherAreaEntities, pictureRuleMatches, roomClimateSensors, unassignedEntities, windowPosition, type ClimateKey } from "../devices.ts";
 import { furnitureSymbol } from "./furniture2d.ts";
-import { netRoomArea } from "../geometry/area.ts";
+import { clipConvex, netRoomArea } from "../geometry/area.ts";
 import { areaText, formatImperial, lengthText, lengthUnit, parseLength, unitLabel, type LengthUnit } from "../units.ts";
 import { closeGaps, suggestedThickness } from "../geometry/gaps.ts";
 import { keepInRoom, snapToWall } from "../geometry/snap.ts";
@@ -2881,7 +2881,9 @@ export class Fp3dEditor extends LitElement {
     const sections = this._doc.settings.roof.sections ?? [];
     const part = face.section ? this.t("solar_section", { n: sections.findIndex((x) => x.id === face.section) + 1 }) : this.t("solar_main");
     if (face.flat) return `${part} · ${this.t("solar_flat")}`;
-    return `${part} · ${this.t(`compass_${faceCompass(face, this._doc.settings.north ?? 0)}` as I18nKey)} · ${Math.round(face.pitch)}°`;
+    // the triangular ends of a hip or pyramid section say so, they are easy to overlook in the list (#302)
+    const end = face.side === "c" || face.side === "d" ? ` · ${this.t("roof_shape_hip")}` : "";
+    return `${part} · ${this.t(`compass_${faceCompass(face, this._doc.settings.north ?? 0)}` as I18nKey)} · ${Math.round(face.pitch)}°${end}`;
   }
 
   private addSolarField(): void {
@@ -5983,7 +5985,7 @@ export class Fp3dEditor extends LitElement {
       ${f.type === "stairs_u" ? html`<p class="fp3d-sub">${this.t("stairs_u_hint")}</p>` : nothing}
       ${f.type === "stairwell"
         ? html`<p class="fp3d-sub">${this.t("stairwell_hint")}</p>
-            ${this.floor && !this.floor.rooms.some((r) => r.points.length >= 3 && holeInRoom(furnitureFootprint(f), r.points))
+            ${this.floor && !this.floor.rooms.some((r) => r.points.length >= 3 && (holeInRoom(furnitureFootprint(f), r.points) || polygonArea(clipConvex(r.points, furnitureFootprint(f))) > 0.01))
               ? html`<p class="fp3d-sub fp3d-pack-error">${this.t("stairwell_outside")}</p>`
               : nothing}`
         : nothing}
@@ -6969,6 +6971,10 @@ export class Fp3dEditor extends LitElement {
             <label class="fp3d-check fp3d-wide"
               ><input type="checkbox" .checked=${pl.cone !== false} ?disabled=${!admin} @change=${(ev: Event) => this.updateDevice({ cone: (ev.target as HTMLInputElement).checked ? null : false })} />
               ${this.t("camera_cone")}</label
+            >
+            <label class="fp3d-check fp3d-wide" title=${this.t("camera_detect_pins_hint")}
+              ><input type="checkbox" .checked=${pl.detect_pins !== false} ?disabled=${!admin} @change=${(ev: Event) => this.updateDevice({ detect_pins: (ev.target as HTMLInputElement).checked ? null : false })} />
+              ${this.t("camera_detect_pins")}</label
             >
             <p class="fp3d-sub fp3d-wide">${this.t("camera_aim_hint")}</p>
             ${this.renderCameraDetections(pl.entity_id)}`

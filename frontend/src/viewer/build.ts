@@ -12,8 +12,9 @@
 
 import { Color, type BufferGeometry } from "three";
 import type { Floor, Opening, Room, SolarField, Vec2 } from "../model.ts";
-import { furnitureFootprint, isLamp, pointInPolygon, STAIR_TYPES } from "../model.ts";
+import { furnitureFootprint, isLamp, pointInPolygon, polygonArea, STAIR_TYPES } from "../model.ts";
 import { generateWalls, locateOpening, openingHost, type Wall } from "../geometry/walls.ts";
+import { clipConvex, isConvex } from "../geometry/area.ts";
 import { holeInRoom, insetHole, mergeHoles } from "../geometry/holes.ts";
 import { pushFurniture } from "./furniture.ts";
 import { mountBase, packItem } from "../packs.ts";
@@ -147,7 +148,13 @@ export function buildFloorGeometry(
     const look = FLOOR_LOOK[room.floor_material] ?? FLOOR_LOOK.wood;
     const top = new Color(look.color);
     // an opening snapped to the room's edge is still cut, a few millimetres in from it
-    const inside = holes.filter((h) => holeInRoom(h, poly)).map((h) => insetHole(h, 0.003));
+    // an opening across a room line is cut in every room it covers: here, the part inside this room (#353)
+    const inside = holes.flatMap((h) => {
+      if (holeInRoom(h, poly)) return [insetHole(h, 0.003)];
+      if (!isConvex(h)) return [];
+      const part = clipConvex(poly, h);
+      return part.length >= 3 && Math.abs(polygonArea(part)) > 0.01 ? [insetHole(ccw(part), 0.003)] : [];
+    });
     cutHoles.push(...inside);
     const all = [...poly, ...inside.flat()];
     const start = floorBuf.count;

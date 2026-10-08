@@ -15,6 +15,12 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 - **Net area:** the room form shows the drawn area and the net area – without the half of each shared wall in the room, free walls, and the gap behind a wall built in front of another (#216 by idaho).
 - **Power outage warning:** Settings → **Report a power outage with** – a grid sensor, a UPS on battery, a mains voltage or a helper of your own. The warning shows in the alert bar, and the grid connection of Energy Pro is crossed out (#214 by Mavyre).
 - **Energy Pro: house balance and plant cards in floor views too** – a switch in Editor → Energy → Hologram, off by default (#193 by denisb88).
+- **Cameras: detection symbols can be switched off** – then only the field of view turns red on a detection (#267 by RobertSorgenfrei).
+
+### Fixed
+
+- **Floor openings across a room line** are cut in every room they cover; before, an opening reaching into a second room was not cut at all (#353 by tomfischer98).
+- **Hip and pyramid ends** say "Hip" in the solar field's face list, so they are easy to find (#302 by cereal2nd).
 
 ## 1.13.0
 

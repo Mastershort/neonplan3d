@@ -9,6 +9,12 @@ Six wishes from the issues that were promised for "the next update", and feet an
 - **Net area:** the room form shows the drawn area and the net area – without the half of each shared wall in the room, free walls, and the gap behind a wall built in front of another (#216 by idaho).
 - **Power outage warning:** Settings → **Report a power outage with** – a grid sensor, a UPS on battery, a mains voltage or a helper of your own. The warning shows in the alert bar, and the grid connection of Energy Pro is crossed out (#214 by Mavyre).
 - **Energy Pro: house balance and plant cards in floor views too** – a switch in Editor → Energy → Hologram, off by default (#193 by denisb88).
+- **Cameras: detection symbols can be switched off** – then only the field of view turns red on a detection (#267 by RobertSorgenfrei).
+
+### Fixed
+
+- **Floor openings across a room line** are cut in every room they cover; before, an opening reaching into a second room was not cut at all (#353 by tomfischer98).
+- **Hip and pyramid ends** say "Hip" in the solar field's face list, so they are easy to find (#302 by cereal2nd).
 
 ### How to update
 
@@ -27,6 +33,12 @@ Sechs Wünsche aus den Issues, die ich „fürs nächste Update“ zugesagt hatt
 - **Netto-Fläche:** Das Raumformular zeigt die gezeichnete und die Netto-Fläche – ohne die halbe geteilte Innenwand, freie Wände und den Spalt hinter einer Vorwand (#216 von idaho).
 - **Warnung bei Stromausfall:** Einstellungen → **Stromausfall melden mit** – ein Netz-Sensor, eine USV auf Batterie, die Netzspannung oder ein eigener Helfer. Die Warnung erscheint in der Warnleiste, und der Netzanschluss von Energie Pro wird durchgestrichen (#214 von Mavyre).
 - **Energie Pro: Hausbilanz und Anlagen-Karten auch in Etagenansichten** – ein Schalter unter Editor → Energie → Hologramm, von Haus aus aus (#193 von denisb88).
+- **Kameras: Erkennungs-Symbole abschaltbar** – dann färbt sich bei einer Erkennung nur der Sichtkegel rot (#267 von RobertSorgenfrei).
+
+### Behoben
+
+- **Bodenöffnungen über eine Raumgrenze** werden in jedem Raum ausgeschnitten, den sie berühren; vorher wurde eine Öffnung, die in einen zweiten Raum ragte, gar nicht ausgeschnitten (#353 von tomfischer98).
+- **Walm- und Zeltdach-Enden** stehen in der Flächenliste des Solarfelds mit „Walm“ und sind leichter zu finden (#302 von cereal2nd).
 
 ### So bekommst du das Update
 

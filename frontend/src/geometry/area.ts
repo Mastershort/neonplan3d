@@ -2,13 +2,13 @@
 // wall (they sit on the room line), free walls standing in the room, and the gap behind a free wall built in
 // front of a room wall (an installation wall a few centimetres off the outer wall).
 
-import { pointInPolygon, polygonArea, type Floor, type Room, type Vec2 } from "../model.ts";
+import { pointInPolygon, polygonArea, signedArea, type Floor, type Room, type Vec2 } from "../model.ts";
 import { generateWalls, type Wall, type WallOptions } from "./walls.ts";
 
 /** Clip a polygon (any shape) by a convex polygon (Sutherland–Hodgman); both in the plan. */
-function clipConvex(subject: readonly Vec2[], clip: readonly Vec2[]): Vec2[] {
+export function clipConvex(subject: readonly Vec2[], clip: readonly Vec2[]): Vec2[] {
   // the clipper's orientation decides which side is inside
-  const ccw = polygonArea(clip as Vec2[]) > 0 ? 1 : -1;
+  const ccw = signedArea(clip) > 0 ? 1 : -1;
   let out: Vec2[] = [...subject];
   for (let i = 0; i < clip.length && out.length; i++) {
     const a = clip[i];
@@ -29,6 +29,21 @@ function clipConvex(subject: readonly Vec2[], clip: readonly Vec2[]): Vec2[] {
     }
   }
   return out;
+}
+
+/** Whether a polygon is convex (a stairwell rectangle, two stacked rectangles merged into one). */
+export function isConvex(p: readonly Vec2[]): boolean {
+  let sign = 0;
+  for (let i = 0; i < p.length; i++) {
+    const a = p[i];
+    const b = p[(i + 1) % p.length];
+    const c = p[(i + 2) % p.length];
+    const cross = (b[0] - a[0]) * (c[1] - b[1]) - (b[1] - a[1]) * (c[0] - b[0]);
+    if (Math.abs(cross) < 1e-9) continue;
+    if (sign && Math.sign(cross) !== sign) return false;
+    sign = Math.sign(cross);
+  }
+  return true;
 }
 
 const area = (p: readonly Vec2[]) => (p.length >= 3 ? Math.abs(polygonArea(p as Vec2[])) : 0);

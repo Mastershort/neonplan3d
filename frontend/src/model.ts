@@ -245,6 +245,8 @@ export interface Placement {
   holo?: boolean;
   /** Cameras: show the field-of-view wedge on the floor (null = yes). */
   cone?: boolean | null;
+  /** Cameras: detection pins (person, car, animal) over the camera (null = yes); false leaves only the wedge turning red (#267). */
+  detect_pins?: boolean | null;
 }
 
 export interface Background {

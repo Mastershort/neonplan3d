@@ -299,6 +299,8 @@ PLACEMENT_SCHEMA = vol.Schema(
         vol.Optional("holo", default=False): bool,
         # cameras: show the field-of-view wedge on the floor (None = yes)
         vol.Optional("cone", default=None): vol.Any(None, bool),
+        # detection pins over the camera (None = shown); off leaves only the wedge turning red
+        vol.Optional("detect_pins", default=None): vol.Any(None, bool),
         # fixed against moving by accident
         vol.Optional("locked", default=None): vol.Any(None, bool),
     },

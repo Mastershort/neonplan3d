@@ -350,7 +350,7 @@ Seine Bahnen machen einen Bogen um Möbel, die auf dem Boden stehen: Schränke, 
 
 - Die **Treppe** aus der Bibliothek steigt von der markierten Vorderkante nach hinten an. Reicht sie bis zur Etage darüber, schneidet sie dort die Treppenöffnung in die Decke.
 - Die **U-Treppe mit Podest** (Arbeiten & Sonstiges) hat zwei Läufe nebeneinander: Sie steigt links von der markierten Vorderkante nach hinten, wendet am Podest und kommt rechts wieder nach vorn hoch. **Spiegeln** dreht die Laufrichtung um. Wie die gerade Treppe bekommt sie beim Einfügen die Höhe bis zur Etage darüber und schneidet dort die Öffnung in die Decke. Voreingestellt ist sie 2,10 × 2,70 m groß.
-- Mit dem Werkzeug **Bodenöffnung** ziehst du ein Loch direkt in den Boden einer Etage auf, etwa über dem Treppenaufgang oder für eine Galerie. Von oben sieht man hindurch. Die Öffnung muss ganz in einem Raum liegen. Mehrere Öffnungen dürfen sich überlappen, so entsteht zum Beispiel eine L-Form.
+- Mit dem Werkzeug **Bodenöffnung** ziehst du ein Loch direkt in den Boden einer Etage auf, etwa über dem Treppenaufgang oder für eine Galerie. Von oben sieht man hindurch. Liegt sie über mehreren Räumen, wird sie in jedem davon ausgeschnitten. Mehrere Öffnungen dürfen sich überlappen, so entsteht zum Beispiel eine L-Form.
 - Weitere Treppen und Geländer bringt das Pack **Treppen & Geländer**.
 
 ![Werkzeug Bodenöffnung](images/editor-hole-tool.jpg)
@@ -582,7 +582,7 @@ Pro-Erweiterungen sind kostenpflichtige Zusatzfunktionen, einzeln im Shop erhäl
 
 ![Bewegungsspur](images/view-trail.jpg)
 
-**Erkennungs-Pins:** Meldet ein Sensor der Kamera gerade eine Erkennung (Frigate, UniFi Protect, Reolink und ähnliche liefern je Objekt einen Sensor: Person, Fahrzeug, Tier, Bewegung), steht vor der Kamera ein Pin mit Symbol, Art und Uhrzeit – „Person · 18:42“. Antippen öffnet den Sensor. Mehrere Objekte zugleich ergeben mehrere Pins übereinander.
+**Erkennungs-Pins:** Meldet ein Sensor der Kamera gerade eine Erkennung (Frigate, UniFi Protect, Reolink und ähnliche liefern je Objekt einen Sensor: Person, Fahrzeug, Tier, Bewegung), steht vor der Kamera ein Pin mit Symbol, Art und Uhrzeit – „Person · 18:42“. Antippen öffnet den Sensor. Mehrere Objekte zugleich ergeben mehrere Pins übereinander. Wem das zu unruhig ist: **Erkennungs-Symbole zeigen** im Formular der Kamera abschalten – dann färbt sich bei einer Erkennung nur der Sichtkegel rot.
 
 **Kamera-Wand:** Der Schalter **Kameras** unten (in der Karte die Option `camera_wall: true`) legt alle Livebilder deiner platzierten Kameras als Wand über die Szene, alle paar Sekunden aufgefrischt. Eine Kamera, die gerade Bewegung sieht, bekommt einen roten Rahmen; eine, die aufnimmt, einen roten Punkt. Die Kacheln teilen sich die Wand: Das Raster wählt so viele Spalten, dass alle Kameras möglichst groß und ohne Überlappen hineinpassen (eine Kamera füllt sie, zwei stehen nebeneinander, 22 etwa als 6 × 4); bei sehr vielen Kameras wird die Wand scrollbar. Die Kacheln sind Standbilder, alle 5 Sekunden neu (auf der Tablet-Stufe alle 10, ein kleiner Hinweis im Kopf sagt es) – zehn Livestreams würden ein altes Tablet überfordern. Auch beim Durchschauen in 3D ist das Bild ein Standbild; die Leiste unten sagt es. Antippen zeigt das Bild groß, und zwar als **Livestream** über den Player von Home Assistant, sobald die Kamera streamen kann (sonst bleibt das Standbild); von dort führt **Durch die Kamera schauen** in die 3D-Ansicht, und **Zurück zur Ansicht** bringt dich wieder zur Wand. **‹ Alle Kameras** geht zurück zum Raster, ✕ schließt die Wand.
 

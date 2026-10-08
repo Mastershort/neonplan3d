@@ -1227,8 +1227,10 @@ export class Fp3dView3d extends LitElement {
    */
   private detectionPins(hass: HomeAssistant, markers: DeviceMarker[]) {
     const out: (DeviceMarker & { pin: boolean })[] = [];
+    // cameras whose detection pins are switched off: only their wedge turns red (#267)
+    const quiet = new Set(this.building?.floors.flatMap((f) => f.placements.filter((p) => p.detect_pins === false).map((p) => p.entity_id)) ?? []);
     for (const cam of markers) {
-      if (!cam.model?.startsWith("camera")) continue;
+      if (!cam.model?.startsWith("camera") || quiet.has(cam.id)) continue;
       // a detection stays as a pin for two minutes after the sensor dropped back (Reolink and the like hold it
       // only for seconds), with the time it was seen
       const now = this.now();

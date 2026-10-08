@@ -348,7 +348,7 @@ Its lanes keep clear of furniture standing on the floor: cabinets, sofas, beds, 
 
 - The **Stairs** from the library rise from the marked front edge towards the back. If they reach the floor above, they cut the stairwell into its floor.
 - The **U-stair with landing** (Work & other) has two flights side by side: it rises on the left from the marked front edge towards the back, turns at the landing and comes back up on the right towards the front. **Mirror** turns it the other way. Like the straight stairs it gets the height up to the floor above when you add it and cuts the opening into that floor. Its default size is 2.10 × 2.70 m.
-- The **Floor opening** tool draws a hole straight into a floor, e.g. above the staircase or for a gallery. From above you look through it. The opening must lie within one room. Several openings may overlap, for example to make an L shape.
+- The **Floor opening** tool draws a hole straight into a floor, e.g. above the staircase or for a gallery. From above you look through it. Across several rooms it is cut in each of them. Several openings may overlap, for example to make an L shape.
 - More stairs and railings come with the **Stairs & railings** pack.
 
 ![The floor opening tool](images/editor-hole-tool.jpg)
@@ -580,7 +580,7 @@ Pro add-ons are paid extra features, sold singly in the shop. Without an add-on,
 
 ![Motion trail](images/view-trail.jpg)
 
-**Detection pins:** when one of a camera's sensors reports a detection right now (Frigate, UniFi Protect, Reolink and the like give one sensor per object: person, vehicle, animal, motion), a pin stands in front of the camera with a symbol, the kind and the time – "Person · 18:42". A tap opens the sensor. Several objects at once give several pins on top of each other.
+**Detection pins:** when one of a camera's sensors reports a detection right now (Frigate, UniFi Protect, Reolink and the like give one sensor per object: person, vehicle, animal, motion), a pin stands in front of the camera with a symbol, the kind and the time – "Person · 18:42". A tap opens the sensor. Several objects at once give several pins on top of each other. Too busy? Switch off **Show detection symbols** in the camera's form – a detection then only turns the field of view red.
 
 **Camera wall:** the **Cameras** switch at the bottom (in the card the option `camera_wall: true`) lays every placed camera's live picture over the scene as a wall, refreshed every few seconds. A camera that sees motion right now gets a red frame; one that records, a red dot. The tiles share the wall: the grid picks as many columns as make every camera as large as possible without overlapping (one camera fills it, two sit side by side, 22 e.g. as 6 × 4); with very many cameras the wall scrolls. The tiles are stills, refreshed every 5 seconds (every 10 on the tablet level; a small note in the header says so) – ten live streams would overwhelm an old tablet. The look-through in 3D is a still as well; the bar at the bottom says so. A tap shows the picture big, as a **live stream** through Home Assistant’s player as soon as the camera can stream (otherwise the still stays); from there **Look through the camera** goes into the 3D view, and **Back to the view** brings the wall back. **‹ All cameras** returns to the grid, ✕ closes the wall.
 

@@ -20,3 +20,14 @@ test("net area: a free wall in front of the outer wall takes its footprint and t
   // wall 0.1 × 2 m, gap 0.3 − 0.05 = 0.25 m over 2 m
   assert.ok(Math.abs(netRoomArea(floor.rooms[0], floor, opts) - (12 - 0.2 - 0.5)) < 1e-6);
 });
+
+test("clipping works for both orientations of the clip polygon", async () => {
+  const { clipConvex, isConvex } = await import("./area.ts");
+  const room: [number, number][] = [[0, 0], [4, 0], [4, 3], [0, 3]];
+  const hole: [number, number][] = [[3, 1], [5, 1], [5, 2], [3, 2]];
+  const area = (p: [number, number][]) => Math.abs(p.reduce((s, q, i) => s + q[0] * p[(i + 1) % p.length][1] - p[(i + 1) % p.length][0] * q[1], 0)) / 2;
+  assert.ok(Math.abs(area(clipConvex(room, hole)) - 1) < 1e-9);
+  assert.ok(Math.abs(area(clipConvex(room, [...hole].reverse())) - 1) < 1e-9);
+  assert.equal(isConvex(hole), true);
+  assert.equal(isConvex([[0, 0], [2, 0], [2, 1], [1, 1], [1, 2], [0, 2]]), false);
+});
