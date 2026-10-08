@@ -116,8 +116,8 @@ def collect(
             if (columns := entity_rows(entity_id, items, start, end)) is not None:
                 entities[entity_id] = columns
 
-    for entity_id, items in _states(hass, start_dt, end_dt, cars, False).items():
-        reduced = []
+    for entity_id, items in (_states(hass, start_dt, end_dt, cars, False) if cars else {}).items():
+        reduced: list[dict[str, Any]] = []
         for item in items:
             if (row := read_row(item)) is not None:
                 ts, state, _ = row
