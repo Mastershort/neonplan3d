@@ -1228,8 +1228,25 @@ export class FloorplanViewer {
   }
 
   /** Target states of doors and windows (sashes and blinds move there smoothly). */
-  setOpeningStates(states: Map<string, OpeningState>): void {
+  setOpeningStates(states: Map<string, OpeningState>, instant = false): void {
     this.openingTargets = states;
+    // a jump in time (time travel): sashes and blinds stand at their targets at once
+    if (instant)
+      for (const fv of this.floors) {
+        let changed = false;
+        for (const [id, cur] of fv.openings) {
+          const to = states.get(id) ?? CLOSED;
+          const next = { ...to, open2: to.open2 ?? 0, tilt2: to.tilt2 ?? 0 };
+          if (next.open === cur.open && next.open2 === (cur.open2 ?? 0) && next.tilt === cur.tilt && next.tilt2 === (cur.tilt2 ?? 0) && next.cover === cur.cover && !!next.sensed === !!cur.sensed) continue;
+          fv.openings.set(id, next);
+          changed = true;
+        }
+        if (changed) {
+          this.buildOpenings(fv);
+          this.buildGlow(fv);
+          this.buildSun(fv);
+        }
+      }
     this.invalidate();
   }
 

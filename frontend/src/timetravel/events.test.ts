@@ -1,0 +1,102 @@
+import assert from "node:assert/strict";
+import { test } from "node:test";
+import type { Role } from "./classify.ts";
+import { clusterEvents, findEvents, machineDone, RANK } from "./events.ts";
+import { buildTimeline, type WireEntity } from "./timeline.ts";
+
+const DAY = 1_800_000_000;
+const H = 3600;
+
+/** A track from [seconds after the start, state] pairs. */
+function rows(...pairs: [number, string][]): WireEntity {
+  const tab = [...new Set(pairs.map((p) => p[1]))];
+  return { t: pairs.map((p) => p[0]), v: pairs.map((p) => tab.indexOf(p[1])), tab };
+}
+
+function timeline(entities: Record<string, WireEntity>, stats = {}) {
+  return buildTimeline([{ day_start: DAY, end: DAY + 24 * H, oldest: null, keep_days: 10, entities, stats, missing: [] }]);
+}
+
+test("events: the front door, the alarm, water, the lock, the garage and the robot – each change once", () => {
+  const tl = timeline({
+    "binary_sensor.haustuer": rows([0, "off"], [7 * H, "on"], [7 * H + 30, "off"], [7 * H + 60, "on"], [9 * H, "off"], [12 * H, "on"]),
+    "alarm_control_panel.haus": rows([0, "armed_away"], [3 * H, "triggered"], [3 * H + 100, "disarmed"]),
+    "binary_sensor.wasser": rows([0, "off"], [10 * H, "on"]),
+    "lock.tuer": rows([0, "locked"], [8 * H, "unlocked"]),
+    "cover.garage": rows([0, "closed"], [6 * H, "opening"], [6 * H + 20, "open"]),
+    "vacuum.saugi": rows([0, "docked"], [10 * H, "cleaning"], [11 * H, "returning"], [11 * H + 300, "docked"]),
+    "binary_sensor.fenster": rows([0, "on"]),
+  });
+  const roles = new Map<string, Role>([
+    ["binary_sensor.haustuer", "door"],
+    ["alarm_control_panel.haus", "alarm"],
+    ["binary_sensor.wasser", "water"],
+    ["lock.tuer", "lock"],
+    ["cover.garage", "garage"],
+    ["vacuum.saugi", "robot"],
+  ]);
+  const events = findEvents({ timeline: tl, roles, weather: null });
+  const at = (s: number) => (DAY + s) * 1000;
+  assert.deepEqual(
+    events.map((e) => [e.kind, e.t]),
+    [
+      ["alarm", at(3 * H)],
+      ["garage", at(6 * H)],
+      // the door opened twice within a minute: one event
+      ["door", at(7 * H)],
+      ["lock", at(8 * H)],
+      // at the same moment the more important one first
+      ["water", at(10 * H)],
+      ["robot_start", at(10 * H)],
+      ["robot_done", at(11 * H + 300)],
+      ["door", at(12 * H)],
+    ],
+  );
+});
+
+test("events: a window open while it rains, motion only at night, the washing machine when its power drops", () => {
+  const tl = timeline(
+    {
+      "weather.home": rows([0, "sunny"], [15 * H, "rainy"], [15 * H + 2400, "cloudy"]),
+      "binary_sensor.bad_fenster": rows([0, "off"], [14 * H, "on"], [16 * H, "off"]),
+      "binary_sensor.kueche_fenster": rows([0, "off"], [17 * H, "on"]),
+      "binary_sensor.flur": rows([0, "off"], [2 * H, "on"], [2 * H + 60, "off"], [2 * H + 600, "on"], [2 * H + 660, "off"], [12 * H, "on"], [12 * H + 60, "off"]),
+    },
+    {
+      // 5-minute means: idle, 100 minutes at 400–2000 W, then idle again
+      "sensor.waschmaschine": { start: DAY + 11 * H, step: 300, mean: [1, ...Array.from({ length: 20 }, (_, i) => (i < 3 ? 2000 : 400)), 2, 1] },
+    },
+  );
+  const roles = new Map<string, Role>([
+    ["binary_sensor.bad_fenster", "window"],
+    ["binary_sensor.kueche_fenster", "window"],
+    ["binary_sensor.flur", "motion"],
+    ["sensor.waschmaschine", "washer"],
+  ]);
+  const night = (t: number) => (t / 1000 - DAY) / H < 5;
+  const events = findEvents({ timeline: tl, roles, weather: "weather.home", night });
+  const kinds = events.map((e) => `${e.kind}@${((e.t / 1000 - DAY) / H).toFixed(2)}`);
+  // rain started while the bathroom window stood open; the kitchen window opened after the rain
+  assert.ok(kinds.includes("rain@15.00"), kinds.join());
+  assert.ok(!kinds.some((k) => k.startsWith("rain@17")));
+  // motion at 2 am twice within half an hour: once; noon motion is no event
+  assert.equal(kinds.filter((k) => k.startsWith("motion")).length, 1);
+  assert.ok(kinds.includes("motion@2.00"));
+  assert.equal(kinds.filter((k) => k.startsWith("washer")).length, 1);
+});
+
+test("a machine is done when its power falls after a real run, not after a short blip", () => {
+  const p = (min: number, w: number) => ({ t: min * 60000, w });
+  assert.deepEqual(machineDone([p(0, 1), p(5, 500), p(60, 400), p(70, 2)]), [70 * 60000]);
+  assert.deepEqual(machineDone([p(0, 1), p(5, 500), p(10, 2)]), []);
+});
+
+test("markers closer than a few pixels become one, shown as the most important event", () => {
+  const ev = (t: number, kind: keyof typeof RANK) => ({ t, kind, entity: kind });
+  const clusters = clusterEvents([ev(0, "motion"), ev(5, "alarm"), ev(9, "door"), ev(100, "washer")], (t) => t, 14);
+  assert.equal(clusters.length, 2);
+  assert.equal(clusters[0].top.kind, "alarm");
+  assert.equal(clusters[0].t, 5);
+  assert.equal(clusters[0].events.length, 3);
+  assert.equal(clusters[1].top.kind, "washer");
+});

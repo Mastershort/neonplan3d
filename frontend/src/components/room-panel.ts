@@ -46,6 +46,7 @@ export class Fp3dRoomPanel extends LitElement {
     room: { attribute: false },
     floor: { attribute: false },
     confirmEntities: { attribute: false },
+    readOnly: { type: Boolean },
     _showAll: { state: true },
     _tick: { state: true },
   };
@@ -56,6 +57,8 @@ export class Fp3dRoomPanel extends LitElement {
   declare floor: Floor | null;
   /** Entities that ask before they are switched. */
   declare confirmEntities: Set<string> | null;
+  /** Time travel: the panel shows the past and switches nothing. */
+  declare readOnly: boolean;
   /** Show the other devices of the area as well (their main entities). */
   private declare _showAll: boolean;
   /** Bumped every few seconds while the panel is open, so camera snapshots refresh. */
@@ -68,6 +71,7 @@ export class Fp3dRoomPanel extends LitElement {
     super();
     this.room = null;
     this.floor = null;
+    this.readOnly = false;
     this._showAll = false;
     this._tick = 0;
   }
@@ -90,6 +94,7 @@ export class Fp3dRoomPanel extends LitElement {
   }
 
   private call(domain: string, service: string, data: Record<string, unknown>): void {
+    if (this.readOnly) return;
     void this.hass.callService(domain, service, data);
   }
 
@@ -102,7 +107,7 @@ export class Fp3dRoomPanel extends LitElement {
   }
 
   private nameButton(id: string) {
-    return html`<button class="fp3d-rp-name" title=${this.t("details")} @click=${() => openMoreInfo(this, id)}>${this.name(id)}</button>`;
+    return html`<button class="fp3d-rp-name" title=${this.t("details")} @click=${() => !this.readOnly && openMoreInfo(this, id)}>${this.name(id)}</button>`;
   }
 
   /** Ask first for devices marked so (a blind that must not move by accident). */
@@ -112,6 +117,7 @@ export class Fp3dRoomPanel extends LitElement {
 
   private toggle(st: HassEntity, on: boolean, onToggle: () => void) {
     const guarded = () => {
+      if (this.readOnly) return;
       if (this.confirmEntities?.has(st.entity_id) && !confirm(this.t("confirm_switch", { name: this.name(st.entity_id) }))) return;
       onToggle();
     };
@@ -151,11 +157,12 @@ export class Fp3dRoomPanel extends LitElement {
     const scenes = by(["scene", "script"]);
     const facts = this.facts(climates);
     const lightsOn = lights.filter((l) => l.state === "on");
-    return html`<section class="fp3d-rp" aria-label=${room.name}>
+    return html`<section class="fp3d-rp ${this.readOnly ? "fp3d-rp-ro" : ""}" aria-label=${room.name}>
       <header class="fp3d-rp-head">
         <div>
           <h2>${room.name}</h2>
           ${facts.length ? html`<p class="fp3d-rp-facts">${facts.join(" · ")}</p>` : nothing}
+          ${this.readOnly ? html`<p class="fp3d-rp-facts fp3d-rp-ro-note">⏪ ${this.t("tt_readonly")}</p>` : nothing}
         </div>
         <button class="fp3d-rp-close" aria-label=${this.t("close")} @click=${() => this.fire("close")}>
           <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>
@@ -466,7 +473,7 @@ export class Fp3dRoomPanel extends LitElement {
     const src = picture && !isUnavailable(st) ? (picture.startsWith("data:") ? picture : `${picture}${picture.includes("?") ? "&" : "?"}fp3d=${this._tick}`) : null;
     const placed = this.floor?.placements.some((p) => p.entity_id === st.entity_id);
     return html`<div class="fp3d-rp-camera-wrap">
-      <button class="fp3d-rp-camera" title=${this.t("camera_live")} @click=${() => openMoreInfo(this, st.entity_id)}>
+      <button class="fp3d-rp-camera" title=${this.t("camera_live")} @click=${() => !this.readOnly && openMoreInfo(this, st.entity_id)}>
         ${src ? html`<img src=${src} alt=${this.name(st.entity_id)} loading="lazy" />` : html`<span class="fp3d-rp-note">${stateText(this.hass, st)}</span>`}
         <span class="fp3d-rp-camera-name">${this.name(st.entity_id)}</span>
       </button>
@@ -514,6 +521,13 @@ export class Fp3dRoomPanel extends LitElement {
         border-radius: 18px;
         box-shadow: var(--fp3d-shadow);
         overflow: hidden;
+      }
+      /* time travel: the controls show the past and take no touches (the list still scrolls) */
+      .fp3d-rp-ro .fp3d-rp-body :is(button, input, select) {
+        pointer-events: none;
+      }
+      .fp3d-rp-ro-note {
+        color: #ffb020;
       }
       .fp3d-rp-head {
         display: flex;

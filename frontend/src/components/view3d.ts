@@ -82,6 +82,7 @@ import type { HassEntity, HomeAssistant } from "../types.ts";
 import type { DeviceMarker, FloorplanViewer, FloorStack, RobotInfo, Quality, ScreenState, SoundSource, SurfaceGrab, ViewerStats, WallMode } from "../viewer/viewer3d.ts";
 import { wallLayout } from "../camera-wall.ts";
 import { watchedEntities } from "../watched.ts";
+import type { HistorySpec, ReplayInfo } from "../timetravel/types.ts";
 
 /** Which HTML markers are shown: none, only what has no 3D object or shows a value, or all. */
 export type MarkerMode = "none" | "important" | "all";
@@ -175,10 +176,21 @@ export class Fp3dView3d extends LitElement {
     _narrowStage: { state: true },
     _alerts: { state: true },
     _sceneFired: { state: true },
+    replay: { attribute: false },
+    _info: { state: true },
   };
 
   declare hass: HomeAssistant;
   declare building: Building | null;
+  /** Time travel: the replayed moment (hass is then the past, read-only); null = live. */
+  declare replay: ReplayInfo | null;
+  /** Time travel: a tapped device's state at the replayed moment, next to the finger. */
+  private declare _info: { entity: string; x: number; y: number } | null;
+  private infoTimer: ReturnType<typeof setTimeout> | undefined;
+  /** The replay's jump counter as last seen (a jump sets doors and blinds at once). */
+  private seenSeek = 0;
+  /** How long the last full sync took (ms, smoothed), shown with the stats. */
+  private syncMs = 0;
   declare floorId: string | null;
   declare roomId: string | null;
   declare wallMode: WallMode;
@@ -366,6 +378,8 @@ export class Fp3dView3d extends LitElement {
   constructor() {
     super();
     this.building = null;
+    this.replay = null;
+    this._info = null;
     this.floorId = null;
     this.roomId = null;
     this.wallMode = "auto";
@@ -465,6 +479,7 @@ export class Fp3dView3d extends LitElement {
     this.holoTimer = undefined;
     clearTimeout(this.flashTimer);
     this.flashTimer = undefined;
+    clearTimeout(this.infoTimer);
     this.viewer?.dispose();
     this.viewer = null;
   }
@@ -510,6 +525,7 @@ export class Fp3dView3d extends LitElement {
       // a tap into the 3D view closes the star menu, like any menu (#220)
       host.addEventListener("pointerdown", (e) => {
         if (this._central && !(e.target as Element | null)?.closest?.(".fp3d-central, .fp3d-central-btn")) this._central = false;
+        if (this._info) this._info = null;
       });
       this.viewer = mod.createViewer(host, {
         quality: this.quality,
@@ -618,7 +634,8 @@ export class Fp3dView3d extends LitElement {
     }
     if (changed.has("selectedFurniture")) v.selectFurniture(this.selectedFurniture);
     if (changed.has("selectedDevice")) v.setSelectedDevice(this.selectedDevice);
-    if (changed.has("trail")) this.watchTrail();
+    if (changed.has("trail") || changed.has("replay")) this.watchTrail();
+    if (changed.has("replay") && !this.replay) this._info = null;
     if (changed.has("weather") || changed.has("weatherEntityId")) this.syncDevices(true);
     if (changed.has("quality") && changed.get("quality") !== undefined) {
       v.setQuality(this.quality);
@@ -654,7 +671,11 @@ export class Fp3dView3d extends LitElement {
       force = true;
     }
     const changed = force || this.watched.some((id) => this.shownStates.get(id) !== hass.states[id]);
+    // time travel: after a jump doors and blinds stand at once instead of swinging there
+    const jump = !!this.replay && this.replay.seek !== this.seenSeek;
+    this.seenSeek = this.replay?.seek ?? 0;
     if (!changed) return;
+    const began = this.showStats ? performance.now() : 0;
     this.shownStates = new Map(this.watched.map((id) => [id, hass.states[id]]));
 
     const consumers = findConsumers(hass, b);
@@ -727,7 +748,7 @@ export class Fp3dView3d extends LitElement {
     v.setParked(parkedVehicles(hass, b));
     const types = new Map(b.floors.flatMap((f) => f.openings.map((o) => [o.id, o.type] as const)));
     const openingStates = new Map([...this.openingLinks!].map(([id, e]) => [id, openingState(hass, e, types.get(id))]));
-    v.setOpeningStates(openingStates);
+    v.setOpeningStates(openingStates, jump);
     this.setAlerts(this.alertSrc ? findAlerts(hass, b, this.alertSrc, this.openingLinks!) : []);
     // the floor pictures follow lamps and blinds (not sensors), at most every few seconds
     const lampSig = [...deviceMarkers, ...furniture.markers].map((m) => `${m.id}:${m.glow ? `${m.glow.level.toFixed(1)}/${m.glow.color.map((c) => c.toFixed(1)).join("/")}` : 0}`).join(";") + "|" + [...openingStates].map(([id, o]) => `${id}:${o.open}:${o.cover === null ? "-" : o.cover.toFixed(1)}`).join(";");
@@ -1033,6 +1054,58 @@ export class Fp3dView3d extends LitElement {
     if (wallboxW !== this._wallboxW) this._wallboxW = wallboxW;
     // the holograms' day curves: the sensors' statistics, fetched now and then while the sun is watched
     this.watchSolarDay([...new Set(cards.flatMap((c) => c.dayIds))]);
+    if (began) this.syncMs = this.syncMs * 0.8 + (performance.now() - began) * 0.2;
+  }
+
+  /** Now – or, during time travel, the replayed moment. */
+  private now(): number {
+    return this.replay?.t ?? Date.now();
+  }
+
+  /** Read-only: the past is shown (time travel), nothing may be switched. */
+  private get ro(): boolean {
+    return !!this.replay;
+  }
+
+  /** Time travel: what the view shows and how it is linked, for the history to fetch and the events. */
+  historyEntities(): HistorySpec {
+    const b = this.building;
+    const hass = this.hass;
+    if (!b || !hass) return { entities: [], openings: [], furniture: [], low: this._low };
+    const fresh = !this.openingLinks || this.linkedRegistry !== hass.entities;
+    const openings = fresh ? openingEntities(hass, b.floors) : this.openingLinks!;
+    const furniture = fresh ? furnitureEntities(hass, b.floors) : this.furnitureLinks;
+    // the room sensors and the warnings always: the heatmap and the warnings can be switched on while travelling
+    const warnings = alertEntities(alertSources(hass, b, this.weatherEntityId));
+    const entities = watchedEntities(hass, b, { openings, furniture, heat: true, warnings, weatherEntityId: this.weatherEntityId });
+    return { entities, openings: [...openings], furniture: [...furniture], low: this._low };
+  }
+
+  /** Shows the hint of a Pro add-on that is not installed (with the shop link). */
+  proHint(feature: Feature): void {
+    this._proHint = feature;
+  }
+
+  /** Time travel: a tap shows the device's state at the replayed moment ("on · 60 % · since 07:42"). */
+  private showInfo(entity: string, x: number, y: number): void {
+    this._menu = null;
+    this._info = { entity, x, y };
+    clearTimeout(this.infoTimer);
+    this.infoTimer = setTimeout(() => (this._info = null), 4000);
+  }
+
+  private renderInfo() {
+    const i = this._info;
+    if (!i || !this.hass) return nothing;
+    const hass = this.hass;
+    const st = hass.states[i.entity];
+    const text = stateText(hass, st);
+    const on = kindOf(i.entity) === "light" && st?.state === "on" && text.endsWith("%") ? `${translate(hass, "state_on")} · ${text}` : text;
+    const since = st?.last_changed ? translate(hass, "tt_since", { time: trailTime(hass, Date.parse(st.last_changed)) }) : "";
+    return html`<div class="fp3d-swipe fp3d-info" style="left:${i.x}px;top:${i.y}px">
+      <span>${entityName(hass, i.entity)}</span>
+      <b>${since ? `${on} · ${since}` : on}</b>
+    </div>`;
   }
 
   /** The inverters' and batteries' own power (W, a battery positive = discharging) by furniture id. */
@@ -1064,7 +1137,7 @@ export class Fp3dView3d extends LitElement {
       if (!cam.model?.startsWith("camera")) continue;
       // a detection stays as a pin for two minutes after the sensor dropped back (Reolink and the like hold it
       // only for seconds), with the time it was seen
-      const now = Date.now();
+      const now = this.now();
       const active = cameraMotionSensors(hass, cam.id).filter((id) => {
         const st = hass.states[id];
         if (!st) return false;
@@ -1271,7 +1344,7 @@ export class Fp3dView3d extends LitElement {
             <span>${c.range !== null ? `${formatNumber(hass, c.range, 0)} ${c.rangeUnit}` : ""}${c.charging && c.chargingW ? ` · ${formatPower(hass, c.chargingW)}` : ""}</span>
           </div>
           ${c.soc !== null ? html`<div class="fp3d-holo-car-bar"><i style="width:${Math.max(2, Math.min(100, c.soc))}%;background:${col}"></i></div>` : nothing}
-          ${open && (lockable || climable || c.charge)
+          ${open && !this.ro && (lockable || climable || c.charge)
             ? html`<div class="fp3d-holo-media-controls fp3d-holo-car-controls">
                 ${lockable ? html`<button title=${c.locked ? t("car_unlock_btn") : t("car_lock_btn")} @click=${lockTap}>${c.locked ? "🔒" : "🔓"}</button>` : nothing}
                 ${climable ? html`<button class=${c.climateOn ? "fp3d-holo-on" : ""} title=${t("car_climate")} @click=${() => onOff(c.climate!, !c.climateOn)}>❄</button>` : nothing}
@@ -1317,7 +1390,7 @@ export class Fp3dView3d extends LitElement {
           ${m.picture ? html`<img class="fp3d-holo-cover" src=${m.picture} alt="" />` : html`<span class="fp3d-holo-cover fp3d-holo-cover-none">♪</span>`}
           <div class="fp3d-holo-titles"><b>${m.title}</b>${m.artist ? html`<span>${m.artist}</span>` : nothing}</div>
         </div>
-        ${open
+        ${open && !this.ro
           ? html`<div class="fp3d-holo-media-controls">
                 <button aria-label=${t("previous")} @click=${() => call("media_previous_track")}>⏮</button>
                 <button aria-label=${t("play_pause")} @click=${() => call("media_play_pause")}>${m.playing ? "⏸" : "▶"}</button>
@@ -1386,7 +1459,8 @@ export class Fp3dView3d extends LitElement {
     const main = card.kind === "main";
     const autarky = main && e.consumption !== null && e.consumption > 0 ? Math.round(Math.min(100, Math.max(0, (1 - Math.max(0, e.grid ?? 0) / e.consumption) * 100))) : null;
     const curve = day && day.curve.length > 1 ? solarCurvePath(day.curve, day.peak) : null;
-    const nowX = ((new Date().getHours() + new Date().getMinutes() / 60) / 24) * 220;
+    const nowAt = new Date(this.now());
+    const nowX = ((nowAt.getHours() + nowAt.getMinutes() / 60) / 24) * 220;
     const toggle = () => {
       if (this.holoFolded.has(index)) this.holoFolded.delete(index);
       else this.holoFolded.add(index);
@@ -1453,7 +1527,7 @@ export class Fp3dView3d extends LitElement {
       clearInterval(this.alertTimer);
       this.alertTimer = undefined;
     }
-    if (fresh.length && this.alertJump) this.jumpTo(fresh[0]);
+    if (fresh.length && this.alertJump && !this.ro) this.jumpTo(fresh[0]);
   }
 
   /** Show where a warning is: its floor and room, or the house for an alarm. */
@@ -1473,7 +1547,7 @@ export class Fp3dView3d extends LitElement {
     const hass = this.hass;
     const floor = b?.floors.find((f) => f.id === floorId);
     const room = floor?.rooms.find((r) => r.id === roomId);
-    if (!b || !hass || !floor || !room) return;
+    if (!b || !hass || !floor || !room || this.ro) return;
     const ids = new Set(areaEntities(hass, room.area_id).filter((id) => kindOf(id) === "light"));
     for (const p of floor.placements) if (kindOf(p.entity_id) === "light" && pointInPolygon([p.x, p.z], room.points)) ids.add(p.entity_id);
     for (const f of floor.furniture) {
@@ -1494,6 +1568,7 @@ export class Fp3dView3d extends LitElement {
   }
 
   private runScene(id: string): void {
+    if (this.ro) return;
     void this.hass.callService(id.split(".")[0], "turn_on", { entity_id: id });
     this._sceneFired = id;
     setTimeout(() => (this._sceneFired = null), 600);
@@ -1712,13 +1787,15 @@ export class Fp3dView3d extends LitElement {
 
   /** The trail's spots right now: history rows plus the sensors that are on. */
   private trailNow(hass: HomeAssistant, b: Building) {
-    const now = Date.now();
+    const now = this.now();
     const sources = trailSources(hass, b);
+    // time travel: the rows come from the replayed history, up to the replayed moment
+    const rows = this.replay ? this.replay.rows(sources.map((s) => s.entity), now - TRAIL_WINDOW_MS, now) : this.trailRows;
     const live = sources.map((s) => {
       const st = hass.states[s.entity];
       return { entity: s.entity, state: st?.state, lastChanged: st?.last_changed ? Date.parse(st.last_changed) : undefined };
     });
-    return trailPoints(sources, trailEvents(this.trailRows, live, now), now);
+    return trailPoints(sources, trailEvents(rows, live, now), now);
   }
 
   /** While the trail is shown, the sensors' history of the last half hour is fetched, again every minute. */
@@ -1726,7 +1803,8 @@ export class Fp3dView3d extends LitElement {
     clearInterval(this.trailTimer);
     this.trailTimer = undefined;
     if (this.trail && !hasFeature("camera_cockpit")) this._proHint = "camera_cockpit";
-    if (!this.trail || !hasFeature("camera_cockpit")) {
+    // time travel brings its own rows (see trailNow)
+    if (!this.trail || !hasFeature("camera_cockpit") || this.replay) {
       this.trailRows = {};
       this.syncDevices(true);
       return;
@@ -2059,6 +2137,10 @@ export class Fp3dView3d extends LitElement {
 
   /** Long press: the quick menu at the device, or the details for devices without one. */
   private onDeviceHold(entityId: string, x: number, y: number): void {
+    if (this.ro) {
+      this.onDeviceTap(entityId, x, y);
+      return;
+    }
     // Auto Pro: a long press on the parking spot's pin opens the car's menu (lock, climate, charging)
     if (hasFeature("auto_pro") && this.hass && this.building) {
       for (const floor of this.building.floors)
@@ -2080,6 +2162,7 @@ export class Fp3dView3d extends LitElement {
   /** Swipe up or down on a lamp (brightness) or a blind (position). */
   private onDeviceSwipe(entityId: string, phase: "start" | "move" | "end", dy: number, x: number, y: number): boolean {
     const st = this.hass?.states[entityId];
+    if (this.ro) return false;
     if (phase === "start") {
       // devices that ask before switching are not moved by a swipe (it turns the view instead)
       if (!st || isUnavailable(st) || this.confirmSet.has(entityId)) return false;
@@ -2150,7 +2233,7 @@ export class Fp3dView3d extends LitElement {
   /** Scenes and scripts of the selected room's area as chips (while no panel lists them). */
   private renderScenes() {
     const b = this.building;
-    if (!this.scenes || !this.roomId || this.panelOpen || !b || !this.hass) return nothing;
+    if (!this.scenes || !this.roomId || this.panelOpen || !b || !this.hass || this.ro) return nothing;
     const room = b.floors.flatMap((f) => f.rooms).find((r) => r.id === this.roomId);
     const ids = room ? areaEntities(this.hass, room.area_id).filter((id) => kindOf(id) === "scene" || kindOf(id) === "script").slice(0, 6) : [];
     if (!ids.length) return nothing;
@@ -2203,7 +2286,7 @@ export class Fp3dView3d extends LitElement {
   private renderCentral() {
     const b = this.building;
     const hass = this.hass;
-    if (!b || !hass || !this.central || this._find !== null) return nothing;
+    if (!b || !hass || !this.central || this._find !== null || this.ro) return nothing;
     const t = (k: I18nKey, vars?: Record<string, string | number>) => translate(hass, k, vars);
     const star = html`<button
       class="fp3d-central-btn ${this._central ? "fp3d-central-on" : ""}"
@@ -2342,7 +2425,7 @@ export class Fp3dView3d extends LitElement {
   lookThrough(entityId: string): void {
     const v = this.viewer;
     const b = this.building;
-    if (!v || !b) return;
+    if (!v || !b || this.ro) return;
     if (!hasFeature("camera_cockpit")) {
       this._menu = null;
       this._proHint = "camera_cockpit";
@@ -2394,7 +2477,7 @@ export class Fp3dView3d extends LitElement {
 
   /** Kamera-Cockpit: the camera wall – every placed camera's picture, refreshed every few seconds; a tap looks through it. */
   private renderCameraWall() {
-    if (!this.cameraWall || !this.hass || !this.building) return nothing;
+    if (!this.cameraWall || !this.hass || !this.building || this.ro) return nothing;
     const hass = this.hass;
     const close = () => {
       this._wallBig = null;
@@ -2522,7 +2605,7 @@ export class Fp3dView3d extends LitElement {
 
   private renderMenu() {
     const m = this._menu;
-    if (!m || !this.hass) return nothing;
+    if (!m || !this.hass || this.ro) return nothing;
     const stage = this.renderRoot.querySelector(".fp3d-stage") as HTMLElement | null;
     const w = stage?.clientWidth ?? 800;
     const h = stage?.clientHeight ?? 600;
@@ -2546,6 +2629,13 @@ export class Fp3dView3d extends LitElement {
   private onDeviceTap(entityId: string, x = 0, y = 0): void {
     // trail pins and lamps without a light are drawn, but nothing of Home Assistant stands behind them
     if (entityId.startsWith("trail:") || entityId.startsWith("lamp:")) return;
+    if (this.ro) {
+      const b = this.building;
+      const grid = b ? (b.energy.grid ?? deviceSensors(b, (f) => this.furnitureLinks?.get(f.id)?.power ?? null).grid) : null;
+      const id = entityId === "grid" ? grid : entityId.startsWith("detect:") ? entityId.slice(7) : entityId;
+      if (id) this.showInfo(id, x, y);
+      return;
+    }
     // the street end of the grid cable opens the grid sensor: the balance's, else the meter's (#223)
     if (entityId === "grid") {
       const b = this.building;
@@ -2694,18 +2784,18 @@ export class Fp3dView3d extends LitElement {
     const stage = STAGE[this.theme] ?? STAGE.neon;
     const style = `--fp3d-sky:${mix(stage.night[0], stage.day[0])};--fp3d-ground:${mix(stage.night[1], stage.day[1])}`;
     return html`<div
-      class="fp3d-stage ${this.roomLabels ? "" : "fp3d-no-room-names"} ${this._low ? "fp3d-low" : ""} ${this.panelOpen ? "fp3d-panel-open" : ""} ${this.controlsRight ? "fp3d-side-right" : ""} ${this._alerts.length ? "fp3d-has-alerts" : ""} ${this._through ? "fp3d-through-on" : ""} ${this._flash ? "fp3d-flash" : ""}"
+      class="fp3d-stage ${this.roomLabels ? "" : "fp3d-no-room-names"} ${this._low ? "fp3d-low" : ""} ${this.panelOpen ? "fp3d-panel-open" : ""} ${this.controlsRight ? "fp3d-side-right" : ""} ${this._alerts.length ? "fp3d-has-alerts" : ""} ${this._through ? "fp3d-through-on" : ""} ${this._flash ? "fp3d-flash" : ""} ${this.replay ? "fp3d-replay" : ""}"
       style=${style}
     >
       ${this._error ? html`<p class="fp3d-error">${this._error}</p>` : nothing} ${this.clean ? nothing : this.renderEnergy()} ${this.renderHologram()} ${this.clean ? nothing : this.renderLegend()}
-      ${this.renderAlerts()} ${this.clean ? nothing : html`${this.renderThumbs()} ${this.renderScenes()} ${this.renderFind()} ${this.renderCentral()}`} ${this.renderSwipe()} ${this.renderThrough()} ${this.renderCameraWall()}
+      ${this.renderAlerts()} ${this.clean ? nothing : html`${this.renderThumbs()} ${this.renderScenes()} ${this.renderFind()} ${this.renderCentral()}`} ${this.renderSwipe()} ${this.renderInfo()} ${this.renderThrough()} ${this.renderCameraWall()}
       ${this.clean ? nothing : this.renderProHint()} ${this.renderMenu()} ${this.renderEye()}
       ${this.showStats && this._stats
         ? html`<span class="fp3d-stats"
             ><b>${this._stats.fps ? translate(this.hass, "stats_fps", { fps: this._stats.fps, ms: this._stats.worstMs }) : translate(this.hass, "stats_idle")}</b>
             ${this._stats.busy.length ? html`(${this._stats.busy.map((b) => translate(this.hass, `stats_busy_${b}` as I18nKey)).join(", ")})` : nothing} ·
             ${translate(this.hass, "stats", { calls: this._stats.calls, tris: this._stats.triangles.toLocaleString() })} ·
-            ${translate(this.hass, this._stats.low ? "stats_low" : "stats_full", { r: formatNumber(this.hass, this._stats.pixelRatio, 2) })}</span
+            ${translate(this.hass, this._stats.low ? "stats_low" : "stats_full", { r: formatNumber(this.hass, this._stats.pixelRatio, 2) })}${this.syncMs ? ` · sync ${formatNumber(this.hass, this.syncMs, 1)} ms` : ""}</span
           >`
         : nothing}
     </div>`;
@@ -3280,6 +3370,17 @@ export class Fp3dView3d extends LitElement {
         pointer-events: none;
         white-space: nowrap;
         z-index: 4;
+      }
+      /* time travel: the clock sits at the top centre, the warnings below it */
+      .fp3d-replay .fp3d-alert-banner {
+        top: 74px;
+      }
+      .fp3d-info {
+        grid-template-columns: auto;
+        z-index: 5;
+      }
+      .fp3d-info b {
+        font-size: 14px;
       }
       .fp3d-swipe span {
         font-size: 12px;
