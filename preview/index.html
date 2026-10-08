@@ -271,6 +271,51 @@
         close.onclick = () => bar.remove();
         bar.append(close);
         document.body.append(bar);
+        // phones: many visitors open the demo there and wonder about all the buttons – say once what it is
+        // made for and offer the clean view (only the house) or the way to a PC
+        let seen = false;
+        try {
+          seen = sessionStorage.getItem("neonplan3d.demoPhoneHint") === "1";
+        } catch {
+          /* no storage: show it */
+        }
+        if (narrow && !seen) {
+          const veil = document.createElement("div");
+          veil.style.cssText =
+            "position:fixed;inset:0;z-index:20;display:grid;place-items:center;padding:16px;background:rgba(3,6,12,.72);font:15px/1.45 Figtree,Roboto,sans-serif;color:#cfe9ff";
+          const box = document.createElement("div");
+          box.style.cssText =
+            "max-width:360px;padding:20px 18px;border-radius:18px;background:#0b1424;border:1px solid rgba(0,229,255,.45);box-shadow:0 0 24px rgba(0,229,255,.25)";
+          const btn = (text, primary) =>
+            `<button style="width:100%;margin-top:10px;padding:11px 14px;border-radius:12px;font:600 15px Figtree,Roboto,sans-serif;cursor:pointer;${primary ? "background:#00e5ff;color:#06101c;border:0" : "background:none;color:#cfe9ff;border:1px solid rgba(0,229,255,.45)"}">${text}</button>`;
+          box.innerHTML = de
+            ? `<b style="font-size:18px;color:#fff">Willkommen in der Demo 👋</b>
+               <p style="margin:10px 0 0">NeonPlan 3D ist für <b>Wandtablets, Tablets und den PC</b> gemacht – den Grundriss zeichnet man am PC. Am Handy siehst du nur einen kleinen Ausschnitt, deshalb wirken die vielen Knöpfe hier etwas eng.</p>
+               <p style="margin:8px 0 0">Tipp: Handy <b>quer</b> halten oder die Demo am PC öffnen: <span style="color:#00e5ff">neonplan3d.mastershort.de</span></p>
+               ${btn("Nur das Haus zeigen", true)}${btn("Alles ansehen", false)}<p style="margin:10px 0 0;font-size:13px;opacity:.75">Das Auge 👁 unten links holt die Knöpfe zurück.</p>`
+            : `<b style="font-size:18px;color:#fff">Welcome to the demo 👋</b>
+               <p style="margin:10px 0 0">NeonPlan 3D is made for <b>wall tablets, tablets and the PC</b> – you draw the floor plan on a PC. A phone shows only a small part, so all the buttons feel a bit cramped here.</p>
+               <p style="margin:8px 0 0">Tip: turn your phone <b>sideways</b> or open the demo on a PC: <span style="color:#00e5ff">neonplan3d.mastershort.de</span></p>
+               ${btn("Show just the house", true)}${btn("See everything", false)}<p style="margin:10px 0 0;font-size:13px;opacity:.75">The eye 👁 at the bottom left brings the buttons back.</p>`;
+          const [clean, all] = box.querySelectorAll("button");
+          const done = () => {
+            veil.remove();
+            try {
+              sessionStorage.setItem("neonplan3d.demoPhoneHint", "1");
+            } catch {
+              /* no storage: it may show again on reload */
+            }
+          };
+          clean.onclick = () => {
+            done();
+            // the eye of the 3D view: hides every bar so only the house remains (tap the eye again for the buttons)
+            const v = document.querySelector("neonplan3d-panel")?.shadowRoot?.querySelector("fp3d-view3d");
+            v?.dispatchEvent(new CustomEvent("clean-toggle", { bubbles: true, composed: true }));
+          };
+          all.onclick = done;
+          veil.append(box);
+          document.body.append(veil);
+        }
       }
       if (params.has("card")) {
         // ?card: the dashboard card next to its visual editor (like Home Assistant's card dialog)
