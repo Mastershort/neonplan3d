@@ -43,8 +43,8 @@ export interface RoofFace {
   facing: Vec2;
   /** The ground in the garden: no edges, the field goes where it is put. */
   unbounded?: boolean;
-  /** A house wall: upright, on this floor (its modules hang flat on the facade). */
-  wall?: { floorId: string };
+  /** A house wall: upright, on this floor (its modules hang flat on the facade); its room and the room edge it lies on, for its name. */
+  wall?: { floorId: string; room?: string | null; edge?: number | null; free?: boolean };
 }
 
 /** Outer faces of the house walls, per floor: modules can hang on a facade or a balcony. */
@@ -65,8 +65,10 @@ export function wallFaces(b: Building, floorId?: string): RoofFace[] {
       const nx = dz / l;
       const nz = -dx / l;
       const height = Math.min(floor.height, w.height ?? floor.height);
+      const edge = w.sources.find((s) => s.room_id === w.roomLeft)?.edge ?? null;
+      const wall = { floorId: floor.id, room: w.roomLeft, edge, free: !!w.free };
       const face = (key: string, o: V3, eu: V3, n: V3) =>
-        out.push({ key, section: null, side: "top", flat: false, o, eu, es: [0, 1, 0], n, lu: l, ls: height, pitch: 90, span: () => [0, l], facing: [n[0], n[2]], wall: { floorId: floor.id } });
+        out.push({ key, section: null, side: "top", flat: false, o, eu, es: [0, 1, 0], n, lu: l, ls: height, pitch: 90, span: () => [0, l], facing: [n[0], n[2]], wall });
       face(`wall:${floor.id}:${w.id}`, [w.a[0] + nx * w.right, floor.elevation, w.a[1] + nz * w.right], [dx / l, 0, dz / l], [nx, 0, nz]);
       // the back of a free wall runs the other way, so its modules face outwards too
       if (w.free) face(`wall:${floor.id}:${w.id}:back`, [w.b[0] - nx * w.left, floor.elevation, w.b[1] - nz * w.left], [-dx / l, 0, -dz / l], [-nx, 0, -nz]);
@@ -341,6 +343,7 @@ export function fieldModules(face: RoofFace, f: SolarField, withSkipped = false)
   const counts = rowCounts(f);
   const most = Math.max(1, ...counts);
   const skip = new Set(f.skip ?? []);
+  const wide = !!face.wall && mw > face.lu + 1e-6;
   const at = (u: number, s: number, up: number): V3 => [
     face.o[0] + face.eu[0] * u + face.es[0] * s + face.n[0] * up,
     face.o[1] + face.eu[1] * u + face.es[1] * s + face.n[1] * up,
@@ -363,7 +366,10 @@ export function fieldModules(face: RoofFace, f: SolarField, withSkipped = false)
       const s0 = f.v + r * pitch;
       const u1 = u0 + mw;
       const s1 = s0 + (face.flat || face.wall ? depth : mh);
-      if (![[u0, s0], [u1, s0], [u1, s1], [u0, s1]].every(([u, s]) => inside(u, s))) continue;
+      // a wall narrower than a module (a short garden wall) carries it overhanging both ends, centred on it (#295)
+      if (wide) {
+        if (!(inside((u0 + u1) / 2, s0) && inside((u0 + u1) / 2, s1))) continue;
+      } else if (![[u0, s0], [u1, s0], [u1, s1], [u0, s1]].every(([u, s]) => inside(u, s))) continue;
       if (face.wall && t > 0.001) {
         // on a wall, tilted: the upper edge stands off the wall (flipped: the lower edge), on brackets
         const away = LIFT + mh * Math.sin(t);
@@ -432,7 +438,9 @@ export function clampField(face: RoofFace, f: SolarField): { u: number; v: numbe
   const [w, d] = fieldSize(face, f);
   // rounded down to centimetres, so a field pushed to the far edge still fits completely
   const r = (x: number) => Math.floor(x * 100 + 1e-6) / 100;
-  return { u: r(Math.min(Math.max(0, f.u), Math.max(0, face.lu - w))), v: r(Math.min(Math.max(0, f.v), Math.max(0, face.ls - d))) };
+  // a field wider than its wall sits centred on it, overhanging both ends
+  const u = face.wall && w > face.lu ? Math.round(((face.lu - w) / 2) * 100) / 100 : r(Math.min(Math.max(0, f.u), Math.max(0, face.lu - w)));
+  return { u, v: r(Math.min(Math.max(0, f.v), Math.max(0, face.ls - d))) };
 }
 
 /** Corners of every module of a field in the plan (for the editor). */
@@ -462,9 +470,20 @@ export function proposeField(face: RoofFace, id: string): SolarField {
  */
 export function moveField(face: RoofFace, f: SolarField): SolarField {
   const next: SolarField = { ...f, face: face.key, tilt: face.flat ? (f.tilt ?? 15) : null, rotation: null, flip: false };
+  if (face.wall) Object.assign(next, fitWall(face, next));
   next.u = center(face, next);
   next.v = 0.4;
   return { ...next, ...clampField(face, next) };
+}
+
+/**
+ * On a wall a field keeps as many modules in its row as the wall takes; one too narrow for a module lying
+ * down takes it upright, and one narrower than that carries a single module (#295).
+ */
+function fitWall(face: RoofFace, f: SolarField): Pick<SolarField, "portrait" | "cols" | "layout" | "skip"> {
+  const fits = (portrait: boolean) => Math.floor((face.lu + MODULE_GAP + 1e-6) / (moduleSize({ ...f, portrait })[0] + MODULE_GAP));
+  const portrait = f.portrait === false && fits(false) < 1 ? true : f.portrait;
+  return { portrait, cols: Math.max(1, Math.min(Math.max(...rowCounts(f)), fits(portrait !== false))), layout: undefined, skip: undefined };
 }
 
 function center(face: RoofFace, f: SolarField): number {

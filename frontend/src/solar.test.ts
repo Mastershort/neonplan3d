@@ -227,3 +227,28 @@ test("a field moved to another face keeps its modules (#258)", () => {
   assert.equal(moved.tilt, 30);
   assert.ok(moved.u >= 0 && moved.v >= 0);
 });
+
+test("a field moved to a short wall keeps what fits and stays visible, walls name their room and corners (#295)", () => {
+  const b = house({ type: "gable", pitch: 35, overhang: 0.4 });
+  b.floors[0].walls = [
+    { id: "g1", a: [12, 0], b: [12.92, 0], thickness: 0.2 },
+    { id: "g2", a: [14, 0], b: [14.6, 0], thickness: 0.2 },
+  ];
+  const faces = wallFaces(b);
+  const south = faces.find((w) => !w.wall?.free && faceCompass(w, 0) === "s")!;
+  assert.deepEqual([south.wall?.room, south.wall?.edge], ["r", 2]);
+  const f: SolarField = { ...proposeWallField(b, "w", "eg")!, cols: 4, portrait: false };
+  // 0.92 m: no room for a module lying down (1.72 m), one upright module (1.13 m) overhangs a little, centred
+  const short = faces.find((w) => w.wall?.free && Math.abs(w.lu - 0.92) < 1e-6)!;
+  const onShort = moveField(short, f);
+  assert.equal(onShort.portrait, true);
+  assert.equal(onShort.cols, 1);
+  assert.equal(fieldModules(short, onShort).length, 1);
+  // 0.6 m: still one module
+  const tiny = faces.find((w) => w.wall?.free && Math.abs(w.lu - 0.6) < 1e-6)!;
+  assert.equal(fieldModules(tiny, moveField(tiny, f)).length, 1);
+  // a long wall keeps its four modules lying down
+  const long = moveField(south, f);
+  assert.equal(long.portrait, false);
+  assert.equal(fieldModules(south, long).length, 4);
+});

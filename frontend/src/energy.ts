@@ -352,6 +352,34 @@ function attach(g: Graph, roomId: string, p: Vec2): number | null {
   return node;
 }
 
+/**
+ * Links a device's node to its room's ring. A leg that would run slant to the wall (a device in a corner, or
+ * outside the room) becomes an L: first along the ring's other direction, then square to the device (#256).
+ */
+function attachDevice(g: Graph, room: Room, node: number): boolean {
+  const p = g.pos[node];
+  const at = attach(g, room.id, p);
+  if (at === null) return false;
+  const q = g.pos[at];
+  // attach() linked the new ring node to its segment's two ends first
+  const a = g.pos[g.adj[at][0].to];
+  const b = g.pos[g.adj[at][1].to];
+  const l = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1;
+  const s: Vec2 = [(b[0] - a[0]) / l, (b[1] - a[1]) / l];
+  const along = (p[0] - q[0]) * s[0] + (p[1] - q[1]) * s[1];
+  const across = (p[1] - q[1]) * s[0] - (p[0] - q[0]) * s[1];
+  if (Math.abs(along) < 0.01 || Math.abs(across) < 0.01) {
+    link(g, node, at);
+    return true;
+  }
+  const c1: Vec2 = [q[0] + s[0] * along, q[1] + s[1] * along];
+  const c2: Vec2 = [q[0] - s[1] * across, q[1] + s[0] * across];
+  const corner = addNode(g, pointInPolygon(c2, room.points) || !pointInPolygon(c1, room.points) ? c2 : c1);
+  link(g, at, corner);
+  link(g, corner, node);
+  return true;
+}
+
 /** Room containing p, or the one whose outline is nearest. */
 function roomAt(floor: Floor, p: Vec2): Room | null {
   const rooms = floor.rooms.filter((r) => r.points.length >= 3);
@@ -459,18 +487,14 @@ function planRoutes(building: Building, targets: Target[]): PlannedSegment[] {
     const rootRoom = roomAt(f, [meter.x, meter.z]);
     if (!rootRoom) continue;
     const root = addNode(g, [meter.x, meter.z]);
-    const rootAttach = attach(g, rootRoom.id, [meter.x, meter.z]);
-    if (rootAttach === null) continue;
-    link(g, root, rootAttach);
+    if (!attachDevice(g, rootRoom, root)) continue;
     const ends: { node: number; member: number }[] = [];
     for (const i of byFloor.get(f.id)!) {
       const t = targets[i];
       const room = roomAt(f, [t.x, t.z]);
       if (!room) continue;
       const node = addNode(g, [t.x, t.z]);
-      const at = attach(g, room.id, [t.x, t.z]);
-      if (at === null) continue;
-      link(g, node, at);
+      if (!attachDevice(g, room, node)) continue;
       ends.push({ node, member: i });
     }
     const { dist, prev } = dijkstra(g, root);
@@ -740,12 +764,8 @@ function roomPath(building: Building, floor: Floor, from: Vec2, to: Vec2): Vec2[
   const b = roomAt(floor, to);
   if (a && b) {
     const na = addNode(g, from);
-    const aa = attach(g, a.id, from);
     const nb = addNode(g, to);
-    const ab = attach(g, b.id, to);
-    if (aa !== null && ab !== null) {
-      link(g, na, aa);
-      link(g, nb, ab);
+    if (attachDevice(g, a, na) && attachDevice(g, b, nb)) {
       const { dist, prev } = dijkstra(g, na);
       if (Number.isFinite(dist[nb])) {
         path.length = 0;

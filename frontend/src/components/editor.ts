@@ -2841,8 +2841,12 @@ export class Fp3dEditor extends LitElement {
   private faceLabel(face: RoofFace): string {
     if (face.key === GROUND) return this.t("solar_ground");
     if (face.wall) {
-      const floor = this._doc.floors.find((x) => x.id === face.wall!.floorId);
-      return `${this.t("solar_wall")} ${floor?.name ?? ""} · ${this.t(`compass_${faceCompass(face, this._doc.settings.north ?? 0)}` as I18nKey)} · ${formatNumber(this.hass, face.lu, 1)} m`;
+      // named by its room and the room's corner numbers in the plan (short walls look alike otherwise, #295)
+      const { floorId, room: roomId, edge, free } = face.wall;
+      const floor = this._doc.floors.find((x) => x.id === floorId);
+      const room = floor?.rooms.find((r) => r.id === roomId);
+      const where = free ? this.t("solar_wall_free") : room ? `${room.name}${edge != null ? ` ${edge + 1}–${((edge + 1) % room.points.length) + 1}` : ""}` : "";
+      return `${this.t("solar_wall")} ${floor?.name ?? ""} · ${where ? `${where} · ` : ""}${this.t(`compass_${faceCompass(face, this._doc.settings.north ?? 0)}` as I18nKey)} · ${formatNumber(this.hass, face.lu, 2)} m`;
     }
     const sections = this._doc.settings.roof.sections ?? [];
     const part = face.section ? this.t("solar_section", { n: sections.findIndex((x) => x.id === face.section) + 1 }) : this.t("solar_main");

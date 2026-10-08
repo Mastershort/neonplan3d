@@ -315,3 +315,14 @@ test("a grid connection mounted on a wall: the grid cable starts at its height (
   const top = Math.max(...grid.flatMap((s) => [s.a[1], s.b[1]]));
   assert.ok(top >= 2 - 1e-6, `grid cable reaches ${top}`);
 });
+
+test("a consumer in a room's corner gets its cable square to the wall, not slant (#256)", () => {
+  const hass = hassForHouse();
+  const b = house();
+  // the fridge right in the corner of room b, between the wall and the cable's ring
+  b.floors[0].placements[1] = { entity_id: "sensor.fridge_power", x: 7.97, z: 0.02, y: null };
+  const consumers = findConsumers(hass, b);
+  const segs = flowSegments({ building: b, consumers, summary: energySummary(hass, b, consumers) }).filter((s) => s.floorId === "eg" && s.kind === "consumer");
+  assert.ok(segs.length > 0);
+  for (const s of segs) assert.ok(Math.abs(s.a[0] - s.b[0]) < 1e-6 || Math.abs(s.a[2] - s.b[2]) < 1e-6, `slant piece ${s.a} → ${s.b}`);
+});
