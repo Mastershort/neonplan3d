@@ -17,6 +17,7 @@ from custom_components.neonplan3d.timetravel_rows import (
     MAX_ROWS,
     bucket,
     cap_rows,
+    car_state,
     columnar,
     dedupe,
     entity_rows,
@@ -141,6 +142,15 @@ def test_statistics_slots_and_where_the_data_begins() -> None:
     assert oldest_data({}, {}, START, START + 86400) == START + 86400
 
 
+def test_a_car_tracker_says_home_or_away_only() -> None:
+    assert car_state("home") == "home"
+    assert car_state("unavailable") == "unavailable"
+    assert car_state("Work") == "not_home"
+    assert car_state("not_home") == "not_home"
+    # the robot's room is kept as an attribute
+    assert reduce_attributes("vacuum", {"current_room": "Kitchen", "battery_level": 80}) == {"current_room": "Kitchen"}
+
+
 def test_the_pack_feature_unlocks_time_travel() -> None:
     assert has_time_travel([{"features": ["energy_pro"]}, {"features": ["time_travel"]}])
     assert not has_time_travel([{"features": ["energy_pro"]}, {"features": None}, {}])
@@ -230,3 +240,43 @@ async def test_history_answer(hass: HomeAssistant, hass_ws_client) -> None:
     assert asked["True"] == ["light.kitchen"]
     assert asked["stats"] == ["sensor.temp"]
     assert "person.anna" not in str(asked)
+
+
+async def test_history_car_trackers(hass: HomeAssistant, hass_ws_client) -> None:
+    """A car's tracker comes back as home or away; a person's tracker is never asked for."""
+    await _setup(hass)
+    hass.data[DOMAIN].packs = [{"id": "test.pro", "features": ["time_travel"], "items": []}]
+    hass.config.components.add("recorder")
+    hass.states.async_set("person.anna", "home", {"device_trackers": ["device_tracker.anna_phone"]})
+    asked: list[list[str]] = []
+
+    def fake_states(_hass, start, end, entity_ids, with_attributes):
+        asked.append(list(entity_ids))
+        if "device_tracker.car" in entity_ids:
+            return {"device_tracker.car": [{"s": "home", "lu": START}, {"s": "Work", "lu": START + 600}]}
+        return {}
+
+    class Instance:
+        keep_days = 10
+
+        async def async_add_executor_job(self, func, *args):
+            return func(*args)
+
+    with (
+        patch("homeassistant.components.recorder.get_instance", return_value=Instance()),
+        patch.object(timetravel, "_states", fake_states),
+    ):
+        client = await hass_ws_client(hass)
+        await client.send_json_auto_id(
+            _msg(
+                entity_ids=["light.kitchen", "device_tracker.car"],
+                statistic_ids=[],
+                car_trackers=["device_tracker.car", "device_tracker.anna_phone"],
+            )
+        )
+        result = await client.receive_json()
+    assert result["success"], result
+    answer = result["result"]
+    assert answer["entities"]["device_tracker.car"] == {"t": [0, 600], "v": [0, 1], "tab": ["home", "not_home"]}
+    assert "device_tracker.anna_phone" not in str(asked)
+    assert "Work" not in str(answer)

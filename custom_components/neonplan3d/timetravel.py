@@ -24,10 +24,12 @@ from .timetravel_rows import (
     MAX_SPAN,
     STAT_STEP,
     bucket,
+    car_state,
     domain_of,
     entity_rows,
     has_time_travel,
     oldest_data,
+    read_row,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -59,14 +61,33 @@ def _states(
     )
 
 
+def private_trackers(hass: HomeAssistant) -> set[str]:
+    """The trackers of people: never replayed, not even as a car's."""
+    out: set[str] = set()
+    for state in hass.states.async_all("person"):
+        trackers = state.attributes.get("device_trackers")
+        if isinstance(trackers, list | tuple):
+            out.update(t for t in trackers if isinstance(t, str))
+    return out
+
+
 def collect(
-    hass: HomeAssistant, start: float, end: float, entity_ids: list[str], statistic_ids: list[str]
+    hass: HomeAssistant,
+    start: float,
+    end: float,
+    entity_ids: list[str],
+    statistic_ids: list[str],
+    car_trackers: list[str] | None = None,
 ) -> dict[str, Any]:
-    """The compact answer for one window (runs in the recorder's executor)."""
+    """The compact answer for one window (runs in the recorder's executor).
+
+    `car_trackers` are the cars' own trackers (Auto Pro): answered as home or away only.
+    """
     from homeassistant.components.recorder import statistics  # the recorder is an after_dependency
 
     start_dt = dt_util.utc_from_timestamp(start)
     end_dt = dt_util.utc_from_timestamp(end)
+    cars = [e for e in dict.fromkeys(car_trackers or []) if domain_of(e) == "device_tracker"]
     entity_ids = [e for e in entity_ids if domain_of(e) not in _PRIVATE]
     statistic_ids = [e for e in statistic_ids if domain_of(e) not in _PRIVATE]
     plain = [e for e in entity_ids if domain_of(e) not in ATTR_KEEP]
@@ -95,7 +116,16 @@ def collect(
             if (columns := entity_rows(entity_id, items, start, end)) is not None:
                 entities[entity_id] = columns
 
-    wanted = dict.fromkeys([*entity_ids, *statistic_ids])
+    for entity_id, items in _states(hass, start_dt, end_dt, cars, False).items():
+        reduced = []
+        for item in items:
+            if (row := read_row(item)) is not None:
+                ts, state, _ = row
+                reduced.append({"s": car_state(state), "lu": ts})
+        if (columns := entity_rows(entity_id, reduced, start, end)) is not None:
+            entities[entity_id] = columns
+
+    wanted = dict.fromkeys([*entity_ids, *statistic_ids, *cars])
     return {
         "day_start": start,
         "end": end,
@@ -113,6 +143,7 @@ def collect(
         vol.Required("end_time"): vol.Coerce(float),
         vol.Optional("entity_ids", default=[]): _IDS,
         vol.Optional("statistic_ids", default=[]): _IDS,
+        vol.Optional("car_trackers", default=[]): _IDS,
     }
 )
 @websocket_api.async_response
@@ -137,9 +168,12 @@ async def ws_timetravel_history(
     from homeassistant.components.recorder import get_instance  # the recorder is an after_dependency
 
     instance = get_instance(hass)
+    # a person's own tracker stays private even when it was linked as a car's
+    private = private_trackers(hass)
+    cars = [e for e in msg["car_trackers"] if e not in private]
     try:
         result = await instance.async_add_executor_job(
-            collect, hass, start, end, msg["entity_ids"], msg["statistic_ids"]
+            collect, hass, start, end, msg["entity_ids"], msg["statistic_ids"], cars
         )
     except Exception as err:  # the recorder may fail in many ways (database busy, migrating)
         _LOGGER.warning("Time travel history failed: %s", err)

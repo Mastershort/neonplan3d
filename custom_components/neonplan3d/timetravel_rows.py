@@ -24,7 +24,8 @@ ATTR_KEEP: dict[str, tuple[str, ...]] = {
     "climate": ("hvac_action", "current_temperature", "temperature"),
     "media_player": ("media_title", "media_artist", "app_name", "source", "volume_level"),
     "weather": ("cloud_coverage", "wind_speed", "wind_speed_unit"),
-    "vacuum": (),
+    # the room a robot reports (some integrations only have it as an attribute)
+    "vacuum": ("current_room",),
     "fan": (),
     "alarm_control_panel": (),
     "lock": (),
@@ -228,6 +229,11 @@ def oldest_data(
             return None
         firsts.append(stat["start"])
     return min(firsts) if firsts else end
+
+
+def car_state(state: str) -> str:
+    """A car's tracker as home or away only: the zone or place it is in stays private."""
+    return state if state in ("home", "unavailable", "unknown") else "not_home"
 
 
 def has_time_travel(packs: Iterable[Mapping[str, Any]]) -> bool:
