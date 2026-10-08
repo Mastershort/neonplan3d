@@ -146,6 +146,7 @@ async def test_opening_fields_get_defaults(hass: HomeAssistant, hass_ws_client) 
         "tilt_max": None,
         "tilt_offset": None,
         "tilt_invert": False,
+        "contact_invert": False,
         "shut": False,
         "wall": None,
         "mark": None,
