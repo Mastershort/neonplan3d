@@ -77,7 +77,7 @@ import { coverPositionable, lightAbilities } from "./quick-menu.ts";
 import "./quick-menu.ts";
 import { load3d } from "../load3d.ts";
 import { detectionKind, scaleGlow, buildMarkers, cameraMotionSensors, openMoreInfo, stateText, toggleEntity } from "../markers.ts";
-import { centroid, furnitureFootprint, isLamp, LAMP_MODEL, outdoorGround, pointInPolygon, surfaceHeight, type Building, type Furniture, type StartView } from "../model.ts";
+import { centroid, furnitureFootprint, isLamp, LAMP_MODEL, LIFT_SPOTS, outdoorGround, pointInPolygon, spotDepth, surfaceHeight, type Building, type Furniture, type StartView } from "../model.ts";
 import { floorCounts, floorInfoText, personsInRooms } from "../presence.ts";
 import { controls, tokens } from "../styles.ts";
 import type { HassEntity, HomeAssistant } from "../types.ts";
@@ -880,7 +880,7 @@ export class Fp3dView3d extends LitElement {
           const own = fields.filter((f) => inverterOf(f) === inv.id);
           const field = (first && inv.id === mainInverter ? own.find((f) => f.id !== first.id) : null) ?? own[0];
           const sensor = this.furnitureLinks?.get(inv.id)?.power ?? null;
-          const anchor = field ? anchorOn(field, 0, 0, holo.size * 0.85) : null;
+          const anchor = field ? anchorOn(field, inv.plant_right ?? 0, inv.plant_up ?? 0, holo.size * 0.85) : null;
           if (!anchor || !sensor) continue;
           // its battery: the nearest one on the same floor
           const bat = floor.furniture.filter((m) => m.type === "home_battery").sort((p, q) => Math.hypot(p.x - inv.x, p.z - inv.z) - Math.hypot(q.x - inv.x, q.z - inv.z))[0];
@@ -2127,7 +2127,9 @@ export class Fp3dView3d extends LitElement {
           ? outdoorGround(floor, f.x, f.z)
           : 0;
     const room = floor.rooms.find((r) => r.points.length >= 3 && pointInPolygon([f.x, f.z], r.points));
-    const H = floor.height;
+    // a spot lowered by hand hangs from its own "ceiling" (under a wall cabinet, #311)
+    const top = LIFT_SPOTS.has(f.type) && f.mount_y != null ? Math.min(floor.height, f.mount_y + spotDepth(f.type, f.h)) : undefined;
+    const H = top ?? floor.height;
     // pack lamps: the marker sits above the lamp (below it when it hangs from the ceiling)
     const y = item
       ? item.mount === "ceiling"
@@ -2168,6 +2170,7 @@ export class Fp3dView3d extends LitElement {
       upright: !!f.upright,
       size: [f.w, f.d, f.h],
       base,
+      top,
       pickable: !!entity,
       furnitureId: f.id,
       pack: item ? f.type : null,

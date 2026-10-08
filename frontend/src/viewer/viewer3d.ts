@@ -142,6 +142,8 @@ export interface DeviceMarker {
   rotation?: number;
   size?: [number, number, number];
   base?: number;
+  /** A spot or downlight lowered by hand: the height it hangs from instead of the ceiling (#311). */
+  top?: number;
   /** LED strip: roll about its length (degrees) and standing upright (its length runs up from the base). */
   roll?: number;
   upright?: boolean;
@@ -1538,11 +1540,11 @@ export class FloorplanViewer {
 
   /** Light sources of the lights that are on, with the height and characteristic of their lamp. */
   private lightSources(fv: FloorView): LightSource[] {
-    const H = fv.floor.height;
     const out: LightSource[] = [];
     for (const d of this.devices) {
       const glow = this.glowOf(d);
       if (d.floorId !== fv.floor.id || !glow) continue;
+      const H = d.top ?? fv.floor.height;
       const ri = roomIndexAt(fv.floor, d.x, d.z);
       const room = zoneOf(fv.lightZones, ri);
       const [w, , h] = d.size ?? (d.lamp ? LAMP_SIZE[d.lamp] : [0.3, 0.3, 0.3]);
@@ -2191,7 +2193,7 @@ export class FloorplanViewer {
       const H = fv.floor.height;
       for (const d of lamps) {
         // hanging lamps (and ceiling cameras) would float above cut walls
-        const hanging = d.lamp === "strip" ? (d.base ?? H) > Math.min(fv.floor.cut_height, H) : d.lamp ? HANGING.has(d.lamp) : d.model === "camera_ceiling";
+        const hanging = d.lamp === "strip" ? (d.base ?? H) > Math.min(fv.floor.cut_height, H) : d.lamp ? HANGING.has(d.lamp) && (d.top ?? H) > Math.min(fv.floor.cut_height, H) : d.model === "camera_ceiling";
         if ((!d.lamp && !d.model) || (hanging && this.wallMode === "cut")) continue;
         const start = buf.count;
         const packed = d.pack ? packItem(d.pack) : undefined;
@@ -2199,7 +2201,7 @@ export class FloorplanViewer {
         // shades get the sentinel colour and are recoloured below
         if (d.model) pushCameraModel(buf, d.model, d.x, d.model === "camera_ceiling" ? H : d.y, d.z, d.rotation ?? 0);
         else if (packed) pushPackLamp(buf, packed, { x: d.x, z: d.z, rotation: d.rotation ?? 0, w: pw, d: pd, h: ph, mirror: d.mirror }, d.base ?? 0, SHADE_SENTINEL);
-        else pushLampModel(buf, { ...d, lamp: d.lamp! }, H, SHADE_SENTINEL);
+        else pushLampModel(buf, { ...d, lamp: d.lamp! }, d.top ?? H, SHADE_SENTINEL);
         // keyed by the furniture: two lamps may share one light (one switch for two strips)
         ranges.set(d.furnitureId ?? d.id, { start, end: buf.count });
         if (d.pickable !== false) tris.push({ id: d.id, start, end: buf.count });
@@ -2362,14 +2364,15 @@ export class FloorplanViewer {
       }
       const glow = this.glowOf(d);
       if (d.floorId !== fv.floor.id || !d.lamp || !glow) continue;
-      if (HANGING.has(d.lamp) && this.wallMode === "cut") continue;
+      if (HANGING.has(d.lamp) && this.wallMode === "cut" && (d.top ?? H) > Math.min(fv.floor.cut_height, H)) continue;
+      const Ht = d.top ?? H;
       const [w, dd, h] = d.size ?? LAMP_SIZE[d.lamp];
       const base = d.base ?? 0;
       const ang = (d.rotation ?? 0) * DEG;
       const y = {
         ceiling: H - 0.07,
-        downlight: H - 0.03,
-        spot: H - h,
+        downlight: Ht - 0.03,
+        spot: Ht - h,
         panel: H - 0.03,
         pendant: Math.max(0.4, H - h) + 0.08,
         floor: base + h - 0.15,
@@ -3090,7 +3093,8 @@ export class FloorplanViewer {
     const x = this.grab?.id === f.id ? this.grab.x : f.x;
     const z = this.grab?.id === f.id ? this.grab.z : f.z;
     const H = fv.floor.height;
-    const hanging = ["lamp_ceiling", "lamp_downlight", "lamp_spot", "lamp_panel", "lamp_pendant"].includes(f.type);
+    // a spot lowered by hand stands at its height above the floor like a wall item
+    const hanging = ["lamp_ceiling", "lamp_downlight", "lamp_spot", "lamp_panel", "lamp_pendant"].includes(f.type) && f.mount_y == null;
     const h = Math.max(0.1, f.type === "lamp_pendant" ? 0.3 : f.h);
     const y0 = packItem(f.type) || f.type === "lamp_wall" || f.type === "led_strip"
       ? mountBase(fv.floor, f)

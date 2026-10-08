@@ -492,6 +492,8 @@ export interface OpeningEntities {
   tiltInvert?: boolean;
   /** A door without a sensor is drawn closed. */
   shut?: boolean;
+  /** The contacts report the other way round (on = closed). */
+  contactInvert?: boolean;
 }
 
 /** Pairs openings with entities in order; with `shared`, a single entity serves all openings. */
@@ -545,6 +547,7 @@ export function openingEntities(hass: HomeAssistant, floors: readonly Floor[]): 
           tiltOffset: o.tilt_offset ?? null,
           tiltInvert: !!o.tilt_invert,
           shut: !!o.shut,
+          ...(o.contact_invert ? { contactInvert: true } : {}),
         });
       }
     }
@@ -588,7 +591,12 @@ export function openingState(
 ): { open: number; open2: number; tilt: number; tilt2: number; cover: number | null; sensed: boolean } {
   const on = (id: string | null | undefined) => !!id && hass.states[id]?.state === "on";
   const known = (id: string | null | undefined) => !!id && !!hass.states[id] && !isUnavailable(hass.states[id]);
-  const pos = (id: string | null | undefined) => (id ? windowPosition(hass.states[id]) : null);
+  const raw = (id: string | null | undefined) => (id ? windowPosition(hass.states[id]) : null);
+  // "Kontakt umkehren": a contact that reports open as closed and the other way round (#329); tilted stays tilted
+  const pos = (id: string | null | undefined) => {
+    const p = raw(id);
+    return e.contactInvert && id && id !== e.tilt && id !== e.tilt2 && p !== "tilted" && p ? (p === "open" ? "closed" : "open") : p;
+  };
   // the second leaf of a double door or window stays closed without a sensor; it tilts like the first
   const tilted2 = on(e.tilt2) || pos(e.tilt2) === "tilted" || pos(e.contact2) === "tilted";
   const open2 = pos(e.contact2) === "open" && !tilted2 ? 1 : 0;
@@ -619,9 +627,11 @@ export function openingState(
     return { open: p === null ? (e.shut ? 0 : DOOR_DEFAULT_OPEN) : p === "closed" ? 0 : 1, open2: pos(e.contact2) === "open" ? 1 : 0, tilt: 0, tilt2: 0, cover, sensed: p !== null || cover !== null };
   }
   if (type === "garage") {
-    // a garage door without a cover shows its contact: open or closed
-    const sensed = cover !== null || known(e.contact);
-    if (cover === null) cover = known(e.contact) ? (on(e.contact) ? 0 : 1) : 1;
+    // a garage door without a cover shows its contact: open or closed (read like a door's, so text states and
+    // a window_state attribute count too)
+    const p = pos(e.contact);
+    const sensed = cover !== null || p !== null;
+    if (cover === null) cover = p === null || p === "closed" ? 1 : 0;
     return { open: 0, open2: 0, tilt: 0, tilt2: 0, cover, sensed };
   }
   return { open, open2, tilt: tiltFrac, tilt2: tilted2 ? 1 : 0, cover, sensed: known(e.contact) || known(e.tilt) || Number.isFinite(angleRaw) };

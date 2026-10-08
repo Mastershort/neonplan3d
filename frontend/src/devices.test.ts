@@ -387,6 +387,26 @@ test("an opening state knows whether a sensor reports it", () => {
   assert.equal(openingState(hass, { ...none, cover: "cover.tor" }, "garage").sensed, true);
 });
 
+test("a garage door reads its contact like a door, and an inverted contact flips open and closed (#329)", () => {
+  const st = (entity_id: string, state: string, attributes: Record<string, unknown> = {}) => ({ entity_id, state, attributes });
+  const hass = {
+    states: {
+      "binary_sensor.tor": st("binary_sensor.tor", "on", { device_class: "garage_door" }),
+      "sensor.tor_text": st("sensor.tor_text", "open"),
+      "binary_sensor.tuer": st("binary_sensor.tuer", "off", { device_class: "door" }),
+    },
+  } as unknown as HomeAssistant;
+  const none = { cover: null, contact: null, tilt: null, contact2: null, tilt2: null };
+  assert.equal(openingState(hass, { ...none, contact: "binary_sensor.tor" }, "garage").cover, 0);
+  assert.equal(openingState(hass, { ...none, contact: "sensor.tor_text" }, "garage").cover, 0);
+  assert.equal(openingState(hass, { ...none, contact: "binary_sensor.tor", contactInvert: true }, "garage").cover, 1);
+  assert.equal(openingState(hass, none, "garage").cover, 1);
+  assert.equal(openingState(hass, none, "garage").sensed, false);
+  assert.equal(openingState(hass, { ...none, contact: "binary_sensor.tuer" }, "door").open, 0);
+  assert.equal(openingState(hass, { ...none, contact: "binary_sensor.tuer", contactInvert: true }, "door").open, 1);
+  assert.equal(openingState(hass, { ...none, contact: "binary_sensor.tuer", contactInvert: true }, "window").open, 1);
+});
+
 test("room climate skips device temperatures, honours a chosen sensor and placed sensors", () => {
   const st = (entity_id: string, state: string, attributes: Record<string, unknown> = {}) => ({ entity_id, state, attributes });
   const temp = (id: string, v: string, name: string) => st(id, v, { device_class: "temperature", unit_of_measurement: "°C", friendly_name: name });

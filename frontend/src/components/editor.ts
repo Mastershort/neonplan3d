@@ -2051,9 +2051,18 @@ export class Fp3dEditor extends LitElement {
       const k = l / (length || 1);
       this.updateFreeWall({ b: [round(w.a[0] + (w.b[0] - w.a[0]) * k), round(w.a[1] + (w.b[1] - w.a[1]) * k)] });
     };
+    // X/Y name the wall's middle like a piece of furniture's; typing moves the whole wall, off the grid (#315)
+    const mid: Vec2 = [(w.a[0] + w.b[0]) / 2, (w.a[1] + w.b[1]) / 2];
+    const moveTo = (i: 0 | 1, v: number) => {
+      const d = v - mid[i];
+      const shift = (p: Vec2): Vec2 => (i === 0 ? [round(p[0] + d), p[1]] : [p[0], round(p[1] + d)]);
+      this.updateFreeWall({ a: shift(w.a), b: shift(w.b) });
+    };
     return html`<section>
       <div class="fp3d-h3row"><h3>${this.t("free_wall")}</h3>${this.fixButton("wall", w.id)}</div>
       <div class="fp3d-form">
+        ${this.num(this.t("x"), mid[0], (v) => moveTo(0, v))} ${this.num(this.t("z"), mid[1], (v) => moveTo(1, v))}
+        <p class="fp3d-sub fp3d-wide">${this.t("wall_pos_hint")}</p>
         ${this.num(this.t("wall_length"), length, setLength, 0.01, 0.1)}
         ${this.num(this.t("wall_thickness"), w.thickness ?? this._doc.settings.wall_interior, (v) => this.updateFreeWall({ thickness: Math.min(1, Math.max(0.02, v)) }), 0.01, 0.02)}
         ${this.num(this.t("wall_height"), w.height ?? this.floor?.height ?? 2.5, (v) => this.updateFreeWall({ height: v >= (this.floor?.height ?? 2.5) - 0.005 ? null : Math.max(0.05, v) }), 0.05, 0.05)}
@@ -3219,13 +3228,15 @@ export class Fp3dEditor extends LitElement {
     return html`${this.renderEnergyChecklist()}${this.renderSolarList()}${this.renderEnergyDevices()}${this.renderEnergyBalance()}${pro ? this.renderCableSettings() : nothing}${pro ? this.renderHologramSettings() : nothing}${this.renderProCard()}`;
   }
 
-  /** Energie Pro: which solar field the hologram hangs on, how big it is and where exactly. */
+  /**
+   * Energie Pro: which solar field the hologram hangs on, how big it is and where exactly. Shown without solar
+   * fields too (the house card then hangs beside the house), only the field's own settings wait for a field (#334).
+   */
   private renderHologramSettings() {
     const fields = this._doc.settings.roof.solar ?? [];
     const admin = this.isAdmin;
     const h = this._doc.settings.roof.hologram ?? DEFAULT_HOLOGRAM;
     const free = h.place === "free";
-    if (!fields.length && !free) return nothing;
     const set = (patch: Partial<HologramSettings>) => this.change((d) => (d.settings.roof.hologram = { ...(d.settings.roof.hologram ?? DEFAULT_HOLOGRAM), ...patch }));
     const name = (f: SolarField, i: number) => f.name || `${this.t("solar_field")} ${i + 1}`;
     // setting it free for the first time puts the handle beside the house, to the right of the rooms
@@ -3256,6 +3267,8 @@ export class Fp3dEditor extends LitElement {
           ? html`<p class="fp3d-sub fp3d-wide">${this.t("holo_free_hint")}</p>
               ${this.num("X (m)", h.x ?? 0, (v) => set({ x: round(v) }), 0.25)} ${this.num("Z (m)", h.z ?? 0, (v) => set({ z: round(v) }), 0.25)}
               ${this.num(this.t("holo_height"), h.height ?? 3, (v) => set({ height: Math.min(60, Math.max(0, round(v))) }), 0.25, 0)}`
+          : !fields.length
+            ? html`<p class="fp3d-sub fp3d-wide">${this.t("holo_no_field")}</p>`
           : html`<label class="fp3d-field fp3d-wide"
                 >${this.t("holo_field")}
                 <select ?disabled=${!admin} @change=${(e: Event) => set({ field: (e.target as HTMLSelectElement).value || null })}>
@@ -5072,16 +5085,16 @@ export class Fp3dEditor extends LitElement {
       </g>`;
     }
     if (this._tool !== "polygon" && this._tool !== "measure") return nothing;
-    const pts = [...this._draft, ...(this._cursor ? [this._cursor] : [])].map((p) => this.toScreen(p));
+    const world = [...this._draft, ...(this._cursor && this._draft.length ? [this._cursor] : [])];
+    const pts = world.map((p) => this.toScreen(p));
     return svg`<g pointer-events="none">
       ${pts.length > 1 ? svg`<polyline class="fp3d-draft" points=${pts.map((p) => p.join(",")).join(" ")} />` : nothing}
-      ${this._tool === "measure"
-        ? this._draft.slice(1).map((p, i) => {
-            const a = this.toScreen(this._draft[i]);
-            const b = this.toScreen(p);
-            return svg`<text class="fp3d-dim" x=${(a[0] + b[0]) / 2} y=${(a[1] + b[1]) / 2 - 6}>${formatNumber(this.hass, Math.hypot(p[0] - this._draft[i][0], p[1] - this._draft[i][1]), 2)} m</text>`;
-          })
-        : nothing}
+      ${pts.slice(1).map((b, i) => {
+        // every segment's length, the one to the pointer too (free form as with the other tools, #351)
+        const a = pts[i];
+        if (Math.hypot(b[0] - a[0], b[1] - a[1]) < 30) return nothing;
+        return svg`<text class="fp3d-dim" x=${(a[0] + b[0]) / 2} y=${(a[1] + b[1]) / 2 - 6}>${formatNumber(this.hass, Math.hypot(world[i + 1][0] - world[i][0], world[i + 1][1] - world[i][1]), 2)} m</text>`;
+      })}
       ${this._draft.map((p, i) => {
         const [x, y] = this.toScreen(p);
         return svg`<circle class=${i === 0 && this._draft.length >= 3 ? "fp3d-draft-pt fp3d-draft-first" : "fp3d-draft-pt"} cx=${x} cy=${y} r=${i === 0 && this._draft.length >= 3 ? 9 : 5} />`;
@@ -5732,6 +5745,12 @@ export class Fp3dEditor extends LitElement {
                     ${this.t("door_shut")}</label
                   >`
                 : nothing}`}
+        ${o.contact !== "none" && (o.contact || o.contact2 || autoPick("contact"))
+          ? html`<label class="fp3d-check fp3d-wide" title=${this.t("contact_invert_hint")}
+              ><input type="checkbox" .checked=${!!o.contact_invert} ?disabled=${!admin} @change=${(ev: Event) => this.updateOpening({ contact_invert: (ev.target as HTMLInputElement).checked })} />
+              ${this.t("contact_invert")}</label
+            >`
+          : nothing}
       </div>
       <p class="fp3d-sub">${this.t(window ? "opening_hint" : garage ? "garage_hint" : "door_hint")}</p>
       ${admin
@@ -6262,7 +6281,11 @@ export class Fp3dEditor extends LitElement {
             ? html`<label class="fp3d-check fp3d-wide" title=${this.t("furn_plant_card_hint")}
                 ><input type="checkbox" .checked=${f.plant_card !== false} ?disabled=${!this.isAdmin} @change=${(ev: Event) => this.updateFurniture({ plant_card: (ev.target as HTMLInputElement).checked ? undefined : false })} />
                 ${this.t("furn_plant_card")}</label
-              >`
+              >
+              ${f.plant_card !== false
+                ? html`${this.num(this.t("holo_right"), f.plant_right ?? 0, (v) => this.updateFurniture({ plant_right: Math.min(30, Math.max(-30, round(v))) || undefined }), 0.25)}
+                  ${this.num(this.t("holo_up"), f.plant_up ?? 0, (v) => this.updateFurniture({ plant_up: Math.min(30, Math.max(-30, round(v))) || undefined }), 0.25)}`
+                : nothing}`
             : nothing}
       </div>
       ${f.type === "meter"

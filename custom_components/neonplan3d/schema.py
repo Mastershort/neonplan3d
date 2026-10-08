@@ -142,6 +142,8 @@ OPENING_SCHEMA = vol.Schema(
         vol.Optional("tilt_invert", default=False): bool,
         # a door without a sensor is drawn closed instead of half open
         vol.Optional("shut", default=False): bool,
+        # the contact sensors report the other way round (on = closed)
+        vol.Optional("contact_invert", default=False): bool,
         # highlight in 3D while open (None) or while closed ("closed": a WC or a child's room door)
         vol.Optional("mark", default=None): vol.Any(None, vol.In(["closed"])),
         # ask before moving the blind or garage door (no moving by a swipe then)
@@ -219,6 +221,9 @@ FURNITURE_SCHEMA = vol.Schema(
         vol.Optional("holo", default=False): bool,
         # Energie Pro, inverter: False hides the plant's card over its field
         vol.Optional("plant_card"): bool,
+        # Energie Pro, inverter: its plant card moved along the eave / up the slope (m)
+        vol.Optional("plant_right"): vol.All(vol.Coerce(float), vol.Range(min=-30, max=30)),
+        vol.Optional("plant_up"): vol.All(vol.Coerce(float), vol.Range(min=-30, max=30)),
         vol.Optional("status", default=None): vol.Any(None, vol.All(str, vol.Length(max=255))),
         # robot vacuum: sensor naming the room it cleans right now (None = automatic)
         vol.Optional("room_sensor", default=None): vol.Any(None, vol.All(str, vol.Length(max=255))),

@@ -100,6 +100,8 @@ export interface Opening {
   tilt_invert?: boolean;
   /** Door: drawn closed when no sensor says otherwise (default: half open, so the door is seen). */
   shut?: boolean;
+  /** The contact sensors report the other way round (on = closed, #329). */
+  contact_invert?: boolean;
   /** Highlight in 3D while open (null, default) or while closed (a WC or a child's room door). */
   mark?: "closed" | null;
   /** Ask before moving the blind or garage door; it then does not follow a swipe either. */
@@ -157,6 +159,9 @@ export interface Furniture {
   holo?: boolean;
   /** Energie Pro, inverter: false hides the plant's card over its field. */
   plant_card?: boolean;
+  /** Energie Pro, inverter: its plant card moved from its field's middle along the eave (m, + = right) and up the slope (#335). */
+  plant_right?: number;
+  plant_up?: number;
   status?: EntityRef;
   /** Robot vacuum: sensor naming the room it cleans right now (null = automatic, "none" = the dock's room). */
   room_sensor?: EntityRef;
@@ -870,9 +875,18 @@ export const WALL_LAMP_Y = 1.75;
  * light (a downstand beam, ceiling beams) start under the ceiling and can be lowered (#287).
  */
 export function canLift(f: Pick<Furniture, "type">): boolean {
-  if (["lamp_ceiling", "lamp_downlight", "lamp_spot", "lamp_panel", "lamp_pendant", "stairwell", "parking"].includes(f.type) || STAIR_TYPES.has(f.type)) return false;
+  if (["lamp_ceiling", "lamp_panel", "lamp_pendant", "stairwell", "parking"].includes(f.type) || STAIR_TYPES.has(f.type)) return false;
   const item = packItem(f.type);
   return !(item?.mount === "ceiling" && item.light);
+}
+
+/**
+ * Spots and downlights sit under the ceiling but can be lowered, say under a wall cabinet to light the worktop
+ * (#311): their height above the floor is that of their underside, this far below the top they hang from.
+ */
+export const LIFT_SPOTS = new Set<string>(["lamp_downlight", "lamp_spot"]);
+export function spotDepth(type: string, h: number): number {
+  return type === "lamp_spot" ? Math.max(0.06, h) + 0.008 : 0.02;
 }
 
 /** Built-in stairs: they reach up to the next floor and cut its opening (the straight one and the U-stair). */
