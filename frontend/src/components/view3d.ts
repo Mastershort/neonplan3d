@@ -1098,9 +1098,9 @@ export class Fp3dView3d extends LitElement {
         this.seenFocus = r.focusSeq;
         if (r.focus) this.showEntity(r.focus);
       }
+      if (r.t === this.seenT && r.seek === this.seenSeek) return;
       // a fast replay skipped a light that went on and off between two ticks: it flashes
       if (r.pulses.length) this.viewer?.flashDevices(r.pulses);
-      if (r.t === this.seenT && r.seek === this.seenSeek) return;
       this.seenT = r.t;
       // nothing on screen follows the clock: a tick costs nothing (a changed state comes with a new hass)
       if (r.seek === this.seenSeek && !this.trail && !this.detecting && !this._holos.length) return;
