@@ -3338,15 +3338,15 @@ export class FloorplanViewer {
           const prev = path.points[i - 1];
           if (prev) {
             const len = Math.hypot(x - prev[0], z - prev[1]) || 1;
-            const nx = (-(z - prev[1]) / len) * 0.05;
-            const nz = ((x - prev[0]) / len) * 0.05;
+            const nx = (-(z - prev[1]) / len) * 0.1;
+            const nz = ((x - prev[0]) / len) * 0.1;
             buf.tri([prev[0] + nx, y, prev[1] + nz], [x + nx, y, z + nz], [x - nx, y, z - nz], green, green, green);
             buf.tri([prev[0] + nx, y, prev[1] + nz], [x - nx, y, z - nz], [prev[0] - nx, y, prev[1] - nz], green, green, green);
           }
           for (let k = 0; k < 10; k++) {
             const a0 = (k / 10) * Math.PI * 2;
             const a1 = ((k + 1) / 10) * Math.PI * 2;
-            buf.tri([x, y, z], [x + Math.cos(a1) * 0.16, y, z + Math.sin(a1) * 0.16], [x + Math.cos(a0) * 0.16, y, z + Math.sin(a0) * 0.16], green, dark, dark);
+            buf.tri([x, y, z], [x + Math.cos(a1) * 0.35, y, z + Math.sin(a1) * 0.35], [x + Math.cos(a0) * 0.35, y, z + Math.sin(a0) * 0.35], green, dark, dark);
           }
         });
       }
