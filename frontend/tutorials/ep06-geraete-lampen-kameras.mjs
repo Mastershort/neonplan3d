@@ -850,7 +850,7 @@ if (PART === "b") {
   await R.clickOn({ text: "Höhe automatisch", exact: true }, 0.5);
 
   // ---------------------------------------------------------------- 4. Pendant, table and floor lamps
-  await chapter("Pendel-, Tisch- und Stehlampen");
+  await chapter("Pendel- und Tischlampen, Licht als Pin");
   await sayOver("Bei der Pendelleuchte über dem Esstisch wählst du unter „Form“, wie sie aussieht: Schirm, Kugel, Kegel oder Trommel.");
   await tapItem("lamp_pendant", 0.7);
   await pane("eg", 8.0, 2.9, { theta: -0.6, phi: 1.05, radius: 4.2, y: 1.4 });
@@ -868,6 +868,10 @@ if (PART === "b") {
   await tapItem("lamp_table", 0.7);
   await pane("eg", 3.3, 7.6, { theta: 2.7, phi: 1.0, radius: 3.4, y: 0.6 });
   await R.hold(1.0);
+  await sayOver("Steht ein Licht als einfacher Geräte-Pin im Plan, wählst du in seinem Formular unter „Lampe“, wie es montiert ist: Deckenleuchte, Stehlampe, Tischlampe oder Wandleuchte.");
+  await R.moveTo({ label: "Möbelstück" }, 0.6);
+  await R.hold(1.2);
+  await R.moveTo({ label: "Höhe über Boden" }, 0.6);
 
   // ---------------------------------------------------------------- 5. LED strips
   await chapter("LED-Streifen");
@@ -914,6 +918,14 @@ if (PART === "b") {
   await R.clickOn({ text: "6 Leuchten setzen" }, 0.5);
   await pane("eg", 2.2, 6.3, { theta: 0.3, phi: 0.62, radius: 7.5, y: 0.3 });
   await R.hold(1.2);
+  await sayOver("Und stehen mehrere Lichter als Decken-Pins in einem Raum, verteilt „Deckenlampen gleichmäßig verteilen“ oben in der Geräteliste sie über den Raum.");
+  await scrollSide({ text: "Dieser Bereich" }, 600, 0.6);
+  {
+    const b = await textBox("Geräte", null, "H3");
+    if (b) await R.move(b.x, b.y, 0.5);
+  }
+  await R.hold(1.0);
+  await R.moveTo({ text: "Dieser Bereich" }, 0.5);
 
   // ---------------------------------------------------------------- 7. Lamps live in 3D
   await chapter("Lampen live in 3D");
