@@ -35,7 +35,14 @@ def flask_icon(draw: ImageDraw.ImageDraw, x: int, y: int, h: int, colour: tuple[
     w = int(h * 0.8)
     neck = w * 0.32
     cx = x + w / 2
-    pts = [(cx - neck / 2, y), (cx + neck / 2, y), (cx + neck / 2, y + h * 0.38), (x + w, y + h), (x, y + h), (cx - neck / 2, y + h * 0.38)]
+    pts = [
+        (cx - neck / 2, y),
+        (cx + neck / 2, y),
+        (cx + neck / 2, y + h * 0.38),
+        (x + w, y + h),
+        (x, y + h),
+        (cx - neck / 2, y + h * 0.38),
+    ]
     draw.polygon(pts, outline=colour, width=3)
     draw.polygon([(x + w * 0.2, y + h * 0.72), (x + w * 0.8, y + h * 0.72), (x + w, y + h), (x, y + h)], fill=colour)
     return w
@@ -73,7 +80,9 @@ def main() -> None:
         f = font("seguisb.ttf", 28)
         tw = draw.textlength(a.badge, font=f)
         bx, by, bh = x0, top + 4, 50
-        draw.rounded_rectangle([bx, by, bx + tw + 90, by + bh], radius=bh // 2, fill=(46, 36, 12), outline=AMBER, width=2)
+        draw.rounded_rectangle(
+            [bx, by, bx + tw + 90, by + bh], radius=bh // 2, fill=(46, 36, 12), outline=AMBER, width=2
+        )
         flask_icon(draw, bx + 22, by + 11, 28, AMBER)
         draw.text((bx + 64, by + 8), a.badge, font=f, fill=AMBER)
         top = by + bh + 34
@@ -82,7 +91,9 @@ def main() -> None:
     top = y0 + header
     shot = shot.resize((w, int(shot.height * w / shot.width)), Image.LANCZOS).crop((0, 0, w, h))
     glow = Image.new("RGBA", (SIZE, SIZE), (0, 0, 0, 0))
-    ImageDraw.Draw(glow).rounded_rectangle([x0 - 6, top - 6, x0 + w + 6, top + h + 6], radius=26, outline=CYAN + (170,), width=8)
+    ImageDraw.Draw(glow).rounded_rectangle(
+        [x0 - 6, top - 6, x0 + w + 6, top + h + 6], radius=26, outline=(*CYAN, 170), width=8
+    )
     img.paste(glow.filter(ImageFilter.GaussianBlur(14)), (0, 0), glow.filter(ImageFilter.GaussianBlur(14)))
     mask = Image.new("L", (w, h), 0)
     ImageDraw.Draw(mask).rounded_rectangle([0, 0, w - 1, h - 1], radius=20, fill=255)
