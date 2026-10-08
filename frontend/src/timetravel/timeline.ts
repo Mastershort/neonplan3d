@@ -251,3 +251,201 @@ export function findGaps(timeline: Timeline, stepMs = 5 * 60000, share = 0.6, mi
   if (open !== null && timeline.end - open >= minMs) out.push([open, timeline.end]);
   return out;
 }
+
+// ---- several days: joining, thinning, live rows ----
+
+/** When the state (not just an attribute) last changed, for every row. */
+function fillSince(track: Track): void {
+  for (let i = 0; i < track.times.length; i++)
+    track.since[i] = i > 0 && track.values[track.vals[i - 1]].s === track.values[track.vals[i]].s ? track.since[i - 1] : track.times[i];
+}
+
+/** Two tracks of the same entity from neighbouring windows in one; a repeated value at the seam is dropped. */
+function joinTracks(older: Track, newer: Track): Track {
+  const values = [...older.values];
+  const index = new Map(values.map((v, i) => [keyOf(v), i]));
+  const remap = newer.values.map((v) => {
+    const k = keyOf(v);
+    let i = index.get(k);
+    if (i === undefined) {
+      i = values.length;
+      values.push(v);
+      index.set(k, i);
+    }
+    return i;
+  });
+  const first = newer.times.length ? newer.times[0] : Infinity;
+  const times: number[] = [];
+  const vals: number[] = [];
+  for (let i = 0; i < older.times.length && older.times[i] < first; i++) {
+    times.push(older.times[i]);
+    vals.push(older.vals[i]);
+  }
+  for (let i = 0; i < newer.times.length; i++) {
+    const v = remap[newer.vals[i]];
+    if (vals.length && vals[vals.length - 1] === v) continue;
+    times.push(newer.times[i]);
+    vals.push(v);
+  }
+  const track: Track = { id: older.id, times: Float64Array.from(times), vals: Uint32Array.from(vals), values, since: new Float64Array(times.length) };
+  fillSince(track);
+  return track;
+}
+
+function joinSeries(a: Series, b: Series): Series {
+  const step = a.step;
+  const first = Math.min(a.start, b.start);
+  const last = Math.max(a.start + a.mean.length * a.step, b.start + b.mean.length * b.step);
+  const n = Math.max(0, Math.round((last - first) / step));
+  const mean = new Float32Array(n).fill(NaN);
+  for (const s of [a, b])
+    for (let i = 0; i < s.mean.length; i++) {
+      const slot = Math.round((s.start + i * s.step - first) / step);
+      if (!Number.isNaN(s.mean[i]) && slot >= 0 && slot < n) mean[slot] = s.mean[i];
+    }
+  return { id: a.id, start: first, step, mean };
+}
+
+/**
+ * Two timelines of neighbouring windows (an older day fetched later) as one. The typed rows are joined
+ * directly, so the fetched answers need not be kept.
+ */
+export function mergeTimelines(a: Timeline, b: Timeline): Timeline {
+  const [older, newer] = a.start <= b.start ? [a, b] : [b, a];
+  const tracks = new Map<string, Track>();
+  for (const id of new Set([...older.tracks.keys(), ...newer.tracks.keys()])) {
+    const x = older.tracks.get(id);
+    const y = newer.tracks.get(id);
+    tracks.set(id, x && y ? joinTracks(x, y) : (x ?? y)!);
+  }
+  const series = new Map<string, Series>();
+  for (const id of new Set([...older.series.keys(), ...newer.series.keys()])) {
+    const x = older.series.get(id);
+    const y = newer.series.get(id);
+    series.set(id, x && y ? joinSeries(x, y) : (x ?? y)!);
+  }
+  const missing = new Set([...older.missing, ...newer.missing].filter((id) => !tracks.has(id) && !series.has(id)));
+  // an older window without any data: the newer one says where the data begins
+  const oldest = older.oldest === null ? null : older.oldest < older.end ? older.oldest : (newer.oldest ?? newer.start);
+  return { start: older.start, end: Math.max(older.end, newer.end), oldest, keepDays: newer.keepDays ?? older.keepDays, tracks, series, missing };
+}
+
+/** Rows of all tracks together (what the memory of a timeline grows with). */
+export function rowCount(timeline: Timeline): number {
+  let n = 0;
+  for (const t of timeline.tracks.values()) n += t.times.length;
+  return n;
+}
+
+/** About how much memory a timeline takes (bytes): 20 per row, 4 per statistics slot, a little per value. */
+export function timelineBytes(timeline: Timeline): number {
+  let bytes = 0;
+  for (const t of timeline.tracks.values()) bytes += t.times.length * 20 + t.values.length * 120;
+  for (const s of timeline.series.values()) bytes += s.mean.length * 4;
+  return bytes;
+}
+
+/** Above this many rows the short motion pulses go first (a week of a busy house stays below 10 MB). */
+export const THIN_ROWS = 300_000;
+
+/**
+ * Drops the short pulses (off – on – off within `minMs`) of the given tracks, motion sensors that fire all
+ * day. The tracks are rebuilt in place; returns the number of rows dropped.
+ */
+export function thinPulses(timeline: Timeline, ids: Iterable<string>, minMs = 60000): number {
+  let dropped = 0;
+  for (const id of ids) {
+    const track = timeline.tracks.get(id);
+    if (!track || track.times.length < 3) continue;
+    const n = track.times.length;
+    const s = (k: number) => track.values[track.vals[k]].s;
+    const keep: number[] = [];
+    for (let k = 0; k < n; k++) {
+      const prev = keep.length ? keep[keep.length - 1] : -1;
+      if (prev >= 0 && s(prev) === "off" && s(k) === "on" && k + 1 < n && s(k + 1) === "off" && track.times[k + 1] - track.times[k] < minMs) {
+        k++;
+        dropped += 2;
+        continue;
+      }
+      // the row after a dropped pulse may repeat the one before it
+      if (prev >= 0 && track.vals[prev] === track.vals[k]) {
+        dropped++;
+        continue;
+      }
+      keep.push(k);
+    }
+    if (keep.length === n) continue;
+    const times = Float64Array.from(keep, (k) => track.times[k]);
+    const vals = Uint32Array.from(keep, (k) => track.vals[k]);
+    track.times = times;
+    track.vals = vals;
+    track.since = new Float64Array(keep.length);
+    fillSince(track);
+  }
+  return dropped;
+}
+
+/** Adds a row at the end of a track (a live change); a row before the last one or a repeated value is left out. */
+export function appendRow(track: Track, t: number, value: Value): boolean {
+  const n = track.times.length;
+  if (n && t < track.times[n - 1]) return false;
+  const key = keyOf(value);
+  let v = track.values.findIndex((x) => keyOf(x) === key);
+  if (n && v === track.vals[n - 1]) return false;
+  if (v < 0) {
+    v = track.values.length;
+    track.values.push(value);
+  }
+  const times = new Float64Array(n + 1);
+  times.set(track.times);
+  times[n] = t;
+  const vals = new Uint32Array(n + 1);
+  vals.set(track.vals);
+  vals[n] = v;
+  const since = new Float64Array(n + 1);
+  since.set(track.since);
+  since[n] = n && track.values[track.vals[n - 1]].s === value.s ? track.since[n - 1] : t;
+  track.times = times;
+  track.vals = vals;
+  track.since = since;
+  return true;
+}
+
+/** Puts a live value of a numeric sensor into its five-minute slot (a slot the statistics filled stays). */
+export function appendSeriesValue(series: Series, t: number, value: number): boolean {
+  if (!Number.isFinite(value) || t < series.start) return false;
+  const slot = Math.floor((t - series.start) / series.step);
+  if (slot >= series.mean.length) {
+    const mean = new Float32Array(slot + 1).fill(NaN);
+    mean.set(series.mean);
+    series.mean = mean;
+  }
+  if (!Number.isNaN(series.mean[slot])) return false;
+  series.mean[slot] = value;
+  return true;
+}
+
+/** Five-minute rows (as the recorder's statistics answer them) of some entities between two moments. */
+export function statRows(timeline: Timeline, ids: readonly string[], from: number, to: number): Record<string, { start: number; mean: number }[]> {
+  const out: Record<string, { start: number; mean: number }[]> = {};
+  const step = 300000;
+  for (const id of ids) {
+    const s = timeline.series.get(id);
+    const track = timeline.tracks.get(id);
+    if (!s && !track) continue;
+    const list: { start: number; mean: number }[] = [];
+    for (let t = Math.floor(from / step) * step; t < to; t += step) {
+      let m = NaN;
+      if (s) {
+        const slot = Math.floor((t + step / 2 - s.start) / s.step);
+        m = slot >= 0 && slot < s.mean.length ? s.mean[slot] : NaN;
+      } else if (track) {
+        const k = indexAt(track.times, t + step / 2);
+        m = k < 0 ? NaN : Number(track.values[track.vals[k]].s);
+      }
+      if (Number.isFinite(m)) list.push({ start: t, mean: m });
+    }
+    if (list.length) out[id] = list;
+  }
+  return out;
+}

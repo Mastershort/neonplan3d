@@ -6,6 +6,8 @@ import type { Speed } from "./types.ts";
 
 /** Replay speeds: one hour takes a minute, 10 seconds (the default), 4 seconds or one second. */
 export const SPEEDS: readonly Speed[] = [60, 360, 900, 3600];
+/** Over a week also a day in six seconds. */
+export const WEEK_SPEEDS: readonly Speed[] = [60, 360, 900, 3600, 14400];
 export const DEFAULT_SPEED: Speed = 360;
 
 /** Updates per second while playing: few on a wall tablet, more on a strong device. */
@@ -15,17 +17,29 @@ export function tickMs(quality: "auto" | "low" | "high", low: boolean): number {
 }
 
 export class Playback {
-  readonly start: number;
-  readonly end: number;
+  /** The range it plays in (an older day loaded later moves the start, the live edge the end). */
+  start: number;
+  end: number;
   t: number;
   playing = false;
   speed: Speed;
+  speeds: readonly Speed[];
 
-  constructor(start: number, end: number, t: number, speed: number = DEFAULT_SPEED) {
+  constructor(start: number, end: number, t: number, speed: number = DEFAULT_SPEED, speeds: readonly Speed[] = SPEEDS) {
     this.start = start;
     this.end = end;
+    this.speeds = speeds;
     this.t = Math.min(end, Math.max(start, t));
-    this.speed = (SPEEDS as readonly number[]).includes(speed) ? (speed as Speed) : DEFAULT_SPEED;
+    this.speed = (speeds as readonly number[]).includes(speed) ? (speed as Speed) : DEFAULT_SPEED;
+  }
+
+  /** A new range (and the speeds offered in it); the moment stays within it. */
+  setRange(start: number, end: number, speeds: readonly Speed[] = this.speeds): void {
+    this.start = start;
+    this.end = end;
+    this.speeds = speeds;
+    if (!speeds.includes(this.speed)) this.speed = speeds.includes(3600) ? 3600 : speeds[speeds.length - 1];
+    this.t = Math.min(end, Math.max(start, this.t));
   }
 
   /** Play from where it stands; at the end it starts over. */
@@ -60,8 +74,8 @@ export class Playback {
 
   /** The next speed (after the fastest the slowest again). */
   nextSpeed(): Speed {
-    const i = SPEEDS.indexOf(this.speed);
-    this.speed = SPEEDS[(i + 1) % SPEEDS.length];
+    const i = this.speeds.indexOf(this.speed);
+    this.speed = this.speeds[(i + 1) % this.speeds.length];
     return this.speed;
   }
 }
@@ -70,6 +84,21 @@ export class Playback {
 export function eventNear(events: readonly TTEvent[], t: number, dir: 1 | -1, marginMs = 30000): TTEvent | null {
   if (dir > 0) return events.find((e) => e.t > t + marginMs) ?? null;
   for (let i = events.length - 1; i >= 0; i--) if (events[i].t < t - marginMs) return events[i];
+  return null;
+}
+
+/** The first event between two moments (after `from`, up to `to`) that `pick` wants. */
+export function crossedEvent(events: readonly TTEvent[], from: number, to: number, pick: (e: TTEvent) => boolean): TTEvent | null {
+  if (!(to > from)) return null;
+  // the events are in time order: search the first one after `from`
+  let lo = 0;
+  let hi = events.length;
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1;
+    if (events[mid].t <= from) lo = mid + 1;
+    else hi = mid;
+  }
+  for (let i = lo; i < events.length && events[i].t <= to; i++) if (pick(events[i])) return events[i];
   return null;
 }
 

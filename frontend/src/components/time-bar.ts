@@ -1,21 +1,25 @@
-// Time travel: the time bar at the bottom (previous event, play/pause, next event, the day as a track with
-// hours, nights, gaps and event markers, the speed and the way back to live), the big clock at the top and
-// the amber frame that says "this is the past". It lies over the stage; only its own parts take touches.
+// Time travel: the time bar at the bottom (previous event, play/pause, next event, the day or week as a track
+// with hours, nights, gaps and event markers, the range, the sheet, the speed and the way back to live), the
+// big clock at the top, the amber frame that says "this is the past" and the side sheet with the events,
+// "while you were away" and the day summary. It lies over the stage; only its own parts take touches.
 // The clock and the playhead follow the replay by writing to the DOM directly – no re-render per tick.
 
 import { css, html, LitElement, nothing, svg } from "lit";
 import type { Session } from "../timetravel/entry.ts";
-import { clusterEvents, type Cluster, type EventKind, type TTEvent } from "../timetravel/events.ts";
+import { CATEGORY, clusterEvents, groupByHour, type Category, type Cluster, type EventKind, type TTEvent } from "../timetravel/events.ts";
+import { parseMoment } from "../timetravel/playback.ts";
+import type { AwayRow, DaySummary, RoomDay } from "../timetravel/summary.ts";
 
 const ICONS = {
   prev: "M6 6h2v12H6zM20 6v12l-10-6z",
   play: "M8 5v14l11-7z",
   pause: "M7 5h4v14H7zM13 5h4v14h-4z",
   next: "M16 6h2v12h-2zM4 6v12l10-6z",
+  list: "M4 6h16v2H4zM4 11h16v2H4zM4 16h16v2H4z",
 };
 const icon = (d: string) => svg`<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true"><path d=${d} /></svg>`;
 
-/** Marker colours: danger red, water blue, rain light blue, doors amber, motion violet, machines green. */
+/** Marker colours: danger red, water blue, rain light blue, doors amber, motion violet, machines green, energy yellow. */
 const COLOR: Record<EventKind, string> = {
   alarm: "#ff3b4f",
   smoke: "#ff3b4f",
@@ -26,11 +30,29 @@ const COLOR: Record<EventKind, string> = {
   door: "#ffb020",
   lock: "#ffb020",
   garage: "#ffb020",
+  window: "#ffd27a",
   motion: "#b48cff",
   washer: "#4dff9a",
   robot_start: "#4dff9a",
   robot_done: "#4dff9a",
+  battery_full: "#ffe27a",
+  pv_peak: "#ffe27a",
 };
+
+const AWAY_COLOR: Record<AwayRow["kind"], string> = {
+  alarm: "#ff3b4f",
+  door: "#ffb020",
+  window: "#ffd27a",
+  window_open: "#6cc8ff",
+  light_on: "#ffe27a",
+  motion: "#b48cff",
+  appliance: "#4dff9a",
+};
+
+type Sheet = "events" | "away" | "day";
+
+/** Local midnight of the day of t. */
+const dayStart = (t: number) => new Date(t).setHours(0, 0, 0, 0);
 
 export class Fp3dTimeBar extends LitElement {
   static properties = {
@@ -38,6 +60,10 @@ export class Fp3dTimeBar extends LitElement {
     _w: { state: true },
     _label: { state: true },
     _toast: { state: true },
+    _sheet: { state: true },
+    _filters: { state: true },
+    _awayFrom: { state: true },
+    _compare: { state: true },
   };
 
   declare session: Session | null;
@@ -47,6 +73,14 @@ export class Fp3dTimeBar extends LitElement {
   private declare _label: { x: number; lines: string[] } | null;
   /** "Read-only" note after something tried to switch. */
   private declare _toast: boolean;
+  /** The side sheet and its tab (null: closed). */
+  private declare _sheet: Sheet | null;
+  /** The event categories the sheet lists. */
+  private declare _filters: ReadonlySet<Category>;
+  /** "While you were away": the chosen start and end (null: the suggestion). */
+  private declare _awayFrom: [number, number] | null;
+  /** The day summary next to the day before. */
+  private declare _compare: boolean;
   private unlisten: (() => void) | null = null;
   private listened: Session | null = null;
   private resize: ResizeObserver | null = null;
@@ -60,6 +94,8 @@ export class Fp3dTimeBar extends LitElement {
   private toastTimer: ReturnType<typeof setTimeout> | undefined;
   private clusters: Cluster[] = [];
   private clusterSig = "";
+  private awayOffer: { version: number; offer: [number, number] | null } | null = null;
+  private awayCache: { key: string; rows: AwayRow[] } | null = null;
 
   constructor() {
     super();
@@ -67,6 +103,10 @@ export class Fp3dTimeBar extends LitElement {
     this._w = 0;
     this._label = null;
     this._toast = false;
+    this._sheet = null;
+    this._filters = new Set<Category>(["safety", "openings", "devices", "energy"]);
+    this._awayFrom = null;
+    this._compare = false;
   }
 
   private readonly onBlocked = () => {
@@ -90,16 +130,25 @@ export class Fp3dTimeBar extends LitElement {
     }
   };
 
+  /** Esc closes the sheet first (before the host leaves the time travel). */
+  private readonly onEscape = (e: KeyboardEvent) => {
+    if (e.key !== "Escape" || !this._sheet) return;
+    e.stopImmediatePropagation();
+    this._sheet = null;
+  };
+
   connectedCallback(): void {
     super.connectedCallback();
     window.addEventListener("fp3d-replay-blocked", this.onBlocked);
     window.addEventListener("keydown", this.onKey);
+    window.addEventListener("keydown", this.onEscape, true);
   }
 
   disconnectedCallback(): void {
     super.disconnectedCallback();
     window.removeEventListener("fp3d-replay-blocked", this.onBlocked);
     window.removeEventListener("keydown", this.onKey);
+    window.removeEventListener("keydown", this.onEscape, true);
     this.unlisten?.();
     this.unlisten = null;
     this.listened = null;
@@ -129,7 +178,9 @@ export class Fp3dTimeBar extends LitElement {
   private signature(): string {
     const s = this.session;
     const pb = s?.playback;
-    return `${s?.state}|${s?.error}|${Math.round((s?.progress ?? 0) * 20)}|${pb?.playing}|${pb?.speed}|${s?.events.length}`;
+    // the day summary follows the playhead's day; the sheet's toggles their state
+    const day = this._sheet === "day" && pb ? dayStart(pb.t) : 0;
+    return `${s?.state}|${s?.error}|${Math.round((s?.progress ?? 0) * 20)}|${pb?.playing}|${pb?.speed}|${s?.events.length}|${s?.allEvents.length}|${s?.range}|${s?.loadingDay}|${s?.full}|${s?.version}|${s?.atNow}|${s?.follow}|${s?.stopImportant}|${day}`;
   }
 
   /** Every change of the session: the clock and the playhead directly; a re-render only when needed. */
@@ -169,27 +220,41 @@ export class Fp3dTimeBar extends LitElement {
     return s.start + (Math.min(this._w, Math.max(0, x)) / Math.max(1, this._w)) * (s.end - s.start);
   }
 
-  /** "Di 07:42": weekday and time in the user's language. */
-  private clockText(t: number): string {
-    const d = new Date(t);
-    const day = d.toLocaleDateString(this.language, { weekday: "short" }).replace(/\.$/, "");
-    return `${day} ${d.toLocaleTimeString(this.language, { hour: "2-digit", minute: "2-digit" })}`;
+  private weekday(t: number): string {
+    return new Date(t).toLocaleDateString(this.language, { weekday: "short" }).replace(/\.$/, "");
   }
 
-  /** "vor 3 h 12 min". */
+  /** "Di 07:42": weekday and time in the user's language. */
+  private clockText(t: number): string {
+    return `${this.weekday(t)} ${this.time(t)}`;
+  }
+
+  /** "vor 3 h 12 min", "vor 2 T 3 h". */
   private agoText(t: number): string {
     const s = this.session!;
     const min = Math.round((s.end - t) / 60000);
     if (min < 1) return s.t("tt_now");
-    const h = Math.floor(min / 60);
-    const m = min % 60;
-    return s.t("tt_ago", { d: h ? `${h} h${m ? ` ${m} min` : ""}` : `${m} min` });
+    return s.t("tt_ago", { d: this.duration(min * 60000) });
   }
 
-  private eventText(e: TTEvent): string {
+  /** A duration: "45 min", "3 h 12 min", "2 T 3 h". */
+  private duration(ms: number): string {
     const s = this.session!;
-    const name = s.names.get(e.entity) ?? (s.opts.live.states[e.entity]?.attributes.friendly_name as string | undefined) ?? e.entity;
-    return s.t(`tt_ev_${e.kind}`, { name });
+    const min = Math.round(ms / 60000);
+    const d = Math.floor(min / 1440);
+    const h = Math.floor((min % 1440) / 60);
+    const m = min % 60;
+    if (d) return `${s.t("tt_days", { n: d })}${h ? ` ${h} h` : ""}`;
+    return h ? `${h} h${m ? ` ${m} min` : ""}` : `${m} min`;
+  }
+
+  private name(entity: string): string {
+    const s = this.session!;
+    return s.names.get(entity) ?? (s.opts.live.states[entity]?.attributes.friendly_name as string | undefined) ?? entity;
+  }
+
+  private eventText(e: Pick<TTEvent, "kind" | "entity">): string {
+    return this.session!.t(`tt_ev_${e.kind}`, { name: this.name(e.entity) });
   }
 
   private time(t: number): string {
@@ -223,7 +288,8 @@ export class Fp3dTimeBar extends LitElement {
     const s = this.session!;
     const track = this.renderRoot.querySelector<HTMLElement>(".track")!;
     const x = e.clientX - track.getBoundingClientRect().left;
-    const t = this.tOf(x);
+    // not before the loaded days
+    const t = Math.max(s.playback?.start ?? s.start, this.tOf(x));
     this.placeHead(this.xOf(t));
     const time = this.renderRoot.querySelector<HTMLElement>(".clock-time");
     if (time) time.textContent = this.clockText(t);
@@ -276,10 +342,24 @@ export class Fp3dTimeBar extends LitElement {
     const s = this.session!;
     const w = this._w;
     if (!w) return nothing;
+    const week = s.range === "7d";
     const pct = (t: number) => `${(((t - s.start) / (s.end - s.start)) * 100).toFixed(3)}%`;
-    const band = (a: number, b: number, cls: string) => html`<i class=${cls} style="left:${pct(Math.max(a, s.start))};width:calc(${pct(Math.min(b, s.end))} - ${pct(Math.max(a, s.start))})"></i>`;
+    const band = (a: number, b: number, cls: string, label?: string) =>
+      b > a
+        ? html`<i class=${cls} style="left:${pct(Math.max(a, s.start))};width:calc(${pct(Math.min(b, s.end))} - ${pct(Math.max(a, s.start))})">${label ? html`<span>${label}</span>` : nothing}</i>`
+        : nothing;
     const oldest = s.timeline?.oldest ?? null;
-    // hour ticks, a label every few hours, the weekday at midnight
+    const loaded = s.playback?.start ?? s.start;
+    const recorder = s.recorderStart;
+    // the days not loaded (yet): fetching, beyond the recorder's limit, or beyond the memory limit
+    let before: unknown = nothing;
+    if (loaded > s.start + 60000) {
+      if (s.loadingDay !== null) before = band(s.start, loaded, "loading", s.t("tt_loading_day", { day: this.weekday(s.loadingDay + 12 * 3600000) }));
+      else if (recorder !== null && recorder > s.start) before = band(s.start, loaded, "nodata", s.t("tt_recorder_days", { n: s.timeline?.keepDays ?? 0 }));
+      else before = band(s.start, loaded, "nodata", s.full ? s.t("tt_memory_full") : "");
+    }
+    // ticks: hours in a day (a label every few hours), every few hours in the week; the weekday at midnight
+    const hours = week ? (w / (s.end - s.start)) * 3600000 * 3 >= 12 ? 3 : 6 : 1;
     const every = w >= 640 ? 3 : 6;
     const ticks = [];
     const d = new Date(s.start);
@@ -287,16 +367,23 @@ export class Fp3dTimeBar extends LitElement {
     if (d.getTime() < s.start) d.setHours(d.getHours() + 1);
     for (; d.getTime() <= s.end; d.setHours(d.getHours() + 1)) {
       const h = d.getHours();
+      if (h % hours) continue;
       const midnight = h === 0;
-      const label = midnight ? d.toLocaleDateString(this.language, { weekday: "short" }).replace(/\.$/, "") : h % every === 0 ? this.time(d.getTime()) : "";
+      const label = midnight
+        ? week
+          ? `${this.weekday(d.getTime())} ${d.getDate()}.`
+          : this.weekday(d.getTime())
+        : !week && h % every === 0
+          ? this.time(d.getTime())
+          : "";
       ticks.push(html`<b class="tick ${midnight ? "tick-day" : label ? "tick-major" : ""}" style="left:${pct(d.getTime())}">${label ? html`<span>${label}</span>` : nothing}</b>`);
     }
-    const sig = `${w}|${s.events.length}`;
+    const sig = `${w}|${s.events.length}|${s.start}|${s.end}|${s.version}`;
     if (sig !== this.clusterSig) {
       this.clusterSig = sig;
       this.clusters = clusterEvents(s.events, (t) => this.xOf(t), w < 500 ? 18 : 14);
     }
-    return html`${s.nights.map(([a, b]) => band(a, b, "night"))} ${oldest !== null && oldest > s.start ? band(s.start, oldest, "nodata") : nothing}
+    return html`${s.nights.map(([a, b]) => band(a, b, "night"))} ${before} ${oldest !== null && oldest > loaded ? band(loaded, oldest, "nodata") : nothing}
       ${s.gaps.map(([a, b]) => band(a, b, "gap"))} ${ticks}
       ${this.clusters.map(
         (c) => html`<button
@@ -317,6 +404,170 @@ export class Fp3dTimeBar extends LitElement {
       ${this._label ? html`<div class="label" style="--x:${this._label.x.toFixed(1)}px">${this._label.lines.map((l) => html`<span>${l}</span>`)}</div>` : nothing}`;
   }
 
+  // ---- the side sheet ----
+
+  private toggleSheet(tab: Sheet = "events"): void {
+    this._sheet = this._sheet === tab || (this._sheet && tab === "events") ? null : tab;
+  }
+
+  private toggleFilter(c: Category): void {
+    const next = new Set(this._filters);
+    if (next.has(c)) next.delete(c);
+    else next.add(c);
+    this._filters = next;
+  }
+
+  private where(entity: string): string {
+    return this.session!.roomOf.get(entity)?.name ?? "";
+  }
+
+  private renderEvents() {
+    const s = this.session!;
+    const t = s.t;
+    const cats: Category[] = ["safety", "openings", "devices", ...(s.energy ? (["energy"] as Category[]) : [])];
+    const groups = groupByHour(
+      s.allEvents.filter((e) => s.energy || CATEGORY[e.kind] !== "energy"),
+      this._filters,
+    );
+    let shown = 0;
+    return html`<div class="filters">
+        ${cats.map((c) => html`<button class="fchip" aria-pressed=${this._filters.has(c)} @click=${() => this.toggleFilter(c)}>${t(`tt_f_${c}`)}</button>`)}
+      </div>
+      <label class="opt"><input type="checkbox" .checked=${s.follow} @change=${(e: Event) => s.setFollow((e.target as HTMLInputElement).checked)} />${t("tt_follow")}</label>
+      <label class="opt"><input type="checkbox" .checked=${s.stopImportant} @change=${(e: Event) => s.setStopImportant((e.target as HTMLInputElement).checked)} />${t("tt_stop")}</label>
+      ${groups.length
+        ? groups.map((g) => {
+            // a long week stays light: at most 300 rows
+            if (shown >= 300) return nothing;
+            shown += g.events.length;
+            return html`<h4>${this.clockText(g.hour)}</h4>
+              ${g.events.map((e) => this.row(COLOR[e.kind], this.time(e.t), this.eventText(e), this.where(e.entity), () => s.goTo(e)))}`;
+          })
+        : html`<p class="none">${t("tt_no_events")}</p>`}`;
+  }
+
+  private row(color: string, time: string, text: string, where: string, go: () => void) {
+    return html`<button class="row" @click=${go}>
+      <i style="background:${color}"></i><time>${time}</time><span>${text}${where ? html`<small>${where}</small>` : nothing}</span>
+    </button>`;
+  }
+
+  private awayText(r: AwayRow): string {
+    const t = this.session!.t;
+    const name = this.name(r.entity);
+    switch (r.kind) {
+      case "alarm":
+      case "appliance":
+        return this.eventText({ kind: r.event ?? "alarm", entity: r.entity });
+      case "door":
+      case "window":
+        return t("tt_away_door", { name, n: r.count });
+      case "motion":
+        return t("tt_away_motion", { name, n: r.count });
+      case "light_on":
+        return t("tt_away_light", { name, d: this.duration(r.ms) });
+      case "window_open":
+        return t("tt_away_open", { name, d: this.duration(r.ms) });
+    }
+  }
+
+  private renderAway() {
+    const s = this.session!;
+    const t = s.t;
+    const pb = s.playback!;
+    // the suggestion: a quiet stretch of the house, else since the last time travel, else the last three hours
+    if (this.awayOffer?.version !== s.version) this.awayOffer = { version: s.version, offer: s.awayOffer() };
+    const offer = this.awayOffer.offer;
+    const [from, to] = this._awayFrom ?? offer ?? [s.lastClosed !== null && s.lastClosed >= pb.start ? s.lastClosed : Math.max(pb.start, s.end - 3 * 3600000), s.end];
+    const key = `${s.version}|${from}|${to}`;
+    if (this.awayCache?.key !== key) this.awayCache = { key, rows: s.away(from, to) };
+    const rows = this.awayCache.rows;
+    const pick = (span: [number, number]) => (this._awayFrom = span);
+    const span = (a: number, b: number) => `${this.clockText(a)} – ${b >= s.end - 60000 ? t("tt_now") : this.clockText(b)}`;
+    const custom = (e: Event) => {
+      const at = parseMoment((e.target as HTMLInputElement).value, s.end);
+      if (at !== null) pick([Math.max(pb.start, at), s.end]);
+    };
+    return html`<p class="since">${t("tt_away_since")}:</p>
+      <div class="filters">
+        ${s.lastClosed !== null && s.lastClosed >= pb.start
+          ? html`<button class="fchip" aria-pressed=${from === s.lastClosed} @click=${() => pick([s.lastClosed!, s.end])}>${t("tt_away_last")}</button>`
+          : nothing}
+        ${offer ? html`<button class="fchip" aria-pressed=${from === offer[0] && to === offer[1]} @click=${() => pick(offer)}>${t("tt_away_quiet", { from: this.time(offer[0]), to: this.time(offer[1]) })}</button>` : nothing}
+        <input class="when" type="time" aria-label=${t("tt_away_since")} @change=${custom} />
+      </div>
+      <h4>${span(from, to)}</h4>
+      ${rows.length
+        ? rows.slice(0, 200).map((r) => this.row(AWAY_COLOR[r.kind], this.time(r.t), this.awayText(r), this.where(r.entity), () => s.goTo(r)))
+        : html`<p class="none">${t("tt_away_none")}</p>`}`;
+  }
+
+  private renderDay() {
+    const s = this.session!;
+    const t = s.t;
+    const pb = s.playback!;
+    const day = dayStart(pb.t);
+    const sum = s.daySummary(day);
+    const prev = this._compare ? s.daySummary(dayStart(day - 12 * 3600000)) : null;
+    const num = (v: number, digits = 1) => v.toLocaleString(this.language, { maximumFractionDigits: digits, minimumFractionDigits: digits });
+    const hrs = (ms: number) => (ms >= 60000 ? `${num(ms / 3600000)} h` : "–");
+    const temp = (r: RoomDay | null | undefined) => (r && r.tMin !== null && r.tMax !== null ? `${num(r.tMin)}–${num(r.tMax)}°` : "–");
+    const cells = (r: RoomDay | null | undefined) => html`<td>${r ? hrs(r.lightMs) : "–"}</td><td>${r ? hrs(r.windowMs) : "–"}</td><td>${r ? hrs(r.heatMs) : "–"}</td><td>${temp(r)}</td>`;
+    const date = new Date(day).toLocaleDateString(this.language, { weekday: "short", day: "numeric", month: "numeric" });
+    const energy = (d: DaySummary | null) => d?.energy ?? null;
+    const e = energy(sum);
+    const pe = energy(prev);
+    const kwh = (v: number | undefined) => (v === undefined ? "–" : `${num(v)} kWh`);
+    const pctOf = (v: number | null | undefined) => (v === null || v === undefined ? "–" : `${Math.round(v * 100)} %`);
+    return html`<h4>${t("tt_day_title", { day: date })}</h4>
+      <div class="filters">
+        <button class="fchip" @click=${() => s.yesterday()}>⟲ ${t("tt_yesterday")}</button>
+        <button class="fchip" aria-pressed=${this._compare} @click=${() => (this._compare = !this._compare)}>${t("tt_day_compare")}</button>
+      </div>
+      ${sum && (sum.rooms.length || e)
+        ? html`${sum.rooms.length
+              ? html`<table>
+                  <thead>
+                    <tr><th></th><th>${t("tt_day_light")}</th><th>${t("tt_day_window")}</th><th>${t("tt_day_heat")}</th><th>${t("tt_day_temp")}</th></tr>
+                  </thead>
+                  <tbody>
+                    ${sum.rooms.map(
+                      (r) => html`<tr><th>${r.name}</th>${cells(r)}</tr>
+                        ${prev ? html`<tr class="before"><th>${t("tt_day_before")}</th>${cells(prev.rooms.find((p) => p.roomId === r.roomId))}</tr>` : nothing}`,
+                    )}
+                  </tbody>
+                </table>`
+              : nothing}
+            ${e
+              ? html`<div class="energy">
+                  ${(
+                    [
+                      ["tt_day_pv", kwh(e.pv), kwh(pe?.pv)],
+                      ["tt_day_use", kwh(e.use), kwh(pe?.use)],
+                      ["tt_day_import", kwh(e.imp), kwh(pe?.imp)],
+                      ["tt_day_export", kwh(e.exp), kwh(pe?.exp)],
+                      ["tt_day_self", pctOf(e.self), pctOf(pe?.self)],
+                    ] as const
+                  ).map(([k, v, b]) => html`<span>${t(k)}</span><b>${v}</b>${prev ? html`<em>${b}</em>` : nothing}`)}
+                </div>`
+              : nothing}`
+        : html`<p class="none">${t("tt_day_none")}</p>`}`;
+  }
+
+  private renderSheet() {
+    const s = this.session!;
+    const t = s.t;
+    const tab = this._sheet!;
+    const tabs: Sheet[] = ["events", "away", "day"];
+    return html`<aside class="sheet" role="dialog" aria-label=${t("tt_sheet")}>
+      <header>
+        ${tabs.map((k) => html`<button class="tab" aria-pressed=${tab === k} @click=${() => (this._sheet = k)}>${t(k === "events" ? "tt_tab_events" : k === "away" ? "tt_away_title" : "tt_tab_day")}</button>`)}
+        <button class="x" title=${t("tt_close")} aria-label=${t("tt_close")} @click=${() => (this._sheet = null)}>×</button>
+      </header>
+      <div class="body">${tab === "events" ? this.renderEvents() : tab === "away" ? this.renderAway() : this.renderDay()}</div>
+    </aside>`;
+  }
+
   protected render() {
     const s = this.session;
     if (!s) return nothing;
@@ -333,7 +584,8 @@ export class Fp3dTimeBar extends LitElement {
               ? t("tt_restart")
               : t("tt_error", { error: s.error ?? "?" })
         : null;
-    const perHour = pb ? Math.round(3600 / pb.speed) : 10;
+    const perHour = pb ? 3600 / pb.speed : 10;
+    const minutes = Math.round((s.end - s.start) / 60000);
     return html`<div class="frame"></div>
       <div class="clock" role="status" aria-live="off">
         <span class="badge">⏪ ${t("tt_badge")}</span>
@@ -343,6 +595,7 @@ export class Fp3dTimeBar extends LitElement {
           : html`<span class="clock-msg">${error ?? `${t("tt_loading")} ${Math.round(s.progress * 100)} %`}</span>`}
       </div>
       ${this._toast ? html`<div class="toast" role="alert">${t("tt_readonly")}</div>` : nothing}
+      ${ready && this._sheet ? this.renderSheet() : nothing}
       <div class="bar">
         <button class="btn prev" ?disabled=${!ready} title=${t("tt_prev")} aria-label=${t("tt_prev")} @click=${() => s.step(-1)}>${icon(ICONS.prev)}</button>
         <button class="btn play" ?disabled=${!ready} title=${t(pb?.playing ? "tt_pause" : "tt_play")} aria-label=${t(pb?.playing ? "tt_pause" : "tt_play")} @click=${() => s.toggle()}>
@@ -355,8 +608,8 @@ export class Fp3dTimeBar extends LitElement {
           tabindex="0"
           aria-label=${t("tt_chip")}
           aria-valuemin="0"
-          aria-valuemax="1440"
-          aria-valuenow=${pb ? Math.round((pb.t - s.start) / 60000) : 1440}
+          aria-valuemax=${minutes}
+          aria-valuenow=${pb ? Math.round((pb.t - s.start) / 60000) : minutes}
           @pointerdown=${(e: PointerEvent) => this.onDown(e)}
           @pointermove=${(e: PointerEvent) => this.onMove(e)}
           @pointerup=${(e: PointerEvent) => this.onUp(e)}
@@ -365,8 +618,16 @@ export class Fp3dTimeBar extends LitElement {
           ${ready ? this.renderTrack() : error ? html`<em class="msg">${error}</em>` : html`<i class="progress" style="width:${Math.round(s.progress * 100)}%"></i>`}
         </div>
         ${error && s.error !== "not_unlocked" ? html`<button class="chip" @click=${() => void s.load()}>${t("tt_retry")}</button>` : nothing}
-        <button class="chip speed" ?disabled=${!ready} title=${t("tt_speed", { s: perHour >= 60 ? "1 min" : `${perHour} s` })} @click=${() => s.nextSpeed()}>${pb?.speed ?? 360}×</button>
-        <button class="chip live" title=${t("tt_live_hint")} @click=${() => s.exit()}><i></i>${t("tt_live")}</button>
+        <button class="chip range" ?disabled=${!ready} title=${t("tt_range_hint")} aria-label=${t("tt_range_hint")} @click=${() => s.setRange(s.range === "7d" ? "24h" : "7d")}>
+          ${s.range === "7d" ? t("tt_days", { n: s.maxDays }) : "24 h"}
+        </button>
+        <button class="btn sheet-btn" ?disabled=${!ready} aria-pressed=${!!this._sheet} title=${t("tt_sheet")} aria-label=${t("tt_sheet")} @click=${() => this.toggleSheet()}>${icon(ICONS.list)}</button>
+        <button class="chip speed" ?disabled=${!ready} title=${t("tt_speed", { s: perHour >= 60 ? "1 min" : perHour >= 1 ? `${Math.round(perHour)} s` : `${perHour.toFixed(2).replace(/0$/, "")} s` })} @click=${() => s.nextSpeed()}>
+          ${pb?.speed ?? 360}×
+        </button>
+        <button class="chip live ${s.atNow ? "live-now" : ""}" title=${t("tt_live_hint")} @click=${() => s.exit()}>
+          <i></i>${s.atNow ? `${t("tt_now_reached")} · ${t("tt_live")}` : t("tt_live")}
+        </button>
       </div>`;
   }
 
@@ -488,8 +749,12 @@ export class Fp3dTimeBar extends LitElement {
       border-radius: 10px;
       background: transparent;
     }
-    .btn:hover:not(:disabled) {
+    .btn:hover:not(:disabled),
+    .sheet-btn[aria-pressed="true"] {
       background: rgba(255, 255, 255, 0.07);
+    }
+    .sheet-btn[aria-pressed="true"] {
+      color: var(--tt);
     }
     .play {
       background: var(--tt);
@@ -509,6 +774,7 @@ export class Fp3dTimeBar extends LitElement {
       font-size: 13px;
       font-weight: 600;
       font-variant-numeric: tabular-nums;
+      white-space: nowrap;
     }
     .live {
       display: inline-flex;
@@ -521,6 +787,10 @@ export class Fp3dTimeBar extends LitElement {
       height: 8px;
       border-radius: 50%;
       background: #ff3b4f;
+    }
+    .live-now {
+      background: var(--fp3d-accent, #37e0ff);
+      color: #04121c;
     }
     .track {
       position: relative;
@@ -541,12 +811,28 @@ export class Fp3dTimeBar extends LitElement {
       position: absolute;
       top: 0;
       bottom: 0;
+      overflow: hidden;
+    }
+    .track i span {
+      position: absolute;
+      left: 4px;
+      bottom: 2px;
+      font-size: 10px;
+      font-style: normal;
+      white-space: nowrap;
+      color: var(--fp3d-muted, #8a9bb8);
     }
     .night {
       background: rgba(40, 60, 140, 0.35);
     }
     .nodata {
       background: rgba(140, 150, 170, 0.28);
+    }
+    .loading {
+      background: repeating-linear-gradient(135deg, rgba(255, 176, 32, 0.22) 0 6px, transparent 6px 12px);
+    }
+    .loading span {
+      color: var(--tt) !important;
     }
     .gap {
       background: repeating-linear-gradient(135deg, rgba(160, 170, 190, 0.32) 0 4px, transparent 4px 8px);
@@ -646,6 +932,190 @@ export class Fp3dTimeBar extends LitElement {
       border-radius: 50%;
       background: var(--tt);
     }
+    .sheet {
+      position: absolute;
+      top: 78px;
+      right: 8px;
+      bottom: calc(var(--fp3d-tt-h, 64px) + 4px);
+      width: min(380px, calc(100% - 16px));
+      box-sizing: border-box;
+      display: grid;
+      grid-template-rows: auto 1fr;
+      border-radius: 14px;
+      background: var(--fp3d-chrome-solid, #0f1729);
+      border: 1px solid rgba(255, 176, 32, 0.45);
+      box-shadow: var(--fp3d-shadow, none);
+      pointer-events: auto;
+      z-index: 2;
+      font-size: 13px;
+      overflow: hidden;
+    }
+    .sheet header {
+      display: flex;
+      gap: 4px;
+      padding: 8px 8px 6px;
+      border-bottom: 1px solid var(--fp3d-line, rgba(120, 170, 255, 0.16));
+    }
+    .tab {
+      flex: 1 1 auto;
+      min-width: 0;
+      padding: 6px 8px;
+      border: 0;
+      border-radius: 8px;
+      background: transparent;
+      font-size: 12px;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .tab[aria-pressed="true"] {
+      background: rgba(255, 176, 32, 0.18);
+      color: var(--tt);
+    }
+    .x {
+      flex: none;
+      width: 30px;
+      border: 0;
+      border-radius: 8px;
+      background: transparent;
+      font-size: 18px;
+    }
+    .body {
+      overflow-y: auto;
+      padding: 8px 10px 12px;
+      overscroll-behavior: contain;
+    }
+    .filters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 6px;
+    }
+    .fchip {
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--fp3d-line, rgba(120, 170, 255, 0.16));
+      background: transparent;
+      font-size: 12px;
+    }
+    .fchip[aria-pressed="true"] {
+      border-color: var(--tt);
+      background: rgba(255, 176, 32, 0.14);
+    }
+    .when {
+      font: inherit;
+      font-size: 12px;
+      color: inherit;
+      background: transparent;
+      border: 1px solid var(--fp3d-line, rgba(120, 170, 255, 0.16));
+      border-radius: 999px;
+      padding: 3px 8px;
+      color-scheme: dark;
+    }
+    .opt {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: var(--fp3d-muted, #8a9bb8);
+      margin: 2px 0;
+    }
+    .since {
+      margin: 0 0 4px;
+      font-size: 12px;
+      color: var(--fp3d-muted, #8a9bb8);
+    }
+    .sheet h4 {
+      margin: 10px 0 4px;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--tt);
+    }
+    .row {
+      display: grid;
+      grid-template-columns: 10px 44px 1fr;
+      align-items: start;
+      gap: 6px;
+      width: 100%;
+      padding: 5px 4px;
+      border: 0;
+      border-radius: 8px;
+      background: transparent;
+      text-align: left;
+      font-size: 13px;
+    }
+    .row:hover {
+      background: rgba(255, 255, 255, 0.06);
+    }
+    .row i {
+      width: 8px;
+      height: 8px;
+      margin-top: 5px;
+      border-radius: 50%;
+    }
+    .row time {
+      font-variant-numeric: tabular-nums;
+      color: var(--fp3d-muted, #8a9bb8);
+    }
+    .row small {
+      display: block;
+      font-size: 11px;
+      color: var(--fp3d-muted, #8a9bb8);
+    }
+    .none {
+      color: var(--fp3d-muted, #8a9bb8);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      font-variant-numeric: tabular-nums;
+    }
+    th,
+    td {
+      padding: 4px 3px;
+      text-align: right;
+      white-space: nowrap;
+    }
+    th:first-child {
+      text-align: left;
+      max-width: 110px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    thead th {
+      font-weight: 600;
+      color: var(--fp3d-muted, #8a9bb8);
+    }
+    tbody tr:not(.before) {
+      border-top: 1px solid var(--fp3d-line, rgba(120, 170, 255, 0.16));
+    }
+    .before {
+      color: var(--fp3d-muted, #8a9bb8);
+      font-size: 11px;
+    }
+    .before th {
+      font-weight: 400;
+      padding-left: 10px;
+    }
+    .energy {
+      display: grid;
+      grid-template-columns: 1fr auto auto;
+      gap: 4px 12px;
+      margin-top: 12px;
+      padding-top: 8px;
+      border-top: 1px solid var(--fp3d-line, rgba(120, 170, 255, 0.16));
+      font-variant-numeric: tabular-nums;
+    }
+    .energy b {
+      text-align: right;
+    }
+    .energy em {
+      font-style: normal;
+      text-align: right;
+      color: var(--fp3d-muted, #8a9bb8);
+    }
     /* phones and narrow cards: the track on a row of its own above the buttons */
     @container fp3dtt ((max-width: 700px) or ((orientation: portrait) and (max-width: 1000px))) {
       .bar {
@@ -662,6 +1132,9 @@ export class Fp3dTimeBar extends LitElement {
       .live {
         margin-left: auto;
       }
+      .chip {
+        padding: 0 9px;
+      }
       .clock {
         top: 8px;
         padding: 4px 12px 5px;
@@ -669,6 +1142,9 @@ export class Fp3dTimeBar extends LitElement {
       }
       .clock-time {
         font-size: 19px;
+      }
+      .sheet {
+        top: 64px;
       }
     }
   `;

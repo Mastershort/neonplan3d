@@ -258,7 +258,8 @@ test("roles: a front door, a room door, a garage door and windows from the openi
   assert.equal(roles.get("binary_sensor.front"), "door");
   assert.equal(roles.get("binary_sensor.inner"), undefined);
   assert.equal(roles.get("binary_sensor.win"), "window");
-  assert.equal(roles.get("binary_sensor.win_tilt"), "window");
+  // the tilt sensor counts for the rain only (the contact tells the window was opened)
+  assert.equal(roles.get("binary_sensor.win_tilt"), "window_more");
   assert.equal(roles.get("cover.win"), undefined);
   assert.equal(roles.get("cover.gar"), "garage");
   assert.equal(roles.get("binary_sensor.smoke"), "smoke");

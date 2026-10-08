@@ -44,6 +44,8 @@ const DYNAMIC: Record<string, readonly string[]> = {
   humidifier: ["humidity", "current_humidity", "mode"],
   alarm_control_panel: ["changed_by"],
   lock: ["changed_by"],
+  // a car's tracker: home or away only, never where
+  device_tracker: ["latitude", "longitude", "gps_accuracy", "altitude", "course", "speed", "vertical_accuracy", "battery_level", "ip", "host_name", "mac", "zone", "in_zones"],
   sun: ["elevation", "azimuth", "rising", "next_rising", "next_setting", "next_dawn", "next_dusk", "next_noon", "next_midnight"],
 };
 /** Never part of the past: people and their trackers. */
@@ -99,7 +101,12 @@ export interface ReplayOptions {
   states?: HomeAssistant["states"];
   /** Home Assistant's location, for the sun at the replayed moment. */
   location?: { lat: number; lon: number } | null;
+  /** Trackers that are replayed although trackers are private: the cars' own (home or away only). */
+  allowed?: Iterable<string>;
 }
+
+/** Domains whose short on–off pulses between two ticks flash (a light switched on for ten seconds). */
+const FLASHY = new Set(["light", "switch", "input_boolean", "binary_sensor", "fan"]);
 
 /** The replay of one fetched history: Home Assistant at any moment of it. */
 export class Replay {
@@ -117,6 +124,8 @@ export class Replay {
   private base: Record<string, HassEntity> | null = null;
   private states: Record<string, HassEntity> = {};
   private hass: HomeAssistant | null = null;
+  /** Entities that went on and back off between the last two moments (a tick at a high speed skips them). */
+  pulses: string[] = [];
 
   constructor(timeline: Timeline, opts: ReplayOptions) {
     this.timeline = timeline;
@@ -124,11 +133,12 @@ export class Replay {
     this.cursor.tracks.forEach((tr, i) => this.trackAt.set(tr.id, i));
     this.location = opts.location ?? null;
     this.frozen = opts.states ?? null;
-    this.requested = [...new Set([...opts.requested, ...timeline.tracks.keys(), ...timeline.series.keys()])].filter((id) => !HIDDEN.some((p) => id.startsWith(p)));
+    const allowed = new Set([...(opts.allowed ?? [])].filter((id) => id.startsWith("device_tracker.")));
+    this.requested = [...new Set([...opts.requested, ...timeline.tracks.keys(), ...timeline.series.keys()])].filter((id) => allowed.has(id) || !HIDDEN.some((p) => id.startsWith(p)));
   }
 
-  /** Home Assistant at t; the same object as last time when nothing changed. */
-  hassAt(live: HomeAssistant, t: number): HomeAssistant {
+  /** Home Assistant at t; the same object as last time when nothing changed. `jump`: no pulses are looked for. */
+  hassAt(live: HomeAssistant, t: number, jump = true): HomeAssistant {
     const frozen = (this.frozen ??= live.states);
     let dirty = false;
     if (!this.base) {
@@ -145,7 +155,9 @@ export class Replay {
       this.live = live;
       dirty = true;
     }
+    const prev = !jump && t > this.cursor.t && Number.isFinite(this.cursor.t) ? this.cursor.idx.slice() : null;
     this.cursor.at(t);
+    this.pulses = prev ? this.findPulses(prev) : [];
     const changed: string[] = [];
     for (const id of this.requested) {
       const before = this.slots.get(id);
@@ -168,6 +180,27 @@ export class Replay {
     }
     this.hass = readOnlyHass(this.live!, this.states);
     return this.hass;
+  }
+
+  /** Tracks that stand as before but changed and changed back in between (a light on for a moment). */
+  private findPulses(prev: Int32Array): string[] {
+    const out: string[] = [];
+    const idx = this.cursor.idx;
+    for (let i = 0; i < idx.length; i++) {
+      const a = prev[i];
+      const b = idx[i];
+      if (a < 0 || b - a < 2) continue;
+      const tr = this.cursor.tracks[i];
+      if (!FLASHY.has(domainOf(tr.id))) continue;
+      const s = tr.values[tr.vals[a]].s;
+      if (tr.values[tr.vals[b]].s !== s) continue;
+      for (let k = a + 1; k < b; k++)
+        if (tr.values[tr.vals[k]].s !== s) {
+          out.push(tr.id);
+          break;
+        }
+    }
+    return out;
   }
 
   /** The live object differs from the one in use only in its states (a state change, not a registry one). */
