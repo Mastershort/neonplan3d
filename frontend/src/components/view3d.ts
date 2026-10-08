@@ -3707,7 +3707,8 @@ export class Fp3dView3d extends LitElement {
         display: flex;
         flex-direction: column;
         gap: 8px;
-        max-width: 320px;
+        /* left: 50% leaves only half the width to shrink into: a width of its own keeps the buttons inside */
+        width: min(320px, calc(100% - 60px));
         padding: 16px 18px;
         border-radius: 14px;
         background: var(--fp3d-chrome-solid);
@@ -3716,6 +3717,7 @@ export class Fp3dView3d extends LitElement {
       }
       .fp3d-pro div {
         display: flex;
+        flex-wrap: wrap;
         gap: 8px;
       }
       .fp3d-pro a {

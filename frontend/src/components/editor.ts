@@ -203,6 +203,7 @@ export class Fp3dEditor extends LitElement {
     _edgeHi: { state: true },
     _ctx: { state: true },
     _fixedHint: { state: true },
+    _phoneHint: { state: true },
     _floorMenu: { state: true },
     _openingPreset: { state: true },
     _measureLen: { state: true },
@@ -297,6 +298,8 @@ export class Fp3dEditor extends LitElement {
   private declare _ctx: { x: number; y: number; kind: FixKind; id: string } | null;
   /** A drag on a fixed item was turned into panning: the hint line says why. */
   private declare _fixedHint: boolean;
+  /** The one-time "draw on a PC or tablet" hint on phones (shown by CSS on narrow screens only). */
+  private declare _phoneHint: boolean;
   private fixedPan = false;
   /** Frame the 3D half again after the next render (the roof tool shows the whole house). */
   private reframe3d = false;
@@ -328,6 +331,8 @@ export class Fp3dEditor extends LitElement {
   private pointers = new Map<number, [number, number]>();
   private pinch: { dist: number; mid: [number, number] } | null = null;
   private fitted = false;
+  /** The view fit() set last (the plan follows size changes until it is moved). */
+  private fittedView: unknown = null;
   private resizeObserver?: ResizeObserver;
   private loadingImages = new Set<string>();
 
@@ -373,6 +378,12 @@ export class Fp3dEditor extends LitElement {
     this._shiftZ = 0;
     this._floorMenu = false;
     this._openingPreset = "door";
+    this._phoneHint = true;
+    try {
+      this._phoneHint = localStorage.getItem("neonplan3d.phoneHint") !== "0";
+    } catch {
+      // no storage: shown until closed
+    }
     let split = false;
     try {
       split = localStorage.getItem("neonplan3d.editor3d") === "1";
@@ -457,7 +468,8 @@ export class Fp3dEditor extends LitElement {
     const stage = this.renderRoot.querySelector(".fp3d-canvas-wrap") as HTMLElement;
     this.resizeObserver = new ResizeObserver(() => {
       this._size = { w: stage.clientWidth, h: stage.clientHeight };
-      if (!this.fitted && this._size.w > 0) {
+      // a plan nobody has moved since it was fitted stays fitted (the 3D half opening beside the roof tool)
+      if ((!this.fitted || this._view === this.fittedView) && this._size.w > 0) {
         this.fitted = true;
         this.fit();
       }
@@ -858,6 +870,8 @@ export class Fp3dEditor extends LitElement {
 
   private fit(): void {
     const pts = this.floor?.rooms.flatMap((r) => r.points) ?? [];
+    // the roof tool shows the roof sections too, which reach past the rooms
+    if (this._tool === "roof") for (const s of this._doc.settings.roof.sections ?? []) pts.push([s.x0, s.z0], [s.x1, s.z1]);
     const b = pts.length ? bounds(pts) : { x0: 0, z0: 0, x1: 10, z1: 8 };
     const margin = 1.5;
     const w = b.x1 - b.x0 + 2 * margin;
@@ -868,6 +882,7 @@ export class Fp3dEditor extends LitElement {
       ox: this._size.w / 2 - ((b.x0 + b.x1) / 2) * scale,
       oy: this._size.h / 2 - ((b.z0 + b.z1) / 2) * scale,
     };
+    this.fittedView = this._view;
   }
 
   /** Bring a plan point to the middle of the plan, zoomed in enough to see a small item there. */
@@ -2434,6 +2449,7 @@ export class Fp3dEditor extends LitElement {
   private updateRoofSection(patch: Partial<RoofSection>): void {
     const id = this._roofId;
     if (!id || !this.isAdmin) return;
+    if (patch.locked === false) this._fixedHint = false;
     this.change((doc) => {
       const sec = doc.settings.roof.sections?.find((x) => x.id === id);
       if (sec) Object.assign(sec, patch);
@@ -2895,6 +2911,7 @@ export class Fp3dEditor extends LitElement {
   private updateSolar(patch: Partial<SolarField>): void {
     const id = this._solarId;
     if (!id || !this.isAdmin) return;
+    if (patch.locked === false) this._fixedHint = false;
     this.change((doc) => {
       const f = doc.settings.roof.solar?.find((x) => x.id === id);
       if (!f) return;
@@ -3622,6 +3639,8 @@ export class Fp3dEditor extends LitElement {
     // rooms, walls, doors, windows and outdoor areas follow the plan lock alone
     if (!this.isAdmin || (kind !== "furniture" && kind !== "device")) return;
     const next = !this.isFixedItem(kind, id);
+    // released: the "fixed, release first" hint has done its job
+    if (!next) this._fixedHint = false;
     this.change((_, floor) => {
       const item = this.fixItem(floor, kind, id) as { locked?: boolean | null } | undefined;
       if (item) item.locked = next;
@@ -3630,6 +3649,7 @@ export class Fp3dEditor extends LitElement {
 
   private toggleLockPlan(): void {
     if (!this.isAdmin) return;
+    if (this._doc.settings.lock_plan) this._fixedHint = false;
     this.change((doc) => (doc.settings.lock_plan = !doc.settings.lock_plan));
   }
 
@@ -3967,7 +3987,16 @@ export class Fp3dEditor extends LitElement {
     const h = STAIR_TYPES.has(type) ? round(above ? above.elevation - floor.elevation : floor.height + 0.25) : h0;
     const room = this.room;
     const [x, z] = room ? centroid(room.points) : this.toWorld(this._size.w / 2, this._size.h / 2);
-    const item: Furniture = { id: uid("furniture"), type, x: round(x), z: round(z), rotation: 0, w, d, h, variant: null };
+    let rotation = 0;
+    if (type === "parking" && room) {
+      // a parking spot runs into the room from its garage door, else along the room's longer side
+      const gate = floor.openings.find((o) => o.room_id === room.id && o.type === "garage");
+      const a = gate ? room.points[gate.edge] : null;
+      const c = gate ? room.points[(gate.edge + 1) % room.points.length] : null;
+      const b = bounds(room.points);
+      rotation = (a && c ? Math.abs(c[1] - a[1]) > Math.abs(c[0] - a[0]) : b.x1 - b.x0 > b.z1 - b.z0) ? 90 : 0;
+    }
+    const item: Furniture = { id: uid("furniture"), type, x: round(x), z: round(z), rotation, w, d, h, variant: null };
     this.change((_, f) => f.furniture.push(item));
     this.selectItem("furniture", item.id);
     // small items are easy to lose in a large plan: bring the new one into view
@@ -4327,6 +4356,25 @@ export class Fp3dEditor extends LitElement {
           </div>
           <div class="fp3d-stage-pair ${this._split ? "fp3d-split" : ""}" style=${this._split && !this.narrow ? `--fp3d-split:${Math.round(this._splitRatio * 100)}%` : ""}>
           <div class="fp3d-canvas-wrap">
+            ${this._phoneHint
+              ? html`<div class="fp3d-phone-hint">
+                  <span>${this.t("phone_hint")}</span>
+                  <button
+                    class="fp3d-btn"
+                    aria-label=${this.t("close")}
+                    @click=${() => {
+                      this._phoneHint = false;
+                      try {
+                        localStorage.setItem("neonplan3d.phoneHint", "0");
+                      } catch {
+                        // no storage: gone for this visit
+                      }
+                    }}
+                  >
+                    ✕
+                  </button>
+                </div>`
+              : nothing}
             ${this.houseTool ? html`<div class="fp3d-tool-note">${this.t(this._tool === "energy" ? "energy_only_note" : "roof_only_note")}</div>` : nothing}
             <svg
               class="fp3d-plan fp3d-tool-${this._tool}"
@@ -4981,7 +5029,11 @@ export class Fp3dEditor extends LitElement {
           o.leaves === 2 ? svg`<line x1=${m0[0]} y1=${m0[1]} x2=${m1[0]} y2=${m1[1]} />` : nothing
         }`;
       }
+      // a wide invisible band along the opening, so a door is easy to tap again (#312)
+      const h0 = q(p0, (across[0] - across[1]) / 2);
+      const h1 = q(p1, (across[0] - across[1]) / 2);
       return svg`<g data-opening=${o.id} class=${cls}>
+        <line class="fp3d-open-hit" x1=${h0[0]} y1=${h0[1]} x2=${h1[0]} y2=${h1[1]} />
         <polygon class="fp3d-open-gap" points=${gap.map((p) => p.join(",")).join(" ")} />
         ${symbol}
       </g>`;
@@ -5354,6 +5406,22 @@ export class Fp3dEditor extends LitElement {
     </section>`;
   }
 
+  /** The room's doors and windows as a list: a tap selects one that is hard to hit in the plan (#312). */
+  private renderRoomOpenings(room: Room) {
+    const own = (this.floor?.openings ?? []).filter((o) => o.room_id === room.id);
+    if (!own.length) return nothing;
+    return html`<details class="fp3d-points">
+      <summary>${this.t("room_openings")} (${own.length})</summary>
+      <div class="fp3d-room-list">
+        ${own.map(
+          (o) => html`<button class="fp3d-row" @click=${() => (this.selectItem("opening", o.id), this.renderRoot.querySelector(".fp3d-side")?.scrollTo(0, 0))}>
+            <span>${this.t(`preset_${openingPreset(o)}` as I18nKey)}</span><span class="fp3d-muted">${formatNumber(this.hass, o.width, 2)} m</span>
+          </button>`,
+        )}
+      </div>
+    </details>`;
+  }
+
   private renderRoomForm(room: Room, areas: { area_id: string; name: string }[]) {
     const admin = this.isAdmin;
     const rect = isAxisRect(room.points);
@@ -5388,7 +5456,8 @@ export class Fp3dEditor extends LitElement {
         <button class="fp3d-btn" title=${this.t("room_start_view_hint")} ?disabled=${!admin} @click=${() => this.rememberRoomView()}>${this.t("room_start_view")}</button>
         ${room.start_view ? html`<button class="fp3d-btn" title=${this.t("room_start_view_reset")} ?disabled=${!admin} @click=${() => this.updateRoom({ start_view: null })}>↺</button>` : nothing}
       </div>
-      ${this.renderEdgeHeights(room)} ${this.renderRoomClimate(room)}
+      <p class="fp3d-sub fp3d-room-id">${this.t("room_id")} <code title=${this.t("license_copy")} @click=${() => void navigator.clipboard?.writeText(room.id).catch(() => undefined)}>${room.id}</code></p>
+      ${this.renderEdgeHeights(room)} ${this.renderRoomClimate(room)} ${this.renderRoomOpenings(room)}
       <details class="fp3d-points" ?open=${!rect}>
         <summary>${this.t("points")} (${room.points.length})</summary>
         ${room.points.map(
@@ -8158,6 +8227,28 @@ export class Fp3dEditor extends LitElement {
         font-size: 13px;
       }
       /* the roof and energy tools say what can be moved there (everything else is locked) */
+      .fp3d-phone-hint {
+        display: none;
+      }
+      @media (max-width: 600px) {
+        .fp3d-phone-hint {
+          position: absolute;
+          top: 8px;
+          left: 8px;
+          /* the plan may be wider than the phone: stay on the screen */
+          width: calc(min(100%, 100vw) - 16px);
+          box-sizing: border-box;
+          z-index: 3;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 6px 6px 6px 12px;
+          border-radius: 12px;
+          background: var(--fp3d-chrome-solid);
+          border: 1px solid var(--fp3d-accent);
+          font-size: 13px;
+        }
+      }
       .fp3d-tool-note {
         position: absolute;
         top: 8px;
@@ -8328,6 +8419,14 @@ export class Fp3dEditor extends LitElement {
         stroke-width: 6;
         stroke-linecap: round;
         filter: drop-shadow(0 0 6px var(--fp3d-accent));
+      }
+      .fp3d-room-id code {
+        user-select: all;
+        cursor: copy;
+      }
+      .fp3d-open .fp3d-open-hit {
+        stroke: transparent;
+        stroke-width: 26;
       }
       .fp3d-free-wall .fp3d-hit {
         stroke: transparent;

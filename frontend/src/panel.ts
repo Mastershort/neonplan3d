@@ -702,7 +702,10 @@ export class Floorplan3dPanel extends LitElement {
     if (!b.floors.length || !b.floors.some((f) => f.rooms.length)) {
       return html`<div class="fp3d-empty">
         <p>${this.t(this.isAdmin ? "no_building_admin" : "no_building")}</p>
-        ${this.isAdmin ? html`<button class="fp3d-btn fp3d-primary" @click=${() => this.setMode("editor")}>${this.t("open_editor")}</button>` : nothing}
+        ${this.isAdmin
+          ? html`<button class="fp3d-btn fp3d-primary" @click=${() => this.setMode("editor")}>${this.t("open_editor")}</button>
+              <p class="fp3d-phone-only">${this.t("phone_hint")}</p>`
+          : nothing}
       </div>`;
     }
     const floor = b.floors.find((f) => f.id === this._floorId);
@@ -1269,6 +1272,10 @@ export class Floorplan3dPanel extends LitElement {
         .fp3d-room-open .fp3d-overlay {
           display: none;
         }
+        /* the view's own buttons (search, eye) step up above the sheet */
+        .fp3d-room-open fp3d-view3d {
+          --fp3d-bottom-inset: calc(55% + 8px);
+        }
         /* phones: the time bar takes two rows; the switches make way for it */
         .fp3d-tt > * {
           --fp3d-tt-h: 100px;
@@ -1284,6 +1291,10 @@ export class Floorplan3dPanel extends LitElement {
       .fp3d-side-right .fp3d-overlay {
         left: 12px;
         right: 100px;
+      }
+      /* an open room panel keeps the switches beside it, not over its last rows */
+      .fp3d-room-open .fp3d-overlay {
+        right: calc(min(360px, 100% - 28px) + 26px);
       }
       .fp3d-overlay {
         position: absolute;
@@ -1311,6 +1322,14 @@ export class Floorplan3dPanel extends LitElement {
         padding: 32px 20px;
         color: var(--fp3d-muted);
         text-align: center;
+      }
+      .fp3d-phone-only {
+        display: none;
+      }
+      @media (max-width: 600px) {
+        .fp3d-phone-only {
+          display: block;
+        }
       }
       .fp3d-empty {
         display: grid;

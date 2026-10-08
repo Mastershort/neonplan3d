@@ -3458,7 +3458,8 @@ export class FloorplanViewer {
     const weatherMoving = this.stepWeather(now);
     const moving = cameraMoving || floorsMoving || openingsMoving || flashing || roofMoving;
     const busy: string[] = [];
-    if (cameraMoving) busy.push("camera");
+    // a finger or the mouse turning the view draws frames too, though no inertia runs yet
+    if (cameraMoving || this.controls.busy) busy.push("camera");
     if (floorsMoving) busy.push("floors");
     if (openingsMoving) busy.push("openings");
     if (flashing) busy.push("flash");
