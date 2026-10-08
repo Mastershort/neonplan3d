@@ -203,6 +203,17 @@ const setField = async (label, value, seconds = 0.5) => {
   await R.key("Enter");
   await R.frame(0.1, 300);
 };
+/** Click a text field by its label, clear it and type a new text (empty: just clear), Tab. */
+const retype = async (label, text, perLetter = 0.05) => {
+  await R.clickOn({ label }, 0.5);
+  await R.page.keyboard.down("Control");
+  await R.page.keyboard.press("a");
+  await R.page.keyboard.up("Control");
+  if (text) await R.type(text, perLetter);
+  else await R.key("Delete");
+  await R.key("Tab");
+  await R.frame(0.1, 150);
+};
 /** The field of a searchable entity picker by its label. */
 const pickerBox = (label) =>
   R.page.evaluate((label) => {
@@ -297,7 +308,7 @@ const card = (title, lines, active = -1) =>
         c = document.createElement("div");
         c.id = "tut-card";
         c.style.cssText =
-          "position:fixed;left:60px;top:50%;transform:translateY(-50%);z-index:2147483643;width:640px;padding:26px 30px;border-radius:20px;background:rgba(8,16,34,.86);border:1px solid rgba(55,224,255,.55);box-shadow:0 0 40px rgba(55,224,255,.3);color:#eaf6ff;font:22px/1.35 system-ui,'Segoe UI',sans-serif;backdrop-filter:blur(8px)";
+          "position:fixed;left:48px;top:120px;z-index:2147483643;width:600px;padding:26px 30px;border-radius:20px;background:rgba(8,16,34,.86);border:1px solid rgba(55,224,255,.55);box-shadow:0 0 40px rgba(55,224,255,.3);color:#eaf6ff;font:22px/1.35 system-ui,'Segoe UI',sans-serif;backdrop-filter:blur(8px)";
         document.body.appendChild(c);
       }
       c.innerHTML =
@@ -327,6 +338,15 @@ const ringHere = async () => {
   });
   for (let i = 0; i < 8; i++) await R.frame(1 / FPS, 25);
 };
+/** Scroll the side panel back to its top with the wheel. */
+const sideTop = async (seconds = 0.5) => {
+  await R.move(1780, 600, 0.3);
+  const n = FAST ? 2 : Math.max(1, Math.round(seconds * FPS));
+  for (let i = 0; i < n; i++) {
+    await R.page.mouse.wheel({ deltaY: -4000 / n });
+    await R.frame(1 / FPS, 30);
+  }
+};
 /** Run code with the editor (e) – for a clean starting state, never for the steps shown. */
 const editorDo = (code) => R.editor(code);
 /** Open the 3D view at the house with the stored defaults (a fresh page). */
@@ -340,7 +360,7 @@ const toEditor = async (split = true) => {
   if (split) await quiet({ text: "3D daneben", exact: true }, 2000);
 };
 /** Open a side-panel section (a <summary>) if it is closed. */
-const openSection = async (name, seconds = 0.5) => {
+const openSection = async (name, seconds = 0.5, retry = false) => {
   const open = await R.page.evaluate((name) => {
     const e = document.querySelector("neonplan3d-panel").shadowRoot.querySelector("fp3d-editor");
     const sm = [...e.renderRoot.querySelectorAll("summary")].find((x) => x.textContent.replace(/\s+/g, " ").trim().startsWith(name));
@@ -348,13 +368,16 @@ const openSection = async (name, seconds = 0.5) => {
   }, name);
   if (open === null) throw new Error(`no section: ${name}`);
   const b = await textAt(name, { exact: false, tags: "SUMMARY" }).catch(() => null);
-  if (!b || b.y < 130 || b.y > 1040) {
+  if ((!b || b.y < 130 || b.y > 1066) && !retry) {
     await toSection(name, 200, 0.6);
-    return openSection(name, seconds);
+    return openSection(name, seconds, true);
   }
+  if (!b) throw new Error(`section not visible: ${name}`);
   await R.move(b.x, b.y, seconds);
   if (!open) await R.click();
   await R.frame(0.1, 300);
+  // a section low in the panel: bring its content up
+  if (!open && b.y > 600) await toSection(name, 180, 0.6);
 };
 /** Close a side-panel section quietly. */
 const closeSection = (name) =>
@@ -456,9 +479,9 @@ if (PART === "a") {
   const paneHome = await camFull("pane");
   {
     // close to the living room's outer corner, so the thickness is easy to see
-    const t = await worldOf("pane", "eg", 0.3, 0.6, 3.2);
+    const t = await worldOf("pane", "eg", 0.4, 0.6, 4.4);
     await R.move(1150, 600, 0.5);
-    await flyTo("pane", { theta: paneHome.theta, phi: 0.8, radius: 6.5, t }, 1.4);
+    await flyTo("pane", { theta: paneHome.theta, phi: 0.5, radius: 9, t }, 1.4);
   }
   await setField("Außenwand (m)", "0.36", 0.5);
   await live(R.time + 1.2);
@@ -506,11 +529,11 @@ if (PART === "a") {
   await sayOver("Beim Satteldach legt „First“ fest, ob der First entlang der langen oder der kurzen Seite läuft – die kurze ist typisch fürs Reihenhaus.");
   await R.moveTo({ label: "First" }, 0.5);
   await R.hold(0.6);
-  await sayOver("Dazu kommen „Dachneigung“ in Grad und „Dachüberstand“ in Metern. Ich stelle 45 Grad ein und schaue im Reiter „3D“ nach.");
+  await sayOver("Dazu kommen „Dachneigung“ in Grad und „Dachüberstand“ in Metern. Ich stelle 50 Grad ein und schaue im Reiter „3D“ nach.");
   await R.moveTo({ label: "Dachneigung" }, 0.5);
   await R.hold(0.3);
   await R.moveTo({ label: "Dachüberstand" }, 0.4);
-  await setField("Dachneigung", "45", 0.5);
+  await setField("Dachneigung", "50", 0.5);
   await R.clickOn({ text: "3D", exact: true, nth: 0 }, 0.6);
   await R.sleep(1200);
   await live(R.time + 0.6);
@@ -523,10 +546,10 @@ if (PART === "a") {
   await R.clickOn({ text: "Editor", exact: true }, 0.6);
   await R.sleep(1000);
   await R.frame(0.1, 200);
+  await sayOver("„Dachflächen (frei)“ baut das Dach aus mehreren Teilen, mit Walm, Gauben und Dachfenstern – das zeigen die Folgen 7 und 8.");
   await openSection("Einstellungen", 0.4);
   await toSection("Einstellungen", 120, 0.6);
   await setField("Dachneigung", "35", 0.5);
-  await sayOver("„Dachflächen (frei)“ baut das Dach aus mehreren Teilen, mit Walm, Gauben und Dachfenstern – das zeigen die Folgen 7 und 8.");
   await R.moveTo({ label: "First" }, 0.5);
   await R.move(1700, (await R.locate({ label: "First" })).y - 63, 0.4);
   await R.hold(0.8);
@@ -571,7 +594,7 @@ if (PART === "a") {
   await openSection("Favoriten", 0.4);
   await R.hold(0.6);
   await sayOver("Typisch sind Party, Anwesenheitssimulation, Verschattung oder die Bewässerung im Garten.");
-  await R.move(1700, 330, 0.8);
+  await pointAt("Szenen, Skripte, Automationen", 0.8, { exact: false, tags: "P" });
   await R.hold(0.4);
   await sayOver("In „Favorit hinzufügen“ tippst du einfach los und wählst den Treffer. Ich nehme das Skript „Wohnzimmer Alles aus“.");
   await pickEntity("Favorit hinzufügen", "alles", "Wohnzimmer Alles aus", 0.5);
@@ -627,15 +650,13 @@ if (PART === "a") {
   await R.key("Tab");
   await sayOver("„Details einer Entität“ öffnet das Fenster eines Geräts aus Home Assistant, etwa den Rollladen im Wohnzimmer.");
   await R.pickOption("Aktion", "Details einer Entität", 0.5);
-  await R.moveTo({ label: "Entität" }, 0.5);
-  await R.hold(0.6);
+  await retype("Entität", "cover.wohnzimmer");
   await sayOver("„Dienst aufrufen“ startet einen Dienst. Darunter stehen seine Daten im JSON-Format, zum Beispiel welches Skript laufen soll.");
   await R.pickOption("Aktion", "Dienst aufrufen", 0.5);
-  await R.moveTo({ label: "Dienst (domain.service)" }, 0.5);
-  await R.hold(0.3);
-  await R.moveTo({ label: "Daten (JSON)" }, 0.5);
-  await R.hold(0.5);
+  await retype("Dienst (domain.service)", "script.turn_on");
+  await retype("Daten (JSON)", '{"entity_id": "script.gute_nacht"}', 0.035);
   await sayOver("Und „fire-dom-event“ öffnet zusammen mit browser_mod ein Popup mit deiner eigenen Karte – zum Beispiel alle Rollläden auf einen Blick.");
+  await retype("Daten (JSON)", "", 0.03);
   await R.pickOption("Aktion", "fire-dom-event (browser_mod)", 0.5);
   await R.moveTo({ label: "Daten (JSON)" }, 0.5);
   await R.hold(0.6);
@@ -701,7 +722,7 @@ if (PART === "a") {
   await R.hold(0.5);
   await sayOver("Dann lassen sich Räume, Wände, Türen, Fenster und Außenflächen nicht mehr versehentlich verschieben – auch neu gezeichnete nicht.");
   {
-    const p = await R.planPoint(3, 2.5);
+    const p = await R.planPoint(3.5, 5.2);
     await R.move(p.x, p.y, 0.6);
     await R.click();
     await R.hold(0.4);
@@ -710,10 +731,11 @@ if (PART === "a") {
   await sayOver("Ziehen auf einem Raum bewegt jetzt nur die Ansicht. Auswählen und im Formular ändern geht weiterhin.");
   await R.hold(0.6);
   await sayOver("Der Raum zeigt „Grundriss gesperrt“ – ein Klick darauf entsperrt wieder. Per Rechtsklick auf einen Raum geht es auch.");
+  await sideTop(0.5);
   await R.moveTo({ text: "Grundriss gesperrt" }, 0.5);
   await R.hold(0.6);
   {
-    const p = await R.planPoint(3, 2.5);
+    const p = await R.planPoint(3.5, 5.2);
     await R.move(p.x, p.y, 0.6);
     await R.page.evaluate(() => {
       const c = document.getElementById("tut-cursor").style.transform.match(/-?[\d.]+/g).map(Number);
@@ -754,8 +776,9 @@ if (PART === "a") {
   await R.hideCursor();
   await quiet(EYE, 700);
   {
-    const a = { theta: -0.6, phi: 0.95, radius: 28 };
-    const b = { theta: 0.4, phi: 0.85, radius: 24 };
+    const d = await camNow();
+    const a = { theta: d.theta - 0.5, phi: d.phi, radius: d.radius * 1.08 };
+    const b = { theta: d.theta + 0.4, phi: d.phi - 0.05, radius: d.radius * 0.95 };
     await camOf("main", null, 0, 0, a);
     await R.sleep(700);
     const end = await line("Kurz zusammengefasst: Wände, Raster, Nordrichtung, Dach, Wetter, Startansicht, Favoriten und eigene Knöpfe – alles unten in der Seitenleiste des Editors.");
@@ -863,7 +886,7 @@ if (PART === "b") {
   await chapter("Rückgängig und Wiederholen");
   await sayOver("Das Wichtigste zuerst: Verschiebst du aus Versehen einen Raum …");
   {
-    const p = await R.planPoint(3, 2.5);
+    const p = await R.planPoint(3.5, 5.2);
     await R.move(p.x, p.y, 0.6);
     await R.click();
     await R.drag(p.x + 120, p.y + 90, 1.2);
@@ -881,7 +904,7 @@ if (PART === "b") {
   await R.frame(0.1, 200);
   await R.hold(0.8);
   await sayOver("Das gilt für alles, was du gerade bearbeitest. Für ältere Stände gibt es die Wiederherstellungspunkte.");
-  await R.move(1780, 600, 0.8);
+  await R.move(1400, 300, 0.8);
   await R.hold(0.4);
 
   // ---------------------------------------------------------------- 4. Restore points
@@ -959,15 +982,17 @@ if (PART === "b") {
   await R.hold(0.6);
   await sayOver("Sonst wählst du je Raum den „Bereich“ neu – und schon stehen seine Geräte wieder in der Liste.");
   {
-    const p = await R.planPoint(3, 2.5);
-    await R.move(p.x, p.y, 0.6);
-    await R.click();
+    await scrollSide("Räume", 400, 0.5).catch(() => {});
+    await R.clickOn({ text: "Wohnzimmer" }, 0.6);
     await R.frame(0.2, 300);
     await R.pickOption("Bereich", "Wohnzimmer", 0.5);
+    await R.hold(0.4);
+    await scrollSide("Geräte", 260, 0.8).catch(() => console.log("no Geräte heading"));
     await R.hold(0.6);
   }
   await sayOver("Zurück zum alten Stand? Unter „Wiederherstellungspunkte“ steht jetzt der Punkt von vor dem Import.");
-  await R.clickOn({ text: "Zurück zur Etage" }, 0.5).catch(() => {});
+  await sideTop(0.5);
+  await R.clickOn({ text: "Zurück zur Etage" }, 0.5);
   await toSection("Sicherung", 200, 0.8);
   await openSection("Sicherung", 0.3);
   await R.hold(0.3);
@@ -979,7 +1004,7 @@ if (PART === "b") {
     const time = await R.page.evaluate(() => {
       const e = document.querySelector("neonplan3d-panel").shadowRoot.querySelector("fp3d-editor");
       const row = [...e.renderRoot.querySelectorAll(".fp3d-dev-row")].find((r) => r.textContent.includes("Wiederherstellen"));
-      return row ? row.querySelector("span").firstChild.textContent.trim() : "";
+      return row ? row.querySelector("span").textContent.split("·")[0].trim() : "";
     });
     await dialogOk(`Den Stand vom ${time} wiederherstellen? Der jetzige Stand bleibt als Wiederherstellungspunkt erhalten.`, 0.8);
   }
@@ -1019,17 +1044,18 @@ if (PART === "b") {
     "Erweiterungen: Schlüssel eintragen, „Aktivieren“, Packs „Installieren“",
   ];
   await sayOver("Jetzt der Umzug, zum Beispiel auf einen neuen Mini-PC. Am einfachsten spielst du das Backup von Home Assistant auf der neuen Hardware ein – dann ist NeonPlan mit allem da.");
+  await card("Weg 1: das Backup von Home Assistant", ["Auf der neuen Hardware einspielen – NeonPlan 3D ist mit Plan, Bildern, Packs und Shop-Verbindung da"], 0);
   await R.move(1100, 560, 1.2);
   await R.hold(0.6);
   await sayOver("Fängst du neu an, geht es in vier Schritten. Erstens: auf dem alten System „Alles sichern“.");
-  await card("Umzug in vier Schritten", STEPS, 0);
+  await card("Weg 2: neu anfangen", STEPS, 0);
   await R.moveTo({ text: "Alles sichern (Plan, Bilder, Packs)", exact: true }, 0.6);
   await R.hold(0.6);
   await sayOver("Zweitens: Auf dem neuen System installierst du NeonPlan 3D über HACS, fügst die Integration hinzu und legst deine Bereiche an.");
-  await card("Umzug in vier Schritten", STEPS, 1);
+  await card("Weg 2: neu anfangen", STEPS, 1);
   await R.hold(0.8);
   await sayOver("Drittens: Im Editor unter „Sicherung“ das Komplett-Backup wiederherstellen.");
-  await card("Umzug in vier Schritten", STEPS, 2);
+  await card("Weg 2: neu anfangen", STEPS, 2);
   {
     const [chooser] = await Promise.all([R.page.waitForFileChooser(), R.clickOn({ text: "Komplett-Backup wiederherstellen …", exact: true }, 0.5)]);
     await noCard();
@@ -1039,15 +1065,14 @@ if (PART === "b") {
   }
   await sayOver("Die Meldung oben sagt, was zurückkam – und welches Pack übersprungen wurde, weil es noch für die alte Installation signiert ist.");
   {
-    await R.move(1780, 500, 0.3);
-    await R.scrollTo("Zurück zur Etage", 150, 0.6).catch(() => {});
+    await sideTop(0.6);
     const n = await noticeBox();
     if (n) await R.move(n.x, n.y, 0.6);
     else console.log("no notice after the full backup");
     await R.hold(1.0);
   }
   await sayOver("Viertens: Unter „Erweiterungen“ trägst du deinen Lizenzschlüssel ein und drückst „Aktivieren“. Ich nehme einen erfundenen Demo-Schlüssel.");
-  await card("Umzug in vier Schritten", STEPS, 3);
+  await card("Weg 2: neu anfangen", STEPS, 3);
   await R.hold(0.6);
   await noCard();
   await R.clickOn({ text: "✦ Erweiterungen" }, 0.6);
@@ -1076,8 +1101,9 @@ if (PART === "b") {
   await quiet(EYE, 600);
   await R.hideCursor();
   {
-    const a = { theta: -0.7, phi: 0.95, radius: 30 };
-    const b = { theta: 0.2, phi: 0.88, radius: 26 };
+    const d = await camNow();
+    const a = { theta: d.theta - 0.5, phi: d.phi, radius: d.radius * 1.1 };
+    const b = { theta: d.theta + 0.2, phi: d.phi - 0.03, radius: d.radius * 1.02 };
     await camOf("main", null, 0, 0, a);
     await R.sleep(600);
     const PRIV = ["Plan, Bilder und Packs: in Home Assistant unter .storage", "Internet nur mit Lizenzschlüssel: einmal am Tag, Schlüssel + anonyme Kennung", "Kamerabilder, Verläufe, Zustände: bleiben in Home Assistant"];
@@ -1106,6 +1132,7 @@ if (PART === "b") {
 
   // ---------------------------------------------------------------- 10. Help
   await chapter("Hilfe und Rückmeldung");
+  await fresh();
   await R.hideCursor(false);
   await toEditor(false);
   await R.move(1500, 600, 0.01);
@@ -1127,8 +1154,9 @@ if (PART === "b") {
   await R.hideCursor();
   await quiet(EYE, 700);
   {
-    const a = { theta: -0.9, phi: 1.0, radius: 32 };
-    const b = { theta: 0.5, phi: 0.85, radius: 24 };
+    const d = await camNow();
+    const a = { theta: d.theta - 0.7, phi: d.phi + 0.04, radius: d.radius * 1.1 };
+    const b = { theta: d.theta + 0.2, phi: d.phi - 0.03, radius: d.radius * 1.0 };
     await camOf("main", null, 0, 0, a);
     await R.sleep(700);
     const l1 = "Das war die letzte Folge der Reihe. Vom ersten Raum bis zum Umzug kennst du jetzt jeden Knopf in NeonPlan 3D.";
@@ -1149,7 +1177,7 @@ if (PART === "b") {
     await step(await line(l1));
     await R.title("Danke fürs Zuschauen!", `Playlist „NeonPlan 3D – Tutorials“`);
     await step(await line(l2));
-    await R.title("Online-Demo · Anleitung · GitHub · Discord", `Links in der Beschreibung`);
+    await R.title("Demo · Anleitung · GitHub · Discord", `Links in der Beschreibung`);
     await step(await line(l3));
     await R.title("NeonPlan 3D", `läuft auch auf alten Wandtablets${VERSION}`);
     await step((await line(l4)) + 0.6);
