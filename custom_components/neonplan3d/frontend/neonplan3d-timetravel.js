@@ -20,7 +20,7 @@ var F=globalThis,V=F.ShadowRoot&&(F.ShadyCSS===void 0||F.ShadyCSS.nativeShadow)&
       ${this._label?_`<div class="label" style="--x:${this._label.x.toFixed(1)}px">${this._label.lines.map(h=>_`<span>${h}</span>`)}</div>`:g}`}render(){let t=this.session;if(!t)return g;let e=t.t,s=t.playback,n=t.state==="ready"&&!!s,r=t.state==="error"?t.error==="not_unlocked"?e("tt_locked"):t.error==="no_recorder"?e("tt_no_recorder"):t.error==="unknown_command"?e("tt_restart"):e("tt_error",{error:t.error??"?"}):null,o=s?Math.round(3600/s.speed):10;return _`<div class="frame"></div>
       <div class="clock" role="status" aria-live="off">
         <span class="badge">⏪ ${e("tt_badge")}</span>
-        ${n?_`<b class="clock-time">${this.clockText(s.t)}</b><span class="clock-ago">${this.agoText(s.t)}</span>`:_`<span class="clock-ago">${r??`${e("tt_loading")} ${Math.round(t.progress*100)} %`}</span>`}
+        ${n?_`<b class="clock-time"></b><span class="clock-ago"></span>`:_`<span class="clock-msg">${r??`${e("tt_loading")} ${Math.round(t.progress*100)} %`}</span>`}
       </div>
       ${this._toast?_`<div class="toast" role="alert">${e("tt_readonly")}</div>`:g}
       <div class="bar">
@@ -93,7 +93,8 @@ var F=globalThis,V=F.ShadowRoot&&(F.ShadyCSS===void 0||F.ShadyCSS.nativeShadow)&
       line-height: 1.1;
       font-variant-numeric: tabular-nums;
     }
-    .clock-ago {
+    .clock-ago,
+    .clock-msg {
       font-size: 12px;
       color: var(--fp3d-muted, #8a9bb8);
       white-space: normal;

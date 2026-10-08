@@ -338,8 +338,9 @@ export class Fp3dTimeBar extends LitElement {
       <div class="clock" role="status" aria-live="off">
         <span class="badge">⏪ ${t("tt_badge")}</span>
         ${ready
-          ? html`<b class="clock-time">${this.clockText(pb.t)}</b><span class="clock-ago">${this.agoText(pb.t)}</span>`
-          : html`<span class="clock-ago">${error ?? `${t("tt_loading")} ${Math.round(s.progress * 100)} %`}</span>`}
+          ? // filled by onTick (written directly, many times a second while playing – no binding inside)
+            html`<b class="clock-time"></b><span class="clock-ago"></span>`
+          : html`<span class="clock-msg">${error ?? `${t("tt_loading")} ${Math.round(s.progress * 100)} %`}</span>`}
       </div>
       ${this._toast ? html`<div class="toast" role="alert">${t("tt_readonly")}</div>` : nothing}
       <div class="bar">
@@ -415,7 +416,8 @@ export class Fp3dTimeBar extends LitElement {
       line-height: 1.1;
       font-variant-numeric: tabular-nums;
     }
-    .clock-ago {
+    .clock-ago,
+    .clock-msg {
       font-size: 12px;
       color: var(--fp3d-muted, #8a9bb8);
       white-space: normal;

@@ -3376,9 +3376,11 @@ export class Fp3dView3d extends LitElement {
       .fp3d-replay .fp3d-alert-banner {
         top: 74px;
       }
-      /* the star (central menu) rests while travelling: the heat legend takes its place */
-      .fp3d-replay .fp3d-legend {
-        bottom: calc(56px + var(--fp3d-bottom-inset, 0px));
+      /* the time bar takes the bottom: the heat legend moves up under the energy values */
+      .fp3d-replay .fp3d-legend,
+      .fp3d-replay.fp3d-has-alerts .fp3d-legend {
+        bottom: auto;
+        top: 62px;
       }
       .fp3d-replay .fp3d-energy {
         max-width: calc(50% - 96px);
