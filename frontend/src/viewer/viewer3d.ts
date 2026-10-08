@@ -1497,6 +1497,10 @@ export class FloorplanViewer {
         if (door.a >= 0 && door.a < zones.length) door.a = zones[door.a];
         if (door.b >= 0 && door.b < zones.length) door.b = zones[door.b];
       }
+      for (const w of surface.blockers) {
+        w.ra = zoneOf(zones, w.ra);
+        w.rb = zoneOf(zones, w.rb);
+      }
     }
     fv.lightSurface = surface;
     const g = new Geometry();

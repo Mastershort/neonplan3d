@@ -90,6 +90,8 @@ export interface FloorGeometry {
 }
 
 export const SLAB = 0.2;
+/** How far the slab under a doorway stays below the floor. */
+const DOORWAY_DROP = 0.01;
 const BUCKETS = 8;
 const SHADOW_WIDTH = 0.42;
 const SHADOW_DARK = 0.42;
@@ -268,7 +270,9 @@ export function buildFloorGeometry(
       const ranges: [number, number][] = [];
       let y = -SLAB;
       for (const [a, b] of covering) {
-        if (a > y + 1e-4) ranges.push([y, a]);
+        // the slab under a doorway ends just below the floor: a top at floor level fights with the room
+        // floors over the gap and flickers as a strip in every passage (#290)
+        if (a > y + 1e-4) ranges.push([y, a < 1e-4 ? -DOORWAY_DROP : a]);
         y = Math.max(y, b);
       }
       if (H > y + 1e-4) ranges.push([y, H]);

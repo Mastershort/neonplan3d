@@ -3,7 +3,7 @@ import { test } from "node:test";
 import type { Floor, Opening, Room } from "../model.ts";
 import { newFloor } from "../model.ts";
 import { buildFloorGeometry } from "./build.ts";
-import { buildLightSurface, lightColors, type LightSource, zoneOf } from "./lighting.ts";
+import { buildLightSurface, lightColors, type LightSource, shadowed, zoneOf } from "./lighting.ts";
 
 function rect(id: string, x0: number, z0: number, x1: number, z1: number): Room {
   return { id, name: id, area_id: null, points: [[x0, z0], [x1, z0], [x1, z1], [x0, z1]], floor_material: "wood" };
@@ -148,4 +148,45 @@ test("joined rooms keep the outside zone for outdoor lamps (#160)", () => {
   assert.equal(zoneOf([0, 0, 2], 3), 3);
   assert.equal(zoneOf(null, 3), 3);
   assert.equal(zoneOf([0, 0], -1), -1);
+});
+
+test("a free-standing wall in a room casts a shadow; light passes over a low one and through its door (#300)", () => {
+  const base = { ...newFloor("f", "F", 0), rooms: [rect("a", 0, 0, 6, 3)] };
+  const at = (walls: NonNullable<Floor["walls"]>, openings: Opening[] = []) => {
+    const s = surfaceOf({ ...base, walls, openings });
+    const c = lightColors(s, [lamp(1.5, 1.5, [1, 1, 1], 0, { y: 1.4, kind: "omni" })]);
+    return { near: floorAt(s, c, 2, 1.5)[0], behind: floorAt(s, c, 3.6, 1.5)[0] };
+  };
+  const open = at([]);
+  assert.ok(open.behind > 0.05, `no wall ${open.behind}`);
+  const drywall = at([{ id: "w", a: [3, 0], b: [3, 3] }]);
+  assert.equal(drywall.behind, 0);
+  assert.ok(Math.abs(drywall.near - open.near) < 1e-6, "the lamp's side stays as bright");
+  // the light falls past the top of a low wall onto the floor behind it
+  assert.ok(at([{ id: "w", a: [3, 0], b: [3, 3], height: 0.3 }]).behind > 0);
+  // a passage in the drywall lets the light through
+  const passage: Opening = { id: "p", room_id: "a", edge: 0, offset: 1.5, width: 1.2, type: "door", sill: 0, height: 2.05, hinge: "left", leaves: 1, swing: "in", cover: null, contact: null, contact2: null, tilt: null, wall: "w" };
+  assert.ok(at([{ id: "w", a: [3, 0], b: [3, 3] }], [passage]).behind > 0.05);
+});
+
+test("floor cells end at the room's edge, not in the neighbouring room (#290, #300)", () => {
+  const floor = { ...newFloor("f", "F", 0), rooms: [rect("a", 0, 0, 3.9, 3.1), rect("b", 3.9, 0, 7, 3.1)] };
+  const s = surfaceOf(floor);
+  for (let v = 0; v < s.room.length; v++) {
+    if (s.room[v] !== 0 || s.normal[v * 3 + 1] !== 1) continue;
+    assert.ok(s.pos[v * 3] <= 3.9 + 1e-6 && s.pos[v * 3 + 2] <= 3.1 + 1e-6, `vertex ${s.pos[v * 3]}, ${s.pos[v * 3 + 2]}`);
+  }
+});
+
+test("shadowed: a wall between lamp and point, its height and its openings", () => {
+  const wall = { a: [2, 0] as [number, number], b: [2, 4] as [number, number], h: 2.5, ra: 0, rb: 0, gaps: [{ s0: 1, s1: 2, y0: 0, y1: 2 }] };
+  const s = { x: 0, y: 1.5, z: 3 };
+  assert.equal(shadowed(s, [wall], 4, 0, 3), true);
+  assert.equal(shadowed(s, [wall], 1.9, 0, 3), false);
+  // through the opening (z 1..2 along the wall)
+  assert.equal(shadowed({ x: 0, y: 1.5, z: 1.5 }, [wall], 4, 0, 1.5), false);
+  // over a low wall
+  assert.equal(shadowed(s, [{ ...wall, h: 0.5 }], 4, 0, 3), false);
+  // past the wall's end
+  assert.equal(shadowed({ x: 0, y: 1.5, z: 5 }, [wall], 4, 0, 5), false);
 });

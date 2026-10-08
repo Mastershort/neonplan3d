@@ -1,7 +1,8 @@
 // Room lighting without real-time lights: floors and the inner faces of walls are covered by a fine
 // grid of quads (the "light surface"). Every vertex knows its room and the direction it faces; its
 // colour is the sum of the lamps of the same room (soft falloff, facing, lamp characteristic). Light
-// reaches a neighbouring room only through doors. The surface is built once per floor plan, colours are
+// reaches a neighbouring room only through doors, and walls cast a shadow within a room (a free-standing
+// drywall, the inner corner of an L-shaped room, #300). The surface is built once per floor plan, colours are
 // recomputed when a light changes – a few thousand vertices times a few lamps, well below a millisecond.
 
 import type { Floor, Vec2 } from "../model.ts";
@@ -38,6 +39,21 @@ export interface LightSurface {
   fold: Float32Array;
   /** Doors between two rooms: light leaks through them. */
   doors: { id: string; a: number; b: number; x: number; y: number; z: number }[];
+  /** Walls as light blockers: centre line, height, the rooms on both sides and their openings. */
+  blockers: Blocker[];
+}
+
+/** A wall that stops light within the rooms it borders (openings let it through). */
+export interface Blocker {
+  a: Vec2;
+  b: Vec2;
+  /** Height of the wall. */
+  h: number;
+  /** Room (light zone) index on each side; the outside zone for the outer side of an exterior wall. */
+  ra: number;
+  rb: number;
+  /** Openings along the wall: s from a in metres, y from the floor. */
+  gaps: { s0: number; s1: number; y0: number; y1: number }[];
 }
 
 const LIFT = 0.012;
@@ -76,8 +92,10 @@ export function buildLightSurface(
     const zs = r.points.map((p) => p[1]);
     const x0 = Math.min(...xs);
     const z0 = Math.min(...zs);
-    const nx = Math.max(1, Math.ceil((Math.max(...xs) - x0) / cell));
-    const nz = Math.max(1, Math.ceil((Math.max(...zs) - z0) / cell));
+    const x1 = Math.max(...xs);
+    const z1 = Math.max(...zs);
+    const nx = Math.max(1, Math.ceil((x1 - x0) / cell));
+    const nz = Math.max(1, Math.ceil((z1 - z0) / cell));
     for (let i = 0; i < nx; i++) {
       for (let j = 0; j < nz; j++) {
         const cx = x0 + (i + 0.5) * cell;
@@ -87,7 +105,11 @@ export function buildLightSurface(
         if (holes.some((h) => pointInPolygon([cx, cz], h))) continue;
         const a = x0 + i * cell;
         const b = z0 + j * cell;
-        quad([a, LIFT, b], [a, LIFT, b + cell], [a + cell, LIFT, b + cell], [a + cell, LIFT, b], [0, 1, 0], ri, -1);
+        // the last row and column end at the room's edge: past it they would light a strip of the
+        // neighbouring room behind the wall (#300) and lie twice in a passage (#290)
+        const a1 = Math.min(a + cell, x1);
+        const b1 = Math.min(b + cell, z1);
+        quad([a, LIFT, b], [a, LIFT, b1], [a1, LIFT, b1], [a1, LIFT, b], [0, 1, 0], ri, -1);
       }
     }
   });
@@ -115,6 +137,7 @@ export function buildLightSurface(
 
   // walls: the face towards each room
   const cut = Math.min(floor.cut_height, floor.height);
+  const blockers: Blocker[] = [];
   walls.forEach((w, wi) => {
     // rows of light cells up to the wall's own height
     const H = Math.min(floor.height, w.height ?? floor.height);
@@ -127,6 +150,8 @@ export function buildLightSurface(
     const nLeft: Vec2 = [-u[1], u[0]];
     const bucket = wallBuckets[wi];
     const gaps = openingSpans(w, u, len, openings);
+    const sideRoom = (id: string | null, outer: boolean) => (id ? floor.rooms.findIndex((r) => r.id === id) : outer ? outside : -1);
+    blockers.push({ a: w.a, b: w.b, h: H, ra: sideRoom(w.roomLeft, false), rb: sideRoom(w.roomRight, w.exterior), gaps });
     // the cells break at the cut and at every sill, top and side of an opening, so the hole a window
     // leaves in the lit face matches the window (a cell is lit or dark as a whole)
     const marks = (vals: number[], lo: number, hi: number) =>
@@ -182,7 +207,7 @@ export function buildLightSurface(
     if (a < 0 || b < 0) continue;
     doors.push({ id: o.opening.id, a, b, x: o.start[0] + o.axis[0] * (o.width / 2), y: Math.min(1.1, o.top * 0.55), z: o.start[1] + o.axis[1] * (o.width / 2) });
   }
-  return { pos: new Float32Array(pos), normal: new Float32Array(normal), room: Int16Array.from(room), fold: new Float32Array(fold), doors };
+  return { pos: new Float32Array(pos), normal: new Float32Array(normal), room: Int16Array.from(room), fold: new Float32Array(fold), doors, blockers };
 }
 
 function onWall(w: Wall, o: OpeningInfo): boolean {
@@ -282,10 +307,12 @@ export function lightColors(surface: LightSurface, sources: LightSource[], stren
       all.push({ x: door.x, y: door.y, z: door.z, color: [c[0] / level, c[1] / level, c[2] / level], level: Math.min(1, level * 0.9 * (0.35 + 0.65 * open)), kind: "wall", room: to });
     }
   });
-  const byRoom = new Map<number, LightSource[]>();
+  const byRoom = new Map<number, (LightSource & { walls: Blocker[] })[]>();
   for (const s of all) {
-    // warm light stays warm on the blue floor (the same curve as before)
-    const t = { ...s, color: s.color.map((v) => Math.pow(v, 1.5)) as [number, number, number] };
+    // warm light stays warm on the blue floor (the same curve as before); only the walls of its own
+    // room can stand between a lamp and what it lights
+    const walls = surface.blockers.filter((w) => w.ra === s.room || w.rb === s.room);
+    const t = { ...s, color: s.color.map((v) => Math.pow(v, 1.5)) as [number, number, number], walls };
     byRoom.set(s.room, [...(byRoom.get(s.room) ?? []), t]);
   }
   const { pos, normal, room } = surface;
@@ -298,6 +325,7 @@ export function lightColors(surface: LightSurface, sources: LightSource[], stren
     let g = 0;
     let b = 0;
     for (const s of list) {
+      if (s.walls.length && shadowed(s, s.walls, pos[i], pos[i + 1], pos[i + 2])) continue;
       const k = contribution(s, pos[i], pos[i + 1], pos[i + 2], normal[i], normal[i + 1], normal[i + 2]);
       r += s.color[0] * k;
       g += s.color[1] * k;
@@ -309,6 +337,35 @@ export function lightColors(surface: LightSurface, sources: LightSource[], stren
     out[i + 2] = 1 - Math.exp(-b * strength * 1.6);
   }
   return out;
+}
+
+/**
+ * Whether a wall stands between a lamp and a point: the line between them crosses the wall's centre
+ * line below its top and not through an opening. A point on the lamp's side of a wall (its lit face sits
+ * in front of the centre line) is never shadowed by that wall.
+ */
+export function shadowed(s: { x: number; y: number; z: number }, walls: readonly Blocker[], px: number, py: number, pz: number): boolean {
+  const dx = px - s.x;
+  const dz = pz - s.z;
+  for (const w of walls) {
+    const ex = w.b[0] - w.a[0];
+    const ez = w.b[1] - w.a[1];
+    const den = dx * ez - dz * ex;
+    if (Math.abs(den) < 1e-9) continue;
+    const ax = w.a[0] - s.x;
+    const az = w.a[1] - s.z;
+    // t along lamp -> point, k along the wall a -> b
+    const t = (ax * ez - az * ex) / den;
+    if (t <= 1e-6 || t >= 1 - 1e-6) continue;
+    const k = (ax * dz - az * dx) / den;
+    if (k < 0 || k > 1) continue;
+    const y = s.y + (py - s.y) * t;
+    if (y >= w.h) continue;
+    const along = k * Math.hypot(ex, ez);
+    if (w.gaps.some((g) => along > g.s0 && along < g.s1 && y > g.y0 && y < g.y1)) continue;
+    return true;
+  }
+  return false;
 }
 
 /** Index of the room a point lies in; outside every room: the outside zone (rooms.length). */

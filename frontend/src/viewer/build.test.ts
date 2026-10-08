@@ -99,6 +99,15 @@ test("a door leaves the base line and the wall shadow out of the doorway", () =>
   near(info.faceOut, EXT);
 });
 
+test("the slab under a doorway stays below the floor, so no wall face lies on it (#290)", () => {
+  const geo = buildFloorGeometry(floorWith([rect("a", 0, 0, 4, 3), rect("b", 4, 0, 7, 3)], [opening("door", "a", 1, 1.5, 0.9)]), EXT, INT);
+  const p = geo.walls.getAttribute("position");
+  for (let i = 0; i < p.count; i += 3) {
+    const flat = Math.abs(p.getY(i) - p.getY(i + 1)) < 1e-9 && Math.abs(p.getY(i) - p.getY(i + 2)) < 1e-9;
+    assert.ok(!(flat && Math.abs(p.getY(i)) < 0.005), `wall face at floor level near ${p.getX(i)}, ${p.getZ(i)}`);
+  }
+});
+
 test("a window above the cut height keeps the cut line; one across it interrupts it", () => {
   const cutLength = (g: BufferGeometry) => segments(g).filter((s) => atY(s, 1.15) && s[6] >= 16 && !vertical(s)).reduce((sum, s) => sum + length(s), 0);
   const plain = buildFloorGeometry(floorWith([rect("a", 0, 0, 4, 3)]), EXT, INT);
