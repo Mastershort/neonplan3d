@@ -8,6 +8,7 @@ from __future__ import annotations
 from collections.abc import Iterable, Mapping
 from datetime import datetime
 import json
+import re
 from typing import Any
 
 # The longest window one request may ask for (a day plus some margin).
@@ -236,6 +237,62 @@ def car_state(state: str) -> str:
     return state if state in ("home", "unavailable", "unknown") else "not_home"
 
 
+def has_feature(packs: Iterable[Mapping[str, Any]], feature: str) -> bool:
+    """Whether an installed pack unlocks a Pro feature."""
+    return any(feature in (pack.get("features") or []) for pack in packs)
+
+
 def has_time_travel(packs: Iterable[Mapping[str, Any]]) -> bool:
     """Whether an installed pack unlocks the time travel."""
-    return any("time_travel" in (pack.get("features") or []) for pack in packs)
+    return has_feature(packs, "time_travel")
+
+
+# where something or someone is: never part of the past (a phone's address, a car's coordinates, a Wi-Fi name)
+_LOCATION_CLASSES = frozenset({"geocoded_location", "location"})
+_LOCATION_NAME = re.compile(r"location|address|geocoded|ssid|bssid|standort|adresse", re.IGNORECASE)
+
+
+def location_like(
+    entity_id: str,
+    attributes: Mapping[str, Any] | None,
+    translation_key: str | None = None,
+    device_class: str | None = None,
+) -> bool:
+    """Whether an entity tells a place: its class or key, coordinates among its attributes, or its name."""
+    attrs = attributes or {}
+    classes = {str(attrs.get("device_class") or ""), str(device_class or ""), str(translation_key or "")}
+    if classes & _LOCATION_CLASSES:
+        return True
+    if "latitude" in attrs or "longitude" in attrs:
+        return True
+    return bool(_LOCATION_NAME.search(f"{entity_id} {attrs.get('friendly_name') or ''} {translation_key or ''}"))
+
+
+def _ref(value: Any) -> str | None:
+    return value if isinstance(value, str) and value and value != "none" else None
+
+
+def car_refs(building: Mapping[str, Any]) -> tuple[set[str], set[str]]:
+    """The cars of the plan's parking spots: trackers named directly, and entities whose device has the tracker.
+
+    A spot's own entity may be the tracker, the car's links may name one; else the tracker is the one on
+    the car's device (found from its device entity or the spot's entity).
+    """
+    trackers: set[str] = set()
+    seeds: set[str] = set()
+    for floor in building.get("floors") or []:
+        for item in floor.get("furniture") or []:
+            if item.get("type") != "parking":
+                continue
+            linked = isinstance(item.get("car"), Mapping)
+            car = item.get("car") if linked else {}
+            entity = _ref(item.get("entity"))
+            for ref in (entity, _ref(car.get("tracker"))):
+                if ref and domain_of(ref) == "device_tracker":
+                    trackers.add(ref)
+            if not linked:
+                continue
+            seed = _ref(car.get("device")) or entity
+            if seed:
+                seeds.add(seed)
+    return trackers, seeds

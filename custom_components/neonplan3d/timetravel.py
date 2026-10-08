@@ -14,6 +14,7 @@ from typing import Any
 
 from homeassistant.components import websocket_api
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import entity_registry as er
 import homeassistant.helpers.config_validation as cv
 from homeassistant.util import dt as dt_util
 import voluptuous as vol
@@ -24,10 +25,13 @@ from .timetravel_rows import (
     MAX_SPAN,
     STAT_STEP,
     bucket,
+    car_refs,
     car_state,
     domain_of,
     entity_rows,
+    has_feature,
     has_time_travel,
+    location_like,
     oldest_data,
     read_row,
 )
@@ -69,6 +73,43 @@ def private_trackers(hass: HomeAssistant) -> set[str]:
         if isinstance(trackers, list | tuple):
             out.update(t for t in trackers if isinstance(t, str))
     return out
+
+
+def private_entities(hass: HomeAssistant, entity_ids: list[str]) -> set[str]:
+    """Entities whose past stays private: places (an address, coordinates, a Wi-Fi name) and every entity
+    of a device people carry (the device of a person's tracker: a phone, a watch)."""
+    registry = er.async_get(hass)
+    carried: set[str] = set()
+    for tracker in private_trackers(hass):
+        if (entry := registry.async_get(tracker)) is not None and entry.device_id:
+            carried.add(entry.device_id)
+    out: set[str] = set()
+    for entity_id in entity_ids:
+        entry = registry.async_get(entity_id)
+        if entry is not None and entry.device_id in carried:
+            out.add(entity_id)
+            continue
+        state = hass.states.get(entity_id)
+        device_class = (entry.device_class or entry.original_device_class) if entry is not None else None
+        translation_key = entry.translation_key if entry is not None else None
+        if location_like(entity_id, state.attributes if state else None, translation_key, device_class):
+            out.add(entity_id)
+    return out
+
+
+def car_trackers(hass: HomeAssistant, building: dict[str, Any]) -> set[str]:
+    """The trackers of the cars on the plan's parking spots (named, or on the car's device)."""
+    trackers, seeds = car_refs(building)
+    registry = er.async_get(hass)
+    for seed in seeds:
+        if (entry := registry.async_get(seed)) is None or not entry.device_id:
+            continue
+        trackers.update(
+            e.entity_id
+            for e in er.async_entries_for_device(registry, entry.device_id)
+            if domain_of(e.entity_id) == "device_tracker"
+        )
+    return trackers
 
 
 def collect(
@@ -168,13 +209,16 @@ async def ws_timetravel_history(
     from homeassistant.components.recorder import get_instance  # the recorder is an after_dependency
 
     instance = get_instance(hass)
-    # a person's own tracker stays private even when it was linked as a car's
+    # only the trackers of the plan's cars (Auto Pro), never a person's own, even when linked as a car's
     private = private_trackers(hass)
-    cars = [e for e in msg["car_trackers"] if e not in private]
+    configured = car_trackers(hass, data.building) if has_feature(data.packs, "auto_pro") else set()
+    cars = [e for e in msg["car_trackers"] if e in configured and e not in private]
+    # places and the devices people carry stay out, whatever the frontend asks for
+    hidden = private_entities(hass, [*msg["entity_ids"], *msg["statistic_ids"]])
+    entity_ids = [e for e in msg["entity_ids"] if e not in hidden]
+    statistic_ids = [e for e in msg["statistic_ids"] if e not in hidden]
     try:
-        result = await instance.async_add_executor_job(
-            collect, hass, start, end, msg["entity_ids"], msg["statistic_ids"], cars
-        )
+        result = await instance.async_add_executor_job(collect, hass, start, end, entity_ids, statistic_ids, cars)
     except Exception as err:  # the recorder may fail in many ways (database busy, migrating)
         _LOGGER.warning("Time travel history failed: %s", err)
         connection.send_error(msg["id"], "history_failed", str(err))

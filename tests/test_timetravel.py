@@ -8,6 +8,8 @@ from typing import Any
 from unittest.mock import patch
 
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers import entity_registry as er
 from homeassistant.setup import async_setup_component
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
@@ -17,11 +19,14 @@ from custom_components.neonplan3d.timetravel_rows import (
     MAX_ROWS,
     bucket,
     cap_rows,
+    car_refs,
     car_state,
     columnar,
     dedupe,
     entity_rows,
+    has_feature,
     has_time_travel,
+    location_like,
     oldest_data,
     quantise,
     read_row,
@@ -157,6 +162,41 @@ def test_the_pack_feature_unlocks_time_travel() -> None:
     assert "time_travel" in packs.KNOWN_FEATURES
 
 
+def test_places_stay_private() -> None:
+    assert location_like("sensor.pixel_geocoded_location", {})
+    assert location_like("sensor.x", {}, translation_key="geocoded_location")
+    assert location_like("sensor.x", {"device_class": "location"})
+    assert location_like("sensor.car_position", {"latitude": 52.1, "longitude": 9.3})
+    assert location_like("sensor.phone_wifi_connection", {"friendly_name": "Phone Wi-Fi SSID"})
+    assert location_like("sensor.router_bssid", {})
+    assert location_like("sensor.auto_adresse", {})
+    assert not location_like("sensor.kitchen_temperature", {"device_class": "temperature"})
+    assert not location_like("light.kitchen", None)
+
+
+def test_car_trackers_come_from_the_parking_spots() -> None:
+    building = {
+        "floors": [
+            {
+                "furniture": [
+                    {"type": "parking", "entity": "device_tracker.spot", "car": None},
+                    {"type": "parking", "entity": "binary_sensor.spot2", "car": {"tracker": "device_tracker.named"}},
+                    {"type": "parking", "entity": None, "car": {"device": "sensor.ev_soc", "tracker": None}},
+                    {"type": "parking", "entity": "sensor.spot4", "car": {}},
+                    {"type": "parking", "entity": "sensor.no_car"},
+                    {"type": "sofa", "entity": "device_tracker.not_a_car"},
+                ]
+            }
+        ]
+    }
+    trackers, seeds = car_refs(building)
+    assert trackers == {"device_tracker.spot", "device_tracker.named"}
+    assert seeds == {"binary_sensor.spot2", "sensor.ev_soc", "sensor.spot4"}
+    assert car_refs({}) == (set(), set())
+    assert has_feature([{"features": ["auto_pro"]}], "auto_pro")
+    assert not has_feature([{"features": ["time_travel"]}], "auto_pro")
+
+
 async def _setup(hass: HomeAssistant) -> None:
     await async_setup_component(hass, "http", {})
     entry = MockConfigEntry(domain=DOMAIN, data={})
@@ -243,9 +283,21 @@ async def test_history_answer(hass: HomeAssistant, hass_ws_client) -> None:
 
 
 async def test_history_car_trackers(hass: HomeAssistant, hass_ws_client) -> None:
-    """A car's tracker comes back as home or away; a person's tracker is never asked for."""
+    """A car's tracker comes back as home or away; a person's tracker or one of no parked car is never asked for."""
     await _setup(hass)
-    hass.data[DOMAIN].packs = [{"id": "test.pro", "features": ["time_travel"], "items": []}]
+    data = hass.data[DOMAIN]
+    data.packs = [{"id": "test.pro", "features": ["time_travel", "auto_pro"], "items": []}]
+    data.building = {
+        **data.building,
+        "floors": [
+            {
+                "furniture": [
+                    {"type": "parking", "entity": "device_tracker.car", "car": None},
+                    {"type": "parking", "entity": None, "car": {"tracker": "device_tracker.anna_phone"}},
+                ]
+            }
+        ],
+    }
     hass.config.components.add("recorder")
     hass.states.async_set("person.anna", "home", {"device_trackers": ["device_tracker.anna_phone"]})
     asked: list[list[str]] = []
@@ -271,7 +323,7 @@ async def test_history_car_trackers(hass: HomeAssistant, hass_ws_client) -> None
             _msg(
                 entity_ids=["light.kitchen", "device_tracker.car"],
                 statistic_ids=[],
-                car_trackers=["device_tracker.car", "device_tracker.anna_phone"],
+                car_trackers=["device_tracker.car", "device_tracker.anna_phone", "device_tracker.neighbour"],
             )
         )
         result = await client.receive_json()
@@ -279,4 +331,90 @@ async def test_history_car_trackers(hass: HomeAssistant, hass_ws_client) -> None
     answer = result["result"]
     assert answer["entities"]["device_tracker.car"] == {"t": [0, 600], "v": [0, 1], "tab": ["home", "not_home"]}
     assert "device_tracker.anna_phone" not in str(asked)
+    assert "device_tracker.neighbour" not in str(asked)
     assert "Work" not in str(answer)
+
+
+class _Instance:
+    keep_days = 10
+
+    async def async_add_executor_job(self, func, *args):
+        return func(*args)
+
+
+async def test_history_without_auto_pro_has_no_cars(hass: HomeAssistant, hass_ws_client) -> None:
+    """Without Auto Pro no tracker is answered, even one on a parking spot."""
+    await _setup(hass)
+    data = hass.data[DOMAIN]
+    data.packs = [{"id": "test.pro", "features": ["time_travel"], "items": []}]
+    data.building = {**data.building, "floors": [{"furniture": [{"type": "parking", "entity": "device_tracker.car"}]}]}
+    hass.config.components.add("recorder")
+    asked: list[list[str]] = []
+
+    def fake_states(_hass, start, end, entity_ids, with_attributes):
+        asked.append(list(entity_ids))
+        return {}
+
+    with (
+        patch("homeassistant.components.recorder.get_instance", return_value=_Instance()),
+        patch.object(timetravel, "_states", fake_states),
+    ):
+        client = await hass_ws_client(hass)
+        await client.send_json_auto_id(
+            _msg(entity_ids=["device_tracker.car"], statistic_ids=[], car_trackers=["device_tracker.car"])
+        )
+        result = await client.receive_json()
+    assert result["success"], result
+    assert "device_tracker.car" not in str(asked)
+
+
+async def test_history_leaves_places_and_carried_devices_out(hass: HomeAssistant, hass_ws_client) -> None:
+    """A phone's sensors (its device has a person's tracker) and anything telling a place are never asked for."""
+    await _setup(hass)
+    hass.data[DOMAIN].packs = [{"id": "test.pro", "features": ["time_travel"], "items": []}]
+    hass.config.components.add("recorder")
+    phone = MockConfigEntry(domain="mobile_app", data={})
+    phone.add_to_hass(hass)
+    device = dr.async_get(hass).async_get_or_create(
+        config_entry_id=phone.entry_id, identifiers={("mobile_app", "pixel")}
+    )
+    registry = er.async_get(hass)
+    registry.async_get_or_create(
+        "device_tracker", "mobile_app", "pixel_tracker", device_id=device.id, suggested_object_id="pixel"
+    )
+    registry.async_get_or_create(
+        "sensor", "mobile_app", "pixel_battery", device_id=device.id, suggested_object_id="pixel_battery"
+    )
+    hass.states.async_set("person.anna", "home", {"device_trackers": ["device_tracker.pixel"]})
+    hass.states.async_set("sensor.pixel_battery", "80", {"device_class": "battery"})
+    hass.states.async_set("sensor.car_place", "Main St 1", {"latitude": 52.0, "longitude": 9.0})
+    hass.states.async_set("sensor.flur_temperature", "21", {"device_class": "temperature"})
+    asked: dict[str, Any] = {"states": []}
+
+    def fake_states(_hass, start, end, entity_ids, with_attributes):
+        asked["states"].extend(entity_ids)
+        return {}
+
+    def fake_stats(_hass, **kwargs):
+        asked["stats"] = sorted(kwargs["statistic_ids"])
+        return {}
+
+    with (
+        patch("homeassistant.components.recorder.get_instance", return_value=_Instance()),
+        patch.object(timetravel, "_states", fake_states),
+        patch("homeassistant.components.recorder.statistics.statistics_during_period", fake_stats),
+    ):
+        client = await hass_ws_client(hass)
+        await client.send_json_auto_id(
+            _msg(
+                entity_ids=["sensor.car_place", "sensor.wifi_ssid", "light.kitchen"],
+                statistic_ids=["sensor.pixel_battery", "sensor.flur_temperature"],
+            )
+        )
+        result = await client.receive_json()
+    assert result["success"], result
+    assert asked["stats"] == ["sensor.flur_temperature"]
+    assert "sensor.pixel_battery" not in str(asked)
+    assert "sensor.car_place" not in str(asked)
+    assert "sensor.wifi_ssid" not in str(asked)
+    assert "light.kitchen" in asked["states"]
