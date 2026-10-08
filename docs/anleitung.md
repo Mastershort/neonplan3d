@@ -97,6 +97,8 @@ Zusätzlich gibt es die Dashboard-Karte, die dieselbe 3D-Ansicht in jedes Dashbo
 
 Der Editor besteht aus dem Grundriss in der Mitte, der Werkzeugleiste oben und der Seitenleiste rechts. Die Seitenleiste zeigt immer, was gerade ausgewählt ist: die Etage, einen Raum, ein Möbel, eine Tür oder ein Gerät.
 
+Zeichnen geht am besten am PC oder Tablet. Auf dem Handy kannst du dein Haus ansehen und bedienen; der Editor sagt das dort einmal (✕ blendet den Hinweis aus).
+
 ### 4.1 Werkzeuge
 
 | Werkzeug | Was es tut |
@@ -136,7 +138,7 @@ Ohne Auswahl zeigt die Seitenleiste die Etagen:
 ### 4.3 Räume zeichnen
 
 - **Rechteck:** In den Plan tippen und ziehen.
-- **Freie Form:** Punkt für Punkt setzen. Ein Tipp auf den ersten Punkt oder **Enter** schließt den Raum, **Esc** bricht ab.
+- **Freie Form:** Punkt für Punkt setzen. Ein Tipp auf den ersten Punkt oder **Enter** schließt den Raum, **Esc** bricht ab. Beim Zeichnen steht an jeder Kante ihre Länge, auch an der gerade gezogenen.
 - **Ecken verschieben:** Mit **Auswählen** einen Raum antippen und die Ecken ziehen. Das **+** auf einer Kante fügt einen neuen Punkt ein.
 - **Fangen:** Ecken rasten am Raster, an Ecken und Kanten anderer Räume und an Fluchtlinien ein. Mit gedrückter **Alt**-Taste bewegst du frei.
 
@@ -147,6 +149,8 @@ Ein ausgewählter Raum zeigt rechts:
 - **Name** und **Bereich**: Die Verknüpfung mit einem Home-Assistant-Bereich ist das Wichtigste. Darüber findet NeonPlan 3D Lichter, Rollläden, Sensoren und Szenen des Raums.
 - **Bodenbelag**: Holz, Eiche, Fliesen, Teppich, Stein oder Beton erscheinen in 3D als dezentes Muster.
 - **Ansicht als Start des Raums**: Schalte **3D daneben** ein, dreh und zoom den Raum so, wie er sich zeigen soll, und tippe den Knopf. Tippst du den Raum später in 3D an, fliegt die Kamera genau dorthin – Blickwinkel, Zoom und Bildausschnitt. ↺ nimmt das zurück, dann wird der Raum wieder von oben gezeigt.
+- Die **ID** des Raums für die Karten-Option `room:` (antippen kopiert sie).
+- **Türen und Fenster** des Raums als Liste: Ein Tipp wählt die Öffnung aus – praktisch, wenn eine Tür im Plan schwer zu treffen ist.
 - Die Liste **Geräte** des Bereichs, siehe [4.10](#410-geräte).
 - **Einrichten …** für fertige Möbelpakete, siehe [4.9](#49-räume-einrichten).
 - **Duplizieren** und **Löschen**.
@@ -155,7 +159,7 @@ Ein ausgewählter Raum zeigt rechts:
 
 Wände entstehen automatisch: Jede gemeinsame Kante zweier Räume wird eine Innenwand, jede Außenkante eine Außenwand. Ecken und T-Stöße werden sauber verschnitten. Die Stärken stellst du unter **Einstellungen** ein.
 
-**Einzelne Wände:** Mit dem Werkzeug **Wand** ziehst du eine frei stehende Wand, zum Beispiel einen Raumteiler, der nur durch den halben Raum geht. **Umschalt** hält sie gerade, **Alt** zeichnet ohne Fangen. Trifft sie auf eine Raumwand, wird die Ecke verschnitten. Ausgewählt ziehst du die Endpunkte an den Griffen oder die ganze Wand an der Linie. Rechts stellst du **Länge**, **Wandstärke** und **Höhe** ein. In 3D verhält sie sich wie jede Innenwand. Auch in einzelne Wände setzt du mit **Tür & Fenster** Türen und Fenster ein (siehe 4.7). Löschst du die Wand, verschwinden ihre Türen und Fenster mit.
+**Einzelne Wände:** Mit dem Werkzeug **Wand** ziehst du eine frei stehende Wand, zum Beispiel einen Raumteiler, der nur durch den halben Raum geht. **Umschalt** hält sie gerade, **Alt** zeichnet ohne Fangen. Trifft sie auf eine Raumwand, wird die Ecke verschnitten. Ausgewählt ziehst du die Endpunkte an den Griffen oder die ganze Wand an der Linie. Rechts stellst du **X** und **Y** (die Mitte der Wand, wie bei Möbeln; so setzt du sie zentimetergenau, ohne Raster), **Länge**, **Wandstärke** und **Höhe** ein. In 3D verhält sie sich wie jede Innenwand. Auch in einzelne Wände setzt du mit **Tür & Fenster** Türen und Fenster ein (siehe 4.7). Löschst du die Wand, verschwinden ihre Türen und Fenster mit.
 
 **Wandhöhe:** Jede Wand kann niedriger sein als der Raum, etwa als Brüstung oder Theke. Bei einer einzelnen Wand stellst du die **Höhe** im Formular ein. Bei Räumen (Rechteck und freie Form) wählst du den Raum aus; im Formular steht der Kasten **Wandhöhen** mit jeder Wand des Raums, benannt nach ihren Eckpunkten (z. B. „Wand 2–3“, die Nummern stehen im Plan an den Ecken) und mit ihrer Länge. Fährst du über eine Zeile oder tippst in ihr Feld, leuchtet die Wand im Plan auf. ↥ setzt sie auf volle Raumhöhe zurück. Teilen sich zwei Räume die Wand, gilt die niedrigere Einstellung. Fenster und Türen in einer niedrigen Wand enden an der Wandhöhe. Niedrige Wände erscheinen im Plan heller. Soll eine Wand in einer Flucht zwei Höhen haben (2,5 m neben 1,7 m), teilst du sie mit **✂**: Das Teilstück bekommt eine eigene Zeile und Höhe, der Teilpunkt lässt sich im Feld **Teilpunkt ab Ecke** verschieben (im Plan als Strich markiert), **⨉** fügt die Teile wieder zusammen.
 
@@ -199,6 +203,9 @@ Jede Öffnung hat:
 - **Flügel:** einflügelig oder zweiflügelig, mit eigenem Kontakt für den zweiten Flügel.
 - **Markieren in 3D:** *Wenn offen* (Standard) lässt offene Fenster und Türen warm leuchten. *Wenn geschlossen* dreht das um, etwa für die WC- oder die Kinderzimmertür: Sie leuchtet, solange sie zu ist. Das braucht einen Kontakt; ohne Sensor wird nichts markiert.
 - **Ohne Sensor geschlossen zeigen:** Eine Tür ohne Kontakt steht in 3D halb offen, damit man sie als Tür erkennt. Der Haken zeichnet sie geschlossen, etwa für eine Haustür oder ein Carport ohne Sensor.
+- **Kontakt umkehren:** Für Sensoren, die offen und geschlossen andersherum melden. NeonPlan zeigt dann offen, wenn der Sensor geschlossen meldet, und umgekehrt (Standard: aus).
+
+Türen und Fenster lassen sich im Plan auch an einem breiten Streifen um die Öffnung antippen; ein ausgewählter Raum listet seine Türen und Fenster im Formular.
 
 ![Haustür](images/editor-front-door.jpg)
 
@@ -213,7 +220,7 @@ Jede Öffnung hat:
 | **Kippkontakt** | Ein zweiter Sensor, der „gekippt“ meldet |
 | **Kippwinkel-Sensor** | Optional: ein Sensor, der den Kippwinkel in Grad liefert (z. B. „Rotation“ eines Shelly BLU Door/Window). Der Flügel kippt in 3D genau so weit; **Winkel für „ganz gekippt“** (Standard 15°), ein **Offset** für den Wert bei geschlossenem Fenster und **andersherum zählen** passen ihn an die Montage an. Ab einem kleinen Winkel gilt das Fenster als gekippt, auch für die Regenwarnung |
 | **Kontakt zweiter Flügel** | Für zweiflügelige Fenster und Türen |
-| **Garagentor** | Ein Garagentor folgt einer Cover-Entität oder einem Kontakt. Der offene Teil liegt dann unter der Decke |
+| **Garagentor** | Ein Garagentor folgt einer Cover-Entität oder einem Kontakt (an = offen; auch Sensoren, die „open“/„closed“ melden). Der offene Teil liegt dann unter der Decke |
 
 Rollläden und Kontakte ordnet NeonPlan 3D über den Bereich automatisch zu. Du kannst sie jederzeit von Hand ändern.
 
@@ -281,7 +288,7 @@ Leuchten sind Möbel mit einem verknüpften Licht. Es gibt Deckenleuchte, Einbau
 - Das 3D-Modell leuchtet in Farbe und Helligkeit des Lichts. Boden und Wände des Raums werden mit beleuchtet, zwei farbige Deckenleuchten mischen sich dazwischen. In den Nachbarraum fällt das Licht nur durch Türen.
 - Farbeffekte wie ein Farbwechsel werden in 3D animiert.
 - Tischlampen stehen auf dem Möbel darunter, Wandleuchten und LED-Streifen rasten an der Wand ein, bei Pendelleuchten ist die Höhe die Abhängung unter der Decke.
-- **Höhe über Boden:** Wandleuchten hängen von sich aus auf 1,75 m, LED-Streifen direkt unter der Decke. Im Formular stellst du für beide eine eigene **Höhe über Boden** ein, etwa für einen Streifen unter den Hängeschränken oder hinter dem TV-Board. **Höhe automatisch** setzt sie zurück. Ein Streifen unter 1 m Höhe (Sockelleiste, hinter dem Schrank) strahlt nach oben an die Wand, höher montierte strahlen nach unten. Ein Streifen unterhalb der Schnitthöhe bleibt auch bei geschnittenen Wänden sichtbar. **Neigung um die Länge** legt den Streifen an eine Dachschräge oder kippt ihn zur Seite (90° = die Leuchtfläche zeigt seitlich), **Senkrecht** stellt ihn hochkant: Dann läuft er von der Höhe über Boden nach oben, am Türrahmen oder als Lichtsäule, und leuchtet rundum.
+- **Höhe über Boden:** Wandleuchten hängen von sich aus auf 1,75 m, LED-Streifen direkt unter der Decke. Im Formular stellst du für beide eine eigene **Höhe über Boden** ein, etwa für einen Streifen unter den Hängeschränken oder hinter dem TV-Board. **Höhe automatisch** setzt sie zurück. Auch Einbauspots und Aufbau-Spots haben das Feld: Von sich aus sitzen sie unter der Decke, mit einer eigenen Höhe etwa unter den Hängeschränken – Modell und Lichtkegel strahlen dann von dort nach unten auf die Arbeitsplatte. Ein Streifen unter 1 m Höhe (Sockelleiste, hinter dem Schrank) strahlt nach oben an die Wand, höher montierte strahlen nach unten. Ein Streifen unterhalb der Schnitthöhe bleibt auch bei geschnittenen Wänden sichtbar. **Neigung um die Länge** legt den Streifen an eine Dachschräge oder kippt ihn zur Seite (90° = die Leuchtfläche zeigt seitlich), **Senkrecht** stellt ihn hochkant: Dann läuft er von der Höhe über Boden nach oben, am Türrahmen oder als Lichtsäule, und leuchtet rundum.
 - **Farbe und Helligkeit von:** Schaltet ein Relais (Shelly, Schaltaktor) die Lampe, während die Leuchte selbst Farbe und Helligkeit kennt, kommt An/Aus vom Schalter und die Farbe von dieser zweiten Entität.
 - **Leuchtstärke in 3D (%):** Wie kräftig die Leuchte in 3D leuchtet. Unter 100 % dämpft helle LED-Streifen, damit der Raum nicht überstrahlt, über 100 % lässt eine schwache Lampe stärker leuchten. Gilt auch für Lichter, die als Gerät platziert sind; in Home Assistant schaltet es nichts.
 - Statt eines Lichts geht auch ein Schalter, etwa ein Relais für das Deckenlicht.
@@ -319,7 +326,7 @@ In 3D hängt die Kamera als kleines Modell an der Wand oder Decke, ihr Sichtfeld
 
 ![Stellplatz](images/editor-parking.jpg)
 
-Das Möbel **Stellplatz** in der Gruppe Stellplätze markiert, wo ein Auto steht: in der Garage, in der Einfahrt oder irgendwo auf dem Grundstück.
+Das Möbel **Stellplatz** in der Gruppe Stellplätze markiert, wo ein Auto steht: in der Garage, in der Einfahrt oder irgendwo auf dem Grundstück. Ein neuer Stellplatz zeigt mit dem Pfeil vom Garagentor des Raums in die Garage hinein, ohne Tor entlang der längeren Raumseite.
 
 - **Sensor „Auto anwesend“:** ein `binary_sensor`, `device_tracker` oder ähnliches. Solange er ein Auto meldet, steht das Fahrzeug da.
 - **Fahrzeug:** das Modell aus dem Pack „Fahrzeuge“.
@@ -413,7 +420,7 @@ Felder lassen sich im Grundriss und in der **3D-Ansicht daneben** mit der Maus v
 | **Abstand vom Rand** / **von der Traufe** | Position des Feldes. Im Grundriss lässt es sich mit der Maus verschieben, auch auf eine andere Dachfläche; über den Rand der Fläche hinaus rutscht es nicht |
 | **Neigung der Aufständerung** | Flachdach und Garten: Winkel der Gestelle, dazu die Richtung |
 | **Frei aufgeständert** | Das Feld steht auf Gestellen, frei verschiebbar. **Höhe der Aufstellfläche** hebt es an, z. B. 2,8 m auf ein Garagendach (0 = Boden). **Drehung** richtet die Reihen aus, ebenso die Knöpfe ↺/↻ 15° und der Dreh-Griff im Grundriss; das Feld dreht sich dabei um seine Mitte |
-| **Wand** | Module hängen an einer Außenwand; statt „Abstand von der Traufe“ gibt es die **Höhe über dem Boden**. **Neigung von der Wand** stellt sie schräg: oben abstehend oder unten abstehend, bis 90° als Vordach. Die Etagen-Knöpfe oben wählen, an welcher Etage du arbeitest |
+| **Wand** | Module hängen an einer Außenwand; in der Liste heißt jede Wand nach Etage, Raum und den Eckpunkt-Nummern aus dem Plan („Wand Erdgeschoss · Flur 4–5 · Ost · 1,2 m“), frei stehende Wände heißen „frei stehend“. Auf einer Wand behält das Feld so viele Module, wie in die Reihe passen; für ein liegendes Modul zu kurz, nimmt sie es hochkant, und eine Wand schmaler als ein Modul (etwa eine 0,9-m-Gartenmauer) trägt eins mittig, das über beide Enden ragt. Statt „Abstand von der Traufe“ gibt es die **Höhe über dem Boden**. **Neigung von der Wand** stellt sie schräg: oben abstehend oder unten abstehend, bis 90° als Vordach. Die Etagen-Knöpfe oben wählen, an welcher Etage du arbeitest |
 | **Fläche füllen** | Legt so viele Module auf die Fläche, wie passen |
 
 Unter dem Feld steht die Leistung, gerechnet mit 400 W je Modul. Die Grundriss-Sperre hält Solarfelder nicht fest; mit **🔓 Fixieren** im Formular lässt sich ein Feld (und genauso ein Dachfenster) aber einzeln festsetzen. **Geräte:** Wechselrichter, Stromspeicher und Wallbox legst du ebenfalls im Werkzeug **Energie** an, unter **Geräte**, auf der oben gewählten Etage. Die Wallbox kommt von selbst in die Garage, Wechselrichter und Speicher in einen Technikraum (HWR, Keller …), jeweils an eine Wand ohne Tür oder Tor, und der Grundriss springt hin. Ein Tipp auf ein Gerät in der Liste zeigt es im Grundriss. Dort trägt jedes Gerät im Werkzeug Energie eine runde Markierung mit Symbol (⚡ Wechselrichter, 🔋 Speicher, 🔌 Wallbox), an der man es anfasst und verschiebt, auch wenn darüber ein Solarfeld auf dem Dach liegt. Mit einem Leistungssensor zeigen sie ihre Watt. Der **Stromspeicher** zeigt mit dem Feld **Ladestand** zusätzlich seinen Ladestand, etwa „64 % · ▲ 1,5 kW“ (▲ lädt, ▼ entlädt), die **Wallbox** mit einem **Status**-Sensor „lädt · 11 kW“ oder „angesteckt“.
@@ -629,13 +636,13 @@ Oben im Werkzeug **Energie** steht die **Einrichtung**: eine Liste, die abhakt, 
 4. **Vorzeichen prüfen:** Meldet der Zähler nachts „Einspeisung“ oder lädt der Speicher ohne Sonne, zählt ein Sensor andersherum. Die Energiebilanz sagt das und bietet **Vorzeichen umkehren** an.
 5. **Netzanschluss** (optional): Dorthin läuft die Netzleitung, zum Beispiel ans Ende der Einfahrt. Ohne ihn endet sie am Rand deiner Außenflächen.
 
-Mehrere Anlagen (Dach und Balkonkraftwerk) gehen: zweiter Wechselrichter, zweiter Speicher, jeder mit eigenem Sensor; das Balkonfeld als Solarfeld an der Wand oder frei aufgeständert und einem Strang mit diesem Wechselrichter zugeordnet. Jede Anlage bekommt dann ihre eigene Anlagenkarte über ihrem Feld (Leistung, Tageskurve, Akku) – auch die, an deren Feld das Haupthologramm hängt; das rückt dann ein Stück neben das Feld, solange du es nicht selbst versetzt hast. Im Wechselrichterformular schaltest du die Anlagenkarte einer Anlage ab; dort steht auch, welche Stränge an diesem Wechselrichter hängen. Beim Solarfeld erscheinen die Wechselrichter mit ihrem eigenen Namen (oder dem Namen ihrer Entität). Speicher, die Laden und Entladen in zwei Sensoren melden (etwa Anker Solix), bekommen den Entlade-Sensor als **Leistung** und den Lade-Sensor als **Ladeleistung**. Genauso der Zähler: Meldet er Bezug und Einspeisung getrennt (Growatt, Tibber Pulse, viele Shelly-Templates), kommt der Bezugs-Sensor in **Leistung** und der Einspeise-Sensor in **Einspeiseleistung**; ein Sensor mit Vorzeichen braucht das nicht. Die Leistungsfelder bieten alle Sensoren in W oder kW an, auch ohne Geräteklasse. Trage in der Energiebilanz nur dann einen Solar-Sensor ein, wenn er die ganze Erzeugung liefert – sonst überdeckt er die Summe der Wechselrichter.
+Mehrere Anlagen (Dach und Balkonkraftwerk) gehen: zweiter Wechselrichter, zweiter Speicher, jeder mit eigenem Sensor; das Balkonfeld als Solarfeld an der Wand oder frei aufgeständert und einem Strang mit diesem Wechselrichter zugeordnet. Jede Anlage bekommt dann ihre eigene Anlagenkarte über ihrem Feld (Leistung, Tageskurve, Akku) – auch die, an deren Feld das Haupthologramm hängt; das rückt dann ein Stück neben das Feld, solange du es nicht selbst versetzt hast. Im Wechselrichterformular schaltest du die Anlagenkarte einer Anlage ab oder versetzt sie mit **Seitlich versetzt** und **Nach oben versetzt** auf ihrem Feld, wie das Haupthologramm; dort steht auch, welche Stränge an diesem Wechselrichter hängen. Beim Solarfeld erscheinen die Wechselrichter mit ihrem eigenen Namen (oder dem Namen ihrer Entität). Speicher, die Laden und Entladen in zwei Sensoren melden (etwa Anker Solix), bekommen den Entlade-Sensor als **Leistung** und den Lade-Sensor als **Ladeleistung**. Genauso der Zähler: Meldet er Bezug und Einspeisung getrennt (Growatt, Tibber Pulse, viele Shelly-Templates), kommt der Bezugs-Sensor in **Leistung** und der Einspeise-Sensor in **Einspeiseleistung**; ein Sensor mit Vorzeichen braucht das nicht. Die Leistungsfelder bieten alle Sensoren in W oder kW an, auch ohne Geräteklasse. Trage in der Energiebilanz nur dann einen Solar-Sensor ein, wenn er die ganze Erzeugung liefert – sonst überdeckt er die Summe der Wechselrichter.
 
 **Leitungen**
 
 In der 3D-Ansicht schaltet der ⚡-Knopf der Energieleiste die Leitungen ein. Dünne Leitungen mit wandernden Lichtpunkten zeigen, wohin der Strom gerade fließt; die Punkte sind Kometen, die Richtung ist auch im Stillstand klar. Gelb Solar (vom Feld durch das Dach, innen an der Wand hinunter zum Wechselrichter), grün Speicher (die Richtung dreht beim Laden und Entladen), blau Wallbox, hellblau die Verbraucher im Haus, cyan Einspeisung und rot-violett Netzbezug, vom Zähler bis zum Netzanschluss mit einem Pin, der den Wert zeigt. Je mehr Leistung, desto schneller und dichter die Punkte.
 
-Jede Leitung findet ihren Weg von selbst (gestrichelt im Grundriss). Willst du sie anders führen, etwa außen an der Fassade oder unter der Decke: im Abschnitt **Leitungen** auswählen und **Selbst verlegen**, oder die gestrichelte Leitung im Grundriss einfach anfassen. Dann ziehst du Punkte, ein Klick auf die Leitung fügt einen Punkt ein, ein Doppelklick entfernt ihn, und **Höhe über dem Boden** legt fest, wo sie läuft. Mehrere Leitungen lassen sich so nebeneinander zum Zähler führen. **Fixieren** schützt eine fertige Leitung, **Wieder automatisch** löscht deinen Weg.
+Jede Leitung findet ihren Weg von selbst (gestrichelt im Grundriss); das letzte Stück zum Gerät läuft im rechten Winkel, nicht schräg durch die Ecke. Willst du sie anders führen, etwa außen an der Fassade oder unter der Decke: im Abschnitt **Leitungen** auswählen und **Selbst verlegen**, oder die gestrichelte Leitung im Grundriss einfach anfassen. Dann ziehst du Punkte, ein Klick auf die Leitung fügt einen Punkt ein, ein Doppelklick entfernt ihn, und **Höhe über dem Boden** legt fest, wo sie läuft. Mehrere Leitungen lassen sich so nebeneinander zum Zähler führen. **Fixieren** schützt eine fertige Leitung, **Wieder automatisch** löscht deinen Weg.
 
 **Lebende Module**
 
@@ -643,7 +650,7 @@ Die Module bekommen eine leuchtende Zellstruktur, über die ein Lichtband Richtu
 
 **Hologramm**
 
-In der Hausansicht hängt ein Hologramm aus Glas am größten Solarfeld (ohne Feld neben dem Haus), verbunden durch einen Leuchtstrich. Es zeigt PV jetzt, Ertrag heute und Spitze, die Tageskurve seit Mitternacht (aus den Statistiken deines PV-Sensors), bei mehreren Anlagen eine Zeile je Wechselrichter, Akku mit Pfeil, Netz, Haus, Wallbox und den Autarkie-Balken. Es behält seine Größe in der Welt, wird beim Rauszoomen also kleiner; von hinten siehst du es gespiegelt wie eine Glasscheibe (abschaltbar mit **Von hinten gespiegelt (wie Glas)**, dann bleibt es von überall lesbar). Antippen klappt es auf die große Zahl zusammen. Im Abschnitt **Hologramm** wählst du Feld, Größe und Versatz – oder **Frei im Plan**: Dann steht im Plan ein Griff ◈, den du dorthin ziehst, wo die Karte schweben soll, etwa über die Terrasse; Höhe über dem Boden dazu. Die Karte zeigt vom Haus weg.
+In der Hausansicht hängt ein Hologramm aus Glas am größten Solarfeld (ohne Feld neben dem Haus), verbunden durch einen Leuchtstrich. Es zeigt PV jetzt, Ertrag heute und Spitze, die Tageskurve seit Mitternacht (aus den Statistiken deines PV-Sensors), bei mehreren Anlagen eine Zeile je Wechselrichter, Akku mit Pfeil, Netz, Haus, Wallbox und den Autarkie-Balken. Es behält seine Größe in der Welt, wird beim Rauszoomen also kleiner; von hinten siehst du es gespiegelt wie eine Glasscheibe (abschaltbar mit **Von hinten gespiegelt (wie Glas)**, dann bleibt es von überall lesbar). Antippen klappt es auf die große Zahl zusammen. Im Abschnitt **Hologramm** wählst du Feld, Größe und Versatz – der Abschnitt steht auch ohne Solarfeld da (Spiegelung, Größe, Geräte-Karten), nur die Feld-Einstellungen warten auf ein Feld – oder **Frei im Plan**: Dann steht im Plan ein Griff ◈, den du dorthin ziehst, wo die Karte schweben soll, etwa über die Terrasse; Höhe über dem Boden dazu. Die Karte zeigt vom Haus weg.
 
 **Geräte-Hologramme**
 
@@ -849,7 +856,7 @@ In YAML sieht eine Karte so aus. Alle Zeilen außer der ersten sind optional:
 ```yaml
 type: custom:neonplan3d-card
 floor: floor_ab12cd34   # eine Etage zeigen (ID aus dem Editor)
-room: room_ab12cd34     # in diesem Raum starten (ID aus dem Editor), z. B. ein Display fürs Kinderzimmer
+room: room_ab12cd34     # in diesem Raum starten (ID steht im Raumformular des Editors), z. B. ein Display fürs Kinderzimmer
 height: 420             # Höhe in Pixeln
 fill: false             # den Bildschirm unter der Kopfzeile füllen
 walls: auto             # auto | cut

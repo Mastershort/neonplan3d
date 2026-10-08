@@ -95,6 +95,8 @@ The dashboard card brings the same 3D view into any dashboard. See [chapter 8](#
 
 The editor has the floor plan in the middle, the toolbar at the top and the sidebar on the right. The sidebar always shows what is selected: the floor, a room, an item, a door or a device.
 
+Drawing works best on a PC or tablet. On a phone you can look around and control your home; the editor says so there once (✕ hides the hint).
+
 ### 4.1 Tools
 
 | Tool | What it does |
@@ -134,7 +136,7 @@ Without a selection, the sidebar shows the floors:
 ### 4.3 Drawing rooms
 
 - **Rectangle:** Tap the plan and drag.
-- **Free shape:** Set corner after corner. A tap on the first corner or **Enter** closes the room, **Esc** cancels.
+- **Free shape:** Set corner after corner. A tap on the first corner or **Enter** closes the room, **Esc** cancels. While you draw, every edge shows its length, the one you are pulling too.
 - **Moving corners:** Tap a room with **Select** and drag its corners. The **+** on an edge inserts a corner.
 - **Snapping:** Corners snap to the grid, to corners and edges of other rooms and to alignments. Hold **Alt** to move freely.
 
@@ -145,6 +147,8 @@ A selected room shows on the right:
 - **Name** and **Area**: The link to a Home Assistant area matters most. Through it NeonPlan 3D finds the room's lights, covers, sensors and scenes.
 - **Floor**: wood, oak, tiles, carpet, stone or concrete show as a subtle pattern in 3D.
 - **View as this room's start**: turn on **3D beside**, turn and zoom the room the way it should show, then tap the button. When you tap the room in 3D later, the camera flies right there – angle, zoom and framing. ↺ removes it, and the room is shown from above again.
+- The room's **ID** for the card option `room:` (a tap copies it).
+- The room's **Doors and windows** as a list: a tap selects the opening – handy when a door is hard to hit in the plan.
 - The **Devices** of the area, see [4.10](#410-devices).
 - **Furnish …** for ready-made furniture sets, see [4.9](#49-furnishing-rooms).
 - **Duplicate** and **Delete**.
@@ -153,7 +157,7 @@ A selected room shows on the right:
 
 Walls are created automatically: every shared edge of two rooms becomes an interior wall, every outer edge an exterior wall. Corners and T-junctions are mitred. You set the thicknesses under **Settings**.
 
-**Single walls:** The **Wall** tool draws a free-standing wall, e.g. a partition that runs through half a room. **Shift** keeps it straight, **Alt** draws without snapping. Where it meets a room wall, the corner is mitred. When selected, drag the handles to move its ends or the line to move the whole wall. On the right you set **Length**, **Wall thickness** and **Height**. In 3D it behaves like any interior wall. You can put doors and windows into single walls too, with **Doors & windows** (see 4.7). Deleting the wall removes its doors and windows as well.
+**Single walls:** The **Wall** tool draws a free-standing wall, e.g. a partition that runs through half a room. **Shift** keeps it straight, **Alt** draws without snapping. Where it meets a room wall, the corner is mitred. When selected, drag the handles to move its ends or the line to move the whole wall. On the right you set **X** and **Y** (the middle of the wall, as with furniture; so you place it to the centimetre, off the grid), **Length**, **Wall thickness** and **Height**. In 3D it behaves like any interior wall. You can put doors and windows into single walls too, with **Doors & windows** (see 4.7). Deleting the wall removes its doors and windows as well.
 
 **Wall height:** Any wall can be lower than the room, e.g. a parapet or a counter. For a single wall you set its **Height** in the form. For rooms (rectangle and free shape) select the room; the form shows the **Wall heights** box with every wall of the room, named by its corners (e.g. "Wall 2–3", the numbers are shown at the corners in the plan) and with its length. Hovering a row or tapping its field lights the wall up in the plan. ↥ resets it to full room height. If two rooms share the wall, the lower setting applies. Windows and doors in a low wall end at the wall height. Low walls look lighter in the plan. If one wall in line should have two heights (2.5 m next to 1.7 m), split it with **✂**: the part gets a row and a height of its own, the split point can be moved in **Split point from corner** (marked by a tick in the plan), **⨉** joins the parts again.
 
@@ -197,6 +201,9 @@ Every opening has:
 - **Leaves:** single or double, with an own contact for the second leaf.
 - **Highlight in 3D:** *When open* (default) makes open windows and doors glow warm. *When closed* turns this round, e.g. for the WC or a child's room door: it glows while it is shut. This needs a contact; without a sensor nothing is highlighted.
 - **Show closed without a sensor:** a door without a contact stands half open in 3D, so it is seen as a door. The checkbox draws it closed, e.g. for a front door or a carport without a sensor.
+- **Invert contact:** for sensors that report open and closed the other way round. NeonPlan then shows open when the sensor reports closed, and vice versa (default: off).
+
+Doors and windows can also be tapped in a wide band around the opening in the plan; a selected room lists its doors and windows in its form.
 
 ![Front door](images/editor-front-door.jpg)
 
@@ -211,7 +218,7 @@ Every opening has:
 | **Tilt contact** | A second sensor that reports "tilted" |
 | **Tilt angle sensor** | Optional: a sensor reporting the tilt angle in degrees (e.g. the "Rotation" of a Shelly BLU Door/Window). The sash tilts exactly that far in 3D; **Angle that counts as fully tilted** (15° by default), an **Offset** for the value while closed and **counts the other way round** adapt it to the mounting. Above a small angle the window counts as tilted, also for the rain warning |
 | **Contact second leaf** | For double windows and doors |
-| **Garage door** | A garage door follows a cover entity or a contact. Its open part lies under the ceiling |
+| **Garage door** | A garage door follows a cover entity or a contact (on = open; sensors reporting “open”/“closed” work too). Its open part lies under the ceiling |
 
 NeonPlan 3D matches covers and contacts through the area automatically. You can change them by hand at any time.
 
@@ -279,7 +286,7 @@ Lamps are furniture with a linked light: ceiling light, downlight, surface spot,
 - The 3D model glows in the light's colour and brightness. The room's floor and walls are lit too, two coloured ceiling lights mix in between. Light reaches the next room only through doors.
 - Colour effects such as a colour loop are animated in 3D.
 - Table lamps stand on the item below, wall lights and LED strips snap to the wall, a pendant's height is how far it hangs below the ceiling.
-- **Height above floor:** wall lights hang at 1.75 m by default, LED strips right under the ceiling. In the form you set a **Height above floor** of their own, e.g. for a strip under the wall cabinets or behind the TV unit. **Automatic height** resets it. A strip below 1 m (skirting board, behind a cabinet) shines up the wall, higher strips shine down. A strip below the cut height stays visible with cut walls. **Tilt about its length** lays the strip against a roof slope or turns it sideways (90° = its face points to the side); **Upright** stands it on end: it then runs up from the height above the floor, along a door frame or as a light column, and shines all around.
+- **Height above floor:** wall lights hang at 1.75 m by default, LED strips right under the ceiling. In the form you set a **Height above floor** of their own, e.g. for a strip under the wall cabinets or behind the TV unit. **Automatic height** resets it. Recessed and surface spots have the field as well: by default they sit under the ceiling, with a height of their own e.g. under the wall cabinets – model and light then shine down from there onto the worktop. A strip below 1 m (skirting board, behind a cabinet) shines up the wall, higher strips shine down. A strip below the cut height stays visible with cut walls. **Tilt about its length** lays the strip against a roof slope or turns it sideways (90° = its face points to the side); **Upright** stands it on end: it then runs up from the height above the floor, along a door frame or as a light column, and shines all around.
 - **Colour and brightness from:** when a relay (Shelly, switch actuator) switches the lamp while the bulb itself knows its colour and brightness, on/off comes from the switch and the colour from this second entity.
 - **Glow in 3D (%):** how strongly the lamp glows in 3D. Below 100 % tones down bright LED strips so the room does not burn out, above 100 % makes a weak lamp glow more. Works for lights placed as devices too; it switches nothing in Home Assistant.
 - A switch works instead of a light too, e.g. a relay for the ceiling light.
@@ -317,7 +324,7 @@ In 3D the camera hangs as a small model on the wall or ceiling, its field of vie
 
 ![A parking spot](images/editor-parking.jpg)
 
-The item **Parking spot** in the Parking group marks where a car stands: in the garage, on the driveway or anywhere on the plot.
+The item **Parking spot** in the Parking group marks where a car stands: in the garage, on the driveway or anywhere on the plot. A new parking spot points with its arrow from the room's garage door into the garage, without a gate along the room's longer side.
 
 - **Sensor "car present":** a `binary_sensor`, `device_tracker` or similar. While it reports a car, the vehicle is there.
 - **Vehicle:** the model from the "Vehicles" pack.
@@ -411,7 +418,7 @@ Drag fields in the plan and in the **3D view beside it**, also onto another roof
 | **Distance from the edge** / **from the eave** | Position of the field. Drag it in the plan, also onto another roof face; it does not slide beyond the edge of its face |
 | **Tilt of the frames** | Flat roofs and the garden: the angle of the frames, plus the direction |
 | **Free-standing** | The field stands on frames and moves freely. **Height of the surface** lifts it, e.g. 2.8 m onto a garage roof (0 = ground). **Rotation** turns the rows, as do the ↺/↻ 15° buttons and the turn handle in the plan; the field turns about its middle |
-| **Wall** | Modules hang on an outer wall; instead of "distance from the eave" there is the **height above the floor**. **Tilt away from the wall** angles them: standing off at the top or at the bottom, up to 90° as a canopy. The floor buttons at the top choose the floor you work on |
+| **Wall** | Modules hang on an outer wall; in the list every wall is named by floor, room and the corner numbers from the plan (“Wall Ground floor · Hall 4–5 · East · 1.2 m”), free-standing walls say “free-standing”. On a wall the field keeps as many modules as fit in the row; too short for a module lying down, it takes it upright, and a wall narrower than a module (say a 0.9 m garden wall) carries one centred, overhanging both ends. Instead of "distance from the eave" there is the **height above the floor**. **Tilt away from the wall** angles them: standing off at the top or at the bottom, up to 90° as a canopy. The floor buttons at the top choose the floor you work on |
 | **Fill face** | Puts as many modules on the face as fit |
 
 Below the field you see its power, counted with 400 W per module. The plan lock does not hold solar fields; **🔓 Fix** in the form fixes a single field (and a roof window just the same). **Devices:** solar inverters, home batteries and wallboxes are added in the **Energy** tool as well, under **Devices**, on the floor chosen at the top. A wallbox goes into the garage by itself, inverters and batteries into a utility room (utility room, basement …), each against a wall without a door or gate, and the plan moves there. Tapping a device in the list shows it in the plan. There, in the Energy tool, every device carries a round marker with a symbol (⚡ inverter, 🔋 battery, 🔌 wallbox) to grab and move it by, also below a solar field on the roof. With a power sensor they show their watts. The **home battery** also shows its charge with the **State of charge** field, e.g. "64 % · ▲ 1.5 kW" (▲ charging, ▼ discharging), the **wallbox** "charging · 11 kW" or "plugged in" with a **Status** sensor.
@@ -627,13 +634,13 @@ At the top of the **Energy** tool sits the **Setup** list: it ticks off what is 
 4. **Check the signs:** if the meter reports "export" at night or the battery charges without sun, a sensor counts the other way round. The energy balance says so and offers **Flip the sign**.
 5. **Grid connection** (optional): the grid cable runs there, e.g. to the end of the driveway. Without it the cable ends at the edge of your outdoor areas.
 
-Several plants (roof and balcony) work: a second inverter, a second battery, each with its own sensor; the balcony field as a solar field on the wall or free-standing, assigned to a string with that inverter. Every plant then gets its own plant card over its field (power, day curve, battery) – including the one whose field carries the main hologram; that one steps aside next to the field as long as you have not moved it yourself. The inverter form switches a plant’s card off and shows which strings feed that inverter. At a solar field the inverters appear with their own name (or their entity’s name). Batteries that report charging and discharging in two sensors (e.g. Anker Solix) take the discharging sensor as **Power** and the charging sensor as **Charging power**. The same for the meter: if it reports import and export separately (Growatt, Tibber Pulse, many Shelly templates), the import sensor goes into **Power** and the export sensor into **Export power**; a signed sensor does not need this. The power fields offer every sensor in W or kW, even without a device class. Put a solar sensor into the energy balance only if it reports the whole production – otherwise it overrides the sum of the inverters.
+Several plants (roof and balcony) work: a second inverter, a second battery, each with its own sensor; the balcony field as a solar field on the wall or free-standing, assigned to a string with that inverter. Every plant then gets its own plant card over its field (power, day curve, battery) – including the one whose field carries the main hologram; that one steps aside next to the field as long as you have not moved it yourself. The inverter form switches a plant’s card off or moves it on its field with **Sideways offset** and **Upward offset**, like the main hologram, and shows which strings feed that inverter. At a solar field the inverters appear with their own name (or their entity’s name). Batteries that report charging and discharging in two sensors (e.g. Anker Solix) take the discharging sensor as **Power** and the charging sensor as **Charging power**. The same for the meter: if it reports import and export separately (Growatt, Tibber Pulse, many Shelly templates), the import sensor goes into **Power** and the export sensor into **Export power**; a signed sensor does not need this. The power fields offer every sensor in W or kW, even without a device class. Put a solar sensor into the energy balance only if it reports the whole production – otherwise it overrides the sum of the inverters.
 
 **Cables**
 
 In the 3D view the ⚡ button of the energy bar switches the cables on. Thin cables with moving light dots show where the power flows right now; the dots are comets, so the direction is clear even on a still picture. Yellow solar (from the field through the roof, down the wall inside to the inverter), green battery (the direction turns between charging and discharging), blue wallbox, light blue the consumers in the house, cyan export and red-violet import, from the meter to the grid connection with a pin showing the value. More power means faster and denser dots.
 
-Every cable finds its own way (dashed in the plan). To route it differently, say along the facade outside or under the ceiling: pick it in the **Cables** section and press **Lay by hand**, or just grab the dashed cable in the plan. Then you drag points, a click on the cable adds a point, a double click removes it, and **Height above the floor** sets where it runs. Several cables can run side by side to the meter this way. **Fix** protects a finished cable, **Automatic again** removes your way.
+Every cable finds its own way (dashed in the plan); the last piece to a device runs at a right angle, not slant through the corner. To route it differently, say along the facade outside or under the ceiling: pick it in the **Cables** section and press **Lay by hand**, or just grab the dashed cable in the plan. Then you drag points, a click on the cable adds a point, a double click removes it, and **Height above the floor** sets where it runs. Several cables can run side by side to the meter this way. **Fix** protects a finished cable, **Automatic again** removes your way.
 
 **Living modules**
 
@@ -641,7 +648,7 @@ The modules get a glowing cell structure with a band of light sweeping towards t
 
 **Hologram**
 
-In the house view a glass hologram hangs on the largest solar field (beside the house without one), joined by a glowing line. It shows PV now, today's yield and peak, the day curve since midnight (from the statistics of your PV sensor), with several plants a line per inverter, the battery with an arrow, grid, house, wallbox and the self-sufficiency bar. It keeps its size in the world, so it shrinks as you zoom out; from behind you see it mirrored like a pane of glass (switch off **Mirrored from behind (like glass)** to keep it readable from everywhere). A tap folds it down to the big number. In the **Hologram** section you choose its field, size and offset – or **Free in the plan**: then a handle ◈ stands in the plan, which you drag to where the card should float, say over the terrace, plus its height above the ground. The card faces away from the house.
+In the house view a glass hologram hangs on the largest solar field (beside the house without one), joined by a glowing line. It shows PV now, today's yield and peak, the day curve since midnight (from the statistics of your PV sensor), with several plants a line per inverter, the battery with an arrow, grid, house, wallbox and the self-sufficiency bar. It keeps its size in the world, so it shrinks as you zoom out; from behind you see it mirrored like a pane of glass (switch off **Mirrored from behind (like glass)** to keep it readable from everywhere). A tap folds it down to the big number. In the **Hologram** section you choose its field, size and offset – the section is there without a solar field too (mirroring, size, device cards), only the field settings wait for a field – or **Free in the plan**: then a handle ◈ stands in the plan, which you drag to where the card should float, say over the terrace, plus its height above the ground. The card faces away from the house.
 
 **Device holograms**
 
@@ -847,7 +854,7 @@ In YAML a card looks like this. Every line except the first is optional:
 ```yaml
 type: custom:neonplan3d-card
 floor: floor_ab12cd34   # show one floor (id from the editor)
-room: room_ab12cd34     # start in this room (id from the editor), e.g. a display for the kids' room
+room: room_ab12cd34     # start in this room (the id is in the editor's room form), e.g. a display for the kids' room
 height: 420             # height in pixels
 fill: false             # fill the screen below the header
 walls: auto             # auto | cut
