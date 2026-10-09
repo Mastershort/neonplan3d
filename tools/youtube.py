@@ -10,7 +10,7 @@ Usage:
   python tools/youtube.py login                     one-time Google sign-in in the browser
   python tools/youtube.py list                      your videos: file name, id, visibility, title
   python tools/youtube.py apply <Upload dir>... [--dry-run] [--synthetic yes|no]
-  python tools/youtube.py apply-all <root> [--dry-run] [--synthetic yes|no]
+  python tools/youtube.py apply-all <root> [--dry-run] [--synthetic yes|no] [--no-captions] [--replace]
                                                     every Upload folder below <root> ("NeonPlan neue Packs")
 
 OAuth client: C:/Users/Becke/.floorplan3d/youtube_client.json (Desktop app); the refresh token is kept in
@@ -282,7 +282,9 @@ def upload_caption(video_id: str, lang: str, name: str, srt: Path, existing: dic
     print(f"  caption {lang}: {'replaced' if lang in existing else 'added'}")
 
 
-def apply(folders: list[Path], dry: bool, synthetic: bool | None) -> None:
+def apply(folders: list[Path], dry: bool, synthetic: bool | None, captions: bool = True, replace: bool = False) -> None:
+    """Captions cost 400 quota units each (of 10,000 a day): existing ones are kept unless `replace`, and
+    `captions=False` sets only titles, descriptions and the playlist (a first pass when the quota is tight)."""
     videos = {v.get("fileDetails", {}).get("fileName", ""): v for v in my_videos()}
     playlist = ensure_playlist(dry)
     items = []
@@ -314,17 +316,24 @@ def apply(folders: list[Path], dry: bool, synthetic: bool | None) -> None:
             "localizations": {"en": {"title": it["title_en"], "description": it["description_en"]}},
             "status": status,
         }
+        done = v.get("snippet", {}).get("title") == it["title"]
         if dry:
             print(
                 f"  [dry] „{it['title']}“ / „{it['title_en']}“, {len(it['tags'])} tags, stays {status['privacyStatus']}"
             )
+        elif done and not replace:
+            print("  title already set")
         else:
             call("PUT", "/videos", {"part": "snippet,localizations,status"}, body)
             print("  title, description, tags, English metadata set")
-        caps = call("GET", "/captions", {"part": "snippet", "videoId": vid}).get("items", [])
-        existing = {c["snippet"]["language"]: c["id"] for c in caps if c["snippet"].get("trackKind") != "asr"}
-        upload_caption(vid, "de", "Deutsch", it["srt_de"], existing, dry)
-        upload_caption(vid, "en", "English", it["srt_en"], existing, dry)
+        if captions:
+            caps = call("GET", "/captions", {"part": "snippet", "videoId": vid}).get("items", [])
+            existing = {c["snippet"]["language"]: c["id"] for c in caps if c["snippet"].get("trackKind") != "asr"}
+            for lang, name, srt in (("de", "Deutsch", it["srt_de"]), ("en", "English", it["srt_en"])):
+                if lang in existing and not replace:
+                    print(f"  caption {lang}: already there")
+                else:
+                    upload_caption(vid, lang, name, srt, existing, dry)
         if playlist:
             ordered = sorted(i["stem"] for i in items)
             in_list = call("GET", "/playlistItems", {"part": "snippet", "playlistId": playlist, "maxResults": 50}).get(
@@ -360,14 +369,17 @@ def main() -> None:
     if not args:
         sys.exit(__doc__)
     cmd, rest = args[0], args[1:]
+    captions = "--no-captions" not in sys.argv
+    replace = "--replace" in sys.argv
     if cmd == "login":
         login()
     elif cmd == "list":
         list_videos()
     elif cmd == "apply":
-        apply([Path(r) for r in rest], dry, synthetic)
+        apply([Path(r) for r in rest], dry, synthetic, captions, replace)
     elif cmd == "apply-all":
-        apply(sorted(p.parent for p in Path(rest[0]).rglob("YouTube.md")), dry, synthetic)
+        folders = sorted(p.parent for p in Path(rest[0]).rglob("YouTube.md"))
+        apply(folders, dry, synthetic, captions, replace)
     else:
         sys.exit(__doc__)
 
