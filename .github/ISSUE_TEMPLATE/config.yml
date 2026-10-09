@@ -1,6 +1,6 @@
 blank_issues_enabled: false
 contact_links:
-  - name: 💡 Ideas and wishes / Ideen und Wünsche
+  - name: 💡 Ideas and wishes (not as an issue) / Ideen und Wünsche (nicht als Issue)
     url: https://github.com/Mastershort/neonplan3d/discussions/categories/ideas
     about: Feature wishes go here, not into issues – vote with 👍 on what you want most. / Wünsche bitte hier statt als Issue – und mit 👍 abstimmen.
   - name: 💬 Discord community

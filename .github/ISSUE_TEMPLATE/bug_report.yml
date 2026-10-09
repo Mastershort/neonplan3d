@@ -1,12 +1,26 @@
-name: 🐞 Bug report / Fehler melden
+name: 🐞 Bug report / Fehler melden (only bugs / nur Fehler)
 description: Something does not work as described in the manual. / Etwas funktioniert nicht wie in der Anleitung beschrieben.
 labels: ["bug"]
 body:
   - type: markdown
     attributes:
       value: |
+        > [!IMPORTANT]
+        > **Issues are for bugs only** – something that worked before or does not work as the manual says.
+        > **Wishes and ideas** (a new piece of furniture, a new setting, "it would be nice if …") go to **[Discussions → Ideas](https://github.com/Mastershort/neonplan3d/discussions/categories/ideas)**, where others can vote with 👍. Wishes posted here are moved there.
+        >
+        > **Issues nur für Fehler** – etwas, das vorher ging oder nicht so funktioniert, wie die Anleitung sagt.
+        > **Wünsche und Ideen** (ein neues Möbel, eine neue Einstellung, „es wäre schön, wenn …“) bitte in **[Diskussionen → Ideen](https://github.com/Mastershort/neonplan3d/discussions/categories/ideas)** – dort können andere mit 👍 abstimmen. Wünsche hier werden dorthin verschoben.
+
         Thanks for reporting! English or German, both are fine. / Danke für die Meldung! Deutsch oder Englisch, beides ist okay.
         Please do not post private data (addresses, IP addresses, real names of people). / Bitte keine privaten Daten posten.
+  - type: checkboxes
+    id: is_bug
+    attributes:
+      label: Bug, not a wish / Fehler, kein Wunsch
+      options:
+        - label: This is a bug, not a wish for something new. / Das ist ein Fehler, kein Wunsch nach etwas Neuem.
+          required: true
   - type: input
     id: version
     attributes:
