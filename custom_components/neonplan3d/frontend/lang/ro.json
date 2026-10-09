@@ -505,6 +505,8 @@
  "hint_outdoor_free": "Pune colțurile zonei exterioare · atinge primul punct sau apasă Enter pentru a închide · Esc anulează",
  "outdoor_shape_rect": "Dreptunghi",
  "outdoor_shape_free": "Formă liberă",
+ "outdoor_draw_type": "Desenează:",
+ "outdoor_draw_type_hint": "Ce desenezi în continuare: gazon, terasă, alee, piscină … Tipul se mai poate schimba apoi în formular.",
  "supporter_title": "Susținător · Discord",
  "supporter_intro": "Mulțumim că susții NeonPlan 3D! Acest cod deblochează rolul 💙 Supporter pe Discord – vei vedea canalul #beta-feedback și vei testa primul extensiile noi.",
  "supporter_open": "Deschide Discord",

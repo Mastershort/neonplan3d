@@ -505,6 +505,8 @@
  "hint_outdoor_free": "Coloca las esquinas de la zona exterior · toca el primer punto o pulsa Intro para cerrar · Esc cancela",
  "outdoor_shape_rect": "Rectángulo",
  "outdoor_shape_free": "Forma libre",
+ "outdoor_draw_type": "Dibujar:",
+ "outdoor_draw_type_hint": "Lo que dibujas a continuación: césped, terraza, camino, piscina … El tipo aún se puede cambiar después en el formulario.",
  "supporter_title": "Supporter · Discord",
  "supporter_intro": "¡Gracias por apoyar NeonPlan 3D! Este código desbloquea el rol 💙 Supporter en Discord: verás el canal #beta-feedback y probarás las nuevas extensiones primero.",
  "supporter_open": "Abrir Discord",

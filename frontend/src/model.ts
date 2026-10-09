@@ -663,6 +663,8 @@ export interface OutdoorArea {
   bracing?: boolean;
   /** This area is cut out of every area beneath it that contains it (a wild patch or pond inside a lawn). */
   cut?: boolean;
+  /** Pool: the box (x0, z0, x1, z1) its shape was made in, so round and back to rectangular keeps 8 x 4 m. */
+  shape_box?: [number, number, number, number] | null;
   /** Pool: an above-ground pool (a tub standing on the ground, `height` tall) instead of one let into the ground. */
   above?: boolean;
   /** Pool Pro: the pool's entities (water temperature, heat pump, filter pump, light, pH, chlorine, cover). */

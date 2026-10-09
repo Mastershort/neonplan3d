@@ -505,6 +505,8 @@
  "hint_outdoor_free": "Aseta ulkoalueen kulmat · napauta ensimmäistä pistettä tai paina Enter sulkeaksesi · Esc peruuttaa",
  "outdoor_shape_rect": "Suorakulmio",
  "outdoor_shape_free": "Vapaa muoto",
+ "outdoor_draw_type": "Piirrä:",
+ "outdoor_draw_type_hint": "Mitä piirrät seuraavaksi: nurmikko, terassi, polku, allas … Tyyppiä voi vielä muuttaa lomakkeessa jälkeenpäin.",
  "supporter_title": "Tukija · Discord",
  "supporter_intro": "Kiitos, että tuet NeonPlan 3D:tä! Tällä koodilla avaat Discordissa roolin 💙 Supporter – näet silloin kanavan #beta-feedback ja testaat uudet laajennukset ensimmäisenä.",
  "supporter_open": "Avaa Discord",

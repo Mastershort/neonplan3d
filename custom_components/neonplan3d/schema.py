@@ -351,6 +351,8 @@ OUTDOOR_SCHEMA = vol.Schema(
         vol.Optional("bracing", default=False): bool,
         # cut out of every area beneath it that contains it
         vol.Optional("cut", default=False): bool,
+        # pools: the box their shape was made in (round and back keeps the size)
+        vol.Optional("shape_box", default=None): vol.Any(None, vol.All([vol.Coerce(float)], vol.Length(min=4, max=4))),
         # pools: standing on the ground instead of let into it
         vol.Optional("above", default=False): bool,
         # Pool Pro: the pool's entities

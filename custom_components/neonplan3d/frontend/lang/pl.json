@@ -505,6 +505,8 @@
  "hint_outdoor_free": "Ustaw narożniki obszaru zewnętrznego · dotknij pierwszego punktu lub naciśnij Enter, aby zamknąć · Esc anuluje",
  "outdoor_shape_rect": "Prostokąt",
  "outdoor_shape_free": "Dowolny kształt",
+ "outdoor_draw_type": "Rysuj:",
+ "outdoor_draw_type_hint": "Co narysujesz jako następne: trawnik, taras, ścieżka, basen … Rodzaj można potem jeszcze zmienić w formularzu.",
  "supporter_title": "Wspierający · Discord",
  "supporter_intro": "Dziękujemy za wspieranie NeonPlan 3D! Ten kod odblokowuje rolę 💙 Supporter na Discordzie – zobaczysz kanał #beta-feedback i jako pierwszy przetestujesz nowe rozszerzenia.",
  "supporter_open": "Otwórz Discord",

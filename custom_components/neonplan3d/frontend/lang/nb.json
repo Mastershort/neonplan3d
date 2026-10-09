@@ -505,6 +505,8 @@
  "hint_outdoor_free": "Sett hjørnene på uteområdet · trykk på første punkt eller Enter for å lukke · Esc avbryter",
  "outdoor_shape_rect": "Rektangel",
  "outdoor_shape_free": "Fri form",
+ "outdoor_draw_type": "Tegn:",
+ "outdoor_draw_type_hint": "Det du tegner neste gang: plen, terrasse, sti, basseng … Typen kan fortsatt endres i skjemaet etterpå.",
  "supporter_title": "Supporter · Discord",
  "supporter_intro": "Takk for at du støtter NeonPlan 3D! Denne koden låser opp rollen 💙 Supporter på Discord – da ser du kanalen #beta-feedback og tester nye utvidelser først.",
  "supporter_open": "Åpne Discord",

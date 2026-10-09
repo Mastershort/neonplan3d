@@ -505,6 +505,8 @@
  "hint_outdoor_free": "Umísti rohy venkovní plochy · klepni na první bod nebo stiskni Enter pro uzavření · Esc ruší",
  "outdoor_shape_rect": "Obdélník",
  "outdoor_shape_free": "Volný tvar",
+ "outdoor_draw_type": "Kreslit:",
+ "outdoor_draw_type_hint": "Co nakreslíš příště: trávník, terasa, cesta, bazén … Druh lze potom ještě změnit ve formuláři.",
  "supporter_title": "Podporovatel · Discord",
  "supporter_intro": "Díky, že podporuješ NeonPlan 3D! Tento kód odemkne na Discordu roli 💙 Supporter – uvidíš kanál #beta-feedback a nová rozšíření vyzkoušíš první.",
  "supporter_open": "Otevřít Discord",

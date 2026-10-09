@@ -505,6 +505,8 @@
  "hint_outdoor_free": "Zet de hoeken van het buitengebied · tik op het eerste punt of druk op Enter om te sluiten · Esc annuleert",
  "outdoor_shape_rect": "Rechthoek",
  "outdoor_shape_free": "Vrije vorm",
+ "outdoor_draw_type": "Tekenen:",
+ "outdoor_draw_type_hint": "Wat je hierna tekent: gazon, terras, pad, zwembad … Het type kun je daarna nog in het formulier wijzigen.",
  "supporter_title": "Supporter · Discord",
  "supporter_intro": "Bedankt dat je NeonPlan 3D steunt! Met deze code ontgrendel je de rol 💙 Supporter op Discord – dan zie je het kanaal #beta-feedback en test je nieuwe uitbreidingen als eerste.",
  "supporter_open": "Discord openen",

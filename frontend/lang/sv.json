@@ -505,6 +505,8 @@
  "hint_outdoor_free": "Placera hörnen på utomhusytan · tryck på första punkten eller Enter för att stänga · Esc avbryter",
  "outdoor_shape_rect": "Rektangel",
  "outdoor_shape_free": "Fri form",
+ "outdoor_draw_type": "Rita:",
+ "outdoor_draw_type_hint": "Det du ritar härnäst: gräsmatta, terrass, gång, pool … Typen kan fortfarande ändras i formuläret efteråt.",
  "supporter_title": "Supporter · Discord",
  "supporter_intro": "Tack för att du stöder NeonPlan 3D! Koden låser upp rollen 💙 Supporter på Discord – då ser du kanalen #beta-feedback och testar nya tillägg först.",
  "supporter_open": "Öppna Discord",

@@ -505,6 +505,8 @@
  "hint_outdoor_free": "Postavi vogale zunanje površine · tapni prvo točko ali pritisni Enter za zaprtje · Esc prekliče",
  "outdoor_shape_rect": "Pravokotnik",
  "outdoor_shape_free": "Prosta oblika",
+ "outdoor_draw_type": "Riši:",
+ "outdoor_draw_type_hint": "Kar boš narisal naslednje: trata, terasa, pot, bazen … Vrsto lahko pozneje še spremeniš v obrazcu.",
  "supporter_title": "Podpornik · Discord",
  "supporter_intro": "Hvala, ker podpiraš NeonPlan 3D! Ta koda na Discordu odklene vlogo 💙 Supporter – videl boš kanal #beta-feedback in nove razširitve preizkusil prvi.",
  "supporter_open": "Odpri Discord",

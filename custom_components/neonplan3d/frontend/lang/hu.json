@@ -505,6 +505,8 @@
  "hint_outdoor_free": "Tedd le a kültéri terület sarkait · koppints az első pontra vagy Enter a lezáráshoz · Esc megszakítja",
  "outdoor_shape_rect": "Téglalap",
  "outdoor_shape_free": "Szabad forma",
+ "outdoor_draw_type": "Rajzolás:",
+ "outdoor_draw_type_hint": "Amit legközelebb rajzolsz: gyep, terasz, út, medence … A típus utána az űrlapon még módosítható.",
  "supporter_title": "Támogató · Discord",
  "supporter_intro": "Köszönjük, hogy támogatod a NeonPlan 3D-t! Ezzel a kóddal feloldod a 💙 Supporter szerepet a Discordon – így látod a #beta-feedback csatornát, és elsőként próbálod ki az új bővítményeket.",
  "supporter_open": "Discord megnyitása",

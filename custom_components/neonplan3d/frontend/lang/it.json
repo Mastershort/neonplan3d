@@ -505,6 +505,8 @@
  "hint_outdoor_free": "Posiziona gli angoli dell'area esterna · tocca il primo punto o premi Invio per chiudere · Esc annulla",
  "outdoor_shape_rect": "Rettangolo",
  "outdoor_shape_free": "Forma libera",
+ "outdoor_draw_type": "Disegna:",
+ "outdoor_draw_type_hint": "Cosa disegni dopo: prato, terrazza, vialetto, piscina … Il tipo si può ancora cambiare dopo nel modulo.",
  "supporter_title": "Supporter · Discord",
  "supporter_intro": "Grazie per sostenere NeonPlan 3D! Questo codice sblocca il ruolo 💙 Supporter su Discord: vedrai il canale #beta-feedback e proverai per primo le nuove estensioni.",
  "supporter_open": "Apri Discord",

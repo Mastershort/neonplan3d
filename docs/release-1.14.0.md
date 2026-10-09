@@ -10,7 +10,8 @@ Pool Pro ist da – zuerst als Beta für Supporter. Energie Pro zeigt jetzt auch
   - Die Wärmepumpe darf eine Klima-Entität (`climate`), ein Warmwasserbereiter oder ein Schalter sein. Leere Rollen findet NeonPlan selbst über den Namen.
   - **Supporter-Beta:** Pool Pro kommt zuerst mit dem Supporter-Pass; Rückmeldungen im Discord.
 - **Energie Pro: Gas und Wasser.** Unter Energiebilanz lassen sich ein **Gaszähler** und ein **Wasserzähler** wählen (oder aus dem Energie-Dashboard übernehmen); die Haus-Karte zeigt den heutigen Verbrauch – „Gas 2,2 m³ · Wasser 238 l heute“.
-- **Pool-Formen (kostenlos):** Im Formular eines Pools **Eckig**, **Rund** oder **Oval** – in der Größe der Fläche.
+- **Außen: erst wählen, dann zeichnen.** Oben im Werkzeug Außen wählst du unter **Zeichnen**, was du aufziehst – Rasen, Terrasse, Weg, **Pool** … Ein neuer Pool ist sofort ein Pool, mit Pool Pro gleich eingeschaltet.
+- **Pool-Formen (kostenlos):** Im Formular eines Pools **Eckig**, **Rund** oder **Oval** – in der Größe der Fläche; zurück auf eckig hat er wieder seine alte Größe.
 - **Aufstellpool (kostenlos):** ein Becken, das auf dem Boden steht, mit eigener Beckenhöhe.
 
 ### Behoben
@@ -35,7 +36,8 @@ Pool Pro is here – as a beta for supporters first. Energy Pro now shows gas an
   - The heat pump may be a climate entity, a water heater or a switch. Empty roles are found by name.
   - **Supporter beta:** Pool Pro comes with the Supporter Pass first; feedback on Discord.
 - **Energy Pro: gas and water.** In the energy balance you can choose a **gas meter** and a **water meter** (or take them over from the energy dashboard); the house card shows today's use – "Gas 2.2 m³ · Water 238 l today".
-- **Pool shapes (free):** in a pool's form **Rectangular**, **Round** or **Oval** – the size of the area.
+- **Outdoor: choose first, then draw.** At the top of the Outdoor tool you choose under **Draw** what you draw – lawn, terrace, path, **pool** … A new pool is a pool right away, with Pool Pro switched on.
+- **Pool shapes (free):** in a pool's form **Rectangular**, **Round** or **Oval** – the size of the area; back to rectangular it has its old size again.
 - **Above-ground pool (free):** a tub standing on the ground, with its own height.
 
 ### Fixed

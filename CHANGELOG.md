@@ -10,7 +10,8 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 
 - **Pool Pro (Pro, supporter beta):** the pool's water glows in the pool light's colour and moves with caustics while the filter pump runs (tinted by the water temperature without light, a warm shimmer while heating); a glass card shows water temperature, heat pump target (− / +), pH and redox/chlorine with a traffic light and buttons for heat pump, filter pump, light and cover; the cover slides over the water; warnings for pH, chlorine and frost. Heat pumps as climate, water heater or switch; empty roles are found by name.
 - **Energy Pro: gas and water.** In the energy balance you can choose a **gas meter** and a **water meter** (or take them over from the energy dashboard); the house card shows today's use – "Gas 2.2 m³ · Water 238 l today".
-- **Pool shapes (free):** rectangular, round or oval in the pool's form; **above-ground pools** with their own height.
+- **Outdoor: choose what to draw first** (lawn, terrace, pool …) at the top of the Outdoor tool; a new pool comes with Pool Pro switched on.
+- **Pool shapes (free):** rectangular, round or oval in the pool's form (back to rectangular keeps the old size); **above-ground pools** with their own height.
 
 ### Fixed
 
