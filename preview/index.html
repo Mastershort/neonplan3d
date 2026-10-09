@@ -340,6 +340,7 @@
           ...(params.has("night") ? { night: "00:00-23:59" } : {}),
           ...(params.has("kiosk") ? { idle_return: 1, idle_orbit: true } : {}),
           ...(params.has("tt") ? { time_travel: true } : {}),
+          ...(params.has("fill") ? { fill: true } : {}),
         };
         card.setConfig(config);
         editor.setConfig(config);

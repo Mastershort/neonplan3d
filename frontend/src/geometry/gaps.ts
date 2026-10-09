@@ -134,3 +134,34 @@ export function suggestedThickness(gaps: readonly number[]): number | null {
   const median = positive[Math.floor(positive.length / 2)];
   return Math.min(0.5, Math.max(0.08, Math.round(median * 100) / 100));
 }
+
+/**
+ * Edges that are almost along x or z (a corner a centimetre off, #333): both ends get the same coordinate. The
+ * value that more corners of the floor already use wins, so shared corners of neighbouring rooms move together.
+ * Returns the straightened rooms and how many edges were fixed.
+ */
+export function straightenEdges(rooms: readonly Room[], maxOff = 0.05, minLength = 0.5): { rooms: Room[]; fixed: number } {
+  const out = rooms.map((r) => ({ ...r, points: r.points.map((p) => [p[0], p[1]] as Vec2) }));
+  let fixed = 0;
+  for (let round = 0; round < 4; round++) {
+    const count = (axis: 0 | 1, v: number) => out.reduce((n, r) => n + r.points.filter((p) => Math.abs(p[axis] - v) < 1e-6).length, 0);
+    let changed = false;
+    for (const r of out) {
+      for (let i = 0; i < r.points.length; i++) {
+        const a = r.points[i];
+        const b = r.points[(i + 1) % r.points.length];
+        const dx = Math.abs(b[0] - a[0]);
+        const dz = Math.abs(b[1] - a[1]);
+        // almost horizontal: z differs a little; almost vertical: x differs a little
+        const axis: 0 | 1 | null = dz > 1e-6 && dz <= maxOff && dx >= minLength ? 1 : dx > 1e-6 && dx <= maxOff && dz >= minLength ? 0 : null;
+        if (axis === null) continue;
+        const [keep, drop] = count(axis, a[axis]) >= count(axis, b[axis]) ? [a[axis], b[axis]] : [b[axis], a[axis]];
+        for (const room of out) for (const p of room.points) if (Math.abs(p[axis] - drop) < 1e-6) p[axis] = keep;
+        fixed++;
+        changed = true;
+      }
+    }
+    if (!changed) break;
+  }
+  return { rooms: out, fixed };
+}

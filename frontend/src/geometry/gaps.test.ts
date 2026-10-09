@@ -49,3 +49,21 @@ test("a small overlap is resolved; far apart and side-by-side rooms stay untouch
   const diagonal = closeGaps([rect("a", 0, 0, 4, 3), rect("b", 4.3, 3.3, 8, 6)]);
   assert.deepEqual(diagonal.gaps, []);
 });
+
+test("edges a centimetre off the axis are straightened, shared corners move together (#333)", async () => {
+  const { straightenEdges } = await import("./gaps.ts");
+  const room = (id: string, points: [number, number][]) => ({ id, name: id, area_id: null, points, floor_material: "wood" });
+  const a = room("gabinet", [[4.275, 0], [7.8, 0], [7.8, 5.5], [4.275, 5.489]]);
+  const b = room("korytarz", [[4.275, 5.489], [7.8, 5.5], [7.8, 8.7], [4.283, 8.7]]);
+  const c = room("bad", [[0, 8.7], [4.283, 8.7], [4.275, 12], [0, 12]]);
+  const { rooms, fixed } = straightenEdges([a, b, c]);
+  assert.ok(fixed >= 2);
+  // 5.5 is used by more corners than 5.489, 4.275 more than 4.283
+  assert.deepEqual(rooms[0].points[3], [4.275, 5.5]);
+  assert.deepEqual(rooms[1].points[0], [4.275, 5.5]);
+  assert.deepEqual(rooms[1].points[3], [4.275, 8.7]);
+  assert.deepEqual(rooms[2].points[1], [4.275, 8.7]);
+  // a deliberately slanted wall (20 cm over 3 m) stays as it is
+  const slant = room("schraeg", [[0, 0], [3, 0.2], [3, 3], [0, 3]]);
+  assert.equal(straightenEdges([slant]).fixed, 0);
+});

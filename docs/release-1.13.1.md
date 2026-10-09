@@ -1,4 +1,4 @@
-Six wishes from the issues that were promised for "the next update", and feet and inches for US users – here they are. As always, anything that changes the look is a setting you switch on.
+The wishes from the issues that were promised for "the next update", and feet and inches for US users – here they are. As always, anything that changes the look is a setting you switch on.
 
 ### New
 
@@ -10,11 +10,13 @@ Six wishes from the issues that were promised for "the next update", and feet an
 - **Power outage warning:** Settings → **Report a power outage with** – a grid sensor, a UPS on battery, a mains voltage or a helper of your own. The warning shows in the alert bar, and the grid connection of Energy Pro is crossed out (#214 by Mavyre).
 - **Energy Pro: house balance and plant cards in floor views too** – a switch in Editor → Energy → Hologram, off by default (#193 by denisb88).
 - **Cameras: detection symbols can be switched off** – then only the field of view turns red on a detection (#267 by RobertSorgenfrei).
+- **Straighten slanted edges:** a button in the floor form beside "Close gaps" finds room edges that are only a few centimetres off straight (a corner 1 cm out makes slanted walls in 3D) and straightens them in every room that shares the corner. Walls drawn slanted on purpose stay (#333 by ciechompl).
 
 ### Fixed
 
 - **Floor openings across a room line** are cut in every room they cover; before, an opening reaching into a second room was not cut at all (#353 by tomfischer98).
 - **Hip and pyramid ends** say "Hip" in the solar field's face list, so they are easy to find (#302 by cereal2nd).
+- **Fill the screen / full screen on tablets:** the card measures the visible screen height and where it starts, so no black bar is left at the bottom – e.g. in the Home Assistant app on Android tablets in landscape or with a hidden header (#344 by djbassmind-sketch).
 
 ### How to update
 
@@ -22,7 +24,7 @@ Settings → System → Updates. HACS only looks for new versions every few hour
 
 ---
 
-Sechs Wünsche aus den Issues, die ich „fürs nächste Update“ zugesagt hatte, dazu Fuß und Zoll für US-Nutzer – hier sind sie. Wie immer gilt: Was das Aussehen ändert, ist eine Einstellung, die du selbst einschaltest.
+Die Wünsche aus den Issues, die ich „fürs nächste Update“ zugesagt hatte, dazu Fuß und Zoll für US-Nutzer – hier sind sie. Wie immer gilt: Was das Aussehen ändert, ist eine Einstellung, die du selbst einschaltest.
 
 ### Neu
 
@@ -34,11 +36,13 @@ Sechs Wünsche aus den Issues, die ich „fürs nächste Update“ zugesagt hatt
 - **Warnung bei Stromausfall:** Einstellungen → **Stromausfall melden mit** – ein Netz-Sensor, eine USV auf Batterie, die Netzspannung oder ein eigener Helfer. Die Warnung erscheint in der Warnleiste, und der Netzanschluss von Energie Pro wird durchgestrichen (#214 von Mavyre).
 - **Energie Pro: Hausbilanz und Anlagen-Karten auch in Etagenansichten** – ein Schalter unter Editor → Energie → Hologramm, von Haus aus aus (#193 von denisb88).
 - **Kameras: Erkennungs-Symbole abschaltbar** – dann färbt sich bei einer Erkennung nur der Sichtkegel rot (#267 von RobertSorgenfrei).
+- **Schiefe Kanten begradigen:** Ein Knopf im Etagenformular neben „Lücken schließen“ findet Raumkanten, die nur ein paar Zentimeter schief laufen (eine Ecke 1 cm daneben macht in 3D schiefe Wände), und richtet sie in allen Räumen mit dieser Ecke gerade aus. Bewusst schräge Wände bleiben (#333 von ciechompl).
 
 ### Behoben
 
 - **Bodenöffnungen über eine Raumgrenze** werden in jedem Raum ausgeschnitten, den sie berühren; vorher wurde eine Öffnung, die in einen zweiten Raum ragte, gar nicht ausgeschnitten (#353 von tomfischer98).
 - **Walm- und Zeltdach-Enden** stehen in der Flächenliste des Solarfelds mit „Walm“ und sind leichter zu finden (#302 von cereal2nd).
+- **Bildschirm ausfüllen / Vollbild auf Tablets:** Die Karte misst die sichtbare Bildschirmhöhe und wo sie selbst beginnt – unten bleibt kein schwarzer Balken mehr, z. B. in der Home-Assistant-App auf Android-Tablets im Querformat oder bei ausgeblendeter Kopfzeile (#344 von djbassmind-sketch).
 
 ### So bekommst du das Update
 

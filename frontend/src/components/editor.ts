@@ -8,7 +8,7 @@ import { carEntities, type CarEntities, areaEntities, autoPlace, CLIMATE_CLASSES
 import { furnitureSymbol } from "./furniture2d.ts";
 import { clipConvex, netRoomArea } from "../geometry/area.ts";
 import { areaText, formatImperial, lengthText, lengthUnit, parseLength, unitLabel, type LengthUnit } from "../units.ts";
-import { closeGaps, suggestedThickness } from "../geometry/gaps.ts";
+import { closeGaps, straightenEdges, suggestedThickness } from "../geometry/gaps.ts";
 import { keepInRoom, snapToWall } from "../geometry/snap.ts";
 import { holeInRoom } from "../geometry/holes.ts";
 import { weatherEntity } from "../weather.ts";
@@ -4132,6 +4132,19 @@ export class Fp3dEditor extends LitElement {
     });
   }
 
+  /** Straighten edges that are almost along an axis (a corner a centimetre off makes slanted walls in 3D, #333). */
+  private straightenFloor(): void {
+    const floor = this.floor;
+    if (!floor || !this.isAdmin) return;
+    const { rooms, fixed } = straightenEdges(floor.rooms);
+    if (!fixed) {
+      this._notice = this.t("straighten_none");
+      return;
+    }
+    this.change((_, f) => (f.rooms = rooms));
+    this._notice = this.t("straighten_done", { n: fixed });
+  }
+
   /** Close gaps between rooms of this floor and take the gap as interior wall thickness. */
   private closeFloorGaps(): void {
     const floor = this.floor;
@@ -5433,6 +5446,9 @@ export class Fp3dEditor extends LitElement {
                   <div class="fp3d-actions fp3d-wide">
                     <button class="fp3d-btn" title=${this.t("gaps_hint")} ?disabled=${floor.rooms.length < 2} @click=${() => this.closeFloorGaps()}>
                       ${this.t("gaps_close")}
+                    </button>
+                    <button class="fp3d-btn" title=${this.t("straighten_hint")} ?disabled=${!floor.rooms.length} @click=${() => this.straightenFloor()}>
+                      ${this.t("straighten")}
                     </button>
                   </div>
                   ${this._notice ? html`<p class="fp3d-sub fp3d-wide fp3d-notice">${this._notice}</p>` : nothing}`

@@ -132,6 +132,7 @@ Ohne Auswahl zeigt die Seitenleiste die Etagen:
 - **Etage in Home Assistant** verknüpft die Etage mit einer HA-Etage. Dann bietet **„… Räume aus HA-Bereichen anlegen“** die Bereiche dieser Etage als Räume an.
 - **Nach oben** und **Nach unten** ändern die Reihenfolge, **Etage löschen** entfernt sie samt Räumen.
 - **Lücken schließen** führt Räume zusammen, die bis zu 60 cm auseinanderliegen. Das ist praktisch, wenn du Innenmaße gemessen hast. Der Abstand wird zur Innenwandstärke.
+- **Schiefe Kanten begradigen** findet Raumkanten, die nur ein paar Zentimeter schief laufen (eine Ecke 1 cm daneben macht in 3D schiefe Wände), und richtet sie in allen Räumen mit dieser Ecke gerade aus. Bewusst schräge Wände bleiben.
 
 ![Räume aus Bereichen](images/editor-area-rooms.jpg)
 

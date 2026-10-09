@@ -320,6 +320,8 @@ const shots = [
   { name: "shop-tt-events-en", query: "?tt=10:20&lang=en", width: 1200, height: 860, click: "Erdgeschoss", viewScript: "const p = v.getRootNode().host; const s = p.tt.session; const bar = p.renderRoot.querySelector('fp3d-time-bar'); bar._sheet = 'events';", afterWait: 1500 },
   { name: "shop-tt-away-en", query: "?tt=11:30&lang=en", width: 1200, height: 860, click: "Erdgeschoss", viewScript: "const p = v.getRootNode().host; const s = p.tt.session; const bar = p.renderRoot.querySelector('fp3d-time-bar'); bar._sheet = 'away';", afterWait: 1500 },
   { name: "shop-tt-day-en", query: "?tt=-26h&lang=en", width: 1200, height: 860, click: "Erdgeschoss", viewScript: "const p = v.getRootNode().host; const s = p.tt.session; const bar = p.renderRoot.querySelector('fp3d-time-bar'); s.setRange('7d'); bar._sheet = 'day'; setTimeout(() => (bar._compare = true), 2500);", afterWait: 3500 },
+  // "fill the screen" reaches the bottom edge, measured from where the card starts (#344)
+  { name: "card-fill", query: "?card&fill", width: 1280, height: 800, wait: 1500 },
   { name: "card-timetravel", query: "?card&tt", width: 1400, height: 900, click: "⏪ Zeitreise" },
   { name: "view-timetravel-locked", query: "?nopro", width: 1280, height: 800, click: "🔒 Zeitreise" },
   { name: "card-alert", query: "?card&alerts", width: 1400, height: 900 },

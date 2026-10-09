@@ -130,6 +130,7 @@ Without a selection, the sidebar shows the floors:
 - **Floor in Home Assistant** links the floor to an HA floor. Then **"Add … rooms from HA areas"** offers the areas of that floor as rooms.
 - **Move up** and **Move down** change the order, **Delete floor** removes it with its rooms.
 - **Close gaps** joins rooms that are up to 60 cm apart. This helps when you measured inside dimensions. The gap becomes the interior wall thickness.
+- **Straighten slanted edges** finds room edges that are only a few centimetres off straight (a corner 1 cm out makes slanted walls in 3D) and straightens them in every room that shares the corner. Walls drawn slanted on purpose stay.
 
 ![Rooms from areas](images/editor-area-rooms.jpg)
 

@@ -37,6 +37,8 @@ export class Floorplan3dCard extends LitElement {
     _heat: { state: true },
     _explode: { state: true },
     _fullscreen: { state: true },
+    _vh: { state: true },
+    _top: { state: true },
     _cameraWall: { state: true },
     _clean: { state: true },
     _night: { state: true },
@@ -55,6 +57,9 @@ export class Floorplan3dCard extends LitElement {
   private declare _heat: HeatMode | null;
   private declare _explode: boolean | null;
   private declare _fullscreen: boolean;
+  /** The visible screen height and the card's distance from the page top (measured, #344). */
+  private declare _vh: number;
+  private declare _top: number | null;
   private declare _cameraWall: boolean;
   /** Clean view: only the stage (card option controls_hidden, the eye, or the hide-after timer). */
   private declare _clean: boolean;
@@ -77,6 +82,8 @@ export class Floorplan3dCard extends LitElement {
     this._heat = null;
     this._explode = null;
     this._fullscreen = false;
+    this._vh = window.innerHeight;
+    this._top = null;
     this._cameraWall = false;
     this._clean = false;
     this._night = false;
@@ -153,11 +160,32 @@ export class Floorplan3dCard extends LitElement {
     window.dispatchEvent(new CustomEvent("location-changed", { bubbles: true, composed: true, detail: { replace: false } }));
   }
 
-  private readonly onFullscreen = () => (this._fullscreen = !!document.fullscreenElement && this.shadowRoot?.contains(document.fullscreenElement) === true);
+  private readonly onFullscreen = () => {
+    this._fullscreen = !!document.fullscreenElement && this.shadowRoot?.contains(document.fullscreenElement) === true;
+    requestAnimationFrame(this.onViewport);
+  };
+
+  /**
+   * Full screen and "fill the screen" follow the screen that is really visible: 100vh misses on some Android
+   * tablets (the HA app in landscape), and the dashboard header may be hidden (kiosk mode) – a black bar stayed (#344).
+   */
+  private readonly onViewport = () => {
+    const vh = Math.round(window.visualViewport?.height ?? window.innerHeight);
+    if (Math.abs(vh - this._vh) > 1) this._vh = vh;
+    if (this._config?.fill && !this._fullscreen) {
+      const top = Math.round(this.getBoundingClientRect().top + window.scrollY);
+      if (this._top === null || Math.abs(top - this._top) > 1) this._top = top;
+    }
+  };
 
   connectedCallback(): void {
     super.connectedCallback();
     document.addEventListener("fullscreenchange", this.onFullscreen);
+    window.addEventListener("resize", this.onViewport);
+    window.visualViewport?.addEventListener("resize", this.onViewport);
+    requestAnimationFrame(this.onViewport);
+    // the dashboard may still be laying out: measure once more a moment later
+    setTimeout(this.onViewport, 600);
     this.armIdle();
     // a time range for the night needs a look at the clock now and then
     this.nightTimer = setInterval(() => (this._night = nightActive(this._config?.night, this.hass)), 60000);
@@ -166,6 +194,8 @@ export class Floorplan3dCard extends LitElement {
   disconnectedCallback(): void {
     super.disconnectedCallback();
     document.removeEventListener("fullscreenchange", this.onFullscreen);
+    window.removeEventListener("resize", this.onViewport);
+    window.visualViewport?.removeEventListener("resize", this.onViewport);
     this.tt.stop();
 clearTimeout(this.cleanTimer);
         clearTimeout(this.idleTimer);
@@ -268,7 +298,13 @@ clearTimeout(this.cleanTimer);
     const heat = this._heat ?? c?.heatmap ?? "none";
     const explode = this._explode ?? c?.explode ?? true;
     // full screen, the screen below the dashboard header, or a fixed height
-    const size = this._fullscreen ? "100vh" : c?.fill ? "calc(100vh - var(--header-height, 56px) - 16px)" : `${height}px`;
+    const size = this._fullscreen
+      ? `${this._vh}px`
+      : c?.fill
+        ? this._top !== null
+          ? `${Math.max(240, this._vh - this._top - 8)}px`
+          : "calc(100vh - var(--header-height, 56px) - 16px)"
+        : `${height}px`;
     // the bar of switches at the bottom (the back button belongs to it)
     const bar = !!b && !this._clean && (canGoBack || ((!!c?.controls || !!c?.time_travel) && !(this._roomId && c.room_panel !== false)));
     const tt = this.tt.active;

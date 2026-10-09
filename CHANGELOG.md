@@ -16,11 +16,13 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 - **Power outage warning:** Settings → **Report a power outage with** – a grid sensor, a UPS on battery, a mains voltage or a helper of your own. The warning shows in the alert bar, and the grid connection of Energy Pro is crossed out (#214 by Mavyre).
 - **Energy Pro: house balance and plant cards in floor views too** – a switch in Editor → Energy → Hologram, off by default (#193 by denisb88).
 - **Cameras: detection symbols can be switched off** – then only the field of view turns red on a detection (#267 by RobertSorgenfrei).
+- **Straighten slanted edges:** a button in the floor form beside "Close gaps" finds room edges that are only a few centimetres off straight (a corner 1 cm out makes slanted walls in 3D) and straightens them in every room that shares the corner. Walls drawn slanted on purpose stay (#333 by ciechompl).
 
 ### Fixed
 
 - **Floor openings across a room line** are cut in every room they cover; before, an opening reaching into a second room was not cut at all (#353 by tomfischer98).
 - **Hip and pyramid ends** say "Hip" in the solar field's face list, so they are easy to find (#302 by cereal2nd).
+- **Fill the screen / full screen on tablets:** the card measures the visible screen height and where it starts, so no black bar is left at the bottom – e.g. in the Home Assistant app on Android tablets in landscape or with a hidden header (#344 by djbassmind-sketch).
 
 ## 1.13.0
 
