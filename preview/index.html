@@ -198,6 +198,12 @@
               license.packs = license.packs.map((p) => (p.id === msg.pack_id ? { ...p, installed: p.release } : p));
               return { id: msg.pack_id, name: msg.pack_id, publisher: "Mastershort", licensee: "Demo Kunde", release: 1, items: 0 };
             case "recorder/statistics_during_period": {
+              // the meters' hourly change since midnight (gas and water on the house card)
+              if ((msg.types ?? []).includes("change")) {
+                const hours = new Date().getHours() + 1;
+                const per = { "sensor.gaszaehler": 0.11, "sensor.wasserzaehler": 0.012 };
+                return Object.fromEntries((msg.statistic_ids ?? []).map((id) => [id, Array.from({ length: hours }, (_, i) => ({ start: i, change: (per[id] ?? 0) * (0.6 + 0.8 * Math.abs(Math.sin(i))) }))]));
+              }
               // today's solar curve: a sunny day, five-minute means from midnight up to now
               const midnight = new Date();
               midnight.setHours(0, 0, 0, 0);

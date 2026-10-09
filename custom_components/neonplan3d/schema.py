@@ -632,6 +632,8 @@ ENERGY_DEFAULTS = {
     "battery_soc": None,
     "consumption": None,
     "tariff": None,
+    "gas": None,
+    "water": None,
 }
 
 # Power sensors in watts: grid positive = import, battery positive = discharging (both can be inverted)
@@ -646,6 +648,9 @@ ENERGY_SCHEMA = vol.Schema(
         vol.Optional("battery_soc", default=None): _ENTITY,
         vol.Optional("consumption", default=None): _ENTITY,
         vol.Optional("tariff", default=None): _ENTITY,
+        # Energie Pro: gas and water meters (counters, e.g. m³); the house card shows today's use
+        vol.Optional("gas", default=None): _ENTITY,
+        vol.Optional("water", default=None): _ENTITY,
     },
     extra=vol.ALLOW_EXTRA,
 )

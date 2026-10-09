@@ -741,6 +741,9 @@ export interface EnergySettings {
   /** House consumption (W); null = from the balance of grid, solar and battery. */
   consumption: string | null;
   tariff: string | null;
+  /** Energie Pro: gas and water meters (counters such as m³ or litres); the house card shows today's use. */
+  gas?: string | null;
+  water?: string | null;
 }
 
 /** A person and the sensor whose state names the room they are in (ESPresense, Bermuda, …). */

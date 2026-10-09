@@ -91,3 +91,11 @@ test("pool shapes keep inside their box; the water of an above-ground pool sits 
   assert.equal(poolWaterY(floor, { id: "p", type: "pool", points: [] }), -0.45);
   assert.ok(Math.abs(poolWaterY(floor, { id: "p", type: "pool", points: [], above: true, height: 1.3 }) - 0.95) < 1e-9);
 });
+
+test("gas and water meters come from the energy dashboard (sensors only)", async () => {
+  const { proposeMeters } = await import("./energy.ts");
+  assert.deepEqual(
+    proposeMeters({ energy_sources: [{ type: "grid" }, { type: "gas", stat_energy_from: "sensor.gaszaehler" }, { type: "water", stat_energy_from: "external:water" }] }),
+    { gas: "sensor.gaszaehler", water: null },
+  );
+});

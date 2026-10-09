@@ -200,6 +200,8 @@ const DEVICES = [
   entity("binary_sensor.bett_links", "schlafzimmer", "on", { friendly_name: "Bett links belegt", device_class: "occupancy" }),
   entity("binary_sensor.bett_rechts", "schlafzimmer", "off", { friendly_name: "Bett rechts belegt", device_class: "occupancy" }),
   entity("cover.garagentor", "garage", "open", { friendly_name: "Garagentor", device_class: "garage", current_position: 60, supported_features: 15 }),
+  // Energie Pro: gas and water meters (counters)
+  entity("sensor.wasserzaehler", null, "412.318", { friendly_name: "Wasserzähler", device_class: "water", unit_of_measurement: "m³", state_class: "total_increasing" }),
   // Pool Pro: an 8 x 4 m pool with heat pump, filter pump, light, pH and redox measurement and a cover
   entity("sensor.pool_wassertemperatur", null, "27.4", { friendly_name: "Pool Wassertemperatur", device_class: "temperature", unit_of_measurement: "°C" }),
   entity("climate.pool_waermepumpe", null, "heat", { friendly_name: "Pool Wärmepumpe", temperature: 28, current_temperature: 27.4, hvac_action: "heating", hvac_modes: ["off", "heat"], min_temp: 15, max_temp: 35, target_temp_step: 0.5 }),
@@ -302,6 +304,8 @@ DEMO_BUILDING.energy = {
   battery_soc: null,
   consumption: null,
   tariff: "sensor.strompreis",
+  gas: "sensor.gaszaehler",
+  water: "sensor.wasserzaehler",
 };
 DEMO_BUILDING.presence = [
   { person: "person.mia", sensor: "sensor.mia_raum" },

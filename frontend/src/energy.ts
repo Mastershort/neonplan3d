@@ -119,6 +119,34 @@ export interface EnergyPrefs {
   }[];
 }
 
+/** The gas and water meters of the energy dashboard (their statistics are the meters' sensors). */
+export function proposeMeters(prefs: EnergyPrefs): { gas: string | null; water: string | null } {
+  const of = (type: string) => prefs.energy_sources?.find((s) => s.type === type)?.stat_energy_from ?? null;
+  // statistics of external sources have a colon instead of a dot: only sensors can be linked
+  const sensor = (id: string | null) => (id && id.startsWith("sensor.") ? id : null);
+  return { gas: sensor(of("gas")), water: sensor(of("water")) };
+}
+
+/** How much counters (gas, water) went up since midnight, from the recorder's hourly statistics (null when it has none). */
+export async function fetchTodayChange(hass: HomeAssistant, ids: string[]): Promise<Map<string, number> | null> {
+  const midnight = new Date();
+  midnight.setHours(0, 0, 0, 0);
+  try {
+    const rows = await hass.callWS<Record<string, { change?: number | null }[]>>({
+      type: "recorder/statistics_during_period",
+      start_time: midnight.toISOString(),
+      statistic_ids: ids,
+      period: "hour",
+      types: ["change"],
+    });
+    const out = new Map<string, number>();
+    for (const id of ids) out.set(id, (rows?.[id] ?? []).reduce((s, r) => s + (typeof r.change === "number" ? r.change : 0), 0));
+    return out;
+  } catch {
+    return null;
+  }
+}
+
 /** The power sensor (W) that belongs to an energy statistic: one of the same device, named like it if there are several. */
 function powerOfDevice(hass: HomeAssistant, statId: string | undefined, deviceClass = "power"): string | null {
   if (!statId) return null;

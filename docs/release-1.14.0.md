@@ -1,4 +1,4 @@
-Pool Pro ist da – zuerst als Beta für Supporter. Und für alle: Pools in Rund und Oval, als Aufstellpool, und ein Pool im Rasen ist jetzt auch zu sehen.
+Pool Pro ist da – zuerst als Beta für Supporter. Energie Pro zeigt jetzt auch Gas und Wasser. Und für alle: Pools in Rund und Oval, als Aufstellpool, und ein Pool im Rasen ist jetzt auch zu sehen.
 
 ### Neu
 
@@ -9,6 +9,7 @@ Pool Pro ist da – zuerst als Beta für Supporter. Und für alle: Pools in Rund
   - **Warnungen** bei pH oder Chlor weit außerhalb und bei Frostgefahr.
   - Die Wärmepumpe darf eine Klima-Entität (`climate`), ein Warmwasserbereiter oder ein Schalter sein. Leere Rollen findet NeonPlan selbst über den Namen.
   - **Supporter-Beta:** Pool Pro kommt zuerst mit dem Supporter-Pass; Rückmeldungen im Discord.
+- **Energie Pro: Gas und Wasser.** Unter Energiebilanz lassen sich ein **Gaszähler** und ein **Wasserzähler** wählen (oder aus dem Energie-Dashboard übernehmen); die Haus-Karte zeigt den heutigen Verbrauch – „Gas 2,2 m³ · Wasser 238 l heute“.
 - **Pool-Formen (kostenlos):** Im Formular eines Pools **Eckig**, **Rund** oder **Oval** – in der Größe der Fläche.
 - **Aufstellpool (kostenlos):** ein Becken, das auf dem Boden steht, mit eigener Beckenhöhe.
 
@@ -22,7 +23,7 @@ Einstellungen → System → Updates. HACS sucht nur alle paar Stunden nach neue
 
 ---
 
-Pool Pro is here – as a beta for supporters first. And for everyone: round and oval pools, above-ground pools, and a pool inside a lawn now shows.
+Pool Pro is here – as a beta for supporters first. Energy Pro now shows gas and water too. And for everyone: round and oval pools, above-ground pools, and a pool inside a lawn now shows.
 
 ### New
 
@@ -33,6 +34,7 @@ Pool Pro is here – as a beta for supporters first. And for everyone: round and
   - **Warnings** when pH or chlorine are far off and on risk of frost.
   - The heat pump may be a climate entity, a water heater or a switch. Empty roles are found by name.
   - **Supporter beta:** Pool Pro comes with the Supporter Pass first; feedback on Discord.
+- **Energy Pro: gas and water.** In the energy balance you can choose a **gas meter** and a **water meter** (or take them over from the energy dashboard); the house card shows today's use – "Gas 2.2 m³ · Water 238 l today".
 - **Pool shapes (free):** in a pool's form **Rectangular**, **Round** or **Oval** – the size of the area.
 - **Above-ground pool (free):** a tub standing on the ground, with its own height.
 

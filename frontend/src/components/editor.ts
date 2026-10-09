@@ -17,7 +17,7 @@ import { hasFeature, manualUrl, shopUrl } from "../features.ts";
 import { isBeta, supporterUrl } from "../beta.ts";
 import { poolEntities, type PoolEntities } from "../pool.ts";
 import { cameraMotionSensors, detectionKind } from "../markers.ts";
-import { deviceSensors, energySummary, flowSegments, gridPoint, powerSensorFor, proposeEnergySensors, type EnergyPrefs, type FlowSegment } from "../energy.ts";
+import { deviceSensors, energySummary, flowSegments, gridPoint, powerSensorFor, proposeEnergySensors, type EnergyPrefs, type FlowSegment, proposeMeters } from "../energy.ts";
 import { isStatusSensor, robotRoomSensor, TOGGLE_KINDS } from "../devices.ts";
 import { sectionFloor, dormerParent, effectiveDormer, proposeDormer, sectionGeometry, floorOutline, polygonBox, headroomLines, ridgeHeight, sectionCutsBelow, roofSectionsFromRooms, sectionFrame, wallTopUnder } from "../roof-sections.ts";
 import { bestFace, clampField, faceAt, faceCompass, fieldFace, fieldModules, GROUND, moveField, pointOnFace, proposeField, proposeGroundField, proposeWindow, proposeWallField, roofFaces, rowCounts, turnGroundField, fieldCenter, wallFaces, windowAsField, windowCorners, onFace, onField, rayOnFace, type RoofFace } from "../solar.ts";
@@ -6152,6 +6152,14 @@ export class Fp3dEditor extends LitElement {
     put("inverter", "power", found.solar);
     put("home_battery", "power", found.battery);
     put("home_battery", "soc", found.battery_soc);
+    // gas and water meters go to the balance itself (they have no device in the plan)
+    const meters = proposeMeters(prefs);
+    for (const key of ["gas", "water"] as const) {
+      if (meters[key] && !this._doc.energy[key]) {
+        this.setEnergy({ [key]: meters[key] });
+        n++;
+      }
+    }
     this.selectItem("furniture", null);
     this._energyNote = n ? this.t("energy_import_done", { n }) : this.t("energy_import_none");
   }
@@ -6167,6 +6175,9 @@ export class Fp3dEditor extends LitElement {
       (id) => numberish(id) && (attr(id, "device_class") === "monetary" || /\/(kWh|MWh)$/.test(attr(id, "unit_of_measurement") ?? "")),
     );
     const pick = (key: "grid" | "solar" | "battery" | "battery_soc" | "consumption" | "tariff") => (v: string | null) => this.setEnergy({ [key]: v === "none" ? null : v });
+    // gas and water meters: counters of that device class, or in m³, litres, ft³ or gallons
+    const meter = (kind: "gas" | "water") =>
+      this.entityOptions((id) => numberish(id) && (attr(id, "device_class") === kind || /^(m³|m3|L|l|ft³|gal|CCF)$/.test(attr(id, "unit_of_measurement") ?? "")));
     const links = this.hass ? furnitureEntities(this.hass, this._doc.floors) : new Map<string, { power: string | null }>();
     const devices = deviceSensors(this._doc, (f) => this.devicePower(f, links));
     // the usual trap: a sign the wrong way round – exporting without any sun, or a battery charging at night
@@ -6198,7 +6209,10 @@ export class Fp3dEditor extends LitElement {
         ${this.entitySelect(this.t("energy_battery_soc"), e.battery_soc, devices.soc[0] ?? null, soc, pick("battery_soc"))}
         ${this.entitySelect(this.t("energy_consumption_sensor"), e.consumption, null, power, pick("consumption"))}
         ${this.entitySelect(this.t("energy_tariff_sensor"), e.tariff, undefined, tariff, pick("tariff"))}
+        ${this.entitySelect(this.t("energy_gas_meter"), e.gas ?? null, undefined, meter("gas"), (v) => this.setEnergy({ gas: v === "none" ? null : v }))}
+        ${this.entitySelect(this.t("energy_water_meter"), e.water ?? null, undefined, meter("water"), (v) => this.setEnergy({ water: v === "none" ? null : v }))}
       </div>
+      <p class="fp3d-sub">${this.t("energy_meters_hint")}</p>
       <div class="fp3d-actions">
         <button class="fp3d-btn" ?disabled=${!admin || !this.hass} @click=${() => this.importEnergyPrefs()}>${this.t("energy_import_prefs")}</button>
       </div>

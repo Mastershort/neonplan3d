@@ -28,11 +28,22 @@ import { carState, type CarState, roomClimateValue,
 } from "../devices.ts";
 import { alertColor, alertEntities, alertSources, alertText, findAlerts, isOutage, type Alert, type AlertSources } from "../alerts.ts";
 import { iconPath, iconSvg, mdiIcon } from "../icons.ts";
-import { deviceSensors, energySummary, fetchSolarRows, fieldLevels, fieldPowers, findConsumers, flowColor, flowSegments, gridPoint, powerSensorFor, readPower, solarCurvePath, solarDayFromStats, type Consumer, type EnergySummary, type StatRow } from "../energy.ts";
+import { deviceSensors, energySummary, fetchSolarRows, fetchTodayChange, fieldLevels, fieldPowers, findConsumers, flowColor, flowSegments, gridPoint, powerSensorFor, readPower, solarCurvePath, solarDayFromStats, type Consumer, type EnergySummary, type StatRow } from "../energy.ts";
 import { fieldFace, fieldSize } from "../solar.ts";
 import { type CustomButton, type EntityRef, DEFAULT_HOLOGRAM, type SolarField } from "../model.ts";
 
 /** A hologram card: the house's balance on the main plant, one plant (a balcony plant) on its own, or a device. */
+/** The unit a meter counts in (m³ when it does not say). */
+function meterUnit(hass: HomeAssistant, id: string | null | undefined): string {
+  return String((id && hass.states[id]?.attributes.unit_of_measurement) || "m³");
+}
+
+/** Today's water: litres while it is less than 10 m³ (a household's day), else in the meter's unit. */
+function waterText(hass: HomeAssistant, v: number, unit: string): string {
+  if ((unit === "m³" || unit === "m3") && v < 10) return `${formatNumber(hass, v * 1000, 0)} l`;
+  return `${formatNumber(hass, v, v < 10 ? 2 : 0)} ${unit}`;
+}
+
 interface HoloCard {
   kind: "main" | "plant" | "device" | "media" | "car" | "pool";
   /** Pool Pro: the pool and what its entities report. */
@@ -149,6 +160,7 @@ export class Fp3dView3d extends LitElement {
     _energy: { state: true },
     _holos: { state: true },
     _rows: { state: true },
+    _meters: { state: true },
     _holoOpen: { state: true },
     _wallboxW: { state: true },
     _plants: { state: true },
@@ -1118,6 +1130,9 @@ export class Fp3dView3d extends LitElement {
     if (wallboxW !== this._wallboxW) this._wallboxW = wallboxW;
     // the holograms' day curves: the sensors' statistics, fetched now and then while the sun is watched
     this.watchSolarDay([...new Set(cards.flatMap((c) => c.dayIds))]);
+    // Energie Pro: today's gas and water use on the house card
+    const energyPro = hasFeature("energy_pro");
+    this.watchMeters(energyPro ? (b.energy.gas ?? null) : null, energyPro ? (b.energy.water ?? null) : null);
     if (began) this.syncMs = this.syncMs * 0.8 + (performance.now() - began) * 0.2;
   }
 
@@ -1330,6 +1345,31 @@ export class Fp3dView3d extends LitElement {
       glow: null,
       pin: true,
     };
+  }
+
+  /** Energie Pro: today's gas and water use (meter unit), fetched every five minutes. */
+  private declare _meters: { gas: number | null; water: number | null } | null;
+  private meterKey = "";
+  private meterTimer?: ReturnType<typeof setInterval>;
+
+  private watchMeters(gas: string | null, water: string | null): void {
+    const ids = [gas, water].filter((x): x is string => !!x);
+    const key = this.replay ? "" : ids.join(",");
+    if (key === this.meterKey) return;
+    this.meterKey = key;
+    clearInterval(this.meterTimer);
+    this.meterTimer = undefined;
+    if (!key) {
+      this._meters = null;
+      return;
+    }
+    const fetch = async () => {
+      if (!this.hass || document.hidden) return;
+      const got = await fetchTodayChange(this.hass, ids);
+      if (this.meterKey === key && got) this._meters = { gas: gas ? (got.get(gas) ?? null) : null, water: water ? (got.get(water) ?? null) : null };
+    };
+    void fetch();
+    this.meterTimer = setInterval(() => void fetch(), 300000);
   }
 
   /** Fetch today's solar statistics every five minutes while there are sensors to watch (none: the curve goes). */
@@ -1734,6 +1774,13 @@ export class Fp3dView3d extends LitElement {
                 ${main && e.consumption !== null ? html`<div class="fp3d-holo-cell fp3d-holo-house">${t("holo_house")}<br /><b>${formatPower(hass, e.consumption)}</b></div>` : nothing}
                 ${main && this._wallboxW !== null ? html`<div class="fp3d-holo-cell fp3d-holo-wb">${t("holo_wallbox")}<br /><b>${formatPower(hass, this._wallboxW)}</b></div>` : nothing}
               </div>
+              ${main && this._meters && (this._meters.gas !== null || this._meters.water !== null)
+                ? html`<div class="fp3d-holo-sub fp3d-holo-meters">
+                    ${this._meters.gas !== null ? html`<span>🔥 ${t("holo_gas")} <b>${formatNumber(hass, this._meters.gas, this._meters.gas < 10 ? 2 : 1)} ${meterUnit(hass, this.building?.energy.gas)}</b></span>` : nothing}
+                    ${this._meters.water !== null ? html`<span>💧 ${t("holo_water")} <b>${waterText(hass, this._meters.water, meterUnit(hass, this.building?.energy.water))}</b></span>` : nothing}
+                    <span>${t("holo_today_short")}</span>
+                  </div>`
+                : nothing}
               ${autarky !== null
                 ? html`<div class="fp3d-holo-bar"><div style="width:${autarky}%"></div></div>
                     <div class="fp3d-holo-foot"><span>${t("holo_autarky")}</span><b>${autarky} %</b></div>`
@@ -4082,6 +4129,11 @@ export class Fp3dView3d extends LitElement {
         height: 100%;
         border-radius: 3px;
         box-shadow: 0 0 8px currentColor;
+      }
+      .fp3d-holo-meters {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 2px 10px;
       }
       .fp3d-holo-pool-chem {
         display: grid;
