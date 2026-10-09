@@ -561,6 +561,8 @@
  "pool_shape_rect": "Pravokotna",
  "pool_shape_round": "Okrogla",
  "pool_shape_oval": "Ovalna",
+ "pool_diameter": "Premer (m)",
+ "pool_shape_free": "Prosta",
  "pool_above": "Nadzemni bazen (stoji na tleh)",
  "pool_above_hint": "Bazen, ki stoji na tleh, namesto da bi bil vkopan: stena naokoli, voda tik pod robom.",
  "pool_height": "Višina bazena",

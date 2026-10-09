@@ -561,6 +561,8 @@
  "pool_shape_rect": "Rektangulär",
  "pool_shape_round": "Rund",
  "pool_shape_oval": "Oval",
+ "pool_diameter": "Diameter (m)",
+ "pool_shape_free": "Fri",
  "pool_above": "Ovanmarkspool (står på marken)",
  "pool_above_hint": "En pool som står på marken i stället för att vara nedgrävd: vägg runt om, vattnet strax under kanten.",
  "pool_height": "Bassänghöjd",

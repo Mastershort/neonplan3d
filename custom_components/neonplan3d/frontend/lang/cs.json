@@ -561,6 +561,8 @@
  "pool_shape_rect": "Hranatý",
  "pool_shape_round": "Kulatý",
  "pool_shape_oval": "Oválný",
+ "pool_diameter": "Průměr (m)",
+ "pool_shape_free": "Volný",
  "pool_above": "Nadzemní bazén (stojí na zemi)",
  "pool_above_hint": "Bazén stojící na zemi místo zapuštěného: stěna kolem dokola, voda těsně pod okrajem.",
  "pool_height": "Výška bazénu",

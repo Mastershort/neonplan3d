@@ -561,6 +561,8 @@
  "pool_shape_rect": "Rectangular",
  "pool_shape_round": "Redonda",
  "pool_shape_oval": "Ovalada",
+ "pool_diameter": "Diámetro (m)",
+ "pool_shape_free": "Libre",
  "pool_above": "Piscina elevada (sobre el suelo)",
  "pool_above_hint": "Una piscina sobre el suelo en lugar de enterrada: una pared alrededor, el agua justo bajo el borde.",
  "pool_height": "Altura del vaso",

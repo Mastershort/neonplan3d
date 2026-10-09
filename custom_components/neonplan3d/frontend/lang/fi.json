@@ -561,6 +561,8 @@
  "pool_shape_rect": "Suorakulmainen",
  "pool_shape_round": "Pyöreä",
  "pool_shape_oval": "Soikea",
+ "pool_diameter": "Halkaisija (m)",
+ "pool_shape_free": "Vapaa",
  "pool_above": "Maanpäällinen allas (seisoo maassa)",
  "pool_above_hint": "Maan päällä seisova allas upotetun sijaan: seinä ympärillä, vesi juuri reunan alla.",
  "pool_height": "Altaan korkeus",

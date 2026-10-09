@@ -561,6 +561,8 @@
  "pool_shape_rect": "Firkanta",
  "pool_shape_round": "Rundt",
  "pool_shape_oval": "Ovalt",
+ "pool_diameter": "Diameter (m)",
+ "pool_shape_free": "Fri",
  "pool_above": "Frittståande basseng (står på bakken)",
  "pool_above_hint": "Eit basseng som står på bakken i staden for å vere nedgravd: vegg rundt, vatnet like under kanten.",
  "pool_height": "Bassenghøgd",

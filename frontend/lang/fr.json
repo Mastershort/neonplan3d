@@ -561,6 +561,8 @@
  "pool_shape_rect": "Rectangulaire",
  "pool_shape_round": "Ronde",
  "pool_shape_oval": "Ovale",
+ "pool_diameter": "Diamètre (m)",
+ "pool_shape_free": "Libre",
  "pool_above": "Piscine hors-sol (posée sur le sol)",
  "pool_above_hint": "Une piscine posée sur le sol au lieu d'être enterrée : une paroi tout autour, l'eau juste sous le bord.",
  "pool_height": "Hauteur du bassin",

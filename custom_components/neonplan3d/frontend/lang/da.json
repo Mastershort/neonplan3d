@@ -561,6 +561,8 @@
  "pool_shape_rect": "Firkantet",
  "pool_shape_round": "Rund",
  "pool_shape_oval": "Oval",
+ "pool_diameter": "Diameter (m)",
+ "pool_shape_free": "Fri",
  "pool_above": "Fritstående pool (står på jorden)",
  "pool_above_hint": "En pool, der står på jorden i stedet for at være nedgravet: væg hele vejen rundt, vandet lige under kanten.",
  "pool_height": "Bassinhøjde",

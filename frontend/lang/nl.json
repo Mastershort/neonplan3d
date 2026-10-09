@@ -561,6 +561,8 @@
  "pool_shape_rect": "Rechthoekig",
  "pool_shape_round": "Rond",
  "pool_shape_oval": "Ovaal",
+ "pool_diameter": "Diameter (m)",
+ "pool_shape_free": "Vrij",
  "pool_above": "Opzetzwembad (staat op de grond)",
  "pool_above_hint": "Een zwembad dat op de grond staat in plaats van ingegraven: een wand rondom, het water net onder de rand.",
  "pool_height": "Bakhoogte",

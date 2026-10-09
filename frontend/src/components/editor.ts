@@ -131,6 +131,7 @@ type Drag =
   | { kind: "solarturn"; id: string; base: Building; moved: boolean }
   | { kind: "solarmove"; id: string; start: Vec2; startScreen: [number, number]; base: Building; moved: boolean; grab: { du: number; ds: number } | null; win?: boolean }
   | { kind: "outvertex"; id: string; index: number; base: Building; moved: boolean }
+  | { kind: "outbox"; id: string; corner: number; base: Building; moved: boolean }
   | { kind: "roofcorner"; id: string; corner: [0 | 1, 0 | 1]; base: Building; moved: boolean }
   | { kind: "roofvertex"; id: string; index: number; base: Building; moved: boolean }
   | { kind: "cablept"; id: string; index: number; base: Building; moved: boolean }
@@ -150,7 +151,7 @@ interface Guides {
 }
 
 /** Drags that change the document live (restored when cancelled, recorded in the history when done). */
-const EDIT_DRAGS = new Set(["vertex", "room", "device", "opening", "furniture", "rotate", "resize", "outdoor", "roofmove", "roofcorner", "roofvertex", "outvertex", "solarmove", "solarturn", "cablept", "holopt", "bgmove", "bgscale", "bgrotate"]);
+const EDIT_DRAGS = new Set(["vertex", "room", "device", "opening", "furniture", "rotate", "resize", "outdoor", "roofmove", "roofcorner", "roofvertex", "outvertex", "outbox", "solarmove", "solarturn", "cablept", "holopt", "bgmove", "bgscale", "bgrotate"]);
 
 const HISTORY = 100;
 const SNAP_PX = 10;
@@ -220,6 +221,7 @@ export class Fp3dEditor extends LitElement {
     _draft: { state: true },
     _outdoorFree: { state: true },
     _outdoorType: { state: true },
+    _poolShape: { state: true },
     _cursor: { state: true },
     _guides: { state: true },
     _view: { state: true },
@@ -330,6 +332,8 @@ export class Fp3dEditor extends LitElement {
   private declare _outdoorFree: boolean;
   /** What the outdoor tool draws next (lawn, terrace, pool …), chosen before drawing. */
   private declare _outdoorType: OutdoorType;
+  /** Pools: the shape drawn next (rectangle, round, oval or free). */
+  private declare _poolShape: "rect" | "round" | "oval" | "free";
   private declare _cursor: Vec2 | null;
   private declare _guides: Guides;
   private declare _view: { scale: number; ox: number; oy: number };
@@ -436,6 +440,7 @@ export class Fp3dEditor extends LitElement {
     this._draft = [];
     this._outdoorFree = false;
     this._outdoorType = "lawn";
+    this._poolShape = "rect";
     this._cursor = null;
     this._guides = {};
     this._view = { scale: 50, ox: 40, oy: 40 };
@@ -1351,6 +1356,12 @@ export class Fp3dEditor extends LitElement {
       this.drag = this.isAdmin ? { kind: "wallmove", id, end: null, start: world, startScreen: local, base: this._doc, moved: false } : { kind: "pan", last: local };
       return;
     }
+    const outBoxEl = target.closest("[data-out-box]");
+    if (outBoxEl && this.isAdmin) {
+      const [id, i] = outBoxEl.getAttribute("data-out-box")!.split(":");
+      this.drag = { kind: "outbox", id, corner: Number(i), base: this._doc, moved: false };
+      return;
+    }
     const outVertexEl = target.closest("[data-out-vertex]");
     if (outVertexEl && this.isAdmin) {
       const [id, i] = outVertexEl.getAttribute("data-out-vertex")!.split(":");
@@ -1562,6 +1573,40 @@ export class Fp3dEditor extends LitElement {
             }
             const f = doc.settings.roof.solar?.find((x) => x.id === drag.id);
             if (f) Object.assign(f, { face: face.key, ...kept }, face.flat && f.tilt == null ? { tilt: 15 } : {});
+          },
+          drag.base,
+          false,
+        );
+        break;
+      }
+      case "outbox": {
+        drag.moved = true;
+        const p = this.snap(world, undefined, e.altKey);
+        const src = drag.base.floors.find((f) => f.id === this._floorId)?.outdoor.find((a) => a.id === drag.id);
+        if (!src?.pool_shape) return;
+        const b = bounds(src.points);
+        const corners: Vec2[] = [[b.x0, b.z0], [b.x1, b.z0], [b.x1, b.z1], [b.x0, b.z1]];
+        const fixed = corners[(drag.corner + 2) % 4];
+        let dx = p[0] - fixed[0];
+        let dz = p[1] - fixed[1];
+        if (src.pool_shape === "round") {
+          // a circle: the larger of the two pulls decides the diameter
+          const d = Math.max(Math.abs(dx), Math.abs(dz), 0.5);
+          dx = Math.sign(dx || 1) * d;
+          dz = Math.sign(dz || 1) * d;
+        } else {
+          dx = Math.sign(dx || 1) * Math.max(Math.abs(dx), 0.5);
+          dz = Math.sign(dz || 1) * Math.max(Math.abs(dz), 0.5);
+        }
+        const x0 = Math.min(fixed[0], fixed[0] + dx);
+        const x1 = Math.max(fixed[0], fixed[0] + dx);
+        const z0 = Math.min(fixed[1], fixed[1] + dz);
+        const z1 = Math.max(fixed[1], fixed[1] + dz);
+        const shape = src.pool_shape;
+        this.change(
+          (_, floor) => {
+            const a = floor.outdoor.find((x) => x.id === drag.id);
+            if (a) a.points = poolShapePoints(shape, round(x0), round(z0), round(x1), round(z1));
           },
           drag.base,
           false,
@@ -2137,6 +2182,12 @@ export class Fp3dEditor extends LitElement {
     if (!this.floor) return;
     const type = this._outdoorType ?? "lawn";
     const area: OutdoorArea = { id: uid("outdoor"), type, points: points.map(([x, z]) => [round(x), round(z)]) };
+    const shape = type === "pool" && !this._outdoorFree ? this._poolShape : "rect";
+    if (shape === "round" || shape === "oval") {
+      const b = bounds(area.points);
+      area.points = poolShapePoints(shape, b.x0, b.z0, b.x1, b.z1);
+      area.pool_shape = shape;
+    }
     // a new pool comes with Pool Pro switched on when the add-on is there (its entities are found by name)
     if (type === "pool" && hasFeature("pool")) area.pool = {};
     this.change((_, floor) => floor.outdoor.push(area));
@@ -4401,14 +4452,33 @@ export class Fp3dEditor extends LitElement {
             ${this._tool === "outdoor"
               ? html`<label class="fp3d-outdoor-type" title=${this.t("outdoor_draw_type_hint")}
                     >${this.t("outdoor_draw_type")}
-                    <select @change=${(e: Event) => (this._outdoorType = (e.target as HTMLSelectElement).value as OutdoorType)}>
+                    <select
+                      @change=${(e: Event) => {
+                        this._outdoorType = (e.target as HTMLSelectElement).value as OutdoorType;
+                        // a pool starts as a rectangle; free form stays free for the other types
+                        if (this._outdoorType === "pool") this._outdoorFree = this._poolShape === "free";
+                        this._draft = [];
+                      }}
+                    >
                       ${OUTDOOR_TYPES.map((t) => html`<option value=${t} ?selected=${t === (this._outdoorType ?? "lawn")}>${t === "pool" ? "🏊 " : ""}${this.t(`out_${t}` as I18nKey)}</option>`)}
                     </select></label
                   >
-                  <div class="fp3d-seg" role="group" aria-label=${this.t("tool_outdoor")}>
-                  <button aria-pressed=${!this._outdoorFree} @click=${() => ((this._outdoorFree = false), (this._draft = []))}>▭ ${this.t("outdoor_shape_rect")}</button>
-                  <button aria-pressed=${this._outdoorFree} @click=${() => ((this._outdoorFree = true), (this._draft = []))}>✎ ${this.t("outdoor_shape_free")}</button>
-                </div>`
+                  ${this._outdoorType === "pool"
+                    ? html`<div class="fp3d-seg" role="group" aria-label=${this.t("pool_shape")}>
+                        ${(["rect", "round", "oval", "free"] as const).map(
+                          (k) =>
+                            html`<button
+                              aria-pressed=${(this._poolShape ?? "rect") === k}
+                              @click=${() => ((this._poolShape = k), (this._outdoorFree = k === "free"), (this._draft = []))}
+                            >
+                              ${k === "rect" ? "▭" : k === "round" ? "◯" : k === "oval" ? "⬭" : "✎"} ${this.t(`pool_shape_${k}` as I18nKey)}
+                            </button>`,
+                        )}
+                      </div>`
+                    : html`<div class="fp3d-seg" role="group" aria-label=${this.t("tool_outdoor")}>
+                        <button aria-pressed=${!this._outdoorFree} @click=${() => ((this._outdoorFree = false), (this._draft = []))}>▭ ${this.t("outdoor_shape_rect")}</button>
+                        <button aria-pressed=${this._outdoorFree} @click=${() => ((this._outdoorFree = true), (this._draft = []))}>✎ ${this.t("outdoor_shape_free")}</button>
+                      </div>`}`
               : nothing}
             ${walls?.warnings.length ? html`<span class="fp3d-warn">${this.t("overlap_warning")}</span>` : nothing}
           </div>
@@ -4825,6 +4895,15 @@ export class Fp3dEditor extends LitElement {
   private renderOutdoorHandles(floor: Floor) {
     const a = this._outdoorId ? floor.outdoor.find((x) => x.id === this._outdoorId) : undefined;
     if (!a || !this.isAdmin || this._tool !== "select" || this._doc.settings.lock_plan) return nothing;
+    if (a.pool_shape) {
+      // a round or oval pool: the corners of its box (it keeps its shape while it grows)
+      const b = bounds(a.points);
+      const corners: Vec2[] = [[b.x0, b.z0], [b.x1, b.z0], [b.x1, b.z1], [b.x0, b.z1]];
+      return svg`${corners.map((p, i) => {
+        const [x, y] = this.toScreen(p);
+        return svg`<g class="fp3d-vertex fp3d-box-corner" data-out-box=${`${a.id}:${i}`}><circle cx=${x} cy=${y} r="16" class="fp3d-hit" /><rect x=${x - 5} y=${y - 5} width="10" height="10" /></g>`;
+      })}`;
+    }
     return svg`${a.points.map((p, i) => {
       const [x, y] = this.toScreen(p);
       return svg`<g class="fp3d-vertex" data-out-vertex=${`${a.id}:${i}`}><circle cx=${x} cy=${y} r="16" class="fp3d-hit" /><circle cx=${x} cy=${y} r="6" /></g>`;
@@ -4916,25 +4995,23 @@ export class Fp3dEditor extends LitElement {
     </section>`;
   }
 
-  /** A pool's shape (rectangular, round, oval – inside its current box) and whether it stands above ground. */
+  /** A pool's shape and size (a round one by its diameter, an oval one by its box) and whether it stands above ground. */
   private renderPoolShape(a: OutdoorArea) {
     const admin = this.isAdmin;
     const b = bounds(a.points);
-    const shape = a.points.length <= 4 ? "rect" : a.points.length === 40 ? "round" : a.points.length === 42 ? "oval" : null;
-    // the box the shape was made in, while the outline is still that shape (8 x 4 m round and back stays 8 x 4 m);
-    // after the corners were moved by hand the current bounds count
-    const sb = a.shape_box;
-    const same = (p: Vec2[], q: Vec2[]) => p.length === q.length && p.every((v, i) => Math.abs(v[0] - q[i][0]) < 0.005 && Math.abs(v[1] - q[i][1]) < 0.005);
-    const box: [number, number, number, number] = shape && sb && same(a.points, poolShapePoints(shape, ...sb)) ? sb : [b.x0, b.z0, b.x1, b.z1];
-    const reshape = (to: "rect" | "round" | "oval") => this.updateOutdoor({ points: poolShapePoints(to, ...box), shape_box: box });
-    return html`<div class="fp3d-field fp3d-wide">
-        ${this.t("pool_shape")}
-        <div class="fp3d-seg fp3d-pool-shapes" role="group" aria-label=${this.t("pool_shape")}>
-          ${(["rect", "round", "oval"] as const).map(
-            (k) => html`<button aria-pressed=${shape === k} ?disabled=${!admin} @click=${() => reshape(k)}>${k === "rect" ? "▭" : k === "round" ? "◯" : "⬭"} ${this.t(`pool_shape_${k}` as I18nKey)}</button>`,
-          )}
-        </div>
-      </div>
+    const shape = a.pool_shape;
+    const resize = (x0: number, z0: number, x1: number, z1: number) => shape && this.updateOutdoor({ points: poolShapePoints(shape, x0, z0, x1, z1) });
+    const cx = (b.x0 + b.x1) / 2;
+    const cz = (b.z0 + b.z1) / 2;
+    return html`${shape === "round"
+        ? html`${this.len(this.t("pool_diameter"), b.x1 - b.x0, (v) => {
+            const r = Math.max(0.5, v) / 2;
+            resize(cx - r, cz - r, cx + r, cz + r);
+          }, 0.01, 1)}`
+        : shape === "oval"
+          ? html`${this.len(this.t("width"), b.x1 - b.x0, (v) => resize(cx - Math.max(1, v) / 2, b.z0, cx + Math.max(1, v) / 2, b.z1), 0.01, 1)}
+            ${this.len(this.t("depth"), b.z1 - b.z0, (v) => resize(b.x0, cz - Math.max(1, v) / 2, b.x1, cz + Math.max(1, v) / 2), 0.01, 1)}`
+          : nothing}
       <label class="fp3d-check fp3d-wide" title=${this.t("pool_above_hint")}
         ><input type="checkbox" .checked=${!!a.above} ?disabled=${!admin} @change=${(ev: Event) => this.updateOutdoor({ above: (ev.target as HTMLInputElement).checked || undefined })} />
         ${this.t("pool_above")}</label

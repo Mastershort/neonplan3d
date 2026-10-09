@@ -561,6 +561,8 @@
  "pool_shape_rect": "Rettangolare",
  "pool_shape_round": "Rotonda",
  "pool_shape_oval": "Ovale",
+ "pool_diameter": "Diametro (m)",
+ "pool_shape_free": "Libera",
  "pool_above": "Piscina fuori terra (appoggiata al suolo)",
  "pool_above_hint": "Una piscina appoggiata al suolo invece che interrata: una parete tutto intorno, l'acqua appena sotto il bordo.",
  "pool_height": "Altezza della vasca",

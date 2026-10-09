@@ -561,6 +561,8 @@
  "pool_shape_rect": "Szögletes",
  "pool_shape_round": "Kerek",
  "pool_shape_oval": "Ovális",
+ "pool_diameter": "Átmérő (m)",
+ "pool_shape_free": "Szabad",
  "pool_above": "Föld feletti medence (a talajon áll)",
  "pool_above_hint": "Talajon álló, nem beépített medence: körben fal, a víz közvetlenül a perem alatt.",
  "pool_height": "Medence magassága",

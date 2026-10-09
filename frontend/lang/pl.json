@@ -561,6 +561,8 @@
  "pool_shape_rect": "Prostokątny",
  "pool_shape_round": "Okrągły",
  "pool_shape_oval": "Owalny",
+ "pool_diameter": "Średnica (m)",
+ "pool_shape_free": "Dowolny",
  "pool_above": "Basen naziemny (stoi na ziemi)",
  "pool_above_hint": "Basen stojący na ziemi zamiast wkopanego: ściana dookoła, woda tuż pod krawędzią.",
  "pool_height": "Wysokość niecki",

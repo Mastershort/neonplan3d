@@ -561,6 +561,8 @@
  "pool_shape_rect": "Dreptunghiulară",
  "pool_shape_round": "Rotundă",
  "pool_shape_oval": "Ovală",
+ "pool_diameter": "Diametru (m)",
+ "pool_shape_free": "Liberă",
  "pool_above": "Piscină supraterană (stă pe sol)",
  "pool_above_hint": "O piscină care stă pe sol în loc să fie îngropată: perete de jur împrejur, apa chiar sub margine.",
  "pool_height": "Înălțimea bazinului",
