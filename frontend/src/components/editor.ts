@@ -6622,7 +6622,7 @@ export class Fp3dEditor extends LitElement {
         ${role("range", "car_range", this.entityOptions((id) => numberish(id)))}
         ${role("charging", "car_charging", this.entityOptions((id) => /^(sensor|binary_sensor|switch|input_boolean|input_number|number)\./.test(id)))}
         ${role("plugged", "car_plugged", this.entityOptions((id) => binaryish(id)))}
-        ${role("lock", "car_lock", this.entityOptions((id) => /^(lock|binary_sensor|input_boolean|switch)\./.test(id)))}
+        ${role("lock", "car_lock", this.entityOptions((id) => /^(lock|binary_sensor|sensor|input_boolean|switch)\./.test(id)))}
         ${role("climate", "car_climate", this.entityOptions((id) => /^(climate|switch|binary_sensor|input_boolean)\./.test(id)))}
         ${role("tracker", "car_tracker", this.entityOptions((id) => id.startsWith("device_tracker.")))}
       </div>

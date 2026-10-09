@@ -1958,7 +1958,7 @@ var Ht=globalThis,Ot=Ht.ShadowRoot&&(Ht.ShadyCSS===void 0||Ht.ShadyCSS.nativeSha
         ${l("range","car_range",this.entityOptions(c=>se(c)))}
         ${l("charging","car_charging",this.entityOptions(c=>/^(sensor|binary_sensor|switch|input_boolean|input_number|number)\./.test(c)))}
         ${l("plugged","car_plugged",this.entityOptions(c=>Ri(c)))}
-        ${l("lock","car_lock",this.entityOptions(c=>/^(lock|binary_sensor|input_boolean|switch)\./.test(c)))}
+        ${l("lock","car_lock",this.entityOptions(c=>/^(lock|binary_sensor|sensor|input_boolean|switch)\./.test(c)))}
         ${l("climate","car_climate",this.entityOptions(c=>/^(climate|switch|binary_sensor|input_boolean)\./.test(c)))}
         ${l("tracker","car_tracker",this.entityOptions(c=>c.startsWith("device_tracker.")))}
       </div>

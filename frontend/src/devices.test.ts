@@ -13,7 +13,7 @@ test("a lamp switched by a relay takes colour and brightness from its colour ent
   // the bulb unavailable: the relay's own (plain) glow
   assert.deepEqual(lightGlow(relay as never, { ...bulb, state: "unavailable" } as never)!.color, [1, 0.71, 0.28]);
 });
-import { appColor, areaEntities, otherAreaEntities, roomClimateSensors, roomClimateValue, unassignedEntities, autoPlace, entityName, fridgeDoors, furnitureEntities, groupByDevice, isActive, kindOf, lightGlow, openingEntities, openingState, powerSensorsOf, primaryEntities, roomPanelEntities, windowPosition, confirmEntities, robotRoom, robotRoomSensor, roomKey } from "./devices.ts";
+import { appColor, carLocked, areaEntities, otherAreaEntities, roomClimateSensors, roomClimateValue, unassignedEntities, autoPlace, entityName, fridgeDoors, furnitureEntities, groupByDevice, isActive, kindOf, lightGlow, openingEntities, openingState, powerSensorsOf, primaryEntities, roomPanelEntities, windowPosition, confirmEntities, robotRoom, robotRoomSensor, roomKey } from "./devices.ts";
 import type { Floor, Opening, Room } from "./model.ts";
 import { centroid, newFloor, pointInPolygon } from "./model.ts";
 import type { HomeAssistant } from "./types.ts";
@@ -637,4 +637,20 @@ test("a hub device for a whole house (MQTT): room sensors count, power sensors s
   // the kitchen meter belongs to the kitchen switch, not to the living room light
   assert.equal(powerSensorFor(hass, "switch.kitchen"), "sensor.kitchen_power");
   assert.equal(powerSensorFor(hass, "light.living"), null);
+});
+
+test("carLocked reads locks, lock binary sensors, text sensors and switches (#369)", () => {
+  const st = (entity_id: string, state: string, attributes: Record<string, unknown> = {}) => ({ entity_id, state, attributes }) as never;
+  assert.equal(carLocked(st("lock.auto", "locked")), true);
+  assert.equal(carLocked(st("lock.auto", "unlocked")), false);
+  // a binary_sensor of class lock is "on" while unlocked, as in Home Assistant
+  assert.equal(carLocked(st("binary_sensor.auto_tueren", "on", { device_class: "lock" })), false);
+  assert.equal(carLocked(st("binary_sensor.auto_tueren", "off", { device_class: "lock" })), true);
+  // BMW reports the door lock state as text
+  assert.equal(carLocked(st("sensor.118i_zustand_der_turen", "LOCKED")), true);
+  assert.equal(carLocked(st("sensor.118i_zustand_der_turen", "SECURED")), true);
+  assert.equal(carLocked(st("sensor.118i_zustand_der_turen", "UNLOCKED")), false);
+  assert.equal(carLocked(st("sensor.118i_zustand_der_turen", "SELECTIVE_LOCKED")), false);
+  assert.equal(carLocked(st("sensor.118i_zustand_der_turen", "unknown")), null);
+  assert.equal(carLocked(st("input_boolean.auto_zu", "on")), true);
 });

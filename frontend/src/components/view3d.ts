@@ -2122,9 +2122,10 @@ export class Fp3dView3d extends LitElement {
   private ceilingAt(floor: Building["floors"][number], x: number, z: number): number {
     // a room with a ceiling of its own (#30)
     const own = floor.rooms.find((r) => r.ceiling_height && r.points.length >= 3 && pointInPolygon([x, z], r.points))?.ceiling_height;
-    const room = own ? Math.min(floor.height, own) : floor.height;
+    // a room may reach above the floor's height (a vaulted living room open to the roof, #379)
+    const room = own || floor.height;
     const b = this.building;
-    if (!b || !(b.settings.roof.sections ?? []).some((sec) => sectionCutsBelow(sec, floor.elevation + floor.height))) return room;
+    if (!b || !(b.settings.roof.sections ?? []).some((sec) => sectionCutsBelow(sec, floor.elevation + room))) return room;
     const under = roofUnderAt(b, x, z);
     return under === null ? room : Math.max(0.5, Math.min(room, under - floor.elevation));
   }
@@ -2155,7 +2156,7 @@ export class Fp3dView3d extends LitElement {
     const slopeDrop = hung ? floor.height - ceiling : 0;
     const base = item && hung ? Math.max(0, base0 - slopeDrop) : base0;
     // a spot lowered by hand hangs from its own "ceiling" (under a wall cabinet, #311)
-    const top = LIFT_SPOTS.has(f.type) && f.mount_y != null ? Math.min(floor.height, f.mount_y + spotDepth(f.type, f.h)) : slopeDrop > 0.01 ? ceiling : undefined;
+    const top = LIFT_SPOTS.has(f.type) && f.mount_y != null ? Math.min(floor.height, f.mount_y + spotDepth(f.type, f.h)) : Math.abs(slopeDrop) > 0.01 ? ceiling : undefined;
     const H = top ?? floor.height;
     // pack lamps: the marker sits above the lamp (below it when it hangs from the ceiling)
     const y = item

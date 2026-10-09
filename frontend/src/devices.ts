@@ -956,6 +956,24 @@ export interface CarState {
   away: string | null;
 }
 
+/**
+ * Whether the car's lock entity says locked (null when it cannot tell): a lock, a binary_sensor of class lock
+ * ("on" means unlocked, as in Home Assistant), a text sensor like BMW's door lock state ("LOCKED", "SECURED",
+ * "UNLOCKED", "SELECTIVE_LOCKED", #369) or a switch or helper that is "on" while locked.
+ */
+export function carLocked(st: HassEntity): boolean | null {
+  const id = st.entity_id;
+  const state = String(st.state).toLowerCase().trim();
+  if (id.startsWith("lock.")) return state === "locked";
+  if (id.startsWith("binary_sensor.")) return st.attributes.device_class === "lock" ? state === "off" : state === "on";
+  if (id.startsWith("sensor.")) {
+    if (/^(locked|secured|double_locked|verriegelt|gesichert|abgeschlossen)$/.test(state)) return true;
+    if (/^(unlocked|unsecured|selective_locked|partially_locked|open|entriegelt|offen|unverriegelt)$/.test(state)) return false;
+    return null;
+  }
+  return state === "on";
+}
+
 export function carState(hass: HomeAssistant, f: Pick<Furniture, "entity" | "car">): CarState {
   const e = carEntities(hass, f);
   const st = (id: string | null) => (id ? hass.states[id] : undefined);
@@ -982,7 +1000,7 @@ export function carState(hass: HomeAssistant, f: Pick<Furniture, "entity" | "car
     chargingW,
     charging,
     plugged: plugSt ? plugSt.state === "on" : null,
-    locked: lockSt ? (lockSt.entity_id.startsWith("lock.") ? lockSt.state === "locked" : lockSt.state === "on") : null,
+    locked: lockSt ? carLocked(lockSt) : null,
     climateOn: climSt ? (climSt.entity_id.startsWith("climate.") ? climSt.state !== "off" && climSt.state !== "unavailable" : climSt.state === "on") : null,
     away: trackSt && trackState !== "home" && !isUnavailable(trackSt) ? (trackState === "not_home" ? "" : trackSt.state) : null,
   };

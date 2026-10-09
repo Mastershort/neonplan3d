@@ -740,9 +740,10 @@ export class Floorplan3dPanel extends LitElement {
               <span class="fp3d-sep"></span>`
           : nothing}
         ${roomFloors.flatMap((f) => [
-          // in the house view the rooms of every floor follow a small floor label
-          roomFloors.length > 1 && f.rooms.length ? html`<span class="fp3d-nav-floor">${f.name}</span>` : nothing,
-          ...f.rooms.map(
+          // in the house view the rooms of every floor follow a small floor label; a room without a name has
+          // no button (an empty chip would only take space, #370)
+          roomFloors.length > 1 && f.rooms.some((r) => r.name.trim()) ? html`<span class="fp3d-nav-floor">${f.name}</span>` : nothing,
+          ...f.rooms.filter((r) => r.name.trim()).map(
             (r) => html`<button
               class="fp3d-chip fp3d-room-chip"
               aria-pressed=${r.id === this._roomId}
