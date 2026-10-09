@@ -328,7 +328,7 @@ DEMO_BUILDING.floors[0].openings = [
   hole("door", "wohnen", 2, 4.2, 0.9),
   hole("window", "kueche", 0, 2.4, 1.2),
   hole("door", "kueche", 1, 3.6, 0.9, { hinge: "right" }),
-  hole("garage", "garage", 1, 2.6, 2.5, { sill: 0, height: 2.1 }),
+  hole("garage", "garage", 2, 1.8, 2.5, { sill: 0, height: 2.1 }),
   hole("door", "kueche", 2, 1.6, 0.9),
   hole("window", "schlafen", 2, 2.2, 1.4, { contact: "binary_sensor.schlafzimmer_fenster", tilt: "binary_sensor.schlafzimmer_kipp" }),
   hole("window", "schlafen", 3, 1.7, 1.0, { contact: "none" }),
@@ -414,7 +414,7 @@ DEMO_BUILDING.floors[0].furniture = [
       { state: "suv", vehicle: "pack:mastershort.vehicles:suv" },
     ],
   },
-  { ...item("parking", 16.2, 2.7, 2.6, 5.2, 0.02, 90), entity: "device_tracker.zweitwagen", vehicle: "pack:mastershort.vehicles:compact" },
+  { ...item("parking", 11.8, 10.9, 2.6, 5.2, 0.02, 0), entity: "device_tracker.zweitwagen", vehicle: "pack:mastershort.vehicles:compact" },
 ];
 // a partition through half of the guest room (a free-standing wall)
 // a half-height wall between the kids' room and the office (edge 1 of the kids' room)
@@ -445,7 +445,7 @@ DEMO_BUILDING.floors[0].outdoor = [
   area("a3", "terrace", 1.5, -2.8, 6.2, -0.3),
   area("a4", "pool", 8.5, -6.5, 12, -3.5),
   area("a5", "path", 7.0, 9.5, 8.2, 14),
-  area("a6", "driveway", 13.9, 0.8, 18.5, 4.6),
+  area("a6", "driveway", 10.2, 5.4, 13.4, 14),
   area("a7", "hedge", -3.5, -8.5, -2.9, 14),
   area("a8", "bed", 1.5, 10.2, 5.5, 11.2),
   area("a9", "fence", -4, -9, 19, 14.5),
