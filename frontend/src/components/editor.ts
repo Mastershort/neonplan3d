@@ -13,7 +13,7 @@ import { keepInRoom, snapToWall } from "../geometry/snap.ts";
 import { holeInRoom } from "../geometry/holes.ts";
 import { weatherEntity } from "../weather.ts";
 import { SHOW_PRESENCE } from "../flags.ts";
-import { hasFeature, manualUrl, shopUrl } from "../features.ts";
+import { hasFeature, manualUrl, released, shopUrl } from "../features.ts";
 import { isBeta, supporterUrl } from "../beta.ts";
 import { poolEntities, type PoolEntities } from "../pool.ts";
 import { nearestOnOutline } from "../pool-flow.ts";
@@ -5441,7 +5441,7 @@ export class Fp3dEditor extends LitElement {
               ${this.len(this.t("pool_pipe_height"), pipe.height ?? 0.3, (v) => this.changePool(a.id, (l) => { const q = l.pipes?.find((x) => x.id === pipe.id); if (q) q.height = Math.min(10, Math.max(-5, round(v))); }), 0.05)}
             </div>`
           : nothing}
-        ${hasFeature("pool") ? nothing : html`<p class="fp3d-sub">${this.t("pool_pipes_pro")}</p>`}
+        ${hasFeature("pool") || !released("pool") ? nothing : html`<p class="fp3d-sub">${this.t("pool_pipes_pro")}</p>`}
       </section>`;
   }
 
@@ -5472,6 +5472,8 @@ export class Fp3dEditor extends LitElement {
   /** Pool Pro: the pool's entities (each role found by name when left empty), or the teaser without the add-on. */
   private renderPoolPro(a: OutdoorArea) {
     const lang = this.hass?.language;
+    // not released yet: no teaser at all (the tester with the pack sees the section)
+    if (!released("pool")) return nothing;
     if (!hasFeature("pool")) {
       const beta = isBeta("pool");
       return html`<section class="fp3d-teaser">

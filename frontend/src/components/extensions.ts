@@ -18,7 +18,7 @@ import {
   type LicenseStatus,
 } from "../api.ts";
 import { DISCORD_URL, isBeta, supporterUrl } from "../beta.ts";
-import { FEATURES, knownFeature, manualUrl, shopUrl, unlockedFeatures } from "../features.ts";
+import { FEATURES, knownFeature, manualUrl, released, shopUrl, unlockedFeatures } from "../features.ts";
 import { translate, type I18nKey } from "../i18n.ts";
 import { packName, type FurniturePack } from "../packs.ts";
 import { controls, tokens } from "../styles.ts";
@@ -83,7 +83,7 @@ export class Extensions extends LitElement {
       <section class="fp3d-ext-card">
         <h3>${this.t("ext_pro")}</h3>
         <div class="fp3d-ext-pro">
-          ${FEATURES.map(
+          ${FEATURES.filter((f) => released(f)).map(
             (f) => html`<div class="fp3d-ext-feature ${unlocked.has(f) ? "fp3d-ext-on" : ""} ${isBeta(f) ? "fp3d-ext-beta" : ""}">
               <b>${unlocked.has(f) ? "✓" : "🔒"} ${this.t(`pro_name_${f}` as I18nKey)}</b>
               ${isBeta(f) ? html`<span class="fp3d-beta-tag">🧪 ${this.t(unlocked.has(f) ? "beta_yours" : "beta_supporters")}</span>` : nothing}

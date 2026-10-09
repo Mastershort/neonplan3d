@@ -27,3 +27,15 @@ test("manual and shop links follow the language and point Pro add-ons at their s
   assert.equal(shopUrl("de-AT"), "https://mastershort.de/neonplan3d/?lang=de");
   assert.equal(shopUrl("nl"), "https://mastershort.de/en/neonplan3d/?lang=en");
 });
+
+test("an unreleased add-on shows only to whoever has its pack", async () => {
+  const { released, UNRELEASED } = await import("./features.ts");
+  const { setPacks } = await import("./packs.ts");
+  assert.ok(UNRELEASED.includes("pool"));
+  setPacks([]);
+  assert.equal(released("pool"), false);
+  assert.equal(released("auto_pro"), true);
+  setPacks([{ id: "mastershort.pro_pool", name: "Pro: Pool Pro", items: [], features: ["pool"] } as never]);
+  assert.equal(released("pool"), true);
+  setPacks([]);
+});

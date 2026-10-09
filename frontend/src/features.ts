@@ -8,6 +8,26 @@ export type Feature = "camera_cockpit" | "weather" | "screens" | "energy_pro" | 
 
 /** The add-ons shown on the extensions page (sold in the shop). */
 export const FEATURES: readonly Feature[] = ["camera_cockpit", "weather", "screens", "energy_pro", "sound", "auto_pro", "time_travel", "pool"];
+/**
+ * Pro add-ons built but not released yet: they show nowhere (extensions page, teasers) unless they are
+ * unlocked (the tester has the pack) or the lab switch is on (localStorage "neonplan3d.lab" = "1").
+ * A release takes a feature off this list.
+ */
+export const UNRELEASED: readonly Feature[] = ["pool"];
+
+function labOn(): boolean {
+  try {
+    return localStorage.getItem("neonplan3d.lab") === "1";
+  } catch {
+    return false;
+  }
+}
+
+/** Whether an add-on may be shown and advertised: released, or unlocked, or the lab switch is on. */
+export function released(feature: Feature): boolean {
+  return !UNRELEASED.includes(feature) || hasFeature(feature) || labOn();
+}
+
 /** Features unlocked by a pack but not listed anywhere (exclusive items). */
 const HIDDEN: readonly Feature[] = ["fridge_smart"];
 
