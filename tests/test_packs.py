@@ -201,3 +201,16 @@ def test_feature_packs_need_no_items_but_a_pack_needs_something() -> None:
         packs.validate_payload({**pro, "features": ["some_future_addon"]})
     assert err.value.code == "needs_update"
     assert err.value.detail == "some_future_addon"
+
+
+def test_studio_key_signs_studio_furniture_only(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The Möbel-Studio key may sign "studio.*" furniture packs, never Pro features or other packs."""
+    private, keys = _key()
+    kid = next(iter(keys))
+    monkeypatch.setattr(packs, "STUDIO_KEYS", {kid})
+    studio = {**PAYLOAD, "id": "studio.abc123"}
+    assert packs.verify_pack(_sign(private, keys, studio), keys)["id"] == "studio.abc123"
+    for bad in ({**PAYLOAD, "id": "test.other"}, {**studio, "features": ["camera_cockpit"]}):
+        with pytest.raises(packs.PackError) as err:
+            packs.verify_pack(_sign(private, keys, bad), keys)
+        assert err.value.code == "bad_signature"

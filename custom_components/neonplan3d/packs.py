@@ -30,7 +30,12 @@ PACK_PUBLIC_KEYS: dict[str, str] = {
     "62863e45df5a": "D3sbiEQibaCVm1OWcYUrQc424c2t+pmSQqWg6l6fNSE=",
     # Mastershort shop (signs purchased packs with the buyer's name; revocable by removing it here)
     "867371cc70e6": "uP74xZzFJ2yysjdIZVq5q9G/yn5hVX4HJ6wHv7pqqwo=",
+    # Mastershort Möbel-Studio (signs customers' own furniture on api.mastershort.de; limited, see STUDIO_KEYS)
+    "bdac241ae58b": "+oU/fcdvK7sfvpmz/aq63Y1QIymqK5+pKYGrGksrco8=",
 }
+# keys that may only sign furniture of their own: "studio.*" packs without Pro features (a leaked studio key
+# cannot unlock anything)
+STUDIO_KEYS = {"bdac241ae58b"}
 
 _ID = vol.All(str, vol.Match(r"^[a-z0-9][a-z0-9_.-]{0,39}$"))
 _TEXT = vol.All(str, vol.Length(min=1, max=80))
@@ -258,6 +263,8 @@ def verify_pack(text: str, keys: dict[str, str] | None = None, instance: str | N
     except (InvalidSignature, ValueError) as err:
         raise PackError("bad_signature") from err
     payload = validate_payload(data["payload"])
+    if signature["key"] in STUDIO_KEYS and (not str(payload["id"]).startswith("studio.") or payload["features"]):
+        raise PackError("bad_signature", "the studio key signs studio furniture only")
     if instance is not None and payload["instance"] is not None and payload["instance"] != instance:
         raise PackError("wrong_instance", "the pack is bound to another installation")
     return payload
