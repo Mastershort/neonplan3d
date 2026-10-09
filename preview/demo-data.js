@@ -453,7 +453,7 @@ DEMO_BUILDING.floors[0].outdoor = [
   { ...area("a10", "wild", 9.5, -2.6, 12.2, -1.0), cut: true },
   { ...area("a11", "pergola", 13.4, -3.6, 16.2, -0.9), height: 2.3, bracing: true },
 ];
-DEMO_BUILDING.floors[0].outdoor[5] = { ...DEMO_BUILDING.floors[0].outdoor[5], slope: 0.35, slope_dir: "x" };
+DEMO_BUILDING.floors[0].outdoor[5] = { ...DEMO_BUILDING.floors[0].outdoor[5], slope: 0.35, slope_dir: "-z" };
 // meter, solar inverter, home battery and wallbox on the back wall of the garage
 DEMO_BUILDING.floors[0].furniture.push(
   { ...item("meter", 13.75, 0.11, 0.55, 0.21, 1.1), power: "sensor.netz_leistung" },

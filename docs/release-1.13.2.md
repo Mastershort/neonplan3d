@@ -12,6 +12,7 @@ A small update with fixes and a wish from the issues of the last hours.
 - **Room buttons without a name:** a room whose name is empty no longer leaves an empty button in the room bar (#370 by pepeelpl).
 - **Car Pro – lock:** the lock role also takes a text sensor like BMW's door lock state (`LOCKED`, `SECURED`, `UNLOCKED`); a binary sensor of class lock now counts "on" as unlocked, as in Home Assistant (#369 by ElVincenco).
 - **Doors and windows in free walls outside the rooms** (outer walls drawn with the wall tool, rooms without walls of their own) now open and close with the contact chosen for them (#367 by ge8020).
+- **Outdoor light:** neighbouring outdoor areas no longer get brighter seams under a garden light, and a lowered or sloped bed is lit along its own surface instead of showing as a bright patch (#341 by 1970lexi).
 
 ### How to update
 
@@ -33,6 +34,7 @@ Ein kleines Update mit Korrekturen und einem Wunsch aus den Issues der letzten S
 - **Raum-Knöpfe ohne Namen:** Ein Raum mit leerem Namen hinterlässt keinen leeren Knopf mehr in der Raumleiste (#370 von pepeelpl).
 - **Auto Pro – Schloss:** Die Rolle Schloss nimmt auch einen Text-Sensor wie den Türschloss-Zustand von BMW (`LOCKED`, `SECURED`, `UNLOCKED`); ein Binärsensor der Klasse Schloss zählt „an“ jetzt als entriegelt, wie in Home Assistant (#369 von ElVincenco).
 - **Türen und Fenster in freistehenden Wänden außerhalb der Räume** (Außenwände mit dem Werkzeug „Wand“ gezeichnet, Räume ohne eigene Wände) öffnen und schließen sich jetzt mit dem für sie gewählten Kontakt (#367 von ge8020).
+- **Licht im Garten:** Aneinandergrenzende Außenflächen bekommen unter einer Gartenleuchte keine helleren Kanten mehr, und ein abgesenktes oder schräges Beet wird auf seiner eigenen Fläche beleuchtet, statt als heller Fleck zu erscheinen (#341 von 1970lexi).
 
 ### So bekommst du das Update
 
