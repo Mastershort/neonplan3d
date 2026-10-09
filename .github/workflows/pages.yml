@@ -28,7 +28,7 @@ jobs:
         run: |
           mkdir -p _site/preview _site/custom_components/neonplan3d
           cp site/index.html _site/
-          cp preview/index.html preview/demo-data.js _site/preview/
+          cp preview/index.html preview/*.js _site/preview/
           cp -r custom_components/neonplan3d/frontend _site/custom_components/neonplan3d/
           touch _site/.nojekyll
       - uses: actions/configure-pages@v5
