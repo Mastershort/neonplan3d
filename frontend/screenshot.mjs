@@ -263,6 +263,7 @@ const shots = [
   { name: "phone-floor", query: "", width: 420, height: 800, click: "Erdgeschoss" },
   { name: "card-portrait-room", query: "?card&floor=eg", width: 700, height: 1000, click: "Wohnzimmer" },
   { name: "view-alert-banner", query: "?alerts", width: 1280, height: 800, click: "Erdgeschoss" },
+  { name: "view-alert-short", query: "?alerts", width: 1280, height: 800, click: "Erdgeschoss", viewScript: "v.building = { ...v.building, settings: { ...v.building.settings, alert_names: false } };", wait: 800 },
   { name: "view-garden-trees", query: "", width: 1280, height: 800, editor: true, editorScript: "e.fit();", then3d: "Alle Etagen", then3dAlso: ["Gestapelt"], camera: { theta: 0.35, phi: 1.15, radius: 30, target: { x: 7, y: 0, z: -1 } } },
   { name: "view-outdoor-round", query: "", width: 1280, height: 800, editor: true, editorScript: "e.fit();", then3d: "Alle Etagen", then3dAlso: ["Gestapelt"], camera: { theta: 0.6, phi: 1.1, radius: 15, target: { x: 12.5, y: 0, z: -2 } } },
   { name: "editor-outdoor-pergola", query: "", width: 1280, height: 900, editor: true, editorState: { _outdoorId: "a11" }, scrollSide: true },

@@ -589,6 +589,8 @@ SETTINGS_SCHEMA = vol.Schema(
         # which weather effects the 3D view shows (None = all but fog)
         # warning for a window open while it rains
         vol.Optional("rain_warning", default=True): bool,
+        # warnings name the device after the room
+        vol.Optional("alert_names", default=True): bool,
         # an entity that reports a power outage (None = no outage warning)
         vol.Optional("outage_entity", default=None): vol.Any(None, vol.All(str, vol.Length(max=255))),
         # sunlight through the windows as patches on the floor

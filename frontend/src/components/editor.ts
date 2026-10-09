@@ -7526,6 +7526,10 @@ export class Fp3dEditor extends LitElement {
           ><input type="checkbox" .checked=${s.rain_warning !== false} @change=${(ev: Event) => set({ rain_warning: (ev.target as HTMLInputElement).checked })} />
           ${this.t("rain_warning")}</label
         >
+        <label class="fp3d-check fp3d-wide" title=${this.t("alert_names_hint")}
+          ><input type="checkbox" .checked=${s.alert_names !== false} @change=${(ev: Event) => set({ alert_names: (ev.target as HTMLInputElement).checked })} />
+          ${this.t("alert_names")}</label
+        >
         ${this.hass
           ? html`${this.entitySelect(
                 this.t("outage_entity"),

@@ -4,6 +4,17 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 [releases page](https://github.com/Mastershort/neonplan3d/releases). Ideas and votes:
 [Discussions → Ideas](https://github.com/Mastershort/neonplan3d/discussions/categories/ideas).
 
+## 1.13.2
+
+### New
+
+- **Shorter warnings:** Editor → Settings → **Show device names in warnings**. Switched off, the banner reads "Guest WC · Window open in the rain" without the device name; a warning without a room keeps it. On by default (#374 by sjess).
+
+### Fixed
+
+- **Ceiling height per room:** the glow points of ceiling, panel and pendant lamps sat at the floor height and floated above the lamp in a low room beside a taller one (#372 by wiesi12).
+- **Colour effects of lights that report no colour** (e.g. Nanoleaf during an effect) run through real colours instead of staying white (#373 by sjess).
+
 ## 1.13.1
 
 ### New

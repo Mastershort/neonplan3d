@@ -2157,7 +2157,9 @@ export class FloorplanViewer {
     c.getHSL(hsl);
     // lamps start at different points of the colour wheel, so a room does not blink in sync
     const offset = (d.x * 0.37 + d.z * 0.61) % 1;
-    c.setHSL((hsl.h + this.effectTime * EFFECT_SPEED + offset) % 1, Math.max(0.6, hsl.s), Math.max(0.45, hsl.l));
+    // at lightness 1 every hue is white: a light that reports no colour while its effect runs (Nanoleaf, #373)
+    // glows white, so the lightness stays where hues show
+    c.setHSL((hsl.h + this.effectTime * EFFECT_SPEED + offset) % 1, Math.max(0.6, hsl.s), Math.min(0.6, Math.max(0.45, hsl.l)));
     return { color: [c.r, c.g, c.b], level: d.glow.level };
   }
 

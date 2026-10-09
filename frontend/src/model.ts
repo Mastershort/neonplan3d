@@ -529,6 +529,8 @@ export interface BuildingSettings {
   weather_effects?: WeatherEffect[] | null;
   /** Warning for a window open while it rains (default on). */
   rain_warning?: boolean;
+  /** Warnings name the device after the room (default on); off = only "Room · Smoke" when the warning has a room (#374). */
+  alert_names?: boolean;
   /** An entity that reports a power outage (a grid or UPS sensor); null = no outage warning (#214). */
   outage_entity?: string | null;
   /** Sunlight falls through the windows as patches on the floor (default on, #266). */

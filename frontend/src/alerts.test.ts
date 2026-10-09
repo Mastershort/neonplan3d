@@ -59,6 +59,11 @@ test("smoke and water raise room warnings, a triggered alarm a house-wide one", 
   );
   assert.equal(alertText(hass, b, alerts[0]), "Küche · Rauch: Rauchmelder");
   assert.equal(alertText(hass, b, alerts[2]), "Alarm ausgelöst");
+  // without device names only the room and the kind remain; a warning without a room keeps its text (#374)
+  b.settings.alert_names = false;
+  assert.equal(alertText(hass, b, alerts[0]), "Küche · Rauch");
+  assert.equal(alertText(hass, b, alerts[2]), "Alarm ausgelöst");
+  delete b.settings.alert_names;
   hass.states["alarm_control_panel.haus"].state = "pending";
   assert.equal(findAlerts(hass, b, src, links).at(-1)?.kind, "alarm_pending");
 });

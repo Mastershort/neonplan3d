@@ -124,5 +124,8 @@ export function alertText(hass: HomeAssistant | undefined, building: Building, a
   const room = a.roomId ? building.floors.flatMap((f) => f.rooms).find((r) => r.id === a.roomId) : null;
   const name = hass ? entityName(hass, a.entity) : a.entity;
   const text = translate(hass, `alert_${a.kind}` as Parameters<typeof translate>[1], { name });
-  return room ? `${room.name} · ${text}` : text;
+  if (!room) return text;
+  // without the device name: "Gäste-WC · Fenster offen bei Regen" (the room already says where, #374)
+  if (building.settings.alert_names === false) return `${room.name} · ${translate(hass, `alert_short_${a.kind}` as Parameters<typeof translate>[1])}`;
+  return `${room.name} · ${text}`;
 }

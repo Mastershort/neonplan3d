@@ -557,6 +557,8 @@ NeonPlan 3D warnt kostenlos und ohne Einrichtung:
 
 Der betroffene Raum pulsiert rot, oben erscheint ein Banner. Ein Tipp auf die Warnung springt in den Raum. Die Regenwarnung nimmt die Wetter-Entität aus den Plan-Einstellungen und lässt sich dort unter **Warnung: Fenster offen bei Regen** einzeln abschalten.
 
+Auf einem Wandtablet kann das Banner lang werden: „Gäste-WC · Fenster offen bei Regen: Fenster Gästebad“. Schaltest du in den Plan-Einstellungen **Gerätenamen in Warnungen zeigen** aus, steht dort nur „Gäste-WC · Fenster offen bei Regen“. Eine Warnung ohne Raum behält den Gerätenamen.
+
 ### 5.9 Kameras in 3D
 
 ![Kamera in 3D](images/view-camera-model.jpg)

@@ -555,6 +555,8 @@ NeonPlan 3D warns for free and without setup:
 
 The room pulses red and a banner appears at the top. A tap on the warning jumps into the room. The rain warning uses the weather entity from the plan settings and can be switched off there on its own under **Warning: window open while it rains**.
 
+On a wall tablet the banner can get long: "Guest WC · Window open in the rain: Guest bathroom window". Switch off **Show device names in warnings** in the plan settings, and it reads "Guest WC · Window open in the rain". A warning without a room keeps the device name.
+
 ### 5.9 Cameras in 3D
 
 ![A camera in 3D](images/view-camera-model.jpg)
