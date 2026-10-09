@@ -868,6 +868,8 @@
  "out_fence": "Hegn",
  "out_wild": "Vild natur",
  "out_pergola": "Pergola / stativ",
+ "out_balcony": "Altan",
+ "balcony_rail": "Rækværkshøjde",
  "outdoor_open": "Åben (udelad den sidste kant)",
  "outdoor_open_hint": "Kanten fra det sidste punkt tilbage til det første tegnes ikke – et hegn eller en pergola, der støder op til huset.",
  "outdoor_bracing": "Krydsafstivning",

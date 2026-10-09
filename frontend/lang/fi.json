@@ -868,6 +868,8 @@
  "out_fence": "Aita",
  "out_wild": "Luonnonniitty",
  "out_pergola": "Pergola / runko",
+ "out_balcony": "Parveke",
+ "balcony_rail": "Kaiteen korkeus",
  "outdoor_open": "Avoin (jätä viimeinen reuna pois)",
  "outdoor_open_hint": "Reunaa viimeisestä pisteestä takaisin ensimmäiseen ei piirretä – taloa vasten nojaava aita tai pergola.",
  "outdoor_bracing": "X-tuenta",

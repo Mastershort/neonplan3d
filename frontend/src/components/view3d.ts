@@ -1661,6 +1661,12 @@ export class Fp3dView3d extends LitElement {
       </div>`;
   }
 
+  /** A service call from a card was refused: Home Assistant shows the reason as a notice at the bottom. */
+  private serviceFailed(service: string, err: unknown): void {
+    const why = err && typeof err === "object" && "message" in err ? String((err as { message: unknown }).message) : String(err);
+    this.dispatchEvent(new CustomEvent("hass-notification", { detail: { message: `${service}: ${why}` }, bubbles: true, composed: true }));
+  }
+
   /** Klang & Kino: what a speaker plays – cover, title, artist, volume, with play/pause, previous and next. */
   private renderMediaCard(card: HoloCard, index: number) {
     const hass = this.hass;
@@ -1672,7 +1678,9 @@ export class Fp3dView3d extends LitElement {
       else this.mediaFolded.add(m.id);
       this.requestUpdate();
     };
-    const call = (service: string, data: Record<string, unknown> = {}) => void hass.callService("media_player", service, { entity_id: m.id, ...data });
+    // a refused command shows as Home Assistant's own notice instead of failing silently (#400)
+    const call = (service: string, data: Record<string, unknown> = {}) =>
+      void Promise.resolve(hass.callService("media_player", service, { entity_id: m.id, ...data })).catch((err: unknown) => this.serviceFailed(`media_player.${service}`, err));
     // the dragged volume shows at once and is sent while dragging (at most every 350 ms) and on release;
     // it stays until the player reports it (a cloud speaker like an Echo answers late), at most 30 s
     const local = this.mediaVolume.get(m.id);

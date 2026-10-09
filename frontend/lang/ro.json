@@ -868,6 +868,8 @@
  "out_fence": "Gard",
  "out_wild": "Colț sălbatic",
  "out_pergola": "Pergolă / cadru",
+ "out_balcony": "Balcon",
+ "balcony_rail": "Înălțimea balustradei",
  "outdoor_open": "Deschis (fără ultima margine)",
  "outdoor_open_hint": "Marginea de la ultimul punct înapoi la primul nu se desenează – un gard sau o pergolă sprijinită de casă.",
  "outdoor_bracing": "Contravântuire în X",

@@ -868,6 +868,8 @@
  "out_fence": "Recinzione",
  "out_wild": "Area selvatica",
  "out_pergola": "Pergola / telaio",
+ "out_balcony": "Balcone",
+ "balcony_rail": "Altezza della ringhiera",
  "outdoor_open": "Aperto (senza l'ultimo lato)",
  "outdoor_open_hint": "Il lato dall'ultimo punto al primo non viene disegnato: una recinzione o una pergola appoggiata alla casa.",
  "outdoor_bracing": "Controventatura a X",

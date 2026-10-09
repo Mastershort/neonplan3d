@@ -868,6 +868,8 @@
  "out_fence": "Gjerde",
  "out_wild": "Villeng",
  "out_pergola": "Pergola / ramme",
+ "out_balcony": "Balkong",
+ "balcony_rail": "Rekkverkshøgd",
  "outdoor_open": "Open (utelat siste kant)",
  "outdoor_open_hint": "Kanten frå siste punkt tilbake til det første blir ikkje teikna – eit gjerde eller ein pergola som står inntil huset.",
  "outdoor_bracing": "Kryssavstiving",

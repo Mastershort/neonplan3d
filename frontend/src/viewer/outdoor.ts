@@ -27,7 +27,28 @@ const LOOKS: Record<OutdoorType, Look> = {
   hedge: { color: 0x16402f, side: 0x103024, edge: 0x3de0a0, edgeAlpha: 0.35 },
   fence: { color: 0x1d2946, side: 0x1d2946, edge: 0x5b7cff, edgeAlpha: 0.45 },
   pergola: { color: 0x2a2238, side: 0x1f1a2c, edge: 0x5b7cff, edgeAlpha: 0.5 },
+  balcony: { color: 0x1d2238, side: 0x161a2c, edge: 0x5b7cff, edgeAlpha: 0.5 },
 };
+
+/** Whether an edge runs along a room's outline on this floor (a balcony needs no railing at the house wall). */
+function againstWall(floor: Floor, p: Vec2, q: Vec2): boolean {
+  const mid: Vec2 = [(p[0] + q[0]) / 2, (p[1] + q[1]) / 2];
+  const dx = q[0] - p[0];
+  const dz = q[1] - p[1];
+  const len = Math.hypot(dx, dz) || 1;
+  return floor.rooms.some((r) =>
+    r.points.some((a, i) => {
+      const b = r.points[(i + 1) % r.points.length];
+      const ex = b[0] - a[0];
+      const ez = b[1] - a[1];
+      const el = Math.hypot(ex, ez) || 1;
+      // parallel, and the edge's middle within 40 cm of the room's edge
+      if (Math.abs((dx * ez - dz * ex) / (len * el)) > 0.05) return false;
+      const t = Math.max(0, Math.min(1, ((mid[0] - a[0]) * ex + (mid[1] - a[1]) * ez) / (el * el)));
+      return Math.hypot(a[0] + ex * t - mid[0], a[1] + ez * t - mid[1]) < 0.4;
+    }),
+  );
+}
 
 /** Height of the visible surface of an area (for the lighting layer), at its high edge. */
 export function outdoorSurface(floor: Floor, a: OutdoorArea): number {
@@ -210,6 +231,34 @@ export function pushOutdoor(buf: GeoBuffer, lines: LineBuffer, floor: Floor): vo
           }
         }
         outline((x, z) => groundAt(x, z) + h + 0.004);
+        break;
+      }
+      case "balcony": {
+        // a thin slab at the floor's level and a see-through railing of bars; no railing along the
+        // house wall, so the balcony doors behind it stay open to view (#253)
+        const slab = 0.18;
+        pushPrism(buf, poly, g - slab, g + look.top, look.side, look.color, { aoFrom: g - slab });
+        outline(() => g + look.top + 0.004);
+        const rail = a.height && a.height > 0.3 ? a.height : 1.0;
+        const bar = shade(0x8fb4ff, 0.42);
+        const top = shade(0x37e0ff, 0.55);
+        for (let i = 0; i < poly.length; i++) {
+          const p = poly[i];
+          const q = poly[(i + 1) % poly.length];
+          if (againstWall(floor, p, q)) continue;
+          const len = Math.hypot(q[0] - p[0], q[1] - p[1]);
+          const y0 = g + look.top;
+          lines.seg([p[0], y0 + rail, p[1]], [q[0], y0 + rail, q[1]], top, ALWAYS);
+          lines.seg([p[0], y0 + 0.1, p[1]], [q[0], y0 + 0.1, q[1]], bar, ALWAYS);
+          // bars every 12 cm, posts at the ends
+          const n = Math.max(1, Math.round(len / 0.12));
+          for (let k = 0; k <= n; k++) {
+            const t = k / n;
+            const x = p[0] + (q[0] - p[0]) * t;
+            const z = p[1] + (q[1] - p[1]) * t;
+            lines.seg([x, y0, z], [x, y0 + rail, z], k === 0 || k === n ? top : bar, ALWAYS);
+          }
+        }
         break;
       }
       default: {

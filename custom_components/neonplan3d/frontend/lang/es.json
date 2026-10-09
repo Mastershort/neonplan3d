@@ -868,6 +868,8 @@
  "out_fence": "Valla",
  "out_wild": "Zona silvestre",
  "out_pergola": "Pérgola / armazón",
+ "out_balcony": "Balcón",
+ "balcony_rail": "Altura de la barandilla",
  "outdoor_open": "Abierto (sin la última arista)",
  "outdoor_open_hint": "La arista del último punto al primero no se dibuja: una valla o pérgola apoyada en la casa.",
  "outdoor_bracing": "Arriostramiento en X",

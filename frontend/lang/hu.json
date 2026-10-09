@@ -868,6 +868,8 @@
  "out_fence": "Kerítés",
  "out_wild": "Vadon terület",
  "out_pergola": "Pergola / keret",
+ "out_balcony": "Erkély",
+ "balcony_rail": "Korlát magassága",
  "outdoor_open": "Nyitott (utolsó él nélkül)",
  "outdoor_open_hint": "Az utolsó pontból az elsőbe futó él nem rajzolódik ki – a házhoz támaszkodó kerítés vagy pergola.",
  "outdoor_bracing": "X-merevítés",

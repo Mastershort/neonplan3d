@@ -868,6 +868,8 @@
  "out_fence": "Clôture",
  "out_wild": "Zone sauvage",
  "out_pergola": "Pergola / ossature",
+ "out_balcony": "Balcon",
+ "balcony_rail": "Hauteur du garde-corps",
  "outdoor_open": "Ouvert (sans la dernière arête)",
  "outdoor_open_hint": "L'arête du dernier point au premier n'est pas tracée : une clôture ou une pergola adossée à la maison.",
  "outdoor_bracing": "Contreventement en X",

@@ -868,6 +868,8 @@
  "out_fence": "Ograja",
  "out_wild": "Divji kotiček",
  "out_pergola": "Pergola / ogrodje",
+ "out_balcony": "Balkon",
+ "balcony_rail": "Višina ograje",
  "outdoor_open": "Odprto (izpusti zadnji rob)",
  "outdoor_open_hint": "Rob od zadnje točke nazaj do prve se ne nariše – ograja ali pergola, naslonjena na hišo.",
  "outdoor_bracing": "Križno ojačanje",

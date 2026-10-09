@@ -868,6 +868,8 @@
  "out_fence": "Hek",
  "out_wild": "Wild stuk",
  "out_pergola": "Pergola / frame",
+ "out_balcony": "Balkon",
+ "balcony_rail": "Hoogte van de reling",
  "outdoor_open": "Open (laatste rand weglaten)",
  "outdoor_open_hint": "De rand van het laatste punt terug naar het eerste wordt niet getekend – een hek of pergola tegen het huis.",
  "outdoor_bracing": "X-verband",

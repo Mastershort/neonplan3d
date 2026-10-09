@@ -868,6 +868,8 @@
  "out_fence": "Płot",
  "out_wild": "Dzika łąka",
  "out_pergola": "Pergola / rama",
+ "out_balcony": "Balkon",
+ "balcony_rail": "Wysokość balustrady",
  "outdoor_open": "Otwarty (pomiń ostatnią krawędź)",
  "outdoor_open_hint": "Krawędź od ostatniego punktu z powrotem do pierwszego nie jest rysowana – płot lub pergola oparta o dom.",
  "outdoor_bracing": "Stężenie krzyżowe",

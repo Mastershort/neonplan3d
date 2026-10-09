@@ -868,6 +868,8 @@
  "out_fence": "Plot",
  "out_wild": "Divoká plocha",
  "out_pergola": "Pergola / rám",
+ "out_balcony": "Balkon",
+ "balcony_rail": "Výška zábradlí",
  "outdoor_open": "Otevřená (vynechat poslední hranu)",
  "outdoor_open_hint": "Hrana z posledního bodu zpět k prvnímu se nekreslí – plot nebo pergola opřená o dům.",
  "outdoor_bracing": "Křížové vzpěry",

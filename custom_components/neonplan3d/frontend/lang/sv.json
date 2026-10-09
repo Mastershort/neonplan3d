@@ -868,6 +868,8 @@
  "out_fence": "Staket",
  "out_wild": "Vildväxt yta",
  "out_pergola": "Pergola / ram",
+ "out_balcony": "Balkong",
+ "balcony_rail": "Räckeshöjd",
  "outdoor_open": "Öppen (utelämna sista kanten)",
  "outdoor_open_hint": "Kanten från sista punkten tillbaka till den första ritas inte – ett staket eller en pergola som lutar mot huset.",
  "outdoor_bracing": "X-förstärkning",

@@ -360,7 +360,7 @@ POOL_SCHEMA = vol.Schema(
     extra=vol.ALLOW_EXTRA,
 )
 
-OUTDOOR_TYPES = ["lawn", "terrace", "path", "driveway", "pool", "bed", "wild", "hedge", "fence", "pergola"]
+OUTDOOR_TYPES = ["lawn", "terrace", "path", "driveway", "pool", "bed", "wild", "hedge", "fence", "pergola", "balcony"]
 
 OUTDOOR_SCHEMA = vol.Schema(
     {

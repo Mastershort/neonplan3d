@@ -276,6 +276,8 @@ const shots = [
   { name: "view-pool-pipes", query: "", width: 1280, height: 800, click: "Erdgeschoss", viewScript: "const c = v.viewer.controls; c.view.target.set(11.2, 0.3, -1.6); c.view.radius = 8.5; c.view.theta = 3.9; c.view.phi = 0.85; c.events.change(); v.viewer.invalidate();", wait: 2000, afterWait: 1200 },
   { name: "view-pool-backwash", query: "", width: 1280, height: 800, editor: true, editorScript: "const f = e._doc.floors[0].furniture.find((m) => m.id === 'pt_filter'); f.valve_position = 'backwash'; e.setDoc(structuredClone(e._doc));", afterWait: 800, then3d: "Erdgeschoss", wait: 1500, camera: { theta: 3.9, phi: 0.85, radius: 8.5, target: { x: 11.2, y: 0.3, z: -1.6 } } },
   { name: "editor-round-drag", query: "", width: 1280, height: 900, editor: true, editorScript: "const f = e._doc.floors[0]; f.outdoor = f.outdoor.filter((o) => o.id !== 'a4'); e.setDoc(structuredClone(e._doc)); e._tool = 'pool'; e._poolShape = 'round'; e.addOutdoor([[8.5, -6.5], [12.5, -6.5], [12.5, -3.5], [8.5, -3.5]]); setTimeout(() => e.showPoint(10.5, -5), 200); setTimeout(() => { const a = e._doc.floors[0].outdoor.at(-1); const h = e.renderRoot.querySelectorAll('[data-out-box]')[2]; const r = h.getBoundingClientRect(); const x = r.x + r.width / 2; const y = r.y + r.height / 2; e.drag = { kind: 'outbox', id: a.id, corner: 2, base: e._doc, moved: false }; const ev = (dx, dy, type) => ({ type, clientX: x + dx, clientY: y + dy, pointerId: 7, altKey: false, target: h }); e.onPointerMove(ev(60, 10, 'pointermove')); e.onPointerMove(ev(140, 20, 'pointermove')); e.onPointerUp(ev(140, 20, 'pointerup')); const b = e._doc.floors[0].outdoor.at(-1).points; const xs = b.map((q) => q[0]); const zs = b.map((q) => q[1]); document.title = 'W=' + (Math.max(...xs) - Math.min(...xs)).toFixed(2) + ' D=' + (Math.max(...zs) - Math.min(...zs)).toFixed(2) + ' shape=' + e._doc.floors[0].outdoor.at(-1).pool_shape; }, 900);", afterWait: 1800 },
+  { name: "test-media-next", query: "", width: 1280, height: 800, click: "Erdgeschoss", wait: 2500, mouseClickIn: ".fp3d-holo-media:not([hidden]) .fp3d-holo-media-controls button:nth-child(3)" },
+  { name: "view-balcony", query: "", width: 1280, height: 800, editor: true, editorScript: "const og = e._doc.floors.find((f) => f.id === 'og'); og.outdoor = [...(og.outdoor ?? []), { id: 'bal', type: 'balcony', points: [[0.6, -1.6], [4.0, -1.6], [4.0, 0], [0.6, 0]] }]; e.setDoc(structuredClone(e._doc));", afterWait: 800, then3d: "Obergeschoss", camera: { theta: 3.5, phi: 1.15, radius: 7, target: { x: 2.3, y: 3.2, z: -0.6 } } },
   { name: "view-outdoor-round", query: "", width: 1280, height: 800, editor: true, editorScript: "e.fit();", then3d: "Alle Etagen", then3dAlso: ["Gestapelt"], camera: { theta: 0.6, phi: 1.1, radius: 15, target: { x: 12.5, y: 0, z: -2 } } },
   { name: "editor-outdoor-pergola", query: "", width: 1280, height: 900, editor: true, editorState: { _outdoorId: "a11" }, scrollSide: true },
   { name: "view-room-ceiling", query: "", width: 1280, height: 800, editor: true, editorScript: "const k = e._doc.floors[0].rooms.find((r) => r.id === 'kueche'); k.ceiling_height = 1.4; e.setDoc(structuredClone(e._doc));", afterWait: 800, then3d: "Erdgeschoss", camera: { target: { x: 8, y: 1.4, z: 2.3 }, radius: 6, phi: 1.2, theta: 0.6 } },
@@ -428,6 +430,23 @@ for (const shot of shots.filter((s) => !only || only.includes(s.name))) {
       new Function("v", code)(v);
     }, shot.viewScript);
     await new Promise((r) => setTimeout(r, 1500 + (shot.afterWait ?? 0)));
+  }
+  if (shot.mouseClickIn) {
+    // a real mouse click on an element inside the 3D view (CSS selector in its shadow root); prints the services called
+    const at = await page.evaluate((sel) => {
+      const v = document.querySelector("neonplan3d-panel").shadowRoot.querySelector("fp3d-view3d");
+      const h = v.hass;
+      window.__calls = [];
+      const orig = h.callService.bind(h);
+      h.callService = (d, s, data) => (window.__calls.push(`${d}.${s} ${JSON.stringify(data)}`), orig(d, s, data));
+      const el = v.renderRoot.querySelector(sel);
+      if (!el) return null;
+      const r = el.getBoundingClientRect();
+      return [r.x + r.width / 2, r.y + r.height / 2];
+    }, shot.mouseClickIn);
+    if (at) await page.mouse.click(at[0], at[1]);
+    await new Promise((r) => setTimeout(r, 400));
+    console.log("CLICK", shot.mouseClickIn, at ? "at " + at.map(Math.round).join(",") : "NOT FOUND", await page.evaluate(() => JSON.stringify(window.__calls)));
   }
   if (shot.editorScript) {
     await page.evaluate((code) => {
