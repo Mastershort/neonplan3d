@@ -513,6 +513,23 @@ function pair(openings: Opening[], ids: string[], shared = false): Map<string, s
  */
 export function openingEntities(hass: HomeAssistant, floors: readonly Floor[]): Map<string, OpeningEntities> {
   const out = new Map<string, OpeningEntities>();
+  const pick = (ref: string | null, auto: string | undefined) => (ref === "none" ? null : (ref ?? auto ?? null));
+  const link = (o: Opening, autoC?: string, autoK?: string): OpeningEntities => ({
+    cover: pick(o.cover, autoC),
+    // a window with a handle sensor gets no plain contact assigned automatically
+    contact: o.sensor === "handle" && o.contact == null ? null : pick(o.contact, autoK),
+    tilt: o.tilt === "none" ? null : o.tilt,
+    contact2: o.leaves === 2 && o.contact2 && o.contact2 !== "none" ? o.contact2 : null,
+    tilt2: o.leaves === 2 && o.tilt2 && o.tilt2 !== "none" ? o.tilt2 : null,
+    position: o.position && o.position !== "none" ? o.position : null,
+    positionInverted: !!o.position_inverted,
+    tiltAngle: o.tilt_angle && o.tilt_angle !== "none" ? o.tilt_angle : null,
+    tiltMax: o.tilt_max ?? null,
+    tiltOffset: o.tilt_offset ?? null,
+    tiltInvert: !!o.tilt_invert,
+    shut: !!o.shut,
+    ...(o.contact_invert ? { contactInvert: true } : {}),
+  });
   for (const floor of floors) {
     for (const room of floor.rooms) {
       const own = floor.openings.filter((o) => o.room_id === room.id).sort((a, b) => a.edge - b.edge || a.offset - b.offset);
@@ -529,28 +546,15 @@ export function openingEntities(hass: HomeAssistant, floors: readonly Floor[]): 
       const autoDoor = pair(doors, ids.filter((id) => kindOf(id) === "binary" && cls(id) === "door"));
       const autoGarageCover = pair(garages, ids.filter((id) => kindOf(id) === "cover" && GARAGE_COVERS.has(cls(id) ?? "")));
       const autoGarageContact = pair(garages, ids.filter((id) => kindOf(id) === "binary" && cls(id) === "garage_door"));
-      const pick = (ref: string | null, auto: string | undefined) => (ref === "none" ? null : (ref ?? auto ?? null));
       for (const o of own) {
         const autoC = o.type === "window" ? autoCover : o.type === "garage" ? autoGarageCover : null;
         const autoK = o.type === "window" ? autoWindow : o.type === "garage" ? autoGarageContact : autoDoor;
-        out.set(o.id, {
-          cover: pick(o.cover, autoC?.get(o.id)),
-          // a window with a handle sensor gets no plain contact assigned automatically
-          contact: o.sensor === "handle" && o.contact == null ? null : pick(o.contact, autoK.get(o.id)),
-          tilt: o.tilt === "none" ? null : o.tilt,
-          contact2: o.leaves === 2 && o.contact2 && o.contact2 !== "none" ? o.contact2 : null,
-          tilt2: o.leaves === 2 && o.tilt2 && o.tilt2 !== "none" ? o.tilt2 : null,
-          position: o.position && o.position !== "none" ? o.position : null,
-          positionInverted: !!o.position_inverted,
-          tiltAngle: o.tilt_angle && o.tilt_angle !== "none" ? o.tilt_angle : null,
-          tiltMax: o.tilt_max ?? null,
-          tiltOffset: o.tilt_offset ?? null,
-          tiltInvert: !!o.tilt_invert,
-          shut: !!o.shut,
-          ...(o.contact_invert ? { contactInvert: true } : {}),
-        });
+        out.set(o.id, link(o, autoC?.get(o.id), autoK.get(o.id)));
       }
     }
+    // an opening in a free wall that stands outside every room (outer walls drawn with the wall tool, rooms
+    // without walls of their own) has no area to look in: only the entities chosen by hand drive it (#367)
+    for (const o of floor.openings) if (!out.has(o.id)) out.set(o.id, link(o));
   }
   return out;
 }

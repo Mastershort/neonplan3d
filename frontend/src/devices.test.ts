@@ -654,3 +654,16 @@ test("carLocked reads locks, lock binary sensors, text sensors and switches (#36
   assert.equal(carLocked(st("sensor.118i_zustand_der_turen", "unknown")), null);
   assert.equal(carLocked(st("input_boolean.auto_zu", "on")), true);
 });
+
+test("a door in a free wall outside every room follows the contact chosen for it (#367)", () => {
+  const hass = hassWith();
+  hass.states["binary_sensor.haustuer"] = { entity_id: "binary_sensor.haustuer", state: "on", attributes: { device_class: "door" } };
+  const door: Opening = {
+    id: "d1", room_id: "wall1", wall: "wall1", edge: 0, offset: 1, width: 1, type: "door", sill: 0, height: 2.05, hinge: "left", leaves: 1, swing: "in",
+    cover: null, contact: "binary_sensor.haustuer", contact2: null, tilt: null,
+  };
+  const floor: Floor = { ...newFloor("f", "F", 0), openings: [door], walls: [{ id: "wall1", a: [0, 0], b: [4, 0], thickness: null, height: null }] };
+  const links = openingEntities(hass, [floor]);
+  assert.equal(links.get("d1")?.contact, "binary_sensor.haustuer");
+  assert.equal(openingState(hass, links.get("d1")!, "door").open, 1);
+});
