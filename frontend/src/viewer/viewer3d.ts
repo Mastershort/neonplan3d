@@ -2370,11 +2370,11 @@ export class FloorplanViewer {
       const base = d.base ?? 0;
       const ang = (d.rotation ?? 0) * DEG;
       const y = {
-        ceiling: H - 0.07,
+        ceiling: Ht - 0.07,
         downlight: Ht - 0.03,
         spot: Ht - h,
-        panel: H - 0.03,
-        pendant: Math.max(0.4, H - h) + 0.08,
+        panel: Ht - 0.03,
+        pendant: Math.max(0.4, Ht - h) + 0.08,
         floor: base + h - 0.15,
         uplight: base + h,
         table: base + h - 0.09,
