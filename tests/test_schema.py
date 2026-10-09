@@ -17,6 +17,13 @@ def test_start_view_keeps_its_target() -> None:
     assert view["target"] == {"x": 1.0, "y": 0.5, "z": -2.0}
 
 
+def test_start_view_after_several_turns() -> None:
+    # a camera turned round twice saves its angle once round (#416)
+    view = START_VIEW_SCHEMA({"theta": 13.214, "phi": 0.8, "radius": 9})
+    assert -3.15 < view["theta"] < 3.15
+    assert abs(view["theta"] - (13.214 - 4 * 3.141592653589793)) < 1e-9
+
+
 def test_start_view_without_target() -> None:
     assert "target" not in START_VIEW_SCHEMA({"theta": 1, "phi": 0.8, "radius": 9})
 

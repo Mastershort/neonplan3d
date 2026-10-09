@@ -6,6 +6,8 @@ so saving keeps working after a frontend update until Home Assistant restarts wi
 
 from __future__ import annotations
 
+import math
+
 import voluptuous as vol
 
 MAX_FLOORS = 20
@@ -27,7 +29,8 @@ _SENSOR_REF = vol.Any(None, vol.All(str, vol.Length(max=255)))
 # point's height is counted from that floor
 START_VIEW_SCHEMA = vol.Schema(
     {
-        vol.Required("theta"): vol.All(vol.Coerce(float), vol.Range(min=-10, max=10)),
+        # the camera may have turned round several times: the angle counts once round (#416)
+        vol.Required("theta"): vol.All(vol.Coerce(float), lambda v: math.remainder(v, math.tau)),
         vol.Required("phi"): vol.All(vol.Coerce(float), vol.Range(min=0, max=3.2)),
         vol.Required("radius"): vol.All(vol.Coerce(float), vol.Range(min=1, max=500)),
         vol.Optional("target"): {

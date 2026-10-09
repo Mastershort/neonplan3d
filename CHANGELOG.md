@@ -4,6 +4,13 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 [releases page](https://github.com/Mastershort/neonplan3d/releases). Ideas and votes:
 [Discussions → Ideas](https://github.com/Mastershort/neonplan3d/discussions/categories/ideas).
 
+## 1.13.3
+
+### Fixed
+
+- **Saving a start view after several turns** failed with "… theta"; the angle now counts once round, waiting changes save again (#416 by rolandarends).
+- **Glowing edges at wall corners** no longer flicker, shorten or stick out as the view turns (#417 by rolandarends).
+
 ## 1.13.2
 
 ### New
