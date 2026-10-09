@@ -1058,6 +1058,8 @@ export class Fp3dView3d extends LitElement {
       const pieces: PoolPiece[] = [];
       for (const { floor, area } of poolAreas(b.floors)) {
         const st = poolState(hass, area.pool);
+        // nothing of the pool found in Home Assistant: the plain water stays, no empty card
+        if (!Object.values(st.entities).some(Boolean)) continue;
         const glow = poolWaterGlow(st);
         const y = poolWaterY(floor, area);
         pieces.push({
