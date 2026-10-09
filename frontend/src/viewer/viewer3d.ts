@@ -1343,7 +1343,9 @@ export class FloorplanViewer {
   currentView(): StartView {
     const v = this.controls.view;
     const base = this.floorBase(this.floorId);
-    return { theta: v.theta, phi: v.phi, radius: v.radius, target: { x: v.target.x, y: v.target.y - base, z: v.target.z } };
+    // the camera may have turned round several times: the angle counts once round (−π … π, #416)
+    const theta = Math.atan2(Math.sin(v.theta), Math.cos(v.theta));
+    return { theta, phi: v.phi, radius: v.radius, target: { x: v.target.x, y: v.target.y - base, z: v.target.z } };
   }
 
   /** Height of a floor as it is shown now (0 for the house view). */
@@ -1664,7 +1666,9 @@ export class FloorplanViewer {
     return {
       floor: themed(new MeshBasicMaterial({ vertexColors: true }), this.themeUniform),
       pattern: patternMaterial(this.patternTexture),
-      wall: themed(makeFoldable(new MeshBasicMaterial({ vertexColors: true }), mask, "solid"), this.themeUniform),
+      // the walls sit a hair behind their glowing edges in depth: lines lying on a wall's top or face no longer
+      // flicker in and out at corners and joints as the view turns (#417)
+      wall: themed(makeFoldable(new MeshBasicMaterial({ vertexColors: true, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1 }), mask, "solid"), this.themeUniform),
       glassWall: makeFoldable(new MeshBasicMaterial({ vertexColors: true, transparent: true, depthWrite: false }), mask, "glass"),
       // result = floor colour * vertex colour (white leaves the floor untouched)
       shadow: new MeshBasicMaterial({

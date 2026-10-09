@@ -20,6 +20,13 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 - **Commands from glass cards** that Home Assistant refuses now show its error message at the bottom instead of failing silently (#400).
 - **A pool inside a lawn** was hidden by the lawn; every pool now cuts itself out of the area around it.
 
+## 1.13.3
+
+### Fixed
+
+- **Saving a start view after several turns** failed with "… theta"; the angle now counts once round, waiting changes save again (#416 by rolandarends).
+- **Glowing edges at wall corners** no longer flicker, shorten or stick out as the view turns (#417 by rolandarends).
+
 ## 1.13.2
 
 ### New
