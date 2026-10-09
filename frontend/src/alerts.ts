@@ -6,7 +6,7 @@ import { areaEntities, entityName, openingState, type OpeningEntities } from "./
 import { translate } from "./i18n.ts";
 import type { Building } from "./model.ts";
 import type { HassEntity, HomeAssistant } from "./types.ts";
-import { weatherEntity } from "./weather.ts";
+import { stationRain, weatherEntity } from "./weather.ts";
 import { hasFeature } from "./features.ts";
 import { poolAreas, poolEntities, poolState } from "./pool.ts";
 
@@ -27,6 +27,8 @@ export interface AlertSources {
   weather: string | null;
   /** The entity that reports a power outage (#214). */
   outage: string | null;
+  /** A weather station's rain sensor or rain rate, used instead of the weather entity (D407). */
+  rain?: string | null;
   /** Pool Pro: the pools whose water values are watched. */
   pools: { floorId: string; areaId: string; ids: string[] }[];
 }
@@ -50,12 +52,14 @@ export function alertSources(hass: HomeAssistant, building: Building, weatherId?
   const pools = hasFeature("pool")
     ? poolAreas(building.floors).map(({ floor, area }) => ({ floorId: floor.id, areaId: area.id, ids: Object.values(poolEntities(hass, area.pool)).filter((x): x is string => !!x) }))
     : [];
-  return { rooms, alarms: ids.filter((id) => id.startsWith("alarm_control_panel.")), weather, outage, pools };
+  const rainId = building.settings.rain_warning === false ? null : building.settings.rain_entity;
+  const rain = rainId && hass.states[rainId] ? rainId : null;
+  return { rooms, alarms: ids.filter((id) => id.startsWith("alarm_control_panel.")), weather, outage, pools, rain };
 }
 
 /** Entities whose state changes may raise or clear a warning. */
 export function alertEntities(sources: AlertSources): string[] {
-  return [...sources.rooms.flatMap((r) => r.sensors), ...sources.alarms, ...(sources.weather ? [sources.weather] : []), ...(sources.outage ? [sources.outage] : []), ...(sources.pools ?? []).flatMap((p) => p.ids)];
+  return [...sources.rooms.flatMap((r) => r.sensors), ...sources.alarms, ...(sources.weather ? [sources.weather] : []), ...(sources.outage ? [sources.outage] : []), ...(sources.rain ? [sources.rain] : []), ...(sources.pools ?? []).flatMap((p) => p.ids)];
 }
 
 /** The active warnings, rooms first, then the house-wide alarm. */
@@ -68,11 +72,13 @@ export function findAlerts(hass: HomeAssistant, building: Building, sources: Ale
       out.push({ kind: CLASS_KIND[String(st.attributes.device_class)], entity: id, roomId: r.roomId, floorId: r.floorId });
     }
   }
-  const raining = !!sources.weather && RAIN_STATES.has(hass.states[sources.weather]?.state ?? "");
+  // a weather station of its own answers first; without one the weather entity's condition counts
+  const station = sources.rain ? stationRain(hass, sources.rain) : null;
+  const raining = station !== null ? station > 0 : !!sources.weather && RAIN_STATES.has(hass.states[sources.weather]?.state ?? "");
   if (raining) {
     for (const floor of building.floors) {
       for (const o of floor.openings) {
-        if (o.type !== "window") continue;
+        if (o.type !== "window" || o.rain_ignore) continue;
         const link = links.get(o.id);
         if (!link) continue;
         const s = openingState(hass, link, "window");

@@ -88,6 +88,22 @@ test("the rain warning can be switched off on its own", () => {
   assert.equal(alerts.filter((a) => a.kind === "window_rain").length, 0);
 });
 
+test("a window may stay open in the rain; a weather station's own rain sensor decides (D328, D407)", () => {
+  const { hass, b, links } = setup();
+  hass.states["weather.zuhause"].state = "rainy";
+  // the window under a canopy does not warn
+  for (const o of b.floors[0].openings) if (o.type === "window") o.rain_ignore = true;
+  assert.equal(findAlerts(hass, b, alertSources(hass, b), links).filter((a) => a.kind === "window_rain").length, 0);
+  for (const o of b.floors[0].openings) delete o.rain_ignore;
+  // the station says dry although the forecast says rainy: no warning; then it rains at the house
+  hass.states["sensor.regenrate"] = { entity_id: "sensor.regenrate", state: "0", attributes: { unit_of_measurement: "mm/h" } } as never;
+  b.settings.rain_entity = "sensor.regenrate";
+  assert.equal(findAlerts(hass, b, alertSources(hass, b), links).filter((a) => a.kind === "window_rain").length, 0);
+  hass.states["sensor.regenrate"].state = "2.4";
+  hass.states["weather.zuhause"].state = "sunny";
+  assert.equal(findAlerts(hass, b, alertSources(hass, b), links).filter((a) => a.kind === "window_rain").length, 1);
+});
+
 test("a power outage: grid sensors off, helpers on, a UPS on battery, a low mains voltage (#214)", () => {
   const st = (entity_id: string, state: string, attributes: Record<string, unknown> = {}) => ({ entity_id, state, attributes });
   assert.equal(isOutage(st("binary_sensor.netz", "off", { device_class: "power" })), true);

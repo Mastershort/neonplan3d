@@ -561,7 +561,7 @@ NeonPlan 3D warnt kostenlos und ohne Einrichtung:
 | Fenster offen bei Regen | Ein Fenster ist offen oder gekippt, und die Wetter-Entität meldet Regen, Gewitterregen, Hagel oder Schneeregen |
 | Stromausfall | Die Entität aus den Plan-Einstellungen (**Stromausfall melden mit**) meldet einen Ausfall: ein Netz-Sensor der Klasse power steht auf „aus“, eine USV läuft auf Batterie, die Netzspannung liegt unter 100 V, oder ein eigener Helfer ist „an“. Der Netzanschluss in 3D wird dabei durchgestrichen |
 
-Der betroffene Raum pulsiert rot, oben erscheint ein Banner. Ein Tipp auf die Warnung springt in den Raum. Die Regenwarnung nimmt die Wetter-Entität aus den Plan-Einstellungen und lässt sich dort unter **Warnung: Fenster offen bei Regen** einzeln abschalten.
+Der betroffene Raum pulsiert rot, oben erscheint ein Banner. Ein Tipp auf die Warnung springt in den Raum. Die Regenwarnung nimmt die Wetter-Entität aus den Plan-Einstellungen und lässt sich dort unter **Warnung: Fenster offen bei Regen** einzeln abschalten. Ein einzelnes Fenster, das bei Regen offen bleiben darf (etwa unter dem Vordach), bekommt in seinem Formular den Haken **Bei Regen nicht warnen**. Hast du eine eigene Wetterstation, wählst du unter **Regen von eigener Wetterstation** ihren Regensensor (an = Regen) oder ihre Regenrate (mm/h): Dann zählt, ob es am Haus wirklich regnet – für die Warnung und, mit „Wetter draußen“, auch für den Regen in 3D.
 
 Auf einem Wandtablet kann das Banner lang werden: „Gäste-WC · Fenster offen bei Regen: Fenster Gästebad“. Schaltest du in den Plan-Einstellungen **Gerätenamen in Warnungen zeigen** aus, steht dort nur „Gäste-WC · Fenster offen bei Regen“. Eine Warnung ohne Raum behält den Gerätenamen.
 

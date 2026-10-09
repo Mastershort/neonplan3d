@@ -12,6 +12,8 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 - **Pool tool with equipment and pipes:** draw pools (rectangular, round, oval, free), add skimmer, bottom drain, inlets and waste drain, filter pump, sand filter with six-way valve, heat pump, dosing unit and ball valves – and the pipes between them, the way yours run.
 - **Outdoor: choose what to draw first** (lawn, terrace, path …) at the top of the Outdoor tool.
 - **Pool shapes (free):** rectangular, round, oval or free, chosen before drawing; round and oval pools resize at the corners of their box (a circle stays round) or by diameter / width and depth; **above-ground pools** with their own height.
+- **Rain warning per window:** the tick **No rain warning** in a window's form – for a window under a canopy; all others still warn (idea D328 by Thundras).
+- **Rain from your own weather station:** choose a rain sensor or a rain rate (mm/h) in the settings; then the rain at the house counts instead of the forecast – for the warning and the rain in 3D (idea D407 by Kuddelsoft).
 - **Balcony:** a new outdoor type for upper floors – a thin slab at the floor's level, a see-through railing of bars with its own height, no railing along the house wall so the balcony doors stay in view (#253 by pzmd739-ui).
 
 ### Fixed

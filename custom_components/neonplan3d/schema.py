@@ -149,6 +149,8 @@ OPENING_SCHEMA = vol.Schema(
         vol.Optional("shut", default=False): bool,
         # the contact sensors report the other way round (on = closed)
         vol.Optional("contact_invert", default=False): bool,
+        # no rain warning for this window
+        vol.Optional("rain_ignore", default=False): bool,
         # highlight in 3D while open (None) or while closed ("closed": a WC or a child's room door)
         vol.Optional("mark", default=None): vol.Any(None, vol.In(["closed"])),
         # ask before moving the blind or garage door (no moving by a swipe then)
@@ -638,6 +640,8 @@ SETTINGS_SCHEMA = vol.Schema(
         # which weather effects the 3D view shows (None = all but fog)
         # warning for a window open while it rains
         vol.Optional("rain_warning", default=True): bool,
+        # rain from an own weather station (a rain sensor or rain rate) instead of the weather entity
+        vol.Optional("rain_entity", default=None): vol.Any(None, vol.All(str, vol.Length(max=255))),
         # warnings name the device after the room
         vol.Optional("alert_names", default=True): bool,
         # an entity that reports a power outage (None = no outage warning)

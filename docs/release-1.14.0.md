@@ -6,6 +6,8 @@ Energie Pro zeigt jetzt auch Gas und Wasser. Und für alle: ein eigenes Pool-Wer
 - **Energie Pro: Gas und Wasser.** Unter Energiebilanz lassen sich ein **Gaszähler** und ein **Wasserzähler** wählen (oder aus dem Energie-Dashboard übernehmen); die Haus-Karte zeigt den heutigen Verbrauch – „Gas 2,2 m³ · Wasser 238 l heute“.
 - **Außen: erst wählen, dann zeichnen.** Oben im Werkzeug Außen wählst du unter **Zeichnen**, was du aufziehst – Rasen, Terrasse, Weg, Beet …
 - **Pool-Formen (kostenlos):** Im Werkzeug Pool wählst du vorher **Eckig**, **Rund**, **Oval** oder **Frei** und ziehst ihn dann auf. Runde und ovale Pools vergrößerst du an den Ecken ihres Rahmens – ein Kreis bleibt rund – oder über Durchmesser bzw. Breite und Tiefe im Formular.
+- **Regenwarnung pro Fenster:** Haken **Bei Regen nicht warnen** im Fensterformular – für ein Fenster unter dem Vordach; alle anderen warnen weiter (Idee D328 von Thundras).
+- **Regen von der eigenen Wetterstation:** In den Einstellungen einen Regensensor oder eine Regenrate (mm/h) wählen; dann zählt der Regen am Haus statt der Vorhersage – für die Warnung und den Regen in 3D (Idee D407 von Kuddelsoft).
 - **Balkon:** neue Art bei Außenflächen für obere Etagen – dünne Platte auf Etagenhöhe, durchsichtiges Stabgeländer mit einstellbarer Höhe, an der Hauswand kein Geländer, sodass die Balkontüren frei bleiben (#253 von pzmd739-ui).
 - **Aufstellpool (kostenlos):** ein Becken, das auf dem Boden steht, mit eigener Beckenhöhe.
 
@@ -28,6 +30,8 @@ Energy Pro now shows gas and water too. And for everyone: a pool tool of its own
 - **Energy Pro: gas and water.** In the energy balance you can choose a **gas meter** and a **water meter** (or take them over from the energy dashboard); the house card shows today's use – "Gas 2.2 m³ · Water 238 l today".
 - **Outdoor: choose first, then draw.** At the top of the Outdoor tool you choose under **Draw** what you draw – lawn, terrace, path, bed …
 - **Pool shapes (free):** in the Pool tool you choose **Rectangular**, **Round**, **Oval** or **Free** first and then draw it. Round and oval pools are resized at the corners of their box – a circle stays round – or by diameter or width and depth in the form.
+- **Rain warning per window:** the tick **No rain warning** in a window's form – for a window under a canopy; all others still warn (idea D328 by Thundras).
+- **Rain from your own weather station:** choose a rain sensor or a rain rate (mm/h) in the settings; then the rain at the house counts instead of the forecast – for the warning and the rain in 3D (idea D407 by Kuddelsoft).
 - **Balcony:** a new outdoor type for upper floors – a thin slab at the floor's level, a see-through railing of bars with its own height, no railing along the house wall so the balcony doors stay in view (#253 by pzmd739-ui).
 - **Above-ground pool (free):** a tub standing on the ground, with its own height.
 

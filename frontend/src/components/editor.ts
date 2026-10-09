@@ -11,7 +11,7 @@ import { areaText, formatImperial, lengthText, lengthUnit, parseLength, unitLabe
 import { closeGaps, straightenEdges, suggestedThickness } from "../geometry/gaps.ts";
 import { keepInRoom, snapToWall } from "../geometry/snap.ts";
 import { holeInRoom } from "../geometry/holes.ts";
-import { weatherEntity } from "../weather.ts";
+import { weatherEntity, isRainSource } from "../weather.ts";
 import { SHOW_PRESENCE } from "../flags.ts";
 import { hasFeature, manualUrl, released, shopUrl } from "../features.ts";
 import { isBeta, supporterUrl } from "../beta.ts";
@@ -6544,6 +6544,12 @@ export class Fp3dEditor extends LitElement {
               ${this.t("contact_invert")}</label
             >`
           : nothing}
+        ${o.type === "window"
+          ? html`<label class="fp3d-check fp3d-wide" title=${this.t("rain_ignore_hint")}
+              ><input type="checkbox" .checked=${!!o.rain_ignore} ?disabled=${!admin} @change=${(ev: Event) => this.updateOpening({ rain_ignore: (ev.target as HTMLInputElement).checked || undefined })} />
+              ${this.t("rain_ignore")}</label
+            >`
+          : nothing}
       </div>
       <p class="fp3d-sub">${this.t(window ? "opening_hint" : garage ? "garage_hint" : "door_hint")}</p>
       ${admin
@@ -8152,6 +8158,10 @@ export class Fp3dEditor extends LitElement {
           ><input type="checkbox" .checked=${s.rain_warning !== false} @change=${(ev: Event) => set({ rain_warning: (ev.target as HTMLInputElement).checked })} />
           ${this.t("rain_warning")}</label
         >
+        ${this.hass
+          ? html`${this.entitySelect(this.t("rain_entity"), s.rain_entity ?? null, undefined, this.entityOptions((id) => isRainSource(this.hass!, id)), (v) => set({ rain_entity: v === "none" ? null : v }))}
+              <p class="fp3d-sub fp3d-wide">${this.t("rain_entity_hint")}</p>`
+          : nothing}
         <label class="fp3d-check fp3d-wide" title=${this.t("alert_names_hint")}
           ><input type="checkbox" .checked=${s.alert_names !== false} @change=${(ev: Event) => set({ alert_names: (ev.target as HTMLInputElement).checked })} />
           ${this.t("alert_names")}</label

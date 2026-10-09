@@ -107,6 +107,8 @@ export interface Opening {
   shut?: boolean;
   /** The contact sensors report the other way round (on = closed, #329). */
   contact_invert?: boolean;
+  /** Windows: no rain warning for this one (it may stay open in the rain, under a canopy, D328). */
+  rain_ignore?: boolean;
   /** Highlight in 3D while open (null, default) or while closed (a WC or a child's room door). */
   mark?: "closed" | null;
   /** Ask before moving the blind or garage door; it then does not follow a swipe either. */
@@ -533,6 +535,8 @@ export interface BuildingSettings {
   weather_effects?: WeatherEffect[] | null;
   /** Warning for a window open while it rains (default on). */
   rain_warning?: boolean;
+  /** Rain from a weather station of your own (a rain sensor or a rain rate) instead of the weather entity (D407). */
+  rain_entity?: string | null;
   /** Warnings name the device after the room (default on); off = only "Room · Smoke" when the warning has a room (#374). */
   alert_names?: boolean;
   /** An entity that reports a power outage (a grid or UPS sensor); null = no outage warning (#214). */

@@ -45,7 +45,33 @@ export function weatherEntity(hass: HomeAssistant, preferred?: string | null): s
   );
 }
 
-export function weatherState(hass: HomeAssistant, entity: string | null): WeatherState | null {
+/**
+ * How hard it rains by a weather station of one's own (0 dry … 1 pouring), null when the entity tells nothing:
+ * a rain sensor (binary_sensor, on = rain) or a rain rate (mm/h, in/h; above 0.1 mm/h counts as rain).
+ */
+export function stationRain(hass: HomeAssistant, entity: string | null | undefined): number | null {
+  const st = entity ? hass.states[entity] : undefined;
+  if (!st || st.state === "unavailable" || st.state === "unknown") return null;
+  if (st.entity_id.startsWith("binary_sensor.")) return st.state === "on" ? 0.6 : 0;
+  const v = Number(st.state);
+  if (!Number.isFinite(v)) return null;
+  const unit = String(st.attributes.unit_of_measurement ?? "");
+  const mmh = unit.startsWith("in") ? v * 25.4 : v;
+  if (mmh <= 0.1) return 0;
+  return Math.min(1, 0.3 + mmh / 10);
+}
+
+/** Entities that can tell rain: rain sensors (moisture, rain) and rain rates (…/h, precipitation intensity). */
+export function isRainSource(hass: HomeAssistant, id: string): boolean {
+  const st = hass.states[id];
+  if (!st) return false;
+  const dc = String(st.attributes.device_class ?? "");
+  if (id.startsWith("binary_sensor.")) return dc === "moisture" || /(rain|regen|pluie|lluvia|pioggia)/.test(id);
+  if (!id.startsWith("sensor.")) return false;
+  return dc === "precipitation_intensity" || /\/h$/.test(String(st.attributes.unit_of_measurement ?? ""));
+}
+
+export function weatherState(hass: HomeAssistant, entity: string | null, rainEntity?: string | null): WeatherState | null {
   const st = entity ? hass.states[entity] : undefined;
   if (!st || st.state === "unavailable" || st.state === "unknown") return null;
   const base = CONDITIONS[st.state];
@@ -58,10 +84,13 @@ export function weatherState(hass: HomeAssistant, entity: string | null): Weathe
     const kmh = attrs.wind_speed_unit === "m/s" ? attrs.wind_speed * 3.6 : attrs.wind_speed_unit === "mph" ? attrs.wind_speed * 1.609 : attrs.wind_speed;
     wind = Math.max(wind, Math.min(1, kmh / 60));
   }
+  // a weather station of one's own says whether it really rains at the house (D407)
+  const station = stationRain(hass, rainEntity);
+  if (station !== null && station > 0) cloud = Math.max(cloud, 0.85);
   return {
     entity: st.entity_id,
     condition: st.state,
-    rain: base.rain ?? 0,
+    rain: station ?? base.rain ?? 0,
     snow: base.snow ?? 0,
     fog: base.fog ?? 0,
     cloud,

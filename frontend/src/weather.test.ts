@@ -55,3 +55,14 @@ test("only the chosen effects stay; by default everything but fog", () => {
   const only = limitEffects({ ...foggy, rain: 1, lightning: true }, ["fog"]);
   assert.deepEqual([only.fog, only.rain, only.cloud, only.lightning, only.sky], [1, 0, 0, false, false]);
 });
+
+test("a weather station's rain: sensor on/off, rain rate in mm/h or in/h (D407)", async () => {
+  const { stationRain } = await import("./weather.ts");
+  const hass = (states: Record<string, { state: string; attributes?: Record<string, unknown> }>) =>
+    ({ states: Object.fromEntries(Object.entries(states).map(([id, s]) => [id, { entity_id: id, state: s.state, attributes: s.attributes ?? {} }])) }) as never;
+  assert.equal(stationRain(hass({ "binary_sensor.regen": { state: "on" } }), "binary_sensor.regen"), 0.6);
+  assert.equal(stationRain(hass({ "binary_sensor.regen": { state: "off" } }), "binary_sensor.regen"), 0);
+  assert.equal(stationRain(hass({ "sensor.rate": { state: "0.05", attributes: { unit_of_measurement: "mm/h" } } }), "sensor.rate"), 0);
+  assert.ok(stationRain(hass({ "sensor.rate": { state: "0.2", attributes: { unit_of_measurement: "in/h" } } }), "sensor.rate")! > 0.5);
+  assert.equal(stationRain(hass({}), "sensor.weg"), null);
+});

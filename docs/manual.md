@@ -559,7 +559,7 @@ NeonPlan 3D warns for free and without setup:
 | Power outage | The entity from the plan settings (**Report a power outage with**) reports an outage: a grid sensor of class power is "off", a UPS runs on battery, the mains voltage is below 100 V, or a helper of your own is "on". The grid connection in 3D is crossed out meanwhile |
 | Window open in the rain | A window is open or tilted while the weather entity reports rain, lightning rain, hail or sleet |
 
-The room pulses red and a banner appears at the top. A tap on the warning jumps into the room. The rain warning uses the weather entity from the plan settings and can be switched off there on its own under **Warning: window open while it rains**.
+The room pulses red and a banner appears at the top. A tap on the warning jumps into the room. The rain warning uses the weather entity from the plan settings and can be switched off there on its own under **Warning: window open while it rains**. A single window that may stay open in the rain (under a canopy, say) gets the tick **No rain warning** in its form. With a weather station of your own, choose its rain sensor (on = rain) or rain rate (mm/h) under **Rain from your own weather station**: then what counts is whether it really rains at the house – for the warning and, with Weather outside, for the rain in 3D.
 
 On a wall tablet the banner can get long: "Guest WC · Window open in the rain: Guest bathroom window". Switch off **Show device names in warnings** in the plan settings, and it reads "Guest WC · Window open in the rain". A warning without a room keeps the device name.
 
