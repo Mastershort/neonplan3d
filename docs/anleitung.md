@@ -358,7 +358,7 @@ Seine Bahnen machen einen Bogen um Möbel, die auf dem Boden stehen: Schränke, 
 
 ### 4.17 Außenflächen und Außenleuchten
 
-Mit **Außen** ziehst du Rasen, Terrasse, Weg, Einfahrt, Pool, Beet, Hecke oder Zaun auf. Oben neben „Rückgängig“ wählst du **▭ Rechteck** (aufziehen) oder **✎ Freie Form**: Dann setzt du die Ecken einzeln wie bei einem freien Raum – für geschwungene Beete, schräge Grundstücksgrenzen oder einen L-förmigen Weg; ein Tipp auf den ersten Punkt oder **Enter** schließt die Fläche. Eine ausgewählte Außenfläche änderst du an ihren Ecken; ein Rechteck bleibt dabei ein Rechteck. Hecke und Zaun bekommen im Formular eine **Höhe** (Thuja-Sichtschutz 2,5 m, Beeteinfassung 0,5 m); **Umrisslinie zeigen** ohne Haken lässt die Leuchtlinie am Rand weg, etwa bei einem Grundstück aus mehreren Rasenflächen. **Höhenversatz** senkt eine Fläche unter den Boden oder hebt sie an – die Einfahrt hinunter zur tieferen Garage, die erhöhte Terrasse; Leuchten darauf folgen mit. **Gefälle** neigt eine Fläche: Höhenunterschied in Metern und die Richtung, in die sie fällt (die hohe Kante liegt auf dem Höhenversatz) – eine Einfahrt, die zur Straße abfällt, ein Hang im Garten; Zaunpfosten und Leuchten stehen auf der schrägen Fläche. **Wildfläche** ist eine Art für ungemähte Ecken. **Aus Flächen darunter ausschneiden** macht eine Fläche zum Loch in jeder vorher gezeichneten Fläche, in der sie ganz liegt – ein Teich oder eine Wildfläche mitten in einem einzigen großen Rasen. **Pergola / Rahmen** zeichnet Eckpfosten, Balken und Sparren in der eingestellten Höhe, mit **X-Verstrebung** an den Seiten – für Pergolen, Carport-Gerüste oder den Unterbau eines Rolldachs. Zaun und Pergola können **offen** bleiben: Die Kante vom letzten zum ersten Punkt fehlt dann, der Zaun lehnt am Haus. Bäume, Sträucher und Gestrüpp kommen als Möbel aus dem Pack **Garten & Terrasse** (ab Release 3: Eiche, Linde, Birke, Ahorn, Obstbaum, Fichte, Kiefer, Thuja, Strauch, Blühstrauch, Gestrüpp, Baumgruppe); Breite und Höhe im Möbelformular bestimmen Krone und Wuchs. Wegleuchten, Garten-Spots und Außen-Wandleuchten beleuchten die Außenflächen und die Fassade.
+Mit **Außen** ziehst du Rasen, Terrasse, Weg, Einfahrt, Pool, Beet, Hecke oder Zaun auf. Oben neben „Rückgängig“ wählst du **▭ Rechteck** (aufziehen) oder **✎ Freie Form**: Dann setzt du die Ecken einzeln wie bei einem freien Raum – für geschwungene Beete, schräge Grundstücksgrenzen oder einen L-förmigen Weg; ein Tipp auf den ersten Punkt oder **Enter** schließt die Fläche. Eine ausgewählte Außenfläche änderst du an ihren Ecken; ein Rechteck bleibt dabei ein Rechteck. Hecke und Zaun bekommen im Formular eine **Höhe** (Thuja-Sichtschutz 2,5 m, Beeteinfassung 0,5 m); **Umrisslinie zeigen** ohne Haken lässt die Leuchtlinie am Rand weg, etwa bei einem Grundstück aus mehreren Rasenflächen. **Höhenversatz** senkt eine Fläche unter den Boden oder hebt sie an – die Einfahrt hinunter zur tieferen Garage, die erhöhte Terrasse; Leuchten darauf folgen mit. **Gefälle** neigt eine Fläche: Höhenunterschied in Metern und die Richtung, in die sie fällt (die hohe Kante liegt auf dem Höhenversatz) – eine Einfahrt, die zur Straße abfällt, ein Hang im Garten; Zaunpfosten und Leuchten stehen auf der schrägen Fläche. **Wildfläche** ist eine Art für ungemähte Ecken. **Aus Flächen darunter ausschneiden** macht eine Fläche zum Loch in jeder vorher gezeichneten Fläche, in der sie ganz liegt – ein Teich oder eine Wildfläche mitten in einem einzigen großen Rasen. **Pergola / Rahmen** zeichnet Eckpfosten, Balken und Sparren in der eingestellten Höhe, mit **X-Verstrebung** an den Seiten – für Pergolen, Carport-Gerüste oder den Unterbau eines Rolldachs. Zaun und Pergola können **offen** bleiben: Die Kante vom letzten zum ersten Punkt fehlt dann, der Zaun lehnt am Haus. Bäume, Sträucher und Gestrüpp kommen als Möbel aus dem Pack **Garten & Terrasse** (ab Release 3: Eiche, Linde, Birke, Ahorn, Obstbaum, Fichte, Kiefer, Thuja, Strauch, Blühstrauch, Gestrüpp, Baumgruppe); Breite und Höhe im Möbelformular bestimmen Krone und Wuchs. Wegleuchten, Garten-Spots und Außen-Wandleuchten beleuchten die Außenflächen und die Fassade. **Pool:** Unter **Form** machst du aus der Fläche einen eckigen, runden oder ovalen Pool – in der Größe der Fläche (rund: so breit wie ihre kurze Seite). Ein Pool schneidet sich selbst aus dem Rasen darunter aus. **Aufstellpool** stellt ihn als Becken auf den Boden, mit **Beckenhöhe**; sonst ist er eingelassen und das Wasser liegt unter dem Rand.
 
 ![Garten bei Nacht](images/view-garden.jpg)
 
@@ -783,6 +783,32 @@ Nicht dabei sind Kamerabilder (der Recorder speichert keine) sowie Personen und 
 **Wandtablet:** Beim Abspielen rechnet die Ansicht auf der Stufe **Tablet** zweimal in der Sekunde (Auto viermal, Hoch sechsmal; ein Wechsel der Stufe gilt sofort), angehalten läuft gar nichts (0 B/s). Der Verlauf eines Tages wird einmal geladen und braucht nur wenige hundert Kilobyte; geändert wird nur, was sich wirklich ändert. Auf der Stufe Tablet beginnt die Zeitreise mit 24 Stunden und hält höchstens zwei Tage.
 
 **Voraussetzungen:** der Recorder von Home Assistant (er läuft standardmäßig) und Home Assistant nach dem Update einmal neu gestartet. Wie weit der Verlauf zurückreicht, bestimmt `purge_keep_days` des Recorders (Standard 10 Tage); die Zeitreise braucht davon 24 Stunden, für die ganze Woche mindestens 7 Tage. Wer die Woche nutzen will, lässt `purge_keep_days` also bei 7 oder mehr.
+
+### 6.8 Pool Pro
+
+Pool Pro lässt den Pool leben – mit dem, was deine Pool-Technik in Home Assistant meldet. Voraussetzung ist eine Außenfläche der Art **Pool** (4.17).
+
+**Einrichten:** Pool anklicken (Werkzeug **Außen**), unten im Abschnitt **Pool Pro** auf **Pool Pro für diesen Pool einschalten**. NeonPlan sucht die Entitäten selbst über den Namen (eine Entität mit „pool“ im Namen); jede Rolle kannst du von Hand wählen oder mit „Keine“ abschalten:
+
+| Rolle | Entität |
+|---|---|
+| Wassertemperatur | ein Temperatur-Sensor (ohne ihn nimmt NeonPlan die Wassertemperatur der Wärmepumpe) |
+| Wärmepumpe / Heizung | eine Klima-Entität (`climate`) oder ein Warmwasserbereiter (`water_heater`) – dann lässt sich die Solltemperatur einstellen – oder ein Schalter |
+| Filterpumpe | ein Schalter, ein Binärsensor oder ein Leistungssensor (läuft ab 20 W) |
+| Poolbeleuchtung | ein Licht (die Farbe färbt das Wasser) oder ein Schalter |
+| pH-Wert | ein Sensor |
+| Chlor / Redox | Redox in mV oder freies Chlor in mg/l |
+| Abdeckung | eine Abdeckung (`cover`) mit Position |
+
+**Im Garten:** Das Wasser leuchtet in der Farbe der Poolbeleuchtung; ist sie aus, färbt die Wassertemperatur es von tiefem Blau (kalt) bis Türkis (warm). Läuft die **Filterpumpe**, bewegt sich das Wasser mit einem Lichtspiel wie unter echten Wellen. Heizt die **Wärmepumpe**, schimmert es warm. Die **Abdeckung** fährt so weit über das Wasser, wie sie geschlossen ist.
+
+**Glaskarte:** Über dem Pool schwebt eine Karte im Look der anderen Pro-Karten: die Wassertemperatur groß in ihrer Farbe, daneben die Solltemperatur der Wärmepumpe; **pH** und **Redox/Chlor** mit Ampel (grün im Idealbereich – pH 7,0 bis 7,4, Redox 650 bis 800 mV, freies Chlor 0,3 bis 1,5 mg/l –, gelb etwas daneben, rot weit daneben) und einem Punkt auf der Skala; der Stand der Abdeckung. Knöpfe: **− / +** für die Solltemperatur, 🔥 Wärmepumpe an/aus, 〰 Filterpumpe an/aus, 💡 Licht, ▲ / ▼ Abdeckung öffnen/schließen (⏹ hält sie an, solange sie fährt). Ein Tipp auf den Kopf klappt die Karte zusammen.
+
+**Warnungen:** in der Warnleiste, wenn der pH-Wert oder Chlor/Redox weit außerhalb liegen (rot), und bei **Frostgefahr** – Wasser bei 3 °C oder kälter, während die Filterpumpe steht.
+
+**Wandtablet:** Das Wasser bewegt sich nur, solange die Filterpumpe läuft; steht sie, kostet der Pool nichts.
+
+**Beta:** Pool Pro startet als Beta zuerst für Supporter (6. Pro-Erweiterungen); Rückmeldungen gern im Discord.
 
 ---
 

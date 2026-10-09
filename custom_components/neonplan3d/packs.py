@@ -145,6 +145,7 @@ KNOWN_FEATURES = [
     "sound",
     "auto_pro",
     "time_travel",
+    "pool",
 ]
 
 PAYLOAD_SCHEMA = vol.Schema(

@@ -133,7 +133,10 @@ export function buildLightSurface(
         const px = x0 + i * cell;
         const pz = z0 + j * cell;
         let a: (typeof flat)[number] | undefined;
-        for (let k = flat.length - 1; k >= 0 && !a; k--) if (pointInPolygon([px + cell / 2, pz + cell / 2], flat[k].points)) a = flat[k];
+        const c: Vec2 = [px + cell / 2, pz + cell / 2];
+        // a pool owns its cells whatever is listed after it (it is cut out of the lawn around it)
+        a = flat.find((o) => o.type === "pool" && pointInPolygon(c, o.points));
+        for (let k = flat.length - 1; k >= 0 && !a; k--) if (pointInPolygon(c, flat[k].points)) a = flat[k];
         if (!a) continue;
         const v = (x: number, z: number): [number, number, number] => [x, yAt(a, x, z), z];
         quad(v(px, pz), v(px, pz + cell), v(px + cell, pz + cell), v(px + cell, pz), [0, 1, 0], outside, -1);

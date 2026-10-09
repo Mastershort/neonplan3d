@@ -320,6 +320,16 @@ BACKGROUND_SCHEMA = vol.Schema(
     extra=vol.ALLOW_EXTRA,
 )
 
+# Pool Pro: water temperature, heat pump, filter pump, light, pH, chlorine and cover of a pool
+_POOL_ENTITY = vol.Any(None, vol.All(str, vol.Length(max=255)))
+POOL_SCHEMA = vol.Schema(
+    {
+        vol.Optional(role): _POOL_ENTITY
+        for role in ("temperature", "heater", "pump", "light", "ph", "chlorine", "cover")
+    },
+    extra=vol.ALLOW_EXTRA,
+)
+
 OUTDOOR_TYPES = ["lawn", "terrace", "path", "driveway", "pool", "bed", "wild", "hedge", "fence", "pergola"]
 
 OUTDOOR_SCHEMA = vol.Schema(
@@ -341,6 +351,10 @@ OUTDOOR_SCHEMA = vol.Schema(
         vol.Optional("bracing", default=False): bool,
         # cut out of every area beneath it that contains it
         vol.Optional("cut", default=False): bool,
+        # pools: standing on the ground instead of let into it
+        vol.Optional("above", default=False): bool,
+        # Pool Pro: the pool's entities
+        vol.Optional("pool", default=None): vol.Any(None, POOL_SCHEMA),
     },
     extra=vol.ALLOW_EXTRA,
 )

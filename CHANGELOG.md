@@ -4,6 +4,17 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 [releases page](https://github.com/Mastershort/neonplan3d/releases). Ideas and votes:
 [Discussions → Ideas](https://github.com/Mastershort/neonplan3d/discussions/categories/ideas).
 
+## 1.14.0
+
+### New
+
+- **Pool Pro (Pro, supporter beta):** the pool's water glows in the pool light's colour and moves with caustics while the filter pump runs (tinted by the water temperature without light, a warm shimmer while heating); a glass card shows water temperature, heat pump target (− / +), pH and redox/chlorine with a traffic light and buttons for heat pump, filter pump, light and cover; the cover slides over the water; warnings for pH, chlorine and frost. Heat pumps as climate, water heater or switch; empty roles are found by name.
+- **Pool shapes (free):** rectangular, round or oval in the pool's form; **above-ground pools** with their own height.
+
+### Fixed
+
+- **A pool inside a lawn** was hidden by the lawn; every pool now cuts itself out of the area around it.
+
 ## 1.13.2
 
 ### New

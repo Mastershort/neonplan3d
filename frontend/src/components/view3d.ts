@@ -34,7 +34,9 @@ import { type CustomButton, type EntityRef, DEFAULT_HOLOGRAM, type SolarField } 
 
 /** A hologram card: the house's balance on the main plant, one plant (a balcony plant) on its own, or a device. */
 interface HoloCard {
-  kind: "main" | "plant" | "device" | "media" | "car";
+  kind: "main" | "plant" | "device" | "media" | "car" | "pool";
+  /** Pool Pro: the pool and what its entities report. */
+  pool?: { area: string; state: PoolState };
   name: string;
   /** Auto Pro: the car in its parking spot (charge, range, charging, lock, climate). */
   car?: { spot: string; soc: number | null; range: number | null; rangeUnit: string; chargingW: number | null; charging: boolean; locked: boolean | null; climateOn: boolean | null; lock: string | null; climate: string | null; charge: string | null };
@@ -80,7 +82,9 @@ import "./quick-menu.ts";
 import { load3d } from "../load3d.ts";
 import { detectionKind, scaleGlow, buildMarkers, cameraMotionSensors, openMoreInfo, stateText, toggleEntity } from "../markers.ts";
 import { roofUnderAt, sectionCutsBelow } from "../roof-sections.ts";
-import { centroid, furnitureFootprint, isLamp, LAMP_MODEL, LIFT_SPOTS, outdoorGround, pointInPolygon, spotDepth, surfaceHeight, type Building, type Furniture, type StartView } from "../model.ts";
+import { centroid, furnitureFootprint, isLamp, LAMP_MODEL, LIFT_SPOTS, outdoorGround, pointInPolygon, poolWaterY, spotDepth, surfaceHeight, type Building, type Furniture, type StartView } from "../model.ts";
+import { poolAreas, poolState, poolWaterGlow, type PoolState } from "../pool.ts";
+import type { PoolPiece } from "../viewer/pool-water.ts";
 import { floorCounts, floorInfoText, personsInRooms } from "../presence.ts";
 import { controls, tokens } from "../styles.ts";
 import type { HassEntity, HomeAssistant } from "../types.ts";
@@ -281,6 +285,8 @@ export class Fp3dView3d extends LitElement {
   private mediaGraceTimer: ReturnType<typeof setTimeout> | undefined;
   /** The volume being dragged (shown at once; the player answers later, a cloud speaker slowly). */
   private mediaVolume = new Map<string, { v: number; at: number }>();
+  /** Pool Pro: a target temperature just set, shown until the heat pump reports it (at most 30 s). */
+  private poolTarget = new Map<string, { v: number; at: number }>();
   private volumeSent = 0;
   private holoIds = "";
   /** The start view last handed to the viewer (JSON), to notice a new one. */
@@ -1033,6 +1039,32 @@ export class Fp3dView3d extends LitElement {
         }
       }
     }
+    // Pool Pro: living water (light colour, moving with the filter pump, warm shimmer while heating, the cover)
+    // and a glass card over every pool with links
+    if (hasFeature("pool")) {
+      const holoSize = (b.settings.roof.hologram ?? DEFAULT_HOLOGRAM).size;
+      const pieces: PoolPiece[] = [];
+      for (const { floor, area } of poolAreas(b.floors)) {
+        const st = poolState(hass, area.pool);
+        const glow = poolWaterGlow(st);
+        const y = poolWaterY(floor, area);
+        pieces.push({
+          id: area.id,
+          floorId: floor.id,
+          points: area.points,
+          y,
+          color: glow.color,
+          level: this.dimmed ? glow.level * 0.4 : glow.level,
+          flow: !!st.pump?.on,
+          heat: !!st.heater?.heating,
+          cover: st.cover?.closed ?? 0,
+        });
+        const [cx, cz] = centroid(area.points);
+        anchors.push({ p: [cx, floor.elevation + Math.max(y, 0) + (area.above ? 0.6 : 1.1), cz], n: [0, 1, 0], floorId: floor.id, size: holoSize * 0.7, roof: false, views: "all" });
+        cards.push({ kind: "pool", name: translate(hass, "out_pool"), w: null, dayIds: [], battery: null, pool: { area: area.id, state: st } });
+      }
+      v.setPools(pieces);
+    } else v.setPools([]);
     v.setSound(sound);
     v.setAnchors(anchors);
     if (JSON.stringify(cards) !== JSON.stringify(this._holos)) this._holos = cards;
@@ -1409,11 +1441,11 @@ export class Fp3dView3d extends LitElement {
   private renderHologram() {
     const e = this._energy;
     // the editor keeps the energy bar off but asks for the holograms in its energy tool
-    if (!(hasFeature("energy_pro") || hasFeature("sound") || hasFeature("auto_pro")) || (this.roomId && !(this.building?.settings.roof.hologram ?? DEFAULT_HOLOGRAM).device_room) || !(this.showEnergy || this.holograms) || !this.holoVisible()) return nothing;
+    if (!(hasFeature("energy_pro") || hasFeature("sound") || hasFeature("auto_pro") || hasFeature("pool")) || (this.roomId && !(this.building?.settings.roof.hologram ?? DEFAULT_HOLOGRAM).device_room) || !(this.showEnergy || this.holograms) || !this.holoVisible()) return nothing;
     // the plants' cards belong to the house view – with a single floor that floor is the house view (#255)
     const house = this.floorId === null || (this.building?.floors.length ?? 0) <= 1;
     const plants = !!e && (e.solar !== null || e.grid !== null || e.battery !== null) && house;
-    return this._holos.map((card, i) => (card.kind === "car" ? this.renderCarCard(card, i) : card.kind === "media" ? this.renderMediaCard(card, i) : card.kind === "device" ? this.renderDeviceCard(card, i) : plants ? this.renderHoloCard(card, i, e!) : nothing));
+    return this._holos.map((card, i) => (card.kind === "pool" ? this.renderPoolCard(card, i) : card.kind === "car" ? this.renderCarCard(card, i) : card.kind === "media" ? this.renderMediaCard(card, i) : card.kind === "device" ? this.renderDeviceCard(card, i) : plants ? this.renderHoloCard(card, i, e!) : nothing));
   }
 
   /** Auto Pro: the car's card – charge as a bar in its colour, range, charging power, lock and climate buttons. */
@@ -1460,6 +1492,90 @@ export class Fp3dView3d extends LitElement {
                 ${lockable ? html`<button title=${c.locked ? t("car_unlock_btn") : t("car_lock_btn")} @click=${lockTap}>${c.locked ? "🔒" : "🔓"}</button>` : nothing}
                 ${climable ? html`<button class=${c.climateOn ? "fp3d-holo-on" : ""} title=${t("car_climate")} @click=${() => onOff(c.climate!, !c.climateOn)}>❄</button>` : nothing}
                 ${c.charge ? html`<button class=${c.charging ? "fp3d-holo-on" : ""} title=${t("car_charging")} @click=${() => onOff(c.charge!, !c.charging)}>⚡</button>` : nothing}
+              </div>`
+            : nothing}
+        </div>
+      </div>`;
+  }
+
+  /**
+   * Pool Pro: the pool's card – water temperature large in its colour, the heat pump's target with − and +,
+   * the filter pump, the light and the cover as buttons, pH and chlorine with a coloured range.
+   */
+  private renderPoolCard(card: HoloCard, index: number) {
+    const hass = this.hass;
+    const t = (k: Parameters<typeof translate>[1]) => translate(hass, k);
+    const { area, state: s } = card.pool!;
+    const open = !this.mediaFolded.has(area);
+    const toggle = () => {
+      if (this.mediaFolded.has(area)) this.mediaFolded.delete(area);
+      else this.mediaFolded.add(area);
+      this.requestUpdate();
+    };
+    const call = (domain: string, service: string, id: string, data: Record<string, unknown> = {}) => void hass.callService(domain, service, { entity_id: id, ...data });
+    const h = s.heater;
+    // a target just set shows at once and stays until the heat pump reports it (a cloud heat pump answers late)
+    const local = h ? this.poolTarget.get(h.id) : undefined;
+    if (local && h && ((h.target !== null && Math.abs(local.v - h.target) < 0.01) || Date.now() - local.at > 30000)) this.poolTarget.delete(h.id);
+    const target = (h && this.poolTarget.get(h.id)?.v) ?? h?.target ?? null;
+    const setTarget = (v: number) => {
+      if (!h || h.kind === "switch") return;
+      const next = Math.min(h.max, Math.max(h.min, Math.round(v / h.step) * h.step));
+      this.poolTarget.set(h.id, { v: next, at: Date.now() });
+      this.requestUpdate();
+      call(h.kind, "set_temperature", h.id, { temperature: next });
+    };
+    const fmt = (v: number, digits: number) => formatNumber(hass, v, digits);
+    const celsius = s.temp === null ? null : s.unit.includes("F") ? ((s.temp - 32) * 5) / 9 : s.temp;
+    const tempCol = celsius === null ? "#37e0ff" : celsius < 20 ? "#5ab4ff" : celsius < 26 ? "#37e0ff" : celsius < 31 ? "#4dff9a" : "#ffb347";
+    const rangeCol = (r: string) => (r === "ok" ? "#4dff80" : r === "warn" ? "#ffcc40" : "#ff4d40");
+    // where the value sits on its scale: pH 6.6–8.0, redox 500–900 mV, chlorine 0–3 mg/l
+    const pos = (v: number, lo: number, hi: number) => Math.max(3, Math.min(97, ((v - lo) / (hi - lo)) * 100));
+    const chem = (label: string, value: string, range: string, at: number) =>
+      html`<div class="fp3d-holo-pool-chem"><span>${label}</span><b style="color:${rangeCol(range)}">${value}</b><i><em style="left:${at}%;background:${rangeCol(range)};color:${rangeCol(range)}"></em></i></div>`;
+    // the head names one state: heating first, else the running pump
+    const live = h?.heating ? `🔥 ${t("pool_heating")}` : s.pump?.on ? `〰 ${t("pool_pump_on")}` : "";
+    const coverText = (c: NonNullable<PoolState["cover"]>) =>
+      c.closed > 0.98 ? t("pool_cover_closed") : c.closed < 0.02 ? t("pool_cover_open") : `${Math.round(c.closed * 100)} % ${t("pool_cover_closed_part")}`;
+    return html`<svg class="fp3d-holo-link" data-holo=${index} hidden aria-hidden="true"><line x1="0" y1="0" x2="0" y2="0" /><circle cx="0" cy="0" r="3" /></svg>
+      <div class="fp3d-holo fp3d-holo-dev fp3d-holo-pool ${open ? "" : "fp3d-holo-min"} ${this._low ? "fp3d-holo-plain" : ""}" data-holo=${index} hidden role="group" aria-label=${card.name}>
+        <div class="fp3d-holo-sheen"></div>
+        <div class="fp3d-holo-scan"></div>
+        <div class="fp3d-holo-body">
+          <div class="fp3d-holo-head" role="button" tabindex="0" @click=${toggle}><span>🏊 ${card.name}</span><span class="fp3d-holo-live">${live}</span></div>
+          <div class="fp3d-holo-car-main">
+            <b style="color:${tempCol}">${s.temp !== null ? `${fmt(s.temp, 1)} ${s.unit}` : "–"}</b>
+            <span>${h && target !== null && h.kind !== "switch" ? `→ ${fmt(target, 1)} ${s.unit}` : h ? (h.on ? t("pool_heater_on") : t("pool_heater_off")) : ""}</span>
+          </div>
+          ${open && s.ph ? chem("pH", fmt(s.ph.value, 2), s.ph.range, pos(s.ph.value, 6.6, 8.0)) : nothing}
+          ${open && s.chlorine
+            ? chem(
+                s.chlorine.orp ? t("pool_orp") : t("pool_chlorine"),
+                `${fmt(s.chlorine.value, s.chlorine.orp ? 0 : 2)} ${s.chlorine.unit}`,
+                s.chlorine.range,
+                s.chlorine.orp ? pos(s.chlorine.value, 500, 900) : pos(s.chlorine.value, 0, 3),
+              )
+            : nothing}
+          ${open && s.cover ? html`<div class="fp3d-holo-pool-line">${t("pool_cover")}: ${coverText(s.cover)}</div>` : nothing}
+          ${open && !this.ro && (h || s.pump?.switchable || s.light || s.cover)
+            ? html`<div class="fp3d-holo-media-controls fp3d-holo-car-controls">
+                ${h && h.kind !== "switch" && target !== null
+                  ? html`<button title=${t("pool_colder")} @click=${() => setTarget(target - h.step)}>−</button
+                    ><button title=${t("pool_warmer")} @click=${() => setTarget(target + h.step)}>+</button>`
+                  : nothing}
+                ${h
+                  ? html`<button class=${h.on ? "fp3d-holo-on" : ""} title=${t("pool_heater")} @click=${() => (h.kind === "switch" ? call("homeassistant", h.on ? "turn_off" : "turn_on", h.id) : call(h.kind, h.on ? "turn_off" : "turn_on", h.id))}>🔥</button>`
+                  : nothing}
+                ${s.pump?.switchable ? html`<button class=${s.pump.on ? "fp3d-holo-on" : ""} title=${t("pool_pump")} @click=${() => call("homeassistant", s.pump!.on ? "turn_off" : "turn_on", s.pump!.id)}>〰</button>` : nothing}
+                ${s.light ? html`<button class=${s.light.on ? "fp3d-holo-on" : ""} title=${t("pool_light")} @click=${() => call("homeassistant", "toggle", s.light!.id)}>💡</button>` : nothing}
+                ${s.cover
+                  ? html`<button
+                      title=${s.cover.moving ? t("pool_cover_stop") : s.cover.closed > 0.5 ? t("pool_cover_open_btn") : t("pool_cover_close_btn")}
+                      @click=${() => call("cover", s.cover!.moving ? "stop_cover" : s.cover!.closed > 0.5 ? "open_cover" : "close_cover", s.cover!.id)}
+                    >
+                      ${s.cover.moving ? "⏹" : s.cover.closed > 0.5 ? "▲" : "▼"}
+                    </button>`
+                  : nothing}
               </div>`
             : nothing}
         </div>
@@ -3966,6 +4082,42 @@ export class Fp3dView3d extends LitElement {
         height: 100%;
         border-radius: 3px;
         box-shadow: 0 0 8px currentColor;
+      }
+      .fp3d-holo-pool-chem {
+        display: grid;
+        grid-template-columns: 50px 64px 1fr;
+        align-items: center;
+        gap: 6px;
+        margin-top: 5px;
+        font-size: 12px;
+      }
+      .fp3d-holo-pool-chem span {
+        opacity: 0.8;
+      }
+      .fp3d-holo-pool-chem b {
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+      }
+      .fp3d-holo-pool-chem i {
+        position: relative;
+        height: 4px;
+        border-radius: 2px;
+        /* red – yellow – green (the ideal range in the middle) – yellow – red */
+        background: linear-gradient(90deg, rgba(255, 77, 64, 0.35), rgba(255, 204, 64, 0.35) 25%, rgba(77, 255, 128, 0.45) 40%, rgba(77, 255, 128, 0.45) 60%, rgba(255, 204, 64, 0.35) 75%, rgba(255, 77, 64, 0.35));
+      }
+      .fp3d-holo-pool-chem em {
+        position: absolute;
+        top: -2px;
+        width: 8px;
+        height: 8px;
+        margin-left: -4px;
+        border-radius: 50%;
+        box-shadow: 0 0 6px currentColor;
+      }
+      .fp3d-holo-pool-line {
+        margin-top: 5px;
+        font-size: 12px;
+        opacity: 0.85;
       }
       .fp3d-holo-on {
         border-color: var(--fp3d-accent) !important;

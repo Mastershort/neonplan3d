@@ -339,6 +339,8 @@ async def test_outdoor_roof_and_north_get_defaults(hass: HomeAssistant, hass_ws_
     assert got["floors"][0]["outdoor"][0]["slope"] == 0
     assert got["floors"][0]["outdoor"][0]["slope_dir"] == "x"
     assert got["floors"][0]["outdoor"][0]["cut"] is False
+    assert got["floors"][0]["outdoor"][0]["above"] is False
+    assert got["floors"][0]["outdoor"][0]["pool"] is None
     assert got["floors"][0]["ha_floor"] is None
     assert got["floors"][0]["rooms"][0]["panel"] == []
 
@@ -347,6 +349,23 @@ async def test_outdoor_roof_and_north_get_defaults(hass: HomeAssistant, hass_ws_
     cleared["floors"][0]["outdoor"][0].update({"type": "pergola", "offset": None, "slope": None})
     await client.send_json_auto_id({"type": "neonplan3d/building/save", "building": cleared})
     assert (await client.receive_json())["success"]
+
+    # Pool Pro: an above-ground pool with its entities
+    pool = copy.deepcopy(building)
+    pool["floors"][0]["outdoor"][0].update(
+        {
+            "type": "pool",
+            "above": True,
+            "height": 1.2,
+            "pool": {"temperature": "sensor.pool_temp", "heater": "climate.pool", "cover": "none"},
+        }
+    )
+    await client.send_json_auto_id({"type": "neonplan3d/building/save", "building": pool})
+    assert (await client.receive_json())["success"]
+    await client.send_json_auto_id({"type": "neonplan3d/building/get"})
+    saved = (await client.receive_json())["result"]["building"]["floors"][0]["outdoor"][0]
+    assert saved["above"] is True
+    assert saved["pool"]["heater"] == "climate.pool"
 
     bad = copy.deepcopy(building)
     bad["floors"][0]["outdoor"][0]["type"] = "volcano"

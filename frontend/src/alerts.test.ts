@@ -110,3 +110,28 @@ test("a power outage: grid sensors off, helpers on, a UPS on battery, a low main
   assert.deepEqual(alerts.map((a) => a.kind), ["power_outage"]);
   assert.equal(alertText(hass, b, alerts[0]), "Stromausfall: Netz");
 });
+
+test("Pool Pro warns when pH or chlorine are far off or the water freezes while the pump rests", async () => {
+  const { setPacks } = await import("./packs.ts");
+  const st = (entity_id: string, state: string, attributes: Record<string, unknown> = {}) => ({ entity_id, state, attributes });
+  const hass = {
+    language: "de",
+    states: {
+      "sensor.pool_ph": st("sensor.pool_ph", "8.3"),
+      "sensor.pool_redox": st("sensor.pool_redox", "700", { unit_of_measurement: "mV" }),
+      "sensor.pool_wasser": st("sensor.pool_wasser", "2", { device_class: "temperature", unit_of_measurement: "°C" }),
+      "switch.pool_pumpe": st("switch.pool_pumpe", "off"),
+    },
+    entities: {},
+  } as unknown as HomeAssistant;
+  const b = emptyBuilding();
+  b.floors = [{ ...newFloor("eg", "EG", 0), outdoor: [{ id: "p1", type: "pool", points: [[0, 0], [4, 0], [4, 3], [0, 3]], pool: {} }] }];
+  // without the add-on no pool warnings
+  setPacks([]);
+  assert.deepEqual(findAlerts(hass, b, alertSources(hass, b), new Map()), []);
+  setPacks([{ id: "pro", name: "Pro", items: [], features: ["pool"] } as never]);
+  const alerts = findAlerts(hass, b, alertSources(hass, b), new Map());
+  assert.deepEqual(alerts.map((a) => a.kind), ["pool_ph", "pool_frost"]);
+  assert.equal(alertText(hass, b, alerts[0]), "Pool: pH 8.3");
+  setPacks([]);
+});

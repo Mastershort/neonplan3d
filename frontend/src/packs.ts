@@ -184,6 +184,8 @@ const PACK_NAMES_EN: Record<string, string> = {
   vehicles: "Vehicles",
   starter: "Starter Pack",
   pro_auto: "Pro: Car Pro",
+  pro_timetravel: "Pro: Time travel",
+  pro_pool: "Pro: Pool Pro",
   pro_camera: "Pro: Camera Cockpit",
   pro_energy: "Pro: Energy Pro",
   pro_screens: "Pro: Live Screens",

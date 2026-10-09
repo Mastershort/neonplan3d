@@ -14,6 +14,8 @@ import { holeInRoom } from "../geometry/holes.ts";
 import { weatherEntity } from "../weather.ts";
 import { SHOW_PRESENCE } from "../flags.ts";
 import { hasFeature, manualUrl, shopUrl } from "../features.ts";
+import { isBeta, supporterUrl } from "../beta.ts";
+import { poolEntities, type PoolEntities } from "../pool.ts";
 import { cameraMotionSensors, detectionKind } from "../markers.ts";
 import { deviceSensors, energySummary, flowSegments, gridPoint, powerSensorFor, proposeEnergySensors, type EnergyPrefs, type FlowSegment } from "../energy.ts";
 import { isStatusSensor, robotRoomSensor, TOGGLE_KINDS } from "../devices.ts";
@@ -25,6 +27,9 @@ import { type CarLinks, type Background, OUTDOOR_TOP, sidelightLayout, DEFAULT_W
   normalizeBuilding,
   furnitureFootprint,
   type FreeWall,
+  poolHeight,
+  poolShapePoints,
+  type PoolLinks,
 } from "../model.ts";
 import { furnishRoom, PACKAGES, type PackageId } from "../packages.ts";
 import { generateWalls, locateOpening, openingHost, pointOnRoomEdge, type Wall } from "../geometry/walls.ts";
@@ -4864,6 +4869,7 @@ export class Fp3dEditor extends LitElement {
                 </select></label
               >`
           : nothing}
+        ${a.type === "pool" ? this.renderPoolShape(a) : nothing}
         <label class="fp3d-check fp3d-wide" title=${this.t("outdoor_outline_hint")}
           ><input type="checkbox" .checked=${a.outline !== false} ?disabled=${!admin} @change=${(ev: Event) => this.updateOutdoor({ outline: (ev.target as HTMLInputElement).checked ? undefined : false })} />
           ${this.t("outdoor_outline")}</label
@@ -4887,12 +4893,70 @@ export class Fp3dEditor extends LitElement {
       </div>
       ${a.slope ? html`<p class="fp3d-sub">${this.t("outdoor_slope_hint")}</p>` : nothing}
       <p class="fp3d-sub">${this.t("outdoor_hint")}</p>
+      ${a.type === "pool" ? this.renderPoolPro(a) : nothing}
       ${admin
         ? html`<div class="fp3d-actions">
             <button class="fp3d-btn" @click=${() => this.duplicateOutdoor()}>${this.t("duplicate")}</button>
             <button class="fp3d-btn fp3d-danger" @click=${() => this.deleteOutdoor()}>${this.t("delete")}</button>
           </div>`
         : nothing}
+    </section>`;
+  }
+
+  /** A pool's shape (rectangular, round, oval – inside its current box) and whether it stands above ground. */
+  private renderPoolShape(a: OutdoorArea) {
+    const admin = this.isAdmin;
+    const b = bounds(a.points);
+    const shape = a.points.length <= 4 ? "rect" : a.points.length === 40 ? "round" : a.points.length === 42 ? "oval" : null;
+    const reshape = (to: "rect" | "round" | "oval") => this.updateOutdoor({ points: poolShapePoints(to, b.x0, b.z0, b.x1, b.z1) });
+    return html`<div class="fp3d-field fp3d-wide">
+        ${this.t("pool_shape")}
+        <div class="fp3d-seg fp3d-pool-shapes" role="group" aria-label=${this.t("pool_shape")}>
+          ${(["rect", "round", "oval"] as const).map(
+            (k) => html`<button aria-pressed=${shape === k} ?disabled=${!admin} @click=${() => reshape(k)}>${k === "rect" ? "▭" : k === "round" ? "◯" : "⬭"} ${this.t(`pool_shape_${k}` as I18nKey)}</button>`,
+          )}
+        </div>
+      </div>
+      <label class="fp3d-check fp3d-wide" title=${this.t("pool_above_hint")}
+        ><input type="checkbox" .checked=${!!a.above} ?disabled=${!admin} @change=${(ev: Event) => this.updateOutdoor({ above: (ev.target as HTMLInputElement).checked || undefined })} />
+        ${this.t("pool_above")}</label
+      >
+      ${a.above ? this.len(this.t("pool_height"), poolHeight(a), (v) => this.updateOutdoor({ height: Math.min(2.5, Math.max(0.4, round(v))) }), 0.05, 0.4) : nothing}`;
+  }
+
+  /** Pool Pro: the pool's entities (each role found by name when left empty), or the teaser without the add-on. */
+  private renderPoolPro(a: OutdoorArea) {
+    const lang = this.hass?.language;
+    if (!hasFeature("pool")) {
+      const beta = isBeta("pool");
+      return html`<section class="fp3d-teaser">
+        <div class="fp3d-teaser-head">
+          <b>🏊 ${this.t("pro_name_pool")}</b>
+          <a class="fp3d-btn fp3d-primary" href=${beta ? supporterUrl(lang) : shopUrl(lang)} target="_blank" rel="noopener">${this.t(beta ? "beta_become" : "pro_unlock")}</a>
+        </div>
+        <p class="fp3d-sub">${this.t("pool_teaser")}</p>
+      </section>`;
+    }
+    if (!this.hass) return nothing;
+    const links = a.pool ?? {};
+    const auto = poolEntities(this.hass, {});
+    const set = (patch: Partial<PoolLinks>) => this.updateOutdoor({ pool: { ...links, ...patch } });
+    const role = (key: keyof PoolLinks & keyof PoolEntities, label: I18nKey, test: (id: string) => boolean) =>
+      this.entitySelect(this.t(label), links[key] ?? null, auto[key] ?? undefined, this.entityOptions(test), (v) => set({ [key]: v === "none" ? "none" : v }));
+    const sensor = (id: string) => id.startsWith("sensor.");
+    return html`<section>
+      <h3>🏊 ${this.t("pro_name_pool")}</h3>
+      <p class="fp3d-sub">${this.t("pool_pro_hint")}</p>
+      <div class="fp3d-form fp3d-links">
+        ${role("temperature", "pool_temperature", (id) => /^(sensor|climate|water_heater)\./.test(id))}
+        ${role("heater", "pool_heater", (id) => /^(climate|water_heater|switch|input_boolean)\./.test(id))}
+        ${role("pump", "pool_pump", (id) => /^(switch|fan|input_boolean|binary_sensor|sensor)\./.test(id))}
+        ${role("light", "pool_light", (id) => /^(light|switch)\./.test(id))}
+        ${role("ph", "pool_ph", sensor)}
+        ${role("chlorine", "pool_chlorine_role", sensor)}
+        ${role("cover", "pool_cover", (id) => id.startsWith("cover."))}
+      </div>
+      ${a.pool ? nothing : html`<button class="fp3d-btn fp3d-primary" ?disabled=${!this.isAdmin} @click=${() => this.updateOutdoor({ pool: {} })}>${this.t("pool_activate")}</button>`}
     </section>`;
   }
 

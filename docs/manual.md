@@ -356,7 +356,7 @@ Its lanes keep clear of furniture standing on the floor: cabinets, sofas, beds, 
 
 ### 4.17 Outdoor areas and outdoor lights
 
-With **Outdoor** you draw lawn, terrace, path, driveway, pool, flower bed, hedge or fence. At the top, beside "Undo", choose **▭ Rectangle** (drag it open) or **✎ Free form**: then you place the corners one by one like a free-form room – for curved beds, slanted plot borders or an L-shaped path; a tap on the first corner or **Enter** closes the area. A selected outdoor area is resized at its corners; a rectangle stays a rectangle. Hedges and fences take a **height** in the form (a 2.5 m thuja screen, a 0.5 m bed border); **Show the outline** unticked leaves out the glowing line along the edge, say on a plot made of several lawns. **Height offset** lowers an area below the ground or raises it – the driveway down to a lower garage, a raised terrace; lamps on it follow. **Slope** tilts an area: the height difference in metres and the direction it falls towards (the high edge sits at the height offset) – a driveway falling to the street, a sloping garden; fence posts and lamps stand on the sloped surface. **Wild patch** is a type for unmown corners. **Cut out of the areas beneath** turns an area into a hole in every area drawn before it that contains it whole – a pond or a wild patch in the middle of one single big lawn. **Pergola / frame** draws corner posts, beams and rafters at the set height, with **X-bracing** on the sides – for pergolas, carport frames or the support of a roll-off roof. Fences and pergolas can stay **open**: the edge from the last point back to the first is left out, so the fence leans against the house. Trees, shrubs and brush come as furniture from the **Garden & Terrace** pack (from release 3: oak, lime, birch, maple, fruit tree, spruce, pine, thuja, shrub, flowering shrub, brush, group of trees); width and height in the furniture form set crown and growth. Path lights, garden spots and outdoor wall lights light the outdoor areas and the facade.
+With **Outdoor** you draw lawn, terrace, path, driveway, pool, flower bed, hedge or fence. At the top, beside "Undo", choose **▭ Rectangle** (drag it open) or **✎ Free form**: then you place the corners one by one like a free-form room – for curved beds, slanted plot borders or an L-shaped path; a tap on the first corner or **Enter** closes the area. A selected outdoor area is resized at its corners; a rectangle stays a rectangle. Hedges and fences take a **height** in the form (a 2.5 m thuja screen, a 0.5 m bed border); **Show the outline** unticked leaves out the glowing line along the edge, say on a plot made of several lawns. **Height offset** lowers an area below the ground or raises it – the driveway down to a lower garage, a raised terrace; lamps on it follow. **Slope** tilts an area: the height difference in metres and the direction it falls towards (the high edge sits at the height offset) – a driveway falling to the street, a sloping garden; fence posts and lamps stand on the sloped surface. **Wild patch** is a type for unmown corners. **Cut out of the areas beneath** turns an area into a hole in every area drawn before it that contains it whole – a pond or a wild patch in the middle of one single big lawn. **Pergola / frame** draws corner posts, beams and rafters at the set height, with **X-bracing** on the sides – for pergolas, carport frames or the support of a roll-off roof. Fences and pergolas can stay **open**: the edge from the last point back to the first is left out, so the fence leans against the house. Trees, shrubs and brush come as furniture from the **Garden & Terrace** pack (from release 3: oak, lime, birch, maple, fruit tree, spruce, pine, thuja, shrub, flowering shrub, brush, group of trees); width and height in the furniture form set crown and growth. Path lights, garden spots and outdoor wall lights light the outdoor areas and the facade. **Pool:** under **Shape** you turn the area into a rectangular, round or oval pool – the size of the area (round: as wide as its short side). A pool cuts itself out of the lawn around it. **Above-ground pool** stands it on the ground as a tub, with a **pool height**; otherwise it is let into the ground and the water lies below the rim.
 
 ![The garden at night](images/view-garden.jpg)
 
@@ -781,6 +781,32 @@ Not included are camera pictures (the recorder keeps none) and people and their 
 **Wall tablet:** while playing, the view updates twice a second at the **Tablet** level (Auto four times, High six times; a change of the level applies at once); paused, nothing runs at all (0 B/s). A day of history is loaded once and needs only a few hundred kilobytes; only what really changes is redrawn. At the Tablet level time travel starts with 24 hours and holds two days at most.
 
 **Requirements:** Home Assistant's recorder (it runs by default) and Home Assistant restarted once after the update. How far back the history reaches is set by the recorder's `purge_keep_days` (default 10 days); time travel needs 24 hours of it, the whole week at least 7 days. If you want the week, keep `purge_keep_days` at 7 or more.
+
+### 6.8 Pool Pro
+
+Pool Pro brings the pool to life – with what your pool equipment reports in Home Assistant. It needs an outdoor area of the type **Pool** (4.17).
+
+**Setup:** select the pool (tool **Outdoor**) and, in the **Pool Pro** section at the bottom, click **Turn on Pool Pro for this pool**. NeonPlan finds the entities by name (an entity with "pool" in its name); every role can be chosen by hand or switched off with "None":
+
+| Role | Entity |
+|---|---|
+| Water temperature | a temperature sensor (without one, NeonPlan takes the heat pump's water temperature) |
+| Heat pump / heater | a climate entity or a water heater – then the target temperature can be set – or a switch |
+| Filter pump | a switch, a binary sensor or a power sensor (running from 20 W) |
+| Pool light | a light (its colour tints the water) or a switch |
+| pH value | a sensor |
+| Chlorine / redox | redox in mV or free chlorine in mg/l |
+| Cover | a cover with a position |
+
+**In the garden:** the water glows in the colour of the pool light; with the light off, the water temperature tints it from deep blue (cold) to turquoise (warm). While the **filter pump** runs, the water moves with a play of light like under real waves. While the **heat pump** heats, it shimmers warm. The **cover** slides over the water as far as it is closed.
+
+**Glass card:** a card floats over the pool in the look of the other Pro cards: the water temperature large in its colour, beside it the heat pump's target; **pH** and **redox/chlorine** with a traffic light (green in the ideal range – pH 7.0 to 7.4, redox 650 to 800 mV, free chlorine 0.3 to 1.5 mg/l –, yellow a little off, red far off) and a dot on the scale; the state of the cover. Buttons: **− / +** for the target temperature, 🔥 heat pump on/off, 〰 filter pump on/off, 💡 light, ▲ / ▼ open/close the cover (⏹ stops it while it moves). A tap on the head folds the card.
+
+**Warnings:** in the alert bar when pH or chlorine/redox are far off (red), and on **risk of frost** – water at 3 °C or colder while the filter pump rests.
+
+**Wall tablet:** the water only moves while the filter pump runs; at rest the pool costs nothing.
+
+**Beta:** Pool Pro starts as a beta for supporters first (6. Pro add-ons); feedback is welcome on Discord.
 
 ---
 

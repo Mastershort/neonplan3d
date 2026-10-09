@@ -56,6 +56,7 @@ import { withVehicles } from "../parking.ts";
 import { buildRoof, type RoofWindowState } from "./roof.ts";
 import { GROUND, groundFace, groundFloor, roofFaces, wallFaces } from "../solar.ts";
 import { buildSolarLive, solarLiveMaterial, writeSolarLevels, type SolarLive } from "./solar-live.ts";
+import { buildPools, disposePools, type PoolPiece } from "./pool-water.ts";
 import { accentOnUniform, accentUniform, parseAccent, lineBlending, themed, themeIndex, type Theme, type ThemeUniform } from "./theme.ts";
 
 export type { Theme } from "./theme.ts";
@@ -395,6 +396,8 @@ interface FloorView {
   screenSig: string;
   /** Klang & Kino: rings around playing speakers and lines between grouped ones (made when first needed). */
   soundGroup?: Group;
+  /** Pool Pro: the living water and covers of the pools on this floor. */
+  poolGroup?: Group;
   /** Pictures shown on lit screens, by furniture id. */
   screenPics: Map<string, { url: string; mesh: Mesh; texture: Texture | null }>;
   /** Content signatures: meshes are only rebuilt when these change. */
@@ -470,6 +473,9 @@ export class FloorplanViewer {
   private flowActive = false;
   /** Klang & Kino: the sound sources and whether any plays (then the rings animate). */
   private sound: SoundSource[] = [];
+  private pools: PoolPiece[] = [];
+  /** A filter pump runs: the water moves (frames keep coming like for the energy flow). */
+  private poolActive = false;
   private soundActive = false;
   private flowTimer: ReturnType<typeof setTimeout> | undefined;
   private persons: PersonPin[] = [];
@@ -867,6 +873,29 @@ export class FloorplanViewer {
     for (const fv of this.floors) if (fv.solarLive && writeSolarLevels(fv.solarLive, levels)) alive = true;
     this.solarActive = alive;
     this.invalidate();
+  }
+
+  /** Pool Pro: the pools' water colour, movement, heating shimmer and cover; an empty list clears them. */
+  setPools(list: PoolPiece[]): void {
+    const sig = (l: PoolPiece[]) =>
+      l.map((p) => `${p.id}:${p.floorId}:${p.points.length}:${p.points[0]?.join(",")}:${p.y.toFixed(3)}:${p.color.map((c) => c.toFixed(2)).join("/")}:${p.level.toFixed(2)}:${p.flow ? 1 : 0}:${p.heat ? 1 : 0}:${p.cover.toFixed(2)}`).join(";");
+    if (sig(list) === sig(this.pools)) return;
+    this.pools = list;
+    this.poolActive = list.some((p) => p.flow);
+    for (const fv of this.floors) this.buildPoolWater(fv);
+    this.invalidate();
+  }
+
+  private buildPoolWater(fv: FloorView): void {
+    if (fv.poolGroup) {
+      disposePools(fv.poolGroup);
+      fv.group.remove(fv.poolGroup);
+      fv.poolGroup = undefined;
+    }
+    const mine = this.pools.filter((p) => p.floorId === fv.floor.id);
+    if (!mine.length) return;
+    fv.poolGroup = buildPools(mine, this.flowTime);
+    fv.group.add(fv.poolGroup);
   }
 
   /** Klang & Kino: rings around playing speakers, lines between grouped players; an empty list clears them. */
@@ -1890,6 +1919,8 @@ export class FloorplanViewer {
       for (const info of fv.geo.openings) fv.openings.set(info.opening.id, prev?.get(info.opening.id) ?? this.openingTargets.get(info.opening.id) ?? CLOSED);
       this.buildOpenings(fv);
       this.buildFlows(fv);
+      fv.poolGroup = undefined;
+      this.buildPoolWater(fv);
       this.buildLightSurface(fv);
       this.buildSun(fv);
     }
@@ -3468,6 +3499,7 @@ export class FloorplanViewer {
     if (roofMoving) busy.push("roof");
     if (this.flowActive) busy.push("flow");
     if (this.soundActive) busy.push("sound");
+    if (this.poolActive) busy.push("pool");
     if (this.solarActive) busy.push("solar");
     if (this.effectTick) busy.push("effect");
     if (robotsMoving) busy.push("robot");
@@ -3523,7 +3555,7 @@ export class FloorplanViewer {
         this.invalidate();
       }, this.lowQuality ? 66 : 33);
     }
-    if (!moving && (this.flowActive || this.solarActive || this.soundActive) && !this.flowTimer) {
+    if (!moving && (this.flowActive || this.solarActive || this.soundActive || this.poolActive) && !this.flowTimer) {
       // only the energy flow (or the living modules) moves: about 30 frames per second are enough
       this.flowTimer = setTimeout(() => {
         this.flowTimer = undefined;

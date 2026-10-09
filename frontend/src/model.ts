@@ -663,6 +663,70 @@ export interface OutdoorArea {
   bracing?: boolean;
   /** This area is cut out of every area beneath it that contains it (a wild patch or pond inside a lawn). */
   cut?: boolean;
+  /** Pool: an above-ground pool (a tub standing on the ground, `height` tall) instead of one let into the ground. */
+  above?: boolean;
+  /** Pool Pro: the pool's entities (water temperature, heat pump, filter pump, light, pH, chlorine, cover). */
+  pool?: PoolLinks | null;
+}
+
+/** Pool Pro: the entities of a pool; a role left empty is searched by name ("pool"), "none" switches it off. */
+export interface PoolLinks {
+  /** Water temperature (a sensor; a climate or water_heater entity reports it too). */
+  temperature?: EntityRef;
+  /** Heat pump or heater: a climate or water_heater entity (target temperature, heating) or a switch. */
+  heater?: EntityRef;
+  /** Filter pump: a switch, a binary sensor or a power sensor (running above 20 W). */
+  pump?: EntityRef;
+  /** Pool light: the water takes its colour. */
+  light?: EntityRef;
+  /** pH value. */
+  ph?: EntityRef;
+  /** Chlorine: redox/ORP in mV or free chlorine in mg/l (ppm). */
+  chlorine?: EntityRef;
+  /** Pool cover (a cover entity): it slides over the water as far as it is closed. */
+  cover?: EntityRef;
+}
+
+/** Height of a pool's water surface in floor coordinates: below the ground, or near the rim of an above-ground pool. */
+export function poolWaterY(floor: Floor, a: OutdoorArea): number {
+  const g = groundLevel(floor) + (a.offset ?? 0);
+  return a.above ? g + poolHeight(a) - 0.15 : g + OUTDOOR_TOP.pool;
+}
+
+/** Wall height of an above-ground pool (m). */
+export function poolHeight(a: OutdoorArea): number {
+  return a.height && a.height > 0.3 ? a.height : 1.2;
+}
+
+/** The outline of a pool of the given shape inside a box: rectangle, circle (as wide as the box's short side) or oval (a stadium). */
+export function poolShapePoints(shape: "rect" | "round" | "oval", x0: number, z0: number, x1: number, z1: number): Vec2[] {
+  const r2 = (v: number) => Math.round(v * 1000) / 1000;
+  const w = x1 - x0;
+  const d = z1 - z0;
+  const cx = (x0 + x1) / 2;
+  const cz = (z0 + z1) / 2;
+  if (shape === "rect") return [[x0, z0], [x1, z0], [x1, z1], [x0, z1]];
+  const n = 40;
+  if (shape === "round") {
+    const r = Math.min(w, d) / 2;
+    return Array.from({ length: n }, (_, i): Vec2 => [r2(cx + r * Math.cos((i / n) * Math.PI * 2)), r2(cz + r * Math.sin((i / n) * Math.PI * 2))]);
+  }
+  // oval: straight long sides and half circles at the short ends
+  const along = w >= d;
+  const r = (along ? d : w) / 2;
+  const half = Math.max(0, (along ? w : d) / 2 - r);
+  const pts: Vec2[] = [];
+  const m = n / 2;
+  for (let end = 0; end < 2; end++) {
+    const sign = end === 0 ? 1 : -1;
+    for (let i = 0; i <= m; i++) {
+      const a = -Math.PI / 2 + (i / m) * Math.PI + (end === 0 ? 0 : Math.PI);
+      const u = sign * half + r * Math.cos(a);
+      const v = r * Math.sin(a);
+      pts.push(along ? [r2(cx + u), r2(cz + v)] : [r2(cx + v), r2(cz + u)]);
+    }
+  }
+  return pts;
 }
 
 /** Energy flow: meter position and power sensors (W). Grid positive = import, battery positive = discharging. */
