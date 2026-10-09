@@ -454,7 +454,33 @@ DEMO_BUILDING.floors[0].outdoor = [
   area("a1", "lawn", -3, -8, 17, -0.3),
   area("a2", "lawn", -3, 9.5, 6.5, 14),
   area("a3", "terrace", 1.5, -2.8, 6.2, -0.3),
-  { ...area("a4", "pool", 8.5, -6.5, 12, -3.5), pool: {} },
+  {
+    ...area("a4", "pool", 8.5, -6.5, 12, -3.5),
+    // Pool Pro: skimmer and bottom drain suck, two inlets return, the backwash goes to the drain in the garage floor
+    pool: {
+      ports: [
+        { id: "sk", kind: "skimmer", x: 9.3, z: -3.5 },
+        { id: "bd", kind: "drain", x: 10.25, z: -5 },
+        { id: "in1", kind: "inlet", x: 11.2, z: -3.5 },
+        { id: "in2", kind: "inlet", x: 12, z: -5.4 },
+        { id: "kanal", kind: "waste", x: 13.2, z: 0.9 },
+      ],
+      pipes: [
+        { id: "p_sk", from: "port:sk", to: "dev:pv_sk", floor_id: "eg", points: [[9.3, -2.4], [10.35, -2.4]] },
+        { id: "p_sk2", from: "dev:pv_sk", to: "dev:pt_pump", floor_id: "eg", points: [] },
+        { id: "p_bd", from: "port:bd", to: "dev:pv_bd", floor_id: "eg", points: [[10.25, -2.8], [10.65, -2.8]] },
+        { id: "p_bd2", from: "dev:pv_bd", to: "dev:pt_pump", floor_id: "eg", points: [] },
+        { id: "p_pf", from: "dev:pt_pump", to: "dev:pt_filter", floor_id: "eg", points: [] },
+        { id: "p_fs", from: "dev:pt_filter", to: "dev:pv_split", floor_id: "eg", points: [] },
+        { id: "p_wp1", from: "dev:pv_split", to: "dev:pt_wp", floor_id: "eg", points: [[12.2, -0.6]] },
+        { id: "p_wp2", from: "dev:pt_wp", to: "dev:pv_tee", floor_id: "eg", points: [[13.0, -0.6]] },
+        { id: "p_by", from: "dev:pv_split", to: "dev:pv_tee", floor_id: "eg", points: [], height: 0.6 },
+        { id: "p_in1", from: "dev:pv_tee", to: "port:in1", floor_id: "eg", points: [[13.0, -2.2], [11.2, -2.2]] },
+        { id: "p_in2", from: "dev:pv_tee", to: "port:in2", floor_id: "eg", points: [[13.4, -2.0], [13.4, -5.4]] },
+        { id: "p_ws", from: "dev:pt_filter", to: "port:kanal", floor_id: "eg", points: [[11.6, 0.9]], height: 0.1 },
+      ],
+    },
+  },
   area("a5", "path", 7.0, 9.5, 8.2, 14),
   area("a6", "driveway", 10.2, 5.4, 13.4, 14),
   area("a7", "hedge", -3.5, -8.5, -2.9, 14),
@@ -466,6 +492,16 @@ DEMO_BUILDING.floors[0].outdoor = [
 ];
 DEMO_BUILDING.floors[0].outdoor[5] = { ...DEMO_BUILDING.floors[0].outdoor[5], slope: 0.35, slope_dir: "-z" };
 // meter, solar inverter, home battery and wallbox on the back wall of the garage
+// Pool Pro: the technical room at the back wall of the garage, the heat pump outside behind it
+DEMO_BUILDING.floors[0].furniture.push(
+  { ...item("pool_valve", 10.35, 0.35, 0.16, 0.1, 0.14, 90), id: "pv_sk" },
+  { ...item("pool_valve", 10.65, 0.35, 0.16, 0.1, 0.14, 90), id: "pv_bd" },
+  { ...item("pool_pump", 10.9, 0.75, 0.7, 0.32, 0.4), id: "pt_pump" },
+  { ...item("pool_filter", 11.7, 0.5, 0.6, 0.6, 1.0), id: "pt_filter" },
+  { ...item("pool_valve", 12.4, 0.35, 0.16, 0.1, 0.14), id: "pv_split" },
+  { ...item("pool_valve", 13.0, 0.35, 0.16, 0.1, 0.14), id: "pv_tee" },
+  { ...item("pool_heat_pump", 12.6, -1.0, 1.0, 0.45, 0.75, 180), id: "pt_wp" },
+);
 DEMO_BUILDING.floors[0].furniture.push(
   { ...item("meter", 13.75, 0.11, 0.55, 0.21, 1.1), power: "sensor.netz_leistung" },
   { ...item("inverter", 13.0, 0.11, 0.5, 0.2, 0.65), id: "inv_main", power: "sensor.pv_leistung" },

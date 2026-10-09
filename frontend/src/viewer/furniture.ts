@@ -5,7 +5,7 @@
 
 import { Color } from "three";
 import type { Furniture, Vec2 } from "../model.ts";
-import { builtinBase, stairsULayout } from "../model.ts";
+import { builtinBase, stairsULayout, POOL_VALVE_Y } from "../model.ts";
 import { mountBase, packItem, packScreen, type PackItem } from "../packs.ts";
 import type { Floor } from "../model.ts";
 import { ALWAYS, DEG, EDGE_TOP, GeoBuffer, LineBuffer, pushLoft, pushLyingCyl, pushPrism, shade } from "./geo.ts";
@@ -878,6 +878,77 @@ function inverter(b: Builder, w: number, d: number, h: number, variant: string |
   for (const s of [-1, 1]) for (let i = 1; i < 6; i++) b.seg((s * w) / 2 + s * 0.002, y0 + (h * i) / 6, -d / 2 + 0.03, (s * w) / 2 + s * 0.002, y0 + (h * i) / 6, d / 2 - 0.03, EDGE_FAINT);
 }
 
+/** Pool pump (on the floor): the motor lying along x with its fan cover, the pre-filter pot with a lid at one end. */
+function poolPump(b: Builder, w: number, d: number, h: number): void {
+  const r = Math.min(d, h) * 0.32;
+  // base plate
+  b.box(-w / 2, w / 2, 0, 0.03, -d / 2, d / 2, C.dark);
+  // motor: a row of short cylinders lying along x (cylinders stand upright, so a box with rings stands in)
+  b.box(-w / 2, w * 0.1, 0.05, 0.05 + r * 2, -r, r, C.metal, C.metal, EDGE_FURN);
+  for (const x of [-w * 0.4, -w * 0.25, -w * 0.1]) b.seg(x, 0.05 + r * 2 + 0.003, -r, x, 0.05 + r * 2 + 0.003, r, EDGE_FAINT);
+  // the pre-filter pot with its clear lid and the glowing ring that shows the pump runs
+  b.cyl(w * 0.28, 0, Math.min(w * 0.2, d * 0.45), 0.03, h * 0.82, C.dark, C.body, 14, EDGE_FURN);
+  b.cyl(w * 0.28, 0, Math.min(w * 0.2, d * 0.45) * 0.9, h * 0.82, h, C.glass, C.glass, 14);
+  const rr = Math.min(w * 0.2, d * 0.45) * 0.95;
+  for (let i = 0; i < 16; i++) {
+    const a0 = (i / 16) * Math.PI * 2;
+    const a1 = ((i + 1) / 16) * Math.PI * 2;
+    b.seg(w * 0.28 + Math.cos(a0) * rr, h * 0.83, Math.sin(a0) * rr, w * 0.28 + Math.cos(a1) * rr, h * 0.83, Math.sin(a1) * rr, EDGE_GLOW);
+  }
+}
+
+/** Sand filter: a round tank on a foot with the six-way valve on top and its handle. */
+function poolFilter(b: Builder, w: number, d: number, h: number): void {
+  const r = Math.min(w, d) / 2;
+  b.cyl(0, 0, r * 0.95, 0, h * 0.08, C.dark, C.dark, 16);
+  b.cyl(0, 0, r, h * 0.08, h * 0.78, C.dark, C.body, 18, EDGE_FURN);
+  b.cyl(0, 0, r * 0.75, h * 0.78, h * 0.84, C.dark, C.body, 16);
+  // the six-way valve: a flat round head with the dial and the handle
+  b.cyl(0, 0, r * 0.45, h * 0.84, h * 0.95, C.dark, C.metal, 16, EDGE_FURN);
+  const rr = r * 0.4;
+  for (let i = 0; i < 16; i++) {
+    const a0 = (i / 16) * Math.PI * 2;
+    const a1 = ((i + 1) / 16) * Math.PI * 2;
+    b.seg(Math.cos(a0) * rr, h * 0.955, Math.sin(a0) * rr, Math.cos(a1) * rr, h * 0.955, Math.sin(a1) * rr, EDGE_GLOW);
+  }
+  b.box(-0.02, 0.02, h * 0.95, h, -r * 0.35, r * 0.35, C.dark, C.body);
+}
+
+/** Heat pump (outside or in the technical room): a wide box with a round fan grille in front and fins at the side. */
+function poolHeatPump(b: Builder, w: number, d: number, h: number): void {
+  b.box(-w / 2, w / 2, 0.06, h, -d / 2, d / 2, C.white, C.whiteTop, EDGE_FURN);
+  for (const x of [-w * 0.4, w * 0.4]) b.box(x - 0.03, x + 0.03, 0, 0.06, -d / 2 + 0.02, d / 2 - 0.02, C.dark);
+  const r = Math.min(h * 0.38, w * 0.3);
+  const cx = -w * 0.15;
+  const cy = h * 0.53;
+  ring(b, cx, cy, r, d / 2 + 0.004, 24);
+  ring(b, cx, cy, r * 0.55, d / 2 + 0.004, 16);
+  b.seg(cx - r, cy, d / 2 + 0.005, cx + r, cy, d / 2 + 0.005, EDGE_FAINT);
+  b.seg(cx, cy - r, d / 2 + 0.005, cx, cy + r, d / 2 + 0.005, EDGE_FAINT);
+  // the display at the right
+  b.box(w * 0.22, w * 0.42, h * 0.62, h * 0.8, d / 2, d / 2 + 0.006, C.dark);
+  b.seg(w * 0.25, h * 0.71, d / 2 + 0.008, w * 0.39, h * 0.71, d / 2 + 0.008, EDGE_GLOW);
+  for (let i = 1; i < 8; i++) b.seg(w / 2 + 0.002, h * (0.1 + i * 0.1), -d / 2 + 0.03, w / 2 + 0.002, h * (0.1 + i * 0.1), d / 2 - 0.03, EDGE_FAINT);
+}
+
+/** Dosing unit (on the wall from 0.9 m): a box with two pump heads and two canisters standing below it. */
+function poolDosing(b: Builder, w: number, d: number, h: number): void {
+  const y0 = 0.9;
+  b.box(-w / 2, w / 2, y0, y0 + h * 0.45, -d / 2, d / 2, C.white, C.whiteTop, EDGE_FURN);
+  for (const s of [-1, 1]) ring(b, s * w * 0.22, y0 + h * 0.22, Math.min(w, h) * 0.09, d / 2 + 0.004, 12);
+  b.seg(-w * 0.35, y0 + h * 0.4, d / 2 + 0.004, w * 0.35, y0 + h * 0.4, d / 2 + 0.004, EDGE_GLOW);
+  // canisters (pH minus, chlorine) on the floor
+  for (const s of [-1, 1]) b.box(s * w * 0.25 - w * 0.18, s * w * 0.25 + w * 0.18, 0, h * 0.5, -d / 2, d / 2, C.white, C.glass, EDGE_FAINT);
+}
+
+/** Ball valve: a short pipe piece with the blue lever on top. */
+function poolValve(b: Builder, w: number, d: number, h: number): void {
+  const y0 = POOL_VALVE_Y - h * 0.4;
+  b.box(-w / 2, w / 2, y0 + h * 0.25, y0 + h * 0.6, -d * 0.25, d * 0.25, C.metal, C.metal, EDGE_FURN);
+  b.box(-w * 0.12, w * 0.12, y0 + h * 0.6, y0 + h * 0.8, -d * 0.12, d * 0.12, C.dark);
+  b.box(-w * 0.1, w * 0.45, y0 + h * 0.8, y0 + h, -d * 0.15, d * 0.15, C.accent, C.accent);
+}
+
 /** The grid connection at the edge of the plot: a small dark street cabinet with a glowing lid edge. */
 function gridCabinet(b: Builder, w: number, d: number, h: number): void {
   b.box(-w / 2, w / 2, 0, h, -d / 2, d / 2, C.dark, C.body, EDGE_FURN);
@@ -978,6 +1049,17 @@ function screenRectUnmirrored(f: Furniture, floor?: Floor): { x0: number; x1: nu
 }
 
 function builtInScreen(f: Furniture, w: number, d: number, h: number, floor?: Floor): { x0: number; x1: number; y0: number; y1: number; z: number } | null {
+  // Pool Pro: the pump's motor side, the heat pump's grille, the filter's valve head, the dosing unit's front
+  if (f.type === "pool_pump") {
+    const r = Math.min(d, h) * 0.32;
+    return { x0: -w / 2 + 0.03, x1: w * 0.08, y0: 0.07, y1: 0.03 + r * 2, z: r + 0.004 };
+  }
+  if (f.type === "pool_heat_pump") return { x0: -w / 2 + 0.05, x1: w * 0.15, y0: h * 0.15, y1: h * 0.9, z: d / 2 + 0.003 };
+  if (f.type === "pool_filter") {
+    const r = Math.min(w, d) / 2;
+    return { x0: -r * 0.4, x1: r * 0.4, y0: h * 0.85, y1: h * 0.94, z: r * 0.45 + 0.004 };
+  }
+  if (f.type === "pool_dosing") return { x0: -w * 0.4, x1: w * 0.4, y0: 0.9 + h * 0.05, y1: 0.9 + h * 0.4, z: d / 2 + 0.003 };
   if (f.type === "tv_board") {
     const tw = Math.min(w * 0.8, 1.45);
     const th = tw * 0.56;
@@ -1242,6 +1324,21 @@ function buildFurniture(buf: GeoBuffer, lines: LineBuffer, shadow: GeoBuffer, f:
       break;
     case "wallbox":
       wallbox(b, w, d, h);
+      return;
+    case "pool_pump":
+      poolPump(b, w, d, h);
+      break;
+    case "pool_filter":
+      poolFilter(b, w, d, h);
+      break;
+    case "pool_heat_pump":
+      poolHeatPump(b, w, d, h);
+      break;
+    case "pool_dosing":
+      poolDosing(b, w, d, h);
+      break;
+    case "pool_valve":
+      poolValve(b, w, d, h);
       return;
     case "meter":
       meterCabinet(b, w, d, h);

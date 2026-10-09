@@ -255,6 +255,11 @@ FURNITURE_SCHEMA = vol.Schema(
         # screens: the screen around a rule picture is dark (default) or white
         vol.Optional("screen_bg", default="black"): vol.In(["black", "white"]),
         vol.Optional("vehicle", default=None): vol.Any(None, vol.All(str, vol.Length(max=96))),
+        # Pool Pro: the sand filter's six-way valve and whether a ball valve is open
+        vol.Optional("valve_position", default=None): vol.Any(
+            None, vol.In(["filter", "backwash", "rinse", "waste", "recirculate", "closed"])
+        ),
+        vol.Optional("valve_open", default=None): vol.Any(None, bool),
         # Auto Pro: the car's entities
         vol.Optional("car", default=None): vol.Any(None, CAR_SCHEMA),
         vol.Optional("scale", default=1.0): vol.All(vol.Coerce(float), vol.Range(min=0.2, max=2)),
@@ -322,10 +327,35 @@ BACKGROUND_SCHEMA = vol.Schema(
 
 # Pool Pro: water temperature, heat pump, filter pump, light, pH, chlorine and cover of a pool
 _POOL_ENTITY = vol.Any(None, vol.All(str, vol.Length(max=255)))
+_POINT = vol.All([vol.Coerce(float)], vol.Length(min=2, max=2))
+POOL_PORT_SCHEMA = vol.Schema(
+    {
+        vol.Required("id"): vol.All(str, vol.Length(max=80)),
+        vol.Required("kind"): vol.In(["skimmer", "drain", "inlet", "waste"]),
+        vol.Required("x"): vol.Coerce(float),
+        vol.Required("z"): vol.Coerce(float),
+    },
+    extra=vol.ALLOW_EXTRA,
+)
+POOL_PIPE_SCHEMA = vol.Schema(
+    {
+        vol.Required("id"): vol.All(str, vol.Length(max=80)),
+        vol.Required("from"): vol.All(str, vol.Length(max=120)),
+        vol.Required("to"): vol.All(str, vol.Length(max=120)),
+        vol.Required("floor_id"): vol.All(str, vol.Length(max=80)),
+        vol.Optional("points", default=list): vol.All([_POINT], vol.Length(max=80)),
+        vol.Optional("height", default=None): vol.Any(None, vol.All(vol.Coerce(float), vol.Range(min=-5, max=10))),
+    },
+    extra=vol.ALLOW_EXTRA,
+)
 POOL_SCHEMA = vol.Schema(
     {
-        vol.Optional(role): _POOL_ENTITY
-        for role in ("temperature", "heater", "pump", "light", "ph", "chlorine", "cover")
+        **{
+            vol.Optional(role): _POOL_ENTITY
+            for role in ("temperature", "heater", "pump", "light", "ph", "chlorine", "cover")
+        },
+        vol.Optional("ports"): vol.All([POOL_PORT_SCHEMA], vol.Length(max=40)),
+        vol.Optional("pipes"): vol.All([POOL_PIPE_SCHEMA], vol.Length(max=80)),
     },
     extra=vol.ALLOW_EXTRA,
 )

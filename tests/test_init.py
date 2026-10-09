@@ -367,6 +367,23 @@ async def test_outdoor_roof_and_north_get_defaults(hass: HomeAssistant, hass_ws_
     assert saved["above"] is True
     assert saved["pool"]["heater"] == "climate.pool"
 
+    # Pool Pro: ports and pipes on the pool, the six-way valve and a closed ball valve on the devices
+    plumbing = copy.deepcopy(pool)
+    plumbing["floors"][0]["outdoor"][0]["pool"].update(
+        {
+            "ports": [{"id": "sk", "kind": "skimmer", "x": 0.5, "z": 0}, {"id": "in", "kind": "inlet", "x": 1, "z": 1}],
+            "pipes": [
+                {"id": "p1", "from": "port:sk", "to": "port:in", "floor_id": "eg", "points": [[2, 2]], "height": 0.4}
+            ],
+        }
+    )
+    await client.send_json_auto_id({"type": "neonplan3d/building/save", "building": plumbing})
+    assert (await client.receive_json())["success"]
+    await client.send_json_auto_id({"type": "neonplan3d/building/get"})
+    got_pool = (await client.receive_json())["result"]["building"]["floors"][0]["outdoor"][0]["pool"]
+    assert got_pool["pipes"][0]["points"] == [[2, 2]]
+    assert got_pool["ports"][0]["kind"] == "skimmer"
+
     bad = copy.deepcopy(building)
     bad["floors"][0]["outdoor"][0]["type"] = "volcano"
     await client.send_json_auto_id({"type": "neonplan3d/building/save", "building": bad})

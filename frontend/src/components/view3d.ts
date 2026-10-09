@@ -30,7 +30,7 @@ import { alertColor, alertEntities, alertSources, alertText, findAlerts, isOutag
 import { iconPath, iconSvg, mdiIcon } from "../icons.ts";
 import { deviceSensors, energySummary, fetchSolarRows, fetchTodayChange, fieldLevels, fieldPowers, findConsumers, flowColor, flowSegments, gridPoint, powerSensorFor, readPower, solarCurvePath, solarDayFromStats, type Consumer, type EnergySummary, type StatRow } from "../energy.ts";
 import { fieldFace, fieldSize } from "../solar.ts";
-import { type CustomButton, type EntityRef, DEFAULT_HOLOGRAM, type SolarField } from "../model.ts";
+import { type CustomButton, type EntityRef, DEFAULT_HOLOGRAM, type SolarField, POOL_DEVICES, POOL_VALVE_Y } from "../model.ts";
 
 /** A hologram card: the house's balance on the main plant, one plant (a balcony plant) on its own, or a device. */
 /** The unit a meter counts in (m³ when it does not say). */
@@ -95,6 +95,7 @@ import { detectionKind, scaleGlow, buildMarkers, cameraMotionSensors, openMoreIn
 import { roofUnderAt, sectionCutsBelow } from "../roof-sections.ts";
 import { centroid, furnitureFootprint, isLamp, LAMP_MODEL, LIFT_SPOTS, outdoorGround, pointInPolygon, poolWaterY, spotDepth, surfaceHeight, type Building, type Furniture, type StartView } from "../model.ts";
 import { poolAreas, poolState, poolWaterGlow, type PoolState } from "../pool.ts";
+import { pipePieces, poolFlow, type PipePiece, type PoolDeviceType } from "../pool-flow.ts";
 import type { PoolPiece } from "../viewer/pool-water.ts";
 import { floorCounts, floorInfoText, personsInRooms } from "../presence.ts";
 import { controls, tokens } from "../styles.ts";
@@ -1084,18 +1085,19 @@ export class Fp3dView3d extends LitElement {
     if (JSON.stringify(cards) !== JSON.stringify(this._holos)) this._holos = cards;
     // the modules live with their production (at night, and without Pro, they rest)
     v.setSolarLevels(powers && !this.dimmed ? fieldLevels(b, powers) : new Map());
-    v.setFlows(
+    // the energy cables (Energie Pro) and the pool's pipes share the viewer's flow layer
+    const energyFlows =
       !pro || !(this.flows ?? this._flows) || this.dimmed
         ? []
         : flowSegments({ building: b, consumers, summary, battery: batteryPlaced ?? null, fieldPower: powers, devicePower: this.devicePowers(hass, b) }).map((f) => ({
-        floorId: f.floorId,
-        a: f.a,
-        b: f.b,
-        dist: f.dist,
-        power: f.power,
-        color: flowColor(f.kind, summary),
-      })),
-    );
+            floorId: f.floorId,
+            a: f.a,
+            b: f.b,
+            dist: f.dist,
+            power: f.power,
+            color: flowColor(f.kind, summary),
+          }));
+    v.setFlows(this.dimmed ? energyFlows : [...energyFlows, ...this.poolPipes(hass, b)]);
     const persons = SHOW_PRESENCE ? personsInRooms(hass, b) : [];
     v.setPersons(persons);
     const counts = floorCounts(hass, b, this.openingLinks!, persons);
@@ -1372,6 +1374,41 @@ export class Fp3dView3d extends LitElement {
     };
     void fetch();
     this.meterTimer = setInterval(() => void fetch(), 300000);
+  }
+
+  /**
+   * Pool Pro: the pipes of every pool – drawn for everyone, the water flows (blue, warm after a heating heat pump,
+   * brown to the waste drain) only with Pool Pro and while the filter pump runs.
+   */
+  private poolPipes(hass: HomeAssistant, b: Building): PipePiece[] {
+    const pro = hasFeature("pool");
+    const devs = new Map(b.floors.flatMap((fl) => fl.furniture.filter((m) => (POOL_DEVICES as readonly string[]).includes(m.type)).map((m) => [m.id, m] as const)));
+    const devices = [...devs.values()].map((f) => ({ id: f.id, type: f.type as PoolDeviceType, open: f.valve_open !== false, valve: f.valve_position ?? null }));
+    const out: PipePiece[] = [];
+    for (const { floor, area } of poolAreas(b.floors)) {
+      const links = area.pool!;
+      if (!links.pipes?.length) continue;
+      const st = poolState(hass, links);
+      const ports = links.ports ?? [];
+      const flows = poolFlow({ pipes: links.pipes, ports, devices, pumpOn: pro && !!st.pump?.on, heaterOn: !!st.heater?.on, heating: !!st.heater?.heating });
+      const water = poolWaterY(floor, area);
+      const nodeAt = (node: string) => {
+        const [kind, id] = [node.slice(0, node.indexOf(":")), node.slice(node.indexOf(":") + 1)];
+        if (kind === "port") {
+          const q = ports.find((x) => x.id === id);
+          if (!q) return null;
+          // skimmer at the water line, the drain at the bottom, inlets a little below the water, the waste drain in the floor
+          const y = q.kind === "skimmer" ? water : q.kind === "drain" ? water - 1.2 : q.kind === "inlet" ? water - 0.3 : 0.02;
+          return { x: q.x, z: q.z, y };
+        }
+        const f = devs.get(id);
+        if (!f) return null;
+        const y = f.type === "pool_filter" ? f.h * 0.88 : f.type === "pool_dosing" ? 0.95 : f.type === "pool_valve" ? POOL_VALVE_Y : f.type === "pool_pump" ? 0.2 : 0.3;
+        return { x: f.x, z: f.z, y };
+      };
+      out.push(...pipePieces(links.pipes, flows, nodeAt));
+    }
+    return out;
   }
 
   /** Fetch today's solar statistics every five minutes while there are sensors to watch (none: the curve goes). */
@@ -1922,6 +1959,9 @@ export class Fp3dView3d extends LitElement {
     const consumers: Consumer[] = [];
     const screens = new Map<string, ScreenState>();
     const targets = new Map<string, string>();
+    // Pool Pro: what the (first) pool reports, for the devices of its technical room
+    const poolFirst = hasFeature("pool") ? poolAreas(b.floors)[0] : undefined;
+    const poolLive = poolFirst ? poolState(hass, poolFirst.area.pool) : null;
     for (const floor of b.floors) {
       for (const f of floor.furniture) {
         const linked = this.furnitureLinks.get(f.id);
@@ -1935,6 +1975,17 @@ export class Fp3dView3d extends LitElement {
         }
         // a home battery with only its charge, a wallbox with only its status still gets its marker;
         // a parking spot with Auto Pro data gets one even without a presence sensor
+        // Pool Pro: the technical room lives with the pool – the pump glows while it runs, the heat pump warm
+        // while it heats, the filter's valve head in the colour of its position
+        if (poolLive && (POOL_DEVICES as readonly string[]).includes(f.type)) {
+          const v = f.valve_position ?? "filter";
+          if (f.type === "pool_pump" && poolLive.pump?.on) screens.set(f.id, { color: [0.3, 0.8, 1], level: 0.85 });
+          else if (f.type === "pool_heat_pump" && poolLive.heater?.heating) screens.set(f.id, { color: [1, 0.45, 0.15], level: 0.85 });
+          else if (f.type === "pool_heat_pump" && poolLive.heater?.on) screens.set(f.id, { color: [0.3, 0.8, 1], level: 0.35 });
+          else if (f.type === "pool_filter")
+            screens.set(f.id, v === "closed" ? { color: [1, 0.3, 0.25], level: 0.6 } : v === "filter" || v === "recirculate" ? { color: [0.3, 1, 0.6], level: poolLive.pump?.on ? 0.8 : 0.3 } : { color: [1, 0.62, 0.2], level: 0.85 });
+          else if (f.type === "pool_dosing" && poolLive.pump?.on) screens.set(f.id, { color: [0.6, 0.9, 1], level: 0.5 });
+        }
         const autoPro = f.type === "parking" && hasFeature("auto_pro") && !!f.car;
         const car = autoPro ? carState(hass, f) : null;
         const extraRef = f.type === "home_battery" ? f.soc : f.type === "wallbox" ? f.status : f.type === "parking" && car ? (f.car?.device ?? car.entities.soc) : null;

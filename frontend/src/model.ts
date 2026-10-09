@@ -130,6 +130,10 @@ export interface ScreenPicture {
 export interface Furniture {
   /** Fixed against moving by accident. */
   locked?: boolean | null;
+  /** Pool Pro, sand filter: the six-way valve's position (null = filter). */
+  valve_position?: ValvePosition | null;
+  /** Pool Pro, ball valve: closed stops the water (null / true = open). */
+  valve_open?: boolean | null;
   id: string;
   type: string;
   x: number;
@@ -687,7 +691,34 @@ export interface PoolLinks {
   chlorine?: EntityRef;
   /** Pool cover (a cover entity): it slides over the water as far as it is closed. */
   cover?: EntityRef;
+  /** Pool Pro: the pool's ports (skimmer, bottom drain, inlets) and the waste drain the backwash goes to. */
+  ports?: PoolPort[];
+  /** Pool Pro: the pipes between ports and pool devices; the water flows from `from` to `to`. */
+  pipes?: PoolPipe[];
 }
+
+/** A connection of a pool: skimmer and bottom drain suck, inlets return, the waste drain takes the backwash. */
+export interface PoolPort {
+  id: string;
+  kind: "skimmer" | "drain" | "inlet" | "waste";
+  x: number;
+  z: number;
+}
+
+/** A pipe between two nodes ("port:<id>" or "dev:<furniture id>"), with its corner points in between. */
+export interface PoolPipe {
+  id: string;
+  from: string;
+  to: string;
+  floor_id: string;
+  points: Vec2[];
+  /** Height above the floor in m (negative: under the ground); null = 0.3 m. */
+  height?: number | null;
+}
+
+/** Position of a sand filter's six-way valve. */
+export type ValvePosition = "filter" | "backwash" | "rinse" | "waste" | "recirculate" | "closed";
+export const VALVE_POSITIONS: ValvePosition[] = ["filter", "backwash", "rinse", "waste", "recirculate", "closed"];
 
 /** Height of a pool's water surface in floor coordinates: below the ground, or near the rim of an above-ground pool. */
 export function poolWaterY(floor: Floor, a: OutdoorArea): number {
@@ -913,6 +944,11 @@ export const FURNITURE_TYPES = [
   "wallbox",
   "meter",
   "grid_point",
+  "pool_pump",
+  "pool_filter",
+  "pool_heat_pump",
+  "pool_dosing",
+  "pool_valve",
   "parking",
   "fridge_smart",
   "stairwell",
@@ -931,6 +967,11 @@ export const FURNITURE_GROUPS: Record<string, FurnitureType[]> = {
 };
 
 /** Energy devices: placed and set up in the Energy tool (stored like furniture, not in the library). */
+/** Pool Pro: the devices of a pool's technical room (they stand in the plan like furniture, the pipes join them). */
+export const POOL_DEVICES = ["pool_pump", "pool_filter", "pool_heat_pump", "pool_dosing", "pool_valve"] as const;
+/** Height of a ball valve's pipe above the floor. */
+export const POOL_VALVE_Y = 0.3;
+
 export const ENERGY_DEVICES = ["meter", "inverter", "home_battery", "wallbox", "grid_point"] as const;
 
 /** Furniture that can show a linked entity (TV state, power, …). */
@@ -1085,6 +1126,9 @@ export const ELECTRIC_FURNITURE = new Set<string>([
   "home_battery",
   "wallbox",
   "meter",
+  "pool_pump",
+  "pool_heat_pump",
+  "pool_dosing",
   "tv_board",
   "tv_wall",
   "desk",
@@ -1122,6 +1166,12 @@ export const FURNITURE_SIZE: Record<FurnitureType, [number, number, number]> = {
   inverter: [0.5, 0.2, 0.65],
   home_battery: [0.6, 0.25, 1.1],
   wallbox: [0.3, 0.15, 0.42],
+  // Pool Pro's technical room: pump with pre-filter, sand filter with six-way valve, heat pump, dosing unit, ball valve
+  pool_pump: [0.7, 0.32, 0.4],
+  pool_filter: [0.6, 0.6, 1.0],
+  pool_heat_pump: [1.0, 0.45, 0.75],
+  pool_dosing: [0.4, 0.2, 0.5],
+  pool_valve: [0.16, 0.1, 0.14],
   // the meter cabinet hangs on the wall as well
   meter: [0.55, 0.21, 1.1],
   // the grid connection: a small street cabinet at the edge of the plot

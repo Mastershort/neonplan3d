@@ -16,6 +16,7 @@ import { SHOW_PRESENCE } from "../flags.ts";
 import { hasFeature, manualUrl, shopUrl } from "../features.ts";
 import { isBeta, supporterUrl } from "../beta.ts";
 import { poolEntities, type PoolEntities } from "../pool.ts";
+import { nearestOnOutline } from "../pool-flow.ts";
 import { cameraMotionSensors, detectionKind } from "../markers.ts";
 import { deviceSensors, energySummary, flowSegments, gridPoint, powerSensorFor, proposeEnergySensors, type EnergyPrefs, type FlowSegment, proposeMeters } from "../energy.ts";
 import { isStatusSensor, robotRoomSensor, TOGGLE_KINDS } from "../devices.ts";
@@ -29,7 +30,12 @@ import { type CarLinks, type Background, OUTDOOR_TOP, sidelightLayout, DEFAULT_W
   type FreeWall,
   poolHeight,
   poolShapePoints,
+  POOL_DEVICES,
+  VALVE_POSITIONS,
   type PoolLinks,
+  type PoolPipe,
+  type PoolPort,
+  type ValvePosition,
 } from "../model.ts";
 import { furnishRoom, PACKAGES, type PackageId } from "../packages.ts";
 import { generateWalls, locateOpening, openingHost, pointOnRoomEdge, type Wall } from "../geometry/walls.ts";
@@ -114,7 +120,7 @@ import { furnitureSize, isElectric, isPackType, mountBase, packDisplay, packItem
 /** Items that can be fixed against moving. */
 type FixKind = "room" | "opening" | "furniture" | "device" | "wall" | "outdoor";
 
-type Tool = "select" | "rect" | "polygon" | "measure" | "opening" | "furniture" | "outdoor" | "hole" | "wall" | "roof" | "energy";
+type Tool = "select" | "rect" | "polygon" | "measure" | "opening" | "furniture" | "outdoor" | "hole" | "wall" | "roof" | "energy" | "pool";
 
 type Drag =
   | { kind: "pan"; last: [number, number] }
@@ -132,6 +138,9 @@ type Drag =
   | { kind: "solarmove"; id: string; start: Vec2; startScreen: [number, number]; base: Building; moved: boolean; grab: { du: number; ds: number } | null; win?: boolean }
   | { kind: "outvertex"; id: string; index: number; base: Building; moved: boolean }
   | { kind: "outbox"; id: string; corner: number; base: Building; moved: boolean }
+  | { kind: "pipept"; pool: string; pipe: string; index: number; base: Building; moved: boolean }
+  | { kind: "poolport"; pool: string; id: string; base: Building; moved: boolean }
+  | { kind: "pooldev"; id: string; start: Vec2; base: Building; moved: boolean }
   | { kind: "roofcorner"; id: string; corner: [0 | 1, 0 | 1]; base: Building; moved: boolean }
   | { kind: "roofvertex"; id: string; index: number; base: Building; moved: boolean }
   | { kind: "cablept"; id: string; index: number; base: Building; moved: boolean }
@@ -151,7 +160,7 @@ interface Guides {
 }
 
 /** Drags that change the document live (restored when cancelled, recorded in the history when done). */
-const EDIT_DRAGS = new Set(["vertex", "room", "device", "opening", "furniture", "rotate", "resize", "outdoor", "roofmove", "roofcorner", "roofvertex", "outvertex", "outbox", "solarmove", "solarturn", "cablept", "holopt", "bgmove", "bgscale", "bgrotate"]);
+const EDIT_DRAGS = new Set(["vertex", "room", "device", "opening", "furniture", "rotate", "resize", "outdoor", "roofmove", "roofcorner", "roofvertex", "outvertex", "outbox", "pipept", "poolport", "pooldev", "solarmove", "solarturn", "cablept", "holopt", "bgmove", "bgscale", "bgrotate"]);
 
 const HISTORY = 100;
 const SNAP_PX = 10;
@@ -222,6 +231,9 @@ export class Fp3dEditor extends LitElement {
     _outdoorFree: { state: true },
     _outdoorType: { state: true },
     _poolShape: { state: true },
+    _pipeMode: { state: true },
+    _pipeDraft: { state: true },
+    _pipeId: { state: true },
     _cursor: { state: true },
     _guides: { state: true },
     _view: { state: true },
@@ -334,6 +346,11 @@ export class Fp3dEditor extends LitElement {
   private declare _outdoorType: OutdoorType;
   /** Pools: the shape drawn next (rectangle, round, oval or free). */
   private declare _poolShape: "rect" | "round" | "oval" | "free";
+  /** Pool tool: drawing a pipe (tap a node, corner points, the end node) and the pipe being drawn. */
+  private declare _pipeMode: boolean;
+  private declare _pipeDraft: { from: string; points: Vec2[] } | null;
+  /** Pool tool: the selected pipe (its corner points can be dragged). */
+  private declare _pipeId: string | null;
   private declare _cursor: Vec2 | null;
   private declare _guides: Guides;
   private declare _view: { scale: number; ox: number; oy: number };
@@ -441,6 +458,9 @@ export class Fp3dEditor extends LitElement {
     this._outdoorFree = false;
     this._outdoorType = "lawn";
     this._poolShape = "rect";
+    this._pipeMode = false;
+    this._pipeDraft = null;
+    this._pipeId = null;
     this._cursor = null;
     this._guides = {};
     this._view = { scale: 50, ox: 40, oy: 40 };
@@ -1104,6 +1124,7 @@ export class Fp3dEditor extends LitElement {
       this.drag = { kind: "freewall", start, end: start };
       return;
     }
+    if (this._tool === "pool" && this.poolDown(e, target, world, local)) return;
     if (this._tool === "roof" || this._tool === "energy") {
       const corner = target.closest("[data-roof-corner]")?.getAttribute("data-roof-corner");
       const vertex = target.closest("[data-roof-vertex]")?.getAttribute("data-roof-vertex");
@@ -1255,12 +1276,13 @@ export class Fp3dEditor extends LitElement {
       } else this.drag = { kind: "pan", last: local };
       return;
     }
-    if (this._tool === "rect" || (this._tool === "outdoor" && !this._outdoorFree) || this._tool === "hole") {
+    const drawsPool = this._tool === "pool" && !this._pipeMode;
+    if (this._tool === "rect" || ((this._tool === "outdoor" || drawsPool) && !this._outdoorFree) || this._tool === "hole") {
       const start = this.snap(world, undefined, e.altKey);
-      this.drag = { kind: "rect", start, end: start, outdoor: this._tool === "outdoor", hole: this._tool === "hole" };
+      this.drag = { kind: "rect", start, end: start, outdoor: this._tool === "outdoor" || drawsPool, hole: this._tool === "hole" };
       return;
     }
-    if (this._tool === "polygon" || this._tool === "measure" || (this._tool === "outdoor" && this._outdoorFree)) {
+    if (this._tool === "polygon" || this._tool === "measure" || ((this._tool === "outdoor" || drawsPool) && this._outdoorFree)) {
       this.drag = { kind: "tap", startScreen: local, last: local, panning: false };
       return;
     }
@@ -1613,6 +1635,53 @@ export class Fp3dEditor extends LitElement {
         );
         break;
       }
+      case "pipept": {
+        drag.moved = true;
+        const q = this.snap(world, undefined, e.altKey);
+        this.change(
+          (_, floor) => {
+            const pipe = floor.outdoor.find((a) => a.id === drag.pool)?.pool?.pipes?.find((x) => x.id === drag.pipe);
+            if (pipe) pipe.points[drag.index] = [round(q[0]), round(q[1])];
+          },
+          drag.base,
+          false,
+        );
+        break;
+      }
+      case "poolport": {
+        drag.moved = true;
+        const q = this.snap(world, undefined, e.altKey);
+        this.change(
+          (_, floor) => {
+            const area = floor.outdoor.find((a) => a.id === drag.pool);
+            const port = area?.pool?.ports?.find((x) => x.id === drag.id);
+            if (!area || !port) return;
+            // skimmer and inlets sit on the pool's rim, the drain and the waste drain anywhere
+            const [x, z] = port.kind === "skimmer" || port.kind === "inlet" ? nearestOnOutline(area.points, q) : q;
+            port.x = round(x);
+            port.z = round(z);
+          },
+          drag.base,
+          false,
+        );
+        break;
+      }
+      case "pooldev": {
+        if (!drag.moved && Math.hypot(world[0] - drag.start[0], world[1] - drag.start[1]) < 0.05) break;
+        drag.moved = true;
+        const src = drag.base.floors.flatMap((f) => f.furniture).find((m) => m.id === drag.id);
+        if (!src) break;
+        const q = this.snap([src.x + world[0] - drag.start[0], src.z + world[1] - drag.start[1]], undefined, e.altKey);
+        this.change(
+          (d) => {
+            const f = d.floors.flatMap((x) => x.furniture).find((m) => m.id === drag.id);
+            if (f) [f.x, f.z] = [round(q[0]), round(q[1])];
+          },
+          drag.base,
+          false,
+        );
+        break;
+      }
       case "outvertex": {
         drag.moved = true;
         const p = this.snap(world, undefined, e.altKey);
@@ -1781,7 +1850,12 @@ export class Fp3dEditor extends LitElement {
         const dx = Math.round((world[0] - drag.start[0]) / g) * g;
         const dz = Math.round((world[1] - drag.start[1]) / g) * g;
         this.change(
-          (_, floor) => (floor.outdoor.find((o) => o.id === drag.id)!.points = area.points.map(([x, z]) => [round(x + dx), round(z + dz)])),
+          (_, floor) => {
+            const o = floor.outdoor.find((x) => x.id === drag.id)!;
+            o.points = area.points.map(([x, z]) => [round(x + dx), round(z + dz)]);
+            // a pool's ports move with it (pipes keep their own way)
+            if (o.pool?.ports && area.pool?.ports) o.pool.ports = area.pool.ports.map((q) => ({ ...q, x: round(q.x + dx), z: round(q.z + dz) }));
+          },
           drag.base,
           false,
         );
@@ -1891,11 +1965,20 @@ export class Fp3dEditor extends LitElement {
       case "roofcorner":
       case "roofvertex":
       case "cablept":
+      case "outvertex":
+      case "outbox":
+      case "pipept":
+      case "poolport":
       case "holopt":
       case "bgmove":
       case "bgscale":
       case "bgrotate":
         if (drag.moved) this.pushHistory(drag.base);
+        break;
+      case "pooldev":
+        if (drag.moved) this.pushHistory(drag.base);
+        // a tap on a ball valve opens or closes it
+        else this.togglePoolValve(drag.id);
         break;
       case "device":
         if (drag.moved) this.pushHistory(drag.base);
@@ -1972,7 +2055,7 @@ export class Fp3dEditor extends LitElement {
 
   /** Corners are set one by one: the free-form room, and an outdoor area drawn as a free shape. */
   private get drawingPoints(): boolean {
-    return this._tool === "polygon" || (this._tool === "outdoor" && this._outdoorFree);
+    return this._tool === "polygon" || ((this._tool === "outdoor" || (this._tool === "pool" && !this._pipeMode)) && this._outdoorFree);
   }
 
   private addDraftPoint(p: Vec2, screen: [number, number]): void {
@@ -1991,7 +2074,7 @@ export class Fp3dEditor extends LitElement {
 
   private closeDraft(): void {
     if (this._draft.length >= 3 && Math.abs(polygonArea(this._draft)) > 0.05) {
-      if (this._tool === "outdoor") this.addOutdoor(this._draft);
+      if (this._tool === "outdoor" || this._tool === "pool") this.addOutdoor(this._draft);
       else this.addRoom(this._draft);
     }
     this._draft = [];
@@ -2180,7 +2263,7 @@ export class Fp3dEditor extends LitElement {
 
   private addOutdoor(points: Vec2[]): void {
     if (!this.floor) return;
-    const type = this._outdoorType ?? "lawn";
+    const type = this._tool === "pool" ? "pool" : (this._outdoorType ?? "lawn");
     const area: OutdoorArea = { id: uid("outdoor"), type, points: points.map(([x, z]) => [round(x), round(z)]) };
     const shape = type === "pool" && !this._outdoorFree ? this._poolShape : "rect";
     if (shape === "round" || shape === "oval") {
@@ -2192,7 +2275,8 @@ export class Fp3dEditor extends LitElement {
     if (type === "pool" && hasFeature("pool")) area.pool = {};
     this.change((_, floor) => floor.outdoor.push(area));
     this.selectItem("outdoor", area.id);
-    this._tool = "select";
+    // the pool tool stays: ports, devices and pipes come next
+    if (this._tool !== "pool") this._tool = "select";
   }
 
   private get outdoorArea(): OutdoorArea | undefined {
@@ -2275,6 +2359,14 @@ export class Fp3dEditor extends LitElement {
     } else if (e.key === "Escape") {
       if (this._ctx) {
         this._ctx = null;
+        return;
+      }
+      if (this._pipeDraft) {
+        this._pipeDraft = null;
+        return;
+      }
+      if (this._pipeMode) {
+        this._pipeMode = false;
         return;
       }
       if (this._draft.length) this._draft = [];
@@ -4426,7 +4518,7 @@ export class Fp3dEditor extends LitElement {
         <div class="fp3d-main">
           <div class="fp3d-toolbar">
             <div class="fp3d-seg" role="group" aria-label=${this.t("tool_select")}>
-              ${(["select", "rect", "polygon", "wall", "opening", "furniture", "outdoor", "hole", "roof", "energy"] as Tool[]).map(
+              ${(["select", "rect", "polygon", "wall", "opening", "furniture", "outdoor", "pool", "hole", "roof", "energy"] as Tool[]).map(
                 (tool) => html`<button
                   aria-pressed=${this._tool === tool}
                   ?disabled=${!floor || (!this.isAdmin && tool !== "select")}
@@ -4434,6 +4526,13 @@ export class Fp3dEditor extends LitElement {
                     this._tool = tool;
                     this._draft = [];
                     this._cursor = null;
+                    this._pipeMode = false;
+                    this._pipeDraft = null;
+                    // the pool tool works on a pool: the selected one, else the first of the floor
+                    if (tool === "pool" && this.outdoorArea?.type !== "pool") {
+                      const first = floor?.outdoor.find((x) => x.type === "pool");
+                      if (first) this.selectItem("outdoor", first.id);
+                    }
                     // a tool needs the sidebar (library, presets): open it beside the 3D pane
                     this._sideOpen = tool !== "select";
                   }}
@@ -4449,6 +4548,22 @@ export class Fp3dEditor extends LitElement {
               <button aria-pressed=${this._split} title=${this.t("split_3d_hint")} @click=${() => this.toggleSplit()}>${this.t("split_3d")}</button>
               ${this.isAdmin ? html`<button aria-pressed=${!!this._doc.settings.lock_plan} title=${this.t("lock_plan_hint")} @click=${() => this.toggleLockPlan()}>${this.t("lock_plan")}</button>` : nothing}
             </div>
+            ${this._tool === "pool"
+              ? html`<div class="fp3d-seg" role="group" aria-label=${this.t("pool_shape")}>
+                    ${(["rect", "round", "oval", "free"] as const).map(
+                      (k) =>
+                        html`<button
+                          aria-pressed=${!this._pipeMode && (this._poolShape ?? "rect") === k}
+                          @click=${() => ((this._poolShape = k), (this._outdoorFree = k === "free"), (this._pipeMode = false), (this._pipeDraft = null), (this._draft = []))}
+                        >
+                          ${k === "rect" ? "▭" : k === "round" ? "◯" : k === "oval" ? "⬭" : "✎"} ${this.t(`pool_shape_${k}` as I18nKey)}
+                        </button>`,
+                    )}
+                  </div>
+                  <div class="fp3d-seg" role="group">
+                    <button aria-pressed=${!!this._pipeMode} title=${this.t("pool_pipe_draw_hint")} @click=${() => ((this._pipeMode = !this._pipeMode), (this._pipeDraft = null), (this._draft = []))}>〰 ${this.t("pool_pipe_draw")}</button>
+                  </div>`
+              : nothing}
             ${this._tool === "outdoor"
               ? html`<label class="fp3d-outdoor-type" title=${this.t("outdoor_draw_type_hint")}
                     >${this.t("outdoor_draw_type")}
@@ -4460,10 +4575,10 @@ export class Fp3dEditor extends LitElement {
                         this._draft = [];
                       }}
                     >
-                      ${OUTDOOR_TYPES.map((t) => html`<option value=${t} ?selected=${t === (this._outdoorType ?? "lawn")}>${t === "pool" ? "🏊 " : ""}${this.t(`out_${t}` as I18nKey)}</option>`)}
+                      ${OUTDOOR_TYPES.filter((t) => t !== "pool").map((t) => html`<option value=${t} ?selected=${t === (this._outdoorType ?? "lawn")}>${this.t(`out_${t}` as I18nKey)}</option>`)}
                     </select></label
                   >
-                  ${this._outdoorType === "pool"
+                  ${false
                     ? html`<div class="fp3d-seg" role="group" aria-label=${this.t("pool_shape")}>
                         ${(["rect", "round", "oval", "free"] as const).map(
                           (k) =>
@@ -4525,10 +4640,10 @@ export class Fp3dEditor extends LitElement {
               ${floor ? this.renderOutdoorHandles(floor) : nothing}
               ${this.room && this._tool === "select" ? this.renderSplitMarks(this.room) : nothing}
               ${floor ? this.renderHeadroom(floor) : nothing}
-              ${this._tool === "roof" ? svg`${this.renderRoofSections()}${this.renderRoofWindows()}` : this._tool === "energy" ? svg`${this.renderRoofSections()}${this.renderSolarFields()}${this.renderCables()}${this.renderEnergyMarkers()}` : nothing} ${this.renderDraft()} ${this.renderGuides()}
+              ${this._tool === "roof" ? svg`${this.renderRoofSections()}${this.renderRoofWindows()}` : this._tool === "energy" ? svg`${this.renderRoofSections()}${this.renderSolarFields()}${this.renderCables()}${this.renderEnergyMarkers()}` : this._tool === "pool" && floor ? this.renderPoolPlan(floor) : nothing} ${this.renderDraft()} ${this.renderGuides()}
             </svg>
             ${this.renderContext()}
-            <p class="fp3d-hint ${this._fixedHint ? "fp3d-hint-fixed" : ""}">${!floor ? this.t("hint_empty") : this._fixedHint ? this.t("fixed_drag_hint") : this._tool === "outdoor" && this._outdoorFree ? this.t("hint_outdoor_free") : this.t(`hint_${this._tool}` as I18nKey)}</p>
+            <p class="fp3d-hint ${this._fixedHint ? "fp3d-hint-fixed" : ""}">${!floor ? this.t("hint_empty") : this._fixedHint ? this.t("fixed_drag_hint") : this._tool === "outdoor" && this._outdoorFree ? this.t("hint_outdoor_free") : this._tool === "pool" && this._pipeMode ? this.t(this._pipeDraft ? "hint_pipe_next" : "hint_pipe_start") : this.t(`hint_${this._tool}` as I18nKey)}</p>
           </div>
           ${this._split && !this.narrow
             ? html`<div class="fp3d-split-handle" title=${this.t("split_handle_hint")} @pointerdown=${this.onSplitDown}></div>`
@@ -4894,7 +5009,7 @@ export class Fp3dEditor extends LitElement {
   /** Corner handles of the selected outdoor area (a rectangle stays a rectangle while dragging). */
   private renderOutdoorHandles(floor: Floor) {
     const a = this._outdoorId ? floor.outdoor.find((x) => x.id === this._outdoorId) : undefined;
-    if (!a || !this.isAdmin || this._tool !== "select" || this._doc.settings.lock_plan) return nothing;
+    if (!a || !this.isAdmin || (this._tool !== "select" && !(this._tool === "pool" && !this._pipeMode)) || this._doc.settings.lock_plan) return nothing;
     if (a.pool_shape) {
       // a round or oval pool: the corners of its box (it keeps its shape while it grows)
       const b = bounds(a.points);
@@ -4993,6 +5108,339 @@ export class Fp3dEditor extends LitElement {
           </div>`
         : nothing}
     </section>`;
+  }
+
+  // ------------------------------------------------------------------ the pool tool
+
+  /** The pool the pool tool works on: the selected one on this floor. */
+  private get poolArea(): OutdoorArea | undefined {
+    const a = this.outdoorArea;
+    return a?.type === "pool" ? a : undefined;
+  }
+
+  /**
+   * A press in the pool tool: drawing a pipe (nodes and corner points), dragging pipe points, ports and devices,
+   * tapping a ball valve, resizing or moving the pool. False when nothing was hit: then a new pool is drawn.
+   */
+  private poolDown(e: PointerEvent, target: Element, world: Vec2, local: Vec2): boolean {
+    const floor = this.floor;
+    if (!floor) return false;
+    const a = this.poolArea;
+    const node = target.closest("[data-pool-node]")?.getAttribute("data-pool-node") ?? null;
+    if (this._pipeMode) {
+      if (!a || !this.isAdmin) return true;
+      if (node) {
+        if (!this._pipeDraft) this._pipeDraft = { from: node, points: [] };
+        else if (node !== this._pipeDraft.from) {
+          this.addPipe(a.id, this._pipeDraft.from, node, this._pipeDraft.points);
+          this._pipeDraft = null;
+        }
+      } else if (this._pipeDraft) {
+        const q = this.snap(world, undefined, e.altKey);
+        this._pipeDraft = { ...this._pipeDraft, points: [...this._pipeDraft.points, [round(q[0]), round(q[1])]] };
+      }
+      return true;
+    }
+    const split = (v: string): [string, number] => [v.slice(0, v.lastIndexOf(":")), Number(v.slice(v.lastIndexOf(":") + 1))];
+    if (a && this.isAdmin) {
+      const pt = target.closest("[data-pipe-pt]")?.getAttribute("data-pipe-pt");
+      if (pt) {
+        const [pipe, i] = split(pt);
+        // a double click takes the corner point out
+        if (e.detail >= 2) this.change((_, f) => void f.outdoor.find((x) => x.id === a.id)?.pool?.pipes?.find((x) => x.id === pipe)?.points.splice(i, 1));
+        else this.drag = { kind: "pipept", pool: a.id, pipe, index: i, base: this._doc, moved: false };
+        return true;
+      }
+      const seg = target.closest("[data-pipe-seg]")?.getAttribute("data-pipe-seg");
+      if (seg) {
+        // grabbing a pipe between its points adds a corner point there
+        const [pipe, i] = split(seg);
+        const q = this.snap(world, undefined, e.altKey);
+        this.change((_, f) => void f.outdoor.find((x) => x.id === a.id)?.pool?.pipes?.find((x) => x.id === pipe)?.points.splice(i, 0, [round(q[0]), round(q[1])]));
+        this._pipeId = pipe;
+        this.drag = { kind: "pipept", pool: a.id, pipe, index: i, base: this._doc, moved: false };
+        return true;
+      }
+    }
+    const pipeEl = target.closest("[data-pipe]")?.getAttribute("data-pipe");
+    if (pipeEl) {
+      this._pipeId = pipeEl;
+      return true;
+    }
+    if (node && a && this.isAdmin) {
+      if (node.startsWith("port:")) this.drag = { kind: "poolport", pool: a.id, id: node.slice(5), base: this._doc, moved: false };
+      else this.drag = { kind: "pooldev", id: node.slice(4), start: world, base: this._doc, moved: false };
+      return true;
+    }
+    if (this.isAdmin) {
+      const box = target.closest("[data-out-box]")?.getAttribute("data-out-box");
+      if (box) {
+        const [id, c] = split(box);
+        this.drag = { kind: "outbox", id, corner: c, base: this._doc, moved: false };
+        return true;
+      }
+      const vx = target.closest("[data-out-vertex]")?.getAttribute("data-out-vertex");
+      if (vx) {
+        const [id, i] = split(vx);
+        this.drag = { kind: "outvertex", id, index: i, base: this._doc, moved: false };
+        return true;
+      }
+    }
+    const out = target.closest("[data-outdoor]")?.getAttribute("data-outdoor");
+    if (out && floor.outdoor.some((x) => x.id === out && x.type === "pool")) {
+      this.selectItem("outdoor", out);
+      this._pipeId = null;
+      if (this.isAdmin) this.drag = { kind: "outdoor", id: out, start: world, startScreen: local, base: this._doc, moved: false };
+      return true;
+    }
+    this._pipeId = null;
+    return false;
+  }
+
+  /** Changes the links of a pool on this floor (with history). */
+  private changePool(id: string, fn: (links: PoolLinks, area: OutdoorArea) => void): void {
+    this.change((_, floor) => {
+      const area = floor.outdoor.find((x) => x.id === id);
+      if (!area) return;
+      area.pool ??= {};
+      fn(area.pool, area);
+    });
+  }
+
+  private addPipe(poolId: string, from: string, to: string, points: Vec2[]): void {
+    const floor = this.floor;
+    if (!floor) return;
+    const pipe: PoolPipe = { id: uid("pipe"), from, to, floor_id: floor.id, points };
+    this.changePool(poolId, (l) => (l.pipes = [...(l.pipes ?? []), pipe]));
+    this._pipeId = pipe.id;
+  }
+
+  /** A port on the pool: skimmer and inlets on the rim (spread over its sides), the drain in the middle, the waste drain beside the technical room. */
+  private addPoolPort(kind: PoolPort["kind"]): void {
+    const a = this.poolArea;
+    if (!a || !this.isAdmin) return;
+    const ports = a.pool?.ports ?? [];
+    const n = a.points.length;
+    const mid = (i: number): Vec2 => {
+      const p = a.points[i % n];
+      const q = a.points[(i + 1) % n];
+      return [(p[0] + q[0]) / 2, (p[1] + q[1]) / 2];
+    };
+    const [cx, cz] = centroid(a.points);
+    const dev = this._doc.floors.flatMap((f) => f.furniture).find((m) => m.type === "pool_filter" || m.type === "pool_pump");
+    const inlets = ports.filter((p) => p.kind === "inlet").length;
+    const at: Vec2 =
+      kind === "skimmer"
+        ? nearestOnOutline(a.points, mid(0))
+        : kind === "inlet"
+          ? nearestOnOutline(a.points, mid(Math.floor(n / 2) + inlets * Math.max(1, Math.floor(n / 8))))
+          : kind === "drain"
+            ? [cx, cz]
+            : dev
+              ? [dev.x + 0.8, dev.z]
+              : [cx, cz + 3];
+    const port: PoolPort = { id: uid("port"), kind, x: round(at[0]), z: round(at[1]) };
+    this.changePool(a.id, (l) => (l.ports = [...ports, port]));
+  }
+
+  /** A device of the technical room, placed like the energy devices (garage or technical room, against a wall). */
+  private addPoolDevice(type: string): void {
+    const a = this.poolArea;
+    this.addEnergyDevice(type);
+    // the pool stays selected in its tool
+    if (a) this.selectItem("outdoor", a.id);
+    this._tool = "pool";
+  }
+
+  /** Removes a device and the pipes ending at it. */
+  private deletePoolDevice(id: string): void {
+    this.change((d) => {
+      for (const f of d.floors) {
+        f.furniture = f.furniture.filter((m) => m.id !== id);
+        for (const o of f.outdoor) if (o.pool?.pipes) o.pool.pipes = o.pool.pipes.filter((p) => p.from !== `dev:${id}` && p.to !== `dev:${id}`);
+      }
+    });
+  }
+
+  private deletePoolPort(poolId: string, id: string): void {
+    this.changePool(poolId, (l) => {
+      l.ports = (l.ports ?? []).filter((p) => p.id !== id);
+      l.pipes = (l.pipes ?? []).filter((p) => p.from !== `port:${id}` && p.to !== `port:${id}`);
+    });
+  }
+
+  private togglePoolValve(id: string): void {
+    const f = this._doc.floors.flatMap((x) => x.furniture).find((m) => m.id === id);
+    if (!f || f.type !== "pool_valve" || !this.isAdmin) return;
+    this.change((d) => {
+      const m = d.floors.flatMap((x) => x.furniture).find((q) => q.id === id);
+      if (m) m.valve_open = m.valve_open === false ? null : false;
+    });
+  }
+
+  private setPoolDevice(id: string, patch: Partial<Furniture>): void {
+    this.change((d) => {
+      const m = d.floors.flatMap((x) => x.furniture).find((q) => q.id === id);
+      if (m) Object.assign(m, patch);
+    });
+  }
+
+  /** Where a node sits in the plan. */
+  private poolNodePos(a: OutdoorArea, node: string): Vec2 | null {
+    if (node.startsWith("port:")) {
+      const p = a.pool?.ports?.find((x) => x.id === node.slice(5));
+      return p ? [p.x, p.z] : null;
+    }
+    const f = this._doc.floors.flatMap((x) => x.furniture).find((m) => m.id === node.slice(4));
+    return f ? [f.x, f.z] : null;
+  }
+
+  /** "Skimmer", "Inlet 2", "Heat pump" … */
+  private poolNodeLabel(a: OutdoorArea, node: string): string {
+    if (node.startsWith("port:")) {
+      const ports = a.pool?.ports ?? [];
+      const p = ports.find((x) => x.id === node.slice(5));
+      if (!p) return "?";
+      const same = ports.filter((x) => x.kind === p.kind);
+      return `${this.t(`pool_port_${p.kind}` as I18nKey)}${same.length > 1 ? ` ${same.indexOf(p) + 1}` : ""}`;
+    }
+    const devs = this._doc.floors.flatMap((x) => x.furniture).filter((m) => (POOL_DEVICES as readonly string[]).includes(m.type));
+    const f = devs.find((m) => m.id === node.slice(4));
+    if (!f) return "?";
+    const same = devs.filter((m) => m.type === f.type);
+    return `${f.name || this.t(`furn_${f.type}` as I18nKey)}${same.length > 1 && !f.name ? ` ${same.indexOf(f) + 1}` : ""}`;
+  }
+
+  /** The pool tool in the plan: pipes with their flow direction, ports, devices, and the pipe being drawn. */
+  private renderPoolPlan(floor: Floor) {
+    const a = this.poolArea;
+    const devs = floor.furniture.filter((m) => (POOL_DEVICES as readonly string[]).includes(m.type));
+    const letter: Record<string, string> = { pool_pump: "P", pool_filter: "F", pool_heat_pump: "W", pool_dosing: "D", pool_valve: "" };
+    const pipes = a ? (a.pool?.pipes ?? []).filter((p) => p.floor_id === floor.id) : [];
+    const lines = pipes.map((p) => {
+      const from = this.poolNodePos(a!, p.from);
+      const to = this.poolNodePos(a!, p.to);
+      if (!from || !to) return nothing;
+      const pts = [from, ...p.points, to].map((q) => this.toScreen(q));
+      const sel = p.id === this._pipeId;
+      // the flow direction: an arrow halfway along the longest piece
+      let k = 0;
+      for (let i = 1; i < pts.length - 1; i++) if (Math.hypot(pts[i + 1][0] - pts[i][0], pts[i + 1][1] - pts[i][1]) > Math.hypot(pts[k + 1][0] - pts[k][0], pts[k + 1][1] - pts[k][1])) k = i;
+      const [x0, y0] = pts[k];
+      const [x1, y1] = pts[k + 1];
+      const ang = (Math.atan2(y1 - y0, x1 - x0) * 180) / Math.PI;
+      const line = pts.map((q) => q.join(",")).join(" ");
+      return svg`<g data-pipe=${p.id}>
+        <polyline class="fp3d-pipe-hit" points=${line} />
+        <polyline class="fp3d-pipe ${sel ? "fp3d-pipe-sel" : ""}" points=${line} />
+        <path class="fp3d-pipe-arrow" d="M -6 -5 L 5 0 L -6 5 Z" transform=${`translate(${(x0 + x1) / 2} ${(y0 + y1) / 2}) rotate(${ang})`} />
+        ${sel && this.isAdmin
+          ? svg`${pts.slice(0, -1).map((q, i) => svg`<line class="fp3d-pipe-seg" data-pipe-seg=${`${p.id}:${i}`} x1=${q[0]} y1=${q[1]} x2=${pts[i + 1][0]} y2=${pts[i + 1][1]} />`)}
+              ${p.points.map((q, i) => {
+                const [x, y] = this.toScreen(q);
+                return svg`<g class="fp3d-vertex" data-pipe-pt=${`${p.id}:${i}`}><circle cx=${x} cy=${y} r="14" class="fp3d-hit" /><circle cx=${x} cy=${y} r="5" /></g>`;
+              })}`
+          : nothing}
+      </g>`;
+    });
+    const node = (id: string, at: Vec2, label: string, cls: string, title: string) => {
+      const [x, y] = this.toScreen(at);
+      return svg`<g class="fp3d-pool-node ${cls}" data-pool-node=${id}><title>${title}</title><circle cx=${x} cy=${y} r="16" class="fp3d-hit" /><circle cx=${x} cy=${y} r="10" /><text x=${x} y=${y}>${label}</text></g>`;
+    };
+    const ports = a ? (a.pool?.ports ?? []).map((p) => node(`port:${p.id}`, [p.x, p.z], { skimmer: "S", drain: "B", inlet: "E", waste: "A" }[p.kind], `fp3d-pool-port-${p.kind}`, this.poolNodeLabel(a, `port:${p.id}`))) : [];
+    const devices = devs.map((f) => node(`dev:${f.id}`, [f.x, f.z], f.type === "pool_valve" ? (f.valve_open === false ? "✕" : "") : letter[f.type], `fp3d-pool-dev ${f.type === "pool_valve" && f.valve_open === false ? "fp3d-pool-closed" : ""}`, a ? this.poolNodeLabel(a, `dev:${f.id}`) : f.type));
+    let draft: unknown = nothing;
+    if (a && this._pipeDraft) {
+      const from = this.poolNodePos(a, this._pipeDraft.from);
+      if (from) {
+        const pts = [from, ...this._pipeDraft.points, ...(this._cursor ? [this._cursor] : [])].map((q) => this.toScreen(q).join(",")).join(" ");
+        draft = svg`<polyline class="fp3d-pipe fp3d-pipe-draft" points=${pts} />`;
+      }
+    }
+    return svg`<g class="fp3d-pool-plan">${lines}${draft}${ports}${devices}</g>`;
+  }
+
+  /** The pool tool's sidebar: the pool's form, its ports, the technical room's devices and the pipes. */
+  private renderPoolPanel(floor: Floor | undefined) {
+    const pools = floor?.outdoor.filter((x) => x.type === "pool") ?? [];
+    const a = this.poolArea;
+    if (!a)
+      return html`<section>
+        <h3>🏊 ${this.t("tool_pool")}</h3>
+        <p class="fp3d-sub">${this.t(pools.length ? "pool_choose" : "pool_tool_empty")}</p>
+        ${pools.length
+          ? html`<div class="fp3d-actions">${pools.map((p, i) => html`<button class="fp3d-btn" @click=${() => this.selectItem("outdoor", p.id)}>🏊 ${this.t("out_pool")} ${pools.length > 1 ? i + 1 : ""}</button>`)}</div>`
+          : nothing}
+      </section>`;
+    return html`${pools.length > 1
+        ? html`<section>
+            <div class="fp3d-seg">${pools.map((p, i) => html`<button aria-pressed=${p.id === a.id} @click=${() => this.selectItem("outdoor", p.id)}>🏊 ${i + 1}</button>`)}</div>
+          </section>`
+        : nothing}
+      ${this.renderOutdoorForm(a)} ${this.renderPoolTech(a)}`;
+  }
+
+  private renderPoolTech(a: OutdoorArea) {
+    const admin = this.isAdmin;
+    const ports = a.pool?.ports ?? [];
+    const pipes = a.pool?.pipes ?? [];
+    const devs = this._doc.floors.flatMap((f) => f.furniture).filter((m) => (POOL_DEVICES as readonly string[]).includes(m.type));
+    const pipe = pipes.find((p) => p.id === this._pipeId);
+    return html`<section>
+        <h3>${this.t("pool_ports")}</h3>
+        <div class="fp3d-actions">
+          ${(["skimmer", "drain", "inlet", "waste"] as const).map((k) => html`<button class="fp3d-btn" ?disabled=${!admin} @click=${() => this.addPoolPort(k)}>+ ${this.t(`pool_port_${k}` as I18nKey)}</button>`)}
+        </div>
+        ${ports.map(
+          (p) => html`<div class="fp3d-pool-row">
+            <span>${this.poolNodeLabel(a, `port:${p.id}`)}</span>
+            <button class="fp3d-btn fp3d-danger" ?disabled=${!admin} title=${this.t("delete")} @click=${() => this.deletePoolPort(a.id, p.id)}>✕</button>
+          </div>`,
+        )}
+        <p class="fp3d-sub">${this.t("pool_ports_hint")}</p>
+      </section>
+      <section>
+        <h3>${this.t("pool_devices")}</h3>
+        <div class="fp3d-actions">
+          ${POOL_DEVICES.map((t) => html`<button class="fp3d-btn" ?disabled=${!admin} @click=${() => this.addPoolDevice(t)}>+ ${this.t(`furn_${t}` as I18nKey)}</button>`)}
+        </div>
+        ${devs.map(
+          (f) => html`<div class="fp3d-pool-row">
+            <span>${this.poolNodeLabel(a, `dev:${f.id}`)}</span>
+            ${f.type === "pool_filter"
+              ? html`<select ?disabled=${!admin} title=${this.t("pool_valve_position")} @change=${(e: Event) => this.setPoolDevice(f.id, { valve_position: (e.target as HTMLSelectElement).value as ValvePosition })}>
+                  ${VALVE_POSITIONS.map((v) => html`<option value=${v} ?selected=${(f.valve_position ?? "filter") === v}>${this.t(`valve_${v}` as I18nKey)}</option>`)}
+                </select>`
+              : f.type === "pool_valve"
+                ? html`<label class="fp3d-check"
+                    ><input type="checkbox" .checked=${f.valve_open !== false} ?disabled=${!admin} @change=${(e: Event) => this.setPoolDevice(f.id, { valve_open: (e.target as HTMLInputElement).checked ? null : false })} />
+                    ${this.t("pool_valve_open")}</label
+                  >`
+                : nothing}
+            <button class="fp3d-btn fp3d-danger" ?disabled=${!admin} title=${this.t("delete")} @click=${() => this.deletePoolDevice(f.id)}>✕</button>
+          </div>`,
+        )}
+      </section>
+      <section>
+        <h3>${this.t("pool_pipes")}</h3>
+        <div class="fp3d-actions">
+          <button class="fp3d-btn ${this._pipeMode ? "fp3d-primary" : ""}" ?disabled=${!admin} @click=${() => ((this._pipeMode = !this._pipeMode), (this._pipeDraft = null))}>〰 ${this.t("pool_pipe_draw")}</button>
+        </div>
+        <p class="fp3d-sub">${this.t("pool_pipe_draw_hint")}</p>
+        ${pipes.map(
+          (p) => html`<div class="fp3d-pool-row ${p.id === this._pipeId ? "fp3d-pool-row-sel" : ""}">
+            <button class="fp3d-link" @click=${() => (this._pipeId = p.id)}>${this.poolNodeLabel(a, p.from)} → ${this.poolNodeLabel(a, p.to)}</button>
+            <button class="fp3d-btn" ?disabled=${!admin} title=${this.t("pool_pipe_reverse")} @click=${() => this.changePool(a.id, (l) => { const q = l.pipes?.find((x) => x.id === p.id); if (q) [q.from, q.to, q.points] = [q.to, q.from, [...q.points].reverse()]; })}>⇄</button>
+            <button class="fp3d-btn fp3d-danger" ?disabled=${!admin} title=${this.t("delete")} @click=${() => this.changePool(a.id, (l) => (l.pipes = (l.pipes ?? []).filter((x) => x.id !== p.id)))}>✕</button>
+          </div>`,
+        )}
+        ${pipe
+          ? html`<div class="fp3d-form">
+              ${this.len(this.t("pool_pipe_height"), pipe.height ?? 0.3, (v) => this.changePool(a.id, (l) => { const q = l.pipes?.find((x) => x.id === pipe.id); if (q) q.height = Math.min(10, Math.max(-5, round(v))); }), 0.05)}
+            </div>`
+          : nothing}
+        ${hasFeature("pool") ? nothing : html`<p class="fp3d-sub">${this.t("pool_pipes_pro")}</p>`}
+      </section>`;
   }
 
   /** A pool's shape and size (a round one by its diameter, an oval one by its box) and whether it stands above ground. */
@@ -5487,6 +5935,7 @@ export class Fp3dEditor extends LitElement {
     const areas = Object.values(this.hass?.areas ?? {}).sort((a, b) => a.name.localeCompare(b.name));
     if (this._tool === "roof") return this.renderRoofPanel();
     if (this._tool === "energy") return this.renderEnergyPanel();
+    if (this._tool === "pool") return this.renderPoolPanel(floor);
     // furnishing: the library and the selected item come first
     if (this._tool === "furniture" && floor && admin) {
       return html`${this.furnitureItem ? this.renderFurnitureForm(this.furnitureItem) : nothing} ${this.renderFurnitureLibrary()}`;
@@ -7805,6 +8254,8 @@ export class Fp3dEditor extends LitElement {
       .fp3d-main {
         display: grid;
         grid-template-rows: auto 1fr;
+        /* the column never grows with a wide toolbar (that would push the plan under the sidebar) */
+        grid-template-columns: minmax(0, 1fr);
         min-height: 0;
         min-width: 0;
       }
@@ -7814,6 +8265,18 @@ export class Fp3dEditor extends LitElement {
         gap: 8px;
         align-items: center;
         padding: 10px 12px;
+      }
+      /* the tool row scrolls sideways when it is wider than the plan (it must never push into the sidebar) */
+      .fp3d-toolbar > .fp3d-seg {
+        max-width: 100%;
+        overflow-x: auto;
+        scrollbar-width: none;
+      }
+      .fp3d-toolbar > .fp3d-seg::-webkit-scrollbar {
+        display: none;
+      }
+      .fp3d-toolbar > .fp3d-seg > button {
+        flex: none;
       }
       .fp3d-warn {
         color: var(--fp3d-warm);
@@ -8679,6 +9142,80 @@ export class Fp3dEditor extends LitElement {
         min-height: 30px;
         padding: 4px 10px;
         font-size: 13px;
+      }
+      .fp3d-pipe,
+      .fp3d-pipe-hit {
+        fill: none;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+      .fp3d-pipe {
+        stroke: #37a8ff;
+        stroke-width: 3;
+        opacity: 0.85;
+        pointer-events: none;
+      }
+      .fp3d-pipe-sel {
+        stroke-width: 5;
+        opacity: 1;
+        filter: drop-shadow(0 0 4px #37a8ff);
+      }
+      .fp3d-pipe-draft {
+        stroke-dasharray: 6 5;
+      }
+      .fp3d-pipe-hit {
+        stroke: transparent;
+        stroke-width: 16;
+        cursor: pointer;
+      }
+      .fp3d-pipe-seg {
+        stroke: transparent;
+        stroke-width: 14;
+        cursor: copy;
+      }
+      .fp3d-pipe-arrow {
+        fill: #37a8ff;
+        pointer-events: none;
+      }
+      .fp3d-pool-node {
+        cursor: grab;
+      }
+      .fp3d-pool-node circle:not(.fp3d-hit) {
+        fill: #0b1a2e;
+        stroke: #37e0ff;
+        stroke-width: 2;
+      }
+      .fp3d-pool-node.fp3d-pool-dev circle:not(.fp3d-hit) {
+        stroke: #5b7cff;
+      }
+      .fp3d-pool-node.fp3d-pool-closed circle:not(.fp3d-hit) {
+        stroke: #ff4d40;
+      }
+      .fp3d-pool-node text {
+        fill: #e6f6ff;
+        font-size: 10px;
+        font-weight: 700;
+        text-anchor: middle;
+        dominant-baseline: central;
+        pointer-events: none;
+      }
+      .fp3d-pool-row {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin: 4px 0;
+        font-size: 13px;
+      }
+      .fp3d-pool-row > span,
+      .fp3d-pool-row > .fp3d-link {
+        flex: 1;
+        text-align: left;
+      }
+      .fp3d-pool-row-sel {
+        background: rgba(55, 224, 255, 0.1);
+        border-radius: 8px;
+        box-shadow: inset 3px 0 0 var(--fp3d-accent);
+        padding-left: 6px;
       }
       .fp3d-outdoor-type {
         display: inline-flex;

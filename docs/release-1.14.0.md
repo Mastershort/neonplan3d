@@ -9,9 +9,10 @@ Pool Pro ist da – zuerst als Beta für Supporter. Energie Pro zeigt jetzt auch
   - **Warnungen** bei pH oder Chlor weit außerhalb und bei Frostgefahr.
   - Die Wärmepumpe darf eine Klima-Entität (`climate`), ein Warmwasserbereiter oder ein Schalter sein. Leere Rollen findet NeonPlan selbst über den Namen.
   - **Supporter-Beta:** Pool Pro kommt zuerst mit dem Supporter-Pass; Rückmeldungen im Discord.
+- **Werkzeug „Pool“ mit Pooltechnik und Rohren:** Pools zeichnen (Eckig, Rund, Oval, Frei), dazu Skimmer, Bodenablauf, Einlässe und Abwasser, Filterpumpe, Sandfilter mit 6-Wege-Ventil, Wärmepumpe, Dosieranlage und Kugelhähne – und die Rohre dazwischen, so wie sie bei dir verlegt sind. Mit Pool Pro fließt das Wasser sichtbar: blau, nach der heizenden Wärmepumpe orange; über Wärmepumpe oder Bypass; Rückspülen zum Abwasser; ein geschlossener Hahn sperrt.
 - **Energie Pro: Gas und Wasser.** Unter Energiebilanz lassen sich ein **Gaszähler** und ein **Wasserzähler** wählen (oder aus dem Energie-Dashboard übernehmen); die Haus-Karte zeigt den heutigen Verbrauch – „Gas 2,2 m³ · Wasser 238 l heute“.
-- **Außen: erst wählen, dann zeichnen.** Oben im Werkzeug Außen wählst du unter **Zeichnen**, was du aufziehst – Rasen, Terrasse, Weg, **Pool** … Ein neuer Pool ist sofort ein Pool, mit Pool Pro gleich eingeschaltet.
-- **Pool-Formen (kostenlos):** Bei „Zeichnen: Pool“ wählst du vorher **Eckig**, **Rund**, **Oval** oder **Frei** und ziehst ihn dann auf. Runde und ovale Pools vergrößerst du an den Ecken ihres Rahmens – ein Kreis bleibt rund – oder über Durchmesser bzw. Breite und Tiefe im Formular.
+- **Außen: erst wählen, dann zeichnen.** Oben im Werkzeug Außen wählst du unter **Zeichnen**, was du aufziehst – Rasen, Terrasse, Weg, Beet …
+- **Pool-Formen (kostenlos):** Im Werkzeug Pool wählst du vorher **Eckig**, **Rund**, **Oval** oder **Frei** und ziehst ihn dann auf. Runde und ovale Pools vergrößerst du an den Ecken ihres Rahmens – ein Kreis bleibt rund – oder über Durchmesser bzw. Breite und Tiefe im Formular.
 - **Aufstellpool (kostenlos):** ein Becken, das auf dem Boden steht, mit eigener Beckenhöhe.
 
 ### Behoben
@@ -35,9 +36,10 @@ Pool Pro is here – as a beta for supporters first. Energy Pro now shows gas an
   - **Warnings** when pH or chlorine are far off and on risk of frost.
   - The heat pump may be a climate entity, a water heater or a switch. Empty roles are found by name.
   - **Supporter beta:** Pool Pro comes with the Supporter Pass first; feedback on Discord.
+- **Pool tool with equipment and pipes:** draw pools (rectangular, round, oval, free), add skimmer, bottom drain, inlets and waste drain, filter pump, sand filter with six-way valve, heat pump, dosing unit and ball valves – and the pipes between them, the way yours run. With Pool Pro the water flows visibly: blue, orange after a heating heat pump; through the heat pump or the bypass; backwash to the waste drain; a closed valve stops it.
 - **Energy Pro: gas and water.** In the energy balance you can choose a **gas meter** and a **water meter** (or take them over from the energy dashboard); the house card shows today's use – "Gas 2.2 m³ · Water 238 l today".
-- **Outdoor: choose first, then draw.** At the top of the Outdoor tool you choose under **Draw** what you draw – lawn, terrace, path, **pool** … A new pool is a pool right away, with Pool Pro switched on.
-- **Pool shapes (free):** with "Draw: Pool" you choose **Rectangular**, **Round**, **Oval** or **Free** first and then draw it. Round and oval pools are resized at the corners of their box – a circle stays round – or by diameter or width and depth in the form.
+- **Outdoor: choose first, then draw.** At the top of the Outdoor tool you choose under **Draw** what you draw – lawn, terrace, path, bed …
+- **Pool shapes (free):** in the Pool tool you choose **Rectangular**, **Round**, **Oval** or **Free** first and then draw it. Round and oval pools are resized at the corners of their box – a circle stays round – or by diameter or width and depth in the form.
 - **Above-ground pool (free):** a tub standing on the ground, with its own height.
 
 ### Fixed

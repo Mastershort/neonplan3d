@@ -6,7 +6,7 @@ import type { Floor, OutdoorArea, PoolLinks } from "./model.ts";
 import type { HassEntity, HomeAssistant } from "./types.ts";
 import { isUnavailable, lightGlow } from "./devices.ts";
 
-export type PoolRole = keyof PoolLinks;
+export type PoolRole = "temperature" | "heater" | "pump" | "light" | "ph" | "chlorine" | "cover";
 export const POOL_ROLES: PoolRole[] = ["temperature", "heater", "pump", "light", "ph", "chlorine", "cover"];
 
 export interface PoolEntities {
@@ -65,7 +65,7 @@ export function poolEntities(hass: HomeAssistant, links: PoolLinks | null | unde
   const pooly = ids.filter((id) => POOL_WORD.test(key(id)));
   const first = (list: string[], test: (id: string) => boolean) => list.find(test) ?? null;
   const pick = (role: PoolRole, auto: () => string | null): string | null => {
-    const v = l[role];
+    const v = l[role] as string | null | undefined;
     if (v === "none") return null;
     return v ?? auto();
   };
