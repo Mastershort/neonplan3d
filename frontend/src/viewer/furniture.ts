@@ -897,12 +897,20 @@ function poolPump(b: Builder, w: number, d: number, h: number): void {
   }
 }
 
-/** Sand filter: a round tank on a foot with the six-way valve on top and its handle. */
-function poolFilter(b: Builder, w: number, d: number, h: number): void {
+/** Sand filter: a round tank on a foot with its multiport valve on top (six- or four-way) or at its side. */
+function poolFilter(b: Builder, w: number, d: number, h: number, valve: string | null): void {
   const r = Math.min(w, d) / 2;
   b.cyl(0, 0, r * 0.95, 0, h * 0.08, C.dark, C.dark, 16);
   b.cyl(0, 0, r, h * 0.08, h * 0.78, C.dark, C.body, 18, EDGE_FURN);
   b.cyl(0, 0, r * 0.75, h * 0.78, h * 0.84, C.dark, C.body, 16);
+  if (valve === "side6") {
+    // the valve at the right side: a block with the round dial facing forward and its three connections
+    const x0 = r * 0.9;
+    b.box(x0, x0 + 0.12, h * 0.3, h * 0.66, -0.07, 0.07, C.dark, C.metal, EDGE_FURN);
+    ring(b, x0 + 0.06, h * 0.56, 0.05, 0.075, 16);
+    b.box(x0 + 0.04, x0 + 0.08, h * 0.66, h * 0.72, -0.015, 0.015, C.dark, C.body);
+    return;
+  }
   // the six-way valve: a flat round head with the dial and the handle
   b.cyl(0, 0, r * 0.45, h * 0.84, h * 0.95, C.dark, C.metal, 16, EDGE_FURN);
   const rr = r * 0.4;
@@ -1329,7 +1337,7 @@ function buildFurniture(buf: GeoBuffer, lines: LineBuffer, shadow: GeoBuffer, f:
       poolPump(b, w, d, h);
       break;
     case "pool_filter":
-      poolFilter(b, w, d, h);
+      poolFilter(b, w, d, h, f.variant ?? null);
       break;
     case "pool_heat_pump":
       poolHeatPump(b, w, d, h);

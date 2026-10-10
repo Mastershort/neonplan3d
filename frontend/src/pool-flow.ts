@@ -14,6 +14,7 @@
 
 import type { PoolPipe, PoolPort, ValvePosition } from "./model.ts";
 import { pipePath, type NodeAt } from "./geometry/runs.ts";
+import { nodePart, splitNode } from "./pool-ports.ts";
 
 export type { NodeAt };
 
@@ -60,8 +61,10 @@ export const pipeShut = (p: Pick<PoolPipe, "fittings">) => !!p.fittings?.some((f
 export function poolFlow(input: PoolFlowInput): Map<string, PipeFlow> {
   const out = new Map<string, PipeFlow>(input.pipes.map((p) => [p.id, { active: false, warm: false, waste: false }]));
   if (!input.pumpOn) return out;
-  // a loose end is a node of its own (two loose ends are not joined)
-  const pipes = input.pipes.map((p) => (p.from && p.to ? p : { ...p, from: p.from || `loose:${p.id}:a`, to: p.to || `loose:${p.id}:b` }));
+  // a loose end is a node of its own (two loose ends are not joined); a connection belongs to its part
+  // (the filter's connections still decide where its water goes)
+  const fromPort = new Map(input.pipes.map((p) => [p.id, splitNode(p.from).port]));
+  const pipes = input.pipes.map((p) => ({ ...p, from: p.from ? nodePart(p.from) : `loose:${p.id}:a`, to: p.to ? nodePart(p.to) : `loose:${p.id}:b` }));
   const dev = new Map(input.devices.map((d) => [deviceNode(d.id), d]));
   const port = new Map(input.ports.map((p) => [portNode(p.id), p]));
   const closed = (node: string) => {
@@ -113,8 +116,13 @@ export function poolFlow(input: PoolFlowInput): Map<string, PipeFlow> {
     if (d?.type === "pool_filter") {
       const v = d.valve ?? "filter";
       if (v === "closed") return;
-      // backwash and rinse send the water to the waste drain, filter and recirculate on to the pool
-      next = next.filter((p) => downstream(p).waste === TO_WASTE.has(v));
+      // backwash and rinse send the water to the waste drain, filter and recirculate on to the pool: out of the
+      // valve's waste or return connection, or (a pipe at the filter as a whole) the way that leads there
+      const want = TO_WASTE.has(v) ? "waste" : "return";
+      next = next.filter((p) => {
+        const port = fromPort.get(p.id);
+        return port ? port === want : downstream(p).waste === TO_WASTE.has(v);
+      });
       if (TO_WASTE.has(v)) waste = true;
     } else if (next.length > 1) {
       // a split: through the heat pump while it is on, else the bypass

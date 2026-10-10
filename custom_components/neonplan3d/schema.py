@@ -376,6 +376,11 @@ POOL_JOINT_SCHEMA = vol.Schema(
         vol.Required("x"): vol.Coerce(float),
         vol.Required("z"): vol.Coerce(float),
         vol.Required("y"): vol.All(vol.Coerce(float), vol.Range(min=-5, max=10)),
+        # a T- or Y-piece, or a hole through a wall (its normal into the room, the wall's depth) or the floor
+        vol.Optional("kind", default=None): vol.Any(None, vol.In(["tee", "y", "wall", "floor"])),
+        vol.Optional("nx", default=None): vol.Any(None, vol.Coerce(float)),
+        vol.Optional("nz", default=None): vol.Any(None, vol.Coerce(float)),
+        vol.Optional("depth", default=None): vol.Any(None, vol.All(vol.Coerce(float), vol.Range(min=0, max=2))),
     },
     extra=vol.ALLOW_EXTRA,
 )

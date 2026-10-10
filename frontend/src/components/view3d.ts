@@ -1393,13 +1393,21 @@ export class Fp3dView3d extends LitElement {
     const tubes: PipeTube[] = [];
     for (const { floor, area } of poolAreas(b.floors)) {
       const links = area.pool!;
-      if (!links.pipes?.length) continue;
+      if (!links.pipes?.length && !links.joints?.length) continue;
       const st = poolState(hass, links);
       const ports = links.ports ?? [];
-      const flows = poolFlow({ pipes: links.pipes, ports, devices, pumpOn: pro && !!st.pump?.on, heaterOn: !!st.heater?.on, heating: !!st.heater?.heating });
+      const flows = poolFlow({ pipes: links.pipes ?? [], ports, devices, pumpOn: pro && !!st.pump?.on, heaterOn: !!st.heater?.on, heating: !!st.heater?.heating });
       const nodeAt = poolNodeAt(b, floor, area);
-      out.push(...pipePieces(links.pipes, flows, nodeAt));
-      for (const p of links.pipes) {
+      out.push(...pipePieces(links.pipes ?? [], flows, nodeAt));
+      // holes through a wall or the floor: a sleeve from the inside to the outside
+      for (const j of links.joints ?? []) {
+        if (j.kind !== "wall" && j.kind !== "floor") continue;
+        const a = nodeAt(`joint:${j.id}:inside`)!;
+        const o = nodeAt(`joint:${j.id}:outside`)!;
+        const top = j.kind === "floor" ? 0.03 : a.y;
+        tubes.push({ floorId: floor.id, points: [[a.x, top, a.z], [o.x, o.y, o.z]], radius: 0.05, water: null, fittings: [] });
+      }
+      for (const p of links.pipes ?? []) {
         const points = pipePath(p, nodeAt);
         if (points.length < 2) continue;
         const flow = flows.get(p.id);

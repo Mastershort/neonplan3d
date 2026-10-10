@@ -108,3 +108,25 @@ test("laid on the wall: ball valves sit in the pipes, T-pieces split and join, a
   assert.equal(warm.get("r2")!.warm, true);
   assert.equal(warm.get("open2")!.active, false);
 });
+
+test("the filter's connections: filtering leaves by the return, backwashing by the waste, whatever the pipes look like", () => {
+  // the return and the waste line both lead on to more pipes (no way to tell them apart without the connections)
+  const ported: PoolPipe[] = [
+    pipe("s", "port:sk", "dev:pump:suction"),
+    pipe("p", "dev:pump:pressure", "dev:filter:pump"),
+    pipe("r", "dev:filter:return", "joint:t"),
+    pipe("w", "dev:filter:waste", "joint:t2"),
+    pipe("r2", "joint:t", "port:in1"),
+    pipe("w2", "joint:t2", "port:in2"),
+  ];
+  const devs: PoolFlowDevice[] = [
+    { id: "pump", type: "pool_pump" },
+    { id: "filter", type: "pool_filter" },
+  ];
+  const go = (valve: PoolFlowDevice["valve"]) =>
+    poolFlow({ pipes: ported, ports, devices: devs.map((d) => (d.id === "filter" ? { ...d, valve } : d)), pumpOn: true, heaterOn: false, heating: false });
+  assert.deepEqual(active(go("filter")), ["p", "r", "r2", "s"]);
+  const back = go("backwash");
+  assert.deepEqual(active(back), ["p", "s", "w", "w2"]);
+  assert.equal(back.get("w2")!.waste, true);
+});

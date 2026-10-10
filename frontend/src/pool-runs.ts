@@ -6,14 +6,14 @@ import { POOL_DEVICES, POOL_VALVE_Y, poolWaterY, type Building, type Floor, type
 import { mountBase } from "./packs.ts";
 import { nearestOnPath, pathLength, pipePath, pointAlong, PIPE_HEIGHT, type NodeAt, type P3 } from "./geometry/runs.ts";
 import { toWall, type WallFrame } from "./geometry/wall-frame.ts";
+import { jointPortAt, portAt, splitNode } from "./pool-ports.ts";
 
 /** Where the pipes of a pool end: its ports, the pool devices (on any floor, hung ones higher) and its T-pieces. */
 export function poolNodeAt(b: Building, floor: Floor, area: OutdoorArea): NodeAt {
   const links = area.pool ?? {};
   const water = poolWaterY(floor, area);
   return (node) => {
-    const i = node.indexOf(":");
-    const [kind, id] = [node.slice(0, i), node.slice(i + 1)];
+    const { kind, id, port } = splitNode(node);
     if (kind === "port") {
       const q = links.ports?.find((x) => x.id === id);
       if (!q) return null;
@@ -23,12 +23,14 @@ export function poolNodeAt(b: Building, floor: Floor, area: OutdoorArea): NodeAt
     }
     if (kind === "joint") {
       const j = links.joints?.find((x) => x.id === id);
-      return j ? { x: j.x, z: j.z, y: j.y } : null;
+      return j ? jointPortAt(j, port) : null;
     }
     if (kind !== "dev") return null;
     for (const fl of b.floors) {
       const f = fl.furniture.find((m) => m.id === id);
       if (!f || !(POOL_DEVICES as readonly string[]).includes(f.type)) continue;
+      const at = port ? portAt(f, port) : null;
+      if (at) return { ...at, y: at.y + mountBase(fl, f) };
       const y = f.type === "pool_filter" ? f.h * 0.88 : f.type === "pool_dosing" ? 0.95 : f.type === "pool_valve" ? POOL_VALVE_Y : f.type === "pool_pump" ? 0.2 : 0.3;
       return { x: f.x, z: f.z, y: y + mountBase(fl, f) };
     }
@@ -141,4 +143,124 @@ export function runsOnWall(frame: WallFrame, pipes: readonly PoolPipe[], nodeAt:
     out.push(run);
   }
   return out;
+}
+
+/** A stop on the way of a new connection: a hole it passes, or a ball valve or sight glass put in it. */
+export type ConnectVia = { kind: "hole"; joint: string } | { kind: "valve" | "sight" };
+
+export interface ConnectRequest {
+  from: string;
+  vias: ConnectVia[];
+  /** One end, or two: then the line splits at a T-piece shortly before them. */
+  to: string[];
+  floorId: string;
+}
+
+/** How deep pipes run under the ground outside. */
+export const GROUND_DEPTH = -0.3;
+
+/**
+ * Lays a new connection from its stops: pipes from part to part (through each hole from the side it comes from),
+ * level then upright – at the higher end's height inside, under the ground outside – and with two ends a T-piece
+ * 1 m before their middle. The water runs from the skimmer or drain towards the pump and out to the inlets: a
+ * connection drawn the other way round is turned. Returns the pipes and joints to add.
+ */
+export function planConnection(req: ConnectRequest, nodeAt: NodeAt, joints: readonly PoolJoint[], suction: (node: string) => boolean, newId: (kind: string) => string): { pipes: PoolPipe[]; joints: PoolJoint[] } {
+  const pipes: PoolPipe[] = [];
+  const added: PoolJoint[] = [];
+  const at = (node: string) => nodeAt(node);
+  // the chain of nodes: each hole entered on the side nearer to where the line comes from
+  type Seg = { a: string; b: string; fits: ("valve" | "sight")[] };
+  const segs: Seg[] = [];
+  let cur = req.from;
+  let fits: ("valve" | "sight")[] = [];
+  for (const v of req.vias) {
+    if (v.kind !== "hole") {
+      fits.push(v.kind);
+      continue;
+    }
+    const j = joints.find((x) => x.id === v.joint);
+    const p = at(cur);
+    if (!j || !p) continue;
+    const inside = at(`joint:${j.id}:inside`)!;
+    const outside = at(`joint:${j.id}:outside`)!;
+    const fromInside = Math.hypot(p.x - inside.x, p.z - inside.z) <= Math.hypot(p.x - outside.x, p.z - outside.z);
+    segs.push({ a: cur, b: `joint:${j.id}:${fromInside ? "inside" : "outside"}`, fits });
+    fits = [];
+    cur = `joint:${j.id}:${fromInside ? "outside" : "inside"}`;
+  }
+  let ends = req.to;
+  if (ends.length > 1) {
+    // two ends: a T-piece 1 m before the middle between them, coming from the last stop
+    const p = at(cur);
+    const qs = ends.map(at).filter((q): q is NonNullable<typeof q> => !!q);
+    if (p && qs.length === ends.length) {
+      const mx = qs.reduce((s, q) => s + q.x, 0) / qs.length;
+      const mz = qs.reduce((s, q) => s + q.z, 0) / qs.length;
+      const l = Math.hypot(p.x - mx, p.z - mz) || 1;
+      const k = Math.min(1, l / 2) / l;
+      const under = p.y < 0 || qs.some((q) => q.y < 0);
+      const tee: PoolJoint = { id: newId("joint"), kind: "tee", x: r3(mx + (p.x - mx) * k), z: r3(mz + (p.z - mz) * k), y: under ? GROUND_DEPTH : r3(p.y) };
+      added.push(tee);
+      segs.push({ a: cur, b: `joint:${tee.id}:in`, fits });
+      fits = [];
+      ends.forEach((e, i) => segs.push({ a: `joint:${tee.id}:out${i + 1}`, b: e, fits: [] }));
+      ends = [];
+    }
+  }
+  if (ends.length) segs.push({ a: cur, b: ends[0], fits });
+  const lookup: NodeAt = (n) => {
+    const { kind, id, port } = splitNode(n);
+    const j = kind === "joint" ? added.find((x) => x.id === id) : undefined;
+    return j ? jointPortAt(j, port) : at(n);
+  };
+  // the water's way: from a skimmer or drain in, out to the inlets – turned when drawn the other way
+  const turn = req.to.some(suction) && !suction(req.from);
+  for (const s of segs) {
+    const p = lookup(s.a);
+    const q = lookup(s.b);
+    if (!p || !q) continue;
+    const route = autoRoute(p, q, holeNormal(s.a, joints), holeNormal(s.b, joints));
+    let pipe: PoolPipe = { id: newId("pipe"), from: s.a, to: s.b, floor_id: req.floorId, points: route.map((r): Vec2 => [r[0], r[2]]), heights: route.map((r) => r[1]) };
+    // its ball valves and sight glasses from 40 cm along, 25 cm apart (dragged where they belong later)
+    const len = pathLength(pipePath(pipe, lookup));
+    pipe.fittings = s.fits.map((kind, i) => ({ id: newId("fit"), kind, at: r3(Math.min(len / 2, 0.4 + i * 0.25)), ...(kind === "valve" ? { open: true } : {}) }));
+    if (turn) pipe = { ...pipe, from: pipe.to, to: pipe.from, points: [...pipe.points].reverse(), heights: [...(pipe.heights ?? [])].reverse(), fittings: pipe.fittings?.map((f) => ({ ...f, at: r3(Math.max(0, len - f.at)) })) };
+    pipes.push(pipe);
+  }
+  return { pipes, joints: added };
+}
+
+/** A hole's normal into the room when a node is the outside of a wall hole (the pipe leaves it straight out). */
+function holeNormal(node: string, joints: readonly PoolJoint[]): Vec2 | null {
+  const { kind, id, port } = splitNode(node);
+  const j = kind === "joint" && port === "outside" ? joints.find((x) => x.id === id) : undefined;
+  return j?.kind === "wall" ? [-(j.nx ?? 0), -(j.nz ?? 0)] : null;
+}
+
+/**
+ * The corner points of a new pipe from p to q: out of a wall hole first 50 cm straight away from the wall, then
+ * level – under the ground when one end lies below the floor, else at the higher end's height – along x, then
+ * along z; the pipe then runs up or down into q.
+ */
+export function autoRoute(p: { x: number; y: number; z: number }, q: { x: number; y: number; z: number }, outA: Vec2 | null = null, outB: Vec2 | null = null): P3[] {
+  const level = p.y < 0 || q.y < 0 ? GROUND_DEPTH : r3(Math.max(p.y, q.y));
+  const pts: P3[] = [];
+  let [x, z] = [p.x, p.z];
+  if (outA) {
+    [x, z] = [r3(x + outA[0] * 0.5), r3(z + outA[1] * 0.5)];
+    pts.push([x, r3(p.y), z]);
+  }
+  let [ex, ez] = [q.x, q.z];
+  const tail: P3[] = [];
+  if (outB) {
+    [ex, ez] = [r3(ex + outB[0] * 0.5), r3(ez + outB[1] * 0.5)];
+    tail.push([ex, r3(q.y), ez]);
+  }
+  pts.push([r3(x), level, r3(z)]);
+  if (Math.abs(ex - x) > 0.01) pts.push([r3(ex), level, r3(z)]);
+  if (Math.abs(ez - z) > 0.01) pts.push([r3(ex), level, r3(ez)]);
+  pts.push(...tail);
+  // no point twice
+  return pts.filter((v, i) => i === 0 || Math.hypot(v[0] - pts[i - 1][0], v[1] - pts[i - 1][1], v[2] - pts[i - 1][2]) > 0.001);
 }

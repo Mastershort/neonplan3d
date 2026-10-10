@@ -742,13 +742,22 @@ export interface PipeFitting {
   open?: boolean;
 }
 
-/** A T-piece where pipes meet: a node of the pipes like a port or a device. */
+/**
+ * A part where pipes meet or pass: a T- or Y-piece, or a hole through a wall or the floor. A node of the pipes like
+ * a port or a device.
+ */
 export interface PoolJoint {
   id: string;
+  /** "tee" (default), "y", or a hole: "wall", "floor". */
+  kind?: "tee" | "y" | "wall" | "floor" | null;
   x: number;
   z: number;
-  /** Height above the floor. */
+  /** Height above the floor (a hole: of its inside). */
   y: number;
+  /** A hole in a wall: the normal into the room (its outside lies the wall's depth behind it). */
+  nx?: number | null;
+  nz?: number | null;
+  depth?: number | null;
 }
 
 /** Position of a sand filter's six-way valve. */
