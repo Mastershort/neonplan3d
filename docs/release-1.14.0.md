@@ -1,8 +1,8 @@
-Energie Pro zeigt jetzt auch Gas und Wasser. Und für alle: ein eigenes Pool-Werkzeug mit Pooltechnik und Rohren, Balkone fürs Obergeschoss, Pools in Rund und Oval, als Aufstellpool, und ein Pool im Rasen ist jetzt auch zu sehen.
+Energie Pro zeigt jetzt auch Gas und Wasser. Und für alle: ein eigenes Pool-Werkzeug, Balkone fürs Obergeschoss, Pools in Rund und Oval, als Aufstellpool, und ein Pool im Rasen ist jetzt auch zu sehen.
 
 ### Neu
 
-- **Werkzeug „Pool“ mit Pooltechnik und Rohren:** Pools zeichnen (Eckig, Rund, Oval, Frei), dazu Skimmer, Bodenablauf, Einlässe und Abwasser, Filterpumpe, Sandfilter mit 6-Wege-Ventil, Wärmepumpe, Dosieranlage und Kugelhähne – und die Rohre dazwischen, so wie sie bei dir verlegt sind.
+- **Eigenes Werkzeug „Pool“:** Pools zeichnest du jetzt mit einem eigenen Werkzeug im Editor.
 - **Energie Pro: Gas und Wasser.** Unter Energiebilanz lassen sich ein **Gaszähler** und ein **Wasserzähler** wählen (oder aus dem Energie-Dashboard übernehmen); die Haus-Karte zeigt den heutigen Verbrauch – „Gas 2,2 m³ · Wasser 238 l heute“.
 - **Außen: erst wählen, dann zeichnen.** Oben im Werkzeug Außen wählst du unter **Zeichnen**, was du aufziehst – Rasen, Terrasse, Weg, Beet …
 - **Pool-Formen (kostenlos):** Im Werkzeug Pool wählst du vorher **Eckig**, **Rund**, **Oval** oder **Frei** und ziehst ihn dann auf. Runde und ovale Pools vergrößerst du an den Ecken ihres Rahmens – ein Kreis bleibt rund – oder über Durchmesser bzw. Breite und Tiefe im Formular.
@@ -27,11 +27,11 @@ Einstellungen → System → Updates. HACS sucht nur alle paar Stunden nach neue
 
 ---
 
-Energy Pro now shows gas and water too. And for everyone: a pool tool of its own with equipment and pipes, balconies for upper floors, round and oval pools, above-ground pools, and a pool inside a lawn now shows.
+Energy Pro now shows gas and water too. And for everyone: a pool tool of its own, balconies for upper floors, round and oval pools, above-ground pools, and a pool inside a lawn now shows.
 
 ### New
 
-- **Pool tool with equipment and pipes:** draw pools (rectangular, round, oval, free), add skimmer, bottom drain, inlets and waste drain, filter pump, sand filter with six-way valve, heat pump, dosing unit and ball valves – and the pipes between them, the way yours run.
+- **A Pool tool of its own:** pools are now drawn with their own tool in the editor.
 - **Energy Pro: gas and water.** In the energy balance you can choose a **gas meter** and a **water meter** (or take them over from the energy dashboard); the house card shows today's use – "Gas 2.2 m³ · Water 238 l today".
 - **Outdoor: choose first, then draw.** At the top of the Outdoor tool you choose under **Draw** what you draw – lawn, terrace, path, bed …
 - **Pool shapes (free):** in the Pool tool you choose **Rectangular**, **Round**, **Oval** or **Free** first and then draw it. Round and oval pools are resized at the corners of their box – a circle stays round – or by diameter or width and depth in the form.

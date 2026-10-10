@@ -31,3 +31,15 @@ Pool Pro brings the pool to life – with what your pool equipment reports in Ho
 
 **Beta:** Pool Pro starts as a beta for supporters first (6. Pro add-ons); feedback is welcome on Discord.
 
+
+
+---
+
+Back into 4.17 (before "### 4.18 3D beside") when Pool Pro is released:
+
+**Pool equipment and pipes (Pool tool):** in the editor's **Pool** tool you draw pools (choose a shape: rectangular, round, oval, free) and rebuild their equipment:
+
+- **Ports:** skimmer and inlets sit on the rim, the bottom drain in the pool, the waste drain where the backwash water goes (say in the garage floor). Any number of inlets; move them in the plan.
+- **Equipment:** filter pump, sand filter with six-way valve, heat pump, dosing unit and ball valves. They land in the garage or the technical room and move like furniture. On the sand filter you set the **valve position** (filter, backwash, rinse, waste, recirculate, closed); a **ball valve** opens and closes with a tap in the plan.
+- **Pipes:** **Draw a pipe**, then tap the start (port or device), set corners and tap the end – in the flow direction, from the skimmer to the pump, on to the filter, through the heat pump or the bypass to the inlets. Several pipes at a ball valve make a split or a junction. A selected pipe has points to drag (a double click removes one), a height above the floor and **⇄** to reverse it.
+

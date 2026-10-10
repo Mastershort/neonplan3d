@@ -28,3 +28,8 @@ Pool tool: with Pool Pro the water flows visibly: blue, orange after a heating h
 ## CHANGELOG line
 
 - **Pool Pro (Pro, supporter beta):** the pool's water glows in the pool light's colour and moves with caustics while the filter pump runs (tinted by the water temperature without light, a warm shimmer while heating); a glass card shows water temperature, heat pump target (− / +), pH and redox/chlorine with a traffic light and buttons for heat pump, filter pump, light and cover; the cover slides over the water; warnings for pH, chlorine and frost. Heat pumps as climate, water heater or switch; empty roles are found by name.
+
+## Also parked (equipment and pipes)
+
+- **Werkzeug „Pool“ mit Pooltechnik und Rohren:** Pools zeichnen (Eckig, Rund, Oval, Frei), dazu Skimmer, Bodenablauf, Einlässe und Abwasser, Filterpumpe, Sandfilter mit 6-Wege-Ventil, Wärmepumpe, Dosieranlage und Kugelhähne – und die Rohre dazwischen, so wie sie bei dir verlegt sind.
+- **Pool tool with equipment and pipes:** draw pools (rectangular, round, oval, free), add skimmer, bottom drain, inlets and waste drain, filter pump, sand filter with six-way valve, heat pump, dosing unit and ball valves – and the pipes between them, the way yours run.

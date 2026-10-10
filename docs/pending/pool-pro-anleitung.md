@@ -31,3 +31,15 @@ Pool Pro lässt den Pool leben – mit dem, was deine Pool-Technik in Home Assis
 
 **Beta:** Pool Pro startet als Beta zuerst für Supporter (6. Pro-Erweiterungen); Rückmeldungen gern im Discord.
 
+
+
+---
+
+Zurück nach 4.17 (vor „### 4.18 3D daneben“), wenn Pool Pro freigegeben wird:
+
+**Pooltechnik und Rohre (Werkzeug Pool):** Im Editor-Werkzeug **Pool** zeichnest du Pools (Form wählen: Eckig, Rund, Oval, Frei) und baust ihre Technik nach:
+
+- **Anschlüsse:** Skimmer und Einlässe sitzen am Beckenrand, der Bodenablauf im Becken, der Abwasser-Anschluss dort, wo das Rückspülwasser hingeht (etwa im Garagenboden). Beliebig viele Einlässe; im Plan verschieben.
+- **Technik:** Filterpumpe, Sandfilter mit 6-Wege-Ventil, Wärmepumpe, Dosieranlage und Kugelhähne. Sie landen in der Garage oder im Technikraum und lassen sich wie Möbel verschieben. Beim Sandfilter stellst du die **Ventilstellung** ein (Filtern, Rückspülen, Nachspülen, Entleeren, Zirkulieren, Geschlossen), einen **Kugelhahn** öffnest und schließt du per Tipp im Plan.
+- **Rohre:** **Rohr zeichnen**, dann den Start antippen (Anschluss oder Gerät), Ecken setzen und das Ziel antippen – in Fließrichtung, also vom Skimmer zur Pumpe, weiter zum Filter, über Wärmepumpe oder Bypass zu den Einlässen. Mehrere Rohre an einem Kugelhahn bilden eine Verteilung oder eine Zusammenführung. Ein ausgewähltes Rohr hat Punkte zum Ziehen (Doppelklick löscht einen), eine Höhe über dem Boden und **⇄** zum Umdrehen.
+

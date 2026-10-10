@@ -9,7 +9,7 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 ### New
 
 - **Energy Pro: gas and water.** In the energy balance you can choose a **gas meter** and a **water meter** (or take them over from the energy dashboard); the house card shows today's use – "Gas 2.2 m³ · Water 238 l today".
-- **Pool tool with equipment and pipes:** draw pools (rectangular, round, oval, free), add skimmer, bottom drain, inlets and waste drain, filter pump, sand filter with six-way valve, heat pump, dosing unit and ball valves – and the pipes between them, the way yours run.
+- **A Pool tool of its own:** pools are now drawn with their own tool in the editor.
 - **Outdoor: choose what to draw first** (lawn, terrace, path …) at the top of the Outdoor tool.
 - **Pool shapes (free):** rectangular, round, oval or free, chosen before drawing; round and oval pools resize at the corners of their box (a circle stays round) or by diameter / width and depth; **above-ground pools** with their own height.
 - **Rain warning per window:** the tick **No rain warning** in a window's form – for a window under a canopy; all others still warn (idea D328 by Thundras).
