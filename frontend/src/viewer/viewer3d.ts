@@ -2949,15 +2949,38 @@ export class FloorplanViewer {
   private furnitureAt(x: number, y: number): { fv: FloorView; id: string; y: number } | null {
     const ray = this.rayAt(x, y);
     const floors = this.activeFloors();
-    const meshes = floors.flatMap((f) => [f.lampMesh, f.wallMesh].filter((m) => m.visible));
+    // a TV's screen and its picture, a smart fridge's doors are meshes of their own: they belong to the item too
+    const extra = (f: FloorView) => [f.screenMesh, f.fridgeMesh, ...[...f.screenPics.values()].map((p) => p.mesh)];
+    const meshes = floors.flatMap((f) => [f.lampMesh, f.wallMesh, ...extra(f)].filter((m) => m.visible));
     for (const hit of ray.intersectObjects(meshes, false)) {
       if (hit.faceIndex == null) continue;
-      const fv = floors.find((f) => f.group === hit.object.parent)!;
+      const fv = floors.find((f) => f.group === hit.object.parent || extra(f).includes(hit.object as Mesh))!;
+      if (!fv) continue;
+      if (hit.object !== fv.lampMesh && hit.object !== fv.wallMesh) {
+        const id = this.furnitureNear(fv, hit.point.x, hit.point.z);
+        if (id) return { fv, id, y: hit.point.y };
+        continue;
+      }
       const list = hit.object === fv.lampMesh ? fv.lampFurnTris : fv.geo.furnitureTris;
       const id = list.find((r) => hit.faceIndex! >= r.start && hit.faceIndex! < r.end)?.id;
       if (id) return { fv, id, y: hit.point.y };
     }
     return null;
+  }
+
+  /** The item whose footprint (a little grown: a screen stands in front of its front) holds a point, the nearest one. */
+  private furnitureNear(fv: FloorView, x: number, z: number): string | null {
+    let best: { id: string; d: number } | null = null;
+    for (const f of fv.floor.furniture) {
+      const a = f.rotation * DEG;
+      const dx = x - f.x;
+      const dz = z - f.z;
+      const u = Math.abs(dx * Math.cos(a) + dz * Math.sin(a)) - f.w / 2;
+      const v = Math.abs(-dx * Math.sin(a) + dz * Math.cos(a)) - f.d / 2;
+      const d = Math.max(u, v);
+      if (d < 0.25 && (!best || d < best.d)) best = { id: f.id, d };
+    }
+    return best?.id ?? null;
   }
 
   /** Point on a floor's plane under a screen point (or on a level plane at height `at`, world coordinates). */

@@ -5300,7 +5300,7 @@ export class Fp3dEditor extends LitElement {
       const floor = this.floor;
       const f = this._wallSel ? floor?.furniture.find((m) => m.id === this._wallSel) : undefined;
       const v = (el as unknown as { viewer?: { camera: { position: { clone(): { set(x: number, y: number, z: number): { project(c: unknown): { x: number; y: number; z: number } } } } }; floorMap: Map<string, { y: number }> } }).viewer;
-      if (!f || !floor || !v || !canLift(f)) {
+      if (!f || !floor || !v || !canLift(f) || f.locked) {
         handle.hidden = true;
         return;
       }
@@ -5625,6 +5625,8 @@ export class Fp3dEditor extends LitElement {
         <div class="fp3d-wv-foot">
           ${sel && selF
             ? html`<b>${selF.name || furnitureName(this.hass, selF.type)}</b>
+                ${this.fixButton("furniture", sel.id)}
+                ${selF.locked && admin ? html`<span class="fp3d-muted">${this.t("wall_view_fixed")}</span>` : nothing}
                 ${this.len(this.t("wall_view_left"), Math.round(span(sel.s0, sel.s1)[0] * 1000) / 1000, (val) => {
                   const ds = val - span(sel.s0, sel.s1)[0];
                   this.moveOnWall(frame, sel.id, frame.rightward ? ds : -ds, null);

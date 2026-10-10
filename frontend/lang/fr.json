@@ -1505,5 +1505,6 @@
  "wall_view_front": "Mur de face",
  "wall_view_depth": "Distance au mur (m)",
  "wall_view_hint_3d": "Toucher un meuble et le faire glisser au sol · molette ou deux doigts : plus près ou plus loin · bouton du milieu ou droit (deux doigts sur tablette) : regarder autour · distances et hauteur à saisir en bas · flèches à gauche et à droite : mur suivant",
- "wall_view_lift": "Glisser vers le haut ou le bas : hauteur au-dessus du sol"
+ "wall_view_lift": "Glisser vers le haut ou le bas : hauteur au-dessus du sol",
+ "wall_view_fixed": "Fixé – le libérer pour le déplacer"
 }

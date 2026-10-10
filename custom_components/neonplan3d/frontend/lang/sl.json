@@ -1505,5 +1505,6 @@
  "wall_view_front": "Stena od spredaj",
  "wall_view_depth": "Razdalja od stene (m)",
  "wall_view_hint_3d": "Tapni kos pohištva in ga povleci po tleh · kolesce ali dva prsta: bliže ali dlje · srednja ali desna miškina tipka (na tablici dva prsta): razgledovanje · spodaj vpiši razdalje in višino · puščici levo in desno: naslednja stena",
- "wall_view_lift": "Povleci gor ali dol: višina nad tlemi"
+ "wall_view_lift": "Povleci gor ali dol: višina nad tlemi",
+ "wall_view_fixed": "Pritrjeno – za vlečenje ga najprej sprosti"
 }

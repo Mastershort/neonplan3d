@@ -1505,5 +1505,6 @@
  "wall_view_front": "Vegg framanfrå",
  "wall_view_depth": "Avstand til veggen (m)",
  "wall_view_hint_3d": "Trykk på eit møbel og dra det over golvet · musehjul eller to fingrar: nærare eller lenger unna · midtre eller høgre museknapp (to fingrar på nettbrett): sjå deg rundt · avstandar og høgd skriv du inn nedst · piler til venstre og høgre: neste vegg",
- "wall_view_lift": "Dra opp eller ned: høgd over golvet"
+ "wall_view_lift": "Dra opp eller ned: høgd over golvet",
+ "wall_view_fixed": "Låst – løys det for å dra"
 }

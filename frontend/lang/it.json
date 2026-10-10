@@ -1505,5 +1505,6 @@
  "wall_view_front": "Parete di fronte",
  "wall_view_depth": "Distanza dalla parete (m)",
  "wall_view_hint_3d": "Tocca un mobile e trascinalo sul pavimento · rotella o due dita: più vicino o più lontano · tasto centrale o destro (due dita sul tablet): guardarsi intorno · in basso distanze e altezza · frecce a sinistra e a destra: parete successiva",
- "wall_view_lift": "Trascina su o giù: altezza dal pavimento"
+ "wall_view_lift": "Trascina su o giù: altezza dal pavimento",
+ "wall_view_fixed": "Fissato – sbloccalo per trascinarlo"
 }
