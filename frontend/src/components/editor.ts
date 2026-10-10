@@ -527,8 +527,9 @@ export class Fp3dEditor extends LitElement {
     // this bundle keeps its own pack registry – and its own language table, so it fetches the language itself
     if (changed.has("packs")) setPacks(this.packs ?? []);
     if (changed.has("hass") && this.hass && !languageReady(this.hass.language)) void loadLanguage(this.hass.language).then(() => this.requestUpdate());
-    if (changed.has("_doc") && this._split) this.queue3d();
-    if (changed.has("_split") && this._split) this._doc3d = this._doc;
+    // the 3D pane and the wall view's 3D both show the draft (otherwise a piece moved in the wall view jumps back)
+    if (changed.has("_doc") && (this._split || this._wallView)) this.queue3d();
+    if ((changed.has("_split") && this._split) || (changed.has("_wallView") && this._wallView)) this._doc3d = this._doc;
     if (changed.has("_tool") && this.houseTool && !this._split && !this.narrow) this._split = true;
     // entering or leaving the roof tool: the 3D half frames the whole house (or the floor) again
     if (changed.has("_tool") && (this.houseTool || changed.get("_tool") === "roof" || changed.get("_tool") === "energy")) this.reframe3d = true;
