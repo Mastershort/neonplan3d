@@ -4569,6 +4569,7 @@ export class Fp3dEditor extends LitElement {
       <div class="fp3d-editor ${this.narrow ? "fp3d-narrow" : ""}">
         <div class="fp3d-main">
           <div class="fp3d-toolbar">
+            ${this._wallPick ? html`<div class="fp3d-pick-tip" style=${`left:${this.wallPickTip[0]}px;top:${this.wallPickTip[1]}px`} @click=${() => (this._wallPick = false)}>${this.t("hint_wall_pick")}</div>` : nothing}
             <div class="fp3d-seg" role="group" aria-label=${this.t("tool_select")}>
               ${(["select", "rect", "polygon", "wall", "opening", "furniture", "outdoor", "pool", "hole", "roof", "energy"] as Tool[]).map(
                 (tool) => html`<button
@@ -4598,7 +4599,7 @@ export class Fp3dEditor extends LitElement {
               <button ?disabled=${!this._canRedo} @click=${() => this.redo()} title="Ctrl+Y">${this.t("redo")}</button>
               <button @click=${() => this.fit()}>${this.t("fit")}</button>
               <button aria-pressed=${this._split} title=${this.t("split_3d_hint")} @click=${() => this.toggleSplit()}>${this.t("split_3d")}</button>
-              <button aria-pressed=${this._wallPick} title=${this.t("wall_view_open")} @click=${() => (this._wallPick = !this._wallPick)}>▦ ${this.t("wall_view")}</button>
+              <button aria-pressed=${this._wallPick} title=${this.t("wall_view_open")} @click=${(e: Event) => this.toggleWallPick(e.currentTarget as HTMLElement)}>▦ ${this.t("wall_view")}</button>
               ${this.isAdmin ? html`<button aria-pressed=${!!this._doc.settings.lock_plan} title=${this.t("lock_plan_hint")} @click=${() => this.toggleLockPlan()}>${this.t("lock_plan")}</button>` : nothing}
             </div>
             ${this._tool === "pool"
@@ -5353,6 +5354,17 @@ export class Fp3dEditor extends LitElement {
     const l = this.lift;
     this.lift = null;
     if (l?.moved) this.pushHistory(l.base);
+  }
+
+  /** Where the bubble under the toolbar's wall view button points to (px from the toolbar's top left corner). */
+  private wallPickTip: [number, number] = [0, 0];
+
+  /** The toolbar's wall view button: on, with a bubble right under it saying what to tap. */
+  private toggleWallPick(btn: HTMLElement): void {
+    const bar = btn.closest(".fp3d-toolbar")?.getBoundingClientRect();
+    const r = btn.getBoundingClientRect();
+    this.wallPickTip = bar ? [r.left - bar.left + r.width / 2, r.bottom - bar.top + 8] : [0, 0];
+    this._wallPick = !this._wallPick;
   }
 
   /** The wall view of the wall nearest a tapped point (within 60 cm), the room under the point first. */
@@ -8854,11 +8866,43 @@ export class Fp3dEditor extends LitElement {
         min-width: 0;
       }
       .fp3d-toolbar {
+        position: relative;
         display: flex;
         flex-wrap: wrap;
         gap: 8px;
         align-items: center;
         padding: 10px 12px;
+      }
+      .fp3d-pick-tip {
+        position: absolute;
+        z-index: 5;
+        transform: translateX(-50%);
+        white-space: nowrap;
+        padding: 8px 12px;
+        border-radius: 10px;
+        background: var(--fp3d-accent);
+        color: var(--fp3d-accent-text);
+        font-weight: 700;
+        font-size: 13px;
+        box-shadow: 0 6px 22px rgba(0, 0, 0, 0.45), 0 0 16px rgba(55, 224, 255, 0.45);
+        cursor: pointer;
+        animation: fp3d-tip-in 0.18s ease-out;
+      }
+      .fp3d-pick-tip::before {
+        content: "";
+        position: absolute;
+        left: 50%;
+        top: -6px;
+        margin-left: -6px;
+        border: 6px solid transparent;
+        border-top: 0;
+        border-bottom-color: var(--fp3d-accent);
+      }
+      @keyframes fp3d-tip-in {
+        from {
+          opacity: 0;
+          transform: translate(-50%, -4px);
+        }
       }
       /* the tool row scrolls sideways when it is wider than the plan (it must never push into the sidebar) */
       .fp3d-toolbar > .fp3d-seg {
