@@ -10,7 +10,7 @@ import { furnitureSymbol } from "./furniture2d.ts";
 import { clipConvex, netRoomArea } from "../geometry/area.ts";
 import { areaText, formatImperial, lengthText, lengthUnit, parseLength, unitLabel, type LengthUnit } from "../units.ts";
 import { closeGaps, straightenEdges, suggestedThickness } from "../geometry/gaps.ts";
-import { keepInRoom, snapToWall } from "../geometry/snap.ts";
+import { clampIntoRoom, keepInRoom, snapToWall } from "../geometry/snap.ts";
 import { holeInRoom } from "../geometry/holes.ts";
 import { weatherEntity, isRainSource } from "../weather.ts";
 import { SHOW_PRESENCE } from "../flags.ts";
@@ -606,10 +606,14 @@ export class Fp3dEditor extends LitElement {
         const f = floor.furniture.find((m) => m.id === id);
         if (!f) continue;
         // the item stays in its room (no dragging through walls)
-        const [nx, nz] = keepInRoom(floor, f.x, f.z, x, z);
+        const [kx, kz] = keepInRoom(floor, f.x, f.z, x, z);
+        const [nx, nz] = clampIntoRoom(floor, f, kx, kz, wall);
+        const was = snapToWall(floor, f, wall);
+        const gapBefore = was ? Math.hypot(was.x - f.x, was.z - f.z) : Infinity;
         Object.assign(f, { x: nx, z: nz });
         const snap = snapToWall(floor, f, wall);
-        if (snap) Object.assign(f, snap);
+        // pulled away from the wall (a fridge 15 cm forward): it stays where it was put instead of snapping back
+        if (snap && Math.hypot(snap.x - nx, snap.z - nz) <= gapBefore + 0.01) Object.assign(f, snap);
       }
     });
   }

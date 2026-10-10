@@ -3,7 +3,7 @@
 // furnishing in 3D.
 
 import type { Floor, Furniture, Vec2 } from "../model.ts";
-import { pointInPolygon, signedArea } from "../model.ts";
+import { furnitureFootprint, pointInPolygon, signedArea } from "../model.ts";
 
 /** Furniture closer than this to a wall snaps against it (metres). */
 export const WALL_SNAP = 0.25;
@@ -20,6 +20,61 @@ export function keepInRoom(floor: Floor, x0: number, z0: number, x: number, z: n
   if (pointInPolygon([x, z0], room.points)) return [x, z0];
   if (pointInPolygon([x0, z], room.points)) return [x0, z];
   return [x0, z0];
+}
+
+/**
+ * An item moved to (x, z) keeps its whole footprint inside the room it stands in, up to the wall faces
+ * (interior walls stand half their thickness into the room): pushed against a wall it stops there instead of
+ * sliding into it. Rooms are taken as their straight edges; the room is the one under the item's old centre.
+ */
+export function clampIntoRoom(floor: Floor, f: Pick<Furniture, "x" | "z" | "w" | "d" | "rotation">, x: number, z: number, wallInterior: number): [number, number] {
+  const room = floor.rooms.find((r) => r.points.length >= 3 && pointInPolygon([f.x, f.z], r.points));
+  if (!room) return [x, z];
+  const pts = room.points;
+  const sgn = signedArea(pts) >= 0 ? 1 : -1;
+  const before = furnitureFootprint({ ...f } as Furniture);
+  let nx = x;
+  let nz = z;
+  // twice: a push off one wall can push into the next one in a corner
+  for (let pass = 0; pass < 2; pass++) {
+    const corners = furnitureFootprint({ ...f, x: nx, z: nz } as Furniture);
+    for (let i = 0; i < pts.length; i++) {
+      const a = pts[i];
+      const b = pts[(i + 1) % pts.length];
+      const len = Math.hypot(b[0] - a[0], b[1] - a[1]);
+      if (len < 0.05) continue;
+      const u: Vec2 = [(b[0] - a[0]) / len, (b[1] - a[1]) / len];
+      const n: Vec2 = [-u[1] * sgn, u[0] * sgn];
+      // an interior wall: another room has an edge along this one (overlapping by more than a few cm)
+      const off = (q: Vec2) => Math.abs((q[0] - a[0]) * n[0] + (q[1] - a[1]) * n[1]);
+      const at = (q: Vec2) => (q[0] - a[0]) * u[0] + (q[1] - a[1]) * u[1];
+      const shared = floor.rooms.some((r) =>
+        r.id !== room.id &&
+        r.points.some((p, k) => {
+          const q = r.points[(k + 1) % r.points.length];
+          if (off(p) > 0.02 || off(q) > 0.02) return false;
+          return Math.min(len, Math.max(at(p), at(q))) - Math.max(0, Math.min(at(p), at(q))) > 0.05;
+        }),
+      );
+      const face = shared ? wallInterior / 2 : 0;
+      // only corners in front of this edge (along its length) are held by it
+      let worst = 0;
+      corners.forEach((c, k) => {
+        const along = (c[0] - a[0]) * u[0] + (c[1] - a[1]) * u[1];
+        if (along < -0.01 || along > len + 0.01) return;
+        const d = (c[0] - a[0]) * n[0] + (c[1] - a[1]) * n[1] - face;
+        // only a wall the corner was in front of before the move holds it (not one of another wing of an L-shape)
+        const b0 = before[k];
+        if ((b0[0] - a[0]) * n[0] + (b0[1] - a[1]) * n[1] - face < -0.05) return;
+        if (d < worst) worst = d;
+      });
+      if (worst < -1e-4) {
+        nx -= n[0] * worst;
+        nz -= n[1] * worst;
+      }
+    }
+  }
+  return [round(nx), round(nz)];
 }
 
 export function snapToWall(floor: Floor, f: Furniture, wallInterior: number, reach = WALL_SNAP): { x: number; z: number; rotation: number } | null {

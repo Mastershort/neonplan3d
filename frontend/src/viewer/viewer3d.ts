@@ -46,6 +46,7 @@ import {
 import type { Building, Floor, Furniture, Room, StartView } from "../model.ts";
 import { recolorLamps, SHADE_SENTINEL, shadeFactors } from "./lamp-colors.ts";
 import { centroid, pointInPolygon, openingStyle, WALL_LAMP_Y } from "../model.ts";
+import { clampIntoRoom } from "../geometry/snap.ts";
 import { roofRider, roofUnderAt, sectionCutsBelow } from "../roof-sections.ts";
 import { buildFloorGeometry, SLAB, stairHoles, type FloorGeometry } from "./build.ts";
 import { OrbitControls, type OrbitView } from "./controls.ts";
@@ -564,7 +565,17 @@ export class FloorplanViewer {
   private selectedDevice: string | null = null;
   private pendingDevice: string | null = null;
   private deviceGrab: { id: string; floorId: string; offset: [number, number]; x: number; z: number; moved: boolean } | null = null;
-  private grab: { floorId: string; id: string; offset: [number, number]; x: number; z: number; moved: boolean; plane?: number } | null = null;
+  private grab: {
+    floorId: string;
+    id: string;
+    offset: [number, number];
+    x: number;
+    z: number;
+    moved: boolean;
+    plane?: number;
+    /** Seen almost level: the pointer's way on screen moves the item (a plane gives huge jumps there). */
+    screen?: { x0: number; y0: number; fx: number; fz: number; right: [number, number]; fwd: [number, number]; perPx: number; gain: number };
+  } | null = null;
   private ghost: LineSegments | null = null;
   private theme: Theme = "neon";
   private readonly themeUniform: ThemeUniform = { value: 0 };
@@ -3033,13 +3044,29 @@ export class FloorplanViewer {
     const plane = at === undefined ? undefined : Math.min(at, this.camera.position.y - 0.3);
     const p = this.floorPoint(fv, x, y, plane);
     if (!f || !p) return false;
+    // seen almost level (the wall view at eye height, a tall piece grabbed high up), a level plane turns a few
+    // pixels into metres or none at all: then the pointer's way on screen moves the item, forward and back a
+    // little faster as the depth looks shortened
+    let screen: NonNullable<typeof this.grab>["screen"];
+    const dir = this.rayAt(x, y).ray.direction;
+    if (at !== undefined && -dir.y < 0.34) {
+      const cam = this.camera.position;
+      // forward and back: straight along the view (towards the wall it looks at), not along the pointer's ray
+      const look = this.camera.getWorldDirection(new Vector3());
+      const len = Math.hypot(look.x, look.z) || 1;
+      const fwd: [number, number] = [look.x / len, look.z / len];
+      const dist = Math.hypot(p[0] - cam.x, p[1] - cam.z, (plane ?? 0) - cam.y);
+      const h = this.renderer.domElement.getBoundingClientRect().height || 1;
+      const perPx = (2 * dist * Math.tan((this.camera.fov * Math.PI) / 360)) / h;
+      screen = { x0: x, y0: y, fx: f.x, fz: f.z, right: [-fwd[1], fwd[0]], fwd, perPx, gain: Math.min(2, 1 / Math.max(0.5, -dir.y)) };
+    }
     if (f.locked) {
       // fixed: selected, but a drag turns the view instead of moving it
       this.selectFurniture(f.id);
       this.options.onFurnitureSelect?.(f.id);
       return false;
     }
-    this.grab = { floorId: fv.floor.id, id: f.id, offset: [f.x - p[0], f.z - p[1]], x: f.x, z: f.z, moved: false, plane };
+    this.grab = { floorId: fv.floor.id, id: f.id, offset: [f.x - p[0], f.z - p[1]], x: f.x, z: f.z, moved: false, plane, screen };
     this.selectFurniture(f.id);
     this.options.onFurnitureSelect?.(f.id);
     return true;
@@ -3099,11 +3126,20 @@ export class FloorplanViewer {
     const g = this.grab;
     const fv = g && this.floorMap.get(g.floorId);
     if (!g || !fv) return;
-    const p = this.floorPoint(fv, x, y, g.plane);
+    const sc = g.screen;
+    let p: [number, number] | null;
+    if (sc) {
+      const dx = (x - sc.x0) * sc.perPx;
+      const dy = (y - sc.y0) * sc.perPx * sc.gain;
+      p = [sc.fx + sc.right[0] * dx - sc.fwd[0] * dy - g.offset[0], sc.fz + sc.right[1] * dx - sc.fwd[1] * dy - g.offset[1]];
+    } else p = this.floorPoint(fv, x, y, g.plane);
     if (!p) return;
     const grid = this.building?.settings.grid ?? 0.05;
-    g.x = Math.round((p[0] + g.offset[0]) / grid) * grid;
-    g.z = Math.round((p[1] + g.offset[1]) / grid) * grid;
+    const f = fv.floor.furniture.find((m) => m.id === g.id);
+    const gx = Math.round((p[0] + g.offset[0]) / grid) * grid;
+    const gz = Math.round((p[1] + g.offset[1]) / grid) * grid;
+    // the whole piece stays in its room: pushed against a wall it stops there
+    [g.x, g.z] = f ? clampIntoRoom(fv.floor, f, gx, gz, this.building?.settings.wall_interior ?? 0) : [gx, gz];
     g.moved = true;
     this.updateGhost();
     this.invalidate();
