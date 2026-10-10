@@ -564,7 +564,7 @@ export class FloorplanViewer {
   private selectedDevice: string | null = null;
   private pendingDevice: string | null = null;
   private deviceGrab: { id: string; floorId: string; offset: [number, number]; x: number; z: number; moved: boolean } | null = null;
-  private grab: { floorId: string; id: string; offset: [number, number]; x: number; z: number; moved: boolean } | null = null;
+  private grab: { floorId: string; id: string; offset: [number, number]; x: number; z: number; moved: boolean; plane?: number } | null = null;
   private ghost: LineSegments | null = null;
   private theme: Theme = "neon";
   private readonly themeUniform: ThemeUniform = { value: 0 };
@@ -2935,7 +2935,7 @@ export class FloorplanViewer {
   }
 
   /** Furniture item (or lamp) under a screen point, with the floor it is on. */
-  private furnitureAt(x: number, y: number): { fv: FloorView; id: string } | null {
+  private furnitureAt(x: number, y: number): { fv: FloorView; id: string; y: number } | null {
     const ray = this.rayAt(x, y);
     const floors = this.activeFloors();
     const meshes = floors.flatMap((f) => [f.lampMesh, f.wallMesh].filter((m) => m.visible));
@@ -2944,15 +2944,15 @@ export class FloorplanViewer {
       const fv = floors.find((f) => f.group === hit.object.parent)!;
       const list = hit.object === fv.lampMesh ? fv.lampFurnTris : fv.geo.furnitureTris;
       const id = list.find((r) => hit.faceIndex! >= r.start && hit.faceIndex! < r.end)?.id;
-      if (id) return { fv, id };
+      if (id) return { fv, id, y: hit.point.y };
     }
     return null;
   }
 
-  /** Point on a floor's plane under a screen point. */
-  private floorPoint(fv: FloorView, x: number, y: number): [number, number] | null {
+  /** Point on a floor's plane under a screen point (or on a level plane at height `at`, world coordinates). */
+  private floorPoint(fv: FloorView, x: number, y: number, at?: number): [number, number] | null {
     const ray = this.rayAt(x, y);
-    const h = fv.floor.elevation + fv.y;
+    const h = at ?? fv.floor.elevation + fv.y;
     const dir = ray.ray.direction;
     if (Math.abs(dir.y) < 1e-4) return null;
     const t = (h - ray.ray.origin.y) / dir.y;
@@ -3019,12 +3019,19 @@ export class FloorplanViewer {
       }
       return false;
     }
-    return this.grabItem(hit.fv, hit.id, x, y);
+    return this.grabItem(hit.fv, hit.id, x, y, hit.y);
   }
 
-  private grabItem(fv: FloorView, id: string, x: number, y: number): boolean {
+  /**
+   * Takes an item to drag. It moves on a level plane at the height where it was grabbed (not the floor): seen
+   * almost level (the wall view at eye height), the floor under the back of an armchair lies far behind it or
+   * above the horizon, and the grab failed – the view turned instead.
+   */
+  private grabItem(fv: FloorView, id: string, x: number, y: number, at?: number): boolean {
     const f = fv.floor.furniture.find((m) => m.id === id);
-    const p = this.floorPoint(fv, x, y);
+    // the plane stays a little below the eye: a plane at eye height gives no point at all
+    const plane = at === undefined ? undefined : Math.min(at, this.camera.position.y - 0.3);
+    const p = this.floorPoint(fv, x, y, plane);
     if (!f || !p) return false;
     if (f.locked) {
       // fixed: selected, but a drag turns the view instead of moving it
@@ -3032,7 +3039,7 @@ export class FloorplanViewer {
       this.options.onFurnitureSelect?.(f.id);
       return false;
     }
-    this.grab = { floorId: fv.floor.id, id: f.id, offset: [f.x - p[0], f.z - p[1]], x: f.x, z: f.z, moved: false };
+    this.grab = { floorId: fv.floor.id, id: f.id, offset: [f.x - p[0], f.z - p[1]], x: f.x, z: f.z, moved: false, plane };
     this.selectFurniture(f.id);
     this.options.onFurnitureSelect?.(f.id);
     return true;
@@ -3092,7 +3099,7 @@ export class FloorplanViewer {
     const g = this.grab;
     const fv = g && this.floorMap.get(g.floorId);
     if (!g || !fv) return;
-    const p = this.floorPoint(fv, x, y);
+    const p = this.floorPoint(fv, x, y, g.plane);
     if (!p) return;
     const grid = this.building?.settings.grid ?? 0.05;
     g.x = Math.round((p[0] + g.offset[0]) / grid) * grid;

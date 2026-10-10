@@ -1504,5 +1504,5 @@
  "wall_view_3d": "3D en la habitación",
  "wall_view_front": "Pared de frente",
  "wall_view_depth": "Distancia a la pared (m)",
- "wall_view_hint_3d": "Toca un mueble y arrástralo por el suelo · rueda o dos dedos: más cerca o más lejos · arrastra en un hueco libre: mirar alrededor · abajo se escriben distancias y altura · flechas a izquierda y derecha: a la pared siguiente"
+ "wall_view_hint_3d": "Toca un mueble y arrástralo por el suelo · rueda o dos dedos: más cerca o más lejos · botón central o derecho (dos dedos en tableta): mirar alrededor · abajo se escriben distancias y altura · flechas a izquierda y derecha: a la pared siguiente"
 }

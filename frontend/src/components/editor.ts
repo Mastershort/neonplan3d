@@ -5232,7 +5232,7 @@ export class Fp3dEditor extends LitElement {
       flyTo(v: unknown, ms?: number): void;
       floorMap: Map<string, { y: number }>;
       floors: { mask: { standing: { value: number }; glass: { value: number } } }[];
-      controls: { minRadius: number; maxRadius: number };
+      controls: { minRadius: number; maxRadius: number; leftDragTurns: boolean };
       camera: { fov: number; updateProjectionMatrix(): void };
       labels: HTMLElement;
       updateWalls(): void;
@@ -5263,6 +5263,8 @@ export class Fp3dEditor extends LitElement {
         v.camera.fov = 58;
         v.camera.updateProjectionMatrix();
         v.controls.minRadius = 0.6;
+        // the left mouse button is for the furniture here; the middle or right button looks around
+        v.controls.leftDragTurns = false;
       }
       const frame = roomEdgeFrame(room, edge);
       const depth = Math.max(1.5, ...room.points.map((q) => toWall(frame, q).d));

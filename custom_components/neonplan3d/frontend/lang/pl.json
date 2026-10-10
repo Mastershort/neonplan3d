@@ -1504,5 +1504,5 @@
  "wall_view_3d": "3D w pomieszczeniu",
  "wall_view_front": "Ściana od frontu",
  "wall_view_depth": "Odległość od ściany (m)",
- "wall_view_hint_3d": "Dotknij mebla i przeciągnij go po podłodze · kółko lub dwa palce: bliżej lub dalej · przeciągnij po wolnym miejscu: rozejrzyj się · odległości i wysokość wpisz na dole · strzałki po lewej i prawej: następna ściana"
+ "wall_view_hint_3d": "Dotknij mebla i przeciągnij go po podłodze · kółko lub dwa palce: bliżej lub dalej · środkowy lub prawy przycisk myszy (na tablecie dwa palce): rozejrzyj się · odległości i wysokość wpisz na dole · strzałki po lewej i prawej: następna ściana"
 }

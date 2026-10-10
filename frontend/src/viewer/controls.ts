@@ -43,6 +43,11 @@ export class OrbitControls {
   view: OrbitView = { target: new Vector3(), radius: 16, theta: -0.6, phi: 0.85 };
   minRadius = 2;
   maxRadius = 80;
+  /**
+   * A drag with the left mouse button turns the view (default). Off (the editor's wall view): the left button is
+   * kept for furniture, the middle and right buttons turn the view instead of panning it; fingers are unchanged.
+   */
+  leftDragTurns = true;
 
   private pointers = new Map<number, { x: number; y: number; button: number; type: string }>();
   private velocity = { theta: 0, phi: 0 };
@@ -208,7 +213,13 @@ export class OrbitControls {
         p.y = e.clientY;
         return;
       }
-      const pan = p.button === 1 || p.button === 2 || e.shiftKey;
+      const mouse = p.type === "mouse";
+      if (mouse && !this.leftDragTurns && p.button === 0) {
+        p.x = e.clientX;
+        p.y = e.clientY;
+        return;
+      }
+      const pan = (p.button === 1 || p.button === 2 || e.shiftKey) && (this.leftDragTurns || !mouse);
       if (pan) this.pan(dx, dy);
       else {
         const h = this.el.clientHeight || 1;

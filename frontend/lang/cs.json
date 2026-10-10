@@ -1504,5 +1504,5 @@
  "wall_view_3d": "3D v místnosti",
  "wall_view_front": "Stěna zepředu",
  "wall_view_depth": "Vzdálenost od stěny (m)",
- "wall_view_hint_3d": "Klepni na kus nábytku a táhni ho po podlaze · kolečko nebo dva prsty: blíž nebo dál · táhni po volném místě: rozhlédnout se · dole zadej vzdálenosti a výšku · šipky vlevo a vpravo: další stěna"
+ "wall_view_hint_3d": "Klepni na kus nábytku a táhni ho po podlaze · kolečko nebo dva prsty: blíž nebo dál · prostřední nebo pravé tlačítko myši (na tabletu dva prsty): rozhlédnout se · dole zadej vzdálenosti a výšku · šipky vlevo a vpravo: další stěna"
 }
