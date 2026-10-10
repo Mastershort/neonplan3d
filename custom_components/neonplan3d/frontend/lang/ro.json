@@ -1560,5 +1560,6 @@
  "conn_and": "Și la (al doilea capăt, cu un teu înainte)",
  "conn_choose": "alege …",
  "conn_create": "Pune",
- "conn_hint": "Traseul se pune singur – înăuntru de la racord la racord, afară în unghi drept sub pământ. Ajustează în vederea peretelui și în plan."
+ "conn_hint": "Traseul se pune singur – înăuntru de la racord la racord, afară în unghi drept sub pământ. Ajustează în vederea peretelui și în plan.",
+ "hint_joint_place": "Teu sau Y: atinge planul – pe o țeavă, se pune în țeavă"
 }

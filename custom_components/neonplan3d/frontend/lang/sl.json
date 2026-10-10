@@ -1560,5 +1560,6 @@
  "conn_and": "In do (drugi konec, s T-kosom pred njim)",
  "conn_choose": "izberi …",
  "conn_create": "Položi",
- "conn_hint": "Pot se položi sama – znotraj od priključka do priključka, zunaj pravokotno pod zemljo. Dodelaj v pogledu na steno in v tlorisu."
+ "conn_hint": "Pot se položi sama – znotraj od priključka do priključka, zunaj pravokotno pod zemljo. Dodelaj v pogledu na steno in v tlorisu.",
+ "hint_joint_place": "T- ali Y-kos: tapni tloris – na cevi se vstavi v cev"
 }

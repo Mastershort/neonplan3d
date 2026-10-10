@@ -1560,5 +1560,6 @@
  "conn_and": "En naar (tweede eind, met T-stuk ervoor)",
  "conn_choose": "kiezen …",
  "conn_create": "Leggen",
- "conn_hint": "De route wordt vanzelf gelegd – binnen van aansluiting naar aansluiting, buiten haaks onder de grond. Fijn afstellen in het wandaanzicht en de plattegrond."
+ "conn_hint": "De route wordt vanzelf gelegd – binnen van aansluiting naar aansluiting, buiten haaks onder de grond. Fijn afstellen in het wandaanzicht en de plattegrond.",
+ "hint_joint_place": "T- of Y-stuk: tik in de plattegrond – op een buis getikt, wordt het in de buis gezet"
 }

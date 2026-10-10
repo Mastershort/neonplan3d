@@ -1560,5 +1560,6 @@
  "conn_and": "Og til (andre enden, med T-stykke før)",
  "conn_choose": "vel …",
  "conn_create": "Legg",
- "conn_hint": "Vegen vert lagd av seg sjølv – inne frå tilkopling til tilkopling, ute rettvinkla under bakken. Finjuster i veggvisinga og plangrunnen."
+ "conn_hint": "Vegen vert lagd av seg sjølv – inne frå tilkopling til tilkopling, ute rettvinkla under bakken. Finjuster i veggvisinga og plangrunnen.",
+ "hint_joint_place": "T- eller Y-stykke: trykk i plangrunnen – på eit røyr vert det sett inn i røyret"
 }

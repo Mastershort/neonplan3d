@@ -1560,5 +1560,6 @@
  "conn_and": "Et vers (deuxième fin, avec un té avant)",
  "conn_choose": "choisir …",
  "conn_create": "Poser",
- "conn_hint": "Le tracé se fait tout seul – à l'intérieur de raccord en raccord, dehors à angle droit sous terre. Ajuster dans la vue du mur et le plan."
+ "conn_hint": "Le tracé se fait tout seul – à l'intérieur de raccord en raccord, dehors à angle droit sous terre. Ajuster dans la vue du mur et le plan.",
+ "hint_joint_place": "Té ou Y : toucher le plan – sur un tuyau, il est inséré dans le tuyau"
 }

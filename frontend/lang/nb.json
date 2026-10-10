@@ -1560,5 +1560,6 @@
  "conn_and": "Og til (andre ende, med T-stykke før)",
  "conn_choose": "velg …",
  "conn_create": "Legg",
- "conn_hint": "Veien legges av seg selv – inne fra tilkobling til tilkobling, ute rettvinklet under bakken. Finjuster i veggvisningen og plantegningen."
+ "conn_hint": "Veien legges av seg selv – inne fra tilkobling til tilkobling, ute rettvinklet under bakken. Finjuster i veggvisningen og plantegningen.",
+ "hint_joint_place": "T- eller Y-stykke: trykk i plantegningen – på et rør settes det inn i røret"
 }

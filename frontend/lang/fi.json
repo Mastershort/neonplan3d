@@ -1560,5 +1560,6 @@
  "conn_and": "Ja mihin (toinen pää, T-haara ennen)",
  "conn_choose": "valitse …",
  "conn_create": "Asenna",
- "conn_hint": "Reitti tehdään itsestään – sisällä liitännästä liitäntään, ulkona suorakulmaisesti maan alla. Hienosäädä seinänäkymässä ja pohjapiirroksessa."
+ "conn_hint": "Reitti tehdään itsestään – sisällä liitännästä liitäntään, ulkona suorakulmaisesti maan alla. Hienosäädä seinänäkymässä ja pohjapiirroksessa.",
+ "hint_joint_place": "T- tai Y-haara: napauta pohjapiirrosta – putken kohdalla se lisätään putkeen"
 }

@@ -1560,5 +1560,6 @@
  "conn_and": "I dokąd (drugi koniec, z trójnikiem przed nim)",
  "conn_choose": "wybierz …",
  "conn_create": "Ułóż",
- "conn_hint": "Trasa układa się sama – w środku od przyłącza do przyłącza, na zewnątrz pod kątem prostym pod ziemią. Dopracuj w widoku ściany i na rzucie."
+ "conn_hint": "Trasa układa się sama – w środku od przyłącza do przyłącza, na zewnątrz pod kątem prostym pod ziemią. Dopracuj w widoku ściany i na rzucie.",
+ "hint_joint_place": "Trójnik lub Y: dotknij rzutu – na rurze zostanie w nią wstawiony"
 }

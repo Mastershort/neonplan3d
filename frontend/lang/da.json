@@ -1560,5 +1560,6 @@
  "conn_and": "Og til (anden ende, med T-stykke før)",
  "conn_choose": "vælg …",
  "conn_create": "Læg",
- "conn_hint": "Vejen lægges af sig selv – inde fra tilslutning til tilslutning, ude retvinklet under jorden. Finjustér i vægvisningen og plantegningen."
+ "conn_hint": "Vejen lægges af sig selv – inde fra tilslutning til tilslutning, ude retvinklet under jorden. Finjustér i vægvisningen og plantegningen.",
+ "hint_joint_place": "T- eller Y-stykke: tryk i plantegningen – trykket på et rør sættes det ind i røret"
 }

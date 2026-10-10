@@ -1560,5 +1560,6 @@
  "conn_and": "A kam (druhý konec, s T-kusem před ním)",
  "conn_choose": "vybrat …",
  "conn_create": "Položit",
- "conn_hint": "Trasa se položí sama – uvnitř od přípojky k přípojce, venku pravoúhle pod zemí. Dolaď v pohledu na stěnu a v půdorysu."
+ "conn_hint": "Trasa se položí sama – uvnitř od přípojky k přípojce, venku pravoúhle pod zemí. Dolaď v pohledu na stěnu a v půdorysu.",
+ "hint_joint_place": "T- nebo Y-kus: klepni do půdorysu – na trubce se vloží do trubky"
 }
