@@ -432,7 +432,8 @@ export class Fp3dEditor extends LitElement {
   private declare _poolShape: "rect" | "round" | "oval" | "free";
   /** Pool tool: drawing a pipe (tap a node, corner points, the end node) and the pipe being drawn. */
   private declare _pipeMode: boolean;
-  private declare _pipeDraft: { from: string; points: Vec2[] } | null;
+  /** A pipe being drawn in the plan: from a node, or on from a pipe's loose end (laid on a wall, down into the floor). */
+  private declare _pipeDraft: { from: string; points: Vec2[]; extend?: { pipe: string; end: "from" | "to"; at: Vec2 } } | null;
   /** Pool tool: the selected pipe (its corner points can be dragged). */
   private declare _pipeId: string | null;
   private declare _cursor: Vec2 | null;
@@ -6248,10 +6249,21 @@ export class Fp3dEditor extends LitElement {
         }
         return true;
       }
-      if (node) {
-        if (!this._pipeDraft) this._pipeDraft = { from: node, points: [] };
-        else if (node !== this._pipeDraft.from) {
-          this.addPipe(a.id, this._pipeDraft.from, node, this._pipeDraft.points);
+      const end = target.closest("[data-pipe-end]")?.getAttribute("data-pipe-end");
+      if (end && !this._pipeDraft) {
+        // on from a loose end: the pipe goes on from there
+        const [pipe, which] = end.split("|");
+        const q = a.pool?.pipes?.find((x) => x.id === pipe);
+        const at = q && (which === "to" ? q.points[q.points.length - 1] : q.points[0]);
+        if (at) this._pipeDraft = { from: "", points: [], extend: { pipe, end: which as "from" | "to", at } };
+      } else if (node) {
+        const d = this._pipeDraft;
+        if (!d) this._pipeDraft = { from: node, points: [] };
+        else if (d.extend) {
+          this.extendPipe(a, d.extend, node, d.points);
+          this._pipeDraft = null;
+        } else if (node !== d.from) {
+          this.addPipe(a.id, d.from, node, d.points);
           this._pipeDraft = null;
         }
       } else if (this._pipeDraft) {
@@ -6334,6 +6346,36 @@ export class Fp3dEditor extends LitElement {
       area.pool ??= {};
       fn(area.pool, area);
     });
+  }
+
+  /** A loose pipe end drawn on in the plan to a node (its new points run at the pipe's height). */
+  private extendPipe(a: OutdoorArea, ext: { pipe: string; end: "from" | "to" }, node: string, points: Vec2[]): void {
+    const floor = this.floor;
+    if (!floor) return;
+    const nodeAt = poolNodeAt(this._doc, floor, a);
+    this.changePool(a.id, (l) => {
+      const q = l.pipes?.find((x) => x.id === ext.pipe);
+      if (!q) return;
+      Object.assign(q, laidPipe(q, nodeAt));
+      const hs = q.heights ?? [];
+      if (ext.end === "to") {
+        // the new points run at the height of the loose end (down in the floor: under the ground)
+        const h = hs[hs.length - 1] ?? q.height ?? null;
+        q.points = [...q.points, ...points];
+        q.heights = [...hs, ...points.map(() => h)];
+        q.to = node;
+      } else {
+        // drawn outward from the loose start: the water now comes from the node; valves keep their place
+        const before = pathLengthOf(q, nodeAt);
+        const h = hs[0] ?? q.height ?? null;
+        q.points = [...[...points].reverse(), ...q.points];
+        q.heights = [...points.map(() => h), ...hs];
+        q.from = node;
+        const shift = pathLengthOf(q, nodeAt) - before;
+        q.fittings = q.fittings?.map((f) => ({ ...f, at: round(f.at + shift) }));
+      }
+    });
+    this._pipeId = ext.pipe;
   }
 
   private addPipe(poolId: string, from: string, to: string, points: Vec2[]): void {
@@ -6488,7 +6530,7 @@ export class Fp3dEditor extends LitElement {
     const devices = devs.map((f) => node(`dev:${f.id}`, [f.x, f.z], f.type === "pool_valve" ? (f.valve_open === false ? "✕" : "") : letter[f.type], `fp3d-pool-dev ${f.type === "pool_valve" && f.valve_open === false ? "fp3d-pool-closed" : ""}`, a ? this.poolNodeLabel(a, `dev:${f.id}`) : f.type));
     let draft: unknown = nothing;
     if (a && this._pipeDraft) {
-      const from = this.poolNodePos(a, this._pipeDraft.from);
+      const from = this._pipeDraft.extend?.at ?? this.poolNodePos(a, this._pipeDraft.from);
       if (from) {
         const pts = [from, ...this._pipeDraft.points, ...(this._cursor ? [this._cursor] : [])].map((q) => this.toScreen(q).join(",")).join(" ");
         draft = svg`<polyline class="fp3d-pipe fp3d-pipe-draft" points=${pts} />`;
@@ -6499,7 +6541,18 @@ export class Fp3dEditor extends LitElement {
       const [x, y] = this.toScreen([j.x, j.z]);
       return svg`<circle class="fp3d-pool-joint" cx=${x} cy=${y} r="4" />`;
     }) : [];
-    return svg`<g class="fp3d-pool-plan">${lines}${draft}${joints}${ports}${devices}</g>`;
+    // loose ends of pipes laid on walls: in the pipe drawing a tap goes on from there
+    const ends = pipes.flatMap((p) =>
+      p.heights && p.points.length
+        ? (["from", "to"] as const)
+            .filter((k) => !p[k])
+            .map((k) => {
+              const [x, y] = this.toScreen(k === "to" ? p.points[p.points.length - 1] : p.points[0]);
+              return svg`<g class="fp3d-pipe-end" data-pipe-end=${`${p.id}|${k}`}><circle cx=${x} cy=${y} r="14" class="fp3d-hit" /><circle cx=${x} cy=${y} r="6" /></g>`;
+            })
+        : [],
+    );
+    return svg`<g class="fp3d-pool-plan">${lines}${draft}${joints}${ends}${ports}${devices}</g>`;
   }
 
   /** The pool tool's sidebar: the pool's form, its ports, the technical room's devices and the pipes. */
@@ -10010,6 +10063,15 @@ export class Fp3dEditor extends LitElement {
       }
       .fp3d-wv-grow {
         flex: 1;
+      }
+      .fp3d-pipe-end circle:not(.fp3d-hit) {
+        fill: none;
+        stroke: var(--fp3d-warm);
+        stroke-width: 2;
+        stroke-dasharray: 3 2;
+      }
+      .fp3d-pipe-end {
+        cursor: pointer;
       }
       .fp3d-pool-joint {
         fill: #8a929c;
