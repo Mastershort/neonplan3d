@@ -1520,5 +1520,7 @@
  "wall_run_pipe": "Rör",
  "wall_run_pt": "Punktens höjd (m)",
  "wall_run_more": "Rita vidare",
- "wall_run_tip": "Dra punkter · dubbelklick tar bort · tryck på kulventil: öppen/stängd"
+ "wall_run_tip": "Dra punkter · dubbelklick tar bort · tryck på kulventil: öppen/stängd",
+ "wall_kit_pool": "Poolteknik",
+ "wall_kit_energy": "Energi"
 }

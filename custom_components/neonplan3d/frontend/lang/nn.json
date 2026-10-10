@@ -1520,5 +1520,7 @@
  "wall_run_pipe": "Røyr",
  "wall_run_pt": "Høgda til punktet (m)",
  "wall_run_more": "Teikn vidare",
- "wall_run_tip": "Dra punkt · dobbeltklikk fjernar · trykk på kuleventil: open/lukka"
+ "wall_run_tip": "Dra punkt · dobbeltklikk fjernar · trykk på kuleventil: open/lukka",
+ "wall_kit_pool": "Bassengteknikk",
+ "wall_kit_energy": "Energi"
 }

@@ -184,6 +184,8 @@ interface RunDraft {
   fromT: P3 | null;
   extend: { pipe: string; end: "from" | "to" } | null;
   pts: P3[];
+  /** Where it starts (a node, a T-piece, a loose end): drawn with the draft in 3D. */
+  anchor: P3 | null;
   /** The wall the last point was set on ("room|edge") and its distance in front of it. */
   wall: string;
   d: number;
@@ -376,6 +378,8 @@ export class Fp3dEditor extends LitElement {
   /** A pipe point being dragged in the wall view, and where the pointer is while laying a pipe. */
   private runDrag: { pipe: string; i: number; d: number; base: Building; moved: boolean } | null = null;
   private runHover: [number, number] | null = null;
+  /** The wall shown in the 3D wall view, for laying pipes there. */
+  private runCtx3d: RunCtx | null = null;
   /** The wall view stands in the room in 3D (true) or shows the wall flat from the front. */
   private declare _wallView3d: boolean;
   /** The 3D view of the wall view and the wall its camera was last set up for. */
@@ -593,6 +597,7 @@ export class Fp3dEditor extends LitElement {
     // the 3D pane and the wall view's 3D both show the draft (otherwise a piece moved in the wall view jumps back)
     if (changed.has("_doc") && (this._split || this._wallView)) this.queue3d();
     if ((changed.has("_split") && this._split) || (changed.has("_wallView") && this._wallView)) this._doc3d = this._doc;
+    if (changed.has("_runDraft") && this._wallView) this._doc3d = this.docWithDraft();
     if (changed.has("_tool") && this.houseTool && !this._split && !this.narrow) this._split = true;
     // entering or leaving the roof tool: the 3D half frames the whole house (or the floor) again
     if (changed.has("_tool") && (this.houseTool || changed.get("_tool") === "roof" || changed.get("_tool") === "energy")) this.reframe3d = true;
@@ -620,7 +625,7 @@ export class Fp3dEditor extends LitElement {
   /** Hand the draft to the 3D pane a moment after the last change (a drag changes it many times a second). */
   private queue3d(): void {
     clearTimeout(this.doc3dTimer);
-    this.doc3dTimer = setTimeout(() => (this._doc3d = this._doc), 150);
+    this.doc3dTimer = setTimeout(() => (this._doc3d = this.docWithDraft()), 150);
   }
 
   /** Dragging the divider between the plan and the 3D pane changes their share of the width. */
@@ -5296,6 +5301,8 @@ export class Fp3dEditor extends LitElement {
     const first = this.wall3dEl !== el;
     this.wall3dKey = key;
     this.wall3dEl = el;
+    // laying a pipe: the left button belongs to the pipe (caught before the viewer sees it)
+    if (first) el.addEventListener("pointerdown", (e) => this.runDown3d(e as PointerEvent), { capture: true });
     type V = {
       getView(): { target: { set(x: number, y: number, z: number): unknown } };
       flyTo(v: unknown, ms?: number): void;
@@ -5643,7 +5650,7 @@ export class Fp3dEditor extends LitElement {
     const fs = Math.max(0.09, Math.min(0.16, L / 40));
     // Pool Pro: the pipes on this wall
     const pool = this.canLayRuns ? this.runPool : undefined;
-    const rc: RunCtx | null = pool
+    const rc: RunCtx | null = (this.runCtx3d = pool
       ? {
           frame,
           floor,
@@ -5659,7 +5666,7 @@ export class Fp3dEditor extends LitElement {
             return { s: frame.rightward ? q.x : L - q.x, y: H - q.y };
           },
         }
-      : null;
+      : null);
     return html`<div class="fp3d-wv-veil" @click=${(e: Event) => e.target === e.currentTarget && (this._wallView = null)}>
       <div class="fp3d-wv" role="dialog" aria-label=${this.t("wall_view")} tabindex="0" @keydown=${key}>
         <div class="fp3d-wv-head">
@@ -5669,8 +5676,6 @@ export class Fp3dEditor extends LitElement {
           <span class="fp3d-wv-grow"></span>
           ${rc && admin
             ? html`<button class="fp3d-btn ${this._runMode === "draw" ? "fp3d-primary" : ""}" @click=${() => {
-                // pipes are laid on the flat wall
-                this._wallView3d = false;
                 this._wallSel = null;
                 this._runSel = null;
                 this._runDraft = null;
@@ -5683,6 +5688,8 @@ export class Fp3dEditor extends LitElement {
           </div>
           <button class="fp3d-btn" title=${this.t("close")} @click=${() => (this._wallView = null)}>✕</button>
         </div>
+        <div class="fp3d-wv-body">
+        ${this.renderWallKit(frame, room, rc)}
         <div class="fp3d-wv-stage">
           <button class="fp3d-wv-side fp3d-wv-left" title=${`${this.t("wall_prev")}: ${wallName(leftEdge)}`} @click=${() => go(leftEdge)}>‹<small>${wallName(leftEdge)}</small></button>
           <button class="fp3d-wv-side fp3d-wv-right" title=${`${this.t("wall_next")}: ${wallName(rightEdge)}`} @click=${() => go(rightEdge)}>›<small>${wallName(rightEdge)}</small></button>
@@ -5777,6 +5784,7 @@ export class Fp3dEditor extends LitElement {
           ${rc ? this.renderRuns(rc, X, Y) : nothing}
         </svg>`}
         </div>
+        </div>
         <div class="fp3d-wv-foot">
           ${rc && (this._runMode || (this._runSel && !sel))
             ? this.renderRunFoot(rc)
@@ -5809,6 +5817,56 @@ export class Fp3dEditor extends LitElement {
 
   // ------------------------------------------------------------------ pipes on walls (Pool Pro)
 
+  /**
+   * A device from the wall view's side bar straight onto the wall shown: at the first free place from the left
+   * (not in front of a door), its back to the wall, chosen so it can be dragged where it belongs.
+   */
+  private addOnWall(type: string, frame: WallFrame, room: Room): void {
+    const floor = this.floor;
+    if (!floor || !this.isAdmin) return;
+    const [w, d, h] = furnitureSize(type);
+    const taken = [
+      ...furnitureOnWall(frame, floor, room).map((i) => [i.s0, i.s1]),
+      ...openingsOnWall(frame, floor)
+        .filter((o) => o.y0 < 0.05)
+        .map((o) => [o.s0, o.s1]),
+    ];
+    let s0 = Math.max(0, frame.length / 2 - w / 2);
+    for (let t = 0.1; t + w <= frame.length - 0.05; t += 0.05)
+      if (!taken.some(([a, b]) => t < b + 0.05 && t + w > a - 0.05)) {
+        s0 = t;
+        break;
+      }
+    const face = sharedEdge(floor, room.id, frame.a, frame.b) ? this._doc.settings.wall_interior / 2 : 0;
+    const [x, z] = fromWall(frame, s0 + w / 2, face + d / 2 + 0.01);
+    const rotation = Math.round((((Math.atan2(-frame.n[0], frame.n[1]) * 180) / Math.PI) % 360 + 360) % 360);
+    const item: Furniture = { id: uid("furniture"), type, x: round(x), z: round(z), rotation, w, d, h, variant: null };
+    this.change((_, f) => f.furniture.push(item));
+    this._runSel = null;
+    this._runMode = null;
+    this._wallSel = item.id;
+  }
+
+  /** The wall view's side bar: pool devices, ball valves and sight glasses (Pool Pro), energy devices (Energie Pro). */
+  private renderWallKit(frame: WallFrame, room: Room, rc: RunCtx | null) {
+    const pool = !!rc;
+    const energy = hasFeature("energy_pro");
+    if (!this.isAdmin || (!pool && !energy)) return nothing;
+    const add = (t: string) => html`<button class="fp3d-btn" @click=${() => this.addOnWall(t, frame, room)}>+ ${this.t(`furn_${t}` as I18nKey)}</button>`;
+    const fit = (mode: "valve" | "sight", label: I18nKey) =>
+      html`<button class="fp3d-btn ${this._runMode === mode ? "fp3d-primary" : ""}" title=${this.t("wall_run_fit")} @click=${() => {
+        this._runDraft = null;
+        this._runMode = this._runMode === mode ? null : mode;
+      }}>+ ${this.t(label)}</button>`;
+    return html`<aside class="fp3d-wv-kit">
+      ${pool
+        ? html`<h4>${this.t("wall_kit_pool")}</h4>
+            ${(["pool_pump", "pool_filter", "pool_heat_pump", "pool_dosing"] as const).map(add)} ${fit("valve", "wall_run_valve")} ${fit("sight", "wall_run_sight")}`
+        : nothing}
+      ${energy ? html`<h4>${this.t("wall_kit_energy")}</h4>${(["meter", "inverter", "home_battery", "wallbox"] as const).map(add)}` : nothing}
+    </aside>`;
+  }
+
   /** The pool whose pipes the wall view shows: the chosen one, else the first on this floor. */
   private get runPool(): OutdoorArea | undefined {
     return this.poolArea ?? this.floor?.outdoor.find((o) => o.type === "pool" && o.points.length >= 3);
@@ -5823,6 +5881,22 @@ export class Fp3dEditor extends LitElement {
     const [roomId, edge] = key.split("|");
     const room = this.floor?.rooms.find((r) => r.id === roomId);
     return room && Number(edge) < room.points.length ? roomEdgeFrame(room, Number(edge)) : null;
+  }
+
+  /** The building with the pipe being laid in it (the wall view's 3D shows it while it grows). */
+  private docWithDraft(): Building {
+    const d = this._runDraft;
+    if (!d || !this._wallView) return this._doc;
+    const pts = [...(d.from || !d.anchor ? [] : [d.anchor]), ...d.pts];
+    if (!pts.length) return this._doc;
+    const doc = structuredClone(this._doc);
+    const fl = doc.floors.find((f) => f.outdoor.some((o) => o.id === d.pool));
+    const area = fl?.outdoor.find((o) => o.id === d.pool);
+    if (!fl || !area) return this._doc;
+    area.pool ??= {};
+    const draft: PoolPipe = { id: "__draft", from: d.from, to: "", floor_id: fl.id, points: pts.map((q): Vec2 => [q[0], q[2]]), heights: pts.map((q) => q[1]) };
+    area.pool.pipes = [...(area.pool.pipes ?? []), draft];
+    return doc;
   }
 
   /** Where the pipe being laid ends so far: its last point, or the node, T-piece or loose end it starts from. */
@@ -5853,7 +5927,7 @@ export class Fp3dEditor extends LitElement {
       const q = nodeAt(node);
       if (!q) continue;
       const w = toWall(c.frame, [q.x, q.z]);
-      if (w.d < -0.3 || w.d > 1.2) continue;
+      if (w.d < -0.3 || w.d > 1.6) continue;
       const d = Math.hypot(w.s - s, q.y - y);
       if (d < 0.18 && (!best || d < best.d)) best = { node, d };
     }
@@ -5871,11 +5945,51 @@ export class Fp3dEditor extends LitElement {
 
   /** A press on the wall while laying a pipe or placing a fitting. */
   private runDown(e: PointerEvent, c: RunCtx): void {
-    const mode = this._runMode;
-    if (!mode || !this.isAdmin) return;
+    if (!this._runMode || !this.isAdmin) return;
     e.stopPropagation();
     const { s, y } = c.pt(e);
-    const hit = this.runPick(c, s, y, mode !== "draw");
+    this.runAt(c, s, y, e.altKey, e.detail, null);
+  }
+
+  /**
+   * A press in the 3D wall view while laying a pipe: the left button lays it (on a pool device: ends there; else
+   * a point on the wall where the pointer's ray meets it), the other buttons and the wheel still look around.
+   */
+  private runDown3d(e: PointerEvent): void {
+    const c = this.runCtx3d;
+    if (!this._runMode || !c || e.button !== 0 || !this.isAdmin || !this._wallView3d) return;
+    type V = {
+      renderer: { domElement: HTMLElement };
+      floorMap: Map<string, { y: number }>;
+      pointerRay(x: number, y: number): { o: number[]; d: number[] };
+      furnitureIdAt(x: number, y: number): string | null;
+    };
+    const v = (this.wall3dEl as unknown as { viewer?: V } | null)?.viewer;
+    if (!v) return;
+    e.stopPropagation();
+    e.preventDefault();
+    const r = v.renderer.domElement.getBoundingClientRect();
+    const [x, y] = [e.clientX - r.left, e.clientY - r.top];
+    const id = v.furnitureIdAt(x, y);
+    const dev = id ? c.floor.furniture.find((f) => f.id === id && (POOL_DEVICES as readonly string[]).includes(f.type)) : undefined;
+    const ray = v.pointerRay(x, y);
+    // the plane the pipes run in, just in front of the wall
+    const p0 = fromWall(c.frame, 0, c.gap);
+    const n = c.frame.n;
+    const den = ray.d[0] * n[0] + ray.d[2] * n[1];
+    if (Math.abs(den) < 1e-6) return;
+    const t = ((p0[0] - ray.o[0]) * n[0] + (p0[1] - ray.o[2]) * n[1]) / den;
+    if (t <= 0 && !dev) return;
+    const hit = [ray.o[0] + ray.d[0] * t, ray.o[1] + ray.d[1] * t, ray.o[2] + ray.d[2] * t];
+    const base = c.floor.elevation + (v.floorMap.get(c.floor.id)?.y ?? 0);
+    this.runAt(c, toWall(c.frame, [hit[0], hit[2]]).s, hit[1] - base, e.altKey, e.detail, dev && this._runMode === "draw" ? `dev:${dev.id}` : null);
+  }
+
+  /** A point of the wall pressed while laying a pipe or placing a fitting (`node`: a device pressed in 3D). */
+  private runAt(c: RunCtx, s: number, y: number, alt: boolean, detail: number, node: string | null): void {
+    const mode = this._runMode;
+    if (!mode) return;
+    const hit = node ? { node } : this.runPick(c, s, y, mode !== "draw");
     if (mode !== "draw") {
       if (hit.pipe) this.addFitting(c, hit.pipe.id, hit.pipe.p, mode);
       this._runMode = null;
@@ -5883,18 +5997,20 @@ export class Fp3dEditor extends LitElement {
     }
     const d = this._runDraft;
     if (!d) {
-      const start = { pool: c.pool.id, from: "", fromT: null, extend: null, pts: [], wall: c.key, d: c.gap };
-      if (hit.end) this._runDraft = { ...start, extend: hit.end };
-      else if (hit.node) this._runDraft = { ...start, from: hit.node };
-      else if (hit.pipe) this._runDraft = { ...start, fromT: hit.pipe.p };
-      else this._runDraft = { ...start, pts: [onWall(c.frame, Math.round(s * 20) / 20, Math.round(y * 20) / 20, c.gap)] };
+      const start: RunDraft = { pool: c.pool.id, from: "", fromT: null, extend: null, pts: [], anchor: null, wall: c.key, d: c.gap };
+      let draft: RunDraft;
+      if (hit.end) draft = { ...start, extend: hit.end };
+      else if (hit.node) draft = { ...start, from: hit.node };
+      else if (hit.pipe) draft = { ...start, fromT: hit.pipe.p };
+      else draft = { ...start, pts: [onWall(c.frame, Math.round(s * 20) / 20, Math.round(y * 20) / 20, c.gap)] };
+      this._runDraft = { ...draft, anchor: this.runLast({ ...draft, pts: [] }, c) };
       return;
     }
     // a double click finishes (its first click set the point already)
-    if (e.detail >= 2) return this.finishRun("", null);
+    if (detail >= 2) return this.finishRun("", null);
     if (hit.node && hit.node !== d.from) return this.finishRun(hit.node, null);
     if (hit.pipe) return this.finishRun("", hit.pipe.p);
-    this._runDraft = { ...d, pts: [...d.pts, ...this.runStep(d, c, s, y, e.altKey)], wall: c.key, d: c.gap };
+    this._runDraft = { ...d, pts: [...d.pts, ...this.runStep(d, c, s, y, alt)], wall: c.key, d: c.gap };
   }
 
   /**
@@ -6133,7 +6249,18 @@ export class Fp3dEditor extends LitElement {
     const last = d && this.runLast(d, c);
     const draft = d ? [...(d.fromT || d.extend || d.from ? [this.runLast({ ...d, pts: [] }, c)] : []), ...d.pts].filter((q): q is P3 => !!q) : [];
     const hover = this.runHover;
+    // pool devices up to 1.5 m in front of the wall: where their pipes join (a pump in the middle of the room too)
+    const nodeAt = poolNodeAt(this._doc, c.floor, c.pool);
+    const letter: Record<string, string> = { pool_pump: "P", pool_filter: "F", pool_heat_pump: "W", pool_dosing: "D", pool_valve: "K" };
+    const nodes = c.floor.furniture.flatMap((f) => {
+      const q = letter[f.type] !== undefined ? nodeAt(`dev:${f.id}`) : null;
+      const w = q && toWall(c.frame, [q.x, q.z]);
+      return q && w && w.d > -0.3 && w.d < 1.6 && w.s > -0.2 && w.s < c.L + 0.2
+        ? [svg`<g class="fp3d-wv-node" transform="translate(${X(w.s)} ${Y(q.y)})"><circle r="0.07" /><text y="0.025">${letter[f.type]}</text></g>`]
+        : [];
+    });
     return svg`<g class="fp3d-wv-runs">
+      ${nodes}
       ${c.runs.map(
         (r) => svg`<g class="fp3d-wv-run ${r.id === sel ? "fp3d-wv-run-sel" : ""}">
           ${r.pieces.map((pc) => svg`<line class=${pc.y0 < -0.01 && pc.y1 < -0.01 ? "fp3d-wv-under" : ""} x1=${X(pc.s0)} y1=${Y(pc.y0)} x2=${X(pc.s1)} y2=${Y(pc.y1)} @pointerdown=${(e: PointerEvent) => this.runPieceDown(e, c, r, pc.k)} />`)}
@@ -6197,7 +6324,8 @@ export class Fp3dEditor extends LitElement {
             ${loose
               ? html`<button class="fp3d-btn" @click=${() => {
                   this._runMode = "draw";
-                  this._runDraft = { pool: c.pool.id, from: "", fromT: null, extend: { pipe: q.id, end: loose }, pts: [], wall: c.key, d: c.gap };
+                  const draft: RunDraft = { pool: c.pool.id, from: "", fromT: null, extend: { pipe: q.id, end: loose }, pts: [], anchor: null, wall: c.key, d: c.gap };
+                  this._runDraft = { ...draft, anchor: this.runLast(draft, c) };
                 }}>${this.t("wall_run_more")}</button>`
               : nothing}
             <button class="fp3d-btn" title=${this.t("pool_pipe_reverse")} @click=${() =>
@@ -10079,6 +10207,21 @@ export class Fp3dEditor extends LitElement {
         stroke-width: 1.5;
         pointer-events: none;
       }
+      .fp3d-wv-node circle {
+        fill: rgba(55, 224, 255, 0.12);
+        stroke: var(--fp3d-accent);
+        stroke-width: 0.012;
+        stroke-dasharray: 0.03 0.02;
+      }
+      .fp3d-wv-node text {
+        fill: var(--fp3d-accent);
+        font-size: 0.07px;
+        font-weight: 800;
+        text-anchor: middle;
+      }
+      .fp3d-wv-node {
+        pointer-events: none;
+      }
       .fp3d-wv-run line {
         stroke: #8a929c;
         stroke-width: 0.05;
@@ -10256,7 +10399,45 @@ export class Fp3dEditor extends LitElement {
       .fp3d-wv-pic:hover rect {
         stroke: var(--fp3d-soft);
       }
+      .fp3d-wv-body {
+        display: flex;
+        gap: 8px;
+        min-height: 0;
+      }
+      .fp3d-wv-kit {
+        flex: none;
+        width: 150px;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        overflow-y: auto;
+        max-height: min(62vh, 560px);
+      }
+      .fp3d-wv-kit h4 {
+        margin: 4px 0 0;
+        font-size: 11px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--fp3d-muted);
+      }
+      .fp3d-wv-kit .fp3d-btn {
+        justify-content: flex-start;
+        text-align: left;
+      }
+      @media (max-width: 700px) {
+        .fp3d-wv-body {
+          flex-direction: column;
+        }
+        .fp3d-wv-kit {
+          width: auto;
+          flex-direction: row;
+          flex-wrap: wrap;
+          max-height: none;
+        }
+      }
       .fp3d-wv-stage {
+        flex: 1;
+        min-width: 0;
         position: relative;
         min-height: 0;
         padding: 0 60px;

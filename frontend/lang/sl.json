@@ -1520,5 +1520,7 @@
  "wall_run_pipe": "Cev",
  "wall_run_pt": "Višina točke (m)",
  "wall_run_more": "Riši naprej",
- "wall_run_tip": "Vleci točke · dvoklik odstrani · tapni ventil: odprt/zaprt"
+ "wall_run_tip": "Vleci točke · dvoklik odstrani · tapni ventil: odprt/zaprt",
+ "wall_kit_pool": "Bazenska tehnika",
+ "wall_kit_energy": "Energija"
 }

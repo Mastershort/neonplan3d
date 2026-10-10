@@ -1520,5 +1520,7 @@
  "wall_run_pipe": "Rura",
  "wall_run_pt": "Wysokość punktu (m)",
  "wall_run_more": "Rysuj dalej",
- "wall_run_tip": "Przeciągaj punkty · dwuklik usuwa · dotknij zaworu: otwarty/zamknięty"
+ "wall_run_tip": "Przeciągaj punkty · dwuklik usuwa · dotknij zaworu: otwarty/zamknięty",
+ "wall_kit_pool": "Technika basenowa",
+ "wall_kit_energy": "Energia"
 }

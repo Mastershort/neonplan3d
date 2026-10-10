@@ -1520,5 +1520,7 @@
  "wall_run_pipe": "Tubo",
  "wall_run_pt": "Altezza del punto (m)",
  "wall_run_more": "Continua a disegnare",
- "wall_run_tip": "Trascina i punti · doppio clic rimuove · tocca una valvola: aperta/chiusa"
+ "wall_run_tip": "Trascina i punti · doppio clic rimuove · tocca una valvola: aperta/chiusa",
+ "wall_kit_pool": "Tecnica piscina",
+ "wall_kit_energy": "Energia"
 }

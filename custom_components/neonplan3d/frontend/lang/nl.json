@@ -1520,5 +1520,7 @@
  "wall_run_pipe": "Buis",
  "wall_run_pt": "Hoogte van het punt (m)",
  "wall_run_more": "Verder tekenen",
- "wall_run_tip": "Punten slepen · dubbelklik verwijdert · kogelkraan tikken: open/dicht"
+ "wall_run_tip": "Punten slepen · dubbelklik verwijdert · kogelkraan tikken: open/dicht",
+ "wall_kit_pool": "Zwembadtechniek",
+ "wall_kit_energy": "Energie"
 }

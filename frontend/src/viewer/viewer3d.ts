@@ -3038,6 +3038,15 @@ export class FloorplanViewer {
     this.surfaceGrab = grab;
   }
 
+  /** The ray under a point of the view (world coordinates) and the furniture item there: the editor's tools on walls. */
+  pointerRay(x: number, y: number): { o: [number, number, number]; d: [number, number, number] } {
+    return this.surfaceRay(x, y);
+  }
+
+  furnitureIdAt(x: number, y: number): string | null {
+    return this.furnitureAt(x, y)?.id ?? null;
+  }
+
   private surfaceRay(x: number, y: number): { o: [number, number, number]; d: [number, number, number] } {
     const r = this.rayAt(x, y).ray;
     return { o: [r.origin.x, r.origin.y, r.origin.z], d: [r.direction.x, r.direction.y, r.direction.z] };

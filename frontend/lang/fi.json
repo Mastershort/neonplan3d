@@ -1520,5 +1520,7 @@
  "wall_run_pipe": "Putki",
  "wall_run_pt": "Pisteen korkeus (m)",
  "wall_run_more": "Jatka piirtämistä",
- "wall_run_tip": "Vedä pisteitä · kaksoisnapsautus poistaa · napauta venttiiliä: auki/kiinni"
+ "wall_run_tip": "Vedä pisteitä · kaksoisnapsautus poistaa · napauta venttiiliä: auki/kiinni",
+ "wall_kit_pool": "Allastekniikka",
+ "wall_kit_energy": "Energia"
 }

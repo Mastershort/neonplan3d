@@ -1520,5 +1520,7 @@
  "wall_run_pipe": "Țeavă",
  "wall_run_pt": "Înălțimea punctului (m)",
  "wall_run_more": "Continuă desenul",
- "wall_run_tip": "Trage punctele · dublu clic elimină · atinge robinetul: deschis/închis"
+ "wall_run_tip": "Trage punctele · dublu clic elimină · atinge robinetul: deschis/închis",
+ "wall_kit_pool": "Tehnică piscină",
+ "wall_kit_energy": "Energie"
 }

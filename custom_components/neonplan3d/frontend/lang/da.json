@@ -1520,5 +1520,7 @@
  "wall_run_pipe": "Rør",
  "wall_run_pt": "Punktets højde (m)",
  "wall_run_more": "Tegn videre",
- "wall_run_tip": "Træk punkter · dobbeltklik fjerner · tryk på kuglehane: åben/lukket"
+ "wall_run_tip": "Træk punkter · dobbeltklik fjerner · tryk på kuglehane: åben/lukket",
+ "wall_kit_pool": "Poolteknik",
+ "wall_kit_energy": "Energi"
 }

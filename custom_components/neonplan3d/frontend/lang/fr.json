@@ -1520,5 +1520,7 @@
  "wall_run_pipe": "Tuyau",
  "wall_run_pt": "Hauteur du point (m)",
  "wall_run_more": "Continuer",
- "wall_run_tip": "Glisser les points · double-clic supprime · toucher une vanne : ouverte/fermée"
+ "wall_run_tip": "Glisser les points · double-clic supprime · toucher une vanne : ouverte/fermée",
+ "wall_kit_pool": "Équipement piscine",
+ "wall_kit_energy": "Énergie"
 }

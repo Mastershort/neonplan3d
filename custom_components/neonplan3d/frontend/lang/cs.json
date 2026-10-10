@@ -1520,5 +1520,7 @@
  "wall_run_pipe": "Trubka",
  "wall_run_pt": "Výška bodu (m)",
  "wall_run_more": "Kreslit dál",
- "wall_run_tip": "Táhni body · dvojklik odstraní · klepnutí na ventil: otevřeno/zavřeno"
+ "wall_run_tip": "Táhni body · dvojklik odstraní · klepnutí na ventil: otevřeno/zavřeno",
+ "wall_kit_pool": "Bazénová technika",
+ "wall_kit_energy": "Energie"
 }

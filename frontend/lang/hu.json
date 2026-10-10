@@ -1520,5 +1520,7 @@
  "wall_run_pipe": "Cső",
  "wall_run_pt": "A pont magassága (m)",
  "wall_run_more": "Rajzolás folytatása",
- "wall_run_tip": "Pontok húzása · dupla kattintás töröl · golyóscsap koppintás: nyitva/zárva"
+ "wall_run_tip": "Pontok húzása · dupla kattintás töröl · golyóscsap koppintás: nyitva/zárva",
+ "wall_kit_pool": "Medencetechnika",
+ "wall_kit_energy": "Energia"
 }

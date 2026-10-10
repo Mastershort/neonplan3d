@@ -99,7 +99,7 @@ export interface WallRun {
 }
 
 /** How far in front of (and behind) a wall a pipe still counts as running on it. */
-const NEAR = 1.0;
+const NEAR = 1.6;
 
 export function runsOnWall(frame: WallFrame, pipes: readonly PoolPipe[], nodeAt: NodeAt): WallRun[] {
   const out: WallRun[] = [];
