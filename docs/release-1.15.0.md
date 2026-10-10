@@ -2,7 +2,7 @@ Die Wandansicht ist da: eine Wand von vorne sehen und Schränke, Regale, Obersch
 
 ### Neu
 
-- **Wandansicht:** **▦ Wandansicht** im Möbelformular, im Rechtsklick-Menü oder bei jeder Wand unter *Wandhöhen* zeigt die Wand von vorne – mit Türen, Fenstern und allem, was an ihr steht oder hängt. Möbel ziehst du entlang der Wand und (wenn sie hängen) in der Höhe; Maßlinien zeigen den Abstand zu den Wandenden und zum Boden, Kanten rasten an Wandenden, Türen, Fenstern und anderen Möbeln ein. Pfeiltasten schieben um 1 cm, mit Umschalt um 10 cm; **‹ ›** wechselt zur nächsten Wand.
+- **Wandansicht:** **▦ Wandansicht** im Möbelformular, im Rechtsklick-Menü oder bei jeder Wand unter *Wandhöhen* zeigt die Wand von vorne – mit Türen, Fenstern und allem, was an ihr steht oder hängt. Möbel ziehst du entlang der Wand und (wenn sie hängen) in der Höhe; Maßlinien zeigen den Abstand zu den Wandenden und zum Boden, Kanten rasten an Wandenden, Türen, Fenstern und anderen Möbeln ein. Die Möbel erscheinen als echte Ansicht von vorne. Pfeiltasten schieben um 1 cm, mit Umschalt um 10 cm; die Pfeile links und rechts drehen dich zur Wand, die dort anschließt – einmal rundherum durch den Raum.
 
 ### Behoben
 
@@ -18,7 +18,7 @@ The wall view is here: see a wall from the front and place cabinets, shelves, wa
 
 ### New
 
-- **Wall view:** **▦ Wall view** in the furniture form, in the right-click menu or beside each wall under *Wall heights* shows the wall from the front – with its doors, windows and everything standing or hanging on it. Drag furniture along the wall and (when it hangs) up or down; dimension lines show the distance to the wall's ends and to the floor, edges snap to the wall's ends, doors, windows and other furniture. Arrow keys move by 1 cm, with Shift by 10 cm; **‹ ›** goes to the next wall.
+- **Wall view:** **▦ Wall view** in the furniture form, in the right-click menu or beside each wall under *Wall heights* shows the wall from the front – with its doors, windows and everything standing or hanging on it. Drag furniture along the wall and (when it hangs) up or down; dimension lines show the distance to the wall's ends and to the floor, edges snap to the wall's ends, doors, windows and other furniture. The furniture shows as a real front view. Arrow keys move by 1 cm, with Shift by 10 cm; the arrows at the left and right turn you to the wall joining there – once round the room.
 
 ### Fixed
 

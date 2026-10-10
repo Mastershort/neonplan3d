@@ -24,7 +24,7 @@ import { sectionFloor, dormerParent, effectiveDormer, proposeDormer, sectionGeom
 import { bestFace, clampField, faceAt, faceCompass, fieldFace, fieldModules, GROUND, moveField, pointOnFace, proposeField, proposeGroundField, proposeWindow, proposeWallField, roofFaces, rowCounts, turnGroundField, fieldCenter, wallFaces, windowAsField, windowCorners, onFace, onField, rayOnFace, type RoofFace } from "../solar.ts";
 import type { SurfaceGrab, SurfaceRay } from "../viewer/viewer3d.ts";
 import { storedImageIds } from "../transfer.ts";
-import { furnitureOnWall, openingsOnWall, roomEdgeFrame, slideAlong, type WallFrame } from "../geometry/wall-frame.ts";
+import { furnitureOnWall, openingsOnWall, roomEdgeFrame, slideAlong, toWall, type WallFrame } from "../geometry/wall-frame.ts";
 import { type CarLinks, type Background, OUTDOOR_TOP, sidelightLayout, DEFAULT_WEATHER_EFFECTS, WEATHER_EFFECTS,
   normalizeBuilding,
   furnitureFootprint,
@@ -224,6 +224,7 @@ export class Fp3dEditor extends LitElement {
     _edgeHi: { state: true },
     _wallView: { state: true },
     _wallSel: { state: true },
+    _wallPicTick: { state: true },
     _ctx: { state: true },
     _fixedHint: { state: true },
     _phoneHint: { state: true },
@@ -313,7 +314,11 @@ export class Fp3dEditor extends LitElement {
   /** The wall view: a room's wall seen from the front (what stands and hangs on it), and the piece chosen in it. */
   private declare _wallView: { roomId: string; edge: number } | null;
   private declare _wallSel: string | null;
+  private declare _wallPicTick: number;
   private wallDrag: { id: string; x: number; y: number; base: Building; s0: number; y0: number; lift: boolean; moved: boolean } | null = null;
+  /** Front pictures of the pieces in the wall view, by type, size and turn (null: none to draw); asked for once. */
+  private wallPics = new Map<string, { url: string; x0: number; x1: number; y0: number; y1: number } | null>();
+  private wallPicsAsked = new Set<string>();
   private declare _shiftX: number;
   /** Shift and turn take every floor with them (roof, outdoor areas, cables, hologram included). */
   private declare _shiftAll: boolean;
@@ -414,6 +419,7 @@ export class Fp3dEditor extends LitElement {
     this._edgeHi = null;
     this._wallView = null;
     this._wallSel = null;
+    this._wallPicTick = 0;
     this._shiftX = 0;
     this._shiftAll = false;
     this._bgEdit = false;
@@ -5176,6 +5182,33 @@ export class Fp3dEditor extends LitElement {
     );
   }
 
+  /** The turn of a piece relative to the viewer of a wall (0: its front faces into the room, towards the viewer). */
+  private wallTurn(frame: WallFrame, f: Furniture): number {
+    const wallRot = (Math.atan2(-frame.n[0], frame.n[1]) * 180) / Math.PI;
+    return (((f.rotation - wallRot) % 360) + 360) % 360;
+  }
+
+  private wallPicKey(frame: WallFrame, f: Furniture): string {
+    return `${f.type}|${f.w}|${f.d}|${f.h}|${f.variant ?? ""}|${Math.round(this.wallTurn(frame, f))}`;
+  }
+
+  /** Draws the missing front pictures with the 3D bundle (once per type, size and turn). */
+  private async askWallPics(frame: WallFrame, pieces: Furniture[]): Promise<void> {
+    const missing = pieces.filter((f) => !this.wallPicsAsked.has(this.wallPicKey(frame, f)));
+    if (!missing.length) return;
+    for (const f of missing) this.wallPicsAsked.add(this.wallPicKey(frame, f));
+    try {
+      const mod = await load3d();
+      for (const f of missing) {
+        const pic = mod.furnitureFront({ type: f.type, w: f.w, d: f.d, h: f.h, variant: f.variant, lamp: LAMP_MODEL[f.type] ?? null }, this.wallTurn(frame, f), 180, this.packs ?? [], 3.2);
+        this.wallPics.set(this.wallPicKey(frame, f), pic);
+      }
+    } catch {
+      // no 3D (no WebGL): the pieces stay boxes
+    }
+    this._wallPicTick++;
+  }
+
   private renderWallView() {
     const v = this._wallView;
     const floor = this.floor;
@@ -5247,6 +5280,11 @@ export class Fp3dEditor extends LitElement {
         this._wallView = null;
         return;
       }
+      if (!sel && (e.key === "ArrowLeft" || e.key === "ArrowRight")) {
+        e.preventDefault();
+        go(e.key === "ArrowLeft" ? leftEdge : rightEdge);
+        return;
+      }
       if (!sel || !admin || !["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(e.key)) return;
       if ((e.target as HTMLElement).closest("input, select, textarea")) return;
       e.preventDefault();
@@ -5269,17 +5307,26 @@ export class Fp3dEditor extends LitElement {
           </g>`;
         })()
       : nothing;
-    const go = (step: number) => this.openWallView(room.id, (v.edge + step + n) % n);
+    // the walls left and right of this one as seen from inside the room (the room's edges may run either way)
+    const rightEdge = (v.edge + (frame.rightward ? 1 : -1) + n) % n;
+    const leftEdge = (v.edge + (frame.rightward ? -1 : 1) + n) % n;
+    const wallName = (e: number) => this.t("wall_n", { a: e + 1, b: ((e + 1) % n) + 1 });
+    const go = (edge: number) => this.openWallView(room.id, edge);
+    void this._wallPicTick;
+    void this.askWallPics(frame, items.map((i) => floor.furniture.find((m) => m.id === i.id)).filter((m): m is Furniture => !!m));
     const fs = Math.max(0.09, Math.min(0.16, L / 40));
     return html`<div class="fp3d-wv-veil" @click=${(e: Event) => e.target === e.currentTarget && (this._wallView = null)}>
       <div class="fp3d-wv" role="dialog" aria-label=${this.t("wall_view")} tabindex="0" @keydown=${key}>
         <div class="fp3d-wv-head">
-          <button class="fp3d-btn" title=${this.t("wall_prev")} @click=${() => go(-1)}>‹</button>
+          <button class="fp3d-btn" title=${`${this.t("wall_prev")}: ${wallName(leftEdge)}`} @click=${() => go(leftEdge)}>‹</button>
           <b>${this.t("wall_view")} · ${room.name} · ${this.t("wall_n", { a: v.edge + 1, b: ((v.edge + 1) % n) + 1 })} · ${this.m(L, 2)}</b>
-          <button class="fp3d-btn" title=${this.t("wall_next")} @click=${() => go(1)}>›</button>
+          <button class="fp3d-btn" title=${`${this.t("wall_next")}: ${wallName(rightEdge)}`} @click=${() => go(rightEdge)}>›</button>
           <span class="fp3d-wv-grow"></span>
           <button class="fp3d-btn" title=${this.t("close")} @click=${() => (this._wallView = null)}>✕</button>
         </div>
+        <div class="fp3d-wv-stage">
+          <button class="fp3d-wv-side fp3d-wv-left" title=${`${this.t("wall_prev")}: ${wallName(leftEdge)}`} @click=${() => go(leftEdge)}>‹<small>${wallName(leftEdge)}</small></button>
+          <button class="fp3d-wv-side fp3d-wv-right" title=${`${this.t("wall_next")}: ${wallName(rightEdge)}`} @click=${() => go(rightEdge)}>›<small>${wallName(rightEdge)}</small></button>
         <svg class="fp3d-wv-svg" viewBox="${-0.5} ${-0.35} ${L + 1} ${H + 0.9}" preserveAspectRatio="xMidYMid meet" @pointermove=${move} @pointerup=${up} @pointercancel=${up} style="--fs:${fs}px">
           <rect class="fp3d-wv-wall" x="0" y="0" width=${L} height=${H} />
           ${Array.from({ length: Math.floor(H / 0.5) }, (_, k) => svg`<line class="fp3d-wv-grid" x1="0" x2=${L} y1=${Y((k + 1) * 0.5)} y2=${Y((k + 1) * 0.5)} /><text class="fp3d-wv-scale" x="-0.06" y=${Y((k + 1) * 0.5) + 0.03}>${((k + 1) * 0.5).toFixed(1)}</text>`)}
@@ -5295,17 +5342,21 @@ export class Fp3dEditor extends LitElement {
             const m = floor.furniture.find((q) => q.id === it.id)!;
             const name = m.name || furnitureName(this.hass, m.type);
             const h = it.y1 - it.y0;
-            return svg`<g class="fp3d-wv-item ${it.id === this._wallSel ? "fp3d-wv-sel" : ""}" @pointerdown=${(e: PointerEvent) => down(e, it.id)} @dblclick=${() => {
+            const pic = this.wallPics.get(this.wallPicKey(frame, m));
+            const xc = X(toWall(frame, [m.x, m.z]).s);
+            return svg`<g class="fp3d-wv-item ${pic ? "fp3d-wv-pic" : ""} ${it.id === this._wallSel ? "fp3d-wv-sel" : ""}" @pointerdown=${(e: PointerEvent) => down(e, it.id)} @dblclick=${() => {
               this._wallView = null;
               this.selectItem("furniture", it.id);
             }}>
-              <rect x=${x} y=${Y(it.y1)} width=${w} height=${Math.max(0.02, h)} />
-              ${w > fs * 3 && h > fs * 1.4 ? svg`<text x=${x + w / 2} y=${Y(it.y1) + Math.min(h / 2, fs * 1.6) + fs * 0.35} style="font-size:${fs}px">${name}</text>` : nothing}
+              ${pic ? svg`<image href=${pic.url} x=${xc + pic.x0} y=${Y(it.y0 + pic.y1)} width=${pic.x1 - pic.x0} height=${pic.y1 - pic.y0} preserveAspectRatio="none" />` : nothing}
+              <rect x=${x} y=${Y(it.y1)} width=${w} height=${Math.max(0.02, h)}><title>${name}</title></rect>
+              ${!pic && w > fs * 3 && h > fs * 1.4 ? svg`<text x=${x + w / 2} y=${Y(it.y1) + Math.min(h / 2, fs * 1.6) + fs * 0.35} style="font-size:${fs}px">${name}</text>` : nothing}
             </g>`;
           })}
           ${dims}
           <line class="fp3d-wv-floor" x1="-0.3" x2=${L + 0.3} y1=${H} y2=${H} />
         </svg>
+        </div>
         <div class="fp3d-wv-foot">
           ${sel && selF
             ? html`<b>${selF.name || furnitureName(this.hass, selF.type)}</b>
@@ -9111,10 +9162,57 @@ export class Fp3dEditor extends LitElement {
         text-anchor: middle;
         pointer-events: none;
       }
+      .fp3d-wv-pic rect {
+        fill: transparent;
+        stroke: transparent;
+      }
+      .fp3d-wv-pic:hover rect {
+        stroke: var(--fp3d-soft);
+      }
+      .fp3d-wv-stage {
+        position: relative;
+        min-height: 0;
+        padding: 0 60px;
+      }
+      .fp3d-wv-side {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        z-index: 1;
+        display: grid;
+        justify-items: center;
+        gap: 2px;
+        width: 54px;
+        padding: 10px 0;
+        border-radius: 14px;
+        border: 1px solid var(--fp3d-line);
+        background: rgba(14, 21, 38, 0.82);
+        color: var(--fp3d-accent);
+        font-size: 30px;
+        line-height: 1;
+        cursor: pointer;
+      }
+      .fp3d-wv-side small {
+        font-size: 10px;
+        color: var(--fp3d-muted);
+      }
+      .fp3d-wv-side:hover {
+        border-color: var(--fp3d-accent);
+      }
+      .fp3d-wv-left {
+        left: 0;
+      }
+      .fp3d-wv-right {
+        right: 0;
+      }
       .fp3d-wv-sel rect {
         fill: rgba(55, 224, 255, 0.3);
         stroke: var(--fp3d-accent);
         stroke-width: 0.02;
+      }
+      .fp3d-wv-pic.fp3d-wv-sel rect {
+        fill: rgba(55, 224, 255, 0.08);
+        stroke: var(--fp3d-accent);
       }
       .fp3d-wv-dims line {
         stroke: var(--fp3d-warm);

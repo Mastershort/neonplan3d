@@ -8,7 +8,7 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 
 ### New
 
-- **Wall view:** **▦ Wall view** in the furniture form, in the right-click menu or beside each wall under *Wall heights* shows the wall from the front with its doors, windows and the furniture on it; drag pieces along the wall and (when they hang) up or down, with dimension lines and snapping; arrow keys 1 cm / Shift 10 cm; **‹ ›** to the next wall.
+- **Wall view:** **▦ Wall view** in the furniture form, in the right-click menu or beside each wall under *Wall heights* shows the wall from the front with its doors, windows and the furniture on it; drag pieces along the wall and (when they hang) up or down, with dimension lines and snapping; furniture as a real front view; arrow keys 1 cm / Shift 10 cm; arrows left and right turn to the joining wall.
 
 ### Fixed
 
