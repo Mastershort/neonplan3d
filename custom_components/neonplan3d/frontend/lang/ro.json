@@ -1504,5 +1504,6 @@
  "wall_view_3d": "3D în cameră",
  "wall_view_front": "Perete din față",
  "wall_view_depth": "Distanța față de perete (m)",
- "wall_view_hint_3d": "Atinge o piesă și trage-o pe podea · rotița sau două degete: mai aproape sau mai departe · butonul din mijloc sau dreapta (pe tabletă două degete): privește în jur · distanțele și înălțimea se scriu jos · săgețile din stânga și dreapta: peretele următor"
+ "wall_view_hint_3d": "Atinge o piesă și trage-o pe podea · rotița sau două degete: mai aproape sau mai departe · butonul din mijloc sau dreapta (pe tabletă două degete): privește în jur · distanțele și înălțimea se scriu jos · săgețile din stânga și dreapta: peretele următor",
+ "wall_view_lift": "Trage în sus sau în jos: înălțimea deasupra podelei"
 }

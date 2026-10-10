@@ -1504,5 +1504,6 @@
  "wall_view_3d": "3D huoneessa",
  "wall_view_front": "Seinä edestä",
  "wall_view_depth": "Etäisyys seinästä (m)",
- "wall_view_hint_3d": "Napauta huonekalua ja vedä sitä lattialla · hiiren rulla tai kaksi sormea: lähemmäs tai kauemmas · keski- tai oikea hiiren painike (tabletilla kaksi sormea): katsele ympärille · etäisyydet ja korkeus alhaalla · nuolet vasemmalla ja oikealla: seuraava seinä"
+ "wall_view_hint_3d": "Napauta huonekalua ja vedä sitä lattialla · hiiren rulla tai kaksi sormea: lähemmäs tai kauemmas · keski- tai oikea hiiren painike (tabletilla kaksi sormea): katsele ympärille · etäisyydet ja korkeus alhaalla · nuolet vasemmalla ja oikealla: seuraava seinä",
+ "wall_view_lift": "Vedä ylös tai alas: korkeus lattiasta"
 }

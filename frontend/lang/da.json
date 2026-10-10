@@ -1504,5 +1504,6 @@
  "wall_view_3d": "3D i rummet",
  "wall_view_front": "Væg forfra",
  "wall_view_depth": "Afstand til væggen (m)",
- "wall_view_hint_3d": "Tryk på et møbel og træk det hen over gulvet · musehjul eller to fingre: tættere på eller længere væk · midterste eller højre museknap (to fingre på tablet): kig rundt · afstande og højde skrives nederst · pile til venstre og højre: næste væg"
+ "wall_view_hint_3d": "Tryk på et møbel og træk det hen over gulvet · musehjul eller to fingre: tættere på eller længere væk · midterste eller højre museknap (to fingre på tablet): kig rundt · afstande og højde skrives nederst · pile til venstre og højre: næste væg",
+ "wall_view_lift": "Træk op eller ned: højde over gulvet"
 }

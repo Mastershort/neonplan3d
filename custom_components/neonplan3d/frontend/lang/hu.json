@@ -1504,5 +1504,6 @@
  "wall_view_3d": "3D a szobában",
  "wall_view_front": "Fal szemből",
  "wall_view_depth": "Távolság a faltól (m)",
- "wall_view_hint_3d": "Koppints egy bútorra és húzd a padlón · görgő vagy két ujj: közelebb vagy távolabb · középső vagy jobb egérgomb (táblagépen két ujj): körülnézés · lent távolságok és magasság beírása · bal és jobb nyíl: következő fal"
+ "wall_view_hint_3d": "Koppints egy bútorra és húzd a padlón · görgő vagy két ujj: közelebb vagy távolabb · középső vagy jobb egérgomb (táblagépen két ujj): körülnézés · lent távolságok és magasság beírása · bal és jobb nyíl: következő fal",
+ "wall_view_lift": "Húzd fel vagy le: magasság a padló felett"
 }

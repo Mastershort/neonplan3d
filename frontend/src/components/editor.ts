@@ -325,6 +325,9 @@ export class Fp3dEditor extends LitElement {
   /** The 3D view of the wall view and the wall its camera was last set up for. */
   private wall3dEl: HTMLElement | null = null;
   private wall3dKey = "";
+  /** The height handle over the chosen piece in the 3D wall view (screen position, height text), and a lift in progress. */
+  private liftRaf = 0;
+  private lift: { id: string; y: number; startY: number; perPx: number; base: Building; top: number; moved: boolean } | null = null;
   private wallDrag: { id: string; x: number; y: number; base: Building; s0: number; y0: number; lift: boolean; moved: boolean } | null = null;
   /** Front pictures of the pieces in the wall view, by type, size and turn (null: none to draw); asked for once. */
   private wallPics = new Map<string, { url: string; x0: number; x1: number; y0: number; y1: number } | null>();
@@ -5276,7 +5279,76 @@ export class Fp3dEditor extends LitElement {
       view.target.set(mid[0], y, mid[1]);
       v.flyTo({ ...view, radius: Math.max(1.2, Math.min(depth * 0.8, depth - 0.35)), theta: Math.atan2(frame.n[0], frame.n[1]), phi: 1.3 }, first ? 0 : 650);
       v.invalidate();
+      this.runLiftHandle();
     })();
+  }
+
+  /** Keeps the height handle of the 3D wall view over the chosen piece while the view is open. */
+  private runLiftHandle(): void {
+    cancelAnimationFrame(this.liftRaf);
+    const step = () => {
+      this.liftRaf = 0;
+      const el = this.wall3dEl;
+      const handle = this.renderRoot.querySelector<HTMLElement>(".fp3d-wv-lift");
+      if (!el?.isConnected || !this._wallView || !this._wallView3d) return;
+      this.liftRaf = requestAnimationFrame(step);
+      if (!handle) return;
+      const floor = this.floor;
+      const f = this._wallSel ? floor?.furniture.find((m) => m.id === this._wallSel) : undefined;
+      const v = (el as unknown as { viewer?: { camera: { position: { clone(): { set(x: number, y: number, z: number): { project(c: unknown): { x: number; y: number; z: number } } } } }; floorMap: Map<string, { y: number }> } }).viewer;
+      if (!f || !floor || !v || !canLift(f)) {
+        handle.hidden = true;
+        return;
+      }
+      const base = mountBase(floor, f);
+      const top = floor.elevation + (v.floorMap.get(floor.id)?.y ?? 0) + base + f.h;
+      const q = v.camera.position.clone().set(f.x, top + 0.12, f.z).project(v.camera);
+      if (q.z > 1) {
+        handle.hidden = true;
+        return;
+      }
+      handle.hidden = false;
+      const r = el.getBoundingClientRect();
+      const stage = handle.offsetParent?.getBoundingClientRect() ?? r;
+      handle.style.transform = `translate(${r.left - stage.left + ((q.x + 1) / 2) * r.width}px, ${r.top - stage.top + ((1 - q.y) / 2) * r.height}px)`;
+      const label = handle.querySelector("b");
+      if (label) label.textContent = this.m(Math.round(base * 100) / 100, 2);
+    };
+    this.liftRaf = requestAnimationFrame(step);
+  }
+
+  /** Dragging the height handle: up and down lifts the chosen piece (its distance from the camera sets the scale). */
+  private liftDown(e: PointerEvent): void {
+    const floor = this.floor;
+    const f = this._wallSel ? floor?.furniture.find((m) => m.id === this._wallSel) : undefined;
+    const el = this.wall3dEl as unknown as { viewer?: { camera: { position: { x: number; y: number; z: number }; fov: number } } } | null;
+    const v = el?.viewer;
+    if (!floor || !f || !v || !this.isAdmin) return;
+    e.preventDefault();
+    e.stopPropagation();
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    const dist = Math.hypot(v.camera.position.x - f.x, v.camera.position.z - f.z) || 1;
+    const h = (this.wall3dEl as HTMLElement).clientHeight || 1;
+    const room = floor.rooms.find((r) => r.points.length >= 3 && pointInPolygon([f.x, f.z], r.points));
+    const ceiling = Math.max(floor.height, room?.ceiling_height ?? 0);
+    this.lift = { id: f.id, y: mountBase(floor, f), startY: e.clientY, perPx: (2 * dist * Math.tan((v.camera.fov * Math.PI) / 360)) / h, base: this._doc, top: Math.max(0, ceiling - f.h), moved: false };
+  }
+
+  private liftMove(e: PointerEvent): void {
+    const l = this.lift;
+    const room = this._wallView ? this.floor?.rooms.find((r) => r.id === this._wallView!.roomId) : undefined;
+    if (!l || !room) return;
+    const dy = (l.startY - e.clientY) * l.perPx;
+    if (!l.moved && Math.abs(e.clientY - l.startY) < 3) return;
+    l.moved = true;
+    const y = Math.min(l.top, Math.max(0, Math.round((l.y + dy) * 100) / 100));
+    this.moveOnWall(roomEdgeFrame(room, this._wallView!.edge), l.id, 0, y, l.base, false);
+  }
+
+  private liftUp(): void {
+    const l = this.lift;
+    this.lift = null;
+    if (l?.moved) this.pushHistory(l.base);
   }
 
   /** The wall view of the wall nearest a tapped point (within 60 cm), the room under the point first. */
@@ -5512,7 +5584,10 @@ export class Fp3dEditor extends LitElement {
               .central=${false}
               @furniture-select=${(e: CustomEvent<{ id: string | null }>) => (this._wallSel = e.detail.id)}
               @furniture-move=${this.onFurnitureMoved3d}
-            ></fp3d-view3d>`
+            ></fp3d-view3d>
+            <div class="fp3d-wv-lift" hidden title=${this.t("wall_view_lift")} @pointerdown=${(e: PointerEvent) => this.liftDown(e)} @pointermove=${(e: PointerEvent) => this.liftMove(e)} @pointerup=${() => this.liftUp()} @pointercancel=${() => this.liftUp()}>
+              <span>↕</span><b></b>
+            </div>`
           : html`<svg class="fp3d-wv-svg" viewBox="${-0.5} ${-0.35} ${L + 1} ${H + 0.9}" preserveAspectRatio="xMidYMid meet" @pointermove=${move} @pointerup=${up} @pointercancel=${up} style="--fs:${fs}px">
           <rect class="fp3d-wv-wall" x="0" y="0" width=${L} height=${H} />
           ${Array.from({ length: Math.floor(H / 0.5) }, (_, k) => svg`<line class="fp3d-wv-grid" x1="0" x2=${L} y1=${Y((k + 1) * 0.5)} y2=${Y((k + 1) * 0.5)} /><text class="fp3d-wv-scale" x="-0.06" y=${Y((k + 1) * 0.5) + 0.03}>${((k + 1) * 0.5).toFixed(1)}</text>`)}
@@ -9354,6 +9429,41 @@ export class Fp3dEditor extends LitElement {
         width: 100%;
         justify-content: center;
         margin: 2px 0 10px;
+      }
+      .fp3d-wv-lift {
+        position: absolute;
+        left: 0;
+        top: 0;
+        z-index: 2;
+        margin: -46px 0 0 -22px;
+        display: grid;
+        justify-items: center;
+        gap: 2px;
+        cursor: ns-resize;
+        touch-action: none;
+        user-select: none;
+      }
+      .fp3d-wv-lift[hidden] {
+        display: none;
+      }
+      .fp3d-wv-lift span {
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        background: var(--fp3d-accent);
+        color: var(--fp3d-accent-text);
+        font-size: 24px;
+        font-weight: 800;
+        box-shadow: 0 0 18px rgba(55, 224, 255, 0.55);
+      }
+      .fp3d-wv-lift b {
+        font-size: 12px;
+        color: var(--fp3d-warm);
+        background: rgba(7, 11, 20, 0.85);
+        padding: 1px 6px;
+        border-radius: 8px;
       }
       .fp3d-wv-3d {
         display: block;
