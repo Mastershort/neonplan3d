@@ -1561,5 +1561,8 @@
  "conn_choose": "elegir …",
  "conn_create": "Colocar",
  "conn_hint": "El recorrido se traza solo – dentro de conexión en conexión, fuera en ángulo recto bajo tierra. Ajústalo en la vista de pared y en el plano.",
- "hint_joint_place": "Te o Y: toca el plano – sobre un tubo, se inserta en el tubo"
+ "hint_joint_place": "Te o Y: toca el plano – sobre un tubo, se inserta en el tubo",
+ "joint_name": "Nombre (p. ej. agujero skimmer)",
+ "conn_hole_out": "{name}: de dentro hacia fuera",
+ "conn_hole_in": "{name}: de fuera hacia dentro"
 }

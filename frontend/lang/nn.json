@@ -1561,5 +1561,8 @@
  "conn_choose": "vel …",
  "conn_create": "Legg",
  "conn_hint": "Vegen vert lagd av seg sjølv – inne frå tilkopling til tilkopling, ute rettvinkla under bakken. Finjuster i veggvisinga og plangrunnen.",
- "hint_joint_place": "T- eller Y-stykke: trykk i plangrunnen – på eit røyr vert det sett inn i røyret"
+ "hint_joint_place": "T- eller Y-stykke: trykk i plangrunnen – på eit røyr vert det sett inn i røyret",
+ "joint_name": "Namn (t.d. hol skimmer)",
+ "conn_hole_out": "{name}: innanfrå og ut",
+ "conn_hole_in": "{name}: utanfrå og inn"
 }

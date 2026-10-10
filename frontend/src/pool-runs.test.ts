@@ -121,3 +121,16 @@ test("a new connection: through a wall hole out under the ground, split at a T-p
   const back = planConnection({ from: "dev:pump:suction", vias: [], to: ["port:sk"], floorId: "eg" }, at, [hole], suction, ids);
   assert.deepEqual([back.pipes[0].from, back.pipes[0].to], ["port:sk", "dev:pump:suction"]);
 });
+
+test("a hole passed the way it was chosen: in from outside (the drain's line comes up into the room)", () => {
+  const hole = { id: "h1", kind: "floor" as const, x: 2, z: 0.3, y: 0 };
+  const area2: OutdoorArea = { ...pool, pool: { ports: [{ id: "bd", kind: "drain", x: 2, z: -6 }], joints: [hole] } } as OutdoorArea;
+  const fl = { ...floor, outdoor: [area2] };
+  const at = poolNodeAt({ floors: [fl], settings: {} } as unknown as Building, fl, area2);
+  let n = 0;
+  const out = planConnection({ from: "port:bd", vias: [{ kind: "hole", joint: "h1", dir: "in" }], to: ["dev:pump:suction"], floorId: "eg" }, at, [hole], (x) => x === "port:bd", (k) => `${k}${++n}`);
+  assert.deepEqual(out.pipes.map((p) => [p.from, p.to]), [
+    ["port:bd", "joint:h1:outside"],
+    ["joint:h1:inside", "dev:pump:suction"],
+  ]);
+});

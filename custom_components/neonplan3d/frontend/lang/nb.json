@@ -1561,5 +1561,8 @@
  "conn_choose": "velg …",
  "conn_create": "Legg",
  "conn_hint": "Veien legges av seg selv – inne fra tilkobling til tilkobling, ute rettvinklet under bakken. Finjuster i veggvisningen og plantegningen.",
- "hint_joint_place": "T- eller Y-stykke: trykk i plantegningen – på et rør settes det inn i røret"
+ "hint_joint_place": "T- eller Y-stykke: trykk i plantegningen – på et rør settes det inn i røret",
+ "joint_name": "Navn (f.eks. hull skimmer)",
+ "conn_hole_out": "{name}: innenfra og ut",
+ "conn_hole_in": "{name}: utenfra og inn"
 }

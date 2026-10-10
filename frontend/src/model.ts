@@ -750,6 +750,8 @@ export interface PoolJoint {
   id: string;
   /** "tee" (default), "y", or a hole: "wall", "floor". */
   kind?: "tee" | "y" | "wall" | "floor" | null;
+  /** Its own name ("Hole skimmer", "T inlets"); else numbered by kind. */
+  name?: string | null;
   x: number;
   z: number;
   /** Height above the floor (a hole: of its inside). */

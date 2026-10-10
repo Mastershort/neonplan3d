@@ -386,7 +386,20 @@ async def test_outdoor_roof_and_north_get_defaults(hass: HomeAssistant, hass_ws_
                     "fittings": [{"id": "v1", "kind": "valve", "at": 1.5, "open": False}],
                 },
             ],
-            "joints": [{"id": "t1", "x": 4, "z": 0, "y": 0.8}],
+            "joints": [
+                {"id": "t1", "x": 4, "z": 0, "y": 0.8},
+                {
+                    "id": "h1",
+                    "kind": "wall",
+                    "name": "Loch Einläufe",
+                    "x": 1,
+                    "z": 0,
+                    "y": 0.4,
+                    "nx": 0,
+                    "nz": 1,
+                    "depth": 0.3,
+                },
+            ],
         }
     )
     await client.send_json_auto_id({"type": "neonplan3d/building/save", "building": plumbing})
@@ -397,6 +410,7 @@ async def test_outdoor_roof_and_north_get_defaults(hass: HomeAssistant, hass_ws_
     assert got_pool["pipes"][1]["heights"] == [-0.3, 0.8, None]
     assert got_pool["pipes"][1]["fittings"][0]["open"] is False
     assert got_pool["joints"][0]["y"] == 0.8
+    assert got_pool["joints"][1]["name"] == "Loch Einläufe"
     assert got_pool["ports"][0]["kind"] == "skimmer"
 
     bad = copy.deepcopy(building)

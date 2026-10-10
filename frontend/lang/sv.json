@@ -1561,5 +1561,8 @@
  "conn_choose": "välj …",
  "conn_create": "Lägg",
  "conn_hint": "Vägen läggs av sig själv – inne från anslutning till anslutning, ute vinkelrätt under marken. Finjustera i väggvyn och planen.",
- "hint_joint_place": "T- eller Y-rör: tryck i planen – på ett rör sätts det in i röret"
+ "hint_joint_place": "T- eller Y-rör: tryck i planen – på ett rör sätts det in i röret",
+ "joint_name": "Namn (t.ex. hål skimmer)",
+ "conn_hole_out": "{name}: inifrån och ut",
+ "conn_hole_in": "{name}: utifrån och in"
 }

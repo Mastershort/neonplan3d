@@ -146,7 +146,8 @@ export function runsOnWall(frame: WallFrame, pipes: readonly PoolPipe[], nodeAt:
 }
 
 /** A stop on the way of a new connection: a hole it passes, or a ball valve or sight glass put in it. */
-export type ConnectVia = { kind: "hole"; joint: string } | { kind: "valve" | "sight" };
+/** A hole passed "out" (from inside to outside), "in" (from outside in), or (none) from the side the line comes from. */
+export type ConnectVia = { kind: "hole"; joint: string; dir?: "in" | "out" | null } | { kind: "valve" | "sight" };
 
 export interface ConnectRequest {
   from: string;
@@ -184,7 +185,7 @@ export function planConnection(req: ConnectRequest, nodeAt: NodeAt, joints: read
     if (!j || !p) continue;
     const inside = at(`joint:${j.id}:inside`)!;
     const outside = at(`joint:${j.id}:outside`)!;
-    const fromInside = Math.hypot(p.x - inside.x, p.z - inside.z) <= Math.hypot(p.x - outside.x, p.z - outside.z);
+    const fromInside = v.dir ? v.dir === "out" : Math.hypot(p.x - inside.x, p.z - inside.z) <= Math.hypot(p.x - outside.x, p.z - outside.z);
     segs.push({ a: cur, b: `joint:${j.id}:${fromInside ? "inside" : "outside"}`, fits });
     fits = [];
     cur = `joint:${j.id}:${fromInside ? "outside" : "inside"}`;

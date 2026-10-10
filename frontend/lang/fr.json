@@ -1561,5 +1561,8 @@
  "conn_choose": "choisir …",
  "conn_create": "Poser",
  "conn_hint": "Le tracé se fait tout seul – à l'intérieur de raccord en raccord, dehors à angle droit sous terre. Ajuster dans la vue du mur et le plan.",
- "hint_joint_place": "Té ou Y : toucher le plan – sur un tuyau, il est inséré dans le tuyau"
+ "hint_joint_place": "Té ou Y : toucher le plan – sur un tuyau, il est inséré dans le tuyau",
+ "joint_name": "Nom (p. ex. trou skimmer)",
+ "conn_hole_out": "{name} : de l'intérieur vers l'extérieur",
+ "conn_hole_in": "{name} : de l'extérieur vers l'intérieur"
 }

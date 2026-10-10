@@ -1561,5 +1561,8 @@
  "conn_choose": "valitse …",
  "conn_create": "Asenna",
  "conn_hint": "Reitti tehdään itsestään – sisällä liitännästä liitäntään, ulkona suorakulmaisesti maan alla. Hienosäädä seinänäkymässä ja pohjapiirroksessa.",
- "hint_joint_place": "T- tai Y-haara: napauta pohjapiirrosta – putken kohdalla se lisätään putkeen"
+ "hint_joint_place": "T- tai Y-haara: napauta pohjapiirrosta – putken kohdalla se lisätään putkeen",
+ "joint_name": "Nimi (esim. skimmerin reikä)",
+ "conn_hole_out": "{name}: sisältä ulos",
+ "conn_hole_in": "{name}: ulkoa sisään"
 }

@@ -1561,5 +1561,8 @@
  "conn_choose": "scegli …",
  "conn_create": "Posa",
  "conn_hint": "Il percorso si posa da solo – dentro da attacco ad attacco, fuori ad angolo retto sottoterra. Rifinisci nella vista parete e nella pianta.",
- "hint_joint_place": "Raccordo a T o Y: tocca la pianta – toccato su un tubo, viene inserito nel tubo"
+ "hint_joint_place": "Raccordo a T o Y: tocca la pianta – toccato su un tubo, viene inserito nel tubo",
+ "joint_name": "Nome (es. foro skimmer)",
+ "conn_hole_out": "{name}: da dentro a fuori",
+ "conn_hole_in": "{name}: da fuori a dentro"
 }

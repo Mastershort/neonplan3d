@@ -1561,5 +1561,8 @@
  "conn_choose": "vybrat …",
  "conn_create": "Položit",
  "conn_hint": "Trasa se položí sama – uvnitř od přípojky k přípojce, venku pravoúhle pod zemí. Dolaď v pohledu na stěnu a v půdorysu.",
- "hint_joint_place": "T- nebo Y-kus: klepni do půdorysu – na trubce se vloží do trubky"
+ "hint_joint_place": "T- nebo Y-kus: klepni do půdorysu – na trubce se vloží do trubky",
+ "joint_name": "Název (např. otvor skimmer)",
+ "conn_hole_out": "{name}: zevnitř ven",
+ "conn_hole_in": "{name}: zvenku dovnitř"
 }

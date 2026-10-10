@@ -6823,6 +6823,7 @@ export class Fp3dEditor extends LitElement {
     const j = all.find((x) => x.id === id);
     if (!j) return "?";
     const group = (k: PoolJoint["kind"]) => (k === "wall" || k === "floor" ? "hole" : (k ?? "tee"));
+    if (j.name?.trim()) return j.name.trim();
     const same = all.filter((x) => group(x.kind) === group(j.kind));
     return `${this.t(`joint_${j.kind ?? "tee"}` as I18nKey, { n: same.indexOf(j) + 1 })}`;
   }
@@ -7075,7 +7076,20 @@ export class Fp3dEditor extends LitElement {
         )}
         ${(a.pool?.joints ?? []).map(
           (j) => html`<div class="fp3d-pool-row">
-            <span>${this.jointLabel(a, j.id)}</span>
+            <input
+              class="fp3d-joint-name"
+              .value=${j.name ?? ""}
+              placeholder=${this.jointLabel(a, j.id)}
+              title=${this.t("joint_name")}
+              ?disabled=${!admin}
+              @change=${(e: Event) => {
+                const v = (e.target as HTMLInputElement).value.trim().slice(0, 60);
+                this.changePool(a.id, (l) => {
+                  const x = l.joints?.find((q) => q.id === j.id);
+                  if (x) x.name = v || null;
+                });
+              }}
+            />
             <span class="fp3d-ports">${jointPorts(j.kind).map((q) => {
               const n = `joint:${j.id}:${q}`;
               const on = pipes.some((p) => p.from === n || p.to === n || ((j.kind ?? "tee") !== "wall" && (j.kind ?? "tee") !== "floor" && nodePart(p.from) === `joint:${j.id}` && !splitNode(p.from).port && q === "in"));
@@ -7125,7 +7139,8 @@ export class Fp3dEditor extends LitElement {
         ${ends.map((e) => html`<option value=${e.node} ?selected=${value === e.node}>${e.label}${e.used ? ` (${this.t("port_used")})` : ""}</option>`)}
       </select></label
     >`;
-    const viaLabel = (v: ConnectVia) => (v.kind === "hole" ? this.jointLabel(a, v.joint) : this.t(v.kind === "valve" ? "wall_run_valve" : "wall_run_sight"));
+    const holeText = (id: string, dir: "in" | "out") => this.t(dir === "out" ? "conn_hole_out" : "conn_hole_in", { name: this.jointLabel(a, id) });
+    const viaLabel = (v: ConnectVia) => (v.kind === "hole" ? (v.dir ? holeText(v.joint, v.dir) : this.jointLabel(a, v.joint)) : this.t(v.kind === "valve" ? "wall_run_valve" : "wall_run_sight"));
     return html`<section>
       <h3>${this.t("conn_add")}</h3>
       <div class="fp3d-form fp3d-conn">
@@ -7140,12 +7155,13 @@ export class Fp3dEditor extends LitElement {
                 const v = el.value;
                 el.value = "";
                 if (!v) return;
-                const via: ConnectVia = v === "valve" || v === "sight" ? { kind: v } : { kind: "hole", joint: v };
+                const [id, dir] = v.split("|");
+                const via: ConnectVia = v === "valve" || v === "sight" ? { kind: v } : { kind: "hole", joint: id, dir: dir === "in" ? "in" : "out" };
                 this._conn = { ...c, vias: [...c.vias, via] };
               }}
             >
               <option value="">${this.t("conn_add_via")}</option>
-              ${holes.map((j) => html`<option value=${j.id}>${this.jointLabel(a, j.id)}</option>`)}
+              ${holes.flatMap((j) => (["out", "in"] as const).map((dir) => html`<option value=${`${j.id}|${dir}`}>${holeText(j.id, dir)}</option>`))}
               <option value="valve">${this.t("wall_run_valve")}</option>
               <option value="sight">${this.t("wall_run_sight")}</option>
             </select>
@@ -10620,6 +10636,17 @@ export class Fp3dEditor extends LitElement {
       }
       .fp3d-wv-hole-mark text {
         fill: var(--fp3d-warm);
+      }
+      .fp3d-joint-name {
+        flex: 1;
+        min-width: 90px;
+        font: inherit;
+        font-size: 13px;
+        padding: 3px 6px;
+        border-radius: 6px;
+        border: 1px solid var(--fp3d-line);
+        background: transparent;
+        color: inherit;
       }
       .fp3d-ports {
         display: inline-flex;

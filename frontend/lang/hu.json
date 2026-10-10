@@ -1561,5 +1561,8 @@
  "conn_choose": "válassz …",
  "conn_create": "Lefektetés",
  "conn_hint": "Az útvonal magától készül – bent csatlakozótól csatlakozóig, kint derékszögben a föld alatt. Finomítsd a falnézetben és az alaprajzon.",
- "hint_joint_place": "T- vagy Y-idom: koppints az alaprajzra – csőre koppintva a csőbe kerül"
+ "hint_joint_place": "T- vagy Y-idom: koppints az alaprajzra – csőre koppintva a csőbe kerül",
+ "joint_name": "Név (pl. skimmer lyuk)",
+ "conn_hole_out": "{name}: belülről kifelé",
+ "conn_hole_in": "{name}: kívülről befelé"
 }

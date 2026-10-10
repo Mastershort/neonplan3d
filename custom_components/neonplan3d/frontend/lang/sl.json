@@ -1561,5 +1561,8 @@
  "conn_choose": "izberi …",
  "conn_create": "Položi",
  "conn_hint": "Pot se položi sama – znotraj od priključka do priključka, zunaj pravokotno pod zemljo. Dodelaj v pogledu na steno in v tlorisu.",
- "hint_joint_place": "T- ali Y-kos: tapni tloris – na cevi se vstavi v cev"
+ "hint_joint_place": "T- ali Y-kos: tapni tloris – na cevi se vstavi v cev",
+ "joint_name": "Ime (npr. luknja skimer)",
+ "conn_hole_out": "{name}: od znotraj navzven",
+ "conn_hole_in": "{name}: od zunaj navznoter"
 }

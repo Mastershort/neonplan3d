@@ -1561,5 +1561,8 @@
  "conn_choose": "kiezen …",
  "conn_create": "Leggen",
  "conn_hint": "De route wordt vanzelf gelegd – binnen van aansluiting naar aansluiting, buiten haaks onder de grond. Fijn afstellen in het wandaanzicht en de plattegrond.",
- "hint_joint_place": "T- of Y-stuk: tik in de plattegrond – op een buis getikt, wordt het in de buis gezet"
+ "hint_joint_place": "T- of Y-stuk: tik in de plattegrond – op een buis getikt, wordt het in de buis gezet",
+ "joint_name": "Naam (bijv. gat skimmer)",
+ "conn_hole_out": "{name}: van binnen naar buiten",
+ "conn_hole_in": "{name}: van buiten naar binnen"
 }

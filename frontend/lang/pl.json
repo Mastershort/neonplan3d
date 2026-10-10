@@ -1561,5 +1561,8 @@
  "conn_choose": "wybierz …",
  "conn_create": "Ułóż",
  "conn_hint": "Trasa układa się sama – w środku od przyłącza do przyłącza, na zewnątrz pod kątem prostym pod ziemią. Dopracuj w widoku ściany i na rzucie.",
- "hint_joint_place": "Trójnik lub Y: dotknij rzutu – na rurze zostanie w nią wstawiony"
+ "hint_joint_place": "Trójnik lub Y: dotknij rzutu – na rurze zostanie w nią wstawiony",
+ "joint_name": "Nazwa (np. otwór skimmer)",
+ "conn_hole_out": "{name}: od środka na zewnątrz",
+ "conn_hole_in": "{name}: z zewnątrz do środka"
 }
