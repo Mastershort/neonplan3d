@@ -378,6 +378,8 @@ export class Fp3dEditor extends LitElement {
   /** A pipe point being dragged in the wall view, and where the pointer is while laying a pipe. */
   private runDrag: { pipe: string; i: number; d: number; base: Building; moved: boolean } | null = null;
   private runHover: [number, number] | null = null;
+  /** A ball valve or sight glass being dragged along its pipe (a tap without moving opens or closes a valve). */
+  private fitDrag: { pipe: string; id: string; base: Building; moved: boolean; x: number; y: number } | null = null;
   /** The wall shown in the 3D wall view, for laying pipes there. */
   private runCtx3d: RunCtx | null = null;
   /** The wall view stands in the room in 3D (true) or shows the wall flat from the front. */
@@ -5737,7 +5739,8 @@ export class Fp3dEditor extends LitElement {
           }}
           @pointermove=${(e: PointerEvent) => {
             move(e);
-            if (rc && this.runDrag) this.runPointMove(e, rc);
+            if (rc && this.fitDrag) this.fittingMove(e, rc);
+            else if (rc && this.runDrag) this.runPointMove(e, rc);
             else if (rc && this._runMode === "draw" && this._runDraft) {
               const q = rc.pt(e);
               this.runHover = [q.s, q.y];
@@ -5747,10 +5750,12 @@ export class Fp3dEditor extends LitElement {
           @pointerup=${() => {
             up();
             this.runPointUp();
+            this.fittingUp(rc);
           }}
           @pointercancel=${() => {
             up();
             this.runPointUp();
+            this.fitDrag = null;
           }}
           style="--fs:${fs}px"
         >
@@ -5854,10 +5859,7 @@ export class Fp3dEditor extends LitElement {
     if (!this.isAdmin || (!pool && !energy)) return nothing;
     const add = (t: string) => html`<button class="fp3d-btn" @click=${() => this.addOnWall(t, frame, room)}>+ ${this.t(`furn_${t}` as I18nKey)}</button>`;
     const fit = (mode: "valve" | "sight", label: I18nKey) =>
-      html`<button class="fp3d-btn ${this._runMode === mode ? "fp3d-primary" : ""}" title=${this.t("wall_run_fit")} @click=${() => {
-        this._runDraft = null;
-        this._runMode = this._runMode === mode ? null : mode;
-      }}>+ ${this.t(label)}</button>`;
+      html`<button class="fp3d-btn ${this._runMode === mode ? "fp3d-primary" : ""}" title=${this.t("wall_run_fit")} @click=${() => this.kitFitting(rc, mode)}>+ ${this.t(label)}</button>`;
     return html`<aside class="fp3d-wv-kit">
       ${pool
         ? html`<h4>${this.t("wall_kit_pool")}</h4>
@@ -6224,18 +6226,85 @@ export class Fp3dEditor extends LitElement {
     if (g?.moved) this.pushHistory(g.base);
   }
 
-  /** A ball valve: a tap opens or closes it, a double click takes it out (a sight glass: the double click). */
+  /**
+   * A ball valve or sight glass: dragged it slides along its pipe, a tap opens or closes a valve, a double click
+   * takes it out.
+   */
   private fittingDown(e: PointerEvent, c: RunCtx, pipeId: string, id: string): void {
     if (this._runMode || !this.isAdmin) return;
     e.stopPropagation();
     this._runSel = { pipe: pipeId, pt: null };
+    if (e.detail >= 2) {
+      this.changePool(c.pool.id, (l) => {
+        const q = l.pipes?.find((x) => x.id === pipeId);
+        if (q?.fittings) q.fittings = q.fittings.filter((x) => x.id !== id);
+      });
+      return;
+    }
+    this.fitDrag = { pipe: pipeId, id, base: this._doc, moved: false, x: e.clientX, y: e.clientY };
+    (e.currentTarget as Element).closest("svg")?.setPointerCapture(e.pointerId);
+  }
+
+  private fittingMove(e: PointerEvent, c: RunCtx): void {
+    const g = this.fitDrag;
+    if (!g || (!g.moved && Math.hypot(e.clientX - g.x, e.clientY - g.y) < 4)) return;
+    g.moved = true;
+    const { s, y } = c.pt(e);
+    const run = c.runs.find((r) => r.id === g.pipe);
+    if (!run) return;
+    // the nearest point of the pipe's pieces on this wall
+    let best: { p: P3; d: number } | null = null;
+    for (const pc of run.pieces) {
+      const [vs, vy] = [pc.s1 - pc.s0, pc.y1 - pc.y0];
+      const l2 = vs * vs + vy * vy;
+      const t = l2 > 0 ? Math.max(0, Math.min(1, ((s - pc.s0) * vs + (y - pc.y0) * vy) / l2)) : 0;
+      const [qs, qy] = [pc.s0 + vs * t, pc.y0 + vy * t];
+      const d = Math.hypot(qs - s, qy - y);
+      if (!best || d < best.d) best = { p: onWall(c.frame, qs, qy, pc.d0 + (pc.d1 - pc.d0) * t), d };
+    }
+    if (!best) return;
+    const nodeAt = poolNodeAt(g.base, c.floor, c.pool);
+    const at = best.p;
+    this.change(
+      (_, floor) => {
+        const q = floor.outdoor.find((o) => o.id === c.pool.id)?.pool?.pipes?.find((x) => x.id === g.pipe);
+        const f = q?.fittings?.find((x) => x.id === g.id);
+        const h = q && nearestOnPath(pipePath(q, nodeAt), at);
+        if (f && h) f.at = round(h.at);
+      },
+      g.base,
+      false,
+    );
+  }
+
+  private fittingUp(c: RunCtx | null): void {
+    const g = this.fitDrag;
+    this.fitDrag = null;
+    if (!g) return;
+    if (g.moved) return this.pushHistory(g.base);
+    if (!c) return;
+    // a tap: a ball valve opens or closes
     this.changePool(c.pool.id, (l) => {
-      const q = l.pipes?.find((x) => x.id === pipeId);
-      const f = q?.fittings?.find((x) => x.id === id);
-      if (!q || !f) return;
-      if (e.detail >= 2) q.fittings = q.fittings!.filter((x) => x !== f);
-      else if (f.kind === "valve") f.open = f.open === false;
+      const f = l.pipes?.find((x) => x.id === g.pipe)?.fittings?.find((x) => x.id === g.id);
+      if (f?.kind === "valve") f.open = f.open === false;
     });
+  }
+
+  /**
+   * The side bar's ball valve or sight glass: on the chosen pipe it appears at once in the middle of the part on
+   * this wall (then dragged along it); without a chosen pipe the next tap on a pipe places it.
+   */
+  private kitFitting(c: RunCtx | null, kind: "valve" | "sight"): void {
+    this._runDraft = null;
+    const run = c && this._runSel ? c.runs.find((r) => r.id === this._runSel!.pipe) : undefined;
+    if (!c || !run || !run.pieces.length) {
+      this._runMode = this._runMode === kind ? null : kind;
+      return;
+    }
+    // the middle of the pipe's longest piece on this wall
+    const pc = [...run.pieces].sort((a, b) => Math.hypot(b.s1 - b.s0, b.y1 - b.y0) - Math.hypot(a.s1 - a.s0, a.y1 - a.y0))[0];
+    this.addFitting(c, run.id, onWall(c.frame, (pc.s0 + pc.s1) / 2, (pc.y0 + pc.y1) / 2, (pc.d0 + pc.d1) / 2), kind);
+    this._runMode = null;
   }
 
   /** The pipes on the wall shown (front view): grey pipes, the chosen one with its points, valves, the pipe being laid. */
@@ -6319,8 +6388,8 @@ export class Fp3dEditor extends LitElement {
         )
         : nothing}
       ${admin
-        ? html`<button class="fp3d-btn" @click=${() => (this._runMode = "valve")}>${this.t("wall_run_valve")}</button>
-            <button class="fp3d-btn" @click=${() => (this._runMode = "sight")}>${this.t("wall_run_sight")}</button>
+        ? html`<button class="fp3d-btn" @click=${() => this.kitFitting(c, "valve")}>${this.t("wall_run_valve")}</button>
+            <button class="fp3d-btn" @click=${() => this.kitFitting(c, "sight")}>${this.t("wall_run_sight")}</button>
             ${loose
               ? html`<button class="fp3d-btn" @click=${() => {
                   this._runMode = "draw";
@@ -6727,7 +6796,7 @@ export class Fp3dEditor extends LitElement {
       <section>
         <h3>${this.t("pool_devices")}</h3>
         <div class="fp3d-actions">
-          ${POOL_DEVICES.map((t) => html`<button class="fp3d-btn" ?disabled=${!admin} @click=${() => this.addPoolDevice(t)}>+ ${this.t(`furn_${t}` as I18nKey)}</button>`)}
+          ${POOL_DEVICES.filter((t) => t !== "pool_valve").map((t) => html`<button class="fp3d-btn" ?disabled=${!admin} @click=${() => this.addPoolDevice(t)}>+ ${this.t(`furn_${t}` as I18nKey)}</button>`)}
         </div>
         ${devs.map(
           (f) => html`<div class="fp3d-pool-row">
@@ -10254,7 +10323,7 @@ export class Fp3dEditor extends LitElement {
         fill: #3c4148;
         stroke: #2f8cff;
         stroke-width: 0.012;
-        cursor: pointer;
+        cursor: grab;
       }
       .fp3d-wv-valve line {
         stroke: #2f8cff;
