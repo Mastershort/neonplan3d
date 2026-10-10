@@ -120,6 +120,9 @@ import { furnitureSize, isElectric, isPackType, mountBase, packDisplay, packItem
 /** Items that can be fixed against moving. */
 type FixKind = "room" | "opening" | "furniture" | "device" | "wall" | "outdoor";
 
+/** Highest mount height the backend accepts (schema: 0–10 m); "40" meant as centimetres would refuse every save. */
+const MAX_MOUNT_Y = 10;
+
 type Tool = "select" | "rect" | "polygon" | "measure" | "opening" | "furniture" | "outdoor" | "hole" | "wall" | "roof" | "energy" | "pool";
 
 type Drag =
@@ -621,7 +624,7 @@ export class Fp3dEditor extends LitElement {
                 .value=${this.unit === "imperial" ? formatImperial(f.mount_y ?? mountBase(this.floor!, f)) : String(Math.round((f.mount_y ?? mountBase(this.floor!, f)) * 100) / 100)}
                 @change=${(e: Event) => {
                   const v = this.readLen((e.target as HTMLInputElement).value);
-                  if (v !== null && v >= 0) this.updateFurniture({ mount_y: Math.round(v * 1000) / 1000 });
+                  if (v !== null && v >= 0) this.updateFurniture({ mount_y: Math.round(Math.min(MAX_MOUNT_Y, v) * 1000) / 1000 });
                 }}
               />
             </label>`
@@ -6620,7 +6623,7 @@ export class Fp3dEditor extends LitElement {
               >`
           : nothing}
         ${canLift(f) && this.floor
-          ? html`${this.len(this.t("mount_height"), f.mount_y ?? mountBase(this.floor, f), (v) => this.updateFurniture({ mount_y: Math.max(0, v) }), 0.01, 0)}
+          ? html`${this.len(this.t("mount_height"), f.mount_y ?? mountBase(this.floor, f), (v) => this.updateFurniture({ mount_y: Math.min(MAX_MOUNT_Y, Math.max(0, v)) }), 0.01, 0)}
               ${f.mount_y != null ? html`<button class="fp3d-btn fp3d-field-btn" ?disabled=${!admin} @click=${() => this.updateFurniture({ mount_y: null })}>${this.t("height_auto")}</button>` : nothing}`
           : nothing}
       </div>
