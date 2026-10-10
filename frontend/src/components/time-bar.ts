@@ -25,6 +25,7 @@ const icon = (d: string) => svg`<svg viewBox="0 0 24 24" width="18" height="18" 
 const COLOR: Record<EventKind, string> = {
   alarm: "#ff3b4f",
   smoke: "#ff3b4f",
+  outage: "#ffc83a",
   gas: "#ff3b4f",
   co: "#ff3b4f",
   water: "#3aa0ff",

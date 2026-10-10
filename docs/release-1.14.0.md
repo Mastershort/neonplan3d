@@ -10,11 +10,16 @@ Energie Pro zeigt jetzt auch Gas und Wasser. Und für alle: ein eigenes Pool-Wer
 - **Regen von der eigenen Wetterstation:** In den Einstellungen einen Regensensor oder eine Regenrate (mm/h) wählen; dann zählt der Regen am Haus statt der Vorhersage – für die Warnung und den Regen in 3D (Idee D407 von Kuddelsoft).
 - **Balkon:** neue Art bei Außenflächen für obere Etagen – dünne Platte auf Etagenhöhe, durchsichtiges Stabgeländer mit einstellbarer Höhe, an der Hauswand kein Geländer, sodass die Balkontüren frei bleiben (#253 von pzmd739-ui).
 - **Aufstellpool (kostenlos):** ein Becken, das auf dem Boden steht, mit eigener Beckenhöhe.
+- **Zeitreise (Beta): Stromausfälle** stehen jetzt als wichtiges Ereignis in der Zeitleiste – mit dem Sensor aus „Stromausfall melden mit“ (Mavyre im Beta-Forum).
 
 ### Behoben
 
 - **Befehle von Glaskarten**, die Home Assistant ablehnt, zeigen jetzt dessen Fehlermeldung unten an, statt still zu scheitern (#400).
 - **Ein Pool im Rasen** war vom Rasen verdeckt. Jetzt schneidet sich jeder Pool selbst aus der Fläche darunter aus.
+- **Glaskarte Klang & Kino:** ⏮, ▶/⏸ und ⏭ reagieren jetzt schon beim Loslassen des Fingers – auf manchen Tablets ging der Tipp verloren, während ein Lautsprecher spielt (#400 von domodial).
+- **Vollbild füllt den ganzen Bildschirm** – unten blieb ein leerer Rand (#426 von rolandarends); **„Bildschirm ausfüllen“** reicht bis zur Unterkante, auch im Kiosk-Modus ohne Kopfzeile (#344 von djbassmind-sketch, Ursache gefunden von sjess).
+- **Editor:** Die Maße an senkrechten Raumkanten stehen neben dem „+“ statt darunter (#431 von Maddin2020).
+- **Raster unter Rasen und Wegen** schien beim weiten Herauszoomen durch (#427 von 1970lexi).
 
 ### So bekommst du das Update
 
@@ -34,11 +39,16 @@ Energy Pro now shows gas and water too. And for everyone: a pool tool of its own
 - **Rain from your own weather station:** choose a rain sensor or a rain rate (mm/h) in the settings; then the rain at the house counts instead of the forecast – for the warning and the rain in 3D (idea D407 by Kuddelsoft).
 - **Balcony:** a new outdoor type for upper floors – a thin slab at the floor's level, a see-through railing of bars with its own height, no railing along the house wall so the balcony doors stay in view (#253 by pzmd739-ui).
 - **Above-ground pool (free):** a tub standing on the ground, with its own height.
+- **Time travel (beta): power outages** now show as an important event on the timeline – from the sensor chosen under "Report a power outage with" (Mavyre in the beta forum).
 
 ### Fixed
 
 - **Commands from glass cards** that Home Assistant refuses now show its error message at the bottom instead of failing silently (#400).
 - **A pool inside a lawn** was hidden by the lawn. Every pool now cuts itself out of the area around it.
+- **Klang & Kino glass card:** ⏮, ▶/⏸ and ⏭ now act when the finger lifts – on some tablets the tap got lost while a speaker played (#400 by domodial).
+- **Full screen fills the whole screen** – an empty strip stayed at the bottom (#426 by rolandarends); **"Fill the screen"** reaches the bottom edge, also in kiosk mode without the header (#344 by djbassmind-sketch, cause found by sjess).
+- **Editor:** the lengths on upright room edges stand beside the "+" instead of under it (#431 by Maddin2020).
+- **The grid under lawns and paths** showed through when zoomed far out (#427 by 1970lexi).
 
 ### How to update
 

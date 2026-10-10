@@ -80,7 +80,7 @@ export function historyRequest(
     fromAreas.push(id);
   }
   const weather = Object.keys(hass.states).filter((id) => id.startsWith("weather."));
-  const wanted = [...new Set([...cars, ...spec.entities, "sun.sun", ...(building.settings.weather_entity ? [building.settings.weather_entity] : []), ...weather.slice(0, 1), ...fromAreas])];
+  const wanted = [...new Set([...cars, ...spec.entities, "sun.sun", ...(building.settings.weather_entity ? [building.settings.weather_entity] : []), ...(building.settings.outage_entity ? [building.settings.outage_entity] : []), ...weather.slice(0, 1), ...fromAreas])];
   const hidden: string[] = [];
   const all = wanted.filter((id) => {
     if (!id.includes(".") || (!cars.has(id) && EXCLUDED.has(domainOf(id))) || privateIds.has(id) || !hass.states[id]) return false;

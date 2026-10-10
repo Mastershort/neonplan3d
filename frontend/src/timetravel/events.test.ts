@@ -164,3 +164,24 @@ test("a window opened is an event for the sheet only; the sheet groups by hour, 
   assert.deepEqual(groups[0].events.map((e) => e.kind), ["window", "door"]);
   assert.deepEqual(groupByHour(ev, new Set(["safety"])), []);
 });
+
+test("events: a power outage when the outage entity starts to report one (a grid sensor going off, a UPS on battery)", () => {
+  const tl = timeline({
+    "binary_sensor.netz": rows([0, "on"], [5 * H, "off"], [5 * H + 600, "on"], [20 * H, "off"]),
+    "sensor.usv": rows([0, "OL"], [9 * H, "OB DISCHRG"], [9 * H + 300, "OL"]),
+  });
+  const at = (s: number) => (DAY + s) * 1000;
+  const grid = findEvents({ timeline: tl, roles: new Map(), weather: null, outage: { id: "binary_sensor.netz", attributes: { device_class: "power" } } });
+  assert.deepEqual(
+    grid.map((e) => [e.kind, e.t]),
+    [
+      ["outage", at(5 * H)],
+      ["outage", at(20 * H)],
+    ],
+  );
+  const ups = findEvents({ timeline: tl, roles: new Map(), weather: null, outage: { id: "sensor.usv", attributes: {} } });
+  assert.deepEqual(
+    ups.map((e) => [e.kind, e.t]),
+    [["outage", at(9 * H)]],
+  );
+});

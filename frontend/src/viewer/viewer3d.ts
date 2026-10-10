@@ -597,7 +597,9 @@ export class FloorplanViewer {
     this.patternTexture = makePatternTexture();
     this.blindTexture = makeBlindTexture();
     this.haloTexture = makeHaloTexture();
-    this.ground = new Mesh(new PlaneGeometry(1, 1), new MeshBasicMaterial({ transparent: true, blending: AdditiveBlending, depthWrite: false }));
+    // drawn first among the solid things (not with the transparent ones after them): lawn, paths and floors
+    // cover the grid also when the view is far away (#427)
+    this.ground = new Mesh(new PlaneGeometry(1, 1), new MeshBasicMaterial({ transparent: false, blending: AdditiveBlending, depthWrite: false }));
     this.ground.rotation.x = -Math.PI / 2;
     this.ground.renderOrder = -1;
     this.scene.add(this.ground, this.root);

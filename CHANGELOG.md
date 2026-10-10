@@ -15,11 +15,16 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 - **Rain warning per window:** the tick **No rain warning** in a window's form – for a window under a canopy; all others still warn (idea D328 by Thundras).
 - **Rain from your own weather station:** choose a rain sensor or a rain rate (mm/h) in the settings; then the rain at the house counts instead of the forecast – for the warning and the rain in 3D (idea D407 by Kuddelsoft).
 - **Balcony:** a new outdoor type for upper floors – a thin slab at the floor's level, a see-through railing of bars with its own height, no railing along the house wall so the balcony doors stay in view (#253 by pzmd739-ui).
+- **Time travel (beta): power outages** now show as an important event on the timeline – from the sensor chosen under "Report a power outage with" (Mavyre in the beta forum).
 
 ### Fixed
 
 - **Commands from glass cards** that Home Assistant refuses now show its error message at the bottom instead of failing silently (#400).
 - **A pool inside a lawn** was hidden by the lawn; every pool now cuts itself out of the area around it.
+- **Klang & Kino glass card:** ⏮, ▶/⏸ and ⏭ now act when the finger lifts – on some tablets the tap got lost while a speaker played (#400 by domodial).
+- **Full screen fills the whole screen** – an empty strip stayed at the bottom (#426 by rolandarends); **"Fill the screen"** reaches the bottom edge, also in kiosk mode without the header (#344 by djbassmind-sketch, cause found by sjess).
+- **Editor:** the lengths on upright room edges stand beside the "+" instead of under it (#431 by Maddin2020).
+- **The grid under lawns and paths** showed through when zoomed far out (#427 by 1970lexi).
 
 ## 1.13.3
 

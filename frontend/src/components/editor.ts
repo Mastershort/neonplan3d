@@ -5758,7 +5758,12 @@ export class Fp3dEditor extends LitElement {
       }
       const screenLen = Math.hypot(bx - ax, by - ay);
       return svg`
-        ${screenLen > 50 ? svg`<text class="fp3d-dim" x=${mx + nx * 16} y=${my + ny * 16 + 4}>${this.m(len, 2)}</text>` : nothing}
+        ${screenLen > 50
+          ? // on an upright edge the text starts beside the "+" instead of centred over it (#431)
+            Math.abs(nx) > Math.abs(ny)
+            ? svg`<text class="fp3d-dim" style="text-anchor:${nx > 0 ? "start" : "end"}" x=${mx + nx * 13} y=${my + ny * 13 + 4}>${this.m(len, 2)}</text>`
+            : svg`<text class="fp3d-dim" x=${mx + nx * 16} y=${my + ny * 16 + 4}>${this.m(len, 2)}</text>`
+          : nothing}
         ${screenLen > 36 ? svg`<g data-mid=${i} class="fp3d-mid"><circle cx=${mx} cy=${my} r="14" class="fp3d-hit" /><circle cx=${mx} cy=${my} r="6" /><path d="M${mx - 3} ${my}h6M${mx} ${my - 3}v6" /></g>` : nothing}
       `;
     });
