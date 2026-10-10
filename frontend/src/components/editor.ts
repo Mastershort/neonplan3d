@@ -4648,7 +4648,7 @@ export class Fp3dEditor extends LitElement {
               ${this._tool === "roof" ? svg`${this.renderRoofSections()}${this.renderRoofWindows()}` : this._tool === "energy" ? svg`${this.renderRoofSections()}${this.renderSolarFields()}${this.renderCables()}${this.renderEnergyMarkers()}` : this._tool === "pool" && floor && released("pool") ? this.renderPoolPlan(floor) : nothing} ${this.renderDraft()} ${this.renderGuides()}
             </svg>
             ${this.renderContext()}
-            <p class="fp3d-hint ${this._fixedHint ? "fp3d-hint-fixed" : ""}">${!floor ? this.t("hint_empty") : this._fixedHint ? this.t("fixed_drag_hint") : this._tool === "outdoor" && this._outdoorFree ? this.t("hint_outdoor_free") : this._tool === "pool" && this._pipeMode ? this.t(this._pipeDraft ? "hint_pipe_next" : "hint_pipe_start") : this._tool === "pool" && released("pool") ? this.t("hint_pool_tech") : this.t(`hint_${this._tool}` as I18nKey)}</p>
+            <p class="fp3d-hint ${this._fixedHint ? "fp3d-hint-fixed" : ""}">${!floor ? this.t("hint_empty") : this._fixedHint ? this.t("fixed_drag_hint") : this._tool === "outdoor" && this._outdoorFree ? this.t("hint_outdoor_free") : this._tool === "pool" && this._pipeMode ? this.t(!this.poolArea ? "hint_pipe_pool" : this._pipeDraft ? "hint_pipe_next" : "hint_pipe_start") : this._tool === "pool" && released("pool") ? this.t("hint_pool_tech") : this.t(`hint_${this._tool}` as I18nKey)}</p>
           </div>
           ${this._split && !this.narrow
             ? html`<div class="fp3d-split-handle" title=${this.t("split_handle_hint")} @pointerdown=${this.onSplitDown}></div>`
@@ -5119,10 +5119,13 @@ export class Fp3dEditor extends LitElement {
 
   // ------------------------------------------------------------------ the pool tool
 
-  /** The pool the pool tool works on: the selected one on this floor. */
+  /** The pool the pool tool works on: the selected one on this floor, else the only pool on it. */
   private get poolArea(): OutdoorArea | undefined {
     const a = this.outdoorArea;
-    return a?.type === "pool" ? a : undefined;
+    if (a?.type === "pool") return a;
+    // with one pool there is nothing to choose: drawing a pipe works without selecting it first
+    const pools = this.floor?.outdoor.filter((o) => o.type === "pool") ?? [];
+    return pools.length === 1 ? pools[0] : undefined;
   }
 
   /**
@@ -5135,7 +5138,18 @@ export class Fp3dEditor extends LitElement {
     const a = this.poolArea;
     const node = target.closest("[data-pool-node]")?.getAttribute("data-pool-node") ?? null;
     if (this._pipeMode) {
-      if (!a || !this.isAdmin) return true;
+      if (!this.isAdmin) return true;
+      if (!a) {
+        // several pools and none chosen: a tap on one chooses it for the pipes
+        const hit = floor.outdoor.find((o) => o.type === "pool" && o.points.length >= 3 && pointInPolygon(world, o.points));
+        if (hit) {
+          this.selectItem("outdoor", hit.id);
+          // choosing it keeps the pool tool and the pipe drawing on
+          this._tool = "pool";
+          this._pipeMode = true;
+        }
+        return true;
+      }
       if (node) {
         if (!this._pipeDraft) this._pipeDraft = { from: node, points: [] };
         else if (node !== this._pipeDraft.from) {
