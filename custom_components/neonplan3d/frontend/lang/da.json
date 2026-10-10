@@ -1576,5 +1576,13 @@
  "card_connect_with": "Forbind med …",
  "card_status": "{a} af {b} forbundet",
  "card_show_plan": "Vis i plantegningen",
- "card_show_wall": "Vis i vægvisningen"
+ "card_show_wall": "Vis i vægvisningen",
+ "card_to": "Forbind med",
+ "card_through": "Gennem (i rækkefølge, hvis nødvendigt)",
+ "card_group_pool": "Ved poolen",
+ "card_group_tech": "Teknik",
+ "card_group_joints": "T- og Y-stykker",
+ "card_group_holes": "Huller",
+ "card_hole_out": "udad",
+ "card_hole_in": "indad"
 }

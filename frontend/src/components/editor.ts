@@ -6964,35 +6964,7 @@ export class Fp3dEditor extends LitElement {
           )}
           ${admin && (!conns.length || ports.length === 1)
             ? join
-              ? html`<div class="fp3d-pc-join">
-                  <select @change=${(e: Event) => (this._cardJoin = { ...join, to: (e.target as HTMLSelectElement).value })}>
-                    <option value="" ?selected=${!join.to}>${this.t("card_with")}</option>
-                    ${ends.map((e) => html`<option value=${e.node} ?selected=${join.to === e.node}>${e.label}</option>`)}
-                  </select>
-                  <div class="fp3d-chips">
-                    ${join.vias.map((v, i) => html`<button class="fp3d-chip" @click=${() => (this._cardJoin = { ...join, vias: join.vias.filter((_, k) => k !== i) })}>${i + 1}. ${viaText(v)} ✕</button>`)}
-                    <select
-                      @change=${(e: Event) => {
-                        const el = e.target as HTMLSelectElement;
-                        const v = el.value;
-                        el.value = "";
-                        if (!v) return;
-                        const [hid, dir] = v.split("|");
-                        const via: ConnectVia = v === "valve" || v === "sight" ? { kind: v } : { kind: "hole", joint: hid, dir: dir === "in" ? "in" : "out" };
-                        this._cardJoin = { ...join, vias: [...join.vias, via] };
-                      }}
-                    >
-                      <option value="">${this.t("conn_add_via")}</option>
-                      ${holes.flatMap((j) => (["out", "in"] as const).map((dir) => html`<option value=${`${j.id}|${dir}`}>${viaText({ kind: "hole", joint: j.id, dir })}</option>`))}
-                      <option value="valve">${this.t("wall_run_valve")}</option>
-                      <option value="sight">${this.t("wall_run_sight")}</option>
-                    </select>
-                  </div>
-                  <span class="fp3d-pc-tools">
-                    <button class="fp3d-btn fp3d-primary" ?disabled=${!join.to} @click=${() => this.cardConnect(a, n, join.to, join.vias)}>${this.t("card_connect")}</button>
-                    <button class="fp3d-btn" @click=${() => (this._cardJoin = null)}>${this.t("cancel")}</button>
-                  </span>
-                </div>`
+              ? this.renderJoinPicker(a, n, join, ends, holes, viaText)
               : html`<button class="fp3d-btn ${conns.length ? "" : "fp3d-pc-open"}" @click=${() => (this._cardJoin = { port: n, to: "", vias: [] })}>+ ${this.t("card_connect_with")}</button>`
             : nothing}
         </div>
@@ -7060,6 +7032,65 @@ export class Fp3dEditor extends LitElement {
   }
 
   /**
+   * Joining an open connection in a part's card: the ends to choose as buttons in groups (at the pool, the
+   * equipment, T- and Y-pieces, holes), then the stops on the way (each hole out or in, ball valve, sight glass)
+   * in their order, then connect.
+   */
+  private renderJoinPicker(
+    a: OutdoorArea,
+    port: string,
+    join: { port: string; to: string; vias: ConnectVia[] },
+    ends: { node: string; label: string; used: boolean }[],
+    holes: PoolJoint[],
+    viaText: (v: ConnectVia) => string,
+  ) {
+    const group = (n: string) => {
+      const { kind, id } = splitNode(n);
+      if (kind === "port") return "pool";
+      if (kind === "dev") return "tech";
+      const j = a.pool?.joints?.find((x) => x.id === id);
+      return j?.kind === "wall" || j?.kind === "floor" ? "holes" : "joints";
+    };
+    const groups = (["pool", "tech", "joints", "holes"] as const)
+      .map((g) => ({ g, items: ends.filter((e) => group(e.node) === g) }))
+      .filter((x) => x.items.length);
+    const pick = (to: string) => (this._cardJoin = { ...join, to: join.to === to ? "" : to });
+    const addVia = (v: ConnectVia) => (this._cardJoin = { ...join, vias: [...join.vias, v] });
+    return html`<div class="fp3d-pc-join">
+      <div class="fp3d-pc-step">${this.t("card_to")}</div>
+      ${groups.map(
+        ({ g, items }) => html`<div class="fp3d-pc-group">
+          <span class="fp3d-pc-glabel">${this.t(`card_group_${g}` as I18nKey)}</span>
+          <div class="fp3d-pc-picks">
+            ${items.map((e) => html`<button class="fp3d-pc-pick ${join.to === e.node ? "fp3d-on" : ""}" @click=${() => pick(e.node)}>${e.label}</button>`)}
+          </div>
+        </div>`,
+      )}
+      <div class="fp3d-pc-step">${this.t("card_through")}</div>
+      ${join.vias.length
+        ? html`<div class="fp3d-pc-picks">
+            ${join.vias.map((v, i) => html`<button class="fp3d-pc-pick fp3d-on" title=${this.t("delete")} @click=${() => (this._cardJoin = { ...join, vias: join.vias.filter((_, k) => k !== i) })}>${i + 1}. ${viaText(v)} ✕</button>`)}
+          </div>`
+        : nothing}
+      <div class="fp3d-pc-picks">
+        <button class="fp3d-pc-pick fp3d-pc-via" @click=${() => addVia({ kind: "valve" })}>+ ${this.t("wall_run_valve")}</button>
+        <button class="fp3d-pc-pick fp3d-pc-via" @click=${() => addVia({ kind: "sight" })}>+ ${this.t("wall_run_sight")}</button>
+      </div>
+      ${holes.map(
+        (j) => html`<div class="fp3d-pc-hole">
+          <span>${this.jointLabel(a, j.id)}</span>
+          <button class="fp3d-pc-pick fp3d-pc-via" @click=${() => addVia({ kind: "hole", joint: j.id, dir: "out" })}>+ ${this.t("card_hole_out")}</button>
+          <button class="fp3d-pc-pick fp3d-pc-via" @click=${() => addVia({ kind: "hole", joint: j.id, dir: "in" })}>+ ${this.t("card_hole_in")}</button>
+        </div>`,
+      )}
+      <span class="fp3d-pc-tools">
+        <button class="fp3d-btn fp3d-primary" ?disabled=${!join.to} @click=${() => this.cardConnect(a, port, join.to, join.vias)}>${this.t("card_connect")}</button>
+        <button class="fp3d-btn" @click=${() => (this._cardJoin = null)}>${this.t("cancel")}</button>
+      </span>
+    </div>`;
+  }
+
+  /**
    * A small drawing of a part with its connections as labelled stubs (joined: lit, open: dashed): a T-piece with
    * its entry left and exits right and down, a Y-piece, a hole through a wall, the pump, the filter's valve, the
    * heat pump, a port at the pool.
@@ -7123,7 +7154,8 @@ export class Fp3dEditor extends LitElement {
   private jointLabel(a: OutdoorArea, id: string): string {
     const all = a.pool?.joints ?? [];
     const j = all.find((x) => x.id === id);
-    if (!j) return "?";
+    // a pipe left at a piece taken out: it ends open
+    if (!j) return this.t("pool_loose_end");
     const group = (k: PoolJoint["kind"]) => (k === "wall" || k === "floor" ? "hole" : (k ?? "tee"));
     if (j.name?.trim()) return j.name.trim();
     const same = all.filter((x) => group(x.kind) === group(j.kind));
@@ -10986,6 +11018,65 @@ export class Fp3dEditor extends LitElement {
         display: inline-flex;
         gap: 6px;
         margin-left: auto;
+      }
+      .fp3d-pc-join {
+        padding: 10px;
+        border-radius: 10px;
+        background: rgba(120, 170, 255, 0.05);
+      }
+      .fp3d-pc-step {
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--fp3d-muted);
+        margin-top: 4px;
+      }
+      .fp3d-pc-group {
+        display: grid;
+        gap: 4px;
+      }
+      .fp3d-pc-glabel {
+        font-size: 12px;
+        color: var(--fp3d-muted);
+      }
+      .fp3d-pc-picks {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+      .fp3d-pc-pick {
+        font: inherit;
+        font-size: 13px;
+        padding: 6px 10px;
+        border-radius: 10px;
+        border: 1px solid var(--fp3d-line);
+        background: rgba(255, 255, 255, 0.04);
+        color: var(--fp3d-text);
+        cursor: pointer;
+      }
+      .fp3d-pc-pick:hover {
+        border-color: var(--fp3d-accent);
+      }
+      .fp3d-pc-pick.fp3d-on {
+        background: var(--fp3d-accent);
+        border-color: var(--fp3d-accent);
+        color: var(--fp3d-accent-text);
+        font-weight: 700;
+      }
+      .fp3d-pc-hole {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 6px;
+        font-size: 13px;
+      }
+      .fp3d-pc-hole > span {
+        min-width: 120px;
+      }
+      .fp3d-pc-via {
+        border-style: dashed;
+        color: var(--fp3d-muted);
       }
       .fp3d-pc-open {
         border-style: dashed;

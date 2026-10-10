@@ -1576,5 +1576,13 @@
  "card_connect_with": "Összekötés ezzel …",
  "card_status": "{b}-ből {a} bekötve",
  "card_show_plan": "Megmutatás az alaprajzon",
- "card_show_wall": "Megmutatás a falnézetben"
+ "card_show_wall": "Megmutatás a falnézetben",
+ "card_to": "Összekötés ezzel",
+ "card_through": "Át (sorrendben, ha kell)",
+ "card_group_pool": "A medencénél",
+ "card_group_tech": "Technika",
+ "card_group_joints": "T- és Y-idomok",
+ "card_group_holes": "Lyukak",
+ "card_hole_out": "kifelé",
+ "card_hole_in": "befelé"
 }

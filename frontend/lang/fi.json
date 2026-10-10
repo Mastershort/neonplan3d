@@ -1576,5 +1576,13 @@
  "card_connect_with": "Yhdistä …",
  "card_status": "{a}/{b} yhdistetty",
  "card_show_plan": "Näytä pohjapiirroksessa",
- "card_show_wall": "Näytä seinänäkymässä"
+ "card_show_wall": "Näytä seinänäkymässä",
+ "card_to": "Yhdistä",
+ "card_through": "Kautta (järjestyksessä, tarvittaessa)",
+ "card_group_pool": "Altaalla",
+ "card_group_tech": "Tekniikka",
+ "card_group_joints": "T- ja Y-haarat",
+ "card_group_holes": "Reiät",
+ "card_hole_out": "ulospäin",
+ "card_hole_in": "sisäänpäin"
 }

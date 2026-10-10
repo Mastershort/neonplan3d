@@ -1576,5 +1576,13 @@
  "card_connect_with": "Propojit s …",
  "card_status": "{a} z {b} propojeno",
  "card_show_plan": "Ukázat v půdorysu",
- "card_show_wall": "Ukázat v pohledu na stěnu"
+ "card_show_wall": "Ukázat v pohledu na stěnu",
+ "card_to": "Propojit s",
+ "card_through": "Přes (v pořadí, je-li třeba)",
+ "card_group_pool": "U bazénu",
+ "card_group_tech": "Technika",
+ "card_group_joints": "T- a Y-kusy",
+ "card_group_holes": "Otvory",
+ "card_hole_out": "ven",
+ "card_hole_in": "dovnitř"
 }

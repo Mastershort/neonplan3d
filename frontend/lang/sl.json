@@ -1576,5 +1576,13 @@
  "card_connect_with": "Poveži z …",
  "card_status": "{a} od {b} povezanih",
  "card_show_plan": "Pokaži v tlorisu",
- "card_show_wall": "Pokaži v pogledu na steno"
+ "card_show_wall": "Pokaži v pogledu na steno",
+ "card_to": "Poveži z",
+ "card_through": "Skozi (po vrsti, če je treba)",
+ "card_group_pool": "Pri bazenu",
+ "card_group_tech": "Tehnika",
+ "card_group_joints": "T- in Y-kosi",
+ "card_group_holes": "Luknje",
+ "card_hole_out": "navzven",
+ "card_hole_in": "navznoter"
 }

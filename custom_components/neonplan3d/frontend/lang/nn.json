@@ -1576,5 +1576,13 @@
  "card_connect_with": "Kopla til …",
  "card_status": "{a} av {b} kopla",
  "card_show_plan": "Vis i plangrunnen",
- "card_show_wall": "Vis i veggvisinga"
+ "card_show_wall": "Vis i veggvisinga",
+ "card_to": "Kopla til",
+ "card_through": "Gjennom (i rekkjefølgje, ved behov)",
+ "card_group_pool": "Ved bassenget",
+ "card_group_tech": "Teknikk",
+ "card_group_joints": "T- og Y-stykke",
+ "card_group_holes": "Hol",
+ "card_hole_out": "utover",
+ "card_hole_in": "innover"
 }

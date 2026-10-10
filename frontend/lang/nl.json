@@ -1576,5 +1576,13 @@
  "card_connect_with": "Verbinden met …",
  "card_status": "{a} van {b} verbonden",
  "card_show_plan": "In de plattegrond tonen",
- "card_show_wall": "In het wandaanzicht tonen"
+ "card_show_wall": "In het wandaanzicht tonen",
+ "card_to": "Verbinden met",
+ "card_through": "Via (op volgorde, indien nodig)",
+ "card_group_pool": "Bij het zwembad",
+ "card_group_tech": "Techniek",
+ "card_group_joints": "T- en Y-stukken",
+ "card_group_holes": "Gaten",
+ "card_hole_out": "naar buiten",
+ "card_hole_in": "naar binnen"
 }

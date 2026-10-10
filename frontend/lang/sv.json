@@ -1576,5 +1576,13 @@
  "card_connect_with": "Anslut till …",
  "card_status": "{a} av {b} anslutna",
  "card_show_plan": "Visa i planen",
- "card_show_wall": "Visa i väggvyn"
+ "card_show_wall": "Visa i väggvyn",
+ "card_to": "Anslut till",
+ "card_through": "Via (i ordning, vid behov)",
+ "card_group_pool": "Vid poolen",
+ "card_group_tech": "Teknik",
+ "card_group_joints": "T- och Y-rör",
+ "card_group_holes": "Hål",
+ "card_hole_out": "utåt",
+ "card_hole_in": "inåt"
 }

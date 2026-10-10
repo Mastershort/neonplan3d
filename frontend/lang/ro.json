@@ -1576,5 +1576,13 @@
  "card_connect_with": "Leagă de …",
  "card_status": "{a} din {b} legate",
  "card_show_plan": "Arată în plan",
- "card_show_wall": "Arată în vederea peretelui"
+ "card_show_wall": "Arată în vederea peretelui",
+ "card_to": "Leagă de",
+ "card_through": "Prin (în ordine, dacă e nevoie)",
+ "card_group_pool": "La piscină",
+ "card_group_tech": "Tehnică",
+ "card_group_joints": "Teuri și Y",
+ "card_group_holes": "Găuri",
+ "card_hole_out": "spre exterior",
+ "card_hole_in": "spre interior"
 }

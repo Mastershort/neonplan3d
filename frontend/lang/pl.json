@@ -1576,5 +1576,13 @@
  "card_connect_with": "Połącz z …",
  "card_status": "{a} z {b} połączone",
  "card_show_plan": "Pokaż na rzucie",
- "card_show_wall": "Pokaż w widoku ściany"
+ "card_show_wall": "Pokaż w widoku ściany",
+ "card_to": "Połącz z",
+ "card_through": "Przez (po kolei, w razie potrzeby)",
+ "card_group_pool": "Przy basenie",
+ "card_group_tech": "Technika",
+ "card_group_joints": "Trójniki i Y",
+ "card_group_holes": "Otwory",
+ "card_hole_out": "na zewnątrz",
+ "card_hole_in": "do środka"
 }

@@ -1576,5 +1576,13 @@
  "card_connect_with": "Collega a …",
  "card_status": "{a} di {b} collegati",
  "card_show_plan": "Mostra nella pianta",
- "card_show_wall": "Mostra nella vista parete"
+ "card_show_wall": "Mostra nella vista parete",
+ "card_to": "Collega a",
+ "card_through": "Attraverso (in ordine, se serve)",
+ "card_group_pool": "Alla piscina",
+ "card_group_tech": "Tecnica",
+ "card_group_joints": "Raccordi a T e Y",
+ "card_group_holes": "Fori",
+ "card_hole_out": "verso fuori",
+ "card_hole_in": "verso dentro"
 }

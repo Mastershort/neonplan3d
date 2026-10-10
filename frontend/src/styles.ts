@@ -110,8 +110,11 @@ export const controls = css`
     padding: 0;
     accent-color: var(--fp3d-accent);
   }
-  .fp3d-field select option {
+  .fp3d-field select option,
+  select option {
+    /* the opened list keeps the dark look (else light text on the browser's white list) */
     background: var(--fp3d-chrome-solid);
+    color: var(--fp3d-text);
   }
   /* fingers need 40 px */
   @media (pointer: coarse) {

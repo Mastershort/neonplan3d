@@ -1576,5 +1576,13 @@
  "card_connect_with": "Conectar con …",
  "card_status": "{a} de {b} conectados",
  "card_show_plan": "Mostrar en el plano",
- "card_show_wall": "Mostrar en la vista de pared"
+ "card_show_wall": "Mostrar en la vista de pared",
+ "card_to": "Conectar con",
+ "card_through": "Por (en orden, si hace falta)",
+ "card_group_pool": "En la piscina",
+ "card_group_tech": "Equipo",
+ "card_group_joints": "Tes y piezas Y",
+ "card_group_holes": "Agujeros",
+ "card_hole_out": "hacia fuera",
+ "card_hole_in": "hacia dentro"
 }

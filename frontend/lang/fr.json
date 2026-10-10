@@ -1576,5 +1576,13 @@
  "card_connect_with": "Relier à …",
  "card_status": "{a} sur {b} reliés",
  "card_show_plan": "Montrer dans le plan",
- "card_show_wall": "Montrer dans la vue du mur"
+ "card_show_wall": "Montrer dans la vue du mur",
+ "card_to": "Relier à",
+ "card_through": "Par (dans l'ordre, si besoin)",
+ "card_group_pool": "À la piscine",
+ "card_group_tech": "Technique",
+ "card_group_joints": "Tés et Y",
+ "card_group_holes": "Trous",
+ "card_hole_out": "vers l'extérieur",
+ "card_hole_in": "vers l'intérieur"
 }
