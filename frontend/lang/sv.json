@@ -1500,5 +1500,9 @@
  "wall_prev": "Föregående vägg",
  "wall_next": "Nästa vägg",
  "wall_view_room": "Se rummets väggar framifrån",
- "hint_wall_pick": "Väggvy: tryck på en vägg i planritningen"
+ "hint_wall_pick": "Väggvy: tryck på en vägg i planritningen",
+ "wall_view_3d": "3D i rummet",
+ "wall_view_front": "Vägg framifrån",
+ "wall_view_depth": "Avstånd till väggen (m)",
+ "wall_view_hint_3d": "Tryck på en möbel och dra den över golvet · mushjul eller två fingrar: närmare eller längre bort · dra på en fri yta: se dig om · avstånd och höjd skrivs in nedtill · pilar till vänster och höger: nästa vägg"
 }

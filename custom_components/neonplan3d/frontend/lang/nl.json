@@ -1500,5 +1500,9 @@
  "wall_prev": "Vorige wand",
  "wall_next": "Volgende wand",
  "wall_view_room": "De wanden van deze ruimte van voren bekijken",
- "hint_wall_pick": "Wandaanzicht: tik op een wand in de plattegrond"
+ "hint_wall_pick": "Wandaanzicht: tik op een wand in de plattegrond",
+ "wall_view_3d": "3D in de ruimte",
+ "wall_view_front": "Wand van voren",
+ "wall_view_depth": "Afstand tot de wand (m)",
+ "wall_view_hint_3d": "Tik een meubel aan en sleep het over de vloer · muiswiel of twee vingers: dichterbij of verder weg · sleep op een vrije plek: rondkijken · onderaan afstanden en hoogte invullen · pijlen links en rechts: naar de volgende wand"
 }

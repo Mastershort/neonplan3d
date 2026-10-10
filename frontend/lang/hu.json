@@ -1500,5 +1500,9 @@
  "wall_prev": "Előző fal",
  "wall_next": "Következő fal",
  "wall_view_room": "A szoba falai szemből",
- "hint_wall_pick": "Falnézet: koppints egy falra az alaprajzon"
+ "hint_wall_pick": "Falnézet: koppints egy falra az alaprajzon",
+ "wall_view_3d": "3D a szobában",
+ "wall_view_front": "Fal szemből",
+ "wall_view_depth": "Távolság a faltól (m)",
+ "wall_view_hint_3d": "Koppints egy bútorra és húzd a padlón · görgő vagy két ujj: közelebb vagy távolabb · üres helyen húzva: körülnézés · lent távolságok és magasság beírása · bal és jobb nyíl: következő fal"
 }

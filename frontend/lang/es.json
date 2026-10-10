@@ -1500,5 +1500,9 @@
  "wall_prev": "Pared anterior",
  "wall_next": "Pared siguiente",
  "wall_view_room": "Ver las paredes de esta habitación de frente",
- "hint_wall_pick": "Vista de pared: toca una pared en el plano"
+ "hint_wall_pick": "Vista de pared: toca una pared en el plano",
+ "wall_view_3d": "3D en la habitación",
+ "wall_view_front": "Pared de frente",
+ "wall_view_depth": "Distancia a la pared (m)",
+ "wall_view_hint_3d": "Toca un mueble y arrástralo por el suelo · rueda o dos dedos: más cerca o más lejos · arrastra en un hueco libre: mirar alrededor · abajo se escriben distancias y altura · flechas a izquierda y derecha: a la pared siguiente"
 }

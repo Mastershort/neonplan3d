@@ -1500,5 +1500,9 @@
  "wall_prev": "Edellinen seinä",
  "wall_next": "Seuraava seinä",
  "wall_view_room": "Katso huoneen seiniä edestä",
- "hint_wall_pick": "Seinänäkymä: napauta seinää pohjapiirroksessa"
+ "hint_wall_pick": "Seinänäkymä: napauta seinää pohjapiirroksessa",
+ "wall_view_3d": "3D huoneessa",
+ "wall_view_front": "Seinä edestä",
+ "wall_view_depth": "Etäisyys seinästä (m)",
+ "wall_view_hint_3d": "Napauta huonekalua ja vedä sitä lattialla · hiiren rulla tai kaksi sormea: lähemmäs tai kauemmas · vedä tyhjässä kohdassa: katsele ympärille · etäisyydet ja korkeus alhaalla · nuolet vasemmalla ja oikealla: seuraava seinä"
 }

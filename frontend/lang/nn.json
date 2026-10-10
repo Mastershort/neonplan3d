@@ -1500,5 +1500,9 @@
  "wall_prev": "Førre vegg",
  "wall_next": "Neste vegg",
  "wall_view_room": "Sjå veggene i rommet framanfrå",
- "hint_wall_pick": "Veggvising: trykk på ein vegg i plangrunnen"
+ "hint_wall_pick": "Veggvising: trykk på ein vegg i plangrunnen",
+ "wall_view_3d": "3D i rommet",
+ "wall_view_front": "Vegg framanfrå",
+ "wall_view_depth": "Avstand til veggen (m)",
+ "wall_view_hint_3d": "Trykk på eit møbel og dra det over golvet · musehjul eller to fingrar: nærare eller lenger unna · dra på ein ledig stad: sjå deg rundt · avstandar og høgd skriv du inn nedst · piler til venstre og høgre: neste vegg"
 }

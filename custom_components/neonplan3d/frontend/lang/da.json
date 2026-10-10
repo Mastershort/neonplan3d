@@ -1500,5 +1500,9 @@
  "wall_prev": "Forrige væg",
  "wall_next": "Næste væg",
  "wall_view_room": "Se rummets vægge forfra",
- "hint_wall_pick": "Vægvisning: tryk på en væg i plantegningen"
+ "hint_wall_pick": "Vægvisning: tryk på en væg i plantegningen",
+ "wall_view_3d": "3D i rummet",
+ "wall_view_front": "Væg forfra",
+ "wall_view_depth": "Afstand til væggen (m)",
+ "wall_view_hint_3d": "Tryk på et møbel og træk det hen over gulvet · musehjul eller to fingre: tættere på eller længere væk · træk på et frit sted: kig rundt · afstande og højde skrives nederst · pile til venstre og højre: næste væg"
 }

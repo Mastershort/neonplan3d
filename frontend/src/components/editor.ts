@@ -2,6 +2,7 @@
 
 import { css, html, LitElement, nothing, svg, type PropertyValues, type TemplateResult } from "lit";
 import { unsafeHTML } from "lit/directives/unsafe-html.js";
+import { ref } from "lit/directives/ref.js";
 import { fetchImage, listHistory, restoreSnapshot, storeImage, takeSnapshot, type Snapshot } from "../api.ts";
 import { download, exportFile, parseExport } from "../transfer.ts";
 import { carEntities, type CarEntities, areaEntities, autoPlace, CLIMATE_CLASSES, defaultHeight, entityName, entityAreaId, furnitureEntities, groupByDevice, hasScreen, isMediaFurniture, isPlaceable, isRoomClimateSensor, kindOf, openingEntities, otherAreaEntities, pictureRuleMatches, roomClimateSensors, unassignedEntities, windowPosition, type ClimateKey } from "../devices.ts";
@@ -24,7 +25,7 @@ import { sectionFloor, dormerParent, effectiveDormer, proposeDormer, sectionGeom
 import { bestFace, clampField, faceAt, faceCompass, fieldFace, fieldModules, GROUND, moveField, pointOnFace, proposeField, proposeGroundField, proposeWindow, proposeWallField, roofFaces, rowCounts, turnGroundField, fieldCenter, wallFaces, windowAsField, windowCorners, onFace, onField, rayOnFace, type RoofFace } from "../solar.ts";
 import type { SurfaceGrab, SurfaceRay } from "../viewer/viewer3d.ts";
 import { storedImageIds } from "../transfer.ts";
-import { furnitureOnWall, openingsOnWall, roomEdgeFrame, slideAlong, toWall, type WallFrame } from "../geometry/wall-frame.ts";
+import { fromWall, furnitureOnWall, openingsOnWall, roomEdgeFrame, slideAlong, toWall, type WallFrame } from "../geometry/wall-frame.ts";
 import { type CarLinks, type Background, OUTDOOR_TOP, sidelightLayout, DEFAULT_WEATHER_EFFECTS, WEATHER_EFFECTS,
   normalizeBuilding,
   furnitureFootprint,
@@ -226,6 +227,7 @@ export class Fp3dEditor extends LitElement {
     _wallSel: { state: true },
     _wallPicTick: { state: true },
     _wallPick: { state: true },
+    _wallView3d: { state: true },
     _ctx: { state: true },
     _fixedHint: { state: true },
     _phoneHint: { state: true },
@@ -318,6 +320,11 @@ export class Fp3dEditor extends LitElement {
   private declare _wallPicTick: number;
   /** The toolbar's wall view button is on: the next tap on a wall in the plan opens it. */
   private declare _wallPick: boolean;
+  /** The wall view stands in the room in 3D (true) or shows the wall flat from the front. */
+  private declare _wallView3d: boolean;
+  /** The 3D view of the wall view and the wall its camera was last set up for. */
+  private wall3dEl: HTMLElement | null = null;
+  private wall3dKey = "";
   private wallDrag: { id: string; x: number; y: number; base: Building; s0: number; y0: number; lift: boolean; moved: boolean } | null = null;
   /** Front pictures of the pieces in the wall view, by type, size and turn (null: none to draw); asked for once. */
   private wallPics = new Map<string, { url: string; x0: number; x1: number; y0: number; y1: number } | null>();
@@ -424,6 +431,13 @@ export class Fp3dEditor extends LitElement {
     this._wallSel = null;
     this._wallPicTick = 0;
     this._wallPick = false;
+    this._wallView3d = (() => {
+      try {
+        return localStorage.getItem("neonplan3d.wall3d") !== "0";
+      } catch {
+        return true;
+      }
+    })();
     this._shiftX = 0;
     this._shiftAll = false;
     this._bgEdit = false;
@@ -5193,6 +5207,75 @@ export class Fp3dEditor extends LitElement {
     this.openWallView(room.id, best);
   }
 
+  private setWallView3d(on: boolean): void {
+    this._wallView3d = on;
+    this.wall3dKey = "";
+    try {
+      localStorage.setItem("neonplan3d.wall3d", on ? "1" : "0");
+    } catch {
+      // not remembered
+    }
+  }
+
+  /**
+   * The wall view in 3D: the camera stands in the room at about eye height and looks at the wall (a flight
+   * when the wall changes). Every wall stands whole and solid; the mouse wheel walks closer or back.
+   */
+  private setupWall3d(el: HTMLElement, room: Room, edge: number): void {
+    const key = `${room.id}|${edge}`;
+    if (this.wall3dKey === key && this.wall3dEl === el) return;
+    const first = this.wall3dEl !== el;
+    this.wall3dKey = key;
+    this.wall3dEl = el;
+    type V = {
+      getView(): { target: { set(x: number, y: number, z: number): unknown } };
+      flyTo(v: unknown, ms?: number): void;
+      floorMap: Map<string, { y: number }>;
+      floors: { mask: { standing: { value: number }; glass: { value: number } } }[];
+      controls: { minRadius: number; maxRadius: number };
+      camera: { fov: number; updateProjectionMatrix(): void };
+      labels: HTMLElement;
+      updateWalls(): void;
+      invalidate(): void;
+      __npWall?: boolean;
+    };
+    void (async () => {
+      let v: V | undefined;
+      for (let i = 0; i < 120 && !(v = (el as unknown as { viewer?: V }).viewer); i++) await new Promise((r) => setTimeout(r, 50));
+      // the first build of the view fits the camera to the floor: our view comes after it
+      if (first) await new Promise((r) => setTimeout(r, 250));
+      const floor = this.floor;
+      if (!v || !floor || this.wall3dKey !== key) return;
+      if (!v.__npWall) {
+        v.__npWall = true;
+        // the walls stand whole and none turns to glass (the wall in front of the camera would)
+        v.updateWalls = function (this: V) {
+          for (const fv of this.floors) {
+            fv.mask.standing.value = 0xffff;
+            fv.mask.glass.value = 0;
+          }
+        };
+        v.labels.style.display = "none";
+        // no search in this small view
+        const sheet = new CSSStyleSheet();
+        sheet.replaceSync(".fp3d-find-btn, .fp3d-find { display: none !important; }");
+        if (el.shadowRoot) el.shadowRoot.adoptedStyleSheets = [...el.shadowRoot.adoptedStyleSheets, sheet];
+        v.camera.fov = 58;
+        v.camera.updateProjectionMatrix();
+        v.controls.minRadius = 0.6;
+      }
+      const frame = roomEdgeFrame(room, edge);
+      const depth = Math.max(1.5, ...room.points.map((q) => toWall(frame, q).d));
+      const mid = fromWall(frame, frame.length / 2, 0);
+      const y = floor.elevation + (v.floorMap.get(floor.id)?.y ?? 0) + 1.15;
+      v.controls.maxRadius = Math.max(1.4, depth - 0.25);
+      const view = v.getView();
+      view.target.set(mid[0], y, mid[1]);
+      v.flyTo({ ...view, radius: Math.max(1.2, Math.min(depth * 0.8, depth - 0.35)), theta: Math.atan2(frame.n[0], frame.n[1]), phi: 1.3 }, first ? 0 : 650);
+      v.invalidate();
+    })();
+  }
+
   /** The wall view of the wall nearest a tapped point (within 60 cm), the room under the point first. */
   private pickWall(p: Vec2): void {
     const floor = this.floor;
@@ -5213,6 +5296,16 @@ export class Fp3dEditor extends LitElement {
     if (!best) return;
     this._wallPick = false;
     this.openWallView((best as { room: Room }).room.id, (best as { edge: number }).edge);
+  }
+
+  /** A piece moved towards or away from the wall (its plan position along the wall's normal). */
+  private moveFromWall(frame: WallFrame, id: string, dd: number): void {
+    this.change((_, floor) => {
+      const m = floor.furniture.find((x) => x.id === id);
+      if (!m) return;
+      m.x = Math.round((m.x + frame.n[0] * dd) * 1000) / 1000;
+      m.z = Math.round((m.z + frame.n[1] * dd) * 1000) / 1000;
+    });
   }
 
   /** A piece in the wall view moved: along the wall by ds (plan position) and, when it can be lifted, to bottom y0. */
@@ -5272,8 +5365,16 @@ export class Fp3dEditor extends LitElement {
     const span = (s0: number, s1: number) => [Math.min(X(s0), X(s1)), Math.abs(s1 - s0)] as const;
     const Y = (y: number) => H - y;
     const admin = this.isAdmin;
-    const sel = items.find((i) => i.id === this._wallSel) ?? null;
-    const selF = sel ? floor.furniture.find((m) => m.id === sel.id) : undefined;
+    // the chosen piece: one at the wall, or (3D) any piece of the room – its span along the wall and distance from it
+    const selF = this._wallSel ? floor.furniture.find((m) => m.id === this._wallSel) : undefined;
+    const sel = selF
+      ? (items.find((i) => i.id === selF.id) ??
+        (() => {
+          const c = furnitureFootprint(selF).map((q) => toWall(frame, q));
+          const y0 = mountBase(floor, selF);
+          return { kind: "furniture" as const, id: selF.id, s0: Math.min(...c.map((q) => q.s)), s1: Math.max(...c.map((q) => q.s)), y0, y1: y0 + selF.h, d: Math.min(...c.map((q) => q.d)) };
+        })())
+      : null;
     const lift = !!selF && canLift(selF);
     const text = (t: number) => this.m(t, 2);
     const svgPoint = (e: PointerEvent) => {
@@ -5369,12 +5470,47 @@ export class Fp3dEditor extends LitElement {
           <b>${this.t("wall_view")} · ${room.name} · ${this.t("wall_n", { a: v.edge + 1, b: ((v.edge + 1) % n) + 1 })} · ${this.m(L, 2)}</b>
           <button class="fp3d-btn" title=${`${this.t("wall_next")}: ${wallName(rightEdge)}`} @click=${() => go(rightEdge)}>›</button>
           <span class="fp3d-wv-grow"></span>
+          <div class="fp3d-seg" role="group">
+            <button aria-pressed=${this._wallView3d} @click=${() => this.setWallView3d(true)}>${this.t("wall_view_3d")}</button>
+            <button aria-pressed=${!this._wallView3d} @click=${() => this.setWallView3d(false)}>${this.t("wall_view_front")}</button>
+          </div>
           <button class="fp3d-btn" title=${this.t("close")} @click=${() => (this._wallView = null)}>✕</button>
         </div>
         <div class="fp3d-wv-stage">
           <button class="fp3d-wv-side fp3d-wv-left" title=${`${this.t("wall_prev")}: ${wallName(leftEdge)}`} @click=${() => go(leftEdge)}>‹<small>${wallName(leftEdge)}</small></button>
           <button class="fp3d-wv-side fp3d-wv-right" title=${`${this.t("wall_next")}: ${wallName(rightEdge)}`} @click=${() => go(rightEdge)}>›<small>${wallName(rightEdge)}</small></button>
-        <svg class="fp3d-wv-svg" viewBox="${-0.5} ${-0.35} ${L + 1} ${H + 0.9}" preserveAspectRatio="xMidYMid meet" @pointermove=${move} @pointerup=${up} @pointercancel=${up} style="--fs:${fs}px">
+        ${this._wallView3d
+          ? html`<fp3d-view3d
+              class="fp3d-wv-3d"
+              ${ref((el) => el && this.setupWall3d(el as HTMLElement, room, v.edge))}
+              .hass=${this.hass}
+              .building=${this._doc3d}
+              .floorId=${this._floorId}
+              .roomId=${null}
+              .wallMode=${"auto"}
+              .explode=${false}
+              .markerMode=${"none"}
+              .heatMode=${"none"}
+              .theme=${"neon"}
+              .packs=${this.packs}
+              .showEnergy=${false}
+              .holograms=${false}
+              .flows=${false}
+              ?furnish=${admin}
+              .furnishTypes=${null}
+              .selectedFurniture=${this._wallSel}
+              .quality=${"auto"}
+              .floorThumbs=${false}
+              .roomLabels=${false}
+              .floorStack=${"single"}
+              .panelOpen=${false}
+              .alerts=${false}
+              .scenes=${false}
+              .central=${false}
+              @furniture-select=${(e: CustomEvent<{ id: string | null }>) => (this._wallSel = e.detail.id)}
+              @furniture-move=${this.onFurnitureMoved3d}
+            ></fp3d-view3d>`
+          : html`<svg class="fp3d-wv-svg" viewBox="${-0.5} ${-0.35} ${L + 1} ${H + 0.9}" preserveAspectRatio="xMidYMid meet" @pointermove=${move} @pointerup=${up} @pointercancel=${up} style="--fs:${fs}px">
           <rect class="fp3d-wv-wall" x="0" y="0" width=${L} height=${H} />
           ${Array.from({ length: Math.floor(H / 0.5) }, (_, k) => svg`<line class="fp3d-wv-grid" x1="0" x2=${L} y1=${Y((k + 1) * 0.5)} y2=${Y((k + 1) * 0.5)} /><text class="fp3d-wv-scale" x="-0.06" y=${Y((k + 1) * 0.5) + 0.03}>${((k + 1) * 0.5).toFixed(1)}</text>`)}
           ${holes.map((o) => {
@@ -5402,7 +5538,7 @@ export class Fp3dEditor extends LitElement {
           })}
           ${dims}
           <line class="fp3d-wv-floor" x1="-0.3" x2=${L + 0.3} y1=${H} y2=${H} />
-        </svg>
+        </svg>`}
         </div>
         <div class="fp3d-wv-foot">
           ${sel && selF
@@ -5411,12 +5547,13 @@ export class Fp3dEditor extends LitElement {
                   const ds = val - span(sel.s0, sel.s1)[0];
                   this.moveOnWall(frame, sel.id, frame.rightward ? ds : -ds, null);
                 }, 0.01, 0)}
+                ${this.len(this.t("wall_view_depth"), Math.round(Math.max(0, sel.d) * 1000) / 1000, (val) => this.moveFromWall(frame, sel.id, val - sel.d), 0.01, 0)}
                 ${lift ? this.len(this.t("mount_height"), Math.round(sel.y0 * 1000) / 1000, (val) => this.moveOnWall(frame, sel.id, 0, val), 0.01, 0) : html`<span class="fp3d-muted">${this.t("wall_view_floor")}</span>`}
                 <button class="fp3d-btn" @click=${() => {
                   this._wallView = null;
                   this.selectItem("furniture", sel.id);
                 }}>${this.t("wall_view_form")}</button>`
-            : html`<span class="fp3d-muted">${items.length ? this.t("wall_view_hint") : this.t("wall_view_empty")}</span>`}
+            : html`<span class="fp3d-muted">${this._wallView3d ? this.t("wall_view_hint_3d") : items.length ? this.t("wall_view_hint") : this.t("wall_view_empty")}</span>`}
         </div>
       </div>
     </div>`;
@@ -9214,6 +9351,13 @@ export class Fp3dEditor extends LitElement {
         width: 100%;
         justify-content: center;
         margin: 2px 0 10px;
+      }
+      .fp3d-wv-3d {
+        display: block;
+        width: 100%;
+        height: min(62vh, 560px);
+        border-radius: 12px;
+        overflow: hidden;
       }
       .fp3d-wv-pic rect {
         fill: transparent;

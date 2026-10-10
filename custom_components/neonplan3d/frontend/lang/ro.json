@@ -1500,5 +1500,9 @@
  "wall_prev": "Peretele anterior",
  "wall_next": "Peretele următor",
  "wall_view_room": "Vezi pereții acestei camere din față",
- "hint_wall_pick": "Vedere perete: atinge un perete în plan"
+ "hint_wall_pick": "Vedere perete: atinge un perete în plan",
+ "wall_view_3d": "3D în cameră",
+ "wall_view_front": "Perete din față",
+ "wall_view_depth": "Distanța față de perete (m)",
+ "wall_view_hint_3d": "Atinge o piesă și trage-o pe podea · rotița sau două degete: mai aproape sau mai departe · trage pe un loc liber: privește în jur · distanțele și înălțimea se scriu jos · săgețile din stânga și dreapta: peretele următor"
 }

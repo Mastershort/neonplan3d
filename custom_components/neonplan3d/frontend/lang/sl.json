@@ -1500,5 +1500,9 @@
  "wall_prev": "Prejšnja stena",
  "wall_next": "Naslednja stena",
  "wall_view_room": "Oglej si stene prostora od spredaj",
- "hint_wall_pick": "Pogled na steno: tapni steno v tlorisu"
+ "hint_wall_pick": "Pogled na steno: tapni steno v tlorisu",
+ "wall_view_3d": "3D v prostoru",
+ "wall_view_front": "Stena od spredaj",
+ "wall_view_depth": "Razdalja od stene (m)",
+ "wall_view_hint_3d": "Tapni kos pohištva in ga povleci po tleh · kolesce ali dva prsta: bliže ali dlje · vleci po praznem mestu: razgledovanje · spodaj vpiši razdalje in višino · puščici levo in desno: naslednja stena"
 }
