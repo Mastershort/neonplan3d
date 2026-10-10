@@ -5398,7 +5398,7 @@ export class Fp3dEditor extends LitElement {
             <div class="fp3d-seg">${pools.map((p, i) => html`<button aria-pressed=${p.id === a.id} @click=${() => this.selectItem("outdoor", p.id)}>🏊 ${i + 1}</button>`)}</div>
           </section>`
         : nothing}
-      ${this.renderOutdoorForm(a)} ${this.renderPoolTech(a)}`;
+      ${this.renderPoolTech(a)} ${this.renderOutdoorForm(a)}`;
   }
 
   private renderPoolTech(a: OutdoorArea) {
