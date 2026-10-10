@@ -5372,9 +5372,28 @@ export class Fp3dEditor extends LitElement {
         if (d < 0.6 && (!best || d + bonus < best.d)) best = { room, edge: i, d: d + bonus };
       });
     }
-    if (!best) return;
+    if (!best) {
+      // a tap inside a room, away from its walls: the room's wall with the most furniture
+      const room = floor.rooms.find((r) => r.points.length >= 3 && pointInPolygon(p, r.points));
+      if (!room) return;
+      this._wallPick = false;
+      this.openRoomWalls(room);
+      return;
+    }
     this._wallPick = false;
     this.openWallView((best as { room: Room }).room.id, (best as { edge: number }).edge);
+  }
+
+  /** Turns a piece in the wall view; turned against a wall it is pushed back into the room. */
+  private turnOnWall(id: string, rotation: number): void {
+    const wall = this._doc.settings.wall_interior;
+    this.change((_, floor) => {
+      const m = floor.furniture.find((x) => x.id === id);
+      if (!m) return;
+      m.rotation = Math.round(((rotation % 360) + 360) % 360);
+      const [x, z] = clampIntoRoom(floor, m, m.x, m.z, wall, 0.6);
+      Object.assign(m, { x, z });
+    });
   }
 
   /** A piece moved towards or away from the wall (its plan position along the wall's normal). */
@@ -5633,6 +5652,13 @@ export class Fp3dEditor extends LitElement {
                 }, 0.01, 0)}
                 ${this.len(this.t("wall_view_depth"), Math.round(Math.max(0, sel.d) * 1000) / 1000, (val) => this.moveFromWall(frame, sel.id, val - sel.d), 0.01, 0)}
                 ${lift ? this.len(this.t("mount_height"), Math.round(sel.y0 * 1000) / 1000, (val) => this.moveOnWall(frame, sel.id, 0, val), 0.01, 0) : html`<span class="fp3d-muted">${this.t("wall_view_floor")}</span>`}
+                ${admin && !selF.locked
+                  ? html`<span class="fp3d-wv-turn">
+                      <button class="fp3d-btn" title=${this.t("wall_view_turn")} @click=${() => this.turnOnWall(selF.id, selF.rotation - 45)}>↺ 45°</button>
+                      ${this.num(this.t("rotation"), selF.rotation, (val) => this.turnOnWall(selF.id, val), 1)}
+                      <button class="fp3d-btn" title=${this.t("wall_view_turn")} @click=${() => this.turnOnWall(selF.id, selF.rotation + 45)}>↻ 45°</button>
+                    </span>`
+                  : nothing}
                 <button class="fp3d-btn" @click=${() => {
                   this._wallView = null;
                   this.selectItem("furniture", sel.id);
@@ -9435,6 +9461,14 @@ export class Fp3dEditor extends LitElement {
         width: 100%;
         justify-content: center;
         margin: 2px 0 10px;
+      }
+      .fp3d-wv-turn {
+        display: inline-flex;
+        align-items: end;
+        gap: 6px;
+      }
+      .fp3d-wv-turn .fp3d-field {
+        width: 76px;
       }
       .fp3d-wv-lift {
         position: absolute;

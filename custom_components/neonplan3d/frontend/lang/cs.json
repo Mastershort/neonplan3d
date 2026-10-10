@@ -1500,11 +1500,12 @@
  "wall_prev": "Předchozí stěna",
  "wall_next": "Další stěna",
  "wall_view_room": "Prohlédnout stěny místnosti zepředu",
- "hint_wall_pick": "Pohled na stěnu: klepni na stěnu v půdorysu",
+ "hint_wall_pick": "Pohled na stěnu: klikni do místnosti (nebo blízko stěny)",
  "wall_view_3d": "3D v místnosti",
  "wall_view_front": "Stěna zepředu",
  "wall_view_depth": "Vzdálenost od stěny (m)",
  "wall_view_hint_3d": "Klepni na kus nábytku a táhni ho po podlaze · kolečko nebo dva prsty: blíž nebo dál · prostřední nebo pravé tlačítko myši (na tabletu dva prsty): rozhlédnout se · dole zadej vzdálenosti a výšku · šipky vlevo a vpravo: další stěna",
  "wall_view_lift": "Táhni nahoru nebo dolů: výška nad podlahou",
- "wall_view_fixed": "Zafixováno – pro přetažení nejdřív uvolni"
+ "wall_view_fixed": "Zafixováno – pro přetažení nejdřív uvolni",
+ "wall_view_turn": "Otočit o 45° – u stěny se posune zpět do místnosti"
 }

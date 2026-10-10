@@ -1500,11 +1500,12 @@
  "wall_prev": "Forrige vegg",
  "wall_next": "Neste vegg",
  "wall_view_room": "Se rommets vegger forfra",
- "hint_wall_pick": "Veggvisning: trykk på en vegg i plantegningen",
+ "hint_wall_pick": "Veggvisning: klikk i rommet (eller nær en vegg)",
  "wall_view_3d": "3D i rommet",
  "wall_view_front": "Vegg forfra",
  "wall_view_depth": "Avstand til veggen (m)",
  "wall_view_hint_3d": "Trykk på et møbel og dra det over gulvet · musehjul eller to fingre: nærmere eller lenger unna · midtre eller høyre museknapp (to fingre på nettbrett): se deg rundt · avstander og høyde skrives inn nederst · piler til venstre og høyre: neste vegg",
  "wall_view_lift": "Dra opp eller ned: høyde over gulvet",
- "wall_view_fixed": "Låst – løs det for å dra"
+ "wall_view_fixed": "Låst – løs det for å dra",
+ "wall_view_turn": "Drei 45° – ved veggen flyttes det inn i rommet"
 }

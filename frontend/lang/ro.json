@@ -1500,11 +1500,12 @@
  "wall_prev": "Peretele anterior",
  "wall_next": "Peretele următor",
  "wall_view_room": "Vezi pereții acestei camere din față",
- "hint_wall_pick": "Vedere perete: atinge un perete în plan",
+ "hint_wall_pick": "Vedere perete: clic în cameră (sau aproape de un perete)",
  "wall_view_3d": "3D în cameră",
  "wall_view_front": "Perete din față",
  "wall_view_depth": "Distanța față de perete (m)",
  "wall_view_hint_3d": "Atinge o piesă și trage-o pe podea · rotița sau două degete: mai aproape sau mai departe · butonul din mijloc sau dreapta (pe tabletă două degete): privește în jur · distanțele și înălțimea se scriu jos · săgețile din stânga și dreapta: peretele următor",
  "wall_view_lift": "Trage în sus sau în jos: înălțimea deasupra podelei",
- "wall_view_fixed": "Fixat – eliberează-l ca să-l tragi"
+ "wall_view_fixed": "Fixat – eliberează-l ca să-l tragi",
+ "wall_view_turn": "Rotește cu 45° – lângă perete revine în cameră"
 }

@@ -26,8 +26,9 @@ export function keepInRoom(floor: Floor, x0: number, z0: number, x: number, z: n
  * An item moved to (x, z) keeps its whole footprint inside the room it stands in, up to the wall faces
  * (interior walls stand half their thickness into the room): pushed against a wall it stops there instead of
  * sliding into it. Rooms are taken as their straight edges; the room is the one under the item's old centre.
+ * `slack`: a wall holds a corner that stood at most this far behind it before (a piece just turned: more).
  */
-export function clampIntoRoom(floor: Floor, f: Pick<Furniture, "x" | "z" | "w" | "d" | "rotation">, x: number, z: number, wallInterior: number): [number, number] {
+export function clampIntoRoom(floor: Floor, f: Pick<Furniture, "x" | "z" | "w" | "d" | "rotation">, x: number, z: number, wallInterior: number, slack = 0.05): [number, number] {
   const room = floor.rooms.find((r) => r.points.length >= 3 && pointInPolygon([f.x, f.z], r.points));
   if (!room) return [x, z];
   const pts = room.points;
@@ -65,7 +66,7 @@ export function clampIntoRoom(floor: Floor, f: Pick<Furniture, "x" | "z" | "w" |
         const d = (c[0] - a[0]) * n[0] + (c[1] - a[1]) * n[1] - face;
         // only a wall the corner was in front of before the move holds it (not one of another wing of an L-shape)
         const b0 = before[k];
-        if ((b0[0] - a[0]) * n[0] + (b0[1] - a[1]) * n[1] - face < -0.05) return;
+        if ((b0[0] - a[0]) * n[0] + (b0[1] - a[1]) * n[1] - face < -slack) return;
         if (d < worst) worst = d;
       });
       if (worst < -1e-4) {

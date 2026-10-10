@@ -11,6 +11,7 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 - **Wall view:** **▦ Wall view** in the furniture form, in the right-click menu or beside each wall under *Wall heights* shows the wall from the front with its doors, windows and the furniture on it; drag pieces along the wall and (when they hang) up or down, with dimension lines and snapping; 3D in the room (camera in the middle of the room at eye height, everything in the room, tap and drag, wheel to walk closer) or the flat front view with the furniture as a real front view; arrow keys 1 cm / Shift 10 cm; arrows left and right turn to the joining wall.
 - **Furnishing in 3D:** a dragged piece stays wholly in its room and stops at the wall (no more sliding into it and jumping on release); pulled a little away from the wall it no longer snaps back; tall pieces seen almost level (fridge, oven tower in the wall view) move forward and back evenly.
 - **Wall view:** the chosen piece shows its lock (🔒 Release / 🔓 Fix) – a fixed piece cannot be dragged, which was not visible there; in 3D a TV's screen and picture and a smart fridge's doors grab their piece too.
+- **Wall view:** turn the chosen piece by 45° or by degrees (turned at a wall it moves back into the room); after **▦ Wall view** in the toolbar a click anywhere in a room opens it (near a wall: that wall).
 
 ### Fixed
 

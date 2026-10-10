@@ -1500,11 +1500,12 @@
  "wall_prev": "Vorige wand",
  "wall_next": "Volgende wand",
  "wall_view_room": "De wanden van deze ruimte van voren bekijken",
- "hint_wall_pick": "Wandaanzicht: tik op een wand in de plattegrond",
+ "hint_wall_pick": "Wandaanzicht: klik in de ruimte (of dicht bij een wand)",
  "wall_view_3d": "3D in de ruimte",
  "wall_view_front": "Wand van voren",
  "wall_view_depth": "Afstand tot de wand (m)",
  "wall_view_hint_3d": "Tik een meubel aan en sleep het over de vloer · muiswiel of twee vingers: dichterbij of verder weg · middelste of rechter muisknop (twee vingers op een tablet): rondkijken · onderaan afstanden en hoogte invullen · pijlen links en rechts: naar de volgende wand",
  "wall_view_lift": "Omhoog of omlaag slepen: hoogte boven de vloer",
- "wall_view_fixed": "Vastgezet – eerst losmaken om te slepen"
+ "wall_view_fixed": "Vastgezet – eerst losmaken om te slepen",
+ "wall_view_turn": "45° draaien – tegen de wand schuift het terug de ruimte in"
 }
