@@ -1498,5 +1498,7 @@
  "wall_view_floor": "stoi na podłodze",
  "wall_view_form": "Edytuj w rzucie",
  "wall_prev": "Poprzednia ściana",
- "wall_next": "Następna ściana"
+ "wall_next": "Następna ściana",
+ "wall_view_room": "Zobacz ściany tego pomieszczenia od frontu",
+ "hint_wall_pick": "Widok ściany: dotknij ściany w rzucie"
 }

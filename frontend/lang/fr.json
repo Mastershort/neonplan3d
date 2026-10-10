@@ -1498,5 +1498,7 @@
  "wall_view_floor": "posé au sol",
  "wall_view_form": "Modifier dans le plan",
  "wall_prev": "Mur précédent",
- "wall_next": "Mur suivant"
+ "wall_next": "Mur suivant",
+ "wall_view_room": "Voir les murs de cette pièce de face",
+ "hint_wall_pick": "Vue du mur : toucher un mur dans le plan"
 }

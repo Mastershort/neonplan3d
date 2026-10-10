@@ -1498,5 +1498,7 @@
  "wall_view_floor": "a padlón áll",
  "wall_view_form": "Szerkesztés az alaprajzon",
  "wall_prev": "Előző fal",
- "wall_next": "Következő fal"
+ "wall_next": "Következő fal",
+ "wall_view_room": "A szoba falai szemből",
+ "hint_wall_pick": "Falnézet: koppints egy falra az alaprajzon"
 }

@@ -1498,5 +1498,7 @@
  "wall_view_floor": "stoji na tleh",
  "wall_view_form": "Uredi v tlorisu",
  "wall_prev": "Prejšnja stena",
- "wall_next": "Naslednja stena"
+ "wall_next": "Naslednja stena",
+ "wall_view_room": "Oglej si stene prostora od spredaj",
+ "hint_wall_pick": "Pogled na steno: tapni steno v tlorisu"
 }

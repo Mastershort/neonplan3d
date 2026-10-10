@@ -1498,5 +1498,7 @@
  "wall_view_floor": "stă pe podea",
  "wall_view_form": "Editează în plan",
  "wall_prev": "Peretele anterior",
- "wall_next": "Peretele următor"
+ "wall_next": "Peretele următor",
+ "wall_view_room": "Vezi pereții acestei camere din față",
+ "hint_wall_pick": "Vedere perete: atinge un perete în plan"
 }

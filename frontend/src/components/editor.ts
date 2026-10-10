@@ -225,6 +225,7 @@ export class Fp3dEditor extends LitElement {
     _wallView: { state: true },
     _wallSel: { state: true },
     _wallPicTick: { state: true },
+    _wallPick: { state: true },
     _ctx: { state: true },
     _fixedHint: { state: true },
     _phoneHint: { state: true },
@@ -315,6 +316,8 @@ export class Fp3dEditor extends LitElement {
   private declare _wallView: { roomId: string; edge: number } | null;
   private declare _wallSel: string | null;
   private declare _wallPicTick: number;
+  /** The toolbar's wall view button is on: the next tap on a wall in the plan opens it. */
+  private declare _wallPick: boolean;
   private wallDrag: { id: string; x: number; y: number; base: Building; s0: number; y0: number; lift: boolean; moved: boolean } | null = null;
   /** Front pictures of the pieces in the wall view, by type, size and turn (null: none to draw); asked for once. */
   private wallPics = new Map<string, { url: string; x0: number; x1: number; y0: number; y1: number } | null>();
@@ -420,6 +423,7 @@ export class Fp3dEditor extends LitElement {
     this._wallView = null;
     this._wallSel = null;
     this._wallPicTick = 0;
+    this._wallPick = false;
     this._shiftX = 0;
     this._shiftAll = false;
     this._bgEdit = false;
@@ -1096,6 +1100,10 @@ export class Fp3dEditor extends LitElement {
     }
     const world = this.toWorld(...local);
     const target = e.target as Element;
+    if (this._wallPick) {
+      this.pickWall(world);
+      return;
+    }
     if (this._bgLevel && this.isAdmin && this.floor?.background) {
       // straighten: the second tap turns the picture so the tapped wall runs exactly along x or z
       const pts = [...this._bgLevel, world];
@@ -4568,6 +4576,7 @@ export class Fp3dEditor extends LitElement {
               <button ?disabled=${!this._canRedo} @click=${() => this.redo()} title="Ctrl+Y">${this.t("redo")}</button>
               <button @click=${() => this.fit()}>${this.t("fit")}</button>
               <button aria-pressed=${this._split} title=${this.t("split_3d_hint")} @click=${() => this.toggleSplit()}>${this.t("split_3d")}</button>
+              <button aria-pressed=${this._wallPick} title=${this.t("wall_view_open")} @click=${() => (this._wallPick = !this._wallPick)}>▦ ${this.t("wall_view")}</button>
               ${this.isAdmin ? html`<button aria-pressed=${!!this._doc.settings.lock_plan} title=${this.t("lock_plan_hint")} @click=${() => this.toggleLockPlan()}>${this.t("lock_plan")}</button>` : nothing}
             </div>
             ${this._tool === "pool"
@@ -4667,7 +4676,7 @@ export class Fp3dEditor extends LitElement {
               ${this._tool === "roof" ? svg`${this.renderRoofSections()}${this.renderRoofWindows()}` : this._tool === "energy" ? svg`${this.renderRoofSections()}${this.renderSolarFields()}${this.renderCables()}${this.renderEnergyMarkers()}` : this._tool === "pool" && floor && released("pool") ? this.renderPoolPlan(floor) : nothing} ${this.renderDraft()} ${this.renderGuides()}
             </svg>
             ${this.renderContext()}
-            <p class="fp3d-hint ${this._fixedHint ? "fp3d-hint-fixed" : ""}">${!floor ? this.t("hint_empty") : this._fixedHint ? this.t("fixed_drag_hint") : this._tool === "outdoor" && this._outdoorFree ? this.t("hint_outdoor_free") : this._tool === "pool" && this._pipeMode ? this.t(!this.poolArea ? "hint_pipe_pool" : this._pipeDraft ? "hint_pipe_next" : "hint_pipe_start") : this._tool === "pool" && released("pool") ? this.t("hint_pool_tech") : this.t(`hint_${this._tool}` as I18nKey)}</p>
+            <p class="fp3d-hint ${this._fixedHint ? "fp3d-hint-fixed" : ""}">${!floor ? this.t("hint_empty") : this._wallPick ? this.t("hint_wall_pick") : this._fixedHint ? this.t("fixed_drag_hint") : this._tool === "outdoor" && this._outdoorFree ? this.t("hint_outdoor_free") : this._tool === "pool" && this._pipeMode ? this.t(!this.poolArea ? "hint_pipe_pool" : this._pipeDraft ? "hint_pipe_next" : "hint_pipe_start") : this._tool === "pool" && released("pool") ? this.t("hint_pool_tech") : this.t(`hint_${this._tool}` as I18nKey)}</p>
           </div>
           ${this._split && !this.narrow
             ? html`<div class="fp3d-split-handle" title=${this.t("split_handle_hint")} @pointerdown=${this.onSplitDown}></div>`
@@ -5166,6 +5175,44 @@ export class Fp3dEditor extends LitElement {
       }
     });
     if (best >= 0) this.openWallView(room.id, best, f.id);
+  }
+
+  /** The room's walls from the front, starting with the wall that has the most furniture at it. */
+  private openRoomWalls(room: Room): void {
+    const floor = this.floor;
+    if (!floor) return;
+    let best = 0;
+    let most = -1;
+    room.points.forEach((_, i) => {
+      const count = furnitureOnWall(roomEdgeFrame(room, i), floor, room).length;
+      if (count > most) {
+        most = count;
+        best = i;
+      }
+    });
+    this.openWallView(room.id, best);
+  }
+
+  /** The wall view of the wall nearest a tapped point (within 60 cm), the room under the point first. */
+  private pickWall(p: Vec2): void {
+    const floor = this.floor;
+    if (!floor) return;
+    let best: { room: Room; edge: number; d: number } | null = null;
+    for (const room of floor.rooms) {
+      if (room.points.length < 3) continue;
+      // a shared wall belongs to both rooms: the one tapped into wins
+      const bonus = pointInPolygon(p, room.points) ? -0.25 : 0;
+      room.points.forEach((a, i) => {
+        const b = room.points[(i + 1) % room.points.length];
+        const l2 = (b[0] - a[0]) ** 2 + (b[1] - a[1]) ** 2 || 1;
+        const t = Math.max(0, Math.min(1, ((p[0] - a[0]) * (b[0] - a[0]) + (p[1] - a[1]) * (b[1] - a[1])) / l2));
+        const d = Math.hypot(p[0] - (a[0] + (b[0] - a[0]) * t), p[1] - (a[1] + (b[1] - a[1]) * t));
+        if (d < 0.6 && (!best || d + bonus < best.d)) best = { room, edge: i, d: d + bonus };
+      });
+    }
+    if (!best) return;
+    this._wallPick = false;
+    this.openWallView((best as { room: Room }).room.id, (best as { edge: number }).edge);
   }
 
   /** A piece in the wall view moved: along the wall by ds (plan position) and, when it can be lifted, to bottom y0. */
@@ -6413,6 +6460,7 @@ export class Fp3dEditor extends LitElement {
     const b = bounds(room.points);
     return html`<section>
       <div class="fp3d-h3row"><h3>${this.t("room")}</h3>${this.fixButton("room", room.id)}</div>
+      <button class="fp3d-btn fp3d-wv-open" title=${this.t("wall_view_open")} @click=${() => this.openRoomWalls(room)}>▦ ${this.t("wall_view_room")}</button>
       <div class="fp3d-form">
         <label class="fp3d-field fp3d-wide"
           >${this.t("room_name")}
@@ -9161,6 +9209,11 @@ export class Fp3dEditor extends LitElement {
         fill: var(--fp3d-text);
         text-anchor: middle;
         pointer-events: none;
+      }
+      .fp3d-wv-open {
+        width: 100%;
+        justify-content: center;
+        margin: 2px 0 10px;
       }
       .fp3d-wv-pic rect {
         fill: transparent;

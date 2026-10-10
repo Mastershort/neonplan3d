@@ -1498,5 +1498,7 @@
  "wall_view_floor": "poggia sul pavimento",
  "wall_view_form": "Modifica nella pianta",
  "wall_prev": "Parete precedente",
- "wall_next": "Parete successiva"
+ "wall_next": "Parete successiva",
+ "wall_view_room": "Vedere le pareti di questa stanza di fronte",
+ "hint_wall_pick": "Vista parete: tocca una parete nella pianta"
 }

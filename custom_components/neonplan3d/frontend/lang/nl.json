@@ -1498,5 +1498,7 @@
  "wall_view_floor": "staat op de vloer",
  "wall_view_form": "Bewerken in de plattegrond",
  "wall_prev": "Vorige wand",
- "wall_next": "Volgende wand"
+ "wall_next": "Volgende wand",
+ "wall_view_room": "De wanden van deze ruimte van voren bekijken",
+ "hint_wall_pick": "Wandaanzicht: tik op een wand in de plattegrond"
 }

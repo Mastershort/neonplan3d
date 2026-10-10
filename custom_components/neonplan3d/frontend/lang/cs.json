@@ -1498,5 +1498,7 @@
  "wall_view_floor": "stojí na podlaze",
  "wall_view_form": "Upravit v půdorysu",
  "wall_prev": "Předchozí stěna",
- "wall_next": "Další stěna"
+ "wall_next": "Další stěna",
+ "wall_view_room": "Prohlédnout stěny místnosti zepředu",
+ "hint_wall_pick": "Pohled na stěnu: klepni na stěnu v půdorysu"
 }

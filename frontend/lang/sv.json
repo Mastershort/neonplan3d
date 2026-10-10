@@ -1498,5 +1498,7 @@
  "wall_view_floor": "står på golvet",
  "wall_view_form": "Redigera i planritningen",
  "wall_prev": "Föregående vägg",
- "wall_next": "Nästa vägg"
+ "wall_next": "Nästa vägg",
+ "wall_view_room": "Se rummets väggar framifrån",
+ "hint_wall_pick": "Väggvy: tryck på en vägg i planritningen"
 }

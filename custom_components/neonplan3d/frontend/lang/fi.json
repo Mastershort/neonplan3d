@@ -1498,5 +1498,7 @@
  "wall_view_floor": "seisoo lattialla",
  "wall_view_form": "Muokkaa pohjapiirroksessa",
  "wall_prev": "Edellinen seinä",
- "wall_next": "Seuraava seinä"
+ "wall_next": "Seuraava seinä",
+ "wall_view_room": "Katso huoneen seiniä edestä",
+ "hint_wall_pick": "Seinänäkymä: napauta seinää pohjapiirroksessa"
 }
