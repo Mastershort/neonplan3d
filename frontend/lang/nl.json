@@ -1564,5 +1564,17 @@
  "hint_joint_place": "T- of Y-stuk: tik in de plattegrond – op een buis getikt, wordt het in de buis gezet",
  "joint_name": "Naam (bijv. gat skimmer)",
  "conn_hole_out": "{name}: van binnen naar buiten",
- "conn_hole_in": "{name}: van buiten naar binnen"
+ "conn_hole_in": "{name}: van buiten naar binnen",
+ "card_open": "Aansluitingen",
+ "card_open_other": "Kaart van dit onderdeel openen",
+ "card_port": "Aansluiting",
+ "card_via": "via",
+ "card_reroute": "Opnieuw leggen",
+ "card_disconnect": "Loskoppelen",
+ "card_with": "verbinden met …",
+ "card_connect": "Verbinden",
+ "card_connect_with": "Verbinden met …",
+ "card_status": "{a} van {b} verbonden",
+ "card_show_plan": "In de plattegrond tonen",
+ "card_show_wall": "In het wandaanzicht tonen"
 }

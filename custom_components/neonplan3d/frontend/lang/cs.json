@@ -1564,5 +1564,17 @@
  "hint_joint_place": "T- nebo Y-kus: klepni do půdorysu – na trubce se vloží do trubky",
  "joint_name": "Název (např. otvor skimmer)",
  "conn_hole_out": "{name}: zevnitř ven",
- "conn_hole_in": "{name}: zvenku dovnitř"
+ "conn_hole_in": "{name}: zvenku dovnitř",
+ "card_open": "Přípojky",
+ "card_open_other": "Otevřít kartu tohoto dílu",
+ "card_port": "Přípojka",
+ "card_via": "přes",
+ "card_reroute": "Položit znovu",
+ "card_disconnect": "Odpojit",
+ "card_with": "propojit s …",
+ "card_connect": "Propojit",
+ "card_connect_with": "Propojit s …",
+ "card_status": "{a} z {b} propojeno",
+ "card_show_plan": "Ukázat v půdorysu",
+ "card_show_wall": "Ukázat v pohledu na stěnu"
 }

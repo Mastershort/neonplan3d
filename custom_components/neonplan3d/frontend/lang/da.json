@@ -1564,5 +1564,17 @@
  "hint_joint_place": "T- eller Y-stykke: tryk i plantegningen – trykket på et rør sættes det ind i røret",
  "joint_name": "Navn (fx hul skimmer)",
  "conn_hole_out": "{name}: indefra og ud",
- "conn_hole_in": "{name}: udefra og ind"
+ "conn_hole_in": "{name}: udefra og ind",
+ "card_open": "Tilslutninger",
+ "card_open_other": "Åbn delens kort",
+ "card_port": "Tilslutning",
+ "card_via": "gennem",
+ "card_reroute": "Læg igen",
+ "card_disconnect": "Afbryd",
+ "card_with": "forbind med …",
+ "card_connect": "Forbind",
+ "card_connect_with": "Forbind med …",
+ "card_status": "{a} af {b} forbundet",
+ "card_show_plan": "Vis i plantegningen",
+ "card_show_wall": "Vis i vægvisningen"
 }

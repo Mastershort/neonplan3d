@@ -1564,5 +1564,17 @@
  "hint_joint_place": "Te o Y: toca el plano – sobre un tubo, se inserta en el tubo",
  "joint_name": "Nombre (p. ej. agujero skimmer)",
  "conn_hole_out": "{name}: de dentro hacia fuera",
- "conn_hole_in": "{name}: de fuera hacia dentro"
+ "conn_hole_in": "{name}: de fuera hacia dentro",
+ "card_open": "Conexiones",
+ "card_open_other": "Abrir la ficha de esta pieza",
+ "card_port": "Conexión",
+ "card_via": "por",
+ "card_reroute": "Volver a tender",
+ "card_disconnect": "Desconectar",
+ "card_with": "conectar con …",
+ "card_connect": "Conectar",
+ "card_connect_with": "Conectar con …",
+ "card_status": "{a} de {b} conectados",
+ "card_show_plan": "Mostrar en el plano",
+ "card_show_wall": "Mostrar en la vista de pared"
 }

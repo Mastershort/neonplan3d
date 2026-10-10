@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { newFloor, type Building, type OutdoorArea, type PoolPipe, type Room } from "./model.ts";
-import { laidPipe, planConnection, poolNodeAt, runsOnWall, splitPipe } from "./pool-runs.ts";
+import { connectionsAt, laidPipe, planConnection, poolNodeAt, runsOnWall, splitPipe } from "./pool-runs.ts";
 import { pipePath } from "./geometry/runs.ts";
 import { roomEdgeFrame } from "./geometry/wall-frame.ts";
 
@@ -48,15 +48,15 @@ test("a T-piece splits a pipe: both parts meet at the joint, the valve stays on 
   };
   const cut = splitPipe(p, nodeAt, [3, 0.95, 0.05], "t2", "p2")!;
   assert.deepEqual(cut.joint, { id: "t2", x: 3, z: 0.05, y: 0.9 });
-  assert.equal(cut.first.to, "joint:t2");
-  assert.equal(cut.second.from, "joint:t2");
+  assert.equal(cut.first.to, "joint:t2:in");
+  assert.equal(cut.second.from, "joint:t2:out1");
   assert.equal(cut.second.to, "");
   assert.deepEqual(cut.first.points, [[2, 0.05], [2, 0.05]]);
   assert.deepEqual(cut.second.points, [[4, 0.05]]);
   assert.deepEqual(cut.first.fittings!.map((f) => f.id), ["v1"]);
   // pump connection 0.35 m to the wall, 0.7 m up, 1 m along: the second valve 2.5 m along lies 0.45 m into the second part
   assert.deepEqual(cut.second.fittings, [{ id: "v2", kind: "valve", at: 0.45 }]);
-  const joined = (q: PoolPipe) => r3(pipePath(q, (n) => (n === "joint:t2" ? { x: 3, z: 0.05, y: 0.9 } : nodeAt(n)))[0]);
+  const joined = (q: PoolPipe) => r3(pipePath(q, (n) => (n.startsWith("joint:t2") ? { x: 3, z: 0.05, y: 0.9 } : nodeAt(n)))[0]);
   assert.deepEqual(joined(cut.second), [3, 0.9, 0.05]);
 });
 
@@ -133,4 +133,16 @@ test("a hole passed the way it was chosen: in from outside (the drain's line com
     ["port:bd", "joint:h1:outside"],
     ["joint:h1:inside", "dev:pump:suction"],
   ]);
+});
+
+test("connections: followed through holes to the next part, seen from both ends", () => {
+  const holes = [{ id: "h", kind: "wall" as const, x: 0, z: 0, y: 0.4, nx: 0, nz: 1, depth: 0.3 }];
+  const p = (id: string, from: string, to: string, fittings: PoolPipe["fittings"] = null): PoolPipe => ({ id, from, to, floor_id: "eg", points: [], fittings });
+  const pipes = [p("a", "dev:f:return", "joint:h:inside", [{ id: "v", kind: "valve", at: 0.3 }]), p("b", "joint:h:outside", "joint:t:in"), p("c", "joint:t:out1", "port:in1")];
+  const fromFilter = connectionsAt(pipes, holes, "dev:f:return");
+  assert.deepEqual(fromFilter, [{ start: "dev:f:return", other: "joint:t:in", pipes: ["a", "b"], holes: [{ joint: "h", dir: "out" }], fittings: ["valve"] }]);
+  const fromTee = connectionsAt(pipes, holes, "joint:t:in");
+  assert.equal(fromTee[0].other, "dev:f:return");
+  assert.deepEqual(fromTee[0].holes, [{ joint: "h", dir: "in" }]);
+  assert.deepEqual(connectionsAt(pipes, holes, "joint:t:out2"), []);
 });

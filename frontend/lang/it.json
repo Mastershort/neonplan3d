@@ -1564,5 +1564,17 @@
  "hint_joint_place": "Raccordo a T o Y: tocca la pianta – toccato su un tubo, viene inserito nel tubo",
  "joint_name": "Nome (es. foro skimmer)",
  "conn_hole_out": "{name}: da dentro a fuori",
- "conn_hole_in": "{name}: da fuori a dentro"
+ "conn_hole_in": "{name}: da fuori a dentro",
+ "card_open": "Attacchi",
+ "card_open_other": "Apri la scheda di questo pezzo",
+ "card_port": "Attacco",
+ "card_via": "attraverso",
+ "card_reroute": "Riposa",
+ "card_disconnect": "Scollega",
+ "card_with": "collega a …",
+ "card_connect": "Collega",
+ "card_connect_with": "Collega a …",
+ "card_status": "{a} di {b} collegati",
+ "card_show_plan": "Mostra nella pianta",
+ "card_show_wall": "Mostra nella vista parete"
 }

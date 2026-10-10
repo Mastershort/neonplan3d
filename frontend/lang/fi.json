@@ -1564,5 +1564,17 @@
  "hint_joint_place": "T- tai Y-haara: napauta pohjapiirrosta – putken kohdalla se lisätään putkeen",
  "joint_name": "Nimi (esim. skimmerin reikä)",
  "conn_hole_out": "{name}: sisältä ulos",
- "conn_hole_in": "{name}: ulkoa sisään"
+ "conn_hole_in": "{name}: ulkoa sisään",
+ "card_open": "Liitännät",
+ "card_open_other": "Avaa osan kortti",
+ "card_port": "Liitäntä",
+ "card_via": "kautta",
+ "card_reroute": "Asenna uudelleen",
+ "card_disconnect": "Irrota",
+ "card_with": "yhdistä …",
+ "card_connect": "Yhdistä",
+ "card_connect_with": "Yhdistä …",
+ "card_status": "{a}/{b} yhdistetty",
+ "card_show_plan": "Näytä pohjapiirroksessa",
+ "card_show_wall": "Näytä seinänäkymässä"
 }

@@ -1564,5 +1564,17 @@
  "hint_joint_place": "Teu sau Y: atinge planul – pe o țeavă, se pune în țeavă",
  "joint_name": "Nume (de ex. gaură skimmer)",
  "conn_hole_out": "{name}: dinăuntru în afară",
- "conn_hole_in": "{name}: din afară înăuntru"
+ "conn_hole_in": "{name}: din afară înăuntru",
+ "card_open": "Racorduri",
+ "card_open_other": "Deschide fișa acestei piese",
+ "card_port": "Racord",
+ "card_via": "prin",
+ "card_reroute": "Pune din nou",
+ "card_disconnect": "Deconectează",
+ "card_with": "leagă de …",
+ "card_connect": "Leagă",
+ "card_connect_with": "Leagă de …",
+ "card_status": "{a} din {b} legate",
+ "card_show_plan": "Arată în plan",
+ "card_show_wall": "Arată în vederea peretelui"
 }

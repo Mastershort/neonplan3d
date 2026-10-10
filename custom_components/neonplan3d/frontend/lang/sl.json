@@ -1564,5 +1564,17 @@
  "hint_joint_place": "T- ali Y-kos: tapni tloris – na cevi se vstavi v cev",
  "joint_name": "Ime (npr. luknja skimer)",
  "conn_hole_out": "{name}: od znotraj navzven",
- "conn_hole_in": "{name}: od zunaj navznoter"
+ "conn_hole_in": "{name}: od zunaj navznoter",
+ "card_open": "Priključki",
+ "card_open_other": "Odpri kartico tega dela",
+ "card_port": "Priključek",
+ "card_via": "skozi",
+ "card_reroute": "Položi znova",
+ "card_disconnect": "Odklopi",
+ "card_with": "poveži z …",
+ "card_connect": "Poveži",
+ "card_connect_with": "Poveži z …",
+ "card_status": "{a} od {b} povezanih",
+ "card_show_plan": "Pokaži v tlorisu",
+ "card_show_wall": "Pokaži v pogledu na steno"
 }

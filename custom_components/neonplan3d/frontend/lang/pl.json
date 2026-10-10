@@ -1564,5 +1564,17 @@
  "hint_joint_place": "Trójnik lub Y: dotknij rzutu – na rurze zostanie w nią wstawiony",
  "joint_name": "Nazwa (np. otwór skimmer)",
  "conn_hole_out": "{name}: od środka na zewnątrz",
- "conn_hole_in": "{name}: z zewnątrz do środka"
+ "conn_hole_in": "{name}: z zewnątrz do środka",
+ "card_open": "Przyłącza",
+ "card_open_other": "Otwórz kartę tej części",
+ "card_port": "Przyłącze",
+ "card_via": "przez",
+ "card_reroute": "Ułóż od nowa",
+ "card_disconnect": "Rozłącz",
+ "card_with": "połącz z …",
+ "card_connect": "Połącz",
+ "card_connect_with": "Połącz z …",
+ "card_status": "{a} z {b} połączone",
+ "card_show_plan": "Pokaż na rzucie",
+ "card_show_wall": "Pokaż w widoku ściany"
 }

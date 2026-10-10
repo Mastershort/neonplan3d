@@ -1564,5 +1564,17 @@
  "hint_joint_place": "T- eller Y-rör: tryck i planen – på ett rör sätts det in i röret",
  "joint_name": "Namn (t.ex. hål skimmer)",
  "conn_hole_out": "{name}: inifrån och ut",
- "conn_hole_in": "{name}: utifrån och in"
+ "conn_hole_in": "{name}: utifrån och in",
+ "card_open": "Anslutningar",
+ "card_open_other": "Öppna delens kort",
+ "card_port": "Anslutning",
+ "card_via": "via",
+ "card_reroute": "Lägg om",
+ "card_disconnect": "Koppla från",
+ "card_with": "anslut till …",
+ "card_connect": "Anslut",
+ "card_connect_with": "Anslut till …",
+ "card_status": "{a} av {b} anslutna",
+ "card_show_plan": "Visa i planen",
+ "card_show_wall": "Visa i väggvyn"
 }

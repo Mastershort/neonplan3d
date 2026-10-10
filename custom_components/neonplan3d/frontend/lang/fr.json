@@ -1564,5 +1564,17 @@
  "hint_joint_place": "Té ou Y : toucher le plan – sur un tuyau, il est inséré dans le tuyau",
  "joint_name": "Nom (p. ex. trou skimmer)",
  "conn_hole_out": "{name} : de l'intérieur vers l'extérieur",
- "conn_hole_in": "{name} : de l'extérieur vers l'intérieur"
+ "conn_hole_in": "{name} : de l'extérieur vers l'intérieur",
+ "card_open": "Raccords",
+ "card_open_other": "Ouvrir la fiche de cette pièce",
+ "card_port": "Raccord",
+ "card_via": "par",
+ "card_reroute": "Reposer",
+ "card_disconnect": "Déconnecter",
+ "card_with": "relier à …",
+ "card_connect": "Relier",
+ "card_connect_with": "Relier à …",
+ "card_status": "{a} sur {b} reliés",
+ "card_show_plan": "Montrer dans le plan",
+ "card_show_wall": "Montrer dans la vue du mur"
 }

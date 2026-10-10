@@ -12,7 +12,7 @@ import { areaText, formatImperial, lengthText, lengthUnit, parseLength, unitLabe
 import { closeGaps, straightenEdges, suggestedThickness } from "../geometry/gaps.ts";
 import { clampIntoRoom, keepInRoom, sharedEdge, snapToWall } from "../geometry/snap.ts";
 import { cornerPoint, nearestOnPath, onWall, pipePath, type P3 } from "../geometry/runs.ts";
-import { laidPipe, planConnection, poolNodeAt, runLead, runsOnWall, splitPipe, type ConnectVia, type WallRun } from "../pool-runs.ts";
+import { connectionsAt, laidPipe, planConnection, poolNodeAt, runLead, runsOnWall, splitPipe, type Connection, type ConnectVia, type WallRun } from "../pool-runs.ts";
 import { devicePorts, FILTER_VALVES, jointPorts, nodePart, splitNode } from "../pool-ports.ts";
 import { holeInRoom } from "../geometry/holes.ts";
 import { weatherEntity, isRainSource } from "../weather.ts";
@@ -281,6 +281,8 @@ export class Fp3dEditor extends LitElement {
     _runSel: { state: true },
     _conn: { state: true },
     _jointPlace: { state: true },
+    _card: { state: true },
+    _cardJoin: { state: true },
     _wallView3d: { state: true },
     _ctx: { state: true },
     _fixedHint: { state: true },
@@ -376,6 +378,10 @@ export class Fp3dEditor extends LitElement {
   private declare _wallPick: boolean;
   /** Pool Pro in the wall view: laying a pipe, or placing a ball valve or sight glass on one. */
   private declare _runMode: "draw" | "valve" | "sight" | "hole_wall" | "hole_floor" | "tee" | "y" | null;
+  /** Pool Pro: the part whose card is open ("dev:<id>", "joint:<id>", "port:<id>") and its pool. */
+  private declare _card: { pool: string; part: string } | null;
+  /** The card's open connection being joined: its target and stops. */
+  private declare _cardJoin: { port: string; to: string; vias: ConnectVia[] } | null;
   /** Pool Pro: a T- or Y-piece waiting for a tap in the plan (on a pipe it is put into the pipe). */
   private declare _jointPlace: "tee" | "y" | null;
   /** Pool Pro: the connection being put together in the pool tool (from, its stops, one or two ends). */
@@ -512,6 +518,8 @@ export class Fp3dEditor extends LitElement {
     this._runSel = null;
     this._conn = { from: "", vias: [], to: "", to2: "" };
     this._jointPlace = null;
+    this._card = null;
+    this._cardJoin = null;
     this._wallView3d = (() => {
       try {
         return localStorage.getItem("neonplan3d.wall3d") !== "0";
@@ -2119,17 +2127,23 @@ export class Fp3dEditor extends LitElement {
       case "pipept":
       case "poolport":
       case "pooljoint":
+        if (drag.moved) this.pushHistory(drag.base);
+        // a tap on a port or a joint opens its card
+        else if (drag.kind === "poolport" || drag.kind === "pooljoint") this.openCard(drag.pool, `${drag.kind === "poolport" ? "port" : "joint"}:${drag.id}`);
+        break;
       case "holopt":
       case "bgmove":
       case "bgscale":
       case "bgrotate":
         if (drag.moved) this.pushHistory(drag.base);
         break;
-      case "pooldev":
+      case "pooldev": {
         if (drag.moved) this.pushHistory(drag.base);
-        // a tap on a ball valve opens or closes it
-        else this.togglePoolValve(drag.id);
+        // a tap on a ball valve opens or closes it, on any other device its card
+        else if (this._doc.floors.flatMap((f) => f.furniture).find((m) => m.id === drag.id)?.type === "pool_valve") this.togglePoolValve(drag.id);
+        else if (this.poolArea) this.openCard(this.poolArea.id, `dev:${drag.id}`);
         break;
+      }
       case "device":
         if (drag.moved) this.pushHistory(drag.base);
         // a tap on a device selects it (and the room it stands in)
@@ -4667,7 +4681,7 @@ export class Fp3dEditor extends LitElement {
     const floor = this.floor;
     const walls = floor ? generateWalls(floor.rooms, { exterior: this._doc.settings.wall_exterior, interior: this._doc.settings.wall_interior }, floor.walls ?? []) : null;
     return html`
-      ${this.renderPreview()} ${this.renderWallView()}
+      ${this.renderPreview()} ${this.renderWallView()} ${this.renderPartCard()}
       <div class="fp3d-editor ${this.narrow ? "fp3d-narrow" : ""}">
         <div class="fp3d-main">
           <div class="fp3d-toolbar">
@@ -5790,6 +5804,7 @@ export class Fp3dEditor extends LitElement {
             const jd = this.jointDrag;
             this.jointDrag = null;
             if (jd?.moved) this.pushHistory(jd.base);
+            else if (jd && rc) this.openCard(rc.pool.id, `joint:${jd.id}`);
           }}
           @pointercancel=${() => {
             up();
@@ -5835,6 +5850,9 @@ export class Fp3dEditor extends LitElement {
             : sel && selF
             ? html`<b>${selF.name || furnitureName(this.hass, selF.type)}</b>
                 ${this.fixButton("furniture", sel.id)}
+                ${rc && (POOL_DEVICES as readonly string[]).includes(selF.type)
+                  ? html`<button class="fp3d-btn fp3d-primary" @click=${() => this.openCard(rc.pool.id, `dev:${selF.id}`)}>${this.t("card_open")}</button>`
+                  : nothing}
                 ${selF.locked && admin ? html`<span class="fp3d-muted">${this.t("wall_view_fixed")}</span>` : nothing}
                 ${this.len(this.t("wall_view_left"), Math.round(span(sel.s0, sel.s1)[0] * 1000) / 1000, (val) => {
                   const ds = val - span(sel.s0, sel.s1)[0];
@@ -6135,7 +6153,7 @@ export class Fp3dEditor extends LitElement {
         if (!best || !cut) return "";
         joints.push(cut.joint);
         pipes.splice(pipes.indexOf(best.pipe), 1, cut.first, cut.second);
-        return `joint:${cut.joint.id}`;
+        return `joint:${cut.joint.id}:out2`;
       };
       // a pipe at a T- or Y-piece takes its next free connection, at a hole the inside
       const free = (n: string, extra: string[] = []) => {
@@ -6817,6 +6835,290 @@ export class Fp3dEditor extends LitElement {
     });
   }
 
+  private openCard(pool: string, part: string): void {
+    this._card = { pool, part };
+    this._cardJoin = null;
+  }
+
+  /** The connections of a part: its own (pump, filter, heat pump, T/Y, hole) or one (a pool port, a device without any). */
+  private partPorts(a: OutdoorArea, part: string): string[] {
+    const { kind, id } = splitNode(part);
+    if (kind === "joint") {
+      const j = a.pool?.joints?.find((x) => x.id === id);
+      return j ? jointPorts(j.kind).map((q) => `${part}:${q}`) : [];
+    }
+    if (kind === "dev") {
+      const f = this._doc.floors.flatMap((x) => x.furniture).find((m) => m.id === id);
+      const ports = f ? devicePorts(f.type) : [];
+      return ports.length ? ports.map((q) => `${part}:${q}`) : [part];
+    }
+    return [part];
+  }
+
+  /** How many of a part's connections are joined (older pipes at the part as a whole count for one). */
+  private partStatus(a: OutdoorArea, part: string): [number, number] {
+    const pipes = a.pool?.pipes ?? [];
+    const ports = this.partPorts(a, part);
+    return [ports.filter((n) => pipes.some((p) => p.from === n || p.to === n)).length, ports.length];
+  }
+
+  /** Joins an open connection of the card's part: to the chosen end, through the chosen holes and fittings. */
+  private cardConnect(a: OutdoorArea, port: string, to: string, vias: ConnectVia[]): void {
+    const floor = this._doc.floors.find((f) => f.outdoor.some((o) => o.id === a.id));
+    if (!floor || !to) return;
+    const nodeAt = poolNodeAt(this._doc, floor, a);
+    const ports = a.pool?.ports ?? [];
+    const suction = (n: string) => {
+      const { kind, id, port: q } = splitNode(n);
+      return (kind === "port" && ports.some((x) => x.id === id && (x.kind === "skimmer" || x.kind === "drain"))) || q === "suction";
+    };
+    // a T- or Y-piece chosen as a whole takes its next free connection
+    const end = this.jointEnd(a, to, undefined, [port]);
+    const made = planConnection({ from: port, vias, to: [end], floorId: floor.id }, nodeAt, a.pool?.joints ?? [], (n) => suction(n) && !n.startsWith("dev:"), (k) => uid(k));
+    this.changePool(a.id, (l) => {
+      l.joints = [...(l.joints ?? []), ...made.joints];
+      l.pipes = [...(l.pipes ?? []), ...made.pipes];
+    });
+    this._cardJoin = null;
+  }
+
+  /** Takes a connection's pipes out (holes and parts stay). */
+  private cardDisconnect(a: OutdoorArea, c: Connection): void {
+    this.changePool(a.id, (l) => (l.pipes = (l.pipes ?? []).filter((p) => !c.pipes.includes(p.id))));
+  }
+
+  /** Lays a connection anew along the automatic way (its corner points and fittings' places are lost). */
+  private cardReroute(a: OutdoorArea, c: Connection): void {
+    const pipes = a.pool?.pipes ?? [];
+    const first = pipes.find((p) => p.id === c.pipes[0]);
+    if (!first || !c.other) return;
+    // keep the water's direction: the connection is laid from where its water comes
+    const forward = first.from === c.start;
+    const vias: ConnectVia[] = [...c.holes.map((h) => ({ kind: "hole" as const, joint: h.joint, dir: h.dir })), ...c.fittings.map((k) => ({ kind: k }))];
+    const floor = this._doc.floors.find((f) => f.outdoor.some((o) => o.id === a.id));
+    if (!floor) return;
+    const rest = { ...a, pool: { ...a.pool, pipes: pipes.filter((p) => !c.pipes.includes(p.id)) } };
+    const nodeAt = poolNodeAt(this._doc, floor, rest);
+    const from = forward ? c.start : c.other;
+    const to = forward ? c.other : c.start;
+    const viasInOrder = forward ? vias : [...c.holes].reverse().map((h) => ({ kind: "hole" as const, joint: h.joint, dir: h.dir === "in" ? ("out" as const) : ("in" as const) })).concat(c.fittings.map((k) => ({ kind: k })) as never[]);
+    const made = planConnection({ from, vias: viasInOrder, to: [to], floorId: floor.id }, nodeAt, a.pool?.joints ?? [], () => false, (k) => uid(k));
+    this.changePool(a.id, (l) => {
+      l.pipes = [...(l.pipes ?? []).filter((p) => !c.pipes.includes(p.id)), ...made.pipes];
+    });
+  }
+
+  /** A part's card: its name, a small drawing with its connections, and per connection where it goes or how to join it. */
+  private renderPartCard() {
+    const card = this._card;
+    const a = card ? this._doc.floors.flatMap((f) => f.outdoor).find((o) => o.id === card.pool) : undefined;
+    if (!card || !a) return nothing;
+    const admin = this.isAdmin;
+    const { kind, id } = splitNode(card.part);
+    const joint = kind === "joint" ? a.pool?.joints?.find((x) => x.id === id) : undefined;
+    const dev = kind === "dev" ? this._doc.floors.flatMap((f) => f.furniture).find((m) => m.id === id) : undefined;
+    const port = kind === "port" ? a.pool?.ports?.find((x) => x.id === id) : undefined;
+    if (!joint && !dev && !port) return nothing;
+    const pipes = a.pool?.pipes ?? [];
+    const joints = a.pool?.joints ?? [];
+    const ports = this.partPorts(a, card.part);
+    const ends = this.poolEnds(a).filter((e) => nodePart(e.node) !== card.part && !e.used);
+    const holes = joints.filter((j) => j.kind === "wall" || j.kind === "floor");
+    const label = (n: string) => this.poolNodeLabel(a, n);
+    const portName = (n: string) => {
+      const q = splitNode(n).port;
+      return q ? this.t(`port_${q}` as I18nKey) : this.t("card_port");
+    };
+    const viaText = (v: ConnectVia) => (v.kind === "hole" ? this.t(v.dir === "in" ? "conn_hole_in" : "conn_hole_out", { name: this.jointLabel(a, v.joint) }) : this.t(v.kind === "valve" ? "wall_run_valve" : "wall_run_sight"));
+    const close = () => {
+      this._card = null;
+      this._cardJoin = null;
+    };
+    const where = (): Vec2 | null => {
+      if (joint) return [joint.x, joint.z];
+      if (dev) return [dev.x, dev.z];
+      return port ? [port.x, port.z] : null;
+    };
+    const rows = ports.map((n) => {
+      const conns = connectionsAt(pipes, joints, n);
+      const join = this._cardJoin?.port === n ? this._cardJoin : null;
+      return html`<div class="fp3d-pc-row ${conns.length ? "fp3d-on" : ""}">
+        <b>${portName(n)}</b>
+        <div class="fp3d-pc-conns">
+          ${conns.map(
+            (c) => html`<div class="fp3d-pc-conn">
+              <span>→</span>
+              ${c.other
+                ? html`<button class="fp3d-link" title=${this.t("card_open_other")} @click=${() => this.openCard(a.id, nodePart(c.other))}>${label(c.other)}</button>`
+                : html`<span class="fp3d-muted">${this.t("pool_loose_end")}</span>`}
+              ${c.holes.length || c.fittings.length
+                ? html`<span class="fp3d-muted">${this.t("card_via")} ${[...c.holes.map((h) => viaText({ kind: "hole", joint: h.joint, dir: h.dir })), ...c.fittings.map((k) => viaText({ kind: k }))].join(", ")}</span>`
+                : nothing}
+              ${admin
+                ? html`<span class="fp3d-pc-tools">
+                    ${c.other ? html`<button class="fp3d-btn" @click=${() => this.cardReroute(a, c)}>${this.t("card_reroute")}</button>` : nothing}
+                    <button class="fp3d-btn fp3d-danger" @click=${() => this.cardDisconnect(a, c)}>${this.t("card_disconnect")}</button>
+                  </span>`
+                : nothing}
+            </div>`,
+          )}
+          ${admin && (!conns.length || ports.length === 1)
+            ? join
+              ? html`<div class="fp3d-pc-join">
+                  <select @change=${(e: Event) => (this._cardJoin = { ...join, to: (e.target as HTMLSelectElement).value })}>
+                    <option value="" ?selected=${!join.to}>${this.t("card_with")}</option>
+                    ${ends.map((e) => html`<option value=${e.node} ?selected=${join.to === e.node}>${e.label}</option>`)}
+                  </select>
+                  <div class="fp3d-chips">
+                    ${join.vias.map((v, i) => html`<button class="fp3d-chip" @click=${() => (this._cardJoin = { ...join, vias: join.vias.filter((_, k) => k !== i) })}>${i + 1}. ${viaText(v)} ✕</button>`)}
+                    <select
+                      @change=${(e: Event) => {
+                        const el = e.target as HTMLSelectElement;
+                        const v = el.value;
+                        el.value = "";
+                        if (!v) return;
+                        const [hid, dir] = v.split("|");
+                        const via: ConnectVia = v === "valve" || v === "sight" ? { kind: v } : { kind: "hole", joint: hid, dir: dir === "in" ? "in" : "out" };
+                        this._cardJoin = { ...join, vias: [...join.vias, via] };
+                      }}
+                    >
+                      <option value="">${this.t("conn_add_via")}</option>
+                      ${holes.flatMap((j) => (["out", "in"] as const).map((dir) => html`<option value=${`${j.id}|${dir}`}>${viaText({ kind: "hole", joint: j.id, dir })}</option>`))}
+                      <option value="valve">${this.t("wall_run_valve")}</option>
+                      <option value="sight">${this.t("wall_run_sight")}</option>
+                    </select>
+                  </div>
+                  <span class="fp3d-pc-tools">
+                    <button class="fp3d-btn fp3d-primary" ?disabled=${!join.to} @click=${() => this.cardConnect(a, n, join.to, join.vias)}>${this.t("card_connect")}</button>
+                    <button class="fp3d-btn" @click=${() => (this._cardJoin = null)}>${this.t("cancel")}</button>
+                  </span>
+                </div>`
+              : html`<button class="fp3d-btn ${conns.length ? "" : "fp3d-pc-open"}" @click=${() => (this._cardJoin = { port: n, to: "", vias: [] })}>+ ${this.t("card_connect_with")}</button>`
+            : nothing}
+        </div>
+      </div>`;
+    });
+    const [done, all] = this.partStatus(a, card.part);
+    const at = where();
+    return html`<div class="fp3d-wv-veil fp3d-pc-veil" @click=${(e: Event) => e.target === e.currentTarget && close()}>
+      <div class="fp3d-pc" role="dialog" tabindex="0" @keydown=${(e: KeyboardEvent) => e.key === "Escape" && close()}>
+        <div class="fp3d-wv-head">
+          ${joint && admin
+            ? html`<input
+                class="fp3d-pc-name"
+                .value=${joint.name ?? ""}
+                placeholder=${this.jointLabel(a, joint.id)}
+                title=${this.t("joint_name")}
+                @change=${(e: Event) => {
+                  const v = (e.target as HTMLInputElement).value.trim().slice(0, 60);
+                  this.changePool(a.id, (l) => {
+                    const x = l.joints?.find((q) => q.id === joint.id);
+                    if (x) x.name = v || null;
+                  });
+                }}
+              />`
+            : html`<b class="fp3d-pc-title">${label(card.part)}</b>`}
+          <span class="fp3d-muted">${this.t("card_status", { a: done, b: all })}</span>
+          <span class="fp3d-wv-grow"></span>
+          <button class="fp3d-btn" title=${this.t("close")} @click=${close}>✕</button>
+        </div>
+        <div class="fp3d-pc-body">
+          ${this.renderPartDrawing(a, card.part, ports)}
+          <div class="fp3d-pc-rows">${rows}</div>
+        </div>
+        <div class="fp3d-wv-foot">
+          ${at
+            ? html`<button class="fp3d-btn" @click=${() => {
+                close();
+                this._wallView = null;
+                this._tool = "pool";
+                this.showPoint(at[0], at[1]);
+              }}>${this.t("card_show_plan")}</button>`
+            : nothing}
+          ${at && !port
+            ? html`<button class="fp3d-btn" @click=${() => {
+                close();
+                this.pickWall(at);
+              }}>▦ ${this.t("card_show_wall")}</button>`
+            : nothing}
+          <span class="fp3d-wv-grow"></span>
+          ${admin
+            ? html`<button class="fp3d-btn fp3d-danger" @click=${() => {
+                close();
+                if (dev) this.deletePoolDevice(dev.id);
+                else if (port) this.deletePoolPort(a.id, port.id);
+                else if (joint)
+                  this.changePool(a.id, (l) => {
+                    l.joints = (l.joints ?? []).filter((x) => x.id !== joint.id);
+                    l.pipes = (l.pipes ?? []).filter((p) => nodePart(p.from) !== card.part && nodePart(p.to) !== card.part);
+                  });
+              }}>${this.t("delete")}</button>`
+            : nothing}
+        </div>
+      </div>
+    </div>`;
+  }
+
+  /**
+   * A small drawing of a part with its connections as labelled stubs (joined: lit, open: dashed): a T-piece with
+   * its entry left and exits right and down, a Y-piece, a hole through a wall, the pump, the filter's valve, the
+   * heat pump, a port at the pool.
+   */
+  private renderPartDrawing(a: OutdoorArea, part: string, ports: string[]) {
+    const pipes = a.pool?.pipes ?? [];
+    const on = (n: string) => pipes.some((p) => p.from === n || p.to === n);
+    const { kind, id } = splitNode(part);
+    const joint = kind === "joint" ? a.pool?.joints?.find((x) => x.id === id) : undefined;
+    const dev = kind === "dev" ? this._doc.floors.flatMap((f) => f.furniture).find((m) => m.id === id) : undefined;
+    // where each connection's stub ends (drawing 200 x 140)
+    const at: Record<string, [number, number]> = {};
+    let body: unknown = nothing;
+    const t = joint?.kind ?? (dev ? dev.type : "port");
+    if (t === "tee") {
+      Object.assign(at, { in: [20, 60], out1: [180, 60], out2: [100, 130] });
+      body = svg`<path class="fp3d-pc-body-shape" d="M 55 48 H 145 V 72 H 112 V 100 H 88 V 72 H 55 Z" />`;
+    } else if (t === "y") {
+      Object.assign(at, { in: [20, 70], out1: [180, 25], out2: [180, 115] });
+      body = svg`<path class="fp3d-pc-body-shape" d="M 55 58 H 95 L 140 30 L 152 50 L 112 70 L 152 90 L 140 110 L 95 82 H 55 Z" />`;
+    } else if (t === "wall" || t === "floor") {
+      Object.assign(at, { outside: [20, 70], inside: [180, 70] });
+      body = svg`<rect class="fp3d-pc-wall" x="85" y="10" width="30" height="120" /><rect class="fp3d-pc-body-shape" x="70" y="58" width="60" height="24" rx="4" />
+        <text class="fp3d-pc-side" x="40" y="22">${this.t("port_outside")}</text><text class="fp3d-pc-side" x="160" y="22">${this.t("port_inside")}</text>`;
+    } else if (t === "pool_pump") {
+      Object.assign(at, { suction: [20, 95], pressure: [110, 10] });
+      body = svg`<rect class="fp3d-pc-body-shape" x="50" y="70" width="70" height="50" rx="8" /><circle class="fp3d-pc-body-shape" cx="140" cy="85" r="30" /><rect class="fp3d-pc-body-shape" x="98" y="40" width="24" height="32" />`;
+    } else if (t === "pool_filter") {
+      Object.assign(at, { pump: [20, 40], return: [180, 40], waste: [100, 4] });
+      body = svg`<ellipse class="fp3d-pc-body-shape" cx="100" cy="95" rx="45" ry="40" /><rect class="fp3d-pc-body-shape" x="70" y="28" width="60" height="26" rx="10" />`;
+    } else if (t === "pool_heat_pump") {
+      Object.assign(at, { in: [180, 95], out: [180, 45] });
+      body = svg`<rect class="fp3d-pc-body-shape" x="30" y="20" width="120" height="100" rx="8" /><circle class="fp3d-pc-fan" cx="80" cy="70" r="32" />`;
+    } else {
+      at[""] = [180, 70];
+      body = svg`<circle class="fp3d-pc-body-shape" cx="80" cy="70" r="40" />`;
+    }
+    const centre: [number, number] = t === "pool_filter" ? [100, 41] : t === "pool_pump" ? [100, 85] : [100, 70];
+    return html`<svg class="fp3d-pc-draw" viewBox="0 0 200 140">
+      ${ports.map((n) => {
+        const q = splitNode(n).port ?? "";
+        const end = at[q] ?? at[""] ?? [180, 70];
+        const lit = on(n);
+        return svg`<g class="fp3d-pc-stub ${lit ? "fp3d-on" : ""}" @click=${() => this.isAdmin && !lit && (this._cardJoin = { port: n, to: "", vias: [] })}>
+          <line x1=${centre[0]} y1=${centre[1]} x2=${end[0]} y2=${end[1]} />
+          <circle cx=${end[0]} cy=${end[1]} r="7" />
+          <title>${q ? this.t(`port_${q}` as I18nKey) : ""}</title>
+        </g>`;
+      })}
+      ${body}
+      ${ports.map((n) => {
+        const q = splitNode(n).port;
+        const end = at[q ?? ""] ?? [180, 70];
+        // labels kept inside the drawing (a stub at the edge gets its name pulled in)
+        return q ? svg`<text class="fp3d-pc-label" x=${Math.min(162, Math.max(38, end[0]))} y=${end[1] < 70 ? end[1] + 20 : end[1] - 12}>${this.t(`port_${q}` as I18nKey)}</text>` : nothing;
+      })}
+    </svg>`;
+  }
+
   /** "T-piece 1", "Y-piece 1", "Hole 2 (wall)": numbered by kind (holes together). */
   private jointLabel(a: OutdoorArea, id: string): string {
     const all = a.pool?.joints ?? [];
@@ -6844,26 +7146,6 @@ export class Fp3dEditor extends LitElement {
         out.push({ node: n, label: this.poolNodeLabel(a, n), used: used(n) });
       }
     return out;
-  }
-
-  /** Lays the connection put together in the pool tool. */
-  private createConnection(a: OutdoorArea): void {
-    const c = this._conn;
-    const floor = this._doc.floors.find((f) => f.outdoor.some((o) => o.id === a.id));
-    if (!c.from || !c.to || !floor) return;
-    const nodeAt = poolNodeAt(this._doc, floor, a);
-    const ports = a.pool?.ports ?? [];
-    const suction = (n: string) => {
-      const { kind, id, port } = splitNode(n);
-      return (kind === "port" && ports.some((q) => q.id === id && (q.kind === "skimmer" || q.kind === "drain"))) || port === "suction";
-    };
-    const made = planConnection({ from: c.from, vias: c.vias, to: [c.to, ...(c.to2 ? [c.to2] : [])], floorId: floor.id }, nodeAt, a.pool?.joints ?? [], (n) => suction(n) && !n.startsWith("dev:"), (k) => uid(k));
-    this.changePool(a.id, (l) => {
-      l.joints = [...(l.joints ?? []), ...made.joints];
-      l.pipes = [...(l.pipes ?? []), ...made.pipes];
-    });
-    this._conn = { from: "", vias: [], to: "", to2: "" };
-    this._pipeId = made.pipes[0]?.id ?? null;
   }
 
   /**
@@ -7041,7 +7323,8 @@ export class Fp3dEditor extends LitElement {
         </div>
         ${ports.map(
           (p) => html`<div class="fp3d-pool-row">
-            <span>${this.poolNodeLabel(a, `port:${p.id}`)}</span>
+            <button class="fp3d-link" title=${this.t("card_open")} @click=${() => this.openCard(a.id, `port:${p.id}`)}>${this.poolNodeLabel(a, `port:${p.id}`)}</button>
+            <span class="fp3d-muted">${this.partStatus(a, `port:${p.id}`)[0] ? "✓" : "○"}</span>
             <button class="fp3d-btn fp3d-danger" ?disabled=${!admin} title=${this.t("delete")} @click=${() => this.deletePoolPort(a.id, p.id)}>✕</button>
           </div>`,
         )}
@@ -7056,7 +7339,7 @@ export class Fp3dEditor extends LitElement {
         </div>
         ${devs.map(
           (f) => html`<div class="fp3d-pool-row">
-            <span>${this.poolNodeLabel(a, `dev:${f.id}`)}</span>
+            <button class="fp3d-link" title=${this.t("card_open")} @click=${() => this.openCard(a.id, `dev:${f.id}`)}>${this.poolNodeLabel(a, `dev:${f.id}`)}</button>
             <span class="fp3d-ports">${devicePorts(f.type).map((q) => html`<i class=${pipes.some((p) => p.from === `dev:${f.id}:${q}` || p.to === `dev:${f.id}:${q}`) ? "fp3d-on" : ""}>${this.t(`port_${q}` as I18nKey)}</i>`)}</span>
             ${f.type === "pool_filter"
               ? html`<select ?disabled=${!admin} title=${this.t("pool_valve_type")} @change=${(e: Event) => this.setPoolDevice(f.id, { variant: (e.target as HTMLSelectElement).value === "top6" ? null : (e.target as HTMLSelectElement).value })}>
@@ -7076,20 +7359,7 @@ export class Fp3dEditor extends LitElement {
         )}
         ${(a.pool?.joints ?? []).map(
           (j) => html`<div class="fp3d-pool-row">
-            <input
-              class="fp3d-joint-name"
-              .value=${j.name ?? ""}
-              placeholder=${this.jointLabel(a, j.id)}
-              title=${this.t("joint_name")}
-              ?disabled=${!admin}
-              @change=${(e: Event) => {
-                const v = (e.target as HTMLInputElement).value.trim().slice(0, 60);
-                this.changePool(a.id, (l) => {
-                  const x = l.joints?.find((q) => q.id === j.id);
-                  if (x) x.name = v || null;
-                });
-              }}
-            />
+            <button class="fp3d-link" title=${this.t("card_open")} @click=${() => this.openCard(a.id, `joint:${j.id}`)}>${this.jointLabel(a, j.id)}</button>
             <span class="fp3d-ports">${jointPorts(j.kind).map((q) => {
               const n = `joint:${j.id}:${q}`;
               const on = pipes.some((p) => p.from === n || p.to === n || ((j.kind ?? "tee") !== "wall" && (j.kind ?? "tee") !== "floor" && nodePart(p.from) === `joint:${j.id}` && !splitNode(p.from).port && q === "in"));
@@ -7104,7 +7374,7 @@ export class Fp3dEditor extends LitElement {
         )}
         <p class="fp3d-sub">${this.t("pool_holes_hint")}</p>
       </section>
-      ${admin ? this.renderConnForm(a) : nothing}
+
       <section>
         <h3>${this.t("pool_pipes")}</h3>
         <div class="fp3d-actions">
@@ -7125,56 +7395,6 @@ export class Fp3dEditor extends LitElement {
           : nothing}
         ${hasFeature("pool") || !released("pool") ? nothing : html`<p class="fp3d-sub">${this.t("pool_pipes_pro")}</p>`}
       </section>`;
-  }
-
-  /** "Add a pipe": from a part's connection, through holes, ball valves and sight glasses, to one or two ends. */
-  private renderConnForm(a: OutdoorArea) {
-    const c = this._conn;
-    const ends = this.poolEnds(a);
-    const holes = (a.pool?.joints ?? []).filter((j) => j.kind === "wall" || j.kind === "floor");
-    const pick = (value: string, set: (v: string) => void, label: I18nKey, optional = false) => html`<label class="fp3d-field"
-      >${this.t(label)}
-      <select @change=${(e: Event) => set((e.target as HTMLSelectElement).value)}>
-        <option value="" ?selected=${!value}>${optional ? "—" : this.t("conn_choose")}</option>
-        ${ends.map((e) => html`<option value=${e.node} ?selected=${value === e.node}>${e.label}${e.used ? ` (${this.t("port_used")})` : ""}</option>`)}
-      </select></label
-    >`;
-    const holeText = (id: string, dir: "in" | "out") => this.t(dir === "out" ? "conn_hole_out" : "conn_hole_in", { name: this.jointLabel(a, id) });
-    const viaLabel = (v: ConnectVia) => (v.kind === "hole" ? (v.dir ? holeText(v.joint, v.dir) : this.jointLabel(a, v.joint)) : this.t(v.kind === "valve" ? "wall_run_valve" : "wall_run_sight"));
-    return html`<section>
-      <h3>${this.t("conn_add")}</h3>
-      <div class="fp3d-form fp3d-conn">
-        ${pick(c.from, (v) => (this._conn = { ...c, from: v }), "conn_from")}
-        <div class="fp3d-field">
-          ${this.t("conn_via")}
-          <div class="fp3d-chips">
-            ${c.vias.map((v, i) => html`<button class="fp3d-chip" title=${this.t("delete")} @click=${() => (this._conn = { ...c, vias: c.vias.filter((_, k) => k !== i) })}>${i + 1}. ${viaLabel(v)} ✕</button>`)}
-            <select
-              @change=${(e: Event) => {
-                const el = e.target as HTMLSelectElement;
-                const v = el.value;
-                el.value = "";
-                if (!v) return;
-                const [id, dir] = v.split("|");
-                const via: ConnectVia = v === "valve" || v === "sight" ? { kind: v } : { kind: "hole", joint: id, dir: dir === "in" ? "in" : "out" };
-                this._conn = { ...c, vias: [...c.vias, via] };
-              }}
-            >
-              <option value="">${this.t("conn_add_via")}</option>
-              ${holes.flatMap((j) => (["out", "in"] as const).map((dir) => html`<option value=${`${j.id}|${dir}`}>${holeText(j.id, dir)}</option>`))}
-              <option value="valve">${this.t("wall_run_valve")}</option>
-              <option value="sight">${this.t("wall_run_sight")}</option>
-            </select>
-          </div>
-        </div>
-        ${pick(c.to, (v) => (this._conn = { ...c, to: v }), "conn_to")}
-        ${pick(c.to2, (v) => (this._conn = { ...c, to2: v }), "conn_and", true)}
-      </div>
-      <div class="fp3d-actions">
-        <button class="fp3d-btn fp3d-primary" ?disabled=${!c.from || !c.to} @click=${() => this.createConnection(a)}>${this.t("conn_create")}</button>
-      </div>
-      <p class="fp3d-sub">${this.t("conn_hint")}</p>
-    </section>`;
   }
 
   /** A pool's shape and size (a round one by its diameter, an oval one by its box) and whether it stands above ground. */
@@ -10636,6 +10856,139 @@ export class Fp3dEditor extends LitElement {
       }
       .fp3d-wv-hole-mark text {
         fill: var(--fp3d-warm);
+      }
+      .fp3d-pc-veil {
+        z-index: 70;
+      }
+      .fp3d-pc {
+        width: min(760px, 100%);
+        max-height: calc(100vh - 32px);
+        overflow: auto;
+        display: grid;
+        gap: 12px;
+        padding: 14px 16px;
+        border-radius: 16px;
+        background: var(--fp3d-chrome-solid);
+        border: 1px solid var(--fp3d-line);
+        box-shadow: var(--fp3d-shadow);
+        outline: none;
+      }
+      .fp3d-pc-title {
+        font-size: 17px;
+      }
+      .fp3d-pc-name {
+        font: inherit;
+        font-size: 17px;
+        font-weight: 700;
+        padding: 4px 8px;
+        border-radius: 8px;
+        border: 1px solid var(--fp3d-line);
+        background: transparent;
+        color: inherit;
+        min-width: 0;
+        flex: 1;
+        max-width: 320px;
+      }
+      .fp3d-pc-body {
+        display: grid;
+        grid-template-columns: 220px minmax(0, 1fr);
+        gap: 14px;
+        align-items: start;
+      }
+      @media (max-width: 640px) {
+        .fp3d-pc-body {
+          grid-template-columns: 1fr;
+        }
+      }
+      .fp3d-pc-draw {
+        width: 100%;
+        border-radius: 12px;
+        background: rgba(120, 170, 255, 0.05);
+        border: 1px solid var(--fp3d-line);
+      }
+      .fp3d-pc-body-shape {
+        fill: #2a313a;
+        stroke: #8a929c;
+        stroke-width: 2;
+      }
+      .fp3d-pc-fan {
+        fill: none;
+        stroke: #8a929c;
+        stroke-width: 2;
+        stroke-dasharray: 6 4;
+      }
+      .fp3d-pc-wall {
+        fill: rgba(120, 170, 255, 0.18);
+        stroke: var(--fp3d-line);
+      }
+      .fp3d-pc-side {
+        fill: var(--fp3d-muted);
+        font-size: 11px;
+        text-anchor: middle;
+      }
+      .fp3d-pc-stub line {
+        stroke: #8a929c;
+        stroke-width: 10;
+        stroke-dasharray: 6 4;
+      }
+      .fp3d-pc-stub circle {
+        fill: #0b1220;
+        stroke: var(--fp3d-warm);
+        stroke-width: 2;
+        stroke-dasharray: 3 2;
+      }
+      .fp3d-pc-stub {
+        cursor: pointer;
+      }
+      .fp3d-pc-stub.fp3d-on line {
+        stroke: #8a929c;
+        stroke-dasharray: none;
+      }
+      .fp3d-pc-stub.fp3d-on circle {
+        fill: var(--fp3d-accent);
+        stroke: var(--fp3d-accent);
+        stroke-dasharray: none;
+      }
+      .fp3d-pc-label {
+        fill: var(--fp3d-text, #dfe7f5);
+        font-size: 11px;
+        font-weight: 700;
+        text-anchor: middle;
+      }
+      .fp3d-pc-rows {
+        display: grid;
+        gap: 8px;
+      }
+      .fp3d-pc-row {
+        display: grid;
+        grid-template-columns: 110px minmax(0, 1fr);
+        gap: 8px;
+        padding: 8px 10px;
+        border-radius: 10px;
+        border: 1px dashed var(--fp3d-line);
+      }
+      .fp3d-pc-row.fp3d-on {
+        border-style: solid;
+        border-color: rgba(55, 224, 255, 0.45);
+      }
+      .fp3d-pc-conns,
+      .fp3d-pc-join {
+        display: grid;
+        gap: 6px;
+      }
+      .fp3d-pc-conn {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 6px;
+      }
+      .fp3d-pc-tools {
+        display: inline-flex;
+        gap: 6px;
+        margin-left: auto;
+      }
+      .fp3d-pc-open {
+        border-style: dashed;
       }
       .fp3d-joint-name {
         flex: 1;

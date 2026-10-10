@@ -67,7 +67,7 @@ export function splitPipe(p: PoolPipe, nodeAt: NodeAt, at: P3, jointId: string, 
   const fits = laid.fittings ?? [];
   const first: PoolPipe = {
     ...laid,
-    to: `joint:${jointId}`,
+    to: `joint:${jointId}:in`,
     points: laid.points.slice(0, cut),
     heights: heights.slice(0, cut),
     fittings: fits.filter((f) => f.at <= hit.at),
@@ -75,7 +75,7 @@ export function splitPipe(p: PoolPipe, nodeAt: NodeAt, at: P3, jointId: string, 
   const second: PoolPipe = {
     ...laid,
     id: newId,
-    from: `joint:${jointId}`,
+    from: `joint:${jointId}:out1`,
     points: laid.points.slice(cut),
     heights: heights.slice(cut),
     fittings: fits.filter((f) => f.at > hit.at).map((f) => ({ ...f, at: r3(f.at - hit.at) })),
@@ -264,4 +264,52 @@ export function autoRoute(p: { x: number; y: number; z: number }, q: { x: number
   pts.push(...tail);
   // no point twice
   return pts.filter((v, i) => i === 0 || Math.hypot(v[0] - pts[i - 1][0], v[1] - pts[i - 1][1], v[2] - pts[i - 1][2]) > 0.001);
+}
+
+/** One connection from a part's connection to the next part: its pipes (through holes), the holes passed and its fittings. */
+export interface Connection {
+  /** The connection it starts at and the one it reaches ("" a loose end). */
+  start: string;
+  other: string;
+  pipes: string[];
+  holes: { joint: string; dir: "in" | "out" }[];
+  fittings: ("valve" | "sight")[];
+}
+
+/**
+ * The connections at a node (a part's connection, or a part as a whole for older pipes): each pipe there followed
+ * through the holes it passes to the next part.
+ */
+export function connectionsAt(pipes: readonly PoolPipe[], joints: readonly PoolJoint[], start: string): Connection[] {
+  const isHole = (n: string) => {
+    const { kind, id, port } = splitNode(n);
+    const j = kind === "joint" && (port === "inside" || port === "outside") ? joints.find((x) => x.id === id) : undefined;
+    return j && (j.kind === "wall" || j.kind === "floor") ? { id, port: port as "inside" | "outside" } : null;
+  };
+  const out: Connection[] = [];
+  for (const first of pipes.filter((p) => p.from === start || p.to === start)) {
+    const c: Connection = { start, other: "", pipes: [], holes: [], fittings: [] };
+    let pipe: PoolPipe | undefined = first;
+    let at = start;
+    const seen = new Set<string>();
+    while (pipe && !seen.has(pipe.id)) {
+      seen.add(pipe.id);
+      c.pipes.push(pipe.id);
+      c.fittings.push(...(pipe.fittings ?? []).map((f) => f.kind));
+      const next: string = pipe.from === at ? pipe.to : pipe.from;
+      const hole = next ? isHole(next) : null;
+      if (!hole) {
+        c.other = next;
+        break;
+      }
+      // through the hole: on with the pipe at its other side
+      c.holes.push({ joint: hole.id, dir: hole.port === "inside" ? "out" : "in" });
+      at = `joint:${hole.id}:${hole.port === "inside" ? "outside" : "inside"}`;
+      const cur: PoolPipe = pipe;
+      pipe = pipes.find((p) => p !== cur && (p.from === at || p.to === at));
+      if (!pipe) c.other = at;
+    }
+    out.push(c);
+  }
+  return out;
 }

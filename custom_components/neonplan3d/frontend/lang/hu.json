@@ -1564,5 +1564,17 @@
  "hint_joint_place": "T- vagy Y-idom: koppints az alaprajzra – csőre koppintva a csőbe kerül",
  "joint_name": "Név (pl. skimmer lyuk)",
  "conn_hole_out": "{name}: belülről kifelé",
- "conn_hole_in": "{name}: kívülről befelé"
+ "conn_hole_in": "{name}: kívülről befelé",
+ "card_open": "Csatlakozók",
+ "card_open_other": "Az alkatrész kártyájának megnyitása",
+ "card_port": "Csatlakozó",
+ "card_via": "át",
+ "card_reroute": "Újrafektetés",
+ "card_disconnect": "Leválasztás",
+ "card_with": "összekötés ezzel …",
+ "card_connect": "Összekötés",
+ "card_connect_with": "Összekötés ezzel …",
+ "card_status": "{b}-ből {a} bekötve",
+ "card_show_plan": "Megmutatás az alaprajzon",
+ "card_show_wall": "Megmutatás a falnézetben"
 }
