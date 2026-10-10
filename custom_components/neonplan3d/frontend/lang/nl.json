@@ -1489,5 +1489,14 @@
  "pack_error_needs_update": "Deze uitbreiding heeft een nieuwere versie van NeonPlan 3D nodig. Werk eerst bij (HACS › NeonPlan 3D › ⋮ › \"Informatie bijwerken\" › \"Downloaden\"), herstart Home Assistant en installeer opnieuw.",
  "license_error_needs_update": "Deze uitbreiding heeft een nieuwere versie van NeonPlan 3D nodig. Werk eerst bij (HACS › NeonPlan 3D › ⋮ › \"Informatie bijwerken\" › \"Downloaden\"), herstart Home Assistant en installeer opnieuw.",
  "inverter_strings": "Strings op deze omvormer: {names}",
- "inverter_strings_none": "Nog geen string op deze omvormer – wijs hem toe bij een zonneveld onder String › Omvormer."
+ "inverter_strings_none": "Nog geen string op deze omvormer – wijs hem toe bij een zonneveld onder String › Omvormer.",
+ "wall_view": "Wandaanzicht",
+ "wall_view_open": "De wand van voren bekijken: meubels langs de wand en in de hoogte verschuiven",
+ "wall_view_hint": "Slepen verschuift langs de wand en – bij hangende stukken – in de hoogte · pijltjestoetsen 1 cm, met Shift 10 cm · randen klikken vast aan wanduiteinden, deuren, ramen en andere meubels (Alt: vrij) · dubbelklik opent het meubel in de plattegrond",
+ "wall_view_empty": "Er staat nog niets tegen deze wand – meubels met de rug tegen de wand of eraan hangend verschijnen hier.",
+ "wall_view_left": "Afstand vanaf links (m)",
+ "wall_view_floor": "staat op de vloer",
+ "wall_view_form": "Bewerken in de plattegrond",
+ "wall_prev": "Vorige wand",
+ "wall_next": "Volgende wand"
 }

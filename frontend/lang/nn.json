@@ -1489,5 +1489,14 @@
  "pack_error_needs_update": "Dette tillegget krev ein nyare versjon av NeonPlan 3D. Oppdater først (HACS › NeonPlan 3D › ⋮ › «Oppdateringsinformasjon» › «Last ned»), start Home Assistant på nytt og installer igjen.",
  "license_error_needs_update": "Dette tillegget krev ein nyare versjon av NeonPlan 3D. Oppdater først (HACS › NeonPlan 3D › ⋮ › «Oppdateringsinformasjon» › «Last ned»), start Home Assistant på nytt og installer igjen.",
  "inverter_strings": "Strengar på denne vekselrettaren: {names}",
- "inverter_strings_none": "Ingen strengar på denne vekselrettaren enno – tildel ein ved eit solcellefelt under Streng › Vekselrettar."
+ "inverter_strings_none": "Ingen strengar på denne vekselrettaren enno – tildel ein ved eit solcellefelt under Streng › Vekselrettar.",
+ "wall_view": "Veggvising",
+ "wall_view_open": "Sjå veggen framanfrå: flytt møblar langs veggen og i høgda",
+ "wall_view_hint": "Dra flyttar langs veggen og – for hengjande ting – i høgda · piltastar 1 cm, med Shift 10 cm · kantar festar seg til veggendane, dører, vindauge og andre møblar (Alt: fritt) · dobbeltklikk opnar møbelet i plangrunnen",
+ "wall_view_empty": "Ingenting ved denne veggen enno – møblar med ryggen mot veggen eller som heng på han, viser seg her.",
+ "wall_view_left": "Avstand frå venstre (m)",
+ "wall_view_floor": "står på golvet",
+ "wall_view_form": "Rediger i plangrunnen",
+ "wall_prev": "Førre vegg",
+ "wall_next": "Neste vegg"
 }

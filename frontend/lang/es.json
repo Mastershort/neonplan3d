@@ -1489,5 +1489,14 @@
  "pack_error_needs_update": "Esta extensión necesita una versión más reciente de NeonPlan 3D. Actualiza primero (HACS › NeonPlan 3D › ⋮ › \"Actualizar información\" › \"Descargar\"), reinicia Home Assistant y vuelve a instalar.",
  "license_error_needs_update": "Esta extensión necesita una versión más reciente de NeonPlan 3D. Actualiza primero (HACS › NeonPlan 3D › ⋮ › \"Actualizar información\" › \"Descargar\"), reinicia Home Assistant y vuelve a instalar.",
  "inverter_strings": "Strings en este inversor: {names}",
- "inverter_strings_none": "Aún no hay ningún string en este inversor; asígnalo en un campo solar en String › Inversor."
+ "inverter_strings_none": "Aún no hay ningún string en este inversor; asígnalo en un campo solar en String › Inversor.",
+ "wall_view": "Vista de pared",
+ "wall_view_open": "Ver la pared de frente: mover los muebles a lo largo de la pared y en altura",
+ "wall_view_hint": "Arrastrar mueve a lo largo de la pared y – si cuelga – en altura · flechas 1 cm, con Mayús 10 cm · los bordes se ajustan a los extremos de la pared, puertas, ventanas y otros muebles (Alt: libre) · doble clic abre el mueble en el plano",
+ "wall_view_empty": "Todavía no hay nada en esta pared: aquí aparecen los muebles apoyados en ella o colgados.",
+ "wall_view_left": "Distancia desde la izquierda (m)",
+ "wall_view_floor": "está en el suelo",
+ "wall_view_form": "Editar en el plano",
+ "wall_prev": "Pared anterior",
+ "wall_next": "Pared siguiente"
 }

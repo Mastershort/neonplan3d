@@ -1489,5 +1489,14 @@
  "pack_error_needs_update": "Tämä lisäosa tarvitsee NeonPlan 3D:n uudemman version. Päivitä ensin (HACS › NeonPlan 3D › ⋮ › \"Update information\" › \"Download\"), käynnistä Home Assistant uudelleen ja asenna sitten uudelleen.",
  "license_error_needs_update": "Tämä lisäosa tarvitsee NeonPlan 3D:n uudemman version. Päivitä ensin (HACS › NeonPlan 3D › ⋮ › \"Update information\" › \"Download\"), käynnistä Home Assistant uudelleen ja asenna sitten uudelleen.",
  "inverter_strings": "Tämän invertterin stringit: {names}",
- "inverter_strings_none": "Tällä invertterillä ei ole vielä stringiä – määritä se aurinkopaneelikentässä kohdassa String › Invertteri."
+ "inverter_strings_none": "Tällä invertterillä ei ole vielä stringiä – määritä se aurinkopaneelikentässä kohdassa String › Invertteri.",
+ "wall_view": "Seinänäkymä",
+ "wall_view_open": "Katso seinää edestä: siirrä huonekaluja seinää pitkin ja korkeussuunnassa",
+ "wall_view_hint": "Vetämällä siirrät seinää pitkin ja – riippuvia – korkeussuunnassa · nuolinäppäimet 1 cm, Vaihto-näppäimellä 10 cm · reunat tarttuvat seinän päihin, oviin, ikkunoihin ja muihin huonekaluihin (Alt: vapaasti) · kaksoisnapsautus avaa huonekalun pohjapiirroksessa",
+ "wall_view_empty": "Tämän seinän luona ei ole vielä mitään – selkä seinää vasten seisovat tai siinä riippuvat huonekalut näkyvät tässä.",
+ "wall_view_left": "Etäisyys vasemmalta (m)",
+ "wall_view_floor": "seisoo lattialla",
+ "wall_view_form": "Muokkaa pohjapiirroksessa",
+ "wall_prev": "Edellinen seinä",
+ "wall_next": "Seuraava seinä"
 }

@@ -1489,5 +1489,14 @@
  "pack_error_needs_update": "Denne tilføjelse kræver en nyere version af NeonPlan 3D. Opdatér først (HACS › NeonPlan 3D › ⋮ › \"Opdateringsoplysninger\" › \"Download\"), genstart Home Assistant, og installér så igen.",
  "license_error_needs_update": "Denne tilføjelse kræver en nyere version af NeonPlan 3D. Opdatér først (HACS › NeonPlan 3D › ⋮ › \"Opdateringsoplysninger\" › \"Download\"), genstart Home Assistant, og installér så igen.",
  "inverter_strings": "Strenge på denne inverter: {names}",
- "inverter_strings_none": "Ingen streng på denne inverter endnu – tildel den ved et solcellefelt under Streng › Inverter."
+ "inverter_strings_none": "Ingen streng på denne inverter endnu – tildel den ved et solcellefelt under Streng › Inverter.",
+ "wall_view": "Vægvisning",
+ "wall_view_open": "Se væggen forfra: flyt møbler langs væggen og i højden",
+ "wall_view_hint": "Træk flytter langs væggen og – ved hængende ting – i højden · piletaster 1 cm, med Shift 10 cm · kanter fanges ved vægenderne, døre, vinduer og andre møbler (Alt: frit) · dobbeltklik åbner møblet i plantegningen",
+ "wall_view_empty": "Der står endnu intet ved denne væg – møbler med ryggen mod væggen eller hængende på den vises her.",
+ "wall_view_left": "Afstand fra venstre (m)",
+ "wall_view_floor": "står på gulvet",
+ "wall_view_form": "Rediger i plantegningen",
+ "wall_prev": "Forrige væg",
+ "wall_next": "Næste væg"
 }

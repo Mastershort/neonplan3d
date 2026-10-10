@@ -1489,5 +1489,14 @@
  "pack_error_needs_update": "Tento doplněk potřebuje novější verzi NeonPlan 3D. Nejdřív aktualizuj (HACS › NeonPlan 3D › ⋮ › „Informace o aktualizaci“ › „Stáhnout“), restartuj Home Assistant a pak instaluj znovu.",
  "license_error_needs_update": "Tento doplněk potřebuje novější verzi NeonPlan 3D. Nejdřív aktualizuj (HACS › NeonPlan 3D › ⋮ › „Informace o aktualizaci“ › „Stáhnout“), restartuj Home Assistant a pak instaluj znovu.",
  "inverter_strings": "Stringy na tomto střídači: {names}",
- "inverter_strings_none": "Na tomto střídači zatím není žádný string – přiřaď ho u solárního pole v String › Střídač."
+ "inverter_strings_none": "Na tomto střídači zatím není žádný string – přiřaď ho u solárního pole v String › Střídač.",
+ "wall_view": "Pohled na stěnu",
+ "wall_view_open": "Prohlédnout stěnu zepředu: posouvat nábytek podél stěny a do výšky",
+ "wall_view_hint": "Tažením posouváš podél stěny a – u zavěšených kusů – do výšky · šipky 1 cm, se Shiftem 10 cm · hrany se přichytí ke koncům stěny, dveřím, oknům a jinému nábytku (Alt: volně) · dvojklik otevře kus v půdorysu",
+ "wall_view_empty": "U této stěny zatím nic není – zde se zobrazí nábytek opřený zády o stěnu nebo na ní zavěšený.",
+ "wall_view_left": "Vzdálenost zleva (m)",
+ "wall_view_floor": "stojí na podlaze",
+ "wall_view_form": "Upravit v půdorysu",
+ "wall_prev": "Předchozí stěna",
+ "wall_next": "Další stěna"
 }

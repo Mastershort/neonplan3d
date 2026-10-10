@@ -1489,5 +1489,14 @@
  "pack_error_needs_update": "Ta dodatek potrebuje novejšo različico NeonPlan 3D. Najprej posodobi (HACS › NeonPlan 3D › ⋮ › »Update information« › »Download«), znova zaženi Home Assistant in nato namesti znova.",
  "license_error_needs_update": "Ta dodatek potrebuje novejšo različico NeonPlan 3D. Najprej posodobi (HACS › NeonPlan 3D › ⋮ › »Update information« › »Download«), znova zaženi Home Assistant in nato namesti znova.",
  "inverter_strings": "Nizi na tem razsmerniku: {names}",
- "inverter_strings_none": "Na tem razsmerniku še ni niza – dodeli ga pri sončnem polju pod Niz › Razsmernik."
+ "inverter_strings_none": "Na tem razsmerniku še ni niza – dodeli ga pri sončnem polju pod Niz › Razsmernik.",
+ "wall_view": "Pogled na steno",
+ "wall_view_open": "Oglej si steno od spredaj: premikaj pohištvo vzdolž stene in po višini",
+ "wall_view_hint": "Vlečenje premika vzdolž stene in – pri visečih kosih – po višini · puščice 1 cm, s Shift 10 cm · robovi se pripnejo na konce stene, vrata, okna in drugo pohištvo (Alt: prosto) · dvoklik odpre kos v tlorisu",
+ "wall_view_empty": "Ob tej steni še ni ničesar – tu se pokaže pohištvo, ki stoji s hrbtom ob steni ali visi na njej.",
+ "wall_view_left": "Razdalja od leve (m)",
+ "wall_view_floor": "stoji na tleh",
+ "wall_view_form": "Uredi v tlorisu",
+ "wall_prev": "Prejšnja stena",
+ "wall_next": "Naslednja stena"
 }

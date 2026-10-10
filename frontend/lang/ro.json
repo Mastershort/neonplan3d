@@ -1489,5 +1489,14 @@
  "pack_error_needs_update": "Acest supliment are nevoie de o versiune mai nouă de NeonPlan 3D. Actualizează mai întâi (HACS › NeonPlan 3D › ⋮ › „Informații despre actualizare” › „Descarcă”), repornește Home Assistant, apoi instalează din nou.",
  "license_error_needs_update": "Acest supliment are nevoie de o versiune mai nouă de NeonPlan 3D. Actualizează mai întâi (HACS › NeonPlan 3D › ⋮ › „Informații despre actualizare” › „Descarcă”), repornește Home Assistant, apoi instalează din nou.",
  "inverter_strings": "Stringuri pe acest invertor: {names}",
- "inverter_strings_none": "Încă niciun string pe acest invertor – atribuie-l la un câmp solar, la String › Invertor."
+ "inverter_strings_none": "Încă niciun string pe acest invertor – atribuie-l la un câmp solar, la String › Invertor.",
+ "wall_view": "Vedere perete",
+ "wall_view_open": "Vezi peretele din față: mută mobila de-a lungul peretelui și pe înălțime",
+ "wall_view_hint": "Tragerea mută de-a lungul peretelui și – pentru piesele suspendate – pe înălțime · săgeți 1 cm, cu Shift 10 cm · marginile se aliniază la capetele peretelui, uși, ferestre și alte piese (Alt: liber) · dublu clic deschide piesa în plan",
+ "wall_view_empty": "Încă nimic la acest perete – aici apar piesele lipite cu spatele de perete sau agățate pe el.",
+ "wall_view_left": "Distanța de la stânga (m)",
+ "wall_view_floor": "stă pe podea",
+ "wall_view_form": "Editează în plan",
+ "wall_prev": "Peretele anterior",
+ "wall_next": "Peretele următor"
 }

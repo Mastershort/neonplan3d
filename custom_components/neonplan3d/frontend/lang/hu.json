@@ -1489,5 +1489,14 @@
  "pack_error_needs_update": "Ehhez a bővítményhez a NeonPlan 3D újabb verziója kell. Előbb frissíts (HACS › NeonPlan 3D › ⋮ › „Információk frissítése” › „Letöltés”), indítsd újra a Home Assistantot, majd telepítsd újra.",
  "license_error_needs_update": "Ehhez a bővítményhez a NeonPlan 3D újabb verziója kell. Előbb frissíts (HACS › NeonPlan 3D › ⋮ › „Információk frissítése” › „Letöltés”), indítsd újra a Home Assistantot, majd telepítsd újra.",
  "inverter_strings": "Stringek ezen az inverteren: {names}",
- "inverter_strings_none": "Ehhez az inverterhez még nincs string – a napelemmezőnél rendeld hozzá: String › Inverter."
+ "inverter_strings_none": "Ehhez az inverterhez még nincs string – a napelemmezőnél rendeld hozzá: String › Inverter.",
+ "wall_view": "Falnézet",
+ "wall_view_open": "A fal szemből: a bútorok mozgatása a fal mentén és magasságban",
+ "wall_view_hint": "Húzással a fal mentén és – függő daraboknál – magasságban mozgat · nyilak 1 cm, Shifttel 10 cm · a szélek a fal végeihez, ajtókhoz, ablakokhoz és más bútorokhoz illeszkednek (Alt: szabad) · dupla kattintás megnyitja a bútort az alaprajzon",
+ "wall_view_empty": "Ennél a falnál még nincs semmi – a fallal háttal álló vagy rajta lógó bútorok itt jelennek meg.",
+ "wall_view_left": "Távolság balról (m)",
+ "wall_view_floor": "a padlón áll",
+ "wall_view_form": "Szerkesztés az alaprajzon",
+ "wall_prev": "Előző fal",
+ "wall_next": "Következő fal"
 }

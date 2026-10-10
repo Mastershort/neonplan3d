@@ -1489,5 +1489,14 @@
  "pack_error_needs_update": "Questa estensione richiede una versione più recente di NeonPlan 3D. Aggiorna prima (HACS › NeonPlan 3D › ⋮ › \"Aggiorna informazioni\" › \"Scarica\"), riavvia Home Assistant e installa di nuovo.",
  "license_error_needs_update": "Questa estensione richiede una versione più recente di NeonPlan 3D. Aggiorna prima (HACS › NeonPlan 3D › ⋮ › \"Aggiorna informazioni\" › \"Scarica\"), riavvia Home Assistant e installa di nuovo.",
  "inverter_strings": "Stringhe su questo inverter: {names}",
- "inverter_strings_none": "Ancora nessuna stringa su questo inverter: assegnala in un campo solare sotto Stringa › Inverter."
+ "inverter_strings_none": "Ancora nessuna stringa su questo inverter: assegnala in un campo solare sotto Stringa › Inverter.",
+ "wall_view": "Vista parete",
+ "wall_view_open": "Vedere la parete di fronte: spostare i mobili lungo la parete e in altezza",
+ "wall_view_hint": "Trascina per spostare lungo la parete e – per ciò che è appeso – in altezza · frecce 1 cm, con Maiusc 10 cm · i bordi si agganciano alle estremità della parete, porte, finestre e altri mobili (Alt: libero) · doppio clic apre il mobile nella pianta",
+ "wall_view_empty": "Ancora niente su questa parete: qui compaiono i mobili addossati o appesi.",
+ "wall_view_left": "Distanza da sinistra (m)",
+ "wall_view_floor": "poggia sul pavimento",
+ "wall_view_form": "Modifica nella pianta",
+ "wall_prev": "Parete precedente",
+ "wall_next": "Parete successiva"
 }

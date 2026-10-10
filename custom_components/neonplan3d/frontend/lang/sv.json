@@ -1489,5 +1489,14 @@
  "pack_error_needs_update": "Det här tillägget behöver en nyare version av NeonPlan 3D. Uppdatera först (HACS › NeonPlan 3D › ⋮ › \"Uppdateringsinformation\" › \"Ladda ner\"), starta om Home Assistant och installera sedan igen.",
  "license_error_needs_update": "Det här tillägget behöver en nyare version av NeonPlan 3D. Uppdatera först (HACS › NeonPlan 3D › ⋮ › \"Uppdateringsinformation\" › \"Ladda ner\"), starta om Home Assistant och installera sedan igen.",
  "inverter_strings": "Strängar på den här växelriktaren: {names}",
- "inverter_strings_none": "Ingen sträng på den här växelriktaren än – tilldela den vid ett solfält under Sträng › Växelriktare."
+ "inverter_strings_none": "Ingen sträng på den här växelriktaren än – tilldela den vid ett solfält under Sträng › Växelriktare.",
+ "wall_view": "Väggvy",
+ "wall_view_open": "Se väggen framifrån: flytta möbler längs väggen och i höjdled",
+ "wall_view_hint": "Dra flyttar längs väggen och – för hängande saker – i höjdled · piltangenter 1 cm, med Skift 10 cm · kanter fäster vid väggens ändar, dörrar, fönster och andra möbler (Alt: fritt) · dubbelklick öppnar möbeln i planritningen",
+ "wall_view_empty": "Inget vid den här väggen ännu – möbler med ryggen mot väggen eller som hänger på den visas här.",
+ "wall_view_left": "Avstånd från vänster (m)",
+ "wall_view_floor": "står på golvet",
+ "wall_view_form": "Redigera i planritningen",
+ "wall_prev": "Föregående vägg",
+ "wall_next": "Nästa vägg"
 }

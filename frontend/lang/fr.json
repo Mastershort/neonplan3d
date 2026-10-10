@@ -1489,5 +1489,14 @@
  "pack_error_needs_update": "Cette extension nécessite une version plus récente de NeonPlan 3D. Mets d'abord à jour (HACS › NeonPlan 3D › ⋮ › « Mettre à jour les informations » › « Télécharger »), redémarre Home Assistant, puis installe à nouveau.",
  "license_error_needs_update": "Cette extension nécessite une version plus récente de NeonPlan 3D. Mets d'abord à jour (HACS › NeonPlan 3D › ⋮ › « Mettre à jour les informations » › « Télécharger »), redémarre Home Assistant, puis installe à nouveau.",
  "inverter_strings": "Strings sur cet onduleur : {names}",
- "inverter_strings_none": "Aucun string sur cet onduleur pour l'instant – à attribuer dans un champ solaire sous String › Onduleur."
+ "inverter_strings_none": "Aucun string sur cet onduleur pour l'instant – à attribuer dans un champ solaire sous String › Onduleur.",
+ "wall_view": "Vue du mur",
+ "wall_view_open": "Voir le mur de face : déplacer les meubles le long du mur et en hauteur",
+ "wall_view_hint": "Faire glisser déplace le long du mur et – pour ce qui est suspendu – en hauteur · flèches 1 cm, avec Maj 10 cm · les bords s’aimantent aux extrémités du mur, portes, fenêtres et autres meubles (Alt : libre) · double-clic ouvre le meuble dans le plan",
+ "wall_view_empty": "Rien contre ce mur pour l’instant – les meubles adossés au mur ou accrochés dessus apparaissent ici.",
+ "wall_view_left": "Distance depuis la gauche (m)",
+ "wall_view_floor": "posé au sol",
+ "wall_view_form": "Modifier dans le plan",
+ "wall_prev": "Mur précédent",
+ "wall_next": "Mur suivant"
 }

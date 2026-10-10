@@ -1489,5 +1489,14 @@
  "pack_error_needs_update": "Ten dodatek wymaga nowszej wersji NeonPlan 3D. Najpierw zaktualizuj (HACS › NeonPlan 3D › ⋮ › „Aktualizuj informacje” › „Pobierz”), uruchom ponownie Home Assistant, a potem zainstaluj ponownie.",
  "license_error_needs_update": "Ten dodatek wymaga nowszej wersji NeonPlan 3D. Najpierw zaktualizuj (HACS › NeonPlan 3D › ⋮ › „Aktualizuj informacje” › „Pobierz”), uruchom ponownie Home Assistant, a potem zainstaluj ponownie.",
  "inverter_strings": "Stringi na tym falowniku: {names}",
- "inverter_strings_none": "Ten falownik nie ma jeszcze stringu – przypisz go przy polu fotowoltaicznym w String › Falownik."
+ "inverter_strings_none": "Ten falownik nie ma jeszcze stringu – przypisz go przy polu fotowoltaicznym w String › Falownik.",
+ "wall_view": "Widok ściany",
+ "wall_view_open": "Zobacz ścianę od frontu: przesuwaj meble wzdłuż ściany i w pionie",
+ "wall_view_hint": "Przeciąganie przesuwa wzdłuż ściany i – dla wiszących – w pionie · strzałki 1 cm, z Shift 10 cm · krawędzie przyciągają się do końców ściany, drzwi, okien i innych mebli (Alt: swobodnie) · dwuklik otwiera mebel w rzucie",
+ "wall_view_empty": "Przy tej ścianie jeszcze nic nie ma – tu pojawią się meble stojące tyłem do ściany lub na niej wiszące.",
+ "wall_view_left": "Odległość od lewej (m)",
+ "wall_view_floor": "stoi na podłodze",
+ "wall_view_form": "Edytuj w rzucie",
+ "wall_prev": "Poprzednia ściana",
+ "wall_next": "Następna ściana"
 }

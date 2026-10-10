@@ -1489,5 +1489,14 @@
  "pack_error_needs_update": "Dette tillegget krever en nyere versjon av NeonPlan 3D. Oppdater først (HACS › NeonPlan 3D › ⋮ › «Oppdateringsinformasjon» › «Last ned»), start Home Assistant på nytt og installer igjen.",
  "license_error_needs_update": "Dette tillegget krever en nyere versjon av NeonPlan 3D. Oppdater først (HACS › NeonPlan 3D › ⋮ › «Oppdateringsinformasjon» › «Last ned»), start Home Assistant på nytt og installer igjen.",
  "inverter_strings": "Strenger på denne vekselretteren: {names}",
- "inverter_strings_none": "Ingen strenger på denne vekselretteren ennå – tildel en ved et solcellefelt under Streng › Vekselretter."
+ "inverter_strings_none": "Ingen strenger på denne vekselretteren ennå – tildel en ved et solcellefelt under Streng › Vekselretter.",
+ "wall_view": "Veggvisning",
+ "wall_view_open": "Se veggen forfra: flytt møbler langs veggen og i høyden",
+ "wall_view_hint": "Dra flytter langs veggen og – for hengende ting – i høyden · piltaster 1 cm, med Shift 10 cm · kanter festes til veggens ender, dører, vinduer og andre møbler (Alt: fritt) · dobbeltklikk åpner møbelet i plantegningen",
+ "wall_view_empty": "Ingenting ved denne veggen ennå – møbler med ryggen mot veggen eller som henger på den, vises her.",
+ "wall_view_left": "Avstand fra venstre (m)",
+ "wall_view_floor": "står på gulvet",
+ "wall_view_form": "Rediger i plantegningen",
+ "wall_prev": "Forrige vegg",
+ "wall_next": "Neste vegg"
 }
