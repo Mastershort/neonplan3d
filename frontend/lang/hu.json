@@ -1507,5 +1507,18 @@
  "wall_view_hint_3d": "Koppints egy bútorra és húzd a padlón · görgő vagy két ujj: közelebb vagy távolabb · középső vagy jobb egérgomb (táblagépen két ujj): körülnézés · lent távolságok és magasság beírása · bal és jobb nyíl: következő fal",
  "wall_view_lift": "Húzd fel vagy le: magasság a padló felett",
  "wall_view_fixed": "Rögzítve – húzáshoz előbb oldd fel",
- "wall_view_turn": "Forgatás 45°-kal – a falnál visszacsúszik a szobába"
+ "wall_view_turn": "Forgatás 45°-kal – a falnál visszacsúszik a szobába",
+ "wall_run_add": "+ Cső",
+ "wall_run_start": "Cső: kezdd egy készüléknél, egy csövön (T-idom) vagy a falon",
+ "wall_run_next": "Tegyél további pontokat – készüléknél vagy csövön ér véget; dupla kattintás vagy Enter befejezi",
+ "wall_run_down": "↓ A padlóba",
+ "wall_run_through": "⟂ A falon át",
+ "wall_run_done": "Kész",
+ "wall_run_fit": "Koppints a csőre, ahová kerüljön",
+ "wall_run_valve": "Golyóscsap",
+ "wall_run_sight": "Kémlelőüveg",
+ "wall_run_pipe": "Cső",
+ "wall_run_pt": "A pont magassága (m)",
+ "wall_run_more": "Rajzolás folytatása",
+ "wall_run_tip": "Pontok húzása · dupla kattintás töröl · golyóscsap koppintás: nyitva/zárva"
 }

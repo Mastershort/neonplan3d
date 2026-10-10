@@ -1507,5 +1507,18 @@
  "wall_view_hint_3d": "Tocca un mobile e trascinalo sul pavimento · rotella o due dita: più vicino o più lontano · tasto centrale o destro (due dita sul tablet): guardarsi intorno · in basso distanze e altezza · frecce a sinistra e a destra: parete successiva",
  "wall_view_lift": "Trascina su o giù: altezza dal pavimento",
  "wall_view_fixed": "Fissato – sbloccalo per trascinarlo",
- "wall_view_turn": "Ruota di 45° – contro la parete rientra nella stanza"
+ "wall_view_turn": "Ruota di 45° – contro la parete rientra nella stanza",
+ "wall_run_add": "+ Tubo",
+ "wall_run_start": "Tubo: inizia da un apparecchio, su un tubo (raccordo a T) o sulla parete",
+ "wall_run_next": "Aggiungi punti – finisce su un apparecchio o un tubo; doppio clic o Invio per terminare",
+ "wall_run_down": "↓ Nel pavimento",
+ "wall_run_through": "⟂ Attraverso la parete",
+ "wall_run_done": "Fatto",
+ "wall_run_fit": "Tocca il tubo dove va",
+ "wall_run_valve": "Valvola a sfera",
+ "wall_run_sight": "Spia",
+ "wall_run_pipe": "Tubo",
+ "wall_run_pt": "Altezza del punto (m)",
+ "wall_run_more": "Continua a disegnare",
+ "wall_run_tip": "Trascina i punti · doppio clic rimuove · tocca una valvola: aperta/chiusa"
 }

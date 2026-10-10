@@ -1507,5 +1507,18 @@
  "wall_view_hint_3d": "Tryck på en möbel och dra den över golvet · mushjul eller två fingrar: närmare eller längre bort · mitten- eller högerknappen (två fingrar på surfplatta): se dig om · avstånd och höjd skrivs in nedtill · pilar till vänster och höger: nästa vägg",
  "wall_view_lift": "Dra upp eller ned: höjd över golvet",
  "wall_view_fixed": "Låst – lås upp för att dra",
- "wall_view_turn": "Vrid 45° – vid väggen flyttas det in i rummet"
+ "wall_view_turn": "Vrid 45° – vid väggen flyttas det in i rummet",
+ "wall_run_add": "+ Rör",
+ "wall_run_start": "Rör: börja vid en apparat, på ett rör (T-rör) eller på väggen",
+ "wall_run_next": "Sätt fler punkter – slutar vid en apparat eller på ett rör; dubbelklick eller Enter avslutar",
+ "wall_run_down": "↓ Ner i golvet",
+ "wall_run_through": "⟂ Genom väggen",
+ "wall_run_done": "Klar",
+ "wall_run_fit": "Tryck på röret där den ska sitta",
+ "wall_run_valve": "Kulventil",
+ "wall_run_sight": "Synglas",
+ "wall_run_pipe": "Rör",
+ "wall_run_pt": "Punktens höjd (m)",
+ "wall_run_more": "Rita vidare",
+ "wall_run_tip": "Dra punkter · dubbelklick tar bort · tryck på kulventil: öppen/stängd"
 }

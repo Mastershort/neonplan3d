@@ -1,16 +1,21 @@
 // Pool Pro: where the water flows through a pool's pipes. The pipes form a directed graph between the pool's
 // ports (skimmer, bottom drain, inlets, the waste drain) and the pool devices (pump, sand filter, heat pump,
 // dosing unit, ball valves). From the running pump the water is followed downstream:
-// - a closed ball valve stops it;
+// - a closed ball valve stops it (a valve device, or one sitting in the pipe);
 // - the sand filter's six-way valve sends it on (filter, recirculate), to the waste drain (backwash, rinse,
 //   waste) or nowhere (closed);
 // - at a split, the branches through the heat pump carry the water while the heat pump is on, the others
 //   (the bypass) while it is off; splits without a heat pump feed every branch (several inlets);
 // - water is warm after a heat pump that heats.
+// T-pieces ("joint:<id>") are nodes like any other: a split there works like a split at a device. Loose ends
+// ("") join nothing.
 // Upstream of the pump the suction lines from skimmer and drain carry water when they reach the pump through
 // open valves. Pure functions, no Home Assistant.
 
 import type { PoolPipe, PoolPort, ValvePosition } from "./model.ts";
+import { pipePath, type NodeAt } from "./geometry/runs.ts";
+
+export type { NodeAt };
 
 export type PoolDeviceType = "pool_pump" | "pool_filter" | "pool_heat_pump" | "pool_dosing" | "pool_valve";
 export const POOL_DEVICES: PoolDeviceType[] = ["pool_pump", "pool_filter", "pool_heat_pump", "pool_dosing", "pool_valve"];
@@ -49,9 +54,14 @@ const TO_WASTE: ReadonlySet<ValvePosition> = new Set(["backwash", "rinse", "wast
 export const portNode = (id: string) => `port:${id}`;
 export const deviceNode = (id: string) => `dev:${id}`;
 
+/** A pipe with a closed ball valve in it carries no water. */
+export const pipeShut = (p: Pick<PoolPipe, "fittings">) => !!p.fittings?.some((f) => f.kind === "valve" && f.open === false);
+
 export function poolFlow(input: PoolFlowInput): Map<string, PipeFlow> {
   const out = new Map<string, PipeFlow>(input.pipes.map((p) => [p.id, { active: false, warm: false, waste: false }]));
   if (!input.pumpOn) return out;
+  // a loose end is a node of its own (two loose ends are not joined)
+  const pipes = input.pipes.map((p) => (p.from && p.to ? p : { ...p, from: p.from || `loose:${p.id}:a`, to: p.to || `loose:${p.id}:b` }));
   const dev = new Map(input.devices.map((d) => [deviceNode(d.id), d]));
   const port = new Map(input.ports.map((p) => [portNode(p.id), p]));
   const closed = (node: string) => {
@@ -60,7 +70,7 @@ export function poolFlow(input: PoolFlowInput): Map<string, PipeFlow> {
   };
   const outgoing = new Map<string, PoolPipe[]>();
   const incoming = new Map<string, PoolPipe[]>();
-  for (const p of input.pipes) {
+  for (const p of pipes) {
     outgoing.set(p.from, [...(outgoing.get(p.from) ?? []), p]);
     incoming.set(p.to, [...(incoming.get(p.to) ?? []), p]);
   }
@@ -114,7 +124,7 @@ export function poolFlow(input: PoolFlowInput): Map<string, PipeFlow> {
     }
     if (d?.type === "pool_heat_pump" && input.heating) warm = true;
     for (const p of next) {
-      if (closed(p.to)) continue;
+      if (closed(p.to) || pipeShut(p)) continue;
       const f = out.get(p.id)!;
       f.active = true;
       f.warm ||= warm;
@@ -127,7 +137,7 @@ export function poolFlow(input: PoolFlowInput): Map<string, PipeFlow> {
   const feeds = new Set<string>();
   const back = (node: string) => {
     for (const p of incoming.get(node) ?? []) {
-      if (feeds.has(p.id) || closed(p.from)) continue;
+      if (feeds.has(p.id) || closed(p.from) || pipeShut(p)) continue;
       feeds.add(p.id);
       back(p.from);
     }
@@ -142,7 +152,7 @@ export function poolFlow(input: PoolFlowInput): Map<string, PipeFlow> {
       return (incoming.get(p.from) ?? []).some((q) => feeds.has(q.id) && fromSuction(q, seen));
     };
     for (const id of feeds) {
-      const p = input.pipes.find((x) => x.id === id)!;
+      const p = pipes.find((x) => x.id === id)!;
       if (fromSuction(p)) out.get(id)!.active = true;
     }
   }
@@ -166,20 +176,19 @@ const WASTE: [number, number, number] = [0.75, 0.6, 0.35];
 /** Speed of the dots in a pipe that carries water (as if it were watts on a cable). */
 const PIPE_POWER = 900;
 
-/** Where a node's pipe ends: its plan position and height above the floor. */
-export type NodeAt = (node: string) => { x: number; z: number; y: number } | null;
+/** The colour of the water in a pipe: blue, warm after a heating heat pump, brown on its way to the waste drain. */
+export function waterColor(f: PipeFlow | undefined): [number, number, number] {
+  return f?.waste ? WASTE : f?.warm ? WARM : COLD;
+}
 
-/** The pipes as 3D pieces: down or up from each node to the pipe's height, along its points, coloured by the water. */
+/** The pipes as 3D pieces along their paths (see pipePath), coloured by the water. */
 export function pipePieces(pipes: readonly PoolPipe[], flows: ReadonlyMap<string, PipeFlow>, nodeAt: NodeAt): PipePiece[] {
   const out: PipePiece[] = [];
   for (const p of pipes) {
-    const a = nodeAt(p.from);
-    const b = nodeAt(p.to);
-    if (!a || !b) continue;
-    const h = p.height ?? 0.3;
-    const pts: [number, number, number][] = [[a.x, a.y, a.z], [a.x, h, a.z], ...p.points.map(([x, z]): [number, number, number] => [x, h, z]), [b.x, h, b.z], [b.x, b.y, b.z]];
+    const pts = pipePath(p, nodeAt);
+    if (pts.length < 2) continue;
     const f = flows.get(p.id);
-    const color = f?.waste ? WASTE : f?.warm ? WARM : COLD;
+    const color = waterColor(f);
     let dist = 0;
     for (let i = 1; i < pts.length; i++) {
       const [p0, p1] = [pts[i - 1], pts[i]];

@@ -1507,5 +1507,18 @@
  "wall_view_hint_3d": "Napauta huonekalua ja vedä sitä lattialla · hiiren rulla tai kaksi sormea: lähemmäs tai kauemmas · keski- tai oikea hiiren painike (tabletilla kaksi sormea): katsele ympärille · etäisyydet ja korkeus alhaalla · nuolet vasemmalla ja oikealla: seuraava seinä",
  "wall_view_lift": "Vedä ylös tai alas: korkeus lattiasta",
  "wall_view_fixed": "Lukittu – vapauta vetääksesi",
- "wall_view_turn": "Käännä 45° – seinän vieressä se siirtyy huoneeseen"
+ "wall_view_turn": "Käännä 45° – seinän vieressä se siirtyy huoneeseen",
+ "wall_run_add": "+ Putki",
+ "wall_run_start": "Putki: aloita laitteesta, putkesta (T-haara) tai seinästä",
+ "wall_run_next": "Lisää pisteitä – päättyy laitteeseen tai putkeen; kaksoisnapsautus tai Enter lopettaa",
+ "wall_run_down": "↓ Lattiaan",
+ "wall_run_through": "⟂ Seinän läpi",
+ "wall_run_done": "Valmis",
+ "wall_run_fit": "Napauta putkea kohdasta, johon se tulee",
+ "wall_run_valve": "Palloventtiili",
+ "wall_run_sight": "Tarkastuslasi",
+ "wall_run_pipe": "Putki",
+ "wall_run_pt": "Pisteen korkeus (m)",
+ "wall_run_more": "Jatka piirtämistä",
+ "wall_run_tip": "Vedä pisteitä · kaksoisnapsautus poistaa · napauta venttiiliä: auki/kiinni"
 }

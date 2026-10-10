@@ -1507,5 +1507,18 @@
  "wall_view_hint_3d": "Toucher un meuble et le faire glisser au sol · molette ou deux doigts : plus près ou plus loin · bouton du milieu ou droit (deux doigts sur tablette) : regarder autour · distances et hauteur à saisir en bas · flèches à gauche et à droite : mur suivant",
  "wall_view_lift": "Glisser vers le haut ou le bas : hauteur au-dessus du sol",
  "wall_view_fixed": "Fixé – le libérer pour le déplacer",
- "wall_view_turn": "Tourner de 45° – contre le mur, il revient dans la pièce"
+ "wall_view_turn": "Tourner de 45° – contre le mur, il revient dans la pièce",
+ "wall_run_add": "+ Tuyau",
+ "wall_run_start": "Tuyau : commencer sur un appareil, sur un tuyau (té) ou sur le mur",
+ "wall_run_next": "Placer d'autres points – il se termine sur un appareil ou un tuyau ; double-clic ou Entrée pour finir",
+ "wall_run_down": "↓ Dans le sol",
+ "wall_run_through": "⟂ À travers le mur",
+ "wall_run_done": "Terminé",
+ "wall_run_fit": "Toucher le tuyau à l'endroit voulu",
+ "wall_run_valve": "Vanne à bille",
+ "wall_run_sight": "Voyant",
+ "wall_run_pipe": "Tuyau",
+ "wall_run_pt": "Hauteur du point (m)",
+ "wall_run_more": "Continuer",
+ "wall_run_tip": "Glisser les points · double-clic supprime · toucher une vanne : ouverte/fermée"
 }

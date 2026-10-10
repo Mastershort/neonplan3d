@@ -1507,5 +1507,18 @@
  "wall_view_hint_3d": "Dotknij mebla i przeciągnij go po podłodze · kółko lub dwa palce: bliżej lub dalej · środkowy lub prawy przycisk myszy (na tablecie dwa palce): rozejrzyj się · odległości i wysokość wpisz na dole · strzałki po lewej i prawej: następna ściana",
  "wall_view_lift": "Przeciągnij w górę lub w dół: wysokość nad podłogą",
  "wall_view_fixed": "Przypięte – odepnij, aby przeciągnąć",
- "wall_view_turn": "Obróć o 45° – przy ścianie cofnie się do pomieszczenia"
+ "wall_view_turn": "Obróć o 45° – przy ścianie cofnie się do pomieszczenia",
+ "wall_run_add": "+ Rura",
+ "wall_run_start": "Rura: zacznij przy urządzeniu, na rurze (trójnik) lub na ścianie",
+ "wall_run_next": "Dodaj kolejne punkty – kończy się przy urządzeniu lub na rurze; dwuklik lub Enter kończy",
+ "wall_run_down": "↓ W podłogę",
+ "wall_run_through": "⟂ Przez ścianę",
+ "wall_run_done": "Gotowe",
+ "wall_run_fit": "Dotknij rury tam, gdzie ma być",
+ "wall_run_valve": "Zawór kulowy",
+ "wall_run_sight": "Wziernik",
+ "wall_run_pipe": "Rura",
+ "wall_run_pt": "Wysokość punktu (m)",
+ "wall_run_more": "Rysuj dalej",
+ "wall_run_tip": "Przeciągaj punkty · dwuklik usuwa · dotknij zaworu: otwarty/zamknięty"
 }

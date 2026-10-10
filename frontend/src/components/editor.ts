@@ -10,7 +10,9 @@ import { furnitureSymbol } from "./furniture2d.ts";
 import { clipConvex, netRoomArea } from "../geometry/area.ts";
 import { areaText, formatImperial, lengthText, lengthUnit, parseLength, unitLabel, type LengthUnit } from "../units.ts";
 import { closeGaps, straightenEdges, suggestedThickness } from "../geometry/gaps.ts";
-import { clampIntoRoom, keepInRoom, snapToWall } from "../geometry/snap.ts";
+import { clampIntoRoom, keepInRoom, sharedEdge, snapToWall } from "../geometry/snap.ts";
+import { cornerPoint, nearestOnPath, onWall, pipePath, type P3 } from "../geometry/runs.ts";
+import { laidPipe, poolNodeAt, runLead, runsOnWall, splitPipe, type WallRun } from "../pool-runs.ts";
 import { holeInRoom } from "../geometry/holes.ts";
 import { weatherEntity, isRainSource } from "../weather.ts";
 import { SHOW_PRESENCE } from "../flags.ts";
@@ -37,6 +39,7 @@ import { type CarLinks, type Background, OUTDOOR_TOP, sidelightLayout, DEFAULT_W
   type PoolLinks,
   type PoolPipe,
   type PoolPort,
+  type PoolJoint,
   type ValvePosition,
 } from "../model.ts";
 import { furnishRoom, PACKAGES, type PackageId } from "../packages.ts";
@@ -171,6 +174,48 @@ const HISTORY = 100;
 const SNAP_PX = 10;
 const round = (v: number) => Math.round(v * 1000) / 1000;
 
+/** How far in front of a wall's face a pipe laid on it runs (to its middle). */
+const RUN_GAP = 0.06;
+
+/** A pipe being laid in the wall view: where it starts (a node, a T-piece on a pipe, a loose end it extends) and its points. */
+interface RunDraft {
+  pool: string;
+  from: string;
+  fromT: P3 | null;
+  extend: { pipe: string; end: "from" | "to" } | null;
+  pts: P3[];
+  /** The wall the last point was set on ("room|edge") and its distance in front of it. */
+  wall: string;
+  d: number;
+}
+
+/** What the wall view's pipe tools need about the wall shown. */
+interface RunCtx {
+  frame: WallFrame;
+  floor: Floor;
+  room: Room;
+  key: string;
+  L: number;
+  H: number;
+  gap: number;
+  runs: WallRun[];
+  pool: OutdoorArea;
+  pt: (e: PointerEvent) => { s: number; y: number };
+}
+
+/** A plan point in front of a wall (rounded to the millimetre). */
+function onWallXZ(frame: WallFrame, s: number, d: number): Vec2 {
+  const [x, , z] = onWall(frame, s, 0, d);
+  return [round(x), round(z)];
+}
+
+function pathLengthOf(p: PoolPipe, nodeAt: (n: string) => { x: number; z: number; y: number } | null): number {
+  const path = pipePath(p, nodeAt);
+  let l = 0;
+  for (let i = 1; i < path.length; i++) l += Math.hypot(path[i][0] - path[i - 1][0], path[i][1] - path[i - 1][1], path[i][2] - path[i - 1][2]);
+  return l;
+}
+
 /** Arrow keys as plan directions (x right, z down). */
 const ARROWS: Record<string, [number, number]> = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
 
@@ -227,6 +272,9 @@ export class Fp3dEditor extends LitElement {
     _wallSel: { state: true },
     _wallPicTick: { state: true },
     _wallPick: { state: true },
+    _runMode: { state: true },
+    _runDraft: { state: true },
+    _runSel: { state: true },
     _wallView3d: { state: true },
     _ctx: { state: true },
     _fixedHint: { state: true },
@@ -320,6 +368,14 @@ export class Fp3dEditor extends LitElement {
   private declare _wallPicTick: number;
   /** The toolbar's wall view button is on: the next tap on a wall in the plan opens it. */
   private declare _wallPick: boolean;
+  /** Pool Pro in the wall view: laying a pipe, or placing a ball valve or sight glass on one. */
+  private declare _runMode: "draw" | "valve" | "sight" | null;
+  private declare _runDraft: RunDraft | null;
+  /** The chosen pipe in the wall view and its chosen point. */
+  private declare _runSel: { pipe: string; pt: number | null } | null;
+  /** A pipe point being dragged in the wall view, and where the pointer is while laying a pipe. */
+  private runDrag: { pipe: string; i: number; d: number; base: Building; moved: boolean } | null = null;
+  private runHover: [number, number] | null = null;
   /** The wall view stands in the room in 3D (true) or shows the wall flat from the front. */
   private declare _wallView3d: boolean;
   /** The 3D view of the wall view and the wall its camera was last set up for. */
@@ -434,6 +490,9 @@ export class Fp3dEditor extends LitElement {
     this._wallSel = null;
     this._wallPicTick = 0;
     this._wallPick = false;
+    this._runMode = null;
+    this._runDraft = null;
+    this._runSel = null;
     this._wallView3d = (() => {
       try {
         return localStorage.getItem("neonplan3d.wall3d") !== "0";
@@ -5505,6 +5564,7 @@ export class Fp3dEditor extends LitElement {
       (e.currentTarget as Element).closest("svg")!.setPointerCapture(e.pointerId);
       this.wallDrag = { id, x: p.x, y: p.y, base: this._doc, s0: it.s0, y0: it.y0, lift: !!m && canLift(m), moved: false };
       this._wallSel = id;
+      this._runSel = null;
     };
     const move = (e: PointerEvent) => {
       const d = this.wallDrag;
@@ -5534,6 +5594,13 @@ export class Fp3dEditor extends LitElement {
       if (d?.moved) this.pushHistory(d.base);
     };
     const key = (e: KeyboardEvent) => {
+      if (this._runMode && (e.key === "Escape" || e.key === "Enter")) {
+        e.preventDefault();
+        if (e.key === "Enter") this.finishRun("", null);
+        else if (this._runDraft) this._runDraft = null;
+        else this._runMode = null;
+        return;
+      }
       if (e.key === "Escape") {
         this._wallView = null;
         return;
@@ -5573,6 +5640,25 @@ export class Fp3dEditor extends LitElement {
     void this._wallPicTick;
     void this.askWallPics(frame, items.map((i) => floor.furniture.find((m) => m.id === i.id)).filter((m): m is Furniture => !!m));
     const fs = Math.max(0.09, Math.min(0.16, L / 40));
+    // Pool Pro: the pipes on this wall
+    const pool = this.canLayRuns ? this.runPool : undefined;
+    const rc: RunCtx | null = pool
+      ? {
+          frame,
+          floor,
+          room,
+          key: `${room.id}|${v.edge}`,
+          L,
+          H,
+          gap: (sharedEdge(floor, room.id, frame.a, frame.b) ? this._doc.settings.wall_interior / 2 : 0) + RUN_GAP,
+          runs: runsOnWall(frame, (pool.pool?.pipes ?? []).filter((q) => q.floor_id === floor.id), poolNodeAt(this._doc, floor, pool)),
+          pool,
+          pt: (e: PointerEvent) => {
+            const q = svgPoint(e);
+            return { s: frame.rightward ? q.x : L - q.x, y: H - q.y };
+          },
+        }
+      : null;
     return html`<div class="fp3d-wv-veil" @click=${(e: Event) => e.target === e.currentTarget && (this._wallView = null)}>
       <div class="fp3d-wv" role="dialog" aria-label=${this.t("wall_view")} tabindex="0" @keydown=${key}>
         <div class="fp3d-wv-head">
@@ -5580,6 +5666,16 @@ export class Fp3dEditor extends LitElement {
           <b>${this.t("wall_view")} · ${room.name} · ${this.t("wall_n", { a: v.edge + 1, b: ((v.edge + 1) % n) + 1 })} · ${this.m(L, 2)}</b>
           <button class="fp3d-btn" title=${`${this.t("wall_next")}: ${wallName(rightEdge)}`} @click=${() => go(rightEdge)}>›</button>
           <span class="fp3d-wv-grow"></span>
+          ${rc && admin
+            ? html`<button class="fp3d-btn ${this._runMode === "draw" ? "fp3d-primary" : ""}" @click=${() => {
+                // pipes are laid on the flat wall
+                this._wallView3d = false;
+                this._wallSel = null;
+                this._runSel = null;
+                this._runDraft = null;
+                this._runMode = this._runMode === "draw" ? null : "draw";
+              }}>${this.t("wall_run_add")}</button>`
+            : nothing}
           <div class="fp3d-seg" role="group">
             <button aria-pressed=${this._wallView3d} @click=${() => this.setWallView3d(true)}>${this.t("wall_view_3d")}</button>
             <button aria-pressed=${!this._wallView3d} @click=${() => this.setWallView3d(false)}>${this.t("wall_view_front")}</button>
@@ -5623,7 +5719,33 @@ export class Fp3dEditor extends LitElement {
             <div class="fp3d-wv-lift" hidden title=${this.t("wall_view_lift")} @pointerdown=${(e: PointerEvent) => this.liftDown(e)} @pointermove=${(e: PointerEvent) => this.liftMove(e)} @pointerup=${() => this.liftUp()} @pointercancel=${() => this.liftUp()}>
               <span>↕</span><b></b>
             </div>`
-          : html`<svg class="fp3d-wv-svg" viewBox="${-0.5} ${-0.35} ${L + 1} ${H + 0.9}" preserveAspectRatio="xMidYMid meet" @pointermove=${move} @pointerup=${up} @pointercancel=${up} style="--fs:${fs}px">
+          : html`<svg
+          class="fp3d-wv-svg ${this._runMode ? "fp3d-wv-drawing" : ""}"
+          viewBox="${-0.5} ${-0.35} ${L + 1} ${H + 0.9}"
+          preserveAspectRatio="xMidYMid meet"
+          @pointerdown=${(e: PointerEvent) => {
+            if (rc && this._runMode) this.runDown(e, rc);
+            else if (this._runSel) this._runSel = null;
+          }}
+          @pointermove=${(e: PointerEvent) => {
+            move(e);
+            if (rc && this.runDrag) this.runPointMove(e, rc);
+            else if (rc && this._runMode === "draw" && this._runDraft) {
+              const q = rc.pt(e);
+              this.runHover = [q.s, q.y];
+              this.requestUpdate();
+            }
+          }}
+          @pointerup=${() => {
+            up();
+            this.runPointUp();
+          }}
+          @pointercancel=${() => {
+            up();
+            this.runPointUp();
+          }}
+          style="--fs:${fs}px"
+        >
           <rect class="fp3d-wv-wall" x="0" y="0" width=${L} height=${H} />
           ${Array.from({ length: Math.floor(H / 0.5) }, (_, k) => svg`<line class="fp3d-wv-grid" x1="0" x2=${L} y1=${Y((k + 1) * 0.5)} y2=${Y((k + 1) * 0.5)} /><text class="fp3d-wv-scale" x="-0.06" y=${Y((k + 1) * 0.5) + 0.03}>${((k + 1) * 0.5).toFixed(1)}</text>`)}
           ${holes.map((o) => {
@@ -5651,10 +5773,13 @@ export class Fp3dEditor extends LitElement {
           })}
           ${dims}
           <line class="fp3d-wv-floor" x1="-0.3" x2=${L + 0.3} y1=${H} y2=${H} />
+          ${rc ? this.renderRuns(rc, X, Y) : nothing}
         </svg>`}
         </div>
         <div class="fp3d-wv-foot">
-          ${sel && selF
+          ${rc && (this._runMode || (this._runSel && !sel))
+            ? this.renderRunFoot(rc)
+            : sel && selF
             ? html`<b>${selF.name || furnitureName(this.hass, selF.type)}</b>
                 ${this.fixButton("furniture", sel.id)}
                 ${selF.locked && admin ? html`<span class="fp3d-muted">${this.t("wall_view_fixed")}</span>` : nothing}
@@ -5679,6 +5804,415 @@ export class Fp3dEditor extends LitElement {
         </div>
       </div>
     </div>`;
+  }
+
+  // ------------------------------------------------------------------ pipes on walls (Pool Pro)
+
+  /** The pool whose pipes the wall view shows: the chosen one, else the first on this floor. */
+  private get runPool(): OutdoorArea | undefined {
+    return this.poolArea ?? this.floor?.outdoor.find((o) => o.type === "pool" && o.points.length >= 3);
+  }
+
+  /** The pipe tools of the wall view: Pool Pro with a pool on this floor. */
+  private get canLayRuns(): boolean {
+    return released("pool") && !!this.runPool;
+  }
+
+  private runFrame(key: string): WallFrame | null {
+    const [roomId, edge] = key.split("|");
+    const room = this.floor?.rooms.find((r) => r.id === roomId);
+    return room && Number(edge) < room.points.length ? roomEdgeFrame(room, Number(edge)) : null;
+  }
+
+  /** Where the pipe being laid ends so far: its last point, or the node, T-piece or loose end it starts from. */
+  private runLast(d: RunDraft, c: RunCtx): P3 | null {
+    if (d.pts.length) return d.pts[d.pts.length - 1];
+    if (d.fromT) return d.fromT;
+    const nodeAt = poolNodeAt(this._doc, c.floor, c.pool);
+    if (d.extend) {
+      const q = c.pool.pool?.pipes?.find((x) => x.id === d.extend!.pipe);
+      const path = q ? pipePath(q, nodeAt) : [];
+      return (d.extend.end === "to" ? path[path.length - 1] : path[0]) ?? null;
+    }
+    const n = nodeAt(d.from);
+    return n ? [n.x, n.y, n.z] : null;
+  }
+
+  /** What lies under a point of the wall: a loose pipe end, a pool device or T-piece, a pipe (only pipes: placing a fitting). */
+  private runPick(c: RunCtx, s: number, y: number, pipesOnly = false): { end?: { pipe: string; end: "from" | "to" }; node?: string; pipe?: { id: string; p: P3 } } {
+    if (!pipesOnly)
+      for (const r of c.runs) for (const e of r.ends) if (Math.hypot(e.s - s, e.y - y) < 0.12) return { end: { pipe: r.id, end: e.end } };
+    const nodeAt = poolNodeAt(this._doc, c.floor, c.pool);
+    let best: { node: string; d: number } | null = null;
+    const nodes = [
+      ...c.floor.furniture.filter((f) => (POOL_DEVICES as readonly string[]).includes(f.type)).map((f) => `dev:${f.id}`),
+      ...(c.pool.pool?.joints ?? []).map((j) => `joint:${j.id}`),
+    ];
+    for (const node of pipesOnly ? [] : nodes) {
+      const q = nodeAt(node);
+      if (!q) continue;
+      const w = toWall(c.frame, [q.x, q.z]);
+      if (w.d < -0.3 || w.d > 1.2) continue;
+      const d = Math.hypot(w.s - s, q.y - y);
+      if (d < 0.18 && (!best || d < best.d)) best = { node, d };
+    }
+    if (best) return { node: best.node };
+    for (const r of c.runs)
+      for (const pc of r.pieces) {
+        const [vs, vy] = [pc.s1 - pc.s0, pc.y1 - pc.y0];
+        const l2 = vs * vs + vy * vy;
+        const t = l2 > 0 ? Math.max(0, Math.min(1, ((s - pc.s0) * vs + (y - pc.y0) * vy) / l2)) : 0;
+        const [qs, qy] = [pc.s0 + vs * t, pc.y0 + vy * t];
+        if (Math.hypot(qs - s, qy - y) < 0.07) return { pipe: { id: r.id, p: onWall(c.frame, qs, qy, pc.d0 + (pc.d1 - pc.d0) * t) } };
+      }
+    return {};
+  }
+
+  /** A press on the wall while laying a pipe or placing a fitting. */
+  private runDown(e: PointerEvent, c: RunCtx): void {
+    const mode = this._runMode;
+    if (!mode || !this.isAdmin) return;
+    e.stopPropagation();
+    const { s, y } = c.pt(e);
+    const hit = this.runPick(c, s, y, mode !== "draw");
+    if (mode !== "draw") {
+      if (hit.pipe) this.addFitting(c, hit.pipe.id, hit.pipe.p, mode);
+      this._runMode = null;
+      return;
+    }
+    const d = this._runDraft;
+    if (!d) {
+      const start = { pool: c.pool.id, from: "", fromT: null, extend: null, pts: [], wall: c.key, d: c.gap };
+      if (hit.end) this._runDraft = { ...start, extend: hit.end };
+      else if (hit.node) this._runDraft = { ...start, from: hit.node };
+      else if (hit.pipe) this._runDraft = { ...start, fromT: hit.pipe.p };
+      else this._runDraft = { ...start, pts: [onWall(c.frame, Math.round(s * 20) / 20, Math.round(y * 20) / 20, c.gap)] };
+      return;
+    }
+    // a double click finishes (its first click set the point already)
+    if (e.detail >= 2) return this.finishRun("", null);
+    if (hit.node && hit.node !== d.from) return this.finishRun(hit.node, null);
+    if (hit.pipe) return this.finishRun("", hit.pipe.p);
+    this._runDraft = { ...d, pts: [...d.pts, ...this.runStep(d, c, s, y, e.altKey)], wall: c.key, d: c.gap };
+  }
+
+  /**
+   * The next point of a pipe on a 5 cm grid, level with or straight above the last one (Alt: free); on another
+   * wall than the last point the pipe first goes round the corner.
+   */
+  private runStep(d: RunDraft, c: RunCtx, s: number, y: number, free: boolean): P3[] {
+    let ss = Math.round(s * 20) / 20;
+    let yy = Math.round(y * 20) / 20;
+    const out: P3[] = [];
+    let last = this.runLast(d, c);
+    if (last && d.wall !== c.key) {
+      const prev = this.runFrame(d.wall);
+      const corner = prev && cornerPoint(prev, d.d, c.frame, c.gap);
+      if (corner) {
+        last = [round(corner[0]), last[1], round(corner[1])];
+        out.push(last);
+      }
+    }
+    if (last && !free) {
+      const w = toWall(c.frame, [last[0], last[2]]);
+      if (w.d > -0.35 && w.d < 0.6) {
+        if (Math.abs(ss - w.s) < Math.abs(yy - last[1])) ss = w.s;
+        else yy = last[1];
+      }
+    }
+    out.push(onWall(c.frame, ss, yy, c.gap));
+    return out.map((q) => [round(q[0]), round(q[1]), round(q[2])] as P3);
+  }
+
+  /**
+   * Ends the pipe being laid: at a node, at a T-piece on another pipe (`toT`), or loose; `extra` points come last
+   * (down into the floor, through the wall), `height` is where points added later in the plan run.
+   */
+  private finishRun(to: string, toT: P3 | null, extra: P3[] = [], height?: number): void {
+    const d = this._runDraft;
+    const floor = this.floor;
+    this._runDraft = null;
+    if (!d || !floor) return;
+    const pts = [...d.pts, ...extra];
+    if (!pts.length && !toT && (!to || to === d.from) && !d.fromT) return;
+    let chosen: string | null = null;
+    this.changePool(d.pool, (l, area) => {
+      const joints: PoolJoint[] = (l.joints ??= []);
+      const pipes: PoolPipe[] = (l.pipes ??= []);
+      const base = poolNodeAt(this._doc, floor, area);
+      const nodeAt = (n: string) => {
+        const j = n.startsWith("joint:") ? joints.find((x) => `joint:${x.id}` === n) : undefined;
+        return j ? { x: j.x, z: j.z, y: j.y } : base(n);
+      };
+      // a T-piece: the pipe nearest the point is split there
+      const tee = (q: P3): string => {
+        let best: { pipe: PoolPipe; d: number } | null = null;
+        for (const pipe of pipes) {
+          const h = nearestOnPath(pipePath(pipe, nodeAt), q);
+          if (h && h.d < 0.12 && (!best || h.d < best.d)) best = { pipe, d: h.d };
+        }
+        const cut = best && splitPipe(best.pipe, nodeAt, q, uid("joint"), uid("pipe"));
+        if (!best || !cut) return "";
+        joints.push(cut.joint);
+        pipes.splice(pipes.indexOf(best.pipe), 1, cut.first, cut.second);
+        return `joint:${cut.joint.id}`;
+      };
+      const from = d.fromT ? tee(d.fromT) : d.from;
+      const end = toT ? tee(toT) : to;
+      const xz = pts.map((q): Vec2 => [round(q[0]), round(q[2])]);
+      const hs = pts.map((q) => round(q[1]));
+      const ext = d.extend;
+      const q = ext && pipes.find((x) => x.id === ext.pipe);
+      if (ext && q) {
+        Object.assign(q, laidPipe(q, nodeAt));
+        if (ext.end === "to") {
+          q.points = [...q.points, ...xz];
+          q.heights = [...(q.heights ?? []), ...hs];
+          q.to = end;
+        } else {
+          // drawn outward from the loose start: the pipe now starts at the far end
+          q.points = [...xz.reverse(), ...q.points];
+          q.heights = [...hs.reverse(), ...(q.heights ?? [])];
+          q.from = end;
+        }
+        if (height !== undefined) q.height = height;
+        chosen = q.id;
+        return;
+      }
+      const pipe: PoolPipe = { id: uid("pipe"), from, to: end, floor_id: floor.id, points: xz, heights: hs, height: height ?? hs[hs.length - 1] ?? null };
+      pipes.push(pipe);
+      chosen = pipe.id;
+    });
+    if (chosen) this._runSel = { pipe: chosen, pt: null };
+    this._runMode = null;
+  }
+
+  /** Down into the floor (on to the garden in the plan) or through the wall from the pipe's last point. */
+  private runOut(c: RunCtx, how: "down" | "through"): void {
+    const d = this._runDraft;
+    const last = d && this.runLast(d, c);
+    if (!d || !last) return;
+    if (how === "down") return this.finishRun("", null, [[last[0], -0.3, last[2]]], -0.3);
+    const w = toWall(c.frame, [last[0], last[2]]);
+    const thick = sharedEdge(c.floor, c.room.id, c.frame.a, c.frame.b) ? this._doc.settings.wall_interior : this._doc.settings.wall_exterior;
+    const out = onWall(c.frame, w.s, last[1], -(thick + 0.15));
+    this.finishRun("", null, [[round(out[0]), last[1], round(out[2])]], last[1]);
+  }
+
+  private addFitting(c: RunCtx, pipeId: string, at: P3, kind: "valve" | "sight"): void {
+    const nodeAt = poolNodeAt(this._doc, c.floor, c.pool);
+    this.changePool(c.pool.id, (l) => {
+      const q = l.pipes?.find((x) => x.id === pipeId);
+      const h = q && nearestOnPath(pipePath(q, nodeAt), at);
+      if (!q || !h) return;
+      q.fittings = [...(q.fittings ?? []), { id: uid("fit"), kind, at: round(h.at), ...(kind === "valve" ? { open: true } : {}) }];
+    });
+    this._runSel = { pipe: pipeId, pt: null };
+  }
+
+  /** A press on a pipe: choose it; on the chosen one, a new point there that follows the pointer. */
+  private runPieceDown(e: PointerEvent, c: RunCtx, run: WallRun, k: number): void {
+    if (this._runMode) return;
+    e.stopPropagation();
+    this._wallSel = null;
+    if (this._runSel?.pipe !== run.id || !this.isAdmin) {
+      this._runSel = { pipe: run.id, pt: null };
+      return;
+    }
+    const { s, y } = c.pt(e);
+    const pc = run.pieces.find((x) => x.k === k)!;
+    const t = Math.hypot(pc.s1 - pc.s0, pc.y1 - pc.y0) > 0 ? Math.hypot(s - pc.s0, y - pc.y0) / Math.hypot(pc.s1 - pc.s0, pc.y1 - pc.y0) : 0;
+    const dd = pc.d0 + (pc.d1 - pc.d0) * Math.min(1, t);
+    const base = this._doc;
+    const nodeAt = poolNodeAt(base, c.floor, c.pool);
+    let index = -1;
+    this.changePool(c.pool.id, (l) => {
+      const q = l.pipes?.find((x) => x.id === run.id);
+      if (!q) return;
+      Object.assign(q, laidPipe(q, nodeAt));
+      index = Math.max(0, Math.min(q.points.length, k + 1 - runLead(q, nodeAt)));
+      q.points.splice(index, 0, onWallXZ(c.frame, s, dd));
+      q.heights!.splice(index, 0, round(y));
+    });
+    if (index < 0) return;
+    this._runSel = { pipe: run.id, pt: index };
+    this.runDrag = { pipe: run.id, i: index, d: dd, base, moved: true };
+    (e.currentTarget as Element).closest("svg")?.setPointerCapture(e.pointerId);
+  }
+
+  /** A press on a pipe's point: drag it along the wall and up or down; a double click takes it out. */
+  private runPointDown(e: PointerEvent, c: RunCtx, pipeId: string, i: number): void {
+    if (this._runMode || !this.isAdmin) return;
+    e.stopPropagation();
+    const nodeAt = poolNodeAt(this._doc, c.floor, c.pool);
+    if (e.detail >= 2) {
+      this.changePool(c.pool.id, (l) => {
+        const q = l.pipes?.find((x) => x.id === pipeId);
+        if (!q) return;
+        Object.assign(q, laidPipe(q, nodeAt));
+        q.points.splice(i, 1);
+        q.heights!.splice(i, 1);
+      });
+      this._runSel = { pipe: pipeId, pt: null };
+      return;
+    }
+    const q = c.pool.pool?.pipes?.find((x) => x.id === pipeId);
+    const laid = q && laidPipe(q, nodeAt);
+    const at = laid?.points[i];
+    if (!at) return;
+    this._runSel = { pipe: pipeId, pt: i };
+    this.runDrag = { pipe: pipeId, i, d: toWall(c.frame, at).d, base: this._doc, moved: false };
+    (e.currentTarget as Element).closest("svg")?.setPointerCapture(e.pointerId);
+  }
+
+  private runPointMove(e: PointerEvent, c: RunCtx): void {
+    const g = this.runDrag;
+    if (!g) return;
+    let { s, y } = c.pt(e);
+    s = Math.round(s * 100) / 100;
+    y = Math.round(y * 100) / 100;
+    const nodeAt = poolNodeAt(g.base, c.floor, c.pool);
+    const area = g.base.floors.flatMap((f) => f.outdoor).find((o) => o.id === c.pool.id);
+    const q0 = area?.pool?.pipes?.find((x) => x.id === g.pipe);
+    if (!q0) return;
+    const laid = laidPipe(q0, nodeAt);
+    // level with or straight above a neighbouring point within 4 cm (Alt: free)
+    if (!e.altKey) {
+      const path = pipePath(laid, nodeAt);
+      const lead = runLead(laid, nodeAt);
+      for (const nb of [path[g.i + lead - 1], path[g.i + lead + 1]]) {
+        if (!nb) continue;
+        const w = toWall(c.frame, [nb[0], nb[2]]);
+        if (Math.abs(w.s - s) < 0.04) s = round(w.s);
+        if (Math.abs(nb[1] - y) < 0.04) y = round(nb[1]);
+      }
+    }
+    g.moved = true;
+    this.change(
+      (_, floor) => {
+        const q = floor.outdoor.find((o) => o.id === c.pool.id)?.pool?.pipes?.find((x) => x.id === g.pipe);
+        if (!q) return;
+        Object.assign(q, laidPipe(q, nodeAt));
+        q.points[g.i] = onWallXZ(c.frame, s, g.d);
+        q.heights![g.i] = y;
+      },
+      g.base,
+      false,
+    );
+  }
+
+  private runPointUp(): void {
+    const g = this.runDrag;
+    this.runDrag = null;
+    if (g?.moved) this.pushHistory(g.base);
+  }
+
+  /** A ball valve: a tap opens or closes it, a double click takes it out (a sight glass: the double click). */
+  private fittingDown(e: PointerEvent, c: RunCtx, pipeId: string, id: string): void {
+    if (this._runMode || !this.isAdmin) return;
+    e.stopPropagation();
+    this._runSel = { pipe: pipeId, pt: null };
+    this.changePool(c.pool.id, (l) => {
+      const q = l.pipes?.find((x) => x.id === pipeId);
+      const f = q?.fittings?.find((x) => x.id === id);
+      if (!q || !f) return;
+      if (e.detail >= 2) q.fittings = q.fittings!.filter((x) => x !== f);
+      else if (f.kind === "valve") f.open = f.open === false;
+    });
+  }
+
+  /** The pipes on the wall shown (front view): grey pipes, the chosen one with its points, valves, the pipe being laid. */
+  private renderRuns(c: RunCtx, X: (s: number) => number, Y: (y: number) => number) {
+    const sel = this._runSel?.pipe;
+    const toView = (q: P3) => {
+      const w = toWall(c.frame, [q[0], q[2]]);
+      return `${X(w.s)},${Y(q[1])}`;
+    };
+    const d = this._runDraft;
+    const last = d && this.runLast(d, c);
+    const draft = d ? [...(d.fromT || d.extend || d.from ? [this.runLast({ ...d, pts: [] }, c)] : []), ...d.pts].filter((q): q is P3 => !!q) : [];
+    const hover = this.runHover;
+    return svg`<g class="fp3d-wv-runs">
+      ${c.runs.map(
+        (r) => svg`<g class="fp3d-wv-run ${r.id === sel ? "fp3d-wv-run-sel" : ""}">
+          ${r.pieces.map((pc) => svg`<line class=${pc.y0 < -0.01 && pc.y1 < -0.01 ? "fp3d-wv-under" : ""} x1=${X(pc.s0)} y1=${Y(pc.y0)} x2=${X(pc.s1)} y2=${Y(pc.y1)} @pointerdown=${(e: PointerEvent) => this.runPieceDown(e, c, r, pc.k)} />`)}
+          ${r.ends.map((e) => svg`<circle class="fp3d-wv-end" cx=${X(e.s)} cy=${Y(e.y)} r="0.035" />`)}
+          ${r.fittings.map((f) =>
+            f.kind === "valve"
+              ? svg`<g class="fp3d-wv-valve ${f.open ? "" : "fp3d-wv-shut"}" transform="translate(${X(f.s)} ${Y(f.y)})" @pointerdown=${(e: PointerEvent) => this.fittingDown(e, c, r.id, f.id)}>
+                  <circle r="0.05" /><line x1="0" y1="0" x2=${f.open ? 0.11 : 0} y2=${f.open ? 0 : -0.11} />
+                </g>`
+              : svg`<rect class="fp3d-wv-sight" x=${X(f.s) - 0.06} y=${Y(f.y) - 0.035} width="0.12" height="0.07" rx="0.02" @pointerdown=${(e: PointerEvent) => this.fittingDown(e, c, r.id, f.id)} />`,
+          )}
+          ${r.id === sel ? r.points.map((q) => svg`<circle class="fp3d-wv-runpt ${this._runSel?.pt === q.i ? "fp3d-on" : ""}" cx=${X(q.s)} cy=${Y(q.y)} r="0.04" @pointerdown=${(e: PointerEvent) => this.runPointDown(e, c, r.id, q.i)} />`) : nothing}
+        </g>`,
+      )}
+      ${draft.length ? svg`<polyline class="fp3d-wv-draft" points=${draft.map(toView).join(" ")} />` : nothing}
+      ${last && hover ? svg`<line class="fp3d-wv-draft fp3d-wv-rubber" x1=${toView(last).split(",")[0]} y1=${toView(last).split(",")[1]} x2=${X(hover[0])} y2=${Y(hover[1])} />` : nothing}
+    </g>`;
+  }
+
+  /** The bottom bar of the wall view while laying a pipe, placing a fitting or with a pipe chosen. */
+  private renderRunFoot(c: RunCtx) {
+    const mode = this._runMode;
+    const d = this._runDraft;
+    if (mode === "valve" || mode === "sight")
+      return html`<span class="fp3d-muted">${this.t("wall_run_fit")}</span>
+        <button class="fp3d-btn" @click=${() => (this._runMode = null)}>${this.t("cancel")}</button>`;
+    if (mode === "draw")
+      return html`<span class="fp3d-muted">${this.t(d ? "wall_run_next" : "wall_run_start")}</span>
+        ${d
+          ? html`<button class="fp3d-btn" @click=${() => this.runOut(c, "down")}>${this.t("wall_run_down")}</button>
+              <button class="fp3d-btn" @click=${() => this.runOut(c, "through")}>${this.t("wall_run_through")}</button>
+              <button class="fp3d-btn fp3d-primary" @click=${() => this.finishRun("", null)}>${this.t("wall_run_done")}</button>`
+          : nothing}
+        <button class="fp3d-btn" @click=${() => {
+          this._runDraft = null;
+          this._runMode = null;
+        }}>${this.t("cancel")}</button>`;
+    const sel = this._runSel;
+    const q = sel && c.pool.pool?.pipes?.find((x) => x.id === sel.pipe);
+    if (!sel || !q) return nothing;
+    const nodeAt = poolNodeAt(this._doc, c.floor, c.pool);
+    const laid = laidPipe(q, nodeAt);
+    const pt = sel.pt;
+    const admin = this.isAdmin;
+    const loose: "from" | "to" | null = !q.to ? "to" : !q.from ? "from" : null;
+    return html`<b>${this.t("wall_run_pipe")}</b>
+      ${pt !== null && laid.heights?.[pt] !== undefined
+        ? this.len(this.t("wall_run_pt"), laid.heights[pt] ?? 0, (v) =>
+            this.changePool(c.pool.id, (l) => {
+              const x = l.pipes?.find((y) => y.id === q.id);
+              if (!x) return;
+              Object.assign(x, laidPipe(x, nodeAt));
+              x.heights![pt] = Math.min(10, Math.max(-5, round(v)));
+            }),
+          0.01,
+        )
+        : nothing}
+      ${admin
+        ? html`<button class="fp3d-btn" @click=${() => (this._runMode = "valve")}>${this.t("wall_run_valve")}</button>
+            <button class="fp3d-btn" @click=${() => (this._runMode = "sight")}>${this.t("wall_run_sight")}</button>
+            ${loose
+              ? html`<button class="fp3d-btn" @click=${() => {
+                  this._runMode = "draw";
+                  this._runDraft = { pool: c.pool.id, from: "", fromT: null, extend: { pipe: q.id, end: loose }, pts: [], wall: c.key, d: c.gap };
+                }}>${this.t("wall_run_more")}</button>`
+              : nothing}
+            <button class="fp3d-btn" title=${this.t("pool_pipe_reverse")} @click=${() =>
+              this.changePool(c.pool.id, (l) => {
+                const x = l.pipes?.find((y) => y.id === q.id);
+                if (!x) return;
+                Object.assign(x, laidPipe(x, nodeAt));
+                [x.from, x.to, x.points, x.heights] = [x.to, x.from, [...x.points].reverse(), [...(x.heights ?? [])].reverse()];
+                x.fittings = x.fittings?.map((f) => ({ ...f, at: round(Math.max(0, pathLengthOf(x, nodeAt) - f.at)) }));
+              })}>⇄</button>
+            <button class="fp3d-btn fp3d-danger" @click=${() => {
+              this.changePool(c.pool.id, (l) => (l.pipes = (l.pipes ?? []).filter((y) => y.id !== q.id)));
+              this._runSel = null;
+            }}>${this.t("delete")}</button>`
+        : nothing}
+      <span class="fp3d-muted">${this.t("wall_run_tip")}</span>`;
   }
 
   // ------------------------------------------------------------------ the pool tool
@@ -5732,7 +6266,12 @@ export class Fp3dEditor extends LitElement {
       if (pt) {
         const [pipe, i] = split(pt);
         // a double click takes the corner point out
-        if (e.detail >= 2) this.change((_, f) => void f.outdoor.find((x) => x.id === a.id)?.pool?.pipes?.find((x) => x.id === pipe)?.points.splice(i, 1));
+        if (e.detail >= 2)
+          this.change((_, f) => {
+            const q = f.outdoor.find((x) => x.id === a.id)?.pool?.pipes?.find((x) => x.id === pipe);
+            q?.points.splice(i, 1);
+            q?.heights?.splice(i, 1);
+          });
         else this.drag = { kind: "pipept", pool: a.id, pipe, index: i, base: this._doc, moved: false };
         return true;
       }
@@ -5741,7 +6280,12 @@ export class Fp3dEditor extends LitElement {
         // grabbing a pipe between its points adds a corner point there
         const [pipe, i] = split(seg);
         const q = this.snap(world, undefined, e.altKey);
-        this.change((_, f) => void f.outdoor.find((x) => x.id === a.id)?.pool?.pipes?.find((x) => x.id === pipe)?.points.splice(i, 0, [round(q[0]), round(q[1])]));
+        this.change((_, f) => {
+          const x = f.outdoor.find((o) => o.id === a.id)?.pool?.pipes?.find((o) => o.id === pipe);
+          x?.points.splice(i, 0, [round(q[0]), round(q[1])]);
+          // a laid pipe: the new point at the height of the one before it
+          x?.heights?.splice(i, 0, x.heights[i - 1] ?? x.heights[i] ?? null);
+        });
         this._pipeId = pipe;
         this.drag = { kind: "pipept", pool: a.id, pipe, index: i, base: this._doc, moved: false };
         return true;
@@ -5872,6 +6416,11 @@ export class Fp3dEditor extends LitElement {
 
   /** Where a node sits in the plan. */
   private poolNodePos(a: OutdoorArea, node: string): Vec2 | null {
+    if (!node) return null;
+    if (node.startsWith("joint:")) {
+      const j = a.pool?.joints?.find((x) => x.id === node.slice(6));
+      return j ? [j.x, j.z] : null;
+    }
     if (node.startsWith("port:")) {
       const p = a.pool?.ports?.find((x) => x.id === node.slice(5));
       return p ? [p.x, p.z] : null;
@@ -5905,8 +6454,11 @@ export class Fp3dEditor extends LitElement {
     const lines = pipes.map((p) => {
       const from = this.poolNodePos(a!, p.from);
       const to = this.poolNodePos(a!, p.to);
-      if (!from || !to) return nothing;
-      const pts = [from, ...p.points, to].map((q) => this.toScreen(q));
+      // an older pipe needs both ends; one laid on a wall may end loose
+      if ((!from || !to) && !p.heights) return nothing;
+      const lead = from ? 1 : 0;
+      const pts = [...(from ? [from] : []), ...p.points, ...(to ? [to] : [])].map((q) => this.toScreen(q));
+      if (pts.length < 2) return nothing;
       const sel = p.id === this._pipeId;
       // the flow direction: an arrow halfway along the longest piece
       let k = 0;
@@ -5920,7 +6472,7 @@ export class Fp3dEditor extends LitElement {
         <polyline class="fp3d-pipe ${sel ? "fp3d-pipe-sel" : ""}" points=${line} />
         <path class="fp3d-pipe-arrow" d="M -6 -5 L 5 0 L -6 5 Z" transform=${`translate(${(x0 + x1) / 2} ${(y0 + y1) / 2}) rotate(${ang})`} />
         ${sel && this.isAdmin
-          ? svg`${pts.slice(0, -1).map((q, i) => svg`<line class="fp3d-pipe-seg" data-pipe-seg=${`${p.id}:${i}`} x1=${q[0]} y1=${q[1]} x2=${pts[i + 1][0]} y2=${pts[i + 1][1]} />`)}
+          ? svg`${pts.slice(0, -1).map((q, i) => svg`<line class="fp3d-pipe-seg" data-pipe-seg=${`${p.id}:${i + 1 - lead}`} x1=${q[0]} y1=${q[1]} x2=${pts[i + 1][0]} y2=${pts[i + 1][1]} />`)}
               ${p.points.map((q, i) => {
                 const [x, y] = this.toScreen(q);
                 return svg`<g class="fp3d-vertex" data-pipe-pt=${`${p.id}:${i}`}><circle cx=${x} cy=${y} r="14" class="fp3d-hit" /><circle cx=${x} cy=${y} r="5" /></g>`;
@@ -5942,7 +6494,12 @@ export class Fp3dEditor extends LitElement {
         draft = svg`<polyline class="fp3d-pipe fp3d-pipe-draft" points=${pts} />`;
       }
     }
-    return svg`<g class="fp3d-pool-plan">${lines}${draft}${ports}${devices}</g>`;
+    // T-pieces where pipes laid on walls meet
+    const joints = a ? (a.pool?.joints ?? []).map((j) => {
+      const [x, y] = this.toScreen([j.x, j.z]);
+      return svg`<circle class="fp3d-pool-joint" cx=${x} cy=${y} r="4" />`;
+    }) : [];
+    return svg`<g class="fp3d-pool-plan">${lines}${draft}${joints}${ports}${devices}</g>`;
   }
 
   /** The pool tool's sidebar: the pool's form, its ports, the technical room's devices and the pipes. */
@@ -9453,6 +10010,80 @@ export class Fp3dEditor extends LitElement {
       }
       .fp3d-wv-grow {
         flex: 1;
+      }
+      .fp3d-pool-joint {
+        fill: #8a929c;
+        stroke: var(--fp3d-bg, #0b1220);
+        stroke-width: 1.5;
+        pointer-events: none;
+      }
+      .fp3d-wv-run line {
+        stroke: #8a929c;
+        stroke-width: 0.05;
+        stroke-linecap: round;
+        cursor: pointer;
+      }
+      .fp3d-wv-run line.fp3d-wv-under {
+        stroke: #5a616b;
+        stroke-dasharray: 0.06 0.05;
+      }
+      .fp3d-wv-run-sel line {
+        stroke: var(--fp3d-accent);
+      }
+      .fp3d-wv-runpt {
+        fill: var(--fp3d-bg, #0b1220);
+        stroke: var(--fp3d-accent);
+        stroke-width: 0.012;
+        cursor: move;
+      }
+      .fp3d-wv-runpt.fp3d-on {
+        fill: var(--fp3d-accent);
+      }
+      .fp3d-wv-end {
+        fill: none;
+        stroke: var(--fp3d-warm);
+        stroke-width: 0.012;
+        stroke-dasharray: 0.02 0.015;
+      }
+      .fp3d-wv-valve circle {
+        fill: #3c4148;
+        stroke: #2f8cff;
+        stroke-width: 0.012;
+        cursor: pointer;
+      }
+      .fp3d-wv-valve line {
+        stroke: #2f8cff;
+        stroke-width: 0.025;
+        stroke-linecap: round;
+        pointer-events: none;
+      }
+      .fp3d-wv-shut circle {
+        stroke: #ff5a6e;
+      }
+      .fp3d-wv-sight {
+        fill: rgba(140, 220, 255, 0.55);
+        stroke: #4a4f56;
+        stroke-width: 0.012;
+        cursor: pointer;
+      }
+      .fp3d-wv-draft {
+        fill: none;
+        stroke: var(--fp3d-accent);
+        stroke-width: 0.05;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        opacity: 0.8;
+        pointer-events: none;
+      }
+      .fp3d-wv-rubber {
+        stroke-dasharray: 0.05 0.04;
+        opacity: 0.5;
+      }
+      .fp3d-wv-drawing {
+        cursor: crosshair;
+      }
+      .fp3d-wv-drawing .fp3d-wv-item {
+        pointer-events: none;
       }
       .fp3d-wv-svg {
         width: 100%;

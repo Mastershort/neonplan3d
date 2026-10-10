@@ -1507,5 +1507,18 @@
  "wall_view_hint_3d": "Tapni kos pohištva in ga povleci po tleh · kolesce ali dva prsta: bliže ali dlje · srednja ali desna miškina tipka (na tablici dva prsta): razgledovanje · spodaj vpiši razdalje in višino · puščici levo in desno: naslednja stena",
  "wall_view_lift": "Povleci gor ali dol: višina nad tlemi",
  "wall_view_fixed": "Pritrjeno – za vlečenje ga najprej sprosti",
- "wall_view_turn": "Zasukaj za 45° – ob steni se pomakne nazaj v prostor"
+ "wall_view_turn": "Zasukaj za 45° – ob steni se pomakne nazaj v prostor",
+ "wall_run_add": "+ Cev",
+ "wall_run_start": "Cev: začni pri napravi, na cevi (T-kos) ali na steni",
+ "wall_run_next": "Dodaj točke – konča se pri napravi ali na cevi; dvoklik ali Enter zaključi",
+ "wall_run_down": "↓ V tla",
+ "wall_run_through": "⟂ Skozi steno",
+ "wall_run_done": "Končano",
+ "wall_run_fit": "Tapni cev, kamor pride",
+ "wall_run_valve": "Krogelni ventil",
+ "wall_run_sight": "Kontrolno steklo",
+ "wall_run_pipe": "Cev",
+ "wall_run_pt": "Višina točke (m)",
+ "wall_run_more": "Riši naprej",
+ "wall_run_tip": "Vleci točke · dvoklik odstrani · tapni ventil: odprt/zaprt"
 }

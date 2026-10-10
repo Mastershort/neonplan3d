@@ -1507,5 +1507,18 @@
  "wall_view_hint_3d": "Tik een meubel aan en sleep het over de vloer · muiswiel of twee vingers: dichterbij of verder weg · middelste of rechter muisknop (twee vingers op een tablet): rondkijken · onderaan afstanden en hoogte invullen · pijlen links en rechts: naar de volgende wand",
  "wall_view_lift": "Omhoog of omlaag slepen: hoogte boven de vloer",
  "wall_view_fixed": "Vastgezet – eerst losmaken om te slepen",
- "wall_view_turn": "45° draaien – tegen de wand schuift het terug de ruimte in"
+ "wall_view_turn": "45° draaien – tegen de wand schuift het terug de ruimte in",
+ "wall_run_add": "+ Buis",
+ "wall_run_start": "Buis: begin bij een apparaat, op een buis (T-stuk) of op de wand",
+ "wall_run_next": "Meer punten zetten – eindigt bij een apparaat of op een buis; dubbelklik of Enter rondt af",
+ "wall_run_down": "↓ De vloer in",
+ "wall_run_through": "⟂ Door de wand",
+ "wall_run_done": "Klaar",
+ "wall_run_fit": "Tik op de buis waar het moet komen",
+ "wall_run_valve": "Kogelkraan",
+ "wall_run_sight": "Kijkglas",
+ "wall_run_pipe": "Buis",
+ "wall_run_pt": "Hoogte van het punt (m)",
+ "wall_run_more": "Verder tekenen",
+ "wall_run_tip": "Punten slepen · dubbelklik verwijdert · kogelkraan tikken: open/dicht"
 }

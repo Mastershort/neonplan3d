@@ -77,3 +77,34 @@ test("a closed ball valve stops its line", () => {
   assert.equal(m.get("d2")!.active, false);
   assert.equal(m.get("s2")!.active, true);
 });
+
+test("laid on the wall: ball valves sit in the pipes, T-pieces split and join, a loose end joins nothing", () => {
+  const valve = (open = true) => [{ id: "v", kind: "valve" as const, at: 0.5, open }];
+  const laid: PoolPipe[] = [
+    { ...pipe("s", "port:sk", "dev:pump"), fittings: valve() },
+    { ...pipe("d", "port:bd", "dev:pump"), fittings: valve(false) },
+    pipe("p1", "dev:pump", "dev:filter"),
+    pipe("f1", "dev:filter", "joint:t1"),
+    pipe("w1", "joint:t1", "dev:wp"),
+    pipe("w2", "dev:wp", "joint:t2"),
+    { ...pipe("by", "joint:t1", "joint:t2"), fittings: [{ id: "g", kind: "sight", at: 0.3 }] },
+    pipe("r1", "joint:t2", "port:in1"),
+    pipe("r2", "joint:t2", "port:in2"),
+    pipe("waste", "dev:filter", "port:kanal"),
+    // a line not finished yet: from the pump's tee to nowhere, and one from nowhere
+    pipe("open1", "joint:t2", ""),
+    pipe("open2", "", ""),
+  ];
+  const devs: PoolFlowDevice[] = [
+    { id: "pump", type: "pool_pump" },
+    { id: "filter", type: "pool_filter" },
+    { id: "wp", type: "pool_heat_pump" },
+  ];
+  const go = (heaterOn: boolean) => poolFlow({ pipes: laid, ports, devices: devs, pumpOn: true, heaterOn, heating: heaterOn });
+  // the drain's valve is closed: only the skimmer sucks; the bypass (with the sight glass) while the heat pump is off
+  assert.deepEqual(active(go(false)), ["by", "f1", "open1", "p1", "r1", "r2", "s"]);
+  const warm = go(true);
+  assert.deepEqual(active(warm), ["f1", "open1", "p1", "r1", "r2", "s", "w1", "w2"]);
+  assert.equal(warm.get("r2")!.warm, true);
+  assert.equal(warm.get("open2")!.active, false);
+});

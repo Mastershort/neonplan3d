@@ -1507,5 +1507,18 @@
  "wall_view_hint_3d": "Toca un mueble y arrástralo por el suelo · rueda o dos dedos: más cerca o más lejos · botón central o derecho (dos dedos en tableta): mirar alrededor · abajo se escriben distancias y altura · flechas a izquierda y derecha: a la pared siguiente",
  "wall_view_lift": "Arrastra hacia arriba o abajo: altura sobre el suelo",
  "wall_view_fixed": "Fijado – suéltalo para arrastrarlo",
- "wall_view_turn": "Girar 45° – junto a la pared vuelve a la habitación"
+ "wall_view_turn": "Girar 45° – junto a la pared vuelve a la habitación",
+ "wall_run_add": "+ Tubo",
+ "wall_run_start": "Tubo: empieza en un aparato, en un tubo (T) o en la pared",
+ "wall_run_next": "Pon más puntos – termina en un aparato o en un tubo; doble clic o Intro para acabar",
+ "wall_run_down": "↓ Al suelo",
+ "wall_run_through": "⟂ A través de la pared",
+ "wall_run_done": "Listo",
+ "wall_run_fit": "Toca el tubo donde va",
+ "wall_run_valve": "Válvula de bola",
+ "wall_run_sight": "Visor",
+ "wall_run_pipe": "Tubo",
+ "wall_run_pt": "Altura del punto (m)",
+ "wall_run_more": "Seguir dibujando",
+ "wall_run_tip": "Arrastra los puntos · doble clic quita · toca una válvula: abierta/cerrada"
 }

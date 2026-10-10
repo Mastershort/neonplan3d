@@ -32,4 +32,6 @@ Pool tool: with Pool Pro the water flows visibly: blue, orange after a heating h
 ## Also parked (equipment and pipes)
 
 - **Werkzeug „Pool“ mit Pooltechnik und Rohren:** Pools zeichnen (Eckig, Rund, Oval, Frei), dazu Skimmer, Bodenablauf, Einlässe und Abwasser, Filterpumpe, Sandfilter mit 6-Wege-Ventil, Wärmepumpe, Dosieranlage und Kugelhähne – und die Rohre dazwischen, so wie sie bei dir verlegt sind.
+- **Rohre an der Wand:** in der Wandansicht verlegen – aus dem Boden hoch, entlang, um die Ecke, durch die Wand und wieder in den Boden; T-Stücke, Kugelhähne (auf/zu) und Sichtgläser; in 3D echte Rohre.
 - **Pool tool with equipment and pipes:** draw pools (rectangular, round, oval, free), add skimmer, bottom drain, inlets and waste drain, filter pump, sand filter with six-way valve, heat pump, dosing unit and ball valves – and the pipes between them, the way yours run.
+- **Pipes on the wall:** lay them in the wall view – up from the floor, along, round the corner, through the wall and down into the ground; T-pieces, ball valves (open/closed) and sight glasses; real pipes in 3D.

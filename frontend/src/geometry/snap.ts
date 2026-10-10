@@ -22,6 +22,24 @@ export function keepInRoom(floor: Floor, x0: number, z0: number, x: number, z: n
   return [x0, z0];
 }
 
+/** An interior wall: another room has an edge along the edge a -> b of room `roomId` (overlapping by more than a few cm). */
+export function sharedEdge(floor: Floor, roomId: string, a: Vec2, b: Vec2): boolean {
+  const len = Math.hypot(b[0] - a[0], b[1] - a[1]);
+  if (len < 0.01) return false;
+  const u: Vec2 = [(b[0] - a[0]) / len, (b[1] - a[1]) / len];
+  const off = (q: Vec2) => Math.abs(-(q[0] - a[0]) * u[1] + (q[1] - a[1]) * u[0]);
+  const at = (q: Vec2) => (q[0] - a[0]) * u[0] + (q[1] - a[1]) * u[1];
+  return floor.rooms.some(
+    (r) =>
+      r.id !== roomId &&
+      r.points.some((p, k) => {
+        const q = r.points[(k + 1) % r.points.length];
+        if (off(p) > 0.02 || off(q) > 0.02) return false;
+        return Math.min(len, Math.max(at(p), at(q))) - Math.max(0, Math.min(at(p), at(q))) > 0.05;
+      }),
+  );
+}
+
 /**
  * An item moved to (x, z) keeps its whole footprint inside the room it stands in, up to the wall faces
  * (interior walls stand half their thickness into the room): pushed against a wall it stops there instead of
@@ -46,18 +64,7 @@ export function clampIntoRoom(floor: Floor, f: Pick<Furniture, "x" | "z" | "w" |
       if (len < 0.05) continue;
       const u: Vec2 = [(b[0] - a[0]) / len, (b[1] - a[1]) / len];
       const n: Vec2 = [-u[1] * sgn, u[0] * sgn];
-      // an interior wall: another room has an edge along this one (overlapping by more than a few cm)
-      const off = (q: Vec2) => Math.abs((q[0] - a[0]) * n[0] + (q[1] - a[1]) * n[1]);
-      const at = (q: Vec2) => (q[0] - a[0]) * u[0] + (q[1] - a[1]) * u[1];
-      const shared = floor.rooms.some((r) =>
-        r.id !== room.id &&
-        r.points.some((p, k) => {
-          const q = r.points[(k + 1) % r.points.length];
-          if (off(p) > 0.02 || off(q) > 0.02) return false;
-          return Math.min(len, Math.max(at(p), at(q))) - Math.max(0, Math.min(at(p), at(q))) > 0.05;
-        }),
-      );
-      const face = shared ? wallInterior / 2 : 0;
+      const face = sharedEdge(floor, room.id, a, b) ? wallInterior / 2 : 0;
       // only corners in front of this edge (along its length) are held by it
       let worst = 0;
       corners.forEach((c, k) => {

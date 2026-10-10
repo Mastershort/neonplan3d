@@ -84,7 +84,9 @@ function copyFonts() {
 // main 495 KB, editor 600 KB, card editor 190 KB the same day for the pool tool, its pipes, devices and texts
 // editor 620 KB on 2026-10-10 for the wall view (furniture on a wall from the front; later pipes and cables on walls)
 // editor 640 KB on 2026-10-10: the wall view grew (3D in the room, lift, turn, lock, tap into a room); the next wall update (doors, windows, runs) needs room too
-const BUDGET = { "neonplan3d.js": 495 * 1024, "neonplan3d-timetravel.js": 120 * 1024, "neonplan3d-3d.js": 740 * 1024, "neonplan3d-editor.js": 640 * 1024, "neonplan3d-card-editor.js": 190 * 1024 };
+// main 510 KB, 3D 760 KB, editor 680 KB, card editor 196 KB on 2026-10-10 for pipes on walls (Pool Pro: runs with a height per point,
+// T-pieces, ball valves, real tubes in 3D) and their texts – the doors and windows of the wall view come next
+const BUDGET = { "neonplan3d.js": 510 * 1024, "neonplan3d-timetravel.js": 120 * 1024, "neonplan3d-3d.js": 760 * 1024, "neonplan3d-editor.js": 680 * 1024, "neonplan3d-card-editor.js": 196 * 1024 };
 
 copyFonts();
 if (watch) {

@@ -52,6 +52,9 @@ import { buildFloorGeometry, SLAB, stairHoles, type FloorGeometry } from "./buil
 import { OrbitControls, type OrbitView } from "./controls.ts";
 import { makeFoldable, type FoldMasks } from "./fold.ts";
 import { pushCameraModel, pushPackGlow, pushPackLamp, screenRect, pushFridgeDoors } from "./furniture.ts";
+import { pushPipeTube, type PipeTube } from "./pipes.ts";
+
+export type { PipeTube };
 import { mountBase, packItem, setPacks, type FurniturePack } from "../packs.ts";
 import { withVehicles } from "../parking.ts";
 import { buildRoof, type RoofWindowState } from "./roof.ts";
@@ -383,6 +386,9 @@ interface FloorView {
   trailMesh: Mesh;
   /** Doors of smart fridges (they swing open with their sensors). */
   fridgeMesh: Mesh;
+  /** Pool Pro: the pipes as tubes. */
+  pipeMesh: Mesh;
+  pipeSig: string;
   /** Triangle ranges of lamps (entity ids), furniture walls mesh and openings, for tapping. */
   lampTris: { id: string; start: number; end: number }[];
   /** Triangle range of every camera's field-of-view wedge, by device id (a tap on it hits the camera). */
@@ -459,6 +465,7 @@ export class FloorplanViewer {
   /** Lamps flashing after a tap (entity id -> end time). */
   private flashes = new Map<string, number>();
   private flows: FlowPiece[] = [];
+  private pipes: PipeTube[] = [];
   /** Editor: things on surfaces (solar fields, roof windows) are grabbed and moved with a ray from the camera. */
   private surfaceGrab: SurfaceGrab | null = null;
   private surfaceDragging = false;
@@ -1000,6 +1007,25 @@ export class FloorplanViewer {
     this.flowActive = flows.some((f) => f.power > 0.5);
     for (const fv of this.floors) this.buildFlows(fv);
     this.invalidate();
+  }
+
+  /** Pool Pro: the pipes drawn as tubes (their water flows in the flow layer). */
+  setPipes(pipes: PipeTube[]): void {
+    this.pipes = pipes;
+    for (const fv of this.floors) this.buildPipes(fv);
+    this.invalidate();
+  }
+
+  private buildPipes(fv: FloorView): void {
+    const mine = this.pipes.filter((t) => t.floorId === fv.floor.id);
+    const sig = JSON.stringify(mine);
+    if (sig === fv.pipeSig) return;
+    fv.pipeSig = sig;
+    const buf = new GeoBuffer();
+    for (const t of mine) pushPipeTube(buf, t);
+    fv.pipeMesh.geometry.dispose();
+    fv.pipeMesh.geometry = buf.geometry();
+    fv.pipeMesh.visible = buf.count > 0;
   }
 
   /** People in their rooms (pink markers in the floor and room views). */
@@ -1797,6 +1823,8 @@ export class FloorplanViewer {
       trailMesh.renderOrder = 7;
       const fridgeMesh = new Mesh(new Geometry(), materials.lamps);
       fridgeMesh.visible = false;
+      const pipeMesh = new Mesh(new Geometry(), materials.lamps);
+      pipeMesh.visible = false;
       const screenMesh = new Mesh(new Geometry(), materials.screens);
       screenMesh.visible = false;
       screenMesh.renderOrder = 5;
@@ -1833,6 +1861,7 @@ export class FloorplanViewer {
         coneMesh,
         trailMesh,
         fridgeMesh,
+        pipeMesh,
         screenMesh,
         glassWalls,
         ...(solarMesh ? [solarMesh] : []),
@@ -1895,6 +1924,8 @@ export class FloorplanViewer {
         coneMesh,
         trailMesh,
         fridgeMesh,
+        pipeMesh,
+        pipeSig: "",
         lampTris: [],
         coneTris: [],
         lampFurnTris: [],
@@ -1926,7 +1957,10 @@ export class FloorplanViewer {
       });
     }
     this.floorMap = new Map(this.floors.map((f) => [f.floor.id, f]));
-    for (const fv of this.floors) this.buildFridges(fv);
+    for (const fv of this.floors) {
+      this.buildFridges(fv);
+      this.buildPipes(fv);
+    }
     this.labelsDirty = true;
     if (this.floorId && !b.floors.some((f) => f.id === this.floorId)) this.floorId = null;
     for (const fv of this.floors) {

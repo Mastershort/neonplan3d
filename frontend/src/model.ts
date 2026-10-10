@@ -701,6 +701,8 @@ export interface PoolLinks {
   ports?: PoolPort[];
   /** Pool Pro: the pipes between ports and pool devices; the water flows from `from` to `to`. */
   pipes?: PoolPipe[];
+  /** Pool Pro: T-pieces joining pipes. */
+  joints?: PoolJoint[];
 }
 
 /** A connection of a pool: skimmer and bottom drain suck, inlets return, the waste drain takes the backwash. */
@@ -711,7 +713,10 @@ export interface PoolPort {
   z: number;
 }
 
-/** A pipe between two nodes ("port:<id>" or "dev:<furniture id>"), with its corner points in between. */
+/**
+ * A pipe between two nodes ("port:<id>", "dev:<furniture id>", "joint:<id>"; "" = a loose end), with its corner
+ * points in between.
+ */
 export interface PoolPipe {
   id: string;
   from: string;
@@ -720,6 +725,30 @@ export interface PoolPipe {
   points: Vec2[];
   /** Height above the floor in m (negative: under the ground); null = 0.3 m. */
   height?: number | null;
+  /**
+   * A height per point (null: `height`) – a pipe laid on a wall: up from the floor, along it, round the corner,
+   * down into the ground. With it the pipe runs straight from node to point to node (no automatic risers).
+   */
+  heights?: (number | null)[] | null;
+  /** Ball valves and sight glasses in the pipe. */
+  fittings?: PipeFitting[] | null;
+}
+
+/** A ball valve (a closed one stops the water) or a sight glass, `at` metres along the pipe from its start. */
+export interface PipeFitting {
+  id: string;
+  kind: "valve" | "sight";
+  at: number;
+  open?: boolean;
+}
+
+/** A T-piece where pipes meet: a node of the pipes like a port or a device. */
+export interface PoolJoint {
+  id: string;
+  x: number;
+  z: number;
+  /** Height above the floor. */
+  y: number;
 }
 
 /** Position of a sand filter's six-way valve. */

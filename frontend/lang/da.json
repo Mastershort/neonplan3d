@@ -1507,5 +1507,18 @@
  "wall_view_hint_3d": "Tryk på et møbel og træk det hen over gulvet · musehjul eller to fingre: tættere på eller længere væk · midterste eller højre museknap (to fingre på tablet): kig rundt · afstande og højde skrives nederst · pile til venstre og højre: næste væg",
  "wall_view_lift": "Træk op eller ned: højde over gulvet",
  "wall_view_fixed": "Låst – frigør det for at trække",
- "wall_view_turn": "Drej 45° – ved væggen rykker det ind i rummet"
+ "wall_view_turn": "Drej 45° – ved væggen rykker det ind i rummet",
+ "wall_run_add": "+ Rør",
+ "wall_run_start": "Rør: start ved et apparat, på et rør (T-stykke) eller på væggen",
+ "wall_run_next": "Sæt flere punkter – slutter ved et apparat eller på et rør; dobbeltklik eller Enter afslutter",
+ "wall_run_down": "↓ Ned i gulvet",
+ "wall_run_through": "⟂ Gennem væggen",
+ "wall_run_done": "Færdig",
+ "wall_run_fit": "Tryk på røret, hvor den skal sidde",
+ "wall_run_valve": "Kuglehane",
+ "wall_run_sight": "Skueglas",
+ "wall_run_pipe": "Rør",
+ "wall_run_pt": "Punktets højde (m)",
+ "wall_run_more": "Tegn videre",
+ "wall_run_tip": "Træk punkter · dobbeltklik fjerner · tryk på kuglehane: åben/lukket"
 }

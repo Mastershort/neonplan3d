@@ -342,6 +342,15 @@ POOL_PORT_SCHEMA = vol.Schema(
     },
     extra=vol.ALLOW_EXTRA,
 )
+POOL_FITTING_SCHEMA = vol.Schema(
+    {
+        vol.Required("id"): vol.All(str, vol.Length(max=80)),
+        vol.Required("kind"): vol.In(["valve", "sight"]),
+        vol.Required("at"): vol.All(vol.Coerce(float), vol.Range(min=0, max=1000)),
+        vol.Optional("open", default=True): bool,
+    },
+    extra=vol.ALLOW_EXTRA,
+)
 POOL_PIPE_SCHEMA = vol.Schema(
     {
         vol.Required("id"): vol.All(str, vol.Length(max=80)),
@@ -350,6 +359,23 @@ POOL_PIPE_SCHEMA = vol.Schema(
         vol.Required("floor_id"): vol.All(str, vol.Length(max=80)),
         vol.Optional("points", default=list): vol.All([_POINT], vol.Length(max=80)),
         vol.Optional("height", default=None): vol.Any(None, vol.All(vol.Coerce(float), vol.Range(min=-5, max=10))),
+        # a height per point (laid on a wall: up from the floor, along, round the corner, down into the ground)
+        vol.Optional("heights", default=None): vol.Any(
+            None,
+            vol.All([vol.Any(None, vol.All(vol.Coerce(float), vol.Range(min=-5, max=10)))], vol.Length(max=80)),
+        ),
+        # ball valves and sight glasses in the pipe, at a distance along it
+        vol.Optional("fittings", default=None): vol.Any(None, vol.All([POOL_FITTING_SCHEMA], vol.Length(max=40))),
+    },
+    extra=vol.ALLOW_EXTRA,
+)
+# a T-piece where pipes meet (a node of the pipes like a port or a device)
+POOL_JOINT_SCHEMA = vol.Schema(
+    {
+        vol.Required("id"): vol.All(str, vol.Length(max=80)),
+        vol.Required("x"): vol.Coerce(float),
+        vol.Required("z"): vol.Coerce(float),
+        vol.Required("y"): vol.All(vol.Coerce(float), vol.Range(min=-5, max=10)),
     },
     extra=vol.ALLOW_EXTRA,
 )
@@ -361,6 +387,7 @@ POOL_SCHEMA = vol.Schema(
         },
         vol.Optional("ports"): vol.All([POOL_PORT_SCHEMA], vol.Length(max=40)),
         vol.Optional("pipes"): vol.All([POOL_PIPE_SCHEMA], vol.Length(max=80)),
+        vol.Optional("joints"): vol.All([POOL_JOINT_SCHEMA], vol.Length(max=80)),
     },
     extra=vol.ALLOW_EXTRA,
 )

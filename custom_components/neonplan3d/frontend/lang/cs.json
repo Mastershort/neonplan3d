@@ -1507,5 +1507,18 @@
  "wall_view_hint_3d": "Klepni na kus nábytku a táhni ho po podlaze · kolečko nebo dva prsty: blíž nebo dál · prostřední nebo pravé tlačítko myši (na tabletu dva prsty): rozhlédnout se · dole zadej vzdálenosti a výšku · šipky vlevo a vpravo: další stěna",
  "wall_view_lift": "Táhni nahoru nebo dolů: výška nad podlahou",
  "wall_view_fixed": "Zafixováno – pro přetažení nejdřív uvolni",
- "wall_view_turn": "Otočit o 45° – u stěny se posune zpět do místnosti"
+ "wall_view_turn": "Otočit o 45° – u stěny se posune zpět do místnosti",
+ "wall_run_add": "+ Trubka",
+ "wall_run_start": "Trubka: začni u zařízení, na trubce (T-kus) nebo na stěně",
+ "wall_run_next": "Přidej další body – končí u zařízení nebo na trubce; dvojklik nebo Enter ukončí",
+ "wall_run_down": "↓ Do podlahy",
+ "wall_run_through": "⟂ Skrz stěnu",
+ "wall_run_done": "Hotovo",
+ "wall_run_fit": "Klepni na trubku, kam má přijít",
+ "wall_run_valve": "Kulový ventil",
+ "wall_run_sight": "Průhledítko",
+ "wall_run_pipe": "Trubka",
+ "wall_run_pt": "Výška bodu (m)",
+ "wall_run_more": "Kreslit dál",
+ "wall_run_tip": "Táhni body · dvojklik odstraní · klepnutí na ventil: otevřeno/zavřeno"
 }

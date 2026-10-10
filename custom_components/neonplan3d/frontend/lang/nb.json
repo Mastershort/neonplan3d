@@ -1507,5 +1507,18 @@
  "wall_view_hint_3d": "Trykk på et møbel og dra det over gulvet · musehjul eller to fingre: nærmere eller lenger unna · midtre eller høyre museknapp (to fingre på nettbrett): se deg rundt · avstander og høyde skrives inn nederst · piler til venstre og høyre: neste vegg",
  "wall_view_lift": "Dra opp eller ned: høyde over gulvet",
  "wall_view_fixed": "Låst – løs det for å dra",
- "wall_view_turn": "Drei 45° – ved veggen flyttes det inn i rommet"
+ "wall_view_turn": "Drei 45° – ved veggen flyttes det inn i rommet",
+ "wall_run_add": "+ Rør",
+ "wall_run_start": "Rør: start ved et apparat, på et rør (T-stykke) eller på veggen",
+ "wall_run_next": "Sett flere punkter – slutter ved et apparat eller på et rør; dobbeltklikk eller Enter avslutter",
+ "wall_run_down": "↓ Ned i gulvet",
+ "wall_run_through": "⟂ Gjennom veggen",
+ "wall_run_done": "Ferdig",
+ "wall_run_fit": "Trykk på røret der den skal sitte",
+ "wall_run_valve": "Kuleventil",
+ "wall_run_sight": "Seglass",
+ "wall_run_pipe": "Rør",
+ "wall_run_pt": "Punktets høyde (m)",
+ "wall_run_more": "Tegn videre",
+ "wall_run_tip": "Dra punkter · dobbeltklikk fjerner · trykk på kuleventil: åpen/lukket"
 }
