@@ -13,7 +13,7 @@ test("a lamp switched by a relay takes colour and brightness from its colour ent
   // the bulb unavailable: the relay's own (plain) glow
   assert.deepEqual(lightGlow(relay as never, { ...bulb, state: "unavailable" } as never)!.color, [1, 0.71, 0.28]);
 });
-import { isRelevant, apOnline, fanSpeed, climateModeGlow, cooktopLevel, onlyColor, appColor, carLocked, areaEntities, otherAreaEntities, roomClimateSensors, roomClimateValue, unassignedEntities, autoPlace, entityName, fridgeDoors, furnitureEntities, groupByDevice, isActive, kindOf, lightGlow, openingEntities, openingState, powerSensorsOf, primaryEntities, roomPanelEntities, windowPosition, confirmEntities, robotRoom, robotRoomSensor, roomKey, vacuumCleaning } from "./devices.ts";
+import { isRelevant, apOnline, fanSpeed, climateModeGlow, cooktopLevel, onlyColor, appColor, carLocked, areaEntities, otherAreaEntities, roomClimateSensors, roomClimateValue, unassignedEntities, autoPlace, entityName, fridgeDoors, furnitureEntities, groupByDevice, isActive, kindOf, lightGlow, openingEntities, openingState, powerSensorsOf, primaryEntities, roomPanelEntities, windowPosition, confirmEntities, robotRoom, robotRoomSensor, roomKey, vacuumCleaning, radiatorHeating } from "./devices.ts";
 import type { Floor, Opening, Room } from "./model.ts";
 import { centroid, newFloor, pointInPolygon } from "./model.ts";
 import type { HomeAssistant } from "./types.ts";
@@ -57,6 +57,14 @@ function hassWith(): HomeAssistant {
     },
   };
 }
+
+test("radiators can use heating action, open text states and numeric valve positions", () => {
+  const climate = { entity_id: "climate.bad", state: "auto", attributes: {} } as { entity_id: string; state: string; attributes: Record<string, unknown> };
+  assert.equal(radiatorHeating({ ...climate, attributes: { hvac_action: "heating" } }, undefined), true);
+  assert.equal(radiatorHeating(climate, { entity_id: "sensor.work", state: "opened", attributes: {} } as never), true);
+  assert.equal(radiatorHeating(climate, { entity_id: "sensor.valve", state: "35", attributes: { unit_of_measurement: "%" } } as never), true);
+  assert.equal(radiatorHeating(climate, { entity_id: "sensor.valve", state: "0", attributes: { unit_of_measurement: "%" } } as never), false);
+});
 
 test("area entities include device areas and skip hidden, config and unsupported entities", () => {
   const ids = areaEntities(hassWith(), "wohnen");

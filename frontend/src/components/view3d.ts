@@ -7,6 +7,7 @@ import { carState, type CarState, roomClimateValue,
   entityName,
   furnitureEntities,
   isActive,
+  radiatorHeating,
   isUnavailable,
   kindOf,
   lightGlow,
@@ -2676,7 +2677,8 @@ export class Fp3dView3d extends LitElement {
         if (f.type === "radiator" && st && kindOf(st.entity_id) === "climate") {
           // glows while it heats; brighter the further the room is below its target
           const a = st.attributes;
-          if (a.hvac_action === "heating") {
+          const status = f.state_entity && f.state_entity !== "none" ? hass.states[f.state_entity] : undefined;
+          if (radiatorHeating(st, status)) {
             const gap = typeof a.temperature === "number" && typeof a.current_temperature === "number" ? a.temperature - a.current_temperature : 1;
             screens.set(f.id, { color: [1, 0.42, 0.1], level: Math.min(1, 0.45 + 0.25 * Math.max(0, gap)) });
           }

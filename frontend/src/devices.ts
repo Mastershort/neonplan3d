@@ -377,6 +377,16 @@ export function isActive(st: HassEntity | undefined): boolean {
   }
 }
 
+/** Whether a radiator is actively heating from its thermostat and/or an optional status entity. */
+export function radiatorHeating(thermostat: HassEntity | undefined, status: HassEntity | undefined): boolean {
+  if (thermostat?.attributes.hvac_action === "heating") return true;
+  if (!status || isUnavailable(status)) return false;
+  const state = String(status.state).trim().toLowerCase();
+  if (["on", "open", "opened", "heating", "running", "active", "true"].includes(state)) return true;
+  const value = Number(status.state);
+  return Number.isFinite(value) && value > 0;
+}
+
 /**
  * A cooktop's operating state (Home Connect and others: "run" cooking, "ready" switched on, "inactive" off):
  * the burners glow while it cooks, faintly while it is ready, not at all when it is off.
