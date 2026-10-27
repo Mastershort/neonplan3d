@@ -34,6 +34,7 @@ import { storedImageIds } from "../transfer.ts";
 import { fromWall, furnitureOnWall, openingsOnWall, roomEdgeFrame, slideAlong, toWall, type WallFrame } from "../geometry/wall-frame.ts";
 import { type CarLinks, type Background, OUTDOOR_TOP, sidelightLayout, DEFAULT_WEATHER_EFFECTS, WEATHER_EFFECTS,
   normalizeBuilding,
+  syncCameraLooks,
   furnitureFootprint,
   type FreeWall,
   poolDepth,
@@ -1295,6 +1296,7 @@ export class Fp3dEditor extends LitElement {
     const floor = next.floors.find((f) => f.id === this._floorId);
     if (!floor && this._floorId) return;
     mutate(next, floor as Floor);
+    syncCameraLooks(next, base);
     this.setDoc(next, history ? base : null);
   }
 
@@ -4777,8 +4779,8 @@ export class Fp3dEditor extends LitElement {
   private deviceToFurniture(pl: Placement, type: string): void {
     if (!this.isAdmin) return;
     const [w, d, h] = furnitureSize(type);
-    // a camera keeps its pin with everything set there (field of view, wedge, Kamera-Cockpit): the model only joins
-    // it as its look (#779)
+    // a camera keeps its pin with everything set there (field of view, wedge, Kamera-Cockpit): the model is only its
+    // look – one item that replaces the last one and moves with the camera (#779)
     const camera = pl.entity_id.startsWith("camera.");
     const item: Furniture = {
       id: uid("furniture"),
@@ -4790,12 +4792,13 @@ export class Fp3dEditor extends LitElement {
       d,
       h,
       variant: null,
-      ...(camera ? { entity: "none" } : { entity: pl.entity_id }),
+      ...(camera ? { entity: "none", look_of: pl.entity_id } : { entity: pl.entity_id }),
       name: pl.name ?? null,
       ...(pl.locked ? { locked: true } : {}),
     };
     this.change((_, f) => {
-      if (!camera) f.placements = f.placements.filter((p) => p.entity_id !== pl.entity_id);
+      if (camera) f.furniture = f.furniture.filter((m) => m.look_of !== pl.entity_id);
+      else f.placements = f.placements.filter((p) => p.entity_id !== pl.entity_id);
       f.furniture.push(item);
     });
     if (camera) return;
@@ -4820,15 +4823,19 @@ export class Fp3dEditor extends LitElement {
     if (!this.isAdmin) return nothing;
     const options = this.furnitureFor(pl.entity_id);
     if (!options.length) return nothing;
+    // a camera with a look of its own can go back to the built-in camera model
+    const look = pl.entity_id.startsWith("camera.") ? this.floor?.furniture.find((m) => m.look_of === pl.entity_id) : undefined;
     return html`<label class="fp3d-field fp3d-wide" title=${this.t("as_furniture_hint")}
       >${this.t("as_furniture")}
       <select
         @change=${(e: Event) => {
           const v = (e.target as HTMLSelectElement).value;
-          if (v) this.deviceToFurniture(pl, v);
+          if (v === "__builtin") this.change((_, f) => (f.furniture = f.furniture.filter((m) => m.look_of !== pl.entity_id)));
+          else if (v) this.deviceToFurniture(pl, v);
         }}
       >
-        <option value="" selected>${this.t("as_furniture_pick")}</option>
+        <option value="" selected>${look ? furnitureName(this.hass, look.type) : this.t("as_furniture_pick")}</option>
+        ${look ? html`<option value="__builtin">${this.t("camera_look_builtin")}</option>` : nothing}
         ${options.map((o) => html`<option value=${o.type}>${o.label}</option>`)}
       </select></label
     >`;

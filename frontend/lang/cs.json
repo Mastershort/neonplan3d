@@ -399,6 +399,7 @@
  "as_furniture": "Zobrazit jako nábytek",
  "as_furniture_hint": "Nahradí špendlík kusem nábytku na stejném místě, propojeným s tímto zařízením – reproduktor pro přehrávač médií, lampa pro světlo. Ctrl+Z to vrátí. Kamera si ponechá svůj špendlík se všemi nastaveními; model se jen přidá.",
  "as_furniture_pick": "Vybrat nábytek …",
+ "camera_look_builtin": "Výchozí model kamery",
  "as_device": "Zpět na špendlík zařízení",
  "as_device_hint": "Nahradí nábytek obyčejným špendlíkem jeho zařízení na stejném místě.",
  "presets": "Stanice a playlisty (Zvuk a kino)",

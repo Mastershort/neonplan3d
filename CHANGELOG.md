@@ -16,6 +16,7 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 
 ### Fixed
 
+- **Camera shown as furniture (#779):** the chosen model is the camera's look – one item that replaces the last one, moves and turns with the camera and goes with it; the built-in camera model hides, and "Built-in camera model" brings it back. Thanks to @EduK85!
 - **Editor error "Cannot convert undefined or null to object":** the selected room, door or item not on the floor shown made the editor throw (usage reports, ~20 installations).
 - **Room panel with a removed entity:** an entity placed in the plan but removed from Home Assistant no longer breaks the panel.
 - **Wärme Pro's lists on the PC (#815):** a module's form is made only when the plan or the devices change; the lists closed at once and the CPU load went up. Thanks to @frops83!

@@ -399,6 +399,7 @@
  "as_furniture": "Mostra come mobile",
  "as_furniture_hint": "Sostituisce il segnaposto con un mobile collegato nello stesso punto. Ctrl+Z annulla. Una telecamera mantiene il suo segnaposto con tutte le impostazioni; il modello si aggiunge soltanto.",
  "as_furniture_pick": "Scegli un mobile …",
+ "camera_look_builtin": "Modello di telecamera standard",
  "as_device": "Torna a segnaposto",
  "as_device_hint": "Sostituisce il mobile con il segnaposto del dispositivo.",
  "presets": "Stazioni e playlist (Suono & Cinema)",

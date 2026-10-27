@@ -399,6 +399,7 @@
  "as_furniture": "Mostrar como mueble",
  "as_furniture_hint": "Sustituye el pin por un mueble vinculado en el mismo sitio. Ctrl+Z lo deshace. Una cámara conserva su marcador con todos sus ajustes; el modelo solo se añade.",
  "as_furniture_pick": "Elegir mueble …",
+ "camera_look_builtin": "Modelo de cámara estándar",
  "as_device": "Volver a pin",
  "as_device_hint": "Sustituye el mueble por el pin de su dispositivo.",
  "presets": "Emisoras y listas (Sonido y Cine)",

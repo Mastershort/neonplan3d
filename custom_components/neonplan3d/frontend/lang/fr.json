@@ -399,6 +399,7 @@
  "as_furniture": "Afficher comme meuble",
  "as_furniture_hint": "Remplace le repère par un meuble lié au même endroit. Ctrl+Z annule. Une caméra garde son repère avec tous ses réglages ; le modèle s'y ajoute seulement.",
  "as_furniture_pick": "Choisir un meuble …",
+ "camera_look_builtin": "Modèle de caméra standard",
  "as_device": "Revenir au repère",
  "as_device_hint": "Remplace le meuble par le repère de son appareil.",
  "presets": "Stations et playlists (Son & Cinéma)",

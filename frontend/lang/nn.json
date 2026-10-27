@@ -399,6 +399,7 @@
  "as_furniture": "Vis som møbel",
  "as_furniture_hint": "Erstattar nåla med eit møbel på same stad, kopla til denne eininga – ein høgtalar for ein mediespelar, ei lampe for eit lys. Ctrl+Z angrar. Eit kamera held på markøren med alle kamerainnstillingane; modellen kjem berre i tillegg.",
  "as_furniture_pick": "Vel møbel …",
+ "camera_look_builtin": "Standard kameramodell",
  "as_device": "Tilbake til einingsnål",
  "as_device_hint": "Erstattar møbelet med den vanlege nåla til eininga på same stad.",
  "presets": "Stasjonar og spelelister (Lyd & kino)",

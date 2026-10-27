@@ -65,6 +65,8 @@ function translateState(hass: HomeAssistant | undefined, state: string): string 
 /** Markers for every placed entity that still exists. */
 export function buildMarkers(hass: HomeAssistant, building: Building): DeviceMarker[] {
   const out: DeviceMarker[] = [];
+  // cameras shown by a furniture item of their own (#779)
+  const looks = new Set(building.floors.flatMap((f) => f.furniture.map((m) => m.look_of).filter((id): id is string => !!id)));
   for (const floor of building.floors) {
     for (const pl of floor.placements) {
       const kind = kindOf(pl.entity_id);
@@ -81,6 +83,7 @@ export function buildMarkers(hass: HomeAssistant, building: Building): DeviceMar
         y: pl.y ?? defaultHeight(kind, floor.height, pl.mount ?? null),
         lamp: kind === "light" ? (pl.mount ?? "ceiling") : null,
         model: kind === "camera" ? (pl.mount === "ceiling" ? "camera_ceiling" : "camera_wall") : undefined,
+        ...(kind === "camera" && looks.has(pl.entity_id) ? { ownLook: true } : {}),
         motion: kind === "camera" ? cameraMotion(hass, pl.entity_id) : undefined,
         fov: pl.fov ?? undefined,
         reach: pl.reach ?? undefined,

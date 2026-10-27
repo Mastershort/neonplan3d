@@ -399,6 +399,7 @@
  "as_furniture": "Als meubel tonen",
  "as_furniture_hint": "Vervangt de pin door een gekoppeld meubel op dezelfde plek. Ctrl+Z maakt het ongedaan. Een camera houdt zijn pin met alle camera-instellingen; het model komt er alleen bij.",
  "as_furniture_pick": "Meubel kiezen …",
+ "camera_look_builtin": "Standaard cameramodel",
  "as_device": "Terug naar pin",
  "as_device_hint": "Vervangt het meubel door de pin van het apparaat.",
  "presets": "Zenders en playlists (Geluid & Bioscoop)",

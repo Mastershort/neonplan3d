@@ -399,6 +399,7 @@
  "as_furniture": "Vis som møbel",
  "as_furniture_hint": "Erstatter nålen med et møbel på samme sted, koblet til denne enhed – en højttaler for en medieafspiller, en lampe for et lys. Ctrl+Z fortryder. Et kamera beholder sin markør med alle kameraindstillinger; modellen kommer kun til.",
  "as_furniture_pick": "Vælg møbel …",
+ "camera_look_builtin": "Standardkameramodel",
  "as_device": "Tilbage til en enhedsnål",
  "as_device_hint": "Erstatter møblet med enhedens simple nål på samme sted.",
  "presets": "Stationer og playlister (Lyd & Biograf)",

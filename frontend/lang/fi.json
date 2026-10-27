@@ -399,6 +399,7 @@
  "as_furniture": "Näytä huonekaluna",
  "as_furniture_hint": "Korvaa nastan huonekalulla samassa paikassa, linkitettynä tähän laitteeseen – kaiutin mediasoittimelle, valaisin valolle. Ctrl+Z peruu. Kamera säilyttää merkkinsä kaikkine asetuksineen; malli vain lisätään.",
  "as_furniture_pick": "Valitse huonekalu …",
+ "camera_look_builtin": "Vakiokameramalli",
  "as_device": "Takaisin laitenastaksi",
  "as_device_hint": "Korvaa huonekalun sen laitteen pelkällä nastalla samassa paikassa.",
  "presets": "Kanavat ja soittolistat (Ääni & Elokuva)",

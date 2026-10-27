@@ -10,6 +10,7 @@
 
 ### Fixed
 
+- **A camera shown as furniture.** The model you choose is now the camera's look: choosing again replaces it instead of adding another item, it moves and turns with the camera, and the built-in camera model hides. **Built-in camera model** in the same list brings it back. Thanks to @EduK85 (#779)!
 - **Editor error "Cannot convert undefined or null to object".** It came when the selected room, door or piece of furniture was not on the floor shown (after switching floors, undo or deleting). The usage reports showed it on about 20 installations – thanks to everyone who switched them on!
 - **Room panel with a removed device.** An entity placed in the plan but since removed from Home Assistant no longer breaks the room's panel.
 - **Wärme Pro's lists on the PC.** The selection lists of the heat pump's form closed at once and the CPU load went up: a module's form was made anew on every state change. It is now made only when the plan or the devices change. Thanks to @frops83 (#815)!
@@ -37,6 +38,7 @@ Settings → System → Updates. HACS only checks for new versions every few hou
 
 ### Behoben
 
+- **Kamera als Möbel darstellen.** Das gewählte Modell ist jetzt das Aussehen der Kamera: Eine neue Auswahl ersetzt es, statt ein weiteres Möbel dazuzulegen, es wandert und dreht sich mit der Kamera, und das eingebaute Kamera-Modell verschwindet. **Standard-Kameramodell** in derselben Liste holt es zurück. Danke an @EduK85 (#779)!
 - **Editor-Fehler „Cannot convert undefined or null to object“.** Er kam, wenn der gewählte Raum, die Tür oder das Möbel nicht auf der gezeigten Etage lag (nach Etagenwechsel, Rückgängig oder Löschen). Die Nutzungsberichte zeigten ihn bei rund 20 Installationen – danke an alle, die sie eingeschaltet haben!
 - **Raumfenster mit gelöschtem Gerät.** Ein Gerät, das im Plan steht, aber in Home Assistant gelöscht wurde, bringt das Raumfenster nicht mehr zum Absturz.
 - **Wärme Pro: Auswahllisten am PC.** Die Auswahllisten im Formular der Wärmepumpe klappten sofort wieder zu, und die Rechenlast stieg: Das Formular eines Moduls wurde bei jeder Zustandsänderung neu gebaut. Jetzt nur noch, wenn sich Plan oder Geräte ändern. Danke an @frops83 (#815)!

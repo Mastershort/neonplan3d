@@ -399,6 +399,7 @@
  "as_furniture": "Pokaż jako mebel",
  "as_furniture_hint": "Zastępuje pinezkę meblem w tym samym miejscu, połączonym z tym urządzeniem – głośnikiem dla odtwarzacza multimediów, lampą dla światła. Ctrl+Z cofa. Kamera zachowuje swoją pinezkę ze wszystkimi ustawieniami; model jest tylko dodawany.",
  "as_furniture_pick": "Wybierz mebel …",
+ "camera_look_builtin": "Domyślny model kamery",
  "as_device": "Wróć do pinezki urządzenia",
  "as_device_hint": "Zastępuje mebel zwykłą pinezką jego urządzenia w tym samym miejscu.",
  "presets": "Stacje i playlisty (Dźwięk i kino)",

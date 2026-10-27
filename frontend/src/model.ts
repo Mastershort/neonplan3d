@@ -309,6 +309,11 @@ export interface Furniture {
   scale?: number;
   /** What a module keeps for this item (its settings, the entities it found), by the module's id. */
   mods?: ModuleData | null;
+  /**
+   * The look of a placed camera (its entity id): the camera keeps its pin with everything set there, this item is only
+   * how it looks – it moves and turns with the camera and goes with it (#779).
+   */
+  look_of?: string | null;
   /** Parking spots: a sensor naming the kind of vehicle, and which vehicle each state means. */
   type_entity?: string | null;
   types?: { state: string; vehicle: string }[];
@@ -1928,3 +1933,32 @@ export const LAMP_MODEL: Record<string, LampModel> = {
   lamp_wall: "wall",
   led_strip: "strip",
 };
+
+/**
+ * A camera and its look (a furniture item, #779) stay together: when one of them moved or turned, the other follows;
+ * when the camera's pin is gone, its look goes too.
+ */
+export function syncCameraLooks(next: Building, base: Building): void {
+  for (const floor of next.floors) {
+    const before = base.floors.find((f) => f.id === floor.id);
+    floor.furniture = floor.furniture.filter((m) => {
+      if (!m.look_of) return true;
+      const pl = floor.placements.find((p) => p.entity_id === m.look_of);
+      if (!pl) return false;
+      const pl0 = before?.placements.find((p) => p.entity_id === m.look_of);
+      const m0 = before?.furniture.find((x) => x.id === m.id);
+      const camMoved = !pl0 || pl0.x !== pl.x || pl0.z !== pl.z || (pl0.rotation ?? 0) !== (pl.rotation ?? 0);
+      const lookMoved = !!m0 && (m0.x !== m.x || m0.z !== m.z || m0.rotation !== m.rotation);
+      if (lookMoved && !camMoved) {
+        pl.x = m.x;
+        pl.z = m.z;
+        pl.rotation = m.rotation;
+      } else {
+        m.x = pl.x;
+        m.z = pl.z;
+        m.rotation = pl.rotation ?? 0;
+      }
+      return true;
+    });
+  }
+}

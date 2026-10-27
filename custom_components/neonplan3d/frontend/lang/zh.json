@@ -399,6 +399,7 @@
  "as_furniture": "显示为家具",
  "as_furniture_hint": "在同一位置用一件关联到此设备的家具替换标记——媒体播放器用音箱，灯光用灯具。Ctrl+Z 可撤回。 摄像头会保留其标记及所有摄像头设置，模型只是额外添加。",
  "as_furniture_pick": "选择家具…",
+ "camera_look_builtin": "默认摄像头模型",
  "as_device": "恢复为设备标记",
  "as_device_hint": "在同一位置用其设备的普通标记替换家具。",
  "presets": "电台和播放列表（声音与影院）",

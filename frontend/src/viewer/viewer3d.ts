@@ -192,6 +192,8 @@ export interface DeviceMarker {
   powerText?: string;
   /** A camera drawn in 3D (wall or ceiling); its field of view lies on the floor, red while motion is seen. */
   model?: "camera_wall" | "camera_ceiling";
+  /** A camera shown by a furniture item of its own (#779): its built-in model is not drawn (wedge and look-through stay). */
+  ownLook?: boolean;
   motion?: boolean;
   /** Camera: opening angle (degrees) and reach (m) of its field of view; default 90° / 4.5 m (dome: 360° / 3 m). */
   fov?: number;
@@ -3146,7 +3148,9 @@ export class FloorplanViewer {
         const packed = d.pack ? packItem(d.pack) : undefined;
         const [pw, pd, ph] = d.size ?? [0.3, 0.3, 0.3];
         // shades get the sentinel colour and are recoloured below
-        if (d.model) pushCameraModel(buf, d.model, d.x, d.model === "camera_ceiling" ? H : d.y, d.z, d.rotation ?? 0);
+        if (d.model) {
+          if (!d.ownLook) pushCameraModel(buf, d.model, d.x, d.model === "camera_ceiling" ? H : d.y, d.z, d.rotation ?? 0);
+        }
         else if (packed) pushPackLamp(buf, packed, { x: d.x, z: d.z, rotation: d.rotation ?? 0, w: pw, d: pd, h: ph, mirror: d.mirror }, d.base ?? 0, SHADE_SENTINEL);
         // a ceiling fan's blades turn in a group of their own (syncFans)
         else pushLampModel(buf, { ...d, lamp: d.lamp! }, d.top ?? H, SHADE_SENTINEL, d.lamp !== "fan");

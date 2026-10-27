@@ -399,6 +399,7 @@
  "as_furniture": "Arată ca mobilier",
  "as_furniture_hint": "Înlocuiește marcajul cu o piesă de mobilier în același loc, legată de acest dispozitiv – o boxă pentru un media player, o lampă pentru o lumină. Ctrl+Z anulează. O cameră își păstrează marcajul cu toate setările; modelul doar se adaugă.",
  "as_furniture_pick": "Alege mobilierul …",
+ "camera_look_builtin": "Model de cameră implicit",
  "as_device": "Înapoi la un marcaj de dispozitiv",
  "as_device_hint": "Înlocuiește mobilierul cu marcajul simplu al dispozitivului lui în același loc.",
  "presets": "Posturi și playlisturi (Sunet și cinema)",
