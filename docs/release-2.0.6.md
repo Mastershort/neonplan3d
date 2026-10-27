@@ -3,7 +3,7 @@
 ### New
 
 - **Opening angle for doors.** Every door in the editor has an **Opening angle** field: Default, 15°, 30°, 45°, 60° or 90°. Without a sensor the leaf stands that far open, with a sensor it opens that far as soon as the sensor reports "open". **Default** stays exactly as before. Thanks to David on Discord for the wish!
-- **Warning for unavailable contacts (off by default).** When a window or door contact has been "unavailable" for 10 minutes (empty battery, out of radio reach), the window looks shut in 3D although nobody knows. Switch on **Warn when a window or door contact is unavailable** under **⚙ House**, and a warning names the contact. A short gap while Home Assistant restarts does not warn.
+- **Warning for unavailable contacts (off by default).** When a window or door contact has been "unavailable" for 10 minutes (empty battery, out of radio reach), the window looks shut in 3D although nobody knows. Switch on **Warn when a window or door contact is unavailable** in the editor's settings under **Weather & warnings**, and a warning names the contact. A short gap while Home Assistant restarts does not warn.
 
 ### Fixed
 
@@ -27,7 +27,7 @@ Settings → System → Updates. HACS only checks for new versions every few hou
 ### Neu
 
 - **Öffnungswinkel für Türen.** Jede Tür hat im Editor das Feld **Öffnungswinkel**: Standard, 15°, 30°, 45°, 60° oder 90°. Ohne Sensor steht das Türblatt so weit offen, mit Sensor öffnet es so weit, sobald er „offen“ meldet. **Standard** bleibt genau wie bisher. Danke an David auf Discord für den Wunsch!
-- **Warnung bei nicht verfügbaren Kontakten (ab Werk aus).** Meldet ein Fenster- oder Türkontakt 10 Minuten lang „nicht verfügbar“ (leere Batterie, außer Funkreichweite), sieht das Fenster in 3D zu aus, obwohl es niemand weiß. Schaltest du unter **⚙ Haus** den Haken **Warnen, wenn ein Fenster- oder Türkontakt nicht verfügbar ist** ein, kommt dann eine Warnung mit dem Namen des Kontakts. Ein kurzer Aussetzer beim Neustart von Home Assistant warnt nicht.
+- **Warnung bei nicht verfügbaren Kontakten (ab Werk aus).** Meldet ein Fenster- oder Türkontakt 10 Minuten lang „nicht verfügbar“ (leere Batterie, außer Funkreichweite), sieht das Fenster in 3D zu aus, obwohl es niemand weiß. Schaltest du in den Editor-Einstellungen unter **Wetter & Warnungen** den Haken **Warnen, wenn ein Fenster- oder Türkontakt nicht verfügbar ist** ein, kommt dann eine Warnung mit dem Namen des Kontakts. Ein kurzer Aussetzer beim Neustart von Home Assistant warnt nicht.
 
 ### Behoben
 

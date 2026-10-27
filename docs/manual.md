@@ -675,7 +675,7 @@ The room pulses red and a banner appears at the top. A tap on the warning jumps 
 
 On a wall tablet the banner can get long: "Guest WC · Window open in the rain: Guest bathroom window". Switch off **Show device names in warnings** in the plan settings, and it reads "Guest WC · Window open in the rain". A warning without a room keeps the device name.
 
-**Contact unavailable (since 2.0.6, off by default):** when a window or door contact has been "unavailable" for 10 minutes (empty battery, out of radio reach), the window looks shut in 3D although nobody knows. Switch on **Warn when a window or door contact is unavailable** under **⚙ House**, and a warning names the contact. A short gap while Home Assistant restarts does not warn.
+**Contact unavailable (since 2.0.6, off by default):** when a window or door contact has been "unavailable" for 10 minutes (empty battery, out of radio reach), the window looks shut in 3D although nobody knows. Switch on **Warn when a window or door contact is unavailable** in the settings under **Weather & warnings**, and a warning names the contact. A short gap while Home Assistant restarts does not warn.
 
 ### 5.9 Cameras in 3D
 
