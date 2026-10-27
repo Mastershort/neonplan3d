@@ -1483,7 +1483,9 @@ export class Fp3dView3d extends LitElement {
     const sun = hass.states["sun.sun"]?.attributes;
     const elevation = typeof sun?.elevation === "number" ? sun.elevation : null;
     v.setSun(elevation !== null && typeof sun?.azimuth === "number" ? { elevation, azimuth: sun.azimuth } : null);
-    v.setSunPath(this.sunPathToday(hass));
+    // the compass ring's letters: the first letter of each direction in the user's language
+    const letter = (k: I18nKey) => translate(hass, k).charAt(0).toUpperCase();
+    v.setSunPath(this.sunPathToday(hass), [letter("compass_n"), letter("compass_e"), letter("compass_s"), letter("compass_w")]);
     // the automatic look follows the sun (setTheme ignores a look it already shows)
     if (this.theme === "auto") v.setTheme(this.effectiveTheme());
     // the weather outside: clouds darken the sky, rain, snow and fog fall over the plot

@@ -583,6 +583,8 @@ export class FloorplanViewer {
   private shadowSig = "";
   private arcSig = "";
   private spillNight = "";
+  /** N, E, S, W on the compass ring, in the user's language. */
+  private compassLetters: [string, string, string, string] = ["N", "E", "S", "W"];
   /** Stripe phase per cable piece, kept when its speed changes so the stripes do not jump. */
   private flowPhase = new Map<string, { speed: number; offset: number }>();
   private readonly flowTime = { value: 0 };
@@ -1471,8 +1473,9 @@ export class FloorplanViewer {
   }
 
   /** The sun's way across the sky today (null: no place known): drawn as an arc over the house. */
-  setSunPath(path: SunPath | null): void {
+  setSunPath(path: SunPath | null, letters?: [string, string, string, string]): void {
     this.sunPath = path;
+    if (letters) this.compassLetters = letters;
     this.buildSunFx();
     this.invalidate();
   }
@@ -1623,13 +1626,10 @@ export class FloorplanViewer {
     const path = this.sunPath;
     const arc = on && !!path && path.points.length > 1 && sun.elevation > -3;
     const frame = arc ? this.arcFrame() : null;
-    const arcSig = arc && frame ? `${this.theme},${path.points[0].t},${north},${frame.x.toFixed(2)},${frame.z.toFixed(2)},${frame.y.toFixed(2)},${frame.r.toFixed(2)},${cloud.toFixed(1)}` : "";
-    if (arcSig !== this.arcSig) {
-      // a new day, look or house: the arc is drawn anew
-      this.arcSig = arcSig;
-      this.sunFx.hideArc();
-    }
-    if (!arcSig || !frame || !path || !sun) return;
+    const arcSig = arc && frame ? `${this.theme},${sun.elevation.toFixed(1)},${sun.azimuth.toFixed(1)},${this.compassLetters.join("")},${path.points[0].t},${north},${frame.x.toFixed(2)},${frame.z.toFixed(2)},${frame.y.toFixed(2)},${frame.r.toFixed(2)},${cloud.toFixed(1)}` : "";
+    if (arcSig === this.arcSig) return;
+    this.arcSig = arcSig;
+    if (!arcSig || !frame || !path || !sun) return this.sunFx.hideArc();
     // a dome around the house: the sun's way at its real height, sunrise and sunset on the ground
     const at = (azimuth: number, elevation: number, lift = 0): [number, number, number] => {
       const e = Math.max(0, elevation) * DEG;
@@ -1637,13 +1637,20 @@ export class FloorplanViewer {
       return [frame.x + Math.sin(a) * Math.cos(e) * frame.r, frame.y + Math.sin(e) * frame.r + lift, frame.z - Math.cos(a) * Math.cos(e) * frame.r];
     };
     const fade = 1 - 0.7 * cloud;
-    if (this.sunFx.arcEmpty) {
-      const hours = path.points.filter((p) => p !== path.rise && p !== path.set && new Date(p.t).getMinutes() === 0).map((p) => at(p.azimuth, p.elevation));
-      const time = (t: number) => new Date(t).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-      const labels = [path.rise, path.set].flatMap((p) => (p ? [{ text: time(p.t), at: at(p.azimuth, p.elevation, frame.r * 0.06) }] : []));
-      this.sunFx.setArc(path.points.map((p) => at(p.azimuth, p.elevation)), hours, labels, frame.r * 0.03, fade, this.theme !== "neon");
-    }
-    this.sunFx.setSunDot(sun.elevation > 0 ? at(sun.azimuth, sun.elevation) : null, frame.r * 0.03, fade);
+    const now = Date.now();
+    const time = (t: number) => new Date(t).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    const size = frame.r * 0.03;
+    this.sunFx.setArc({
+      points: path.points.map((p) => ({ at: at(p.azimuth, p.elevation), t: p.t, elevation: p.elevation })),
+      now,
+      hours: path.points.filter((p) => p !== path.rise && p !== path.set && new Date(p.t).getMinutes() === 0).map((p) => at(p.azimuth, p.elevation)),
+      labels: [path.rise, path.set].flatMap((p) => (p ? [{ text: time(p.t), at: at(p.azimuth, p.elevation, size * 2.2), rising: p === path.rise }] : [])),
+      sun: sun.elevation > 0 ? at(sun.azimuth, sun.elevation) : null,
+      ring: { center: [frame.x, frame.y, frame.z], r: frame.r, north, letters: this.compassLetters },
+      size,
+      fade,
+      light: this.theme !== "neon",
+    });
   }
 
   /** Where the sun's arc stands: around the middle of the house, a little wider than the house, on its ground. */
@@ -1762,8 +1769,9 @@ export class FloorplanViewer {
     // house's own floor stays clear of it
     const y = gf.elevation - lawn <= 0.35 ? gf.elevation + 0.012 : lawn + 0.012;
     const holes = b.floors.filter((f) => Math.abs(f.elevation - gf.elevation) < 0.5).flatMap((f) => f.rooms.filter((r) => !r.outdoor && r.points.length >= 3).map((r) => r.points));
-    const strength = (this.theme === "neon" ? 0.5 : 0.34) * Math.min(1, sun.elevation / 8) * (1 - 0.8 * cloud);
-    this.sunFx.setShadow(this.renderer, tris, box, holes, y, strength);
+    const strength = (this.theme === "neon" ? 0.6 : 0.34) * Math.min(1, sun.elevation / 8) * (1 - 0.8 * cloud);
+    // a deep night blue on the neon look, a cool grey on the light ones: a shadow, not a hole
+    this.sunFx.setShadow(this.renderer, tris, box, holes, y, strength, this.theme === "neon" ? 0x060418 : 0x1a2433);
   }
 
   /** Heatmap: floor colour per room id, or null for the normal look. */
