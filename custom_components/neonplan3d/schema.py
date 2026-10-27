@@ -167,6 +167,7 @@ OPENING_SCHEMA = vol.Schema(
         vol.Optional("tilt_invert", default=False): bool,
         # a door without a sensor is drawn closed instead of half open
         vol.Optional("shut", default=False): bool,
+        vol.Optional("open_angle", default=None): vol.Any(None, vol.All(vol.Coerce(float), vol.Range(min=0, max=180))),
         # the contact sensors report the other way round (on = closed)
         vol.Optional("contact_invert", default=False): bool,
         # no rain warning for this window
@@ -786,6 +787,7 @@ SETTINGS_SCHEMA = vol.Schema(
         vol.Optional("rain_entity", default=None): vol.Any(None, vol.All(str, vol.Length(max=255))),
         # warnings name the device after the room
         vol.Optional("alert_names", default=True): bool,
+        vol.Optional("alert_unavailable", default=False): bool,
         # an entity that reports a power outage (None = no outage warning)
         vol.Optional("outage_entity", default=None): vol.Any(None, vol.All(str, vol.Length(max=255))),
         # sunlight through the windows as patches on the floor

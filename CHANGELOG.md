@@ -4,6 +4,22 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 [releases page](https://github.com/Mastershort/neonplan3d/releases). Ideas and votes:
 [Discussions → Ideas](https://github.com/Mastershort/neonplan3d/discussions/categories/ideas).
 
+## 2.0.6
+
+### New
+
+- **Opening angle for doors:** every door has an **Opening angle** (Default, 15°–90°). Without a sensor the leaf stands that far open, with one it opens that far. Default stays as before. Thanks to David on Discord!
+- **Warning for unavailable contacts (off by default):** under ⚙ House, a window or door contact that has been unavailable for 10 minutes (empty battery, out of reach) can raise a warning – the window would look shut although nobody knows.
+
+### Fixed
+
+- **Module updates that wait for approval (#805, #707):** the shop list showed a fetched module update as "Update available" again, and the button only fetched it once more. It now says the update waits for your approval and opens **View update & approve**. Thanks to @Luft86 and @underthewheel!
+- **Pictures on small smart displays (#799):** the cover or picture on a screen fills the screen with a small frame instead of a thick border on small displays. Thanks to @tomv79!
+- **Stretching cabinets with drawers (#801):** drawers, doors and shelves of a stretched item grow evenly instead of only the top or bottom one. Thanks to @daene85!
+- **Doors in split inner walls:** a door wider than its piece of an inner wall reaches into the next piece when the wall carries straight on, instead of being squeezed.
+- **"Mark as put out" on bins (#793):** the button now really takes the tap. Thanks to @246tbwpjzk-cell!
+- **Camera wedge on sunken floors (#802):** the field-of-view wedge lies on the ground it falls on (lawn, terrain) instead of going into the ground. Thanks to @BudBundi!
+
 ## 2.0.5
 
 ### New

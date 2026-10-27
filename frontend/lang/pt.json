@@ -2078,5 +2078,12 @@
  "diag_invite_later": "Agora não",
  "floor_order_hint": "Só altera a ordem dos pisos na lista e nas miniaturas. A posição de um piso na casa 3D vem da sua «altura acima do solo».",
  "roof_turn": "Rotação",
- "roof_turn_hint": "Roda esta parte do telhado na planta (sentido horário), p. ex. para uma ala em ângulo. As trapeiras e empenas sobre ela rodam junto. 0° = como antes."
+ "roof_turn_hint": "Roda esta parte do telhado na planta (sentido horário), p. ex. para uma ala em ângulo. As trapeiras e empenas sobre ela rodam junto. 0° = como antes.",
+ "door_angle": "Ângulo de abertura",
+ "door_angle_hint": "Quanto a porta fica aberta em 3D: sem sensor sempre, com sensor assim que indica aberta. Predefinição: entreaberta sem sensor, totalmente aberta com sensor.",
+ "door_angle_default": "Predefinição",
+ "alert_contact_unavailable": "Contacto indisponível: {name}",
+ "alert_short_contact_unavailable": "Contacto indisponível",
+ "alert_unavailable": "Avisar quando um contacto de janela ou porta está indisponível",
+ "alert_unavailable_hint": "Se um contacto estiver «indisponível» há 10 minutos (pilha gasta, fora de alcance), a janela parece fechada em 3D sem que ninguém saiba. Aparece então um aviso."
 }

@@ -563,7 +563,8 @@ export function locateOpening(walls: readonly Wall[], o: Pick<Opening, "wall" | 
  * opening may reach across such a transition (#624).
  */
 export function wallContinuation(walls: readonly Wall[], wall: Wall, atEnd: boolean): Wall | null {
-  if (!wall.exterior || wall.free) return null;
+  // also an inner wall that one room splits with an extra corner on a straight line (a door wider than the piece, 2.0.6)
+  if (wall.free) return null;
   const p = atEnd ? wall.b : wall.a;
   const ax = unit(sub(wall.b, wall.a));
   const at = (q: Vec2) => Math.hypot(q[0] - p[0], q[1] - p[1]) < 1e-3;
@@ -571,7 +572,7 @@ export function wallContinuation(walls: readonly Wall[], wall: Wall, atEnd: bool
   for (const w of walls) {
     if (w === wall || !(at(w.a) || at(w.b))) continue;
     // any other wall meeting at the transition (a partition, a corner) ends the reach
-    if (next || !w.exterior || w.free || !at(atEnd ? w.a : w.b) || dot(unit(sub(w.b, w.a)), ax) < 0.9999) return null;
+    if (next || w.exterior !== wall.exterior || w.free || !at(atEnd ? w.a : w.b) || dot(unit(sub(w.b, w.a)), ax) < 0.9999) return null;
     if (Math.abs(w.left - wall.left) > 1e-3 || Math.abs(w.right - wall.right) > 1e-3) return null;
     next = w;
   }

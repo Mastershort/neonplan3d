@@ -73,3 +73,37 @@ test("a smaller item still works and fixed zones that meet fall back to plain sc
   const arm = metres(tiny[3], 0.3, 0.9, 0.8);
   near(arm.x1 - arm.x0, 0.03, "arms scale down when there is no room for fixed ones");
 });
+
+test("a taller chest of drawers grows all its drawers evenly, the handles keep their size and go along (#801)", () => {
+  // 1.0 × 0.58 × 0.8: plinth 10 cm, bottom 2 cm, top slab 2 cm (all fixed in height), three drawer fronts of 22 cm
+  // between them, each with a 2 cm handle 5 cm below its top edge (fixed all round)
+  const H = 0.8;
+  const front = (y0: number): PackPart => ({ shape: "box", x: 0, z: 0.49, w: 0.96, d: 0.02, y: y0 / H, h: 0.22 / H, color: "white" });
+  const handle = (y0: number): PackPart => ({ shape: "box", x: 0, z: 0.51, w: 0.3, d: 0.02, y: (y0 + 0.15) / H, h: 0.02 / H, color: "metal", fix: "wdh" });
+  const chest: PackItem = {
+    id: "chest",
+    name: { en: "Chest" },
+    size: [1.0, 0.58, H],
+    parts: [
+      { shape: "box", x: 0, z: 0, w: 0.96, d: 0.9, y: 0, h: 0.1 / H, color: "dark", fix: "h" },
+      { shape: "box", x: 0, z: 0, w: 1, d: 1, y: 0.1 / H, h: 0.02 / H, color: "white", fix: "h" },
+      { shape: "box", x: 0, z: 0, w: 1, d: 1, y: 0.78 / H, h: 0.02 / H, color: "white", fix: "h" },
+      front(0.12),
+      front(0.34),
+      front(0.56),
+      handle(0.12),
+      handle(0.34),
+      handle(0.56),
+    ],
+  };
+  const out = fitParts(chest, 1.0, 0.58, 0.92).map((p) => metres(p, 1.0, 0.58, 0.92));
+  const [plinth, bottom, top, f1, f2, f3, h1, h2, h3] = out;
+  near(plinth.y1, 0.1, "plinth kept");
+  near(bottom.y1, 0.12, "bottom on the plinth");
+  near(top.y0, 0.9, "top slab at the new top");
+  for (const f of [f1, f2, f3]) near(f.y1 - f.y0, 0.26, "every drawer 4 cm taller");
+  for (const [h, f] of [[h1, f1], [h2, f2], [h3, f3]] as const) {
+    near(h.y1 - h.y0, 0.02, "handle keeps its size");
+    assert.ok(h.y0 > f.y0 && h.y1 < f.y1, "handle stays on its own drawer");
+  }
+});

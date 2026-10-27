@@ -3,14 +3,17 @@
 // together). Then, per axis, the item has a fixed zone at each end (the fixed parts anchored there) and a middle
 // that stretches: legs and arms keep their size and their distance from the item's edge, the seat between them
 // grows. Parts without `fix` on an axis move with the stretch, so a cushion between fixed arms spans exactly the
-// space the arms leave. Across and in depth a fixed part belongs to the nearer edge (one in the middle stays
-// centred); in height everything stands on the floor unless it touches the top (a table top, a cabinet's top
-// slab), because furniture grows upwards. Pure logic, used by the viewer, the preview and the wall view.
+// space the arms leave. A fixed zone grows from an edge through the fixed parts that sit at it or lean on each
+// other (a plinth, the bottom shelf on it, legs just inside an arm); a fixed part standing free in the middle (a
+// drawer's handle, a door's handle) keeps its size but travels with the stretch – otherwise the zone reached up to
+// the topmost handle and only the top drawer grew (#801). In height a part only joins the top zone when it
+// touches the top (a table top, a cabinet's top slab), because furniture grows upwards; across and in depth one
+// centred in the middle stays centred. Pure logic, used by the viewer, the preview and the wall view.
 
 import type { PackItem, PackPart } from "./packs.ts";
 
 type Axis = "w" | "d" | "h";
-type Anchor = "lo" | "hi" | "mid";
+type Anchor = "lo" | "hi" | "mid" | "free";
 
 interface AxisMap {
   s0: number;
@@ -18,6 +21,8 @@ interface AxisMap {
   /** Fixed zone at the low end (left, back, bottom) and at the high end, in metres of the default size. */
   lo: number;
   hi: number;
+  /** Where each fixed part belongs. */
+  side: Map<PackPart, Anchor>;
 }
 
 /** A part's extent along an axis, in metres from the item's low edge at the default size. */
@@ -29,27 +34,39 @@ function extent(p: PackPart, axis: Axis, s0: number): [number, number] {
 
 const fixes = (p: PackPart, axis: Axis) => !!p.fix && p.fix.includes(axis);
 
-/** Which end a fixed part belongs to. */
-function anchor(axis: Axis, e0: number, e1: number, s0: number): Anchor {
-  if (axis === "h") return e1 >= s0 - 0.01 && e0 > 0.01 ? "hi" : "lo";
-  const c = (e0 + e1) / 2;
-  if (Math.abs(c - s0 / 2) < 1e-6) return "mid";
-  return c < s0 / 2 ? "lo" : "hi";
-}
-
 function axisMap(parts: readonly PackPart[], axis: Axis, s0: number, s: number): AxisMap {
+  const side = new Map<PackPart, Anchor>();
+  const fixed = parts.filter((p) => fixes(p, axis)).map((p) => ({ p, e: extent(p, axis, s0) }));
+  // a part this close to a zone (or to its edge) still leans on it: legs a few centimetres inside the edge
+  const gap = Math.min(0.05, 0.1 * s0);
+  for (const { p, e } of fixed) if (axis !== "h" && Math.abs((e[0] + e[1]) / 2 - s0 / 2) < 1e-6) side.set(p, "mid");
+  // the zones grow from each edge through the fixed parts that sit at it or on each other
   let lo = 0;
-  let hi = 0;
-  for (const p of parts) {
-    if (!fixes(p, axis)) continue;
-    const [e0, e1] = extent(p, axis, s0);
-    const a = anchor(axis, e0, e1, s0);
-    if (a === "lo") lo = Math.max(lo, e1);
-    else if (a === "hi") hi = Math.max(hi, s0 - e0);
+  for (let grew = true; grew; ) {
+    grew = false;
+    for (const { p, e } of fixed) {
+      if (side.has(p) || e[0] > lo + (lo === 0 ? gap : 0.001)) continue;
+      // in height the bottom zone takes everything standing on the floor that does not touch the top
+      if (axis === "h" && e[1] >= s0 - 0.01 && e[0] > 0.01) continue;
+      side.set(p, "lo");
+      lo = Math.max(lo, e[1]);
+      grew = true;
+    }
   }
+  let hi = 0;
+  for (let grew = true; grew; ) {
+    grew = false;
+    for (const { p, e } of fixed) {
+      if (side.has(p) || s0 - e[1] > hi + (hi > 0 ? 0.001 : axis === "h" ? 0.01 : gap)) continue;
+      side.set(p, "hi");
+      hi = Math.max(hi, s0 - e[0]);
+      grew = true;
+    }
+  }
+  for (const { p } of fixed) if (!side.has(p)) side.set(p, "free");
   // no room for the fixed zones (a very small item, or zones that meet): everything scales as before
-  if (lo + hi > Math.min(s0, s) - 0.01) return { s0, s, lo: 0, hi: 0 };
-  return { s0, s, lo, hi };
+  if (lo + hi > Math.min(s0, s) - 0.01) return { s0, s, lo: 0, hi: 0, side };
+  return { s0, s, lo, hi, side };
 }
 
 /** Where a point of the default item lands in the stretched one (metres from the low edge). */
@@ -62,12 +79,16 @@ function map(x: number, m: AxisMap): number {
   return m.lo + ((x - m.lo) * (m.s - m.lo - m.hi)) / mid0;
 }
 
-/** A fixed part keeps its size and its distance from its edge; one in the middle stays centred. */
-function keep(axis: Axis, e0: number, e1: number, m: AxisMap): [number, number] {
+/** A fixed part keeps its size and its distance from its edge; one in the middle stays centred; a free one travels with the stretch. */
+function keep(p: PackPart, e0: number, e1: number, m: AxisMap): [number, number] {
   if (m.lo === 0 && m.hi === 0 && m.s !== m.s0 && !fixedRoom(m)) return [map(e0, m), map(e1, m)];
-  const a = anchor(axis, e0, e1, m.s0);
+  const a = m.side.get(p) ?? "lo";
   const size = e1 - e0;
   if (a === "mid") return [m.s / 2 - size / 2, m.s / 2 + size / 2];
+  if (a === "free") {
+    const c = map((e0 + e1) / 2, m);
+    return [c - size / 2, c + size / 2];
+  }
   if (a === "lo") return [e0, e1];
   return [e0 + (m.s - m.s0), e1 + (m.s - m.s0)];
 }
@@ -88,7 +109,7 @@ export function fitParts(item: PackItem, w: number, d: number, h: number): PackP
     const span = (axis: Axis): [number, number] => {
       const m = maps[axis];
       const [e0, e1] = extent(p, axis, m.s0);
-      return fixes(p, axis) && !plain[axis] ? keep(axis, e0, e1, m) : [map(e0, m), map(e1, m)];
+      return fixes(p, axis) && !plain[axis] ? keep(p, e0, e1, m) : [map(e0, m), map(e1, m)];
     };
     const [x0, x1] = span("w");
     const [z0, z1] = span("d");
@@ -104,7 +125,7 @@ export function fitParts(item: PackItem, w: number, d: number, h: number): PackP
         const e1 = (tc + ts / 2 + 0.5) * m.s0;
         if (!fixes(p, axis) || plain[axis]) return [map(e0, m), map(e1, m)];
         const [b0, b1] = extent(p, axis, m.s0);
-        const [n0] = keep(axis, b0, b1, m);
+        const [n0] = keep(p, b0, b1, m);
         const shift = n0 - b0;
         return [e0 + shift, e1 + shift];
       };

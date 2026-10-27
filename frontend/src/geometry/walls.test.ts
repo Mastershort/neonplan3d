@@ -312,3 +312,15 @@ test("a free wall drawn as an outer wall knows its room side, whichever way it w
   assert.equal(freeWallRoomLeft(wall([2, 0.5], [2, 2.5]), rooms), null);
   assert.equal(freeWallRoomLeft(wall([10, 0], [12, 0]), rooms), null);
 });
+
+test("a door on an inner wall piece left by an extra corner on a straight line reaches into the next piece", () => {
+  // the hall's edge along x = 4 has an extra corner at z = 1, a hair off the line, that the other room does not have:
+  // the wall breaks into two pieces there
+  const a = rect("a", 0, 0, 4, 3);
+  const hall: Room = { id: "hall", name: "hall", area_id: null, points: [[4, 0], [8, 0], [8, 3], [4, 3], [4.0005, 1]], floor_material: "wood" };
+  const { walls } = generateWalls([a, hall], opts);
+  // edge 4 runs from (4, 1) to (4, 0), 1 m long; before its start the same wall carries on for 2 m
+  const [before, after] = edgeReach(walls, hall, 4);
+  near(before, 2, 1e-3);
+  near(after, 0);
+});

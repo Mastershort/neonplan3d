@@ -2078,5 +2078,12 @@
  "diag_invite_later": "Teď ne",
  "floor_order_hint": "Mění jen pořadí podlaží v seznamu a v náhledech. Kde podlaží leží ve 3D domě, určuje jeho „výška nad terénem“.",
  "roof_turn": "Otočení",
- "roof_turn_hint": "Otočí tuto část střechy v plánu (po směru hodinových ručiček), např. pro křídlo pod úhlem. Vikýře a příčné štíty na ní se otočí s ní. 0° = jako dosud."
+ "roof_turn_hint": "Otočí tuto část střechy v plánu (po směru hodinových ručiček), např. pro křídlo pod úhlem. Vikýře a příčné štíty na ní se otočí s ní. 0° = jako dosud.",
+ "door_angle": "Úhel otevření",
+ "door_angle_hint": "Jak daleko jsou dveře ve 3D otevřené: bez senzoru vždy, se senzorem jakmile hlásí otevřeno. Výchozí: bez senzoru napůl otevřené, se senzorem úplně otevřené.",
+ "door_angle_default": "Výchozí",
+ "alert_contact_unavailable": "Kontakt nedostupný: {name}",
+ "alert_short_contact_unavailable": "Kontakt nedostupný",
+ "alert_unavailable": "Varovat, když je kontakt okna nebo dveří nedostupný",
+ "alert_unavailable_hint": "Je-li kontakt 10 minut „nedostupný“ (vybitá baterie, mimo dosah), okno ve 3D vypadá zavřené, i když to nikdo neví. Pak se zobrazí varování."
 }

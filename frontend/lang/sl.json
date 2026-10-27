@@ -2078,5 +2078,12 @@
  "diag_invite_later": "Ne zdaj",
  "floor_order_hint": "Spremeni le vrstni red nadstropij na seznamu in na sličicah. Kje leži nadstropje v 3D-hiši, določa njegova »višina nad tlemi«.",
  "roof_turn": "Zasuk",
- "roof_turn_hint": "Zasuka ta del strehe v tlorisu (v smeri urinega kazalca), npr. za prizidek pod kotom. Frčade in prečni zatrepi na njem se zasučejo z njim. 0° = kot doslej."
+ "roof_turn_hint": "Zasuka ta del strehe v tlorisu (v smeri urinega kazalca), npr. za prizidek pod kotom. Frčade in prečni zatrepi na njem se zasučejo z njim. 0° = kot doslej.",
+ "door_angle": "Kot odpiranja",
+ "door_angle_hint": "Kako široko so vrata odprta v 3D: brez senzorja vedno, s senzorjem takoj, ko javi odprto. Privzeto: brez senzorja priprta, s senzorjem povsem odprta.",
+ "door_angle_default": "Privzeto",
+ "alert_contact_unavailable": "Kontakt ni na voljo: {name}",
+ "alert_short_contact_unavailable": "Kontakt ni na voljo",
+ "alert_unavailable": "Opozori, ko kontakt okna ali vrat ni na voljo",
+ "alert_unavailable_hint": "Če kontakt 10 minut »ni na voljo« (prazna baterija, izven dosega), je okno v 3D videti zaprto, čeprav tega nihče ne ve. Takrat se prikaže opozorilo."
 }

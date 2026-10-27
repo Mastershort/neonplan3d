@@ -2078,5 +2078,12 @@
  "diag_invite_later": "Pas maintenant",
  "floor_order_hint": "Change seulement l'ordre des étages dans la liste et les vignettes. La place d'un étage dans la maison 3D vient de sa « hauteur au-dessus du sol ».",
  "roof_turn": "Rotation",
- "roof_turn_hint": "Fait pivoter cette partie du toit dans le plan (sens horaire), p. ex. pour une aile en biais. Les lucarnes et pignons dessus suivent. 0° = comme avant."
+ "roof_turn_hint": "Fait pivoter cette partie du toit dans le plan (sens horaire), p. ex. pour une aile en biais. Les lucarnes et pignons dessus suivent. 0° = comme avant.",
+ "door_angle": "Angle d'ouverture",
+ "door_angle_hint": "Jusqu'où la porte est ouverte en 3D : sans capteur toujours, avec capteur dès qu'il signale ouvert. Par défaut : à moitié ouverte sans capteur, grande ouverte avec.",
+ "door_angle_default": "Par défaut",
+ "alert_contact_unavailable": "Contact indisponible : {name}",
+ "alert_short_contact_unavailable": "Contact indisponible",
+ "alert_unavailable": "Avertir si un contact de fenêtre ou de porte est indisponible",
+ "alert_unavailable_hint": "Si un contact est « indisponible » depuis 10 minutes (pile vide, hors de portée), la fenêtre paraît fermée en 3D sans qu'on le sache. Un avertissement s'affiche alors."
 }

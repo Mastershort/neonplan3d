@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import base64
 import json
+from types import SimpleNamespace
 
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
@@ -67,6 +68,20 @@ def test_bound_packs_are_only_accepted_by_their_installation() -> None:
     # an unbound pack is fine anywhere, and defaults to release 1
     free = packs.verify_pack(_sign(private, keys, PAYLOAD), keys, instance=fp)
     assert free["instance"] is None and free["release"] == 1
+
+
+def test_a_module_update_waiting_for_approval_is_not_offered_again() -> None:
+    # #805: the update to release 8 was fetched and waits beside release 7, the shop list must not offer it again
+    data = SimpleNamespace(
+        license={
+            "key": "NP-ABCD-EFGH-2345-6789",
+            "catalog": [{"id": "pro_heat", "release": 8}, {"id": "shop.living", "release": 2}],
+        },
+        packs=[{"id": "pro_heat", "release": 7, "pending": {"release": 8}}, {"id": "shop.living", "release": 1}],
+    )
+    heat, living = lic.status(data, "x")["packs"]
+    assert heat["installed"] == 8 and heat["waits"] is True
+    assert living["installed"] == 1 and living["waits"] is False
 
 
 async def _setup(hass: HomeAssistant) -> None:

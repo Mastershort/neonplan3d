@@ -312,3 +312,12 @@ def test_module_data_on_furniture_and_areas() -> None:
     lawn = {"id": "a1", "type": "lawn", "points": [[0, 0], [4, 0], [4, 4]]}
     mods = {"mastershort.example": {"collector": "loop"}}
     assert OUTDOOR_SCHEMA({**lawn, "mods": mods})["mods"] == mods
+
+
+def test_door_keeps_its_opening_angle() -> None:
+    """A door's own opening angle (None = as before: half open without a sensor, fully open with one)."""
+    door = {"id": "o1", "room_id": "r1", "edge": 0, "offset": 1, "type": "door", "width": 0.9, "sill": 0, "height": 2.0}
+    assert OPENING_SCHEMA(door)["open_angle"] is None
+    assert OPENING_SCHEMA({**door, "open_angle": 15})["open_angle"] == 15
+    with pytest.raises(vol.Invalid):
+        OPENING_SCHEMA({**door, "open_angle": 200})

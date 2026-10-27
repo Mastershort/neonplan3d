@@ -5365,12 +5365,16 @@ export class Fp3dView3d extends LitElement {
         height: 1.5px;
         margin-top: -0.75px;
       }
-      .fp3d-bin-info {
+      /* two classes: the info bubbles' own rule (.fp3d-swipe, further down) lets taps through to the house and
+         would win over a single class – this bubble has a button (#793) */
+      .fp3d-swipe.fp3d-bin-info {
         display: flex;
         flex-direction: column;
         gap: 2px;
         cursor: pointer;
-        /* the info bubbles let taps through to the house; this one has a button (#793) */
+        pointer-events: auto;
+      }
+      .fp3d-swipe.fp3d-bin-info .fp3d-bin-out {
         pointer-events: auto;
       }
       .fp3d-bin-info small {

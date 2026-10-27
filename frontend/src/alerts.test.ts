@@ -150,3 +150,18 @@ test("Haushalt Pro warns when a fridge door stands open too long", async () => {
   assert.equal(alertText(hass, b, alerts[0]), "Küche · Kühlschrank offen: Kühlschranktür");
   setPacks([]);
 });
+
+test("a contact unavailable for 10 minutes warns only when switched on; a short gap passes", () => {
+  const { hass, b, links } = setup();
+  const src = alertSources(hass, b);
+  const fenster = hass.states["binary_sensor.fenster"] as { state: string; last_changed?: string };
+  fenster.state = "unavailable";
+  fenster.last_changed = new Date(Date.now() - 30 * 60_000).toISOString();
+  // off by default: nothing changes for anyone who has not switched it on
+  assert.equal(findAlerts(hass, b, src, links).length, 0);
+  b.settings.alert_unavailable = true;
+  assert.deepEqual(findAlerts(hass, b, src, links).map((a) => [a.kind, a.roomId, a.entity]), [["contact_unavailable", "k", "binary_sensor.fenster"]]);
+  // a restart of Home Assistant: unavailable for a minute is no warning
+  fenster.last_changed = new Date(Date.now() - 60_000).toISOString();
+  assert.equal(findAlerts(hass, b, src, links).length, 0);
+});

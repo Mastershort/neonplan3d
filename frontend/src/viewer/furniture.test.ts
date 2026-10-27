@@ -3,7 +3,7 @@ import { test } from "node:test";
 import type { Furniture } from "../model.ts";
 import { mountBase, setPacks, type FurniturePack } from "../packs.ts";
 import { newFloor } from "../model.ts";
-import { hasFixedColors, packGlowCentre, packMotionParts, pushFurniture, setLightLook } from "./furniture.ts";
+import { hasFixedColors, packGlowCentre, packMotionParts, pushFurniture, screenPictureSize, setLightLook } from "./furniture.ts";
 import { packMotion, type PackItem } from "../packs.ts";
 import { GeoBuffer, LineBuffer } from "./geo.ts";
 
@@ -281,4 +281,14 @@ test("round things cast a round shadow, lying on the ground they stand on (#719,
   } finally {
     setPacks([]);
   }
+});
+
+test("a cover fills a small smart display, not just a sliver; a TV keeps its 4 cm margin (#799)", () => {
+  // a 5″ display: 11 × 6.5 cm, a square cover
+  const small = screenPictureSize(0.11, 0.065, 1);
+  assert.ok(small.h > 0.055, `cover only ${small.h} m high`);
+  assert.ok(small.w <= 0.11 && small.h <= 0.065);
+  // a 55″ TV with a 16:9 picture: 4 cm off its height
+  const tv = screenPictureSize(1.21, 0.68, 16 / 9);
+  assert.ok(Math.abs(tv.h - 0.64) < 1e-9);
 });

@@ -2078,5 +2078,12 @@
  "diag_invite_later": "Ahora no",
  "floor_order_hint": "Solo cambia el orden de las plantas en la lista y en las miniaturas. Dónde está una planta en la casa 3D lo decide su «altura sobre el suelo».",
  "roof_turn": "Giro",
- "roof_turn_hint": "Gira esta parte del tejado en el plano (sentido horario), p. ej. para un ala en ángulo. Las buhardillas y hastiales encima giran con ella. 0° = como antes."
+ "roof_turn_hint": "Gira esta parte del tejado en el plano (sentido horario), p. ej. para un ala en ángulo. Las buhardillas y hastiales encima giran con ella. 0° = como antes.",
+ "door_angle": "Ángulo de apertura",
+ "door_angle_hint": "Cuánto queda abierta la puerta en 3D: sin sensor siempre, con sensor en cuanto indica abierta. Por defecto: medio abierta sin sensor, totalmente abierta con él.",
+ "door_angle_default": "Por defecto",
+ "alert_contact_unavailable": "Contacto no disponible: {name}",
+ "alert_short_contact_unavailable": "Contacto no disponible",
+ "alert_unavailable": "Avisar si un contacto de ventana o puerta no está disponible",
+ "alert_unavailable_hint": "Si un contacto lleva 10 minutos «no disponible» (pila agotada, sin cobertura), la ventana parece cerrada en 3D sin saberlo. Entonces aparece un aviso."
 }

@@ -2078,5 +2078,12 @@
  "diag_invite_later": "Nie teraz",
  "floor_order_hint": "Zmienia tylko kolejność kondygnacji na liście i na miniaturach. Położenie kondygnacji w domu 3D wynika z jej „wysokości nad gruntem”.",
  "roof_turn": "Obrót",
- "roof_turn_hint": "Obraca tę część dachu na planie (zgodnie z ruchem wskazówek zegara), np. dla skrzydła pod kątem. Lukarny i szczyty poprzeczne na niej obracają się razem. 0° = jak dotąd."
+ "roof_turn_hint": "Obraca tę część dachu na planie (zgodnie z ruchem wskazówek zegara), np. dla skrzydła pod kątem. Lukarny i szczyty poprzeczne na niej obracają się razem. 0° = jak dotąd.",
+ "door_angle": "Kąt otwarcia",
+ "door_angle_hint": "Jak szeroko drzwi są otwarte w 3D: bez czujnika zawsze, z czujnikiem gdy zgłasza otwarcie. Domyślnie: bez czujnika uchylone, z czujnikiem całkiem otwarte.",
+ "door_angle_default": "Domyślnie",
+ "alert_contact_unavailable": "Czujnik niedostępny: {name}",
+ "alert_short_contact_unavailable": "Czujnik niedostępny",
+ "alert_unavailable": "Ostrzegaj, gdy czujnik okna lub drzwi jest niedostępny",
+ "alert_unavailable_hint": "Gdy czujnik jest „niedostępny” przez 10 minut (pusta bateria, poza zasięgiem), okno w 3D wygląda na zamknięte, choć nikt tego nie wie. Wtedy pojawia się ostrzeżenie."
 }

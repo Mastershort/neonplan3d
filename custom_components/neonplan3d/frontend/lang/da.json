@@ -2078,5 +2078,12 @@
  "diag_invite_later": "Ikke nu",
  "floor_order_hint": "Ændrer kun rækkefølgen af etagerne i listen og på etagebillederne. Hvor en etage ligger i 3D-huset, bestemmer dens \"højde over jorden\".",
  "roof_turn": "Drejning",
- "roof_turn_hint": "Drejer denne tagdel i planen (med uret), f.eks. til en tilbygning i vinkel. Kviste og tværgavle på den drejer med. 0° = som før."
+ "roof_turn_hint": "Drejer denne tagdel i planen (med uret), f.eks. til en tilbygning i vinkel. Kviste og tværgavle på den drejer med. 0° = som før.",
+ "door_angle": "Åbningsvinkel",
+ "door_angle_hint": "Hvor langt døren står åben i 3D: uden sensor altid, med sensor så snart den melder åben. Standard: halvt åben uden sensor, helt åben med sensor.",
+ "door_angle_default": "Standard",
+ "alert_contact_unavailable": "Kontakt utilgængelig: {name}",
+ "alert_short_contact_unavailable": "Kontakt utilgængelig",
+ "alert_unavailable": "Advar, når en vindues- eller dørkontakt er utilgængelig",
+ "alert_unavailable_hint": "Er en kontakt \"utilgængelig\" i 10 minutter (tomt batteri, uden for rækkevidde), ser vinduet lukket ud i 3D, selvom ingen ved det. Så kommer en advarsel."
 }

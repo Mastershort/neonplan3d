@@ -2078,5 +2078,12 @@
  "diag_invite_later": "Inte nu",
  "floor_order_hint": "Ändrar bara våningarnas ordning i listan och på våningsbilderna. Var en våning ligger i 3D-huset bestäms av dess ”höjd över marken”.",
  "roof_turn": "Vridning",
- "roof_turn_hint": "Vrider den här takdelen i planen (medurs), t.ex. för en flygel i vinkel. Takkupor och tvärgavlar på den vrids med. 0° = som tidigare."
+ "roof_turn_hint": "Vrider den här takdelen i planen (medurs), t.ex. för en flygel i vinkel. Takkupor och tvärgavlar på den vrids med. 0° = som tidigare.",
+ "door_angle": "Öppningsvinkel",
+ "door_angle_hint": "Hur långt dörren står öppen i 3D: utan sensor alltid, med sensor så snart den rapporterar öppen. Standard: halvöppen utan sensor, helt öppen med sensor.",
+ "door_angle_default": "Standard",
+ "alert_contact_unavailable": "Kontakt otillgänglig: {name}",
+ "alert_short_contact_unavailable": "Kontakt otillgänglig",
+ "alert_unavailable": "Varna när en fönster- eller dörrkontakt är otillgänglig",
+ "alert_unavailable_hint": "Är en kontakt ”otillgänglig” i 10 minuter (tomt batteri, utom räckvidd) ser fönstret stängt ut i 3D fast ingen vet. Då visas en varning."
 }

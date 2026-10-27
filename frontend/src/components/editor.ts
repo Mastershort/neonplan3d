@@ -10945,6 +10945,20 @@ export class Fp3dEditor extends LitElement {
                     ><input type="checkbox" .checked=${!!o.shut} ?disabled=${!admin} @change=${(ev: Event) => this.updateOpening({ shut: (ev.target as HTMLInputElement).checked })} />
                     ${this.t("door_shut")}</label
                   >
+                  <label class="fp3d-field" title=${this.t("door_angle_hint")}
+                    >${this.t("door_angle")}
+                    <select
+                      ?disabled=${!admin}
+                      @change=${(ev: Event) => {
+                        const v = Number((ev.target as HTMLSelectElement).value);
+                        this.updateOpening({ open_angle: v > 0 ? v : null });
+                      }}
+                    >
+                      <option value="0" ?selected=${!o.open_angle}>${this.t("door_angle_default")}</option>
+                      ${[15, 30, 45, 60, 90].map((a) => html`<option value=${a} ?selected=${o.open_angle === a}>${a}°</option>`)}
+                      ${o.open_angle && ![15, 30, 45, 60, 90].includes(o.open_angle) ? html`<option value=${o.open_angle} selected>${o.open_angle}°</option>` : nothing}
+                    </select></label
+                  >
                   ${this.entitySelect(this.t("door_lock"), o.lock ?? null, undefined, this.entityOptions((id) => id.startsWith("lock.")), (v) => this.updateOpening({ lock: v === "none" ? null : v }))}
                   <p class="fp3d-sub fp3d-wide">${this.t("door_lock_hint")}</p>`
                 : nothing}`}
@@ -13284,6 +13298,10 @@ export class Fp3dEditor extends LitElement {
         <label class="fp3d-check fp3d-wide" title=${this.t("alert_names_hint")}
           ><input type="checkbox" .checked=${s.alert_names !== false} @change=${(ev: Event) => set({ alert_names: (ev.target as HTMLInputElement).checked })} />
           ${this.t("alert_names")}</label
+        >
+        <label class="fp3d-check fp3d-wide" title=${this.t("alert_unavailable_hint")}
+          ><input type="checkbox" .checked=${!!s.alert_unavailable} @change=${(ev: Event) => set({ alert_unavailable: (ev.target as HTMLInputElement).checked })} />
+          ${this.t("alert_unavailable")}</label
         >
         ${this.hass
           ? html`${this.entitySelect(

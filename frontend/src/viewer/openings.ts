@@ -38,6 +38,8 @@ const UNLOCKED = 0x37e0ff;
 
 const OPEN_ANGLE = 1.2;
 const DOOR_ANGLE = 1.5;
+/** How far a door without a sensor stands open (devices.ts DOOR_DEFAULT_OPEN): its own angle counts in full. */
+const SENSORLESS_OPEN = 0.5;
 const LEAF = 0x1c2c4d;
 const LEAF_TOP = 0x27406b;
 const LEAF_FRONT = 0x111a30;
@@ -237,9 +239,16 @@ export function buildOpeningParts(infos: readonly OpeningInfo[], states: Readonl
       }
       const leaves: [boolean, number][] = passage ? [] : [[info.hingeAtStart, st.open]];
       if (two && !passage) leaves.push([!info.hingeAtStart, st.open2 ?? 0]);
+      // a door's own opening angle: the leaf stands that far open (without a sensor) or opens that far (with one)
+      const ownAngle = info.opening.open_angle;
       for (const [atStart, openness] of leaves) {
         const open = Math.min(1, Math.max(0, openness));
-        const theta = style === "sliding" ? 0 : open * DOOR_ANGLE;
+        const theta =
+          style === "sliding"
+            ? 0
+            : ownAngle != null && ownAngle > 0
+              ? (st.sensed ? open : Math.min(1, open / SENSORLESS_OPEN)) * Math.min(170, ownAngle) * (Math.PI / 180)
+              : open * DOOR_ANGLE;
         // a sliding leaf runs along the wall face past the hinge side instead of turning
         const slide = style === "sliding" ? open * lw : 0;
         const leafTf: Tf = (u, n, y) => {

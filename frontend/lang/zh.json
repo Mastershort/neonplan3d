@@ -2078,5 +2078,12 @@
  "diag_invite_later": "以后再说",
  "floor_order_hint": "只改变楼层在列表和楼层缩略图中的顺序。楼层在 3D 房屋中的位置由它的“离地高度”决定。",
  "roof_turn": "旋转",
- "roof_turn_hint": "在平面图中旋转这部分屋顶（顺时针），例如用于斜向的侧翼。其上的老虎窗和横向山墙随之旋转。0° = 保持原样。"
+ "roof_turn_hint": "在平面图中旋转这部分屋顶（顺时针），例如用于斜向的侧翼。其上的老虎窗和横向山墙随之旋转。0° = 保持原样。",
+ "door_angle": "开启角度",
+ "door_angle_hint": "门在 3D 中打开的角度：无传感器时一直如此，有传感器时在其报告打开时。默认：无传感器时半开，有传感器时全开。",
+ "door_angle_default": "默认",
+ "alert_contact_unavailable": "触点不可用：{name}",
+ "alert_short_contact_unavailable": "触点不可用",
+ "alert_unavailable": "门窗触点不可用时发出警告",
+ "alert_unavailable_hint": "触点“不可用”达 10 分钟（电池耗尽、超出信号范围）时，窗户在 3D 中看起来是关着的，但实际无人知晓。此时会显示警告。"
 }

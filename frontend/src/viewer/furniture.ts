@@ -1420,6 +1420,17 @@ export const RADIATOR_Y = 0.12;
 export const AC_Y = 2.05;
 
 /**
+ * The size of a picture (cover, app icon) on a screen of sw × sh metres: the whole picture visible ("contain"),
+ * with a dark margin that grows with the screen – 4 cm on a TV, a few millimetres on a small smart display
+ * (a fixed 4 cm left only a sliver on a 5″ display, #799).
+ */
+export function screenPictureSize(sw: number, sh: number, aspect: number): { w: number; h: number } {
+  const m = Math.min(0.04, 0.08 * Math.min(sw, sh));
+  const w = Math.min(sw - m, (sh - m) * aspect);
+  return { w, h: w / aspect };
+}
+
+/**
  * Screen of a TV or monitor in local coordinates (x across, y up, z = its front face), for the glow
  * shown while the linked device is on. Null for furniture without a screen.
  */

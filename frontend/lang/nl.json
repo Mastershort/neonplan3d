@@ -2078,5 +2078,12 @@
  "diag_invite_later": "Niet nu",
  "floor_order_hint": "Verandert alleen de volgorde van de verdiepingen in de lijst en de verdiepingsplaatjes. Waar een verdieping in het 3D-huis ligt, bepaalt haar „hoogte boven de grond”.",
  "roof_turn": "Draaiing",
- "roof_turn_hint": "Draait dit dakdeel in de plattegrond (met de klok mee), bijv. voor een aanbouw onder een hoek. Dakkapellen en dwarskappen erop draaien mee. 0° = zoals voorheen."
+ "roof_turn_hint": "Draait dit dakdeel in de plattegrond (met de klok mee), bijv. voor een aanbouw onder een hoek. Dakkapellen en dwarskappen erop draaien mee. 0° = zoals voorheen.",
+ "door_angle": "Openingshoek",
+ "door_angle_hint": "Hoe ver de deur in 3D openstaat: zonder sensor altijd, met sensor zodra die open meldt. Standaard: zonder sensor half open, met sensor helemaal open.",
+ "door_angle_default": "Standaard",
+ "alert_contact_unavailable": "Contact niet beschikbaar: {name}",
+ "alert_short_contact_unavailable": "Contact niet beschikbaar",
+ "alert_unavailable": "Waarschuwen als een raam- of deurcontact niet beschikbaar is",
+ "alert_unavailable_hint": "Is een contact 10 minuten „niet beschikbaar” (lege batterij, buiten bereik), dan lijkt het raam in 3D dicht terwijl niemand het weet. Dan komt er een waarschuwing."
 }

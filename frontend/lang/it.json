@@ -2078,5 +2078,12 @@
  "diag_invite_later": "Non ora",
  "floor_order_hint": "Cambia solo l'ordine dei piani nell'elenco e nelle miniature. La posizione di un piano nella casa 3D dipende dalla sua «altezza dal suolo».",
  "roof_turn": "Rotazione",
- "roof_turn_hint": "Ruota questa parte del tetto nella pianta (in senso orario), ad es. per un'ala inclinata. Abbaini e timpani sopra ruotano con essa. 0° = come prima."
+ "roof_turn_hint": "Ruota questa parte del tetto nella pianta (in senso orario), ad es. per un'ala inclinata. Abbaini e timpani sopra ruotano con essa. 0° = come prima.",
+ "door_angle": "Angolo di apertura",
+ "door_angle_hint": "Quanto è aperta la porta in 3D: senza sensore sempre, con sensore appena segnala aperta. Predefinito: socchiusa senza sensore, tutta aperta con il sensore.",
+ "door_angle_default": "Predefinito",
+ "alert_contact_unavailable": "Contatto non disponibile: {name}",
+ "alert_short_contact_unavailable": "Contatto non disponibile",
+ "alert_unavailable": "Avvisa se un contatto di finestra o porta non è disponibile",
+ "alert_unavailable_hint": "Se un contatto è «non disponibile» da 10 minuti (batteria scarica, fuori portata), la finestra sembra chiusa in 3D senza saperlo. Allora compare un avviso."
 }
