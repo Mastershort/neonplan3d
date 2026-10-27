@@ -129,6 +129,8 @@ export interface CatalogPack {
   release: number;
   url: string;
   installed: number | null;
+  /** A module update was fetched and waits for the admin's approval (installed counts it already). */
+  waits?: boolean;
 }
 
 /** A pack or Pro add-on in the shop the customer does not own yet. */

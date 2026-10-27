@@ -535,12 +535,16 @@ export class Extensions extends LitElement {
               : lic.packs.length
               ? lic.packs.map((p) => {
                   const state = p.installed === null ? "install" : p.installed < p.release ? "update" : "installed";
+                  // a fetched module update waits for the approval (#805): the way there, not "update" again
+                  const local = p.waits ? (this.packs ?? []).find((x) => x.id === p.id && moduleWaits(x)) : undefined;
                   return html`<div class="fp3d-pack">
                     <div>
                       <b>${packName(p, this.hass?.language ?? "de")}</b>
-                      <span class="fp3d-sub">${state === "installed" ? this.t("license_installed", { release: p.release }) : state === "update" ? this.t("license_update_available", { release: p.release }) : this.t("license_not_installed")}</span>
+                      <span class="fp3d-sub ${local ? "fp3d-module-waits" : ""}">${local ? this.t("module_update_waits", { from: local.release ?? 1, to: local.pending?.release ?? p.release }) : state === "installed" ? this.t("license_installed", { release: p.release }) : state === "update" ? this.t("license_update_available", { release: p.release }) : this.t("license_not_installed")}</span>
                     </div>
-                    ${state === "installed"
+                    ${local
+                      ? html`<button class="fp3d-btn fp3d-primary" @click=${() => void this.openReview(local)}>${this.t("module_review_update")}</button>`
+                      : state === "installed"
                       ? nothing
                       : html`<button class="fp3d-btn fp3d-primary" ?disabled=${!!busy} @click=${() => this.installFromShop(p)}>
                           ${busy === p.id ? "…" : this.t(state === "update" ? "license_update" : "license_install")}
@@ -682,6 +686,8 @@ export class Extensions extends LitElement {
     if (!this.hass) return;
     this._open = new Set([...this._open, "modules"]);
     this._review = { pack, data: null, error: null, busy: true };
+    // opened from the shop list too: the review sits in the modules section further down
+    void this.updateComplete.then(() => this.renderRoot.querySelector(".fp3d-review")?.scrollIntoView({ block: "nearest", behavior: "smooth" }));
     try {
       const data = await reviewModule(this.hass, pack.id, pack.module?.approved === true && !!pack.pending);
       this._review = { pack, data, error: null, busy: false };
