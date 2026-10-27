@@ -2085,5 +2085,9 @@
  "alert_contact_unavailable": "触点不可用：{name}",
  "alert_short_contact_unavailable": "触点不可用",
  "alert_unavailable": "门窗触点不可用时发出警告",
- "alert_unavailable_hint": "触点“不可用”达 10 分钟（电池耗尽、超出信号范围）时，窗户在 3D 中看起来是关着的，但实际无人知晓。此时会显示警告。"
+ "alert_unavailable_hint": "触点“不可用”达 10 分钟（电池耗尽、超出信号范围）时，窗户在 3D 中看起来是关着的，但实际无人知晓。此时会显示警告。",
+ "sun_shadow": "太阳轨迹与房屋阴影",
+ "sun_shadow_hint": "房屋上方的弧线显示今天太阳的轨迹及日出日落时间，房屋的阴影落在地面上并随太阳移动。需要设置北向；在“平板”级别只显示弧线。",
+ "window_glow": "夜晚窗户向外透光",
+ "window_glow_hint": "天黑后，亮灯房间的光会透过窗户，在窗前的草坪和露台上形成温暖的光晕——颜色与房间灯光一致，放下卷帘时更暗。"
 }

@@ -2085,5 +2085,9 @@
  "alert_contact_unavailable": "Contact indisponible : {name}",
  "alert_short_contact_unavailable": "Contact indisponible",
  "alert_unavailable": "Avertir si un contact de fenêtre ou de porte est indisponible",
- "alert_unavailable_hint": "Si un contact est « indisponible » depuis 10 minutes (pile vide, hors de portée), la fenêtre paraît fermée en 3D sans qu'on le sache. Un avertissement s'affiche alors."
+ "alert_unavailable_hint": "Si un contact est « indisponible » depuis 10 minutes (pile vide, hors de portée), la fenêtre paraît fermée en 3D sans qu'on le sache. Un avertissement s'affiche alors.",
+ "sun_shadow": "Course du soleil et ombre de la maison",
+ "sun_shadow_hint": "Un arc au-dessus de la maison montre la course du soleil aujourd'hui avec lever et coucher, et l'ombre de la maison se pose au sol et suit le soleil. Nécessite l'orientation nord ; au niveau « Tablette », seulement l'arc.",
+ "window_glow": "Les fenêtres éclairent dehors la nuit",
+ "window_glow_hint": "Quand il fait nuit, la lumière des pièces éclairées sort par les fenêtres en une lueur chaude sur la pelouse et la terrasse – dans la couleur de la pièce, plus faible derrière les volets baissés."
 }

@@ -2085,5 +2085,9 @@
  "alert_contact_unavailable": "Contatto non disponibile: {name}",
  "alert_short_contact_unavailable": "Contatto non disponibile",
  "alert_unavailable": "Avvisa se un contatto di finestra o porta non è disponibile",
- "alert_unavailable_hint": "Se un contatto è «non disponibile» da 10 minuti (batteria scarica, fuori portata), la finestra sembra chiusa in 3D senza saperlo. Allora compare un avviso."
+ "alert_unavailable_hint": "Se un contatto è «non disponibile» da 10 minuti (batteria scarica, fuori portata), la finestra sembra chiusa in 3D senza saperlo. Allora compare un avviso.",
+ "sun_shadow": "Percorso del sole e ombra della casa",
+ "sun_shadow_hint": "Un arco sopra la casa mostra il percorso del sole oggi con alba e tramonto, e l'ombra della casa si posa a terra e segue il sole. Serve la direzione nord; al livello «Tablet» solo l'arco.",
+ "window_glow": "Le finestre illuminano fuori di notte",
+ "window_glow_hint": "Quando fuori è buio, la luce delle stanze accese esce dalle finestre come un bagliore caldo su prato e terrazza – nel colore della luce della stanza, più debole dietro le tapparelle abbassate."
 }

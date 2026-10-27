@@ -2085,5 +2085,9 @@
  "alert_contact_unavailable": "Kontakt utilgjengeleg: {name}",
  "alert_short_contact_unavailable": "Kontakt utilgjengeleg",
  "alert_unavailable": "Varsle når ein vindauge- eller dørkontakt er utilgjengeleg",
- "alert_unavailable_hint": "Er ein kontakt «utilgjengeleg» i 10 minutt (tomt batteri, utanfor rekkjevidd), ser vindauget lukka ut i 3D sjølv om ingen veit det. Då kjem eit varsel."
+ "alert_unavailable_hint": "Er ein kontakt «utilgjengeleg» i 10 minutt (tomt batteri, utanfor rekkjevidd), ser vindauget lukka ut i 3D sjølv om ingen veit det. Då kjem eit varsel.",
+ "sun_shadow": "Solbane og skuggen til huset",
+ "sun_shadow_hint": "Ein boge over huset viser vegen til sola i dag med soloppgang og solnedgang, og skuggen til huset ligg på bakken og vandrar med sola. Krev nordretninga; på nivået «Nettbrett» berre bogen.",
+ "window_glow": "Vindauge lyser ut om natta",
+ "window_glow_hint": "Når det er mørkt, fell lyset frå opplyste rom ut gjennom vindauga som eit varmt skjer på plen og terrasse – i lysfargen til rommet, svakare bak nedtrekte persienner."
 }

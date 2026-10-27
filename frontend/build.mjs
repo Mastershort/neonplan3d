@@ -130,8 +130,9 @@ function copyFonts() {
 // editor 934 KB, card editor 269 KB on 2026-10-26: the door's own opening angle and its texts
 // main 700 KB, card editor 270 KB on 2026-10-26: the warning for unavailable contacts and its texts
 // card editor 268 KB on 2026-10-25 (was 267): the texts of the invitation to the usage reports
+// main 701 KB, 3D 832 KB, editor 936 KB, card editor 271 KB on 2026-10-27: sun arc, house shadow and windows glowing out at night
 // 3D 816 KB on 2026-10-25 (was 812): free walls drawn as outer walls find their outside (blinds, glass), pets walk on at their own pace on tablets, door glass on both faces
-const BUDGET = { "neonplan3d.js": 700 * 1024, "neonplan3d-fun.js": 40 * 1024, "neonplan3d-voice.js": 60 * 1024, "neonplan3d-locate.js": 160 * 1024, "neonplan3d-timetravel.js": 120 * 1024, "neonplan3d-3d.js": 816 * 1024, "neonplan3d-editor.js": 934 * 1024, "neonplan3d-card-editor.js": 270 * 1024 };
+const BUDGET = { "neonplan3d.js": 701 * 1024, "neonplan3d-fun.js": 40 * 1024, "neonplan3d-voice.js": 60 * 1024, "neonplan3d-locate.js": 160 * 1024, "neonplan3d-timetravel.js": 120 * 1024, "neonplan3d-3d.js": 832 * 1024, "neonplan3d-editor.js": 936 * 1024, "neonplan3d-card-editor.js": 271 * 1024 };
 
 copyFonts();
 if (watch) {

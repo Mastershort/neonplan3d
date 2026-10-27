@@ -654,6 +654,10 @@ Die Lupe unten links öffnet **„Wo ist …?“**. Tippe einen Gerätenamen ode
 
 Ist die Nordrichtung eingestellt, fällt das Sonnenlicht aus `sun.sun` durch die Fenster, die zur Sonne zeigen, als weiche Flecken auf den Boden. Heruntergelassene Rollläden verkleinern die Flecken. Wer die Flecken nicht mag, schaltet sie unter **Einstellungen** mit **Sonnenlicht durch die Fenster** ab. Tagsüber wird der Himmel hinter dem Haus heller.
 
+**Sonnenbahn und Hausschatten (seit 2.0.7):** Ein gepunkteter Bogen um das Haus zeigt den Weg der Sonne heute, mit den Uhrzeiten von Sonnenauf- und -untergang an seinen Enden. Ein glühender Punkt darauf ist die Sonne jetzt, ein heller Punkt markiert jede volle Stunde. Auf dem Boden liegt der Schatten des Hauses und wandert mit der Sonne: So siehst du, wann die Terrasse Sonne hat. Der Schatten zeigt sich in der Ansicht **Alle Etagen** und nicht auf der Stufe **Tablet**, der Bogen auf jeder Stufe. Beides braucht die Nordrichtung und den Ort in Home Assistant; abschalten unter **Einstellungen** mit **Sonnenbahn und Hausschatten**.
+
+**Fenster leuchten nachts nach draußen (seit 2.0.7):** Ist es draußen dunkel, fällt das Licht beleuchteter Räume im Erdgeschoss als warmer Schein durch die Fenster auf Rasen und Terrasse davor, in der Lichtfarbe des Raums. Heruntergelassene Rollläden dämpfen ihn. Abschalten unter **Einstellungen** mit **Fenster leuchten nachts nach draußen**.
+
 ### 5.8 Warnungen
 
 ![Warnung](images/view-alert-banner.jpg)

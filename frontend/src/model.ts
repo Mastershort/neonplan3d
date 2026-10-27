@@ -727,6 +727,10 @@ export interface BuildingSettings {
   outage_entity?: string | null;
   /** Sunlight falls through the windows as patches on the floor (default on, #266). */
   sun_patches?: boolean;
+  /** The sun's arc over the house and the house's shadow on the ground (default on). */
+  sun_shadow?: boolean;
+  /** At night lit rooms throw their light out of the windows onto the ground in front (default on). */
+  window_glow?: boolean;
   /** The ground around the house: its height and the earth around cellars. */
   terrain?: Terrain | null;
   /**

@@ -141,6 +141,7 @@ import { pipePlanner } from "../pipe-planner.ts";
 import type { ClockPos } from "../card-config.ts";
 import { Director, HOLD_DEFAULT, directorAny, doorbellCamera, doorbellEntities, doorbellRang, triggerFired, type DirectorSettings, type Shot } from "../director.ts";
 import type { HistorySpec, ReplayInfo } from "../timetravel/types.ts";
+import { sunPath, type SunPath } from "../sun-path.ts";
 
 /** Which HTML markers are shown: none, only what has no 3D object or shows a value, or all. */
 /** "room": no symbols in the house and floor views, in a room only that room's (D477, D595). */
@@ -361,6 +362,9 @@ export class Fp3dView3d extends LitElement {
   private declare _proHint: Feature | null;
   private flashTimer: ReturnType<typeof setTimeout> | undefined;
   private cloud = 0;
+  /** The sun's way today, worked out once a day (see sunPathToday). */
+  private sunPathKey = "";
+  private sunPathCache: SunPath | null = null;
   /** Entities that ask before a tap switches them. */
   private confirmSet = new Set<string>();
   /** History rows of the trail's sensors (fetched while the trail is shown, again every minute). */
@@ -1479,6 +1483,7 @@ export class Fp3dView3d extends LitElement {
     const sun = hass.states["sun.sun"]?.attributes;
     const elevation = typeof sun?.elevation === "number" ? sun.elevation : null;
     v.setSun(elevation !== null && typeof sun?.azimuth === "number" ? { elevation, azimuth: sun.azimuth } : null);
+    v.setSunPath(this.sunPathToday(hass));
     // the automatic look follows the sun (setTheme ignores a look it already shows)
     if (this.theme === "auto") v.setTheme(this.effectiveTheme());
     // the weather outside: clouds darken the sky, rain, snow and fog fall over the plot
@@ -5142,6 +5147,19 @@ export class Fp3dView3d extends LitElement {
   }
 
   /** The sky colour behind the house right now (night: deep blue-black, day: lighter and bluer, clouds in between). */
+  /** The sun's way today at the home's place (worked out once a day), null without latitude and longitude. */
+  private sunPathToday(hass: HomeAssistant): SunPath | null {
+    const lat = hass.config?.latitude;
+    const lon = hass.config?.longitude;
+    if (typeof lat !== "number" || typeof lon !== "number") return null;
+    const key = `${new Date().toDateString()},${lat},${lon}`;
+    if (this.sunPathKey !== key) {
+      this.sunPathKey = key;
+      this.sunPathCache = sunPath(Date.now(), lat, lon);
+    }
+    return this.sunPathCache;
+  }
+
   private skyColor(): [number, number, number] {
     const stage = STAGE[this.effectiveTheme()] ?? STAGE.neon;
     const sky = this._sky;

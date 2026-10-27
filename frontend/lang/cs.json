@@ -2085,5 +2085,9 @@
  "alert_contact_unavailable": "Kontakt nedostupný: {name}",
  "alert_short_contact_unavailable": "Kontakt nedostupný",
  "alert_unavailable": "Varovat, když je kontakt okna nebo dveří nedostupný",
- "alert_unavailable_hint": "Je-li kontakt 10 minut „nedostupný“ (vybitá baterie, mimo dosah), okno ve 3D vypadá zavřené, i když to nikdo neví. Pak se zobrazí varování."
+ "alert_unavailable_hint": "Je-li kontakt 10 minut „nedostupný“ (vybitá baterie, mimo dosah), okno ve 3D vypadá zavřené, i když to nikdo neví. Pak se zobrazí varování.",
+ "sun_shadow": "Dráha slunce a stín domu",
+ "sun_shadow_hint": "Oblouk nad domem ukazuje dnešní dráhu slunce s východem a západem a stín domu leží na zemi a putuje se sluncem. Vyžaduje směr severu; na úrovni „Tablet“ jen oblouk.",
+ "window_glow": "Okna v noci svítí ven",
+ "window_glow_hint": "Když je venku tma, světlo rozsvícených místností padá okny jako teplá záře na trávník a terasu – v barvě světla místnosti, slaběji za staženými roletami."
 }

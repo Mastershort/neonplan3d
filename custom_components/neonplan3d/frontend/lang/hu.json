@@ -2085,5 +2085,9 @@
  "alert_contact_unavailable": "Érintkező nem elérhető: {name}",
  "alert_short_contact_unavailable": "Érintkező nem elérhető",
  "alert_unavailable": "Figyelmeztetés, ha egy ablak- vagy ajtóérintkező nem elérhető",
- "alert_unavailable_hint": "Ha egy érintkező 10 perce „nem elérhető” (lemerült elem, hatótávon kívül), az ablak 3D-ben zártnak látszik, pedig senki sem tudja. Ekkor figyelmeztetés jelenik meg."
+ "alert_unavailable_hint": "Ha egy érintkező 10 perce „nem elérhető” (lemerült elem, hatótávon kívül), az ablak 3D-ben zártnak látszik, pedig senki sem tudja. Ekkor figyelmeztetés jelenik meg.",
+ "sun_shadow": "Napút és a ház árnyéka",
+ "sun_shadow_hint": "A ház fölötti ív a nap mai útját mutatja napkeltével és napnyugtával, a ház árnyéka a talajon a nappal együtt vándorol. Az északi irány kell hozzá; „Tablet” szinten csak az ív.",
+ "window_glow": "Az ablakok éjjel kifelé világítanak",
+ "window_glow_hint": "Sötétben a megvilágított szobák fénye meleg derengésként esik ki az ablakokon a gyepre és a teraszra – a szoba fényének színében, leeresztett redőny mögött halványabban."
 }

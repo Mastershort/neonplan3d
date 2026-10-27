@@ -2085,5 +2085,9 @@
  "alert_contact_unavailable": "Czujnik niedostępny: {name}",
  "alert_short_contact_unavailable": "Czujnik niedostępny",
  "alert_unavailable": "Ostrzegaj, gdy czujnik okna lub drzwi jest niedostępny",
- "alert_unavailable_hint": "Gdy czujnik jest „niedostępny” przez 10 minut (pusta bateria, poza zasięgiem), okno w 3D wygląda na zamknięte, choć nikt tego nie wie. Wtedy pojawia się ostrzeżenie."
+ "alert_unavailable_hint": "Gdy czujnik jest „niedostępny” przez 10 minut (pusta bateria, poza zasięgiem), okno w 3D wygląda na zamknięte, choć nikt tego nie wie. Wtedy pojawia się ostrzeżenie.",
+ "sun_shadow": "Droga słońca i cień domu",
+ "sun_shadow_hint": "Łuk nad domem pokazuje dzisiejszą drogę słońca ze wschodem i zachodem, a cień domu leży na ziemi i wędruje za słońcem. Wymaga kierunku północy; na poziomie „Tablet” tylko łuk.",
+ "window_glow": "Okna świecą nocą na zewnątrz",
+ "window_glow_hint": "Gdy na zewnątrz jest ciemno, światło oświetlonych pomieszczeń pada przez okna ciepłą poświatą na trawnik i taras – w kolorze światła pomieszczenia, słabiej za opuszczonymi roletami."
 }

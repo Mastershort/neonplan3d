@@ -2085,5 +2085,9 @@
  "alert_contact_unavailable": "Contacto no disponible: {name}",
  "alert_short_contact_unavailable": "Contacto no disponible",
  "alert_unavailable": "Avisar si un contacto de ventana o puerta no está disponible",
- "alert_unavailable_hint": "Si un contacto lleva 10 minutos «no disponible» (pila agotada, sin cobertura), la ventana parece cerrada en 3D sin saberlo. Entonces aparece un aviso."
+ "alert_unavailable_hint": "Si un contacto lleva 10 minutos «no disponible» (pila agotada, sin cobertura), la ventana parece cerrada en 3D sin saberlo. Entonces aparece un aviso.",
+ "sun_shadow": "Recorrido del sol y sombra de la casa",
+ "sun_shadow_hint": "Un arco sobre la casa muestra el recorrido del sol hoy con amanecer y atardecer, y la sombra de la casa se dibuja en el suelo y se mueve con el sol. Necesita la orientación norte; en el nivel «Tableta» solo el arco.",
+ "window_glow": "Las ventanas iluminan fuera de noche",
+ "window_glow_hint": "Cuando está oscuro, la luz de las habitaciones encendidas sale por las ventanas como un brillo cálido sobre el césped y la terraza – en el color de la luz de la habitación, más tenue tras persianas bajadas."
 }

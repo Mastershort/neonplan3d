@@ -2085,5 +2085,9 @@
  "alert_contact_unavailable": "Contact niet beschikbaar: {name}",
  "alert_short_contact_unavailable": "Contact niet beschikbaar",
  "alert_unavailable": "Waarschuwen als een raam- of deurcontact niet beschikbaar is",
- "alert_unavailable_hint": "Is een contact 10 minuten „niet beschikbaar” (lege batterij, buiten bereik), dan lijkt het raam in 3D dicht terwijl niemand het weet. Dan komt er een waarschuwing."
+ "alert_unavailable_hint": "Is een contact 10 minuten „niet beschikbaar” (lege batterij, buiten bereik), dan lijkt het raam in 3D dicht terwijl niemand het weet. Dan komt er een waarschuwing.",
+ "sun_shadow": "Zonnebaan en schaduw van het huis",
+ "sun_shadow_hint": "Een boog boven het huis toont de baan van de zon vandaag met op- en ondergang, en de schaduw van het huis ligt op de grond en draait mee met de zon. Heeft de noordrichting nodig; op het niveau „Tablet” alleen de boog.",
+ "window_glow": "Ramen schijnen 's nachts naar buiten",
+ "window_glow_hint": "Als het donker is, valt het licht van verlichte kamers door de ramen als warme gloed op het gazon en terras ervoor – in de lichtkleur van de kamer, zwakker achter neergelaten rolluiken."
 }

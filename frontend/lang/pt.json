@@ -2085,5 +2085,9 @@
  "alert_contact_unavailable": "Contacto indisponível: {name}",
  "alert_short_contact_unavailable": "Contacto indisponível",
  "alert_unavailable": "Avisar quando um contacto de janela ou porta está indisponível",
- "alert_unavailable_hint": "Se um contacto estiver «indisponível» há 10 minutos (pilha gasta, fora de alcance), a janela parece fechada em 3D sem que ninguém saiba. Aparece então um aviso."
+ "alert_unavailable_hint": "Se um contacto estiver «indisponível» há 10 minutos (pilha gasta, fora de alcance), a janela parece fechada em 3D sem que ninguém saiba. Aparece então um aviso.",
+ "sun_shadow": "Percurso do sol e sombra da casa",
+ "sun_shadow_hint": "Um arco sobre a casa mostra o percurso do sol hoje com nascer e pôr do sol, e a sombra da casa fica no chão e acompanha o sol. Precisa da direção norte; no nível «Tablet» só o arco.",
+ "window_glow": "Janelas iluminam lá fora à noite",
+ "window_glow_hint": "Quando está escuro, a luz das divisões acesas sai pelas janelas como um brilho quente sobre o relvado e o terraço – na cor da luz da divisão, mais fraca atrás de estores descidos."
 }

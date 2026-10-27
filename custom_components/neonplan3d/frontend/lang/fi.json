@@ -2085,5 +2085,9 @@
  "alert_contact_unavailable": "Kosketin ei käytettävissä: {name}",
  "alert_short_contact_unavailable": "Kosketin ei käytettävissä",
  "alert_unavailable": "Varoita, kun ikkunan tai oven kosketin ei ole käytettävissä",
- "alert_unavailable_hint": "Jos kosketin on ollut ”ei käytettävissä” 10 minuuttia (tyhjä paristo, kantaman ulkopuolella), ikkuna näyttää 3D:ssä suljetulta, vaikka kukaan ei tiedä. Silloin näytetään varoitus."
+ "alert_unavailable_hint": "Jos kosketin on ollut ”ei käytettävissä” 10 minuuttia (tyhjä paristo, kantaman ulkopuolella), ikkuna näyttää 3D:ssä suljetulta, vaikka kukaan ei tiedä. Silloin näytetään varoitus.",
+ "sun_shadow": "Auringon rata ja talon varjo",
+ "sun_shadow_hint": "Talon yllä kaari näyttää auringon radan tänään nousuineen ja laskuineen, ja talon varjo lepää maassa ja kulkee auringon mukana. Vaatii pohjoissuunnan; ”Tabletti”-tasolla vain kaari.",
+ "window_glow": "Ikkunat hehkuvat ulos yöllä",
+ "window_glow_hint": "Pimeällä valaistujen huoneiden valo lankeaa ikkunoista lämpimänä hehkuna nurmikolle ja terassille – huoneen valon värissä, himmeämpänä laskettujen kaihtimien takana."
 }
