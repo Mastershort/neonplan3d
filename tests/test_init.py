@@ -152,6 +152,7 @@ async def test_opening_fields_get_defaults(hass: HomeAssistant, hass_ws_client) 
         "well": True,
         "well_rim": None,
         "shut": False,
+        "open_angle": None,
         "wall": None,
         "mark": None,
         "confirm": False,

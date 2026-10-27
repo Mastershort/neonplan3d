@@ -118,7 +118,14 @@ async def test_activate_install_and_update(hass: HomeAssistant, hass_ws_client, 
     status = result["result"]
     assert status["active"] and status["licensee"] == "Anna" and status["key_hint"] == "…6789"
     assert status["packs"] == [
-        {"id": "shop.living", "name": "Wohnzimmer", "release": 1, "url": "https://shop/x", "installed": None}
+        {
+            "id": "shop.living",
+            "name": "Wohnzimmer",
+            "release": 1,
+            "url": "https://shop/x",
+            "installed": None,
+            "waits": False,
+        }
     ]
     # an older shop sends no offers and no loyalty code
     assert status["offers"] == [] and status["loyalty"] is None and status["supporter"] is None
