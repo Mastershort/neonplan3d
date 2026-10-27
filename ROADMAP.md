@@ -9,6 +9,7 @@ What comes next. The order follows your wishes (issues, Discord and 👍 in [Dis
 ## ✅ Recently done (1.13 – 2.0)
 
 - **Locating** (2.0, free): who and what is where – from the Shelly plugs and ESPHome proxies you already have, learned in 90 seconds per room, without Bermuda; people as glowing figures, a sensor per device, "Where is my iPhone?".
+- **Door angles and fixes** (2.0.6): doors open at an angle of their own, a warning for unavailable contacts, module updates waiting for approval, drawers stretch evenly, bin button, camera wedge on sunken floors.
 - **Turned roofs** (2.0.5): roof parts turn for wings at an angle, dormers turn along; cameras shown as furniture, roof windows in their room, bin button, the point the view turns about.
 - **Garden on the ground** (2.0.4): garden items stand on the lawn and lowered terrain, round shadows, window boards on floor-to-ceiling windows, KNX contacts and shutters.
 - **Presence zones and fixes** (2.0.3): people stand at the sofa or door their presence sensor's zone names; gas and water meter readings; blinds outside on single outer walls, smoother pets.
@@ -126,6 +127,7 @@ Was als Nächstes kommt. Die Reihenfolge richtet sich nach euren Wünschen (Issu
 ## ✅ Zuletzt erledigt (1.13 – 2.0)
 
 - **Ortung** (2.0, kostenlos): Wer und was ist wo – über die Shelly-Steckdosen und ESPHome-Proxys, die du schon hast, in 90 Sekunden pro Raum eingelernt, ohne Bermuda; Personen als leuchtende Figuren, ein Sensor pro Gerät, „Wo ist mein iPhone?“.
+- **Türwinkel und Korrekturen** (2.0.6): Türen öffnen in einem eigenen Winkel, Warnung bei nicht verfügbaren Kontakten, Modul-Updates warten sichtbar auf die Freigabe, Schubladen strecken gleichmäßig, Mülltonnen-Knopf, Kamerakegel bei versenkten Etagen.
 - **Gedrehte Dächer** (2.0.5): Dachflächen drehen sich für schräge Anbauten, Gauben drehen mit; Kameras als Möbel, Dachfenster im richtigen Raum, Mülltonnen-Knopf, der Drehpunkt der Ansicht.
 - **Garten auf dem Boden** (2.0.4): Gartenmöbel stehen auf Rasen und abgesenktem Gelände, runde Schatten, Fensterbänke an bodentiefen Fenstern, KNX-Kontakte und -Rollläden.
 - **Präsenzzonen und Korrekturen** (2.0.3): Personen stehen am Sofa oder an der Tür, die die Zone ihres Präsenzmelders nennt; Gas- und Wasserzählerstände; Rollläden außen an einzelnen Außenwänden, flüssigere Haustiere.

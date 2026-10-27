@@ -230,6 +230,7 @@ Jede Öffnung hat:
 - **Flügel:** einflügelig oder zweiflügelig, mit eigenem Kontakt für den zweiten Flügel.
 - **Markieren in 3D:** *Wenn offen* (Standard) lässt offene Fenster und Türen warm leuchten. *Wenn geschlossen* dreht das um, etwa für die WC- oder die Kinderzimmertür: Sie leuchtet, solange sie zu ist. Das braucht einen Kontakt; ohne Sensor wird nichts markiert.
 - **Ohne Sensor geschlossen zeigen:** Eine Tür ohne Kontakt steht in 3D halb offen, damit man sie als Tür erkennt. Der Haken zeichnet sie geschlossen, etwa für eine Haustür oder ein Carport ohne Sensor.
+- **Öffnungswinkel (seit 2.0.6):** Wie weit das Türblatt offen steht: **Standard**, 15°, 30°, 45°, 60° oder 90°. Ohne Sensor steht die Tür immer so weit offen, mit Sensor öffnet sie so weit, sobald er „offen“ meldet. **Standard** bleibt wie bisher: ohne Sensor halb offen, mit Sensor ganz offen.
 - **Smart Lock:** Das Schloss der Tür (Nuki, Aqara, `lock.*`). In 3D steht ein Pin an der Tür: 🔒 zu, rot leuchtend, solange sie offen ist; ein Tipp schließt auf oder ab. Auch ein Tipp auf die Tür selbst (ohne Antrieb) öffnet ihr Menü mit **Abschließen** bzw. **Aufschließen**, immer mit Rückfrage; solange das Schloss offen ist, leuchtet die freie Kante des Türblatts sanft in der Akzentfarbe – egal, was der Türkontakt meldet. An einer zweiflügeligen Tür oder Terrassentür sitzt der Pin am Hauptflügel (auf der Seite des Anschlags). Die Sprache fragt es ab („Ist die Haustür abgeschlossen?“).
 - **Kontakt umkehren:** Für Sensoren, die offen und geschlossen andersherum melden. NeonPlan zeigt dann offen, wenn der Sensor geschlossen meldet, und umgekehrt (Standard: aus).
 
@@ -669,6 +670,8 @@ NeonPlan 3D warnt kostenlos und ohne Einrichtung:
 Der betroffene Raum pulsiert rot, oben erscheint ein Banner. Ein Tipp auf die Warnung springt in den Raum. Die Regenwarnung nimmt die Wetter-Entität aus den Plan-Einstellungen und lässt sich dort unter **Warnung: Fenster offen bei Regen** einzeln abschalten. Ein einzelnes Fenster, das bei Regen offen bleiben darf (etwa unter dem Vordach), bekommt in seinem Formular den Haken **Bei Regen nicht warnen**. Hast du eine eigene Wetterstation, wählst du unter **Regen von eigener Wetterstation** ihren Regensensor (an = Regen) oder ihre Regenrate (mm/h): Dann zählt, ob es am Haus wirklich regnet – für die Warnung und, mit „Wetter draußen“, auch für den Regen in 3D.
 
 Auf einem Wandtablet kann das Banner lang werden: „Gäste-WC · Fenster offen bei Regen: Fenster Gästebad“. Schaltest du in den Plan-Einstellungen **Gerätenamen in Warnungen zeigen** aus, steht dort nur „Gäste-WC · Fenster offen bei Regen“. Eine Warnung ohne Raum behält den Gerätenamen.
+
+**Kontakt nicht verfügbar (seit 2.0.6, ab Werk aus):** Meldet ein Fenster- oder Türkontakt 10 Minuten lang „nicht verfügbar“ (leere Batterie, außer Funkreichweite), sieht das Fenster in 3D zu aus, obwohl es niemand weiß. Schaltest du unter **⚙ Haus** den Haken **Warnen, wenn ein Fenster- oder Türkontakt nicht verfügbar ist** ein, kommt dann eine Warnung mit dem Namen des Kontakts. Ein kurzer Aussetzer beim Neustart von Home Assistant warnt nicht.
 
 ### 5.9 Kameras in 3D
 
@@ -1178,7 +1181,7 @@ Ein **Modul** ist ein Pack, das Code mitbringt: NeonPlan lädt ihn nach und läs
 2. **Installieren:** Hast du NeonPlan mit dem Shop verbunden (7.1), steht es unter Erweiterungen → **Alle installieren/aktualisieren** – ein Tipp. Ohne Verbindung lädst du die `.fp3dpack`-Datei aus dem Konto und spielst sie ein: **⚙ Einstellungen → 🧩 Module → Modul einspielen …** oder hier im Abschnitt **Module**.
 3. **Freigeben (seit 1.24):** Ein Modul läuft erst, wenn ein Administrator seinen Code gesehen und freigegeben hat. Im Abschnitt **Module** steht dann „wartet auf deine Freigabe“ – **Code ansehen & freigeben** zeigt Anbieter, Version, Größe, Fingerabdruck und den ganzen Code; **Freigeben** startet genau diesen Code, ohne Neustart.
 4. **Sehen:** Das Modul steht in beiden Listen als „Modul von Mastershort · v2“. Was es kann, steht in seiner Beschreibung im Shop; die Sätze eines Sprach-Moduls erscheinen sofort unter **🎙 Sprachsteuerung → Das versteht NeonPlan**, Warnungen eines Moduls in der Warnleiste, Karten über dem Haus.
-5. **Updates:** Kommt eine neue Fassung, holt der tägliche Shop-Check sie von selbst; ohne Shop-Verbindung spielst du die neue Datei ein. **Neuer Code läuft nie von allein:** Das Update wartet neben der laufenden Fassung („Update auf v4 wartet auf deine Freigabe“), bis du es mit **Update ansehen & freigeben** bestätigst. Bis dahin läuft die alte Fassung weiter. Möbel- und Funktions-Packs ohne Code aktualisieren sich wie bisher.
+5. **Updates:** Kommt eine neue Fassung, holt der tägliche Shop-Check sie von selbst; ohne Shop-Verbindung spielst du die neue Datei ein. **Neuer Code läuft nie von allein:** Das Update wartet neben der laufenden Fassung („Update auf v4 wartet auf deine Freigabe“), bis du es mit **Update ansehen & freigeben** bestätigst. Bis dahin läuft die alte Fassung weiter. Seit 2.0.6 zeigt auch die Shop-Liste so ein wartendes Update mit dem Knopf **Update ansehen & freigeben**, statt es noch einmal zum Aktualisieren anzubieten. Möbel- und Funktions-Packs ohne Code aktualisieren sich wie bisher.
 6. **Entfernen:** In der Liste **Entfernen**, wie bei einem Pack. Dein Plan bleibt unberührt.
 
 Sicherheit: Ein Modul läuft nur mit gültiger Signatur und auf der Installation, für die es gekauft wurde. Du kannst den Code in der Datei lesen (er ist nicht verschleiert), aber nicht weitergeben – dafür gilt die Elastic License 2.0.
@@ -1192,7 +1195,7 @@ Module heute:
 | Modul | Was es tut | Preis |
 |---|---|---|
 | **Das Haus antwortet** | beantwortet gesprochene Fragen – „Was ist offen?“, „Wie ist das Wetter?“, „Guten Morgen“ … (5.10) | kostenlos |
-| **Fenster-Wächter** | warnt, wenn ein Fenster bei Kälte (unter 12 °C draußen) länger als 20 Minuten offen steht oder die Heizung bei offenem Fenster läuft (10 Minuten): Der Raum pulst, die Warnleiste nennt Fenster und Zeit; „Welche Fenster sind zu lange offen?“ fliegt sie ab | kostenlos |
+| **Fenster-Wächter** | warnt, wenn ein Fenster bei Kälte (unter 12 °C draußen) länger als 20 Minuten offen steht oder die Heizung bei offenem Fenster läuft (10 Minuten): Der Raum pulst, die Warnleiste nennt Fenster und Zeit; „Welche Fenster sind zu lange offen?“ fliegt sie ab. Ruhe in der Nacht (ab Release 3): Legst du in Home Assistant einen Helfer (Schalter) `input_boolean.fensterwaechter_ruhe` an, warnt er nicht, solange der an ist – etwa per Automation nachts oder wenn die Rollläden unten sind | kostenlos |
 
 ## 8. Die Dashboard-Karte
 
