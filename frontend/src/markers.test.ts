@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { detectionKind, buildMarkers, stateText } from "./markers.ts";
+import { cameraMotionSensors, detectionKind, buildMarkers, setCameraSensors, stateText } from "./markers.ts";
 import type { Building } from "./model.ts";
 import { emptyBuilding, newFloor } from "./model.ts";
 import type { HassEntity, HomeAssistant } from "./types.ts";
@@ -83,4 +83,25 @@ test("a camera's detection sensors are told apart by what they detect", () => {
   assert.equal(detectionKind(hass, "binary_sensor.einfahrt_car_occupancy"), "car");
   assert.equal(detectionKind(hass, "binary_sensor.x"), "pet");
   assert.equal(detectionKind(hass, "binary_sensor.flur_motion"), "motion");
+});
+
+test("a camera counts its own device's detection sensors, or exactly the ones chosen by hand (#815)", () => {
+  const st = (id: string, dc: string) => ({ entity_id: id, state: "off", attributes: { device_class: dc } });
+  const hass = {
+    states: { "camera.einfahrt": st("camera.einfahrt", ""), "binary_sensor.einfahrt_motion": st("binary_sensor.einfahrt_motion", "motion"), "binary_sensor.frigate_person": st("binary_sensor.frigate_person", "occupancy") },
+    entities: {
+      "camera.einfahrt": { entity_id: "camera.einfahrt", device_id: "reolink" },
+      "binary_sensor.einfahrt_motion": { entity_id: "binary_sensor.einfahrt_motion", device_id: "reolink" },
+      "binary_sensor.frigate_person": { entity_id: "binary_sensor.frigate_person", device_id: "frigate" },
+    },
+  } as unknown as HomeAssistant;
+  const floor = newFloor("eg", "EG", 0);
+  floor.placements.push({ entity_id: "camera.einfahrt", x: 1, z: 1 } as Building["floors"][number]["placements"][number]);
+  const b = { ...emptyBuilding(), floors: [floor] } as Building;
+  setCameraSensors(b);
+  assert.deepEqual(cameraMotionSensors(hass, "camera.einfahrt"), ["binary_sensor.einfahrt_motion"]);
+  floor.placements[0].detect_sensors = ["binary_sensor.frigate_person"];
+  setCameraSensors(b);
+  assert.deepEqual(cameraMotionSensors(hass, "camera.einfahrt"), ["binary_sensor.frigate_person"]);
+  setCameraSensors(null);
 });

@@ -2,7 +2,7 @@
 // a small, versioned interface. A module is an ES module whose default export is a `NeonModule`; the backend
 // checked its signature and binding like a furniture pack's, so what runs here is what we signed.
 
-import type { Building, Furniture, OutdoorArea, PoolPipe, PoolPort, Vec2 } from "./model.ts";
+import type { Building, Floor, Furniture, OutdoorArea, PoolPipe, PoolPort, Room, Vec2 } from "./model.ts";
 import type { PipePlanner } from "./pipe-planner.ts";
 import type { HomeAssistant } from "./types.ts";
 
@@ -160,6 +160,33 @@ export interface ModuleHost {
   refresh?(): void;
   /** Lays pipes the way the editor's wall view does: walls, node positions, connections through holes (host geometry). */
   plan?: PipePlanner;
+
+  // --- talking to the people in the house (the 3D view's host has them) ---
+  /** Listens once with the host's microphone and Assist's speech-to-text; the words, or null (no microphone, nothing said). */
+  listen?(onListening?: () => void): Promise<string | null>;
+  /** A short note at the bottom of the view ("Durchsage an Kinderzimmer gesendet"). */
+  notify?(text: string): void;
+  /** The rooms someone is in right now: located people, and presence or motion sensors of the room's area. */
+  occupied?(): { floorId: string; roomId: string }[];
+  /** The media players of the plan (placed as a device or linked to a piece of furniture), each with its room. */
+  speakers?(): { entity: string; name: string; floorId: string; roomId: string | null; furnitureId?: string }[];
+}
+
+/**
+ * A sheet a module opens over the 3D view – from a room's panel or from the ⭐ menu: a choice at the top, quick
+ * choices as chips, a line to type (with the microphone), a few lines of text. The host draws it in its own look
+ * and closes it after a chip or a sent line.
+ */
+export interface ModuleSheet {
+  id: string;
+  /** An emoji or a short symbol shown on the button that opens it. */
+  icon: string;
+  title: string;
+  /** A choice at the top (which rooms: this one, all of them, where someone is). */
+  choice?: { value: string; options: { id: string; label: string }[]; set(v: string): void };
+  chips?: { label: string; onTap(): void | Promise<void> }[];
+  input?: { placeholder: string; button: string; mic?: boolean; onSubmit(text: string): void | Promise<void> };
+  lines?: string[];
 }
 
 /** A piece a module adds to the 3D stage; the host draws it with its own means (a module never touches three.js). */
@@ -353,7 +380,9 @@ export type ModuleField =
   | { kind: "entity"; label: string; value: string | null; auto?: string | null; filter(id: string): boolean; set(v: string | null): void }
   | { kind: "select"; label: string; value: string; options: { id: string; label: string }[]; set(v: string): void }
   | { kind: "check"; label: string; value: boolean; set(v: boolean): void }
-  | { kind: "button"; label: string; primary?: boolean; title?: string; onTap(): void };
+  | { kind: "button"; label: string; primary?: boolean; title?: string; onTap(): void }
+  /** A list of lines to edit, one per line (sentences, names). */
+  | { kind: "lines"; label: string; value: string[]; placeholder?: string; set(v: string[]): void };
 
 /** A pool's pipe as the module's flow logic sees it. */
 export interface PipeFlowDevice {
@@ -408,8 +437,14 @@ export interface NeonModule {
   areaFields?(host: ModuleHost, area: OutdoorArea): ModuleField[];
   /** Fields the module adds to a piece of furniture's form in the editor (a device's entities, a setup assistant). */
   furnitureFields?(host: ModuleHost, item: Furniture): ModuleField[];
-  /** The module's own settings (the editor's module dialog shows them under its name). */
+  /** The module's own settings (the editor's module dialog and the 3D view's ⚙ menu show them under its name). */
   settings?(host: ModuleHost): ModuleField[];
+  /** Fields the module adds to a room's form in the editor (a room's own speaker …). */
+  roomFields?(host: ModuleHost, room: Room, floor: Floor): ModuleField[];
+  /** Sheets a room's panel offers (a button each). */
+  roomSheets?(host: ModuleHost, place: { floorId: string; roomId: string }): ModuleSheet[];
+  /** Sheets the ⭐ menu offers. */
+  menuSheets?(host: ModuleHost): ModuleSheet[];
   /** The module's knowledge about drawing pipes (the host's pipe tools show only with it). */
   pipes?: PipeRules;
   /** Pool Pro: the pools as the voice modules ask for them. */
@@ -545,6 +580,23 @@ export function moduleAreaFields(host: ModuleHost, area: OutdoorArea): ModuleFie
 
 export function moduleFurnitureFields(host: ModuleHost, item: Furniture): ModuleField[] {
   return collect((m) => m.furnitureFields?.(host, item));
+}
+
+export function moduleRoomFields(host: ModuleHost, room: Room, floor: Floor): ModuleField[] {
+  return collect((m) => m.roomFields?.(host, room, floor));
+}
+
+export function moduleRoomSheets(host: ModuleHost, place: { floorId: string; roomId: string }): ModuleSheet[] {
+  return collect((m) => m.roomSheets?.(host, place));
+}
+
+export function moduleMenuSheets(host: ModuleHost): ModuleSheet[] {
+  return collect((m) => m.menuSheets?.(host));
+}
+
+/** Every loaded module with settings, with its pack id (the 3D view's ⚙ menu lists them). */
+export function modulesWithSettings(): string[] {
+  return [...loaded.values()].filter((m) => !!m.module.settings).map((m) => m.id);
 }
 
 /** The settings of the module loaded from a pack (empty without a module, or one without settings). */

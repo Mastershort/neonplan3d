@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { clearModules, loadedModules, MODULE_API, moduleFurnitureFields, moduleSettings, moduleVoice, moduleWaits, registerModule, syncModules, type ModuleHost } from "./modules.ts";
+import { clearModules, loadedModules, MODULE_API, moduleFurnitureFields, moduleMenuSheets, moduleRoomFields, moduleRoomSheets, moduleSettings, modulesWithSettings, moduleVoice, moduleWaits, registerModule, syncModules, type ModuleHost } from "./modules.ts";
 
 const host = {
   api: MODULE_API,
@@ -53,5 +53,24 @@ test("a module's fields on a piece of furniture and its own settings; a failing 
   assert.deepEqual(moduleSettings("setup", host), [{ kind: "text", text: "Demo" }]);
   assert.deepEqual(moduleSettings("broken", host), []);
   assert.deepEqual(moduleSettings("missing", host), []);
+  clearModules();
+});
+
+test("modules offer sheets in a room and in the ⭐ menu, fields in a room's form, settings for the ⚙ menu", () => {
+  clearModules();
+  registerModule({
+    api: MODULE_API,
+    id: "test.sheets",
+    roomSheets: (_h, place) => [{ id: "a", icon: "📢", title: place.roomId }],
+    menuSheets: () => [{ id: "a", icon: "📢", title: "menu" }],
+    roomFields: (_h, room) => [{ kind: "text", text: room.name }],
+    settings: () => [{ kind: "lines", label: "Sätze", value: ["x"], set: () => {} }],
+  });
+  registerModule({ api: MODULE_API, id: "test.broken", roomSheets: () => { throw new Error("no"); } });
+  const host = {} as ModuleHost;
+  assert.deepEqual(moduleRoomSheets(host, { floorId: "eg", roomId: "kids" }).map((s) => s.title), ["kids"]);
+  assert.deepEqual(moduleMenuSheets(host).map((s) => s.title), ["menu"]);
+  assert.deepEqual(moduleRoomFields(host, { id: "r", name: "Bad", points: [] } as never, {} as never), [{ kind: "text", text: "Bad" }]);
+  assert.deepEqual(modulesWithSettings(), ["test.sheets"]);
   clearModules();
 });

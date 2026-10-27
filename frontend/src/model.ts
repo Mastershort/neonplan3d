@@ -61,6 +61,8 @@ export interface Room {
    * into parts of their own (each with its own height), e.g. a 2.5 m wall next to a 1.7 m one in line.
    */
   wall_splits?: (number[] | null)[];
+  /** What a module keeps for this room (a speaker for the announcements …), by the module's id. */
+  mods?: ModuleData | null;
 }
 
 export type OpeningType = "door" | "window" | "garage";
@@ -360,6 +362,8 @@ export interface Placement {
   cone?: boolean | null;
   /** Cameras: detection pins (person, car, animal) over the camera (null = yes); false leaves only the wedge turning red (#267). */
   detect_pins?: boolean | null;
+  /** Cameras: the detection sensors that count, chosen by hand (any device's); null = those of the camera's device (#815). */
+  detect_sensors?: string[] | null;
 }
 
 export interface Background {
@@ -748,6 +752,8 @@ export interface BuildingSettings {
   lock_plan?: boolean;
   /** The camera the house view opens with (3D view, card, kiosk); null = fitted from the front left. */
   start_view?: StartView | null;
+  /** What a module keeps for the whole house (its settings), by the module's id. */
+  mods?: ModuleData | null;
 }
 
 /** A camera position around the house: azimuth and polar angle (radians) and the distance (m). */
