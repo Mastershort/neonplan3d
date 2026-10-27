@@ -817,6 +817,18 @@ test("water values of a pool count as sensors: pH by its class, redox and salt b
   assert.equal(isRelevant(hass, "sensor.pool_firmware"), false);
 });
 
+test("a redox probe that reports as a voltage in mV counts, a mains voltage does not (#814)", () => {
+  const hass = {
+    states: {
+      "sensor.pool_orp": { entity_id: "sensor.pool_orp", state: "690", attributes: { device_class: "voltage", unit_of_measurement: "mV" } },
+      "sensor.mains": { entity_id: "sensor.mains", state: "231", attributes: { device_class: "voltage", unit_of_measurement: "V" } },
+    },
+    entities: {},
+  } as unknown as Parameters<typeof isRelevant>[0];
+  assert.equal(isRelevant(hass, "sensor.pool_orp"), true);
+  assert.equal(isRelevant(hass, "sensor.mains"), false);
+});
+
 test("a door with a smart lock and no drive gets no roller shutter, and glows while unlocked (#682)", () => {
   const hass = hassWith();
   hass.states["lock.haustuer"] = { entity_id: "lock.haustuer", state: "unlocked", attributes: {} } as HomeAssistant["states"][string];

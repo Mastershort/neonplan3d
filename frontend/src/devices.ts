@@ -130,7 +130,9 @@ export function isRelevant(hass: HomeAssistant, entityId: string): boolean {
   const st = hass.states[entityId];
   if (!st) return false;
   const dc = st.attributes.device_class as string | undefined;
-  if (kind === "sensor") return dc ? SENSOR_CLASSES.has(dc) : METER_UNITS.has(String(st.attributes.unit_of_measurement ?? ""));
+  const unit = String(st.attributes.unit_of_measurement ?? "");
+  // a redox / ORP probe often reports as a voltage in mV (#814); a mains voltage in V stays out
+  if (kind === "sensor") return dc ? SENSOR_CLASSES.has(dc) || (dc === "voltage" && unit === "mV") : METER_UNITS.has(unit);
   // a binary sensor without a class is mostly noise of an integration – unless its own entity was given an
   // area by hand (a "storm" flag of a home automation bus, #243): then it is meant to be seen
   if (kind === "binary") return dc ? BINARY_CLASSES.has(dc) : !!entry?.area_id;
