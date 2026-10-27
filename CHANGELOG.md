@@ -4,6 +4,25 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 [releases page](https://github.com/Mastershort/neonplan3d/releases). Ideas and votes:
 [Discussions → Ideas](https://github.com/Mastershort/neonplan3d/discussions/categories/ideas).
 
+## 2.0.7
+
+### New
+
+- **Sun path and house shadow:** a glowing arc around the house shows the sun's way today with sunrise and sunset, the house's shadow lies on the ground and wanders with the sun, a compass ring with N E S W. On by default, switch off in ⚙ Settings.
+- **Windows glow outside at night:** lit rooms throw their light out of the ground floor's windows onto the lawn, in the room's light colour.
+- **⚙ Settings in the 3D view:** the ⭐ central menu opens sun & night, window light, sun patches and the warnings without the editor; every module with settings gets a section there.
+- **Modules in rooms and the ⭐ menu:** modules can offer a sheet in a room's panel and in the ⭐ menu, fields in a room's form, the microphone and the rooms someone is in – used by the new **Announcements** module in the shop.
+- **Detection sensors per camera (#815):** a camera's form lets you choose the sensors that count, also another device's (Frigate for a Reolink camera). Thanks to @frops83!
+
+### Fixed
+
+- **Editor error "Cannot convert undefined or null to object":** the selected room, door or item not on the floor shown made the editor throw (usage reports, ~20 installations).
+- **Room panel with a removed entity:** an entity placed in the plan but removed from Home Assistant no longer breaks the panel.
+- **Wärme Pro's lists on the PC (#815):** a module's form is made only when the plan or the devices change; the lists closed at once and the CPU load went up. Thanks to @frops83!
+- **Paused players' cards (#815):** a paused card goes after ten minutes (Echos stay paused for hours). Thanks to @frops83!
+- **Smart Home pack sensors (#810):** the pack's sensor models link to any binary_sensor or sensor, also without a class (Local Tuya). Thanks to @vinimeca!
+- **Redox at the pool (#814):** a redox probe reporting a voltage in mV counts as a water value. Thanks to @Deninho91!
+
 ## 2.0.6
 
 ### New
