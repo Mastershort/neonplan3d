@@ -83,7 +83,7 @@ What comes next. The order follows your wishes (issues, Discord and 👍 in [Dis
 
 ## Pro add-ons
 
-Available: **Camera Cockpit**, **Weather outside**, **Live screens**, **Energy Pro**, **Sound & Cinema**, **Car Pro**, **Time travel** and **Household Pro**. **Heat Pro** (heat pump as a system in 3D) is in beta for supporters first. Owners get improvements of their add-ons for free.
+Available: **Camera Cockpit**, **Weather outside**, **Live screens**, **Energy Pro**, **Sound & Cinema**, **Car Pro**, **Time travel**, **Household Pro** and **Heat Pro** (heat pump as a system in 3D). The **Announcements** module is in beta for supporters first. Owners get improvements of their add-ons for free.
 
 **Planned:**
 
@@ -202,7 +202,7 @@ Was als Nächstes kommt. Die Reihenfolge richtet sich nach euren Wünschen (Issu
 
 ## Pro-Erweiterungen
 
-Erhältlich: **Kamera-Cockpit**, **Wetter draußen**, **Bildschirme live**, **Energie Pro**, **Klang & Kino**, **Auto Pro**, **Zeitreise** und **Haushalt Pro**. **Wärme Pro** (die Wärmepumpe als System in 3D) ist in der Beta, zuerst für Supporter. Käufer bekommen Verbesserungen ihrer Erweiterungen kostenlos.
+Erhältlich: **Kamera-Cockpit**, **Wetter draußen**, **Bildschirme live**, **Energie Pro**, **Klang & Kino**, **Auto Pro**, **Zeitreise**, **Haushalt Pro** und **Wärme Pro** (die Wärmepumpe als System in 3D). Das Modul **Durchsagen** ist in der Beta, zuerst für Supporter. Käufer bekommen Verbesserungen ihrer Erweiterungen kostenlos.
 
 **Geplant:**
 
