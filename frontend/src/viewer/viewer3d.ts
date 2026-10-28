@@ -67,7 +67,10 @@ export const funLib = { Group, Mesh, MeshBasicMaterial, CanvasTexture, Color, Pl
 export type { PipeTube };
 import { groundUnder, isCooktopZone, mountBase, packItem, packMotion, setPacks, type FurniturePack } from "../packs.ts";
 import { withVehicles } from "../parking.ts";
-import { buildRoof, type RoofWindowState } from "./roof.ts";
+import { buildRoof, type RoofGeometry, type RoofWindowState } from "./roof.ts";
+import { SunFx } from "./sun-fx.ts";
+import { houseShadow, shadowBox } from "./sun-shadow.ts";
+import type { SunPath } from "../sun-path.ts";
 import { GROUND, groundFace, groundFloor, roofFaces, roofWindowRoom, wallFaces } from "../solar.ts";
 import { buildSolarLive, solarLiveMaterial, writeSolarLevels, type SolarLive } from "./solar-live.ts";
 import { buildPools, disposePools, type PoolPiece } from "./pool-water.ts";
@@ -189,6 +192,8 @@ export interface DeviceMarker {
   powerText?: string;
   /** A camera drawn in 3D (wall or ceiling); its field of view lies on the floor, red while motion is seen. */
   model?: "camera_wall" | "camera_ceiling";
+  /** A camera shown by a furniture item of its own (#779): its built-in model is not drawn (wedge and look-through stay). */
+  ownLook?: boolean;
   motion?: boolean;
   /** Camera: opening angle (degrees) and reach (m) of its field of view; default 90° / 4.5 m (dome: 360° / 3 m). */
   fov?: number;
@@ -469,6 +474,9 @@ interface FloorView {
   /** Sunlight falling through the windows onto the floor. */
   sunMesh: Mesh;
   sunSig: string;
+  /** At night: the light of lit rooms falling out of their windows onto the ground in front. */
+  spillMesh: Mesh;
+  spillSig: string;
   /** Soft glow around lit lamps, and light cones under spots (quality "High"). */
   haloMesh: Points;
   coneMesh: Mesh;
@@ -569,6 +577,16 @@ export class FloorplanViewer {
   /** Live state of the roof windows (the roof is rebuilt when it changes). */
   private roofWindows = new Map<string, RoofWindowState>();
   private roofWindowsKey = "";
+  /** The roof's parts as built last (the house's shadow lays them on the ground). */
+  private roofGeos: RoofGeometry[] = [];
+  /** The sun's arc in the sky and the house's shadow on the ground (built only when the sun has moved a little). */
+  private sunFx = new SunFx();
+  private sunPath: SunPath | null = null;
+  private shadowSig = "";
+  private arcSig = "";
+  private spillNight = "";
+  /** N, E, S, W on the compass ring, in the user's language. */
+  private compassLetters: [string, string, string, string] = ["N", "E", "S", "W"];
   /** Stripe phase per cable piece, kept when its speed changes so the stripes do not jump. */
   private flowPhase = new Map<string, { speed: number; offset: number }>();
   private readonly flowTime = { value: 0 };
@@ -758,7 +776,7 @@ export class FloorplanViewer {
     this.snow.visible = false;
     this.skyDisc.visible = false;
     this.skyDisc.renderOrder = -1;
-    this.scene.add(this.rain, this.snow, this.skyDisc);
+    this.scene.add(this.rain, this.snow, this.skyDisc, this.sunFx.group);
     this.controls = this.makeControls();
     this.resizeObserver = new ResizeObserver(() => this.resize());
     this.resizeObserver.observe(host);
@@ -1416,6 +1434,7 @@ export class FloorplanViewer {
     }
     // the neon ground grid would vanish on the light background anyway
     this.placeGround();
+    this.buildSunFx();
     this.invalidate();
   }
 
@@ -1445,7 +1464,21 @@ export class FloorplanViewer {
   setSun(sun: SunState | null): void {
     this.sun = sun;
     for (const fv of this.floors) this.buildSun(fv);
+    const night = this.nightFactor().toFixed(2);
+    if (night !== this.spillNight) {
+      this.spillNight = night;
+      for (const fv of this.floors) this.buildSpill(fv, this.lightSources(fv));
+    }
     this.placeSky();
+    this.buildSunFx();
+    this.invalidate();
+  }
+
+  /** The sun's way across the sky today (null: no place known): drawn as an arc over the house. */
+  setSunPath(path: SunPath | null, letters?: [string, string, string, string]): void {
+    this.sunPath = path;
+    if (letters) this.compassLetters = letters;
+    this.buildSunFx();
     this.invalidate();
   }
 
@@ -1455,6 +1488,7 @@ export class FloorplanViewer {
     for (const fv of this.floors) this.buildSun(fv);
     this.applyWeather();
     this.placeSky();
+    this.buildSunFx();
     this.invalidate();
   }
 
@@ -1557,9 +1591,7 @@ export class FloorplanViewer {
     const north = (this.building?.settings.north ?? 0) * DEG;
     const az = (night ? sun.azimuth + 180 : sun.azimuth) * DEG;
     const el = Math.max(10, Math.abs(sun.elevation)) * DEG;
-    const b = this.weatherBox;
-    const center = new Vector3((b.x0 + b.x1) / 2, b.y0, (b.z0 + b.z1) / 2);
-    const r = Math.min(300, Math.max(80, this.houseRadius * 5));
+    const { center, r } = this.skyFrame();
     const dir = new Vector3(Math.sin(north + az) * Math.cos(el), Math.sin(el), -Math.cos(north + az) * Math.cos(el));
     this.skyDisc.position.copy(center).addScaledVector(dir, r);
     this.skyDisc.scale.setScalar(r * (night ? 0.03 : 0.04));
@@ -1568,6 +1600,180 @@ export class FloorplanViewer {
     mat.color.set(night ? 0xcfd8ee : 0xffd98a);
     mat.opacity = (night ? 0.55 : 0.85) * (1 - cloud);
     this.skyDisc.visible = true;
+  }
+
+  /** The middle of the sky dome over the plot and its radius (the sun, the moon and the sun's arc lie on it). */
+  private skyFrame(): { center: Vector3; r: number } {
+    const b = this.weatherBox;
+    return { center: new Vector3((b.x0 + b.x1) / 2, b.y0, (b.z0 + b.z1) / 2), r: Math.min(300, Math.max(80, this.houseRadius * 5)) };
+  }
+
+  /**
+   * The sun's arc over the house and the house's shadow on the ground (⚙ House, on by default). The shadow belongs
+   * to the whole-house view and rests on the tablet level; the arc shows by day on every level.
+   */
+  private buildSunFx(): void {
+    const b = this.building;
+    const sun = this.sun;
+    const on = !!b && !!sun && b.settings.sun_shadow !== false;
+    const north = (b?.settings.north ?? 0) * DEG;
+    const cloud = this.weather?.cloud ?? 0;
+    const shade = on && !this.lowQuality && sun.elevation > 1 && cloud < 0.9 && !this.roomTint;
+    const sig = shade ? `${sun.elevation.toFixed(1)},${sun.azimuth.toFixed(1)},${north},${cloud.toFixed(1)},${this.theme},${this.roofGeos.length}` : "";
+    if (sig !== this.shadowSig) {
+      this.shadowSig = sig;
+      if (shade) this.drawShadow(b, sun, north, cloud);
+      else this.sunFx.hideShadow();
+    }
+    const path = this.sunPath;
+    const arc = on && !!path && path.points.length > 1 && sun.elevation > -3;
+    const frame = arc ? this.arcFrame() : null;
+    const arcSig = arc && frame ? `${this.theme},${sun.elevation.toFixed(1)},${sun.azimuth.toFixed(1)},${this.compassLetters.join("")},${path.points[0].t},${north},${frame.x.toFixed(2)},${frame.z.toFixed(2)},${frame.y.toFixed(2)},${frame.r.toFixed(2)},${cloud.toFixed(1)}` : "";
+    if (arcSig === this.arcSig) return;
+    this.arcSig = arcSig;
+    if (!arcSig || !frame || !path || !sun) return this.sunFx.hideArc();
+    // a dome around the house: the sun's way at its real height, sunrise and sunset on the ground
+    const at = (azimuth: number, elevation: number, lift = 0): [number, number, number] => {
+      const e = Math.max(0, elevation) * DEG;
+      const a = north + azimuth * DEG;
+      return [frame.x + Math.sin(a) * Math.cos(e) * frame.r, frame.y + Math.sin(e) * frame.r + lift, frame.z - Math.cos(a) * Math.cos(e) * frame.r];
+    };
+    const fade = 1 - 0.7 * cloud;
+    const now = Date.now();
+    const time = (t: number) => new Date(t).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    const size = frame.r * 0.03;
+    this.sunFx.setArc({
+      points: path.points.map((p) => ({ at: at(p.azimuth, p.elevation), t: p.t, elevation: p.elevation })),
+      now,
+      hours: path.points.filter((p) => p !== path.rise && p !== path.set && new Date(p.t).getMinutes() === 0).map((p) => at(p.azimuth, p.elevation)),
+      labels: [path.rise, path.set].flatMap((p) => (p ? [{ text: time(p.t), at: at(p.azimuth, p.elevation, size * 2.2), rising: p === path.rise }] : [])),
+      sun: sun.elevation > 0 ? at(sun.azimuth, sun.elevation) : null,
+      ring: { center: [frame.x, frame.y, frame.z], r: frame.r, north, letters: this.compassLetters },
+      size,
+      fade,
+      light: this.theme !== "neon",
+    });
+  }
+
+  /** Where the sun's arc stands: around the middle of the house, a little wider than the house, on its ground. */
+  private arcFrame(): { x: number; y: number; z: number; r: number } | null {
+    const b = this.building;
+    const gf = b ? groundFloor(b) : null;
+    const pts = b?.floors.flatMap((f) => f.rooms.filter((r) => !r.outdoor).flatMap((r) => r.points)) ?? [];
+    if (!gf || !pts.length) return null;
+    const xs = pts.map((p) => p[0]);
+    const zs = pts.map((p) => p[1]);
+    const [x0, x1, z0, z1] = [Math.min(...xs), Math.max(...xs), Math.min(...zs), Math.max(...zs)];
+    return { x: (x0 + x1) / 2, z: (z0 + z1) / 2, y: gf.elevation, r: Math.max(7, Math.hypot(x1 - x0, z1 - z0) * 0.62) };
+  }
+
+  /** How dark it is outside (0 by day, 1 from 6° below the horizon on); 0 without a sun. */
+  private nightFactor(): number {
+    const sun = this.sun;
+    return sun ? Math.min(1, Math.max(0, -sun.elevation / 6)) : 0;
+  }
+
+  /**
+   * At night the light of a lit room falls out of its windows onto the ground in front: a soft patch in the
+   * room's light colour, fading outwards, less behind a lowered blind (⚙ House, on by default). Only the floors
+   * at ground level, a handful of triangles per window.
+   */
+  private buildSpill(fv: FloorView, sources: LightSource[]): void {
+    const b = this.building;
+    const night = b?.settings.window_glow === false ? 0 : this.nightFactor();
+    const gf = b && night > 0 ? groundFloor(b) : null;
+    const ground = !!gf && Math.abs(fv.floor.elevation - gf.elevation) < 0.5;
+    // the light per light zone: colour weighted by brightness
+    const zoneLight = new Map<number, [number, number, number, number]>();
+    if (ground) {
+      for (const l of sources) {
+        const z = zoneLight.get(l.room) ?? [0, 0, 0, 0];
+        z[0] += l.color[0] * l.level;
+        z[1] += l.color[1] * l.level;
+        z[2] += l.color[2] * l.level;
+        z[3] += l.level;
+        zoneLight.set(l.room, z);
+      }
+    }
+    const covers = [...fv.openings.values()].map((o) => (o.cover ?? 0).toFixed(1)).join(",");
+    const sig = ground && zoneLight.size ? `${night.toFixed(2)}|${[...zoneLight].map(([k, v]) => `${k}:${v.map((x) => x.toFixed(2)).join("/")}`).join(";")}|${covers}` : "";
+    if (sig === fv.spillSig) return;
+    fv.spillSig = sig;
+    const buf = new GeoBuffer();
+    if (sig) {
+      for (const info of fv.geo.openings) {
+        if (info.opening.type !== "window" || !info.exterior) continue;
+        const ri = fv.floor.rooms.findIndex((r) => r.id === info.opening.room_id);
+        const light = ri < 0 ? undefined : zoneLight.get(zoneOf(fv.lightZones, ri));
+        if (!light || light[3] < 0.02) continue;
+        const st = fv.openings.get(info.opening.id);
+        const open = 1 - (st?.cover ?? 0);
+        const height = info.top - info.sill;
+        if (open < 0.05 || height < 0.1) continue;
+        const peak = Math.max(light[0], light[1], light[2], 1e-6);
+        const k = 0.3 * night * Math.min(1, light[3]) * open * Math.min(1, height / 1.2);
+        const near = new Color((light[0] / peak) * k, (light[1] / peak) * k, (light[2] / peak) * k);
+        // from the wall's outer face outwards, wider and fainter the further out (a tall window throws it further)
+        const out: [number, number] = [-info.toRoom[0], -info.toRoom[1]];
+        const len = Math.min(3.5, 0.8 + 1.1 * info.top);
+        const spread = 0.35 * len;
+        const mid = [info.start[0] + info.axis[0] * (info.width / 2) + out[0] * (info.faceOut + len / 2), info.start[1] + info.axis[1] * (info.width / 2) + out[1] * (info.faceOut + len / 2)];
+        const y = groundUnder(fv.floor, { x: mid[0], z: mid[1] }) + 0.014;
+        const at = (s: number, d: number) => {
+          const t = d / len;
+          const sx = -spread * t + s * (info.width + 2 * spread * t);
+          return [info.start[0] + info.axis[0] * sx + out[0] * (info.faceOut + d), y, info.start[1] + info.axis[1] * sx + out[1] * (info.faceOut + d)];
+        };
+        // fading outwards and soft at both sides
+        const rows = 4;
+        const cols: [number, number][] = [[0, 0], [0.18, 1], [0.82, 1], [1, 0]];
+        for (let i = 0; i < rows; i++) {
+          const d0 = (len * i) / rows;
+          const d1 = (len * (i + 1)) / rows;
+          const f0 = (1 - i / rows) ** 2;
+          const f1 = (1 - (i + 1) / rows) ** 2;
+          for (let j = 0; j + 1 < cols.length; j++) {
+            const [s0, w0] = cols[j];
+            const [s1, w1] = cols[j + 1];
+            const a = at(s0, d0);
+            const bb = at(s1, d0);
+            const c = at(s1, d1);
+            const d = at(s0, d1);
+            const ca = near.clone().multiplyScalar(f0 * w0);
+            const cb = near.clone().multiplyScalar(f0 * w1);
+            const cc = near.clone().multiplyScalar(f1 * w1);
+            const cd = near.clone().multiplyScalar(f1 * w0);
+            buf.tri(a, bb, c, ca, cb, cc);
+            buf.tri(a, c, d, ca, cc, cd);
+          }
+        }
+      }
+    }
+    fv.spillMesh.geometry.dispose();
+    fv.spillMesh.geometry = buf.geometry();
+    fv.spillMesh.visible = buf.count > 0;
+  }
+
+  /** Lays the house's shadow on the ground for this sun. */
+  private drawShadow(b: Building, sun: SunState, north: number, cloud: number): void {
+    const gf = groundFloor(b);
+    const rooms = gf?.rooms.filter((r) => !r.outdoor && r.points.length >= 3) ?? [];
+    if (!gf || !rooms.length) return this.sunFx.hideShadow();
+    const xs = rooms.flatMap((r) => r.points.map((p) => p[0]));
+    const zs = rooms.flatMap((r) => r.points.map((p) => p[1]));
+    // the lawn beside the house (by default 20 cm below the floor)
+    const lawn = gf.elevation + groundUnder(gf, { x: Math.min(...xs) - 1, z: (Math.min(...zs) + Math.max(...zs)) / 2 });
+    const az = sun.azimuth * DEG;
+    const tris = houseShadow(b, this.roofGeos, [Math.sin(north + az), -Math.cos(north + az)], sun.elevation, lawn);
+    const box = shadowBox(tris);
+    if (!box) return this.sunFx.hideShadow();
+    // on a lawn just below the floor the shadow lies at the floor's height, so it falls over the terrace too; the
+    // house's own floor stays clear of it
+    const y = gf.elevation - lawn <= 0.35 ? gf.elevation + 0.012 : lawn + 0.012;
+    const holes = b.floors.filter((f) => Math.abs(f.elevation - gf.elevation) < 0.5).flatMap((f) => f.rooms.filter((r) => !r.outdoor && r.points.length >= 3).map((r) => r.points));
+    const strength = (this.theme === "neon" ? 0.6 : 0.34) * Math.min(1, sun.elevation / 8) * (1 - 0.8 * cloud);
+    // a deep night blue on the neon look, a cool grey on the light ones: a shadow, not a hole
+    this.sunFx.setShadow(this.renderer, tris, box, holes, y, strength, this.theme === "neon" ? 0x060418 : 0x1a2433);
   }
 
   /** Heatmap: floor colour per room id, or null for the normal look. */
@@ -1583,6 +1789,7 @@ export class FloorplanViewer {
         fv.sunSig = "";
         this.buildSun(fv);
       }
+      this.buildSunFx();
     }
   }
 
@@ -1844,6 +2051,7 @@ export class FloorplanViewer {
       o.geometry.dispose();
       (o.material as Material).dispose();
     }
+    this.sunFx.dispose();
     this.resizeObserver.disconnect();
     this.intersection?.disconnect();
     document.removeEventListener("visibilitychange", this.onVisibility);
@@ -2179,6 +2387,7 @@ export class FloorplanViewer {
     const surface = fv.lightSurface;
     if (!surface) return;
     const sources = this.lightSources(fv);
+    this.buildSpill(fv, sources);
     const doorOpen = surface.doors.map((d) => {
       const info = fv.geo.openings.find((i) => i.opening.id === d.id);
       if (info && openingStyle(info.opening, info.exterior) === "passage") return 1;
@@ -2342,6 +2551,9 @@ export class FloorplanViewer {
       const sunMesh = new Mesh(new Geometry(), materials.cones);
       sunMesh.visible = false;
       sunMesh.renderOrder = 3;
+      const spillMesh = new Mesh(new Geometry(), materials.cones);
+      spillMesh.visible = false;
+      spillMesh.renderOrder = 3;
       const haloMesh = new Points(new Geometry(), materials.halos);
       haloMesh.visible = false;
       haloMesh.renderOrder = 7;
@@ -2415,6 +2627,7 @@ export class FloorplanViewer {
         pipeFloorMesh,
         lampMesh,
         sunMesh,
+        spillMesh,
         haloMesh,
         coneMesh,
         trailMesh,
@@ -2487,6 +2700,8 @@ export class FloorplanViewer {
         lampMesh,
         sunMesh,
         sunSig: "",
+        spillMesh,
+        spillSig: "",
         haloMesh,
         coneMesh,
         trailMesh,
@@ -2551,6 +2766,7 @@ export class FloorplanViewer {
     this.applyHighlight();
     this.applyTierFlags();
     this.buildRoofMesh();
+    this.buildSunFx();
     this.updateGhost();
   }
 
@@ -2571,6 +2787,8 @@ export class FloorplanViewer {
       this.roof = null;
     }
     const geos = this.building ? buildRoof(this.building, this.roofWindows) : [];
+    this.roofGeos = geos;
+    this.shadowSig = "";
     if (!geos.length) return;
     // the living overlays of the roof fields, each on the part its face belongs to
     const faces = new Map(roofFaces(this.building!).map((f) => [f.key, f]));
@@ -2930,7 +3148,9 @@ export class FloorplanViewer {
         const packed = d.pack ? packItem(d.pack) : undefined;
         const [pw, pd, ph] = d.size ?? [0.3, 0.3, 0.3];
         // shades get the sentinel colour and are recoloured below
-        if (d.model) pushCameraModel(buf, d.model, d.x, d.model === "camera_ceiling" ? H : d.y, d.z, d.rotation ?? 0);
+        if (d.model) {
+          if (!d.ownLook) pushCameraModel(buf, d.model, d.x, d.model === "camera_ceiling" ? H : d.y, d.z, d.rotation ?? 0);
+        }
         else if (packed) pushPackLamp(buf, packed, { x: d.x, z: d.z, rotation: d.rotation ?? 0, w: pw, d: pd, h: ph, mirror: d.mirror }, d.base ?? 0, SHADE_SENTINEL);
         // a ceiling fan's blades turn in a group of their own (syncFans)
         else pushLampModel(buf, { ...d, lamp: d.lamp! }, d.top ?? H, SHADE_SENTINEL, d.lamp !== "fan");
@@ -4718,6 +4938,8 @@ export class FloorplanViewer {
     if (this.soundActive) this.animateSound(now);
     this.updateWalls();
     if (this.projections.active) this.updateProjections();
+    // the house's shadow belongs to the whole house
+    this.sunFx.showShadow(this.floorId === null && this.shadowSig !== "");
     this.renderer.render(this.scene, this.camera);
     this.disposeRetired();
     // labels are placed only when the view or something on it moved (style writes cost layout)

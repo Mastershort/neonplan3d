@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { isLamp, newFloor, setTerrain, type Building, type Furniture } from "./model.ts";
-import { isCooktopZone, isPackCooktop, furnitureSize, isElectric, mountBase, packDisplay, packItem, packItemName, packName, packType, setPacks, type FurniturePack } from "./packs.ts";
+import { isCooktopZone, isPackCooktop, isPackSensor, furnitureSize, isElectric, mountBase, packDisplay, packItem, packItemName, packName, packType, setPacks, type FurniturePack } from "./packs.ts";
 
 const pack: FurniturePack = {
   id: "demo.pack",
@@ -117,4 +117,12 @@ test("items outside the rooms stand on the ground beneath them, also when it lie
   } finally {
     setTerrain(null);
   }
+});
+
+test("a pack's sensor models follow any sensor, other pack items and built-ins do not (#810)", () => {
+  assert.equal(isPackSensor("pack:mastershort.smarthome:motion_sensor"), true);
+  assert.equal(isPackSensor("pack:mastershort.smarthome:door_contact"), true);
+  assert.equal(isPackSensor("pack:mastershort.smarthome:presence_mmwave"), true);
+  assert.equal(isPackSensor("pack:mastershort.smarthome:smart_plug"), false);
+  assert.equal(isPackSensor("motion_sensor"), false);
 });

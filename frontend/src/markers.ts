@@ -65,6 +65,8 @@ function translateState(hass: HomeAssistant | undefined, state: string): string 
 /** Markers for every placed entity that still exists. */
 export function buildMarkers(hass: HomeAssistant, building: Building): DeviceMarker[] {
   const out: DeviceMarker[] = [];
+  // cameras shown by a furniture item of their own (#779)
+  const looks = new Set(building.floors.flatMap((f) => f.furniture.map((m) => m.look_of).filter((id): id is string => !!id)));
   for (const floor of building.floors) {
     for (const pl of floor.placements) {
       const kind = kindOf(pl.entity_id);
@@ -81,6 +83,7 @@ export function buildMarkers(hass: HomeAssistant, building: Building): DeviceMar
         y: pl.y ?? defaultHeight(kind, floor.height, pl.mount ?? null),
         lamp: kind === "light" ? (pl.mount ?? "ceiling") : null,
         model: kind === "camera" ? (pl.mount === "ceiling" ? "camera_ceiling" : "camera_wall") : undefined,
+        ...(kind === "camera" && looks.has(pl.entity_id) ? { ownLook: true } : {}),
         motion: kind === "camera" ? cameraMotion(hass, pl.entity_id) : undefined,
         fov: pl.fov ?? undefined,
         reach: pl.reach ?? undefined,
@@ -120,8 +123,23 @@ export function cameraMotion(hass: HomeAssistant, cameraId: string): boolean {
   return cameraMotionSensors(hass, cameraId).some((id) => hass.states[id]?.state === "on");
 }
 
-/** The motion, occupancy and presence sensors of a camera's device. */
+/**
+ * Detection sensors chosen by hand per camera (`detect_sensors` of its placement), from the plan. A camera of one
+ * integration and the detection of another (Reolink's camera, Frigate's person sensor) are two devices; and a
+ * camera's own sensors may be too eager to count (#815).
+ */
+let chosenSensors = new Map<string, string[]>();
+export function setCameraSensors(building: Building | null | undefined): void {
+  chosenSensors = new Map(building?.floors.flatMap((f) => f.placements.filter((p) => Array.isArray(p.detect_sensors)).map((p) => [p.entity_id, p.detect_sensors as string[]] as [string, string[]])) ?? []);
+}
+
+/** The detection sensors that count for a camera: the ones chosen by hand, else those of its own device. */
 export function cameraMotionSensors(hass: HomeAssistant, cameraId: string): string[] {
+  return chosenSensors.get(cameraId) ?? cameraOwnSensors(hass, cameraId);
+}
+
+/** The motion, occupancy and presence sensors of a camera's device. */
+export function cameraOwnSensors(hass: HomeAssistant, cameraId: string): string[] {
   const device = hass.entities?.[cameraId]?.device_id;
   if (!device) return [];
   return Object.values(hass.entities ?? {})

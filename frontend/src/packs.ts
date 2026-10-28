@@ -151,6 +151,15 @@ export function packMovingPart(kind: PackMotion, p: PackPart): boolean {
   return kind === "curtain" ? p.color === "fabric" : p.shape !== "cyl";
 }
 
+/**
+ * A pack's sensor model (motion, mmWave presence, contact, leak, CO₂, temperature …): it follows a sensor of its own,
+ * whatever class the integration gave it (Local Tuya's motion sensors have none, #810).
+ */
+export function isPackSensor(type: string): boolean {
+  if (!isPackType(type)) return false;
+  return packItem(type)?.family === "sensor" || /:(\w+_sensor|door_contact|presence_mmwave)$/.test(type);
+}
+
 /** A robot vacuum: the built-in dock, or one from a pack (the smart home pack's robot with its dock, #470). */
 export function isRobotVacuum(type: string): boolean {
   return type === "robot_vacuum" || (isPackType(type) && type.endsWith(":robot_vacuum"));

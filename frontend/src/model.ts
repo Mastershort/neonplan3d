@@ -61,6 +61,8 @@ export interface Room {
    * into parts of their own (each with its own height), e.g. a 2.5 m wall next to a 1.7 m one in line.
    */
   wall_splits?: (number[] | null)[];
+  /** What a module keeps for this room (a speaker for the announcements …), by the module's id. */
+  mods?: ModuleData | null;
 }
 
 export type OpeningType = "door" | "window" | "garage";
@@ -307,6 +309,11 @@ export interface Furniture {
   scale?: number;
   /** What a module keeps for this item (its settings, the entities it found), by the module's id. */
   mods?: ModuleData | null;
+  /**
+   * The look of a placed camera (its entity id): the camera keeps its pin with everything set there, this item is only
+   * how it looks – it moves and turns with the camera and goes with it (#779).
+   */
+  look_of?: string | null;
   /** Parking spots: a sensor naming the kind of vehicle, and which vehicle each state means. */
   type_entity?: string | null;
   types?: { state: string; vehicle: string }[];
@@ -360,6 +367,8 @@ export interface Placement {
   cone?: boolean | null;
   /** Cameras: detection pins (person, car, animal) over the camera (null = yes); false leaves only the wedge turning red (#267). */
   detect_pins?: boolean | null;
+  /** Cameras: the detection sensors that count, chosen by hand (any device's); null = those of the camera's device (#815). */
+  detect_sensors?: string[] | null;
 }
 
 export interface Background {
@@ -727,6 +736,10 @@ export interface BuildingSettings {
   outage_entity?: string | null;
   /** Sunlight falls through the windows as patches on the floor (default on, #266). */
   sun_patches?: boolean;
+  /** The sun's arc over the house and the house's shadow on the ground (default on). */
+  sun_shadow?: boolean;
+  /** At night lit rooms throw their light out of the windows onto the ground in front (default on). */
+  window_glow?: boolean;
   /** The ground around the house: its height and the earth around cellars. */
   terrain?: Terrain | null;
   /**
@@ -744,6 +757,8 @@ export interface BuildingSettings {
   lock_plan?: boolean;
   /** The camera the house view opens with (3D view, card, kiosk); null = fitted from the front left. */
   start_view?: StartView | null;
+  /** What a module keeps for the whole house (its settings), by the module's id. */
+  mods?: ModuleData | null;
 }
 
 /** A camera position around the house: azimuth and polar angle (radians) and the distance (m). */
@@ -1918,3 +1933,32 @@ export const LAMP_MODEL: Record<string, LampModel> = {
   lamp_wall: "wall",
   led_strip: "strip",
 };
+
+/**
+ * A camera and its look (a furniture item, #779) stay together: when one of them moved or turned, the other follows;
+ * when the camera's pin is gone, its look goes too.
+ */
+export function syncCameraLooks(next: Building, base: Building): void {
+  for (const floor of next.floors) {
+    const before = base.floors.find((f) => f.id === floor.id);
+    floor.furniture = floor.furniture.filter((m) => {
+      if (!m.look_of) return true;
+      const pl = floor.placements.find((p) => p.entity_id === m.look_of);
+      if (!pl) return false;
+      const pl0 = before?.placements.find((p) => p.entity_id === m.look_of);
+      const m0 = before?.furniture.find((x) => x.id === m.id);
+      const camMoved = !pl0 || pl0.x !== pl.x || pl0.z !== pl.z || (pl0.rotation ?? 0) !== (pl.rotation ?? 0);
+      const lookMoved = !!m0 && (m0.x !== m.x || m0.z !== m.z || m0.rotation !== m.rotation);
+      if (lookMoved && !camMoved) {
+        pl.x = m.x;
+        pl.z = m.z;
+        pl.rotation = m.rotation;
+      } else {
+        m.x = pl.x;
+        m.z = pl.z;
+        m.rotation = pl.rotation ?? 0;
+      }
+      return true;
+    });
+  }
+}

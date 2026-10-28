@@ -1,6 +1,7 @@
 // 2D editor: floors, rooms (rectangles and free shapes), snapping, undo, background template.
 
 import { css, html, LitElement, nothing, svg, type PropertyValues, type TemplateResult } from "lit";
+import { linesField } from "./lines-field.ts";
 import { unsafeHTML } from "lit/directives/unsafe-html.js";
 import { ref } from "lit/directives/ref.js";
 import { fetchImage, importPack, listHistory, restoreSnapshot, storeImage, takeSnapshot, type Snapshot, getVoiceSettings, setVoiceSentences, type SentenceMode } from "../api.ts";
@@ -21,7 +22,7 @@ import { hasFeature, labOn, manualUrl, released, shopUrl, UNRELEASED } from "../
 import { loadLocate } from "../load-locate.ts";
 import { isBeta, supporterUrl } from "../beta.ts";
 import { BIN_SHAPES, BIN_SIZE, binColors, binShape, householdCountry, isPackPlant, MAILBOX_SHAPES, MAILBOX_SIZE, mailboxShape, WASTE_KINDS, wasteColors } from "../household.ts";
-import { cameraMotionSensors, detectionKind } from "../markers.ts";
+import { cameraMotionSensors, cameraOwnSensors, detectionKind, setCameraSensors } from "../markers.ts";
 import { backdropImage } from "../backdrop.ts";
 import { screenName, setScreenName, setVoiceHere, setVoicePipeline, voiceOnHere, voicePipeline } from "../load-voice.ts";
 import { doorbellCamera, doorbellEntities, directorOnHere, HOLD_DEFAULT, HOLD_MAX, HOLD_MIN, setDirectorHere, type DirectorSettings } from "../director.ts";
@@ -34,6 +35,7 @@ import { storedImageIds } from "../transfer.ts";
 import { fromWall, furnitureOnWall, openingsOnWall, roomEdgeFrame, slideAlong, toWall, type WallFrame } from "../geometry/wall-frame.ts";
 import { type CarLinks, type Background, OUTDOOR_TOP, sidelightLayout, DEFAULT_WEATHER_EFFECTS, WEATHER_EFFECTS,
   normalizeBuilding,
+  syncCameraLooks,
   furnitureFootprint,
   type FreeWall,
   poolDepth,
@@ -52,7 +54,7 @@ import { furnishRoom, PACKAGES, type PackageId } from "../packages.ts";
 import { edgeReach, generateWalls, locateOpening, openingHost, pointOnRoomEdge, type Wall } from "../geometry/walls.ts";
 import { formatNumber, languageReady, loadLanguage, translate, type I18nKey } from "../i18n.ts";
 import { iconPath } from "../icons.ts";
-import { moduleAreaFields, moduleFurnitureFields, moduleHelp, modulePipeRules, moduleSettings, moduleWaits, syncModules, type ModuleField, type ModuleHost, type PipeRules } from "../modules.ts";
+import { moduleAreaFields, moduleFurnitureFields, moduleHelp, moduleRoomFields, modulePipeRules, moduleSettings, moduleWaits, syncModules, type ModuleField, type ModuleHost, type PipeRules } from "../modules.ts";
 import { pipePlanner } from "../pipe-planner.ts";
 import {
   bounds,
@@ -148,7 +150,7 @@ import { basicTypes, buildIndex, roomKindOf, type LibraryEntry } from "../librar
 import { packsVersion as libPacksVersion } from "../packs.ts";
 import type { WallMode } from "../viewer/viewer3d.ts";
 import { furnitureName } from "../furniture-names.ts";
-import { furnitureSize, isElectric, isPackHeater, isPackType, isRobotVacuum, mountBase, packDisplay, packItem, packItemName, packMotion, packName, packType, setPacks, type FurniturePack } from "../packs.ts";
+import { furnitureSize, isElectric, isPackHeater, isPackSensor, isPackType, isRobotVacuum, mountBase, packDisplay, packItem, packItemName, packMotion, packName, packType, setPacks, type FurniturePack } from "../packs.ts";
 
 /** Items that can be fixed against moving. */
 type FixKind = "room" | "opening" | "furniture" | "device" | "wall" | "outdoor";
@@ -261,6 +263,15 @@ interface RunCtx {
 }
 
 /** Douglas–Peucker: the stroke's corners, wiggles below `tol` dropped. */
+/**
+ * Changes the item of a list that matches, or nothing when it is gone: the selection may point at a room, door or
+ * piece of furniture that is no longer on this floor (another floor shown, undone, deleted elsewhere) – the editor
+ * threw "Cannot convert undefined or null to object" there.
+ */
+function patchItem<T extends object>(item: T | undefined, patch: Partial<T>): void {
+  if (item) Object.assign(item, patch);
+}
+
 function simplifyStroke(pts: { s: number; y: number }[], tol: number): { s: number; y: number }[] {
   if (pts.length < 3) return pts.slice(1);
   const a = pts[0];
@@ -1274,6 +1285,7 @@ export class Fp3dEditor extends LitElement {
       this.future = [];
     }
     this._doc = next;
+    setCameraSensors(next);
     this._canUndo = this.past.length > 0;
     this._canRedo = this.future.length > 0;
     this.dispatchEvent(new CustomEvent("building-changed", { detail: { building: next }, bubbles: true, composed: true }));
@@ -1285,6 +1297,7 @@ export class Fp3dEditor extends LitElement {
     const floor = next.floors.find((f) => f.id === this._floorId);
     if (!floor && this._floorId) return;
     mutate(next, floor as Floor);
+    syncCameraLooks(next, base);
     this.setDoc(next, history ? base : null);
   }
 
@@ -2311,7 +2324,7 @@ export class Fp3dEditor extends LitElement {
         const host = o && baseFloor ? openingHost(o, baseFloor.rooms, baseFloor.walls ?? []) : null;
         if (!o || !host) return;
         const offset = this.offsetOnEdge(host.room, host.edge, world, o.width, e.altKey);
-        this.change((_, floor) => Object.assign(floor.openings.find((x) => x.id === drag.id)!, { offset }), drag.base, false);
+        this.change((_, floor) => patchItem(floor.openings.find((x) => x.id === drag.id), { offset }), drag.base, false);
         break;
       }
       case "furniture": {
@@ -2326,7 +2339,7 @@ export class Fp3dEditor extends LitElement {
         // near a wall: turn the back (or a side) to it and sit flush; Alt moves freely
         const snap = e.altKey ? null : this.snapToWall({ ...f, x, z });
         if (snap) ({ x, z, rotation } = snap);
-        this.change((_, floor) => Object.assign(floor.furniture.find((q) => q.id === drag.id)!, { x, z, rotation }), drag.base, false);
+        this.change((_, floor) => patchItem(floor.furniture.find((q) => q.id === drag.id), { x, z, rotation }), drag.base, false);
         break;
       }
       case "furnset": {
@@ -2375,7 +2388,7 @@ export class Fp3dEditor extends LitElement {
         const f = drag.base.floors.find((x) => x.id === this._floorId)?.furniture.find((x) => x.id === drag.id);
         if (!f) return;
         const size = resizeFurniture(f, drag.corner, world, e.altKey ? 0.01 : this._doc.settings.grid);
-        this.change((_, floor) => Object.assign(floor.furniture.find((q) => q.id === drag.id)!, size), drag.base, false);
+        this.change((_, floor) => patchItem(floor.furniture.find((q) => q.id === drag.id), size), drag.base, false);
         break;
       }
       case "rotate": {
@@ -2386,7 +2399,7 @@ export class Fp3dEditor extends LitElement {
         let a = (Math.atan2(-(world[0] - f.x), world[1] - f.z) * 180) / Math.PI;
         const step = e.altKey ? 1 : 15;
         a = ((Math.round(a / step) * step) % 360 + 360) % 360;
-        this.change((_, floor) => Object.assign(floor.furniture.find((q) => q.id === drag.id)!, { rotation: a }), drag.base, false);
+        this.change((_, floor) => patchItem(floor.furniture.find((q) => q.id === drag.id), { rotation: a }), drag.base, false);
         break;
       }
       case "aim": {
@@ -2398,7 +2411,7 @@ export class Fp3dEditor extends LitElement {
         const step = e.altKey ? 1 : 5;
         a = ((Math.round(a / step) * step) % 360 + 360) % 360;
         const reach = Math.min(50, Math.max(0.5, Math.round(Math.hypot(world[0] - pl.x, world[1] - pl.z) * 10) / 10));
-        this.change((_, floor) => Object.assign(floor.placements.find((q) => q.entity_id === drag.entityId)!, { rotation: a, reach }), drag.base, false);
+        this.change((_, floor) => patchItem(floor.placements.find((q) => q.entity_id === drag.entityId), { rotation: a, reach }), drag.base, false);
         break;
       }
       case "device": {
@@ -2409,7 +2422,7 @@ export class Fp3dEditor extends LitElement {
         const g = e.altKey ? 0.01 : this._doc.settings.grid;
         const x = round(Math.round((pl.x + world[0] - drag.start[0]) / g) * g);
         const z = round(Math.round((pl.z + world[1] - drag.start[1]) / g) * g);
-        this.change((_, floor) => Object.assign(floor.placements.find((q) => q.entity_id === drag.entityId)!, { x, z }), drag.base, false);
+        this.change((_, floor) => patchItem(floor.placements.find((q) => q.entity_id === drag.entityId), { x, z }), drag.base, false);
         break;
       }
     }
@@ -2823,7 +2836,7 @@ export class Fp3dEditor extends LitElement {
 
   private updateOutdoor(patch: Partial<OutdoorArea>): void {
     const id = this._outdoorId;
-    this.change((_, floor) => Object.assign(floor.outdoor.find((o) => o.id === id)!, patch));
+    this.change((_, floor) => patchItem(floor.outdoor.find((o) => o.id === id), patch));
   }
 
   private deleteOutdoor(): void {
@@ -4693,7 +4706,7 @@ export class Fp3dEditor extends LitElement {
 
   private updateOpening(patch: Partial<Opening>): void {
     const id = this._openingId;
-    this.change((_, floor) => Object.assign(floor.openings.find((o) => o.id === id)!, patch));
+    this.change((_, floor) => patchItem(floor.openings.find((o) => o.id === id), patch));
   }
 
   private deleteOpening(): void {
@@ -4767,8 +4780,8 @@ export class Fp3dEditor extends LitElement {
   private deviceToFurniture(pl: Placement, type: string): void {
     if (!this.isAdmin) return;
     const [w, d, h] = furnitureSize(type);
-    // a camera keeps its pin with everything set there (field of view, wedge, Kamera-Cockpit): the model only joins
-    // it as its look (#779)
+    // a camera keeps its pin with everything set there (field of view, wedge, Kamera-Cockpit): the model is only its
+    // look – one item that replaces the last one and moves with the camera (#779)
     const camera = pl.entity_id.startsWith("camera.");
     const item: Furniture = {
       id: uid("furniture"),
@@ -4780,12 +4793,13 @@ export class Fp3dEditor extends LitElement {
       d,
       h,
       variant: null,
-      ...(camera ? { entity: "none" } : { entity: pl.entity_id }),
+      ...(camera ? { entity: "none", look_of: pl.entity_id } : { entity: pl.entity_id }),
       name: pl.name ?? null,
       ...(pl.locked ? { locked: true } : {}),
     };
     this.change((_, f) => {
-      if (!camera) f.placements = f.placements.filter((p) => p.entity_id !== pl.entity_id);
+      if (camera) f.furniture = f.furniture.filter((m) => m.look_of !== pl.entity_id);
+      else f.placements = f.placements.filter((p) => p.entity_id !== pl.entity_id);
       f.furniture.push(item);
     });
     if (camera) return;
@@ -4810,15 +4824,19 @@ export class Fp3dEditor extends LitElement {
     if (!this.isAdmin) return nothing;
     const options = this.furnitureFor(pl.entity_id);
     if (!options.length) return nothing;
+    // a camera with a look of its own can go back to the built-in camera model
+    const look = pl.entity_id.startsWith("camera.") ? this.floor?.furniture.find((m) => m.look_of === pl.entity_id) : undefined;
     return html`<label class="fp3d-field fp3d-wide" title=${this.t("as_furniture_hint")}
       >${this.t("as_furniture")}
       <select
         @change=${(e: Event) => {
           const v = (e.target as HTMLSelectElement).value;
-          if (v) this.deviceToFurniture(pl, v);
+          if (v === "__builtin") this.change((_, f) => (f.furniture = f.furniture.filter((m) => m.look_of !== pl.entity_id)));
+          else if (v) this.deviceToFurniture(pl, v);
         }}
       >
-        <option value="" selected>${this.t("as_furniture_pick")}</option>
+        <option value="" selected>${look ? furnitureName(this.hass, look.type) : this.t("as_furniture_pick")}</option>
+        ${look ? html`<option value="__builtin">${this.t("camera_look_builtin")}</option>` : nothing}
         ${options.map((o) => html`<option value=${o.type}>${o.label}</option>`)}
       </select></label
     >`;
@@ -5039,7 +5057,7 @@ export class Fp3dEditor extends LitElement {
 
   private updateDevice(patch: Partial<Placement>): void {
     const id = this._deviceId;
-    this.change((_, floor) => Object.assign(floor.placements.find((p) => p.entity_id === id)!, patch));
+    this.change((_, floor) => patchItem(floor.placements.find((p) => p.entity_id === id), patch));
   }
 
   /** Move the selected device to the middle of its room. */
@@ -5074,7 +5092,7 @@ export class Fp3dEditor extends LitElement {
     });
     const ids = lights.map((l) => l.entity_id);
     this.change((_, f) => {
-      ids.forEach((id, i) => Object.assign(f.placements.find((p) => p.entity_id === id)!, { x: spots[i][0], z: spots[i][1] }));
+      ids.forEach((id, i) => patchItem(f.placements.find((p) => p.entity_id === id), { x: spots[i][0], z: spots[i][1] }));
     });
   }
 
@@ -5241,7 +5259,7 @@ export class Fp3dEditor extends LitElement {
 
   private updateRoom(patch: Partial<Room>): void {
     const id = this._roomId;
-    this.change((_, floor) => Object.assign(floor.rooms.find((r) => r.id === id)!, patch));
+    this.change((_, floor) => patchItem(floor.rooms.find((r) => r.id === id), patch));
   }
 
   private setArea(areaId: string): void {
@@ -6019,18 +6037,53 @@ export class Fp3dEditor extends LitElement {
     });
   }
 
-  /** Kamera-Cockpit: which detection sensors the camera's device brings (person, vehicle, animal, motion) – found by itself. */
+  /**
+   * Kamera-Cockpit: which detection sensors count for the camera (person, vehicle, animal, motion). Found by
+   * themselves on the camera's device; with "choose" a tick per sensor, and sensors of other devices can be added
+   * (Frigate's person sensor for a Reolink camera, #815).
+   */
   private renderCameraDetections(cameraId: string) {
     if (!this.hass) return nothing;
     const hass = this.hass;
+    const pl = this.floor?.placements.find((p) => p.entity_id === cameraId);
+    const chosen = Array.isArray(pl?.detect_sensors) ? pl!.detect_sensors : null;
+    const own = cameraOwnSensors(hass, cameraId);
     const sensors = cameraMotionSensors(hass, cameraId);
     const kinds = [...new Set(sensors.map((id) => detectionKind(hass, id)))];
     const pro = hasFeature("camera_cockpit");
+    const admin = this.isAdmin;
+    const set = (list: string[] | null) => this.updateDevice({ detect_sensors: list });
+    const detectClass = (id: string) => id.startsWith("binary_sensor.") && ["motion", "occupancy", "presence"].includes(String(hass.states[id]?.attributes.device_class));
+    // the list to tick: the camera's own sensors and every one chosen before
+    const listed = [...new Set([...own, ...(chosen ?? [])])];
     return html`<p class="fp3d-sub fp3d-wide">
-      ${sensors.length
-        ? html`${pro ? "" : "🔒 "}${this.t("camera_detect_found", { kinds: kinds.map((k) => this.t(`detect_${k}` as I18nKey)).join(", "), n: sensors.length })}`
-        : this.t("camera_detect_none")}
-    </p>`;
+        ${sensors.length
+          ? html`${pro ? "" : "🔒 "}${this.t("camera_detect_found", { kinds: kinds.map((k) => this.t(`detect_${k}` as I18nKey)).join(", "), n: sensors.length })}`
+          : this.t("camera_detect_none")}
+      </p>
+      <label class="fp3d-check fp3d-wide" title=${this.t("camera_detect_choose_hint")}
+        ><input type="checkbox" .checked=${chosen !== null} ?disabled=${!admin} @change=${(ev: Event) => set((ev.target as HTMLInputElement).checked ? [...own] : null)} />
+        ${this.t("camera_detect_choose")}</label
+      >
+      ${chosen !== null
+        ? html`${listed.map(
+              (id) =>
+                html`<label class="fp3d-check fp3d-wide fp3d-indent"
+                  ><input type="checkbox" .checked=${chosen.includes(id)} ?disabled=${!admin} @change=${(ev: Event) => set((ev.target as HTMLInputElement).checked ? [...chosen, id] : chosen.filter((x) => x !== id))} />
+                  ${entityName(hass, id)} <span class="fp3d-sub">${id}</span></label
+                >`,
+            )}
+            ${this.entitySelect(this.t("camera_detect_add"), null, undefined, this.entityOptions(this.detectFilter(detectClass, listed)), (v) => {
+              if (v && v !== "none") set([...chosen, v]);
+            })}`
+        : nothing}`;
+  }
+  /** The filter of the "add a sensor" list, kept per camera so its options stay cached (see entityOptions). */
+  private _detectFilter: { key: string; fn: (id: string) => boolean } | null = null;
+  private detectFilter(cls: (id: string) => boolean, listed: string[]): (id: string) => boolean {
+    const key = listed.join(",");
+    if (this._detectFilter?.key !== key) this._detectFilter = { key, fn: (id) => cls(id) && !listed.includes(id) };
+    return this._detectFilter.fn;
   }
 
   /** Cut a wall (or one part of it) in the middle: a split point of its own, the new part keeps the height. */
@@ -9716,21 +9769,47 @@ export class Fp3dEditor extends LitElement {
       updateBuilding: (mutate) => this.change((doc) => mutate(doc)),
       callService: (domain, service, data) => hass.callService(domain, service, data),
       newId: (prefix) => uid(prefix),
-      refresh: () => this.requestUpdate(),
+      refresh: () => {
+        // a module changed its own state (a demo started): its fields are made anew
+        this._moduleFieldMemo = null;
+        this.requestUpdate();
+      },
       plan: pipePlanner,
     };
+  }
+
+  /**
+   * A module's fields, made only when the item, the plan or Home Assistant's devices change – not on every state
+   * change: Wärme Pro searches every entity for its form, and made anew several times a second it kept the CPU busy
+   * and closed an open selection list at once (#815).
+   */
+  private _moduleFieldMemo: { item: object; doc: unknown; entities: unknown; lang: string; fields: ModuleField[] } | null = null;
+  private memoFields(item: object, make: () => ModuleField[]): ModuleField[] {
+    const m = this._moduleFieldMemo;
+    const hass = this.hass!;
+    if (m && m.item === item && m.doc === this._doc && m.entities === hass.entities && m.lang === hass.language) return m.fields;
+    const fields = make();
+    this._moduleFieldMemo = { item, doc: this._doc, entities: hass.entities, lang: hass.language, fields };
+    return fields;
   }
 
   /** Fields a module adds to an outdoor area's form (Pool Pro: the pool's entities, the assistant), rendered here. */
   private renderModuleFields(a: OutdoorArea) {
     if (!this.hass) return nothing;
-    return this.renderFields(moduleAreaFields(this.editorHost(), a));
+    return this.renderFields(this.memoFields(a, () => moduleAreaFields(this.editorHost(), a)));
+  }
+
+  /** Fields a module adds to a room's form (the room's own speaker for the announcements). */
+  private renderModuleRoomFields(room: Room) {
+    const floor = this.floor;
+    if (!this.hass || !floor) return nothing;
+    return this.renderFields(this.memoFields(room, () => moduleRoomFields(this.editorHost(), room, floor)), false);
   }
 
   /** Fields a module adds to a piece of furniture's form (a device's entities, a setup assistant). */
   private renderModuleFurnitureFields(f: Furniture) {
     if (!this.hass) return nothing;
-    return this.renderFields(moduleFurnitureFields(this.editorHost(), f));
+    return this.renderFields(this.memoFields(f, () => moduleFurnitureFields(this.editorHost(), f)));
   }
 
   /** A module's fields, drawn like the editor's own. */
@@ -9756,6 +9835,8 @@ export class Fp3dEditor extends LitElement {
           return html`<label class="fp3d-check fp3d-wide"><input type="checkbox" .checked=${f.value} ?disabled=${!admin} @change=${(e: Event) => f.set((e.target as HTMLInputElement).checked)} /> ${f.label}</label>`;
         case "button":
           return html`<button class="fp3d-btn ${f.primary ? "fp3d-primary" : ""} fp3d-wide" ?disabled=${!admin} title=${f.title ?? ""} @click=${() => f.onTap()}>${f.label}</button>`;
+        case "lines":
+          return linesField(f.value, !admin, { label: f.label, placeholder: f.placeholder ?? this.t("lines_new"), add: this.t("lines_add"), remove: this.t("delete") }, (v) => f.set(v), true);
       }
     };
     if (!wrap) return fields.map(field);
@@ -10573,6 +10654,7 @@ export class Fp3dEditor extends LitElement {
             <button class="fp3d-btn fp3d-danger" @click=${() => this.deleteRoom()}>${this.t("delete")}</button>
           </div>`
         : nothing}
+      ${this.renderModuleRoomFields(room)}
       ${this._spots ? this.renderSpotForm(room) : nothing}
       ${this._packages
         ? html`<div class="fp3d-packages">
@@ -10679,7 +10761,19 @@ export class Fp3dEditor extends LitElement {
     >`;
   }
 
+  /** The options of a filter, kept while the same filter asks again and no entity came or went (see memoFields). */
+  private _optionsMemo = new WeakMap<(id: string) => boolean, { entities: unknown; count: number; options: { id: string; label: string }[] }>();
+
   private entityOptions(filter: (id: string) => boolean) {
+    const hit = this._optionsMemo.get(filter);
+    const count = Object.keys(this.hass?.states ?? {}).length;
+    if (hit && hit.entities === this.hass?.entities && hit.count === count) return hit.options;
+    const options = this.entityOptionsOf(filter);
+    this._optionsMemo.set(filter, { entities: this.hass?.entities, count, options });
+    return options;
+  }
+
+  private entityOptionsOf(filter: (id: string) => boolean) {
     const areaName = (id: string) => {
       const entry = this.hass?.entities?.[id];
       const area = entry?.area_id ?? (entry?.device_id ? this.hass?.devices?.[entry.device_id]?.area_id : null);
@@ -11980,6 +12074,8 @@ export class Fp3dEditor extends LitElement {
                 /^(switch|media_player|fan|input_boolean|climate|vacuum|cover)\./.test(id) ||
                 // a pack's heat pump indoor unit, boiler or buffer tank: its water_heater entity (#645)
                 (isPackHeater(f.type) && id.startsWith("water_heater.")) ||
+                // a pack's sensor model (motion, presence, contact, leak …): any sensor, with or without a class (#810)
+                (isPackSensor(f.type) && /^(binary_sensor|sensor)\./.test(id)) ||
                 isStatusSensor(hass.states[id]) ||
                 // alarms that report as binary sensors (binary_sensor.…_smoke, #490); a smoke detector takes any
                 (id.startsWith("binary_sensor.") && (f.type.endsWith("smoke_detector") || ALARM_CLASSES.has(String(hass.states[id]?.attributes.device_class ?? "")))),
@@ -13036,8 +13132,10 @@ export class Fp3dEditor extends LitElement {
       const skipped = res.skipped.length ? ` ${this.t("backup_full_skipped", { packs: res.skipped.map((s) => s.id).join(", ") })}` : "";
       this._notice = this.t("backup_full_restored", { packs: res.packs, pictures }) + skipped;
     } catch (err) {
-      const { code, message } = (err ?? {}) as { code?: string; message?: string };
-      alert(this.t("backup_import_error", { error: message ?? code ?? String(err) }));
+      // a lost connection comes as the whole result message ({ error: { code, message } }), e.g. when the backup is
+      // larger than Home Assistant takes in one message
+      const e = (err ?? {}) as { code?: string | number; message?: string; error?: { code?: string | number; message?: string } };
+      alert(this.t("backup_import_error", { error: String(e.message ?? e.error?.message ?? e.code ?? e.error?.code ?? err) }));
     } finally {
       this._backupBusy = false;
     }
@@ -13316,6 +13414,14 @@ export class Fp3dEditor extends LitElement {
         <label class="fp3d-check fp3d-wide" title=${this.t("sun_patches_hint")}
           ><input type="checkbox" .checked=${s.sun_patches !== false} @change=${(ev: Event) => set({ sun_patches: (ev.target as HTMLInputElement).checked })} />
           ${this.t("sun_patches")}</label
+        >
+        <label class="fp3d-check fp3d-wide" title=${this.t("sun_shadow_hint")}
+          ><input type="checkbox" .checked=${s.sun_shadow !== false} @change=${(ev: Event) => set({ sun_shadow: (ev.target as HTMLInputElement).checked })} />
+          ${this.t("sun_shadow")}</label
+        >
+        <label class="fp3d-check fp3d-wide" title=${this.t("window_glow_hint")}
+          ><input type="checkbox" .checked=${s.window_glow !== false} @change=${(ev: Event) => set({ window_glow: (ev.target as HTMLInputElement).checked })} />
+          ${this.t("window_glow")}</label
         >
       </div>
       <p class="fp3d-sub">${this.t("weather_entity_hint")}</p>
@@ -13856,6 +13962,9 @@ export class Fp3dEditor extends LitElement {
         gap: 8px;
         font-size: 13px;
         color: var(--fp3d-muted);
+      }
+      .fp3d-check.fp3d-indent {
+        padding-left: 22px;
       }
       .fp3d-check input {
         accent-color: var(--fp3d-accent);
