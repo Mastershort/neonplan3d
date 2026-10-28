@@ -169,7 +169,8 @@ export interface ModuleHost {
   /** The rooms someone is in right now: located people, and presence or motion sensors of the room's area. */
   occupied?(): { floorId: string; roomId: string }[];
   /** The media players of the plan (placed as a device or linked to a piece of furniture), each with its room. */
-  speakers?(): { entity: string; name: string; floorId: string; roomId: string | null; furnitureId?: string }[];
+  /** The plan's speakers; `at` where it stands (floor x, z) and `top` its height above the floor (m). */
+  speakers?(): { entity: string; name: string; floorId: string; roomId: string | null; furnitureId?: string; at?: [number, number]; top?: number }[];
 }
 
 /**

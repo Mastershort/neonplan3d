@@ -4747,21 +4747,21 @@ export class Fp3dView3d extends LitElement {
   }
 
   /** The media players of the plan, placed as a device or linked to a piece of furniture, each with its room. */
-  private planSpeakers(hass: HomeAssistant, b: Building): { entity: string; name: string; floorId: string; roomId: string | null; furnitureId?: string }[] {
-    const out: { entity: string; name: string; floorId: string; roomId: string | null; furnitureId?: string }[] = [];
+  private planSpeakers(hass: HomeAssistant, b: Building): { entity: string; name: string; floorId: string; roomId: string | null; furnitureId?: string; at?: [number, number]; top?: number }[] {
+    const out: { entity: string; name: string; floorId: string; roomId: string | null; furnitureId?: string; at?: [number, number]; top?: number }[] = [];
     const seen = new Set<string>();
     for (const floor of b.floors) {
       const roomAt = (x: number, z: number) => floor.rooms.find((r) => r.points.length >= 3 && pointInPolygon([x, z], r.points))?.id ?? null;
       for (const pl of floor.placements) {
         if (!pl.entity_id.startsWith("media_player.") || seen.has(pl.entity_id) || !hass.states[pl.entity_id]) continue;
         seen.add(pl.entity_id);
-        out.push({ entity: pl.entity_id, name: entityName(hass, pl.entity_id), floorId: floor.id, roomId: roomAt(pl.x, pl.z) });
+        out.push({ entity: pl.entity_id, name: entityName(hass, pl.entity_id), floorId: floor.id, roomId: roomAt(pl.x, pl.z), at: [pl.x, pl.z], top: pl.y ?? 1.1 });
       }
       for (const f of floor.furniture) {
         const id = f.entity;
         if (!id || !id.startsWith("media_player.") || seen.has(id) || !hass.states[id]) continue;
         seen.add(id);
-        out.push({ entity: id, name: entityName(hass, id), floorId: floor.id, roomId: roomAt(f.x, f.z), furnitureId: f.id });
+        out.push({ entity: id, name: entityName(hass, id), floorId: floor.id, roomId: roomAt(f.x, f.z), furnitureId: f.id, at: [f.x, f.z], top: mountBase(floor, f) + f.h });
       }
     }
     return out;
