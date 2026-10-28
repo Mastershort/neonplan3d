@@ -361,6 +361,8 @@
  "view_settings_look": "Visning",
  "view_settings_alerts": "Advarsler",
  "view_settings_more": "Alle andre indstillinger finder du i editoren under ⚙ Indstillinger.",
+ "lines_add": "Tilføj",
+ "lines_new": "Ny post …",
  "sheet_mic": "Tal",
  "sheet_listening": "Lytter …",
  "sheet_mic_failed": "Intet forstået – mikrofonen kræver HTTPS og en talepipeline med talegenkendelse.",

@@ -361,6 +361,8 @@
  "view_settings_look": "Aspecto",
  "view_settings_alerts": "Avisos",
  "view_settings_more": "El resto de ajustes está en el editor, en ⚙ Ajustes.",
+ "lines_add": "Añadir",
+ "lines_new": "Nueva entrada …",
  "sheet_mic": "Hablar",
  "sheet_listening": "Escuchando…",
  "sheet_mic_failed": "No se entendió nada: el micrófono necesita HTTPS y una canalización de voz con reconocimiento.",

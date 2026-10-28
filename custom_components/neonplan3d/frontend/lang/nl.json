@@ -361,6 +361,8 @@
  "view_settings_look": "Weergave",
  "view_settings_alerts": "Waarschuwingen",
  "view_settings_more": "Alle andere instellingen vind je in de editor onder ⚙ Instellingen.",
+ "lines_add": "Toevoegen",
+ "lines_new": "Nieuw item …",
  "sheet_mic": "Spreken",
  "sheet_listening": "Ik luister …",
  "sheet_mic_failed": "Niets verstaan – de microfoon heeft HTTPS en een spraakpijplijn met spraakherkenning nodig.",

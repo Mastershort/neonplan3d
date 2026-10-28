@@ -361,6 +361,8 @@
  "view_settings_look": "Affichage",
  "view_settings_alerts": "Alertes",
  "view_settings_more": "Tous les autres réglages se trouvent dans l'éditeur sous ⚙ Réglages.",
+ "lines_add": "Ajouter",
+ "lines_new": "Nouvelle entrée …",
  "sheet_mic": "Parler",
  "sheet_listening": "J'écoute…",
  "sheet_mic_failed": "Rien compris – le micro a besoin de HTTPS et d'un pipeline vocal avec reconnaissance vocale.",

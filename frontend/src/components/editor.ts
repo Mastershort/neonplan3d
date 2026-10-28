@@ -1,6 +1,7 @@
 // 2D editor: floors, rooms (rectangles and free shapes), snapping, undo, background template.
 
 import { css, html, LitElement, nothing, svg, type PropertyValues, type TemplateResult } from "lit";
+import { linesField } from "./lines-field.ts";
 import { unsafeHTML } from "lit/directives/unsafe-html.js";
 import { ref } from "lit/directives/ref.js";
 import { fetchImage, importPack, listHistory, restoreSnapshot, storeImage, takeSnapshot, type Snapshot, getVoiceSettings, setVoiceSentences, type SentenceMode } from "../api.ts";
@@ -9835,16 +9836,7 @@ export class Fp3dEditor extends LitElement {
         case "button":
           return html`<button class="fp3d-btn ${f.primary ? "fp3d-primary" : ""} fp3d-wide" ?disabled=${!admin} title=${f.title ?? ""} @click=${() => f.onTap()}>${f.label}</button>`;
         case "lines":
-          return html`<label class="fp3d-field fp3d-wide"
-            >${f.label}
-            <textarea rows=${Math.min(8, Math.max(3, f.value.length + 1))} ?disabled=${!admin} placeholder=${f.placeholder ?? ""} .value=${f.value.join("\n")} @change=${(e: Event) =>
-                f.set(
-                  (e.target as HTMLTextAreaElement).value
-                    .split("\n")
-                    .map((l) => l.trim())
-                    .filter(Boolean),
-                )}></textarea
-          ></label>`;
+          return linesField(f.value, !admin, { label: f.label, placeholder: f.placeholder ?? this.t("lines_new"), add: this.t("lines_add"), remove: this.t("delete") }, (v) => f.set(v), true);
       }
     };
     if (!wrap) return fields.map(field);
@@ -13140,8 +13132,10 @@ export class Fp3dEditor extends LitElement {
       const skipped = res.skipped.length ? ` ${this.t("backup_full_skipped", { packs: res.skipped.map((s) => s.id).join(", ") })}` : "";
       this._notice = this.t("backup_full_restored", { packs: res.packs, pictures }) + skipped;
     } catch (err) {
-      const { code, message } = (err ?? {}) as { code?: string; message?: string };
-      alert(this.t("backup_import_error", { error: message ?? code ?? String(err) }));
+      // a lost connection comes as the whole result message ({ error: { code, message } }), e.g. when the backup is
+      // larger than Home Assistant takes in one message
+      const e = (err ?? {}) as { code?: string | number; message?: string; error?: { code?: string | number; message?: string } };
+      alert(this.t("backup_import_error", { error: String(e.message ?? e.error?.message ?? e.code ?? e.error?.code ?? err) }));
     } finally {
       this._backupBusy = false;
     }

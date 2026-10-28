@@ -361,6 +361,8 @@
  "view_settings_look": "显示",
  "view_settings_alerts": "警告",
  "view_settings_more": "其他所有设置都在编辑器的 ⚙ 设置中。",
+ "lines_add": "添加",
+ "lines_new": "新条目 …",
  "sheet_mic": "说话",
  "sheet_listening": "正在聆听…",
  "sheet_mic_failed": "没有听懂——麦克风需要 HTTPS 以及带语音识别的语音管道。",

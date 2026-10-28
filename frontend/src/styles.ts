@@ -123,6 +123,55 @@ export const controls = css`
     background: var(--fp3d-chrome-solid);
     color: var(--fp3d-text);
   }
+  /* a list to edit line by line (a module's sentences): ✕ per line, a field to add one */
+  .fp3d-lines {
+    display: grid;
+    gap: 4px;
+    font-size: 12px;
+    color: var(--fp3d-muted);
+  }
+  .fp3d-lines-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 4px 4px 9px;
+    border: 1px solid var(--fp3d-line);
+    border-radius: 8px;
+    font-size: 14px;
+    color: var(--fp3d-text);
+  }
+  .fp3d-lines-row span {
+    flex: 1;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .fp3d-lines-row button {
+    border: 0;
+    background: none;
+    color: var(--fp3d-muted);
+    font: inherit;
+    cursor: pointer;
+    padding: 2px 8px;
+    border-radius: 6px;
+  }
+  .fp3d-lines-row button:hover:not(:disabled) {
+    color: var(--fp3d-danger);
+  }
+  .fp3d-lines-add {
+    display: flex;
+    gap: 6px;
+  }
+  .fp3d-lines-add input {
+    flex: 1;
+    min-width: 0;
+    font: inherit;
+    font-size: 14px;
+    color: var(--fp3d-text);
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--fp3d-line);
+    border-radius: 8px;
+    padding: 7px 9px;
+  }
   /* fingers need 40 px */
   @media (pointer: coarse) {
     .fp3d-seg button,

@@ -1,6 +1,7 @@
 // Lit wrapper around the lazily loaded 3D viewer.
 
 import { css, html, LitElement, nothing, svg, type PropertyValues } from "lit";
+import { linesField } from "./lines-field.ts";
 import { carState, type CarState, heatSensorOn, roomClimateValue,
   appColor,
   areaEntities,
@@ -1133,7 +1134,7 @@ export class Fp3dView3d extends LitElement {
       ...this.moduleMarkers(b),
     ]);
     // a tap on the item itself does what a tap on its module marker does
-    for (const m of this.scene) if (m.kind === "marker" && m.card && !furniture.targets.has(m.furnitureId)) furniture.targets.set(m.furnitureId, `module:${m.id}`);
+    for (const m of this.scene) if (m.kind === "marker" && m.card && m.furnitureId && !furniture.targets.has(m.furnitureId)) furniture.targets.set(m.furnitureId, `module:${m.id}`);
     v.setTrail(trail, this.replay ? this.robotPaths(hass, b) : []);
     v.setPickTargets(furniture.targets, this.openingTargets());
     v.setScreens(furniture.screens);
@@ -4940,16 +4941,7 @@ export class Fp3dView3d extends LitElement {
         >`;
       }
       case "lines":
-        return html`<label class="fp3d-set-field"
-          >${f.label}
-          <textarea rows=${Math.min(8, Math.max(3, f.value.length + 1))} ?disabled=${!admin} placeholder=${f.placeholder ?? ""} .value=${f.value.join("\n")} @change=${(e: Event) =>
-              f.set(
-                (e.target as HTMLTextAreaElement).value
-                  .split("\n")
-                  .map((l) => l.trim())
-                  .filter(Boolean),
-              )}></textarea
-        ></label>`;
+        return linesField(f.value, !admin, { label: f.label, placeholder: f.placeholder ?? translate(hass, "lines_new"), add: translate(hass, "lines_add"), remove: translate(hass, "delete") }, (v) => f.set(v));
       case "button":
         return html`<button class="fp3d-btn ${f.primary ? "fp3d-primary" : ""}" ?disabled=${!admin} title=${f.title ?? ""} @click=${() => f.onTap()}>${f.label}</button>`;
     }
@@ -5213,22 +5205,23 @@ export class Fp3dView3d extends LitElement {
       ></fp3d-quick-menu>`;
   }
 
-  /** A module's markers as device pins: its symbol on the item, its state under it. */
+  /** A module's markers as device pins: its symbol on the item (or at its point), its state under it. */
   private moduleMarkers(b: Building): DeviceMarker[] {
     const out: DeviceMarker[] = [];
     for (const m of this.scene) {
       if (m.kind !== "marker") continue;
       const floor = b.floors.find((f) => f.id === m.floorId);
-      const f = floor?.furniture.find((x) => x.id === m.furnitureId);
-      if (!floor || !f) continue;
+      const f = m.furnitureId ? floor?.furniture.find((x) => x.id === m.furnitureId) : undefined;
+      if (!floor || (!f && !m.at)) continue;
+      const [x, z] = f ? [f.x, f.z] : (m.at as [number, number]);
       const path = markerPath(m.path);
       out.push({
         id: `module:${m.id}`,
         floorId: floor.id,
-        roomId: floor.rooms.find((r) => r.points.length >= 3 && pointInPolygon([f.x, f.z], r.points))?.id ?? null,
-        x: f.x,
-        z: f.z,
-        y: m.y ?? mountBase(floor, f) + f.h * 0.6,
+        roomId: floor.rooms.find((r) => r.points.length >= 3 && pointInPolygon([x, z], r.points))?.id ?? null,
+        x,
+        z,
+        y: m.y ?? (f ? mountBase(floor, f) + f.h * 0.6 : 1.2),
         icon: path ? `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${path}"/></svg>` : "",
         name: m.name,
         text: m.text ?? "",
@@ -5237,16 +5230,20 @@ export class Fp3dView3d extends LitElement {
         glow: m.color && m.active && !this.dimmed ? { color: m.color, level: 1 } : null,
         pin: true,
         full: true,
-        furnitureId: f.id,
+        ...(f ? { furnitureId: f.id } : {}),
       });
     }
     return out;
   }
 
-  /** A module marker tapped: its card unfolds and lights up for a moment, the view flies to the item. */
+  /** A module marker tapped: its card unfolds and lights up for a moment, the view flies to the item; or its sheet opens. */
   private openModuleCard(markerId: string): void {
     const m = this.scene.find((p): p is Extract<ScenePiece, { kind: "marker" }> => p.kind === "marker" && p.id === markerId);
     if (!m) return;
+    if (m.sheet) {
+      this.openRoomSheet(m.sheet.roomId, m.sheet.id);
+      return;
+    }
     if (m.card) {
       this.mediaFolded.delete(m.card);
       this.cardPing = m.card;

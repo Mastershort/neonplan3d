@@ -361,6 +361,8 @@
  "view_settings_look": "Visning",
  "view_settings_alerts": "Varsler",
  "view_settings_more": "Alle andre innstillinger finner du i redigeringsverktøyet under ⚙ Innstillinger.",
+ "lines_add": "Legg til",
+ "lines_new": "Ny oppføring …",
  "sheet_mic": "Snakk",
  "sheet_listening": "Lytter …",
  "sheet_mic_failed": "Forsto ingenting – mikrofonen trenger HTTPS og en talepipeline med talegjenkjenning.",

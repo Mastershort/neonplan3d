@@ -361,6 +361,8 @@
  "view_settings_look": "Vising",
  "view_settings_alerts": "Varsel",
  "view_settings_more": "Alle andre innstillingar finn du i redigeringsverktøyet under ⚙ Innstillingar.",
+ "lines_add": "Legg til",
+ "lines_new": "Ny oppføring …",
  "sheet_mic": "Snakk",
  "sheet_listening": "Lyttar …",
  "sheet_mic_failed": "Forstod ingenting – mikrofonen treng HTTPS og ei talepipeline med talegjenkjenning.",

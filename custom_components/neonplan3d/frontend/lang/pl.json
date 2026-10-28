@@ -361,6 +361,8 @@
  "view_settings_look": "Wygląd",
  "view_settings_alerts": "Ostrzeżenia",
  "view_settings_more": "Wszystkie inne ustawienia są w edytorze w ⚙ Ustawienia.",
+ "lines_add": "Dodaj",
+ "lines_new": "Nowy wpis …",
  "sheet_mic": "Mów",
  "sheet_listening": "Słucham…",
  "sheet_mic_failed": "Nic nie zrozumiałem – mikrofon wymaga HTTPS i potoku głosowego z rozpoznawaniem mowy.",

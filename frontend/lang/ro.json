@@ -361,6 +361,8 @@
  "view_settings_look": "Aspect",
  "view_settings_alerts": "Avertizări",
  "view_settings_more": "Toate celelalte setări sunt în editor, la ⚙ Setări.",
+ "lines_add": "Adaugă",
+ "lines_new": "Intrare nouă …",
  "sheet_mic": "Vorbește",
  "sheet_listening": "Ascult…",
  "sheet_mic_failed": "N-am înțeles nimic – microfonul are nevoie de HTTPS și de un flux vocal cu recunoaștere a vorbirii.",

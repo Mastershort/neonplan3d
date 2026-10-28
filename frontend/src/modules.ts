@@ -246,12 +246,16 @@ export type ScenePiece =
   | {
       /**
        * A round symbol marker on a piece of furniture, like the device markers (a technical device's symbol). A tap opens
-       * the module's card `card` (unfolds it and flies there).
+       * the module's card `card` (unfolds it and flies there), or its sheet `sheet` for a room.
        */
       kind: "marker";
       id: string;
       floorId: string;
-      furnitureId: string;
+      /** The item it sits on; without one it stands at `at` (floor coordinates x, z). */
+      furnitureId?: string;
+      at?: Vec2;
+      /** A tap opens this sheet of the module for the room (as the room panel's button does). */
+      sheet?: { roomId: string; id: string };
       /** A 24 × 24 line icon as an SVG path (stroke drawn); without one the `text` alone shows. */
       path?: string;
       /** The short state under the symbol ("heizt", "3,8 kW"). */
@@ -262,7 +266,7 @@ export type ScenePiece =
       active?: boolean;
       /** The id of the module's card a tap opens. */
       card?: string;
-      /** Height of the marker above the floor (m; default the item's top). */
+      /** Height of the marker above the floor (m; default the item's top, 1.2 without an item). */
       y?: number;
     }
   | {

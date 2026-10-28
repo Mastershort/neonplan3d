@@ -361,6 +361,8 @@
  "view_settings_look": "Utseende",
  "view_settings_alerts": "Varningar",
  "view_settings_more": "Alla andra inställningar finns i redigeraren under ⚙ Inställningar.",
+ "lines_add": "Lägg till",
+ "lines_new": "Ny post …",
  "sheet_mic": "Tala",
  "sheet_listening": "Lyssnar …",
  "sheet_mic_failed": "Uppfattade inget – mikrofonen kräver HTTPS och en röstpipeline med taligenkänning.",

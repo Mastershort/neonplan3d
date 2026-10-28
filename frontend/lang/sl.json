@@ -361,6 +361,8 @@
  "view_settings_look": "Prikaz",
  "view_settings_alerts": "Opozorila",
  "view_settings_more": "Vse druge nastavitve so v urejevalniku pod ⚙ Nastavitve.",
+ "lines_add": "Dodaj",
+ "lines_new": "Nov vnos …",
  "sheet_mic": "Govori",
  "sheet_listening": "Poslušam …",
  "sheet_mic_failed": "Nič razumel – mikrofon potrebuje HTTPS in glasovni cevovod s prepoznavanjem govora.",

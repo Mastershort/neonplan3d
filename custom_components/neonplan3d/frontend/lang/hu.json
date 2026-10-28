@@ -361,6 +361,8 @@
  "view_settings_look": "Megjelenés",
  "view_settings_alerts": "Figyelmeztetések",
  "view_settings_more": "Minden további beállítás a szerkesztőben van, a ⚙ Beállítások alatt.",
+ "lines_add": "Hozzáadás",
+ "lines_new": "Új bejegyzés …",
  "sheet_mic": "Beszéd",
  "sheet_listening": "Figyelek…",
  "sheet_mic_failed": "Nem értettem semmit – a mikrofonhoz HTTPS és beszédfelismerős hangfolyamat kell.",

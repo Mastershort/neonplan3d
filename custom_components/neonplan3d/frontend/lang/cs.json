@@ -361,6 +361,8 @@
  "view_settings_look": "Vzhled",
  "view_settings_alerts": "Upozornění",
  "view_settings_more": "Všechna další nastavení najdeš v editoru pod ⚙ Nastavení.",
+ "lines_add": "Přidat",
+ "lines_new": "Nová položka …",
  "sheet_mic": "Mluvit",
  "sheet_listening": "Poslouchám…",
  "sheet_mic_failed": "Nic jsem nerozuměl – mikrofon potřebuje HTTPS a hlasovou pipeline s rozpoznáváním řeči.",

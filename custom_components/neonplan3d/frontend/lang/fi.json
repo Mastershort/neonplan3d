@@ -361,6 +361,8 @@
  "view_settings_look": "Ulkoasu",
  "view_settings_alerts": "Varoitukset",
  "view_settings_more": "Kaikki muut asetukset löytyvät editorista kohdasta ⚙ Asetukset.",
+ "lines_add": "Lisää",
+ "lines_new": "Uusi rivi …",
  "sheet_mic": "Puhu",
  "sheet_listening": "Kuuntelen…",
  "sheet_mic_failed": "En ymmärtänyt mitään – mikrofoni tarvitsee HTTPS:n ja puheentunnistuksella varustetun puheputken.",

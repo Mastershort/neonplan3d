@@ -361,6 +361,8 @@
  "view_settings_look": "Aspeto",
  "view_settings_alerts": "Avisos",
  "view_settings_more": "Todas as outras definições estão no editor, em ⚙ Definições.",
+ "lines_add": "Adicionar",
+ "lines_new": "Nova entrada …",
  "sheet_mic": "Falar",
  "sheet_listening": "A ouvir…",
  "sheet_mic_failed": "Não percebi nada – o microfone precisa de HTTPS e de um pipeline de voz com reconhecimento.",
