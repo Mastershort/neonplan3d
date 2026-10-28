@@ -1,11 +1,29 @@
-## NeonPlan 3D 2.0.7 – Sun & night, settings at hand, announcements
+## NeonPlan 3D 2.0.7 – 📢 Your house speaks: Announcements
 
-### New
+### 📢 New: Announcements (beta)
+
+**"Dinner is ready!" – and exactly the room that should hear it, hears it.**
+
+Every room with a speaker gets a 📢 button right above the speaker in the 3D view. Tap it, tap a sentence – and the Echo, the Voice PE or the Sonos in that room says it. No app, no routine, no shouting up the stairs.
+
+![📢 buttons over the speakers](https://github.com/Mastershort/neonplan3d/releases/download/v2.0.7/announcements-buttons.png)
+
+- **One tap per room:** the 📢 over the speaker, or **📢 Announcement** in the room's panel.
+- **Your own sentences:** "Dinner is ready!", "Time for bed!", "The dog needs to go out!" – add your own, remove the ones you don't need (no kids doing homework any more? Out it goes).
+- **Type it or say it:** your own words, or speak into the 🎙 microphone.
+- **Whole house or only where someone is:** from the ⭐ menu to every room, or only to the rooms someone is in right now (presence, motion, locating).
+- **Echos** make a real announcement with their chime, **voice satellites like the Home Assistant Voice PE** announce too, every other speaker talks through Home Assistant's text-to-speech.
+- **The right speaker on its own:** the one placed in the room; TVs and switched-off devices are never chosen by themselves. Pick a different one per room whenever you like.
+
+![An announcement for the kitchen](https://github.com/Mastershort/neonplan3d/releases/download/v2.0.7/announcements-sheet.png)
+
+**Beta – Supporter Pass holders get it first.** Install it under **Extensions**, then switch on "📢 right in the room" in ⚙ Settings. Everyone else gets it in the shop once the beta is done. Tell us how it works on [GitHub](https://github.com/Mastershort/neonplan3d/issues)!
+
+### Also new
 
 - **Sun path and house shadow.** A glowing arc around the house shows the sun's way today – red at the horizon, warm white high up – with sunrise and sunset at its ends and the sun as a glowing orb with rays. On the ground lies the house's shadow and wanders with the sun, so you see when the terrace gets sun. A compass ring with N, E, S, W lies on the ground. Needs the north direction and your home's location in Home Assistant.
 - **Windows glow outside at night.** When it is dark, the light of lit rooms falls out of the ground floor's windows as a warm glow onto the lawn and terrace – in the room's light colour, softer behind lowered blinds.
 - **⚙ Settings right in the 3D view.** The ⭐ central menu now has **⚙ Settings**: sun & night, window light, sunlight through the windows and the warnings – without opening the editor. Every module with settings gets its own section there. Only administrators can change them.
-- **Announcements module (beta, for Supporter Pass holders first).** Tap a room, tap **📢 Announcement**, tap "Dinner is ready!" – and the speaker in that room says it. Your own sentences (add and remove them in ⚙ Settings), typed words or spoken into the microphone; from the ⭐ menu to all rooms or only where someone is, or with a 📢 right in each room of the 3D view. Echos and voice satellites like the Voice PE make a real announcement with a chime, other speakers talk through Home Assistant's text-to-speech. Choose the speaker per room in the editor.
 - **Heat Pro leaves the beta.** The heat pump as a system in 3D – heat pump, flow and return pipes, glowing radiators and underfloor zones, ground collector, one card with COP and costs, demo mode – is now in the shop for 7.90 € (included in the Supporter Pass). Thanks to everyone who tested it!
 - **Choose a camera's detection sensors.** In a camera's form you can now pick exactly which sensors count for its detection pins, the motion trail and the live director – also sensors of another device, e.g. Frigate's person sensor for a Reolink camera. Thanks to @frops83 (#815)!
 
@@ -27,14 +45,32 @@ Settings → System → Updates. HACS only checks for new versions every few hou
 
 ---
 
-## NeonPlan 3D 2.0.7 – Sonne & Nacht, Einstellungen griffbereit, Durchsagen
+## NeonPlan 3D 2.0.7 – 📢 Dein Haus spricht: Durchsagen
 
-### Neu
+### 📢 Neu: Durchsagen (Beta)
+
+**„Essen ist fertig!“ – und genau der Raum, der es hören soll, hört es.**
+
+Jeder Raum mit Lautsprecher bekommt in der 3D-Ansicht einen 📢-Knopf direkt über dem Lautsprecher. Antippen, Satz antippen – und der Echo, der Voice PE oder der Sonos in dem Raum sagt ihn. Keine App, keine Routine, kein Rufen durchs Treppenhaus.
+
+![📢-Knöpfe über den Lautsprechern](https://github.com/Mastershort/neonplan3d/releases/download/v2.0.7/announcements-buttons.png)
+
+- **Ein Tipp pro Raum:** das 📢 über dem Lautsprecher oder **📢 Durchsage** im Raumfenster.
+- **Deine eigenen Sätze:** „Essen ist fertig!“, „Zeit fürs Bett!“, „Der Hund muss raus!“ – eigene dazu, unpassende raus (keine Hausaufgaben mehr im Haus? Weg damit).
+- **Tippen oder sprechen:** eigener Text oder einfach ins 🎙 Mikrofon.
+- **Ganzes Haus oder nur, wo jemand ist:** aus dem ⭐ Menü an alle Räume oder nur dorthin, wo gerade jemand ist (Präsenz, Bewegung, Ortung).
+- **Echos** machen eine echte Durchsage mit Gong, **Sprach-Satelliten wie der Home Assistant Voice PE** ebenso, alle anderen Lautsprecher sprechen über die Sprachausgabe von Home Assistant.
+- **Der richtige Lautsprecher von selbst:** der, der im Raum steht; Fernseher und ausgeschaltete Geräte nimmt NeonPlan nie von allein. Pro Raum lässt sich jederzeit ein anderer wählen.
+
+![Eine Durchsage für die Küche](https://github.com/Mastershort/neonplan3d/releases/download/v2.0.7/announcements-sheet.png)
+
+**Beta – zuerst für alle mit dem Supporter-Pass.** Unter **Erweiterungen** installieren, dann in ⚙ Einstellungen „📢 auch direkt im Raum zeigen“ einschalten. Alle anderen bekommen es nach der Beta im Shop. Sag uns auf [GitHub](https://github.com/Mastershort/neonplan3d/issues), wie es läuft!
+
+### Außerdem neu
 
 - **Sonnenbahn und Hausschatten.** Ein leuchtender Bogen um das Haus zeigt den Weg der Sonne heute – rot am Horizont, warmweiß hoch oben –, mit Auf- und Untergang an seinen Enden und der Sonne als glühende Kugel mit Strahlen. Auf dem Boden liegt der Schatten des Hauses und wandert mit der Sonne: So siehst du, wann die Terrasse Sonne hat. Dazu ein Kompassring mit N, O, S, W. Braucht die Nordrichtung und den Ort deines Zuhauses in Home Assistant.
 - **Fenster leuchten nachts nach draußen.** Ist es dunkel, fällt das Licht beleuchteter Räume durch die Fenster im Erdgeschoss als warmer Schein auf Rasen und Terrasse – in der Lichtfarbe des Raums, schwächer hinter heruntergelassenen Rollläden.
 - **⚙ Einstellungen direkt in der 3D-Ansicht.** Das ⭐ Zentral-Menü hat jetzt **⚙ Einstellungen**: Sonne & Nacht, Fensterlicht, Sonnenlicht durch die Fenster und die Warnungen – ohne den Editor zu öffnen. Jedes Modul mit Einstellungen bekommt dort seinen eigenen Abschnitt. Ändern dürfen sie nur Administratoren.
-- **Modul Durchsagen (Beta, zuerst mit dem Supporter-Pass).** Raum antippen, **📢 Durchsage**, „Essen ist fertig!“ antippen – und der Lautsprecher in dem Raum sagt es. Eigene Sätze (in ⚙ Einstellungen hinzufügen und löschen), getippter Text oder ins Mikrofon gesprochen; aus dem ⭐ Menü an alle Räume oder nur dorthin, wo gerade jemand ist, oder mit einem 📢 direkt in jedem Raum der 3D-Ansicht. Echos und Sprach-Satelliten wie der Voice PE machen eine echte Durchsage mit Gong, andere Lautsprecher sprechen über die Sprachausgabe von Home Assistant. Den Lautsprecher wählst du pro Raum im Editor.
 - **Wärme Pro ist aus der Beta.** Die Wärmepumpe als System in 3D – Wärmepumpe, Vor- und Rücklauf, leuchtende Heizkörper und Fußbodenkreise, Erdkollektor, eine Karte mit COP und Kosten, Demo-Modus – gibt es jetzt im Shop für 7,90 € (im Supporter-Pass dabei). Danke an alle, die getestet haben!
 - **Erkennungs-Sensoren einer Kamera wählen.** Im Formular einer Kamera wählst du jetzt genau, welche Sensoren für Erkennungs-Pins, Bewegungsspur und Live-Regie zählen – auch Sensoren eines anderen Geräts, etwa Frigates Personen-Sensor für eine Reolink-Kamera. Danke an @frops83 (#815)!
 
