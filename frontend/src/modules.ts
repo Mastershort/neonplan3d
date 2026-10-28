@@ -259,6 +259,8 @@ export type ScenePiece =
       sheet?: { roomId: string; id: string };
       /** A 24 × 24 line icon as an SVG path (stroke drawn); without one the `text` alone shows. */
       path?: string;
+      /** An emoji as the symbol instead of a line icon (📢). */
+      emoji?: string;
       /** The short state under the symbol ("heizt", "3,8 kW"). */
       text?: string;
       name: string;

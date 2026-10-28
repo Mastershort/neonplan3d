@@ -87,6 +87,12 @@ export function lineFlows(lines: readonly Line[]): LineFlow[] {
 }
 
 /** A module marker's icon: its path when it is a plain SVG path (letters, digits, signs), else none. */
+/** A module's emoji for a marker: a few characters, nothing that could be markup; else null. */
+export function markerEmoji(e: string | undefined): string | null {
+  if (!e) return null;
+  return [...e].length <= 4 && !/[<>&"'\\\sA-Za-z0-9]/.test(e) ? e : null;
+}
+
 export function markerPath(path: string | undefined): string | null {
   return path && path.length < 2000 && /^[MmLlHhVvCcSsQqTtAaZz0-9 .,-]+$/.test(path) ? path : null;
 }

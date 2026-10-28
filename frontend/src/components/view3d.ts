@@ -114,7 +114,7 @@ import { hasFeature, manualUrl, projectionOn, released, shopUrl, type Feature } 
 import { searchIndex, searchItems, type SearchItem } from "../search.ts";
 import type { Shown } from "../voice/targets.ts";
 import { anyModule, moduleAlerts, moduleCards, moduleMenuSheets, modulePools, moduleRoomSheets, moduleScene, moduleSettings, modulesWithSettings, moduleVoice, moduleWatched, syncModules, type ModuleCard, type ModuleField, type ModuleHost, type ModuleSheet, type ScenePiece, type SpokenAlert, type SpokenCar, type SpokenDevice, type SpokenOpening, type VoiceAnswer } from "../modules.ts";
-import { lineFlows, majorOnly, markerPath, sparkPoints } from "../module-scene.ts";
+import { lineFlows, majorOnly, markerEmoji, markerPath, sparkPoints } from "../module-scene.ts";
 import { generateWalls, openingHost, placeWallPlate, pointOnRoomEdge, type Wall } from "../geometry/walls.ts";
 import { signedArea } from "../model.ts";
 import { coverPositionable, lightAbilities } from "./quick-menu.ts";
@@ -5231,6 +5231,7 @@ export class Fp3dView3d extends LitElement {
       if (!floor || (!f && !m.at)) continue;
       const [x, z] = f ? [f.x, f.z] : (m.at as [number, number]);
       const path = markerPath(m.path);
+      const emoji = markerEmoji(m.emoji);
       out.push({
         id: `module:${m.id}`,
         floorId: floor.id,
@@ -5238,7 +5239,11 @@ export class Fp3dView3d extends LitElement {
         x,
         z,
         y: m.y ?? (f ? mountBase(floor, f) + f.h * 0.6 : 1.2),
-        icon: path ? `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${path}"/></svg>` : "",
+        icon: emoji
+          ? `<span style="font-size:18px;line-height:1" aria-hidden="true">${emoji}</span>`
+          : path
+            ? `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${path}"/></svg>`
+            : "",
         name: m.name,
         text: m.text ?? "",
         active: !!m.active && !this.dimmed,

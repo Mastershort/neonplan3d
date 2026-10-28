@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { lineFlows, majorOnly, markerPath, sparkPoints } from "./module-scene.ts";
+import { lineFlows, majorOnly, markerEmoji, markerPath, sparkPoints } from "./module-scene.ts";
 
 const red: [number, number, number] = [1, 0, 0];
 const blue: [number, number, number] = [0, 0, 1];
@@ -74,4 +74,12 @@ test("a line shown only in one view carries its view: the house view, or an open
   assert.equal(at("floor").house, undefined);
   assert.equal(at("all").house ?? at("all").floor, undefined);
   assert.equal(at().floor, undefined);
+});
+
+test("a marker's emoji: a few characters, never markup or words", () => {
+  assert.equal(markerEmoji("📢"), "📢");
+  assert.equal(markerEmoji("<b>"), null);
+  assert.equal(markerEmoji("abc"), null);
+  assert.equal(markerEmoji("📢 x"), null);
+  assert.equal(markerEmoji(undefined), null);
 });
