@@ -4,6 +4,12 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 [releases page](https://github.com/Mastershort/neonplan3d/releases). Ideas and votes:
 [Discussions → Ideas](https://github.com/Mastershort/neonplan3d/discussions/categories/ideas).
 
+## 2.0.8
+
+### Fixed
+
+- **Extensions in English (#825):** the newer packs, Pro add-ons and modules (Announcements, Heat Pro, Household Pro, Window watch, The house answers, the new furniture packs) have English names outside German, and NeonPlan tells the shop the language, so its offers come in it. Thanks to @twynne!
+
 ## 2.0.7
 
 ### New
