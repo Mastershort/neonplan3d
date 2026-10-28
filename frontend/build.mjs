@@ -134,8 +134,8 @@ function copyFonts() {
 // 3D 816 KB on 2026-10-25 (was 812): free walls drawn as outer walls find their outside (blinds, glass), pets walk on at their own pace on tablets, door glass on both faces
 // editor 941 KB on 2026-10-28: a camera's look as furniture follows the camera (#779)
 // main 718 KB, editor 940 KB, card editor 272 KB on 2026-10-28: the ⚙ settings over the 3D view, modules' sheets in rooms and the ⭐ menu (announcements), detection sensors chosen per camera, and their texts
-// main 721 KB, editor 944 KB, card editor 273 KB on 2026-10-28: a module's list edited entry by entry, module markers standing in rooms, the backup import's reason
-const BUDGET = { "neonplan3d.js": 721 * 1024, "neonplan3d-fun.js": 40 * 1024, "neonplan3d-voice.js": 60 * 1024, "neonplan3d-locate.js": 160 * 1024, "neonplan3d-timetravel.js": 120 * 1024, "neonplan3d-3d.js": 836 * 1024, "neonplan3d-editor.js": 944 * 1024, "neonplan3d-card-editor.js": 273 * 1024 };
+// main 722 KB, editor 944 KB, card editor 273 KB on 2026-10-28: a module's list edited entry by entry, module markers standing in rooms, the backup import's reason
+const BUDGET = { "neonplan3d.js": 722 * 1024, "neonplan3d-fun.js": 40 * 1024, "neonplan3d-voice.js": 60 * 1024, "neonplan3d-locate.js": 160 * 1024, "neonplan3d-timetravel.js": 120 * 1024, "neonplan3d-3d.js": 836 * 1024, "neonplan3d-editor.js": 944 * 1024, "neonplan3d-card-editor.js": 273 * 1024 };
 
 copyFonts();
 if (watch) {
