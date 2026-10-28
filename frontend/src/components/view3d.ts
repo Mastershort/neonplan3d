@@ -105,7 +105,7 @@ import { HEAT_SCALES, heatColor, heatGradient, roomValues, type HeatMode } from 
 import { furnitureName } from "../furniture-names.ts";
 import { fetchImage, saveBuilding } from "../api.ts";
 import { formatNumber, translate, type I18nKey } from "../i18n.ts";
-import { getPacks, isPackCooktop, isPackHeater, isPackType, isRobotVacuum, mountBase, packItem, packRobotCentre, packMotion, packsVersion } from "../packs.ts";
+import { getPacks, isPackCooktop, isPackHeater, isPackType, isRobotVacuum, mountBase, packItem, packRobotCentre, packMotion, packName, packsVersion } from "../packs.ts";
 import { parkedVehicle, PRESENT_STATES, parkedVehicles, vehicleFurniture } from "../parking.ts";
 import { TRAIL_ICON, TRAIL_WINDOW_MS, trailEvents, trailPoints, trailSources, trailTime, type HistoryRow } from "../trail.ts";
 import { limitEffects, weatherEntity, weatherState } from "../weather.ts";
@@ -4894,8 +4894,16 @@ export class Fp3dView3d extends LitElement {
         ><input type="checkbox" .checked=${on} ?disabled=${!admin} @change=${(e: Event) => this.setPlanSettings(patch((e.target as HTMLInputElement).checked))} /> ${t(key)}</label
       >`;
     const host = this.sceneHost(hass, b);
+    // every module's section starts with a heading: its own, else the pack's name (Wärme Pro brings none)
+    const packs = getPacks();
     const modules = modulesWithSettings()
-      .map((id) => moduleSettings(id, host))
+      .map((id): ModuleField[] => {
+        const fields = moduleSettings(id, host);
+        if (!fields.length || fields[0].kind === "heading") return fields;
+        const pack = packs.find((p) => p.id === id);
+        const name = pack ? packName(pack, hass.language ?? "en").replace(/^(Modul|Module):\s*/i, "") : id;
+        return [{ kind: "heading", text: name }, ...fields];
+      })
       .filter((f) => f.length);
     return html`<div class="fp3d-sheet-backdrop" @click=${() => (this._settingsOpen = false)}></div>
       <div class="fp3d-sheet fp3d-settings" role="dialog" aria-label=${t("view_settings")}>
