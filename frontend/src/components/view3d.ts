@@ -4856,6 +4856,14 @@ export class Fp3dView3d extends LitElement {
             </div>`
           : nothing}
         ${sheet.lines?.length ? html`<div class="fp3d-sheet-lines">${sheet.lines.map((l) => html`<p>${l}</p>`)}</div>` : nothing}
+        ${hass.user?.is_admin && !this.ro && modulesWithSettings().length
+          ? html`<button class="fp3d-sheet-gear" @click=${() => {
+              // the sentences and speakers are set in the ⚙ menu: open it at the modules' sections
+              close();
+              this._settingsOpen = true;
+              void this.updateComplete.then(() => this.renderRoot.querySelector(".fp3d-set-module")?.scrollIntoView({ block: "start" }));
+            }}>⚙ ${t("view_settings")}</button>`
+          : nothing}
       </div>`;
   }
 
@@ -6773,6 +6781,19 @@ export class Fp3dView3d extends LitElement {
         border: 1px solid var(--fp3d-line);
         border-radius: 8px;
         padding: 6px 8px;
+      }
+      .fp3d-sheet-gear {
+        align-self: flex-start;
+        border: 0;
+        background: none;
+        color: var(--fp3d-muted);
+        font: inherit;
+        font-size: 13px;
+        padding: 4px 0;
+        cursor: pointer;
+      }
+      .fp3d-sheet-gear:hover {
+        color: var(--fp3d-accent);
       }
       .fp3d-set-module {
         display: flex;

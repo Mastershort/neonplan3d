@@ -12,7 +12,7 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 - **Windows glow outside at night:** lit rooms throw their light out of the ground floor's windows onto the lawn, in the room's light colour.
 - **⚙ Settings in the 3D view:** the ⭐ central menu opens sun & night, window light, sun patches and the warnings without the editor; every module with settings gets a section there.
 - **Modules in rooms and the ⭐ menu:** modules can offer a sheet in a room's panel and in the ⭐ menu, fields in a room's form, the microphone and the rooms someone is in – used by the new **Announcements** module in the shop.
-- **Modules: lists and markers in rooms:** a module's list (the announcement sentences) is edited entry by entry – ✕ takes one out, a field adds one; a module's marker may stand in a room and open its sheet there (📢 in the rooms).
+- **Modules: lists and markers in rooms:** a module's list (the announcement sentences) is edited entry by entry – ✕ takes one out, a field adds one; a module's marker may stand in a room and open its sheet there (📢 in the rooms); a module's sheet has a link to ⚙ Settings for administrators.
 - **Detection sensors per camera (#815):** a camera's form lets you choose the sensors that count, also another device's (Frigate for a Reolink camera). Thanks to @frops83!
 
 ### Fixed
