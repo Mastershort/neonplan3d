@@ -134,6 +134,7 @@ import { floorCounts, floorInfoText, locatedPersons, personLook, personsInRooms,
 import { controls, tokens } from "../styles.ts";
 import type { HassEntity, HomeAssistant } from "../types.ts";
 import { countView, diagnosticsActive, recordFrame, watchDiagnostics } from "../diagnostics.ts";
+import { GUARD_VERSION, gpuSafeMode, noteContextLost } from "../gpu-guard.ts";
 import type { DeviceMarker, FloorplanViewer, FloorStack, RobotInfo, Quality, ScreenState, SoundSource, SurfaceGrab, ViewerStats, WallMode } from "../viewer/viewer3d.ts";
 import { wallLayout } from "../camera-wall.ts";
 import { watchedEntities } from "../watched.ts";
@@ -145,6 +146,7 @@ import type { ClockPos } from "../card-config.ts";
 import { Director, HOLD_DEFAULT, directorAny, doorbellCamera, doorbellEntities, doorbellRang, triggerFired, type DirectorSettings, type Shot } from "../director.ts";
 import type { HistorySpec, ReplayInfo } from "../timetravel/types.ts";
 import { sunPath, type SunPath } from "../sun-path.ts";
+import { hourCycle } from "../units.ts";
 
 /** Which HTML markers are shown: none, only what has no 3D object or shows a value, or all. */
 /** "room": no symbols in the house and floor views, in a room only that room's (D477, D595). */
@@ -863,9 +865,14 @@ export class Fp3dView3d extends LitElement {
         if (this._central && !(e.target as Element | null)?.closest?.(".fp3d-central, .fp3d-central-btn")) this._central = false;
         if (this._info) this._info = null;
       });
+      // a graphics chip that lost its context right at the start of this version before starts without the newer
+      // effects (#827); only a loss within the first seconds while the page is shown is remembered
+      const startedAt = Date.now();
       this.viewer = mod.createViewer(host, {
         quality: this.quality,
         explode: this.explode,
+        safeFx: gpuSafeMode(GUARD_VERSION),
+        onContextLost: () => noteContextLost(GUARD_VERSION, startedAt, Date.now(), document.hidden),
         onRoomTap: (floorId, roomId) => this.fire("room-tap", { floorId, roomId }),
         onFloorTap: (floorId) => this.fire("floor-tap", { floorId }),
         floorInfo: (floor) =>
@@ -1462,7 +1469,8 @@ export class Fp3dView3d extends LitElement {
         const floor = b.floors.find((f) => f.id === g.floorId);
         if (!floor) continue;
         // a small tag sitting on the lid, always there: tiny from afar, a little larger close up
-        anchors.push({ p: [g.x, floor.elevation + g.y + 0.04, g.z], n: [0, 1, 0], floorId: g.floorId, size: holoSize * 0.75, roof: false, views: "all" });
+        // with its room: an opened room shows the tags standing in it (a thirsty plant there, #817)
+        anchors.push({ p: [g.x, floor.elevation + g.y + 0.04, g.z], n: [0, 1, 0], floorId: g.floorId, size: holoSize * 0.75, roof: false, views: "all", room: roomAt(floor, g.x, g.z) });
         const lines = g.lines.map((t) => ({ color: t.color, when: t.when, name: t.name, soon: !!t.soon && !t.out, out: !!t.out }));
         cards.push({ kind: "bin", name: g.lines.map((t) => t.name).join(", "), w: null, dayIds: [], battery: null, bin: { lines, soon: lines.some((l) => l.soon), icon: g.lines.length === 1 ? (g.lines[0].icon ?? null) : null } });
       }
@@ -1507,7 +1515,7 @@ export class Fp3dView3d extends LitElement {
     v.setSun(elevation !== null && typeof sun?.azimuth === "number" ? { elevation, azimuth: sun.azimuth } : null);
     // the compass ring's letters: the first letter of each direction in the user's language
     const letter = (k: I18nKey) => translate(hass, k).charAt(0).toUpperCase();
-    v.setSunPath(this.sunPathToday(hass), [letter("compass_n"), letter("compass_e"), letter("compass_s"), letter("compass_w")]);
+    v.setSunPath(this.sunPathToday(hass), [letter("compass_n"), letter("compass_e"), letter("compass_s"), letter("compass_w")], hourCycle(hass));
     // the automatic look follows the sun (setTheme ignores a look it already shows)
     if (this.theme === "auto") v.setTheme(this.effectiveTheme());
     // the weather outside: clouds darken the sky, rain, snow and fog fall over the plot
@@ -1583,7 +1591,7 @@ export class Fp3dView3d extends LitElement {
       this.goTo(item);
       return;
     }
-    const area = hass.entities?.[entity]?.area_id ?? hass.devices?.[hass.entities?.[entity]?.device_id ?? ""]?.area_id ?? null;
+    const area = entityAreaId(hass, entity);
     for (const floor of b.floors) {
       const opening = floor.openings.find((o) => {
         const l = this.openingLinks?.get(o.id);
@@ -3815,7 +3823,7 @@ export class Fp3dView3d extends LitElement {
         return now.toLocaleString(lang, o);
       }
     };
-    return html`<div class="fp3d-clock fp3d-clock-${pos}" aria-hidden="true"><b>${fmt({ hour: "2-digit", minute: "2-digit" })}</b><span>${fmt({ weekday: "short", day: "numeric", month: "short" })}</span></div>`;
+    return html`<div class="fp3d-clock fp3d-clock-${pos}" aria-hidden="true"><b>${fmt({ hour: "2-digit", minute: "2-digit", ...hourCycle(this.hass) })}</b><span>${fmt({ weekday: "short", day: "numeric", month: "short" })}</span></div>`;
   }
 
   private renderAlerts() {
@@ -4314,7 +4322,8 @@ export class Fp3dView3d extends LitElement {
     try {
       const Ctx = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
       started = new Ctx();
-      void started.resume();
+      // closed again before it resumed (no pipeline, the microphone denied): no unhandled rejection
+      started.resume().catch(() => undefined);
     } catch {
       started = undefined;
     }
@@ -4915,6 +4924,7 @@ export class Fp3dView3d extends LitElement {
         <h4>${t("view_settings_look")}</h4>
         ${check("sun_shadow", st.sun_shadow !== false, (v) => ({ sun_shadow: v }), "sun_shadow_hint")}
         ${check("window_glow", st.window_glow !== false, (v) => ({ window_glow: v }), "window_glow_hint")}
+        ${gpuSafeMode(GUARD_VERSION) ? html`<p class="fp3d-set-note">${t("gpu_safe_note")}</p>` : nothing}
         ${check("sun_patches", st.sun_patches !== false, (v) => ({ sun_patches: v }))}
         <h4>${t("view_settings_alerts")}</h4>
         ${check("rain_warning", st.rain_warning !== false, (v) => ({ rain_warning: v }))}

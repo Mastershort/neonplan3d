@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { areaText, formatImperial, lengthUnit, parseLength, unitLabel } from "./units.ts";
+import { areaText, formatImperial, hourCycle, lengthUnit, parseLength, unitLabel } from "./units.ts";
 import type { HomeAssistant } from "./types.ts";
 
 const near = (a: number | null, b: number) => assert.ok(a !== null && Math.abs(a - b) < 1e-4, `${a} ≈ ${b}`);
@@ -42,4 +42,17 @@ test("automatic follows Home Assistant's unit system; the plan's setting wins", 
   assert.equal(lengthUnit(eu, undefined), "metric");
   assert.equal(lengthUnit(us, "metric"), "metric");
   assert.equal(lengthUnit(undefined, null), "metric");
+});
+
+test("the clock follows the time format of the user's profile, not only the language (#823)", () => {
+  const at = new Date(Date.UTC(2026, 9, 28, 18, 8));
+  const time = (format: string | undefined, lang = "en") =>
+    at.toLocaleTimeString(lang, { hour: "2-digit", minute: "2-digit", timeZone: "UTC", ...hourCycle({ locale: format ? { time_format: format } : undefined } as unknown as HomeAssistant) });
+  assert.equal(time("24"), "18:08");
+  assert.match(time("12", "de"), /06:08/);
+  // "language" and older Home Assistant versions without the setting: as the language says
+  assert.match(time("language"), /PM/);
+  assert.match(time(undefined), /PM/);
+  assert.equal(time(undefined, "de"), "18:08");
+  assert.equal(JSON.stringify(hourCycle(null)), "{}");
 });

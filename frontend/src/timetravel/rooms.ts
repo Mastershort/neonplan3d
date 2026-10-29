@@ -3,6 +3,7 @@
 // furniture and the windows' sensors.
 
 import { pointInPolygon, type Building } from "../model.ts";
+import { entityAreaId } from "../devices.ts";
 import type { HomeAssistant } from "../types.ts";
 import type { HistorySpec } from "./types.ts";
 
@@ -21,11 +22,9 @@ export interface RoomEntities {
 
 const domainOf = (id: string) => id.slice(0, id.indexOf("."));
 
-/** The area of an entity: its own, else its device's. */
+/** The area of an entity: its own, else its device's (or that device's parent's). */
 function areaOf(hass: HomeAssistant, id: string): string | null {
-  const e = hass.entities?.[id];
-  if (!e) return null;
-  return e.area_id ?? (e.device_id ? (hass.devices?.[e.device_id]?.area_id ?? null) : null);
+  return entityAreaId(hass, id);
 }
 
 /** The rooms of the plan with their lights, windows, climate devices and temperature sensors. */

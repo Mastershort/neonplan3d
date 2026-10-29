@@ -1,6 +1,7 @@
 // Time travel: which entities to fetch (and how), and what each one means for the event markers.
 
 import type { Building, Floor, Furniture, Opening } from "../model.ts";
+import { deviceAreaId } from "../devices.ts";
 import type { HomeAssistant } from "../types.ts";
 import type { HistorySpec } from "./types.ts";
 import { cameraMotionSensors } from "../markers.ts";
@@ -74,8 +75,8 @@ export function historyRequest(
   const fromAreas: string[] = [];
   for (const [id, entry] of Object.entries(hass.entities ?? {})) {
     if (!entry.area_id && entry.device_id) {
-      const dev = hass.devices?.[entry.device_id];
-      if (!dev?.area_id || !areas.has(dev.area_id)) continue;
+      const area = deviceAreaId(hass, entry.device_id);
+      if (!area || !areas.has(area)) continue;
     } else if (!entry.area_id || !areas.has(entry.area_id)) continue;
     if (entry.hidden || entry.entity_category || !AREA_DOMAINS.has(domainOf(id))) continue;
     fromAreas.push(id);

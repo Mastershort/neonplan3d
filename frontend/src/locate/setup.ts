@@ -3,6 +3,7 @@
 
 import { css, html, LitElement, nothing } from "lit";
 import type { Building } from "../model.ts";
+import { deviceAreaId } from "../devices.ts";
 import type { HomeAssistant } from "../types.ts";
 import { doorPairs, locateRooms, roomAt, type LocateRoom } from "./graph.ts";
 
@@ -1778,7 +1779,8 @@ export class LocateSetup extends LitElement {
   }
 
   private get rooms(): LocateRoom[] {
-    return locateRooms(this.building);
+    // an outdoor area without a name of its own goes by its Home Assistant area's name
+    return locateRooms(this.building).map((r) => (r.name || !r.area_id ? r : { ...r, name: this.hass.areas?.[r.area_id]?.name ?? r.area_id }));
   }
 
   connectedCallback(): void {
@@ -1849,7 +1851,7 @@ export class LocateSetup extends LitElement {
     const deviceId =
       s.device_id ?? Object.values(this.hass.devices ?? {}).find((d) => [d.name_by_user, d.name].some((n) => n && n.toLowerCase() === s.name.toLowerCase()))?.id ?? null;
     const entityAreas = deviceId ? Object.values(this.hass.entities ?? {}).filter((e) => e.device_id === deviceId && e.area_id).map((e) => e.area_id!) : [];
-    const area = s.area_id ?? (deviceId ? this.hass.devices?.[deviceId]?.area_id : null) ?? entityAreas[0] ?? null;
+    const area = s.area_id ?? deviceAreaId(this.hass, deviceId) ?? entityAreas[0] ?? null;
     if (area) {
       const room = this.rooms.find((r) => r.area_id === area);
       if (room) return room.id;

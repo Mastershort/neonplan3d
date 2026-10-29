@@ -9,6 +9,7 @@ What comes next. The order follows your wishes (issues, Discord and 👍 in [Dis
 ## ✅ Recently done (1.13 – 2.0)
 
 - **Locating** (2.0, free): who and what is where – from the Shelly plugs and ESPHome proxies you already have, learned in 90 seconds per room, without Bermuda; people as glowing figures, a sensor per device, "Where is my iPhone?".
+- **Fixes and ready for HA 2026.11** (2.0.8): extensions in English, sloping walls, window glow on balconies, 24-hour clock, outdoor areas in locating, a safe mode for older graphics chips, power outage picker.
 - **Sun & night and settings at hand** (2.0.7): the sun's path and the house's shadow, windows glowing out at night, ⚙ Settings in the 3D view, modules in rooms (Announcements), detection sensors per camera, editor fix.
 - **Door angles and fixes** (2.0.6): doors open at an angle of their own, a warning for unavailable contacts, module updates waiting for approval, drawers stretch evenly, bin button, camera wedge on sunken floors.
 - **Turned roofs** (2.0.5): roof parts turn for wings at an angle, dormers turn along; cameras shown as furniture, roof windows in their room, bin button, the point the view turns about.
@@ -128,6 +129,7 @@ Was als Nächstes kommt. Die Reihenfolge richtet sich nach euren Wünschen (Issu
 ## ✅ Zuletzt erledigt (1.13 – 2.0)
 
 - **Ortung** (2.0, kostenlos): Wer und was ist wo – über die Shelly-Steckdosen und ESPHome-Proxys, die du schon hast, in 90 Sekunden pro Raum eingelernt, ohne Bermuda; Personen als leuchtende Figuren, ein Sensor pro Gerät, „Wo ist mein iPhone?“.
+- **Korrekturen und bereit für HA 2026.11** (2.0.8): Erweiterungen auf Englisch, schräge Wände, Fensterschein auf Balkonen, 24-Stunden-Uhr, Außenflächen in der Ortung, Schonmodus für ältere Grafikchips, Auswahl für den Stromausfall.
 - **Sonne & Nacht und Einstellungen griffbereit** (2.0.7): Sonnenbahn und Hausschatten, Fenster leuchten nachts nach draußen, ⚙ Einstellungen in der 3D-Ansicht, Module im Raum (Durchsagen), Erkennungs-Sensoren pro Kamera, Editor-Fehler behoben.
 - **Türwinkel und Korrekturen** (2.0.6): Türen öffnen in einem eigenen Winkel, Warnung bei nicht verfügbaren Kontakten, Modul-Updates warten sichtbar auf die Freigabe, Schubladen strecken gleichmäßig, Mülltonnen-Knopf, Kamerakegel bei versenkten Etagen.
 - **Gedrehte Dächer** (2.0.5): Dachflächen drehen sich für schräge Anbauten, Gauben drehen mit; Kameras als Möbel, Dachfenster im richtigen Raum, Mülltonnen-Knopf, der Drehpunkt der Ansicht.

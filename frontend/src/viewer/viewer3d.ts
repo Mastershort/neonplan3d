@@ -78,7 +78,7 @@ import { accentOnUniform, accentUniform, parseAccent, lineBlending, themed, them
 
 export type { Theme } from "./theme.ts";
 import { ALWAYS, DEG, GeoBuffer, LineBuffer, pushPrism, triangulate } from "./geo.ts";
-import { buildLightSurface, lightColors, roomIndexAt, type LightKind, type LightSource, type LightSurface, zoneOf } from "./lighting.ts";
+import { buildLightSurface, lightColors, roomIndexAt, spillLength, type LightKind, type LightSource, type LightSurface, zoneOf } from "./lighting.ts";
 import { buildOpeningParts, CLOSED, type OpeningState } from "./openings.ts";
 import { circlePath, cleaningPath, stepRobot, type RobotInfo, type RobotMotion } from "./robot.ts";
 import { decorDelay, lowEndDevice, petDelay } from "./pace.ts";
@@ -97,6 +97,13 @@ export interface ViewerOptions {
   quality?: Quality;
   /** Pull floors apart in the house view (default true). */
   explode?: boolean;
+  /**
+   * Without the newer effects – the sun's arc, the house shadow and the window light at night – for a graphics
+   * chip that lost its context on them before (#827).
+   */
+  safeFx?: boolean;
+  /** The WebGL context was lost (not by dispose()). */
+  onContextLost?: () => void;
   onRoomTap?: (floorId: string, roomId: string | null) => void;
   onFloorTap?: (floorId: string) => void;
   onBack?: () => void;
@@ -587,6 +594,8 @@ export class FloorplanViewer {
   private spillNight = "";
   /** N, E, S, W on the compass ring, in the user's language. */
   private compassLetters: [string, string, string, string] = ["N", "E", "S", "W"];
+  /** 12 or 24 hours for the sunrise and sunset times on the arc (the user's profile, #823). */
+  private hourCycle: { hourCycle?: "h12" | "h23" } = {};
   /** Stripe phase per cable piece, kept when its speed changes so the stripes do not jump. */
   private flowPhase = new Map<string, { speed: number; offset: number }>();
   private readonly flowTime = { value: 0 };
@@ -758,6 +767,9 @@ export class FloorplanViewer {
     this.options = options;
     this.explode = options.explode ?? true;
     this.renderer = this.makeRenderer(options.quality ?? "auto");
+    this.renderer.domElement.addEventListener("webglcontextlost", () => {
+      if (!this.disposed) this.options.onContextLost?.();
+    });
     this.labels = document.createElement("div");
     this.labels.className = "fp3d-labels";
     host.append(this.labels);
@@ -1475,9 +1487,10 @@ export class FloorplanViewer {
   }
 
   /** The sun's way across the sky today (null: no place known): drawn as an arc over the house. */
-  setSunPath(path: SunPath | null, letters?: [string, string, string, string]): void {
+  setSunPath(path: SunPath | null, letters?: [string, string, string, string], hours?: { hourCycle?: "h12" | "h23" }): void {
     this.sunPath = path;
     if (letters) this.compassLetters = letters;
+    if (hours) this.hourCycle = hours;
     this.buildSunFx();
     this.invalidate();
   }
@@ -1615,7 +1628,7 @@ export class FloorplanViewer {
   private buildSunFx(): void {
     const b = this.building;
     const sun = this.sun;
-    const on = !!b && !!sun && b.settings.sun_shadow !== false;
+    const on = !!b && !!sun && b.settings.sun_shadow !== false && !this.options.safeFx;
     const north = (b?.settings.north ?? 0) * DEG;
     const cloud = this.weather?.cloud ?? 0;
     const shade = on && !this.lowQuality && sun.elevation > 1 && cloud < 0.9 && !this.roomTint;
@@ -1628,7 +1641,7 @@ export class FloorplanViewer {
     const path = this.sunPath;
     const arc = on && !!path && path.points.length > 1 && sun.elevation > -3;
     const frame = arc ? this.arcFrame() : null;
-    const arcSig = arc && frame ? `${this.theme},${sun.elevation.toFixed(1)},${sun.azimuth.toFixed(1)},${this.compassLetters.join("")},${path.points[0].t},${north},${frame.x.toFixed(2)},${frame.z.toFixed(2)},${frame.y.toFixed(2)},${frame.r.toFixed(2)},${cloud.toFixed(1)}` : "";
+    const arcSig = arc && frame ? `${this.theme},${sun.elevation.toFixed(1)},${sun.azimuth.toFixed(1)},${this.compassLetters.join("")},${this.hourCycle.hourCycle ?? ""},${path.points[0].t},${north},${frame.x.toFixed(2)},${frame.z.toFixed(2)},${frame.y.toFixed(2)},${frame.r.toFixed(2)},${cloud.toFixed(1)}` : "";
     if (arcSig === this.arcSig) return;
     this.arcSig = arcSig;
     if (!arcSig || !frame || !path || !sun) return this.sunFx.hideArc();
@@ -1640,7 +1653,7 @@ export class FloorplanViewer {
     };
     const fade = 1 - 0.7 * cloud;
     const now = Date.now();
-    const time = (t: number) => new Date(t).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    const time = (t: number) => new Date(t).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", ...this.hourCycle });
     const size = frame.r * 0.03;
     this.sunFx.setArc({
       points: path.points.map((p) => ({ at: at(p.azimuth, p.elevation), t: p.t, elevation: p.elevation })),
@@ -1680,7 +1693,7 @@ export class FloorplanViewer {
    */
   private buildSpill(fv: FloorView, sources: LightSource[]): void {
     const b = this.building;
-    const night = b?.settings.window_glow === false ? 0 : this.nightFactor();
+    const night = b?.settings.window_glow === false || this.options.safeFx ? 0 : this.nightFactor();
     const gf = b && night > 0 ? groundFloor(b) : null;
     const ground = !!gf && Math.abs(fv.floor.elevation - gf.elevation) < 0.5;
     // the light per light zone: colour weighted by brightness
@@ -1715,10 +1728,19 @@ export class FloorplanViewer {
         const near = new Color((light[0] / peak) * k, (light[1] / peak) * k, (light[2] / peak) * k);
         // from the wall's outer face outwards, wider and fainter the further out (a tall window throws it further)
         const out: [number, number] = [-info.toRoom[0], -info.toRoom[1]];
-        const len = Math.min(3.5, 0.8 + 1.1 * info.top);
+        const reach = Math.min(3.5, 0.8 + 1.1 * info.top);
+        // the patch lies on the ground just in front of the window and ends where that ground does: a window onto
+        // a balcony lights the balcony, not the driveway below it past its edge (#822)
+        const groundAt = (s: number, d: number, spread: number) => {
+          const t = d / reach;
+          const sx = -spread * t + s * (info.width + 2 * spread * t);
+          return groundUnder(fv.floor, { x: info.start[0] + info.axis[0] * sx + out[0] * (info.faceOut + d), z: info.start[1] + info.axis[1] * sx + out[1] * (info.faceOut + d) });
+        };
+        const foot = groundAt(0.5, 0.05, 0);
+        const len = spillLength((s, d) => groundAt(s, d, 0.35 * reach), foot, reach);
+        if (len < 0.2) continue;
         const spread = 0.35 * len;
-        const mid = [info.start[0] + info.axis[0] * (info.width / 2) + out[0] * (info.faceOut + len / 2), info.start[1] + info.axis[1] * (info.width / 2) + out[1] * (info.faceOut + len / 2)];
-        const y = groundUnder(fv.floor, { x: mid[0], z: mid[1] }) + 0.014;
+        const y = foot + 0.014;
         const at = (s: number, d: number) => {
           const t = d / len;
           const sx = -spread * t + s * (info.width + 2 * spread * t);

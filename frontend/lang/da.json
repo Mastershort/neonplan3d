@@ -2103,5 +2103,6 @@
  "sun_shadow": "Solbane og husets skygge",
  "sun_shadow_hint": "En bue over huset viser solens bane i dag med solopgang og solnedgang, og husets skygge ligger på jorden og vandrer med solen. Kræver nordretningen; på niveauet \"Tablet\" kun buen.",
  "window_glow": "Vinduer lyser udenfor om natten",
- "window_glow_hint": "Når det er mørkt, falder lyset fra oplyste rum ud gennem vinduerne som et varmt skær på græsplæne og terrasse – i rummets lysfarve, svagere bag nedrullede persienner."
+ "window_glow_hint": "Når det er mørkt, falder lyset fra oplyste rum ud gennem vinduerne som et varmt skær på græsplæne og terrasse – i rummets lysfarve, svagere bag nedrullede persienner.",
+ "gpu_safe_note": "I denne browser er solbuen, husets skygge og vinduernes skær om natten slået fra: grafikken gik tabt lige efter starten. Den næste NeonPlan-version prøver igen."
 }

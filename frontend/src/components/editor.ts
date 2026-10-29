@@ -6,7 +6,7 @@ import { unsafeHTML } from "lit/directives/unsafe-html.js";
 import { ref } from "lit/directives/ref.js";
 import { fetchImage, importPack, listHistory, restoreSnapshot, storeImage, takeSnapshot, type Snapshot, getVoiceSettings, setVoiceSentences, type SentenceMode } from "../api.ts";
 import { download, exportFile, parseExport } from "../transfer.ts";
-import { carEntities, type CarEntities, areaEntities, autoPlace, hiddenInHa, CLIMATE_CLASSES, defaultHeight, entityName, entityAreaId, furnitureEntities, groupByDevice, hasScreen, isMediaFurniture, isPlaceable, isRoomClimateSensor, kindOf, openingEntities, otherAreaEntities, pictureRuleMatches, roomClimateSensors, unassignedEntities, windowPosition, type ClimateKey } from "../devices.ts";
+import { carEntities, type CarEntities, areaEntities, autoPlace, hiddenInHa, CLIMATE_CLASSES, defaultHeight, entityName, entityAreaId, furnitureEntities, groupByDevice, hasScreen, isMediaFurniture, isPlaceable, isRoomClimateSensor, kindOf, openingEntities, otherAreaEntities, pictureRuleMatches, roomClimateSensors, roomPanelEntities, unassignedEntities, windowPosition, type ClimateKey } from "../devices.ts";
 import { furnitureSymbol } from "./furniture2d.ts";
 import { clipConvex, netRoomArea } from "../geometry/area.ts";
 import { areaText, formatImperial, lengthText, lengthUnit, parseLength, unitLabel, type LengthUnit } from "../units.ts";
@@ -17,6 +17,7 @@ import { connectionsAt, laidPipe, nearestOnOutline, planConnection, poolNodeAt, 
 import { devicePorts, FILTER_VALVES, jointPortAt, jointPorts, nodePart, poolPortFlow, portFlow, splitNode, type PortName } from "../pool-ports.ts";
 import { holeInRoom } from "../geometry/holes.ts";
 import { weatherEntity, isRainSource } from "../weather.ts";
+import { isOutageSource } from "../outage.ts";
 import { SHOW_PRESENCE } from "../flags.ts";
 import { hasFeature, labOn, manualUrl, released, shopUrl, UNRELEASED } from "../features.ts";
 import { loadLocate } from "../load-locate.ts";
@@ -10762,6 +10763,8 @@ export class Fp3dEditor extends LitElement {
   }
 
   /** The options of a filter, kept while the same filter asks again and no entity came or went (see memoFields). */
+  /** Picker filter for the outage entity (#831): sensible sources, plus a switch already chosen before. */
+  private isOutageChoice = (id: string) => isOutageSource(this.hass?.states[id]) || id === this._doc.settings.outage_entity;
   private _optionsMemo = new WeakMap<(id: string) => boolean, { entities: unknown; count: number; options: { id: string; label: string }[] }>();
 
   private entityOptions(filter: (id: string) => boolean) {
@@ -10775,8 +10778,7 @@ export class Fp3dEditor extends LitElement {
 
   private entityOptionsOf(filter: (id: string) => boolean) {
     const areaName = (id: string) => {
-      const entry = this.hass?.entities?.[id];
-      const area = entry?.area_id ?? (entry?.device_id ? this.hass?.devices?.[entry.device_id]?.area_id : null);
+      const area = this.hass ? entityAreaId(this.hass, id) : null;
       return area ? this.hass?.areas?.[area]?.name : undefined;
     };
     return Object.keys(this.hass?.states ?? {})
@@ -12703,11 +12705,17 @@ export class Fp3dEditor extends LitElement {
       ...(this.floor?.placements.filter((pl) => pointInPolygon([pl.x, pl.z], room.points)).map((pl) => pl.entity_id) ?? []),
       ...(this.floor?.furniture.filter((m) => isLamp(m.type) && m.entity && pointInPolygon([m.x, m.z], room.points)).map((m) => m.entity!) ?? []),
     ]);
-    // placed before it was hidden in Home Assistant: it stays in 3D, so it stays in the list too – to remove or hide it (#645)
-    const ids = hass ? [...area, ...[...placedHere].filter((id) => !area.includes(id) && hiddenInHa(hass, id) && isPlaceable(kindOf(id)))] : area;
+    // placed before it was hidden in Home Assistant: it stays in 3D, so it stays in the list too – to remove or hide it (#645);
+    // what the room's panel shows through furniture, windows or a pin – a dryer's status text, a PC's internet
+    // switch – is no area device by itself, yet must be hideable here (#815); hidden ones stay listed to show again
+    const linked = hass && this.floor ? roomPanelEntities(hass, this.floor, { ...room, hidden: [] }).shown : [];
+    const ids = hass
+      ? [...new Set([...area, ...[...placedHere].filter((id) => hiddenInHa(hass, id) && isPlaceable(kindOf(id))), ...linked.filter((id) => isPlaceable(kindOf(id)))])]
+      : area;
     const groups = hass ? groupByDevice(hass, ids) : [];
     // the automatic placement only takes each device's main entity
-    const unplacedMain = groups.map((g) => g.primary).filter((id) => !placedHere.has(id));
+    // (not what a piece of furniture or a window already shows)
+    const unplacedMain = groups.map((g) => g.primary).filter((id) => !placedHere.has(id) && (area.includes(id) || !linked.includes(id)));
     const q = this._deviceQuery.trim().toLowerCase();
     const matches = (id: string) => !q || entityName(hass, id, areaName).toLowerCase().includes(q) || id.includes(q);
     const ceilingLights = this.floor?.placements.filter(
@@ -13406,7 +13414,7 @@ export class Fp3dEditor extends LitElement {
                 this.t("outage_entity"),
                 s.outage_entity ?? null,
                 undefined,
-                this.entityOptions((id) => /^(binary_sensor|sensor|input_boolean|switch)\./.test(id)),
+                this.entityOptions(this.isOutageChoice),
                 (v) => set({ outage_entity: v === "none" ? null : v }),
               )}
               <p class="fp3d-sub fp3d-wide">${this.t("outage_entity_hint")}</p>`

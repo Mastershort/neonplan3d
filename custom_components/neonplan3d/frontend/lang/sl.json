@@ -2103,5 +2103,6 @@
  "sun_shadow": "Pot sonca in senca hiše",
  "sun_shadow_hint": "Lok nad hišo kaže današnjo pot sonca z vzhodom in zahodom, senca hiše pa leži na tleh in potuje s soncem. Potrebuje smer severa; na ravni »Tablica« samo lok.",
  "window_glow": "Okna ponoči svetijo ven",
- "window_glow_hint": "Ko je zunaj temno, svetloba osvetljenih prostorov pada skozi okna kot topel sij na trato in teraso – v barvi luči prostora, šibkeje za spuščenimi roletami."
+ "window_glow_hint": "Ko je zunaj temno, svetloba osvetljenih prostorov pada skozi okna kot topel sij na trato in teraso – v barvi luči prostora, šibkeje za spuščenimi roletami.",
+ "gpu_safe_note": "V tem brskalniku so sončni lok, senca hiše in nočni sij oken izklopljeni: grafika se je izgubila takoj po zagonu. Naslednja različica NeonPlan bo poskusila znova."
 }

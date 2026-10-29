@@ -889,3 +889,34 @@ test("slat buttons only for covers with slats: a KNX roller shutter announcing t
   assert.equal(coverTiltButtons(cover({ supported_features: 48 })), true);
   assert.equal(coverTiltButtons(cover({ device_class: "blind", supported_features: 15 })), false);
 });
+
+test("a child device without an area takes its parent's (Home Assistant 2026.11), older versions as before", async () => {
+  const { areaEntities, deviceAreaId, entityAreaId } = await import("./devices.ts");
+  const hass = {
+    states: { "switch.gang_2": { entity_id: "switch.gang_2", state: "off", attributes: {} }, "switch.own": { entity_id: "switch.own", state: "off", attributes: {} } },
+    entities: {
+      "switch.gang_2": { entity_id: "switch.gang_2", device_id: "child", area_id: null },
+      "switch.own": { entity_id: "switch.own", device_id: "child_own", area_id: null },
+      "switch.loop": { entity_id: "switch.loop", device_id: "loop_a", area_id: null },
+    },
+    devices: {
+      parent: { id: "parent", area_id: "kitchen" },
+      child: { id: "child", area_id: null, parent_device_id: "parent" },
+      child_own: { id: "child_own", area_id: "hall", parent_device_id: "parent" },
+      // a parent chain in a circle ends instead of looping
+      loop_a: { id: "loop_a", area_id: null, parent_device_id: "loop_b" },
+      loop_b: { id: "loop_b", area_id: null, parent_device_id: "loop_a" },
+      // older Home Assistant: no parent field at all
+      old: { id: "old", area_id: "office" },
+    },
+  } as never;
+  assert.equal(entityAreaId(hass, "switch.gang_2"), "kitchen");
+  // a child's own area wins over its parent's
+  assert.equal(entityAreaId(hass, "switch.own"), "hall");
+  assert.equal(entityAreaId(hass, "switch.loop"), null);
+  assert.equal(deviceAreaId(hass, "old"), "office");
+  assert.equal(deviceAreaId(hass, "missing"), null);
+  assert.equal(deviceAreaId(hass, null), null);
+  // the room's device list finds the channel in the parent's room
+  assert.ok(areaEntities(hass, "kitchen").includes("switch.gang_2"));
+});

@@ -141,7 +141,9 @@ async def _post(hass: HomeAssistant, path: str, body: dict[str, Any]) -> Any:
 
 async def async_fetch_catalog(hass: HomeAssistant, key: str, instance: str) -> dict[str, Any]:
     """The customer's packs (id, name, release, shop page) and name; binds this installation to the key."""
-    text = await _post(hass, "catalog", {"key": key, "instance": instance})
+    # the language, so the shop names its offers in it (an English installation saw German shop texts, #825)
+    lang = (hass.config.language or "en")[:10]
+    text = await _post(hass, "catalog", {"key": key, "instance": instance, "lang": lang})
     try:
         data = json.loads(text)
     except ValueError as err:

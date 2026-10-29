@@ -150,7 +150,8 @@ export class MicProbe extends LitElement {
     const t = this.t;
     // the audio context starts on the tap itself – made after the await it stays mute in Android WebViews (#579)
     const ctx = audioContext();
-    void ctx.resume();
+    // closed again before it resumed (the microphone denied): no unhandled rejection (usage reports)
+    ctx.resume().catch(() => undefined);
     try {
       this.stream = await openMicrophone();
     } catch (err) {

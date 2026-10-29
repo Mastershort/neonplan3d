@@ -2103,5 +2103,6 @@
  "sun_shadow": "Solens bana och husets skugga",
  "sun_shadow_hint": "En båge över huset visar solens bana i dag med soluppgång och solnedgång, och husets skugga ligger på marken och vandrar med solen. Kräver norrriktningen; på nivån ”Surfplatta” bara bågen.",
  "window_glow": "Fönster lyser ut på natten",
- "window_glow_hint": "När det är mörkt faller ljuset från tända rum ut genom fönstren som ett varmt sken på gräsmatta och terrass – i rummets ljusfärg, svagare bakom nerdragna persienner."
+ "window_glow_hint": "När det är mörkt faller ljuset från tända rum ut genom fönstren som ett varmt sken på gräsmatta och terrass – i rummets ljusfärg, svagare bakom nerdragna persienner.",
+ "gpu_safe_note": "I den här webbläsaren är solbågen, husets skugga och fönstrens sken på natten avstängda: grafiken förlorades direkt efter starten. Nästa NeonPlan-version försöker igen."
 }

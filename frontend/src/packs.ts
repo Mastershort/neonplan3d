@@ -247,7 +247,13 @@ export function packItemName(item: PackItem, language: string): string {
 // English names of our own packs: a pack file carries one (German) name, the furniture inside both (#224)
 const PACK_NAMES_EN: Record<string, string> = {
   architecture: "Architecture & Fit-out",
+  balcony: "Balcony & Small Spaces",
   bath: "Bathroom",
+  cabinet_kit: "Cabinets & Shelves – Kit",
+  deco: "Decor & Plants",
+  dining_hall: "Dining Room & Hallway",
+  fun_halloween: "Fun Pack: Halloween",
+  fun_pets: "Fun Pack: Pets",
   bedroom: "Bedroom",
   cinema: "Home Cinema & Hi-Fi",
   exclusive: "Exclusive: Smart Fridge",
@@ -272,6 +278,11 @@ const PACK_NAMES_EN: Record<string, string> = {
   pro_screens: "Pro: Live Screens",
   pro_sound: "Pro: Sound & Cinema",
   pro_weather: "Pro: Weather Outside",
+  pro_heat: "Pro: Heat Pro",
+  pro_household: "Pro: Household Pro",
+  announce: "Module: Announcements",
+  voice_answers: "Module: The house answers",
+  window_watch: "Module: Window watch",
 };
 
 /** A pack's name in the user's language: our own packs in English outside German, others as they come. */
@@ -280,7 +291,9 @@ export function packName(pack: { id: string; name: string }, language: string): 
   const key = pack.id.replace(/^mastershort\./, "");
   const sample = key.endsWith("_sample");
   const en = PACK_NAMES_EN[sample ? key.slice(0, -"_sample".length) : key];
-  return en ? (sample ? `${en} – Sampler` : en) : pack.name;
+  if (en) return sample ? `${en} – Sampler` : en;
+  // one of ours newer than this table: at least its kind in English (#825)
+  return pack.name.replace(/^Modul:/, "Module:").replace(/^Fun-Pack:/, "Fun Pack:");
 }
 
 /** Height of the bottom of a pack item, a wall light or an LED strip above the floor (0 for other built-in furniture). */

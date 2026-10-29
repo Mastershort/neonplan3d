@@ -8,7 +8,7 @@
 import type { Floor, Vec2 } from "../model.ts";
 import { outdoorSurface } from "./outdoor.ts";
 import { groundDrop, outdoorStanding, pointInPolygon } from "../model.ts";
-import type { Wall } from "../geometry/walls.ts";
+import { slopeTop, type Wall } from "../geometry/walls.ts";
 import type { OpeningInfo } from "./build.ts";
 import { LOWER_OFFSET, triangulate } from "./geo.ts";
 import { clipConvex } from "../geometry/area.ts";
@@ -48,8 +48,10 @@ export interface LightSurface {
 export interface Blocker {
   a: Vec2;
   b: Vec2;
-  /** Height of the wall. */
+  /** Height of the wall (at its end a). */
   h: number;
+  /** A sloping wall's height at its end b: the top runs straight from `h` to it (#821). */
+  h1?: number;
   /** Room (light zone) index on each side; the outside zone for the outer side of an exterior wall. */
   ra: number;
   rb: number;
@@ -179,7 +181,9 @@ export function buildLightSurface(
     const bucket = wallBuckets[wi];
     const gaps = openingSpans(w, u, len, openings);
     const sideRoom = (id: string | null, outer: boolean) => (id ? floor.rooms.findIndex((r) => r.id === id) : outer ? outside : -1);
-    blockers.push({ a: w.a, b: w.b, h: H, ra: sideRoom(w.roomLeft, false), rb: sideRoom(w.roomRight, w.exterior), gaps });
+    // a sloping wall blocks the light only below its slope (#821)
+    const ends = w.slope ? { h: Math.min(H, slopeTop(w.slope, w.a[0], w.a[1])), h1: Math.min(H, slopeTop(w.slope, w.b[0], w.b[1])) } : { h: H };
+    blockers.push({ a: w.a, b: w.b, ...ends, ra: sideRoom(w.roomLeft, false), rb: sideRoom(w.roomRight, w.exterior), gaps });
     // the cells break at the cut and at every sill, top and side of an opening, so the hole a window
     // leaves in the lit face matches the window (a cell is lit or dark as a whole)
     const marks = (vals: number[], lo: number, hi: number) =>
@@ -194,10 +198,12 @@ export function buildLightSurface(
       const face = (side > 0 ? w.left : w.right) + FACE_GAP;
       const n: Vec2 = [nLeft[0] * side, nLeft[1] * side];
       const at = (s: number, y: number) => [w.a[0] + u[0] * s + n[0] * face, y, w.a[1] + u[1] * s + n[1] * face];
+      // the lit face ends below the roof slope and below the wall's own slope (#821)
       const under = (s: number) => {
         const p = at(s, 0);
         const y = roofUnder?.(p[0], p[2]);
-        return y == null ? Infinity : y - 0.02;
+        const own = w.slope ? slopeTop(w.slope, w.a[0] + u[0] * s, w.a[1] + u[1] * s) - 0.02 : Infinity;
+        return Math.min(y == null ? Infinity : y - 0.02, own);
       };
       for (let p = 0; p < cols.length - 1; p++) {
         const span = cols[p + 1] - cols[p];
@@ -217,7 +223,15 @@ export function buildLightSurface(
             const topA = Math.min(y1, under(s0));
             const topB = Math.min(y1, under(s1));
             if (topA <= y0 + 0.005 && topB <= y0 + 0.005) continue;
-            quad(at(s0, y0), at(s1, y0), at(s1, Math.max(y0, topB)), at(s0, Math.max(y0, topA)), [n[0], 0, n[1]], ri, f);
+            // the top crosses the cell's lower edge: only the triangle below the top is lit, the rest of the
+            // cell would stand out over the slope (#821)
+            if (topA < y0 || topB < y0) {
+              const sx = s0 + ((s1 - s0) * (y0 - topA)) / (topB - topA);
+              if (topA < y0) quad(at(sx, y0), at(s1, y0), at(s1, topB), at(sx, y0), [n[0], 0, n[1]], ri, f);
+              else quad(at(s0, y0), at(sx, y0), at(sx, y0), at(s0, topA), [n[0], 0, n[1]], ri, f);
+              continue;
+            }
+            quad(at(s0, y0), at(s1, y0), at(s1, topB), at(s0, topA), [n[0], 0, n[1]], ri, f);
           }
         }
       }
@@ -400,12 +414,22 @@ export function shadowed(s: { x: number; y: number; z: number }, walls: readonly
     const k = (ax * dz - az * dx) / den;
     if (k < 0 || k > 1) continue;
     const y = s.y + (py - s.y) * t;
-    if (y >= w.h) continue;
+    if (y >= (w.h1 === undefined ? w.h : w.h + (w.h1 - w.h) * k)) continue;
     const along = k * Math.hypot(ex, ez);
     if (w.gaps.some((g) => along > g.s0 && along < g.s1 && y > g.y0 && y < g.y1)) continue;
     return true;
   }
   return false;
+}
+
+/**
+ * How far a window's light at night reaches out over the ground (at most `reach`): it ends where the ground
+ * under it leaves the level at the window's foot – the edge of a balcony or a terrace (#822). `groundAt(s, d)`
+ * is the ground at `s` across the patch (0–1) and `d` metres out.
+ */
+export function spillLength(groundAt: (s: number, d: number) => number, foot: number, reach: number): number {
+  for (let d = 0.1; d < reach; d += 0.1) if ([0.1, 0.5, 0.9].some((s) => Math.abs(groundAt(s, d) - foot) > 0.1)) return d - 0.05;
+  return reach;
 }
 
 /** Index of the room a point lies in; outside every room: the outside zone (rooms.length). */

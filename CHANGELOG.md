@@ -4,6 +4,21 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 [releases page](https://github.com/Mastershort/neonplan3d/releases). Ideas and votes:
 [Discussions → Ideas](https://github.com/Mastershort/neonplan3d/discussions/categories/ideas).
 
+## 2.0.8
+
+### Fixed
+
+- **Extensions in English (#825):** the newer packs, Pro add-ons and modules (Announcements, Heat Pro, Household Pro, Window watch, The house answers, the new furniture packs) have English names outside German, and NeonPlan tells the shop the language, so its offers come in it. Thanks to @twynne!
+- **Devices a room shows that could not be hidden (#815):** what a room's panel shows through a piece of furniture, a window or a pin – a dryer's status text, a PC's internet switch, an inverter's state – is listed in the editor's devices of the room too, so 👁 hides it. Thanks to @frops83!
+- **3D view crashing on older graphics chips (#827):** if the 3D view loses its graphics right after it starts (older AMD chips in Chrome on a Mac failed on the new sun effects), the browser remembers it and starts without the sun's arc, the house shadow and the window glow at night; ⚙ Settings says so. Every new version tries them again once. Thanks to @Wolk9!
+- **Plant tag in a room (#817):** a thirsty plant's tag (Household Pro) also shows with its room opened, like bins and post. Thanks to @frops83!
+- **Sloping walls (#821):** the light on a sloping wall ends at its slope (no glowing rectangle above it), the wall blocks light only below it, and where the slope crosses the cut height no piece of the wall is missing. Thanks to @RealSkyMaster!
+- **Window glow on the driveway (#822):** a window over a balcony lights the balcony, and the glow ends at its edge instead of falling onto the ground below. Thanks to @1970lexi!
+- **24-hour clock (#823):** the clock, the sunrise and sunset times on the sun's arc and the times of the motion trail and the time travel follow the time format of your Home Assistant profile (12 or 24 hours), not only the language. Thanks to @erwinsnl!
+- **Outdoor areas in locating (#828):** outdoor areas with a Home Assistant area (a terrace) can be chosen as a scanner's room, people are shown there, and a terrace door joins them with the room behind it. Thanks to @dennisgoedde!
+- **Power outage from a switch (#831):** **Report a power outage with** offers grid sensors, UPS and grid states, the mains voltage and helpers of your own, no longer every switch (a battery's "phase power control" that is on is no outage); a grid status "Off Grid" counts as an outage. A switch chosen before keeps working. Thanks to @Wolk9!
+- **Ready for Home Assistant 2026.11:** devices split into channels (Tuya, Z-Wave, ZHA groups) keep their room.
+
 ## 2.0.7
 
 ### New

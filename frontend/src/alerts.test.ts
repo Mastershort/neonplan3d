@@ -127,6 +127,19 @@ test("a power outage: grid sensors off, helpers on, a UPS on battery, a low main
   assert.equal(alertText(hass, b, alerts[0]), "Stromausfall: Netz");
 });
 
+test("the outage picker offers grid and UPS sources, not switches or meters (#831)", async () => {
+  const { isOutageSource } = await import("./outage.ts");
+  const st = (entity_id: string, state: string, attributes: Record<string, unknown> = {}) => ({ entity_id, state, attributes });
+  assert.equal(isOutageSource(st("binary_sensor.netz", "on", { device_class: "power" })), true);
+  assert.equal(isOutageSource(st("input_boolean.stromausfall", "off")), true);
+  assert.equal(isOutageSource(st("sensor.netzspannung", "231", { unit_of_measurement: "V" })), true);
+  assert.equal(isOutageSource(st("sensor.grid_connection_status", "On Grid")), true);
+  assert.equal(isOutageSource(st("switch.sigen_phase_power_control", "on")), false);
+  assert.equal(isOutageSource(st("sensor.netzbezug", "420", { unit_of_measurement: "W" })), false);
+  assert.equal(isOutage(st("sensor.grid_connection_status", "Off Grid")), true);
+  assert.equal(isOutage(st("sensor.grid_connection_status", "On Grid")), false);
+});
+
 test("Haushalt Pro warns when a fridge door stands open too long", async () => {
   const { setPacks } = await import("./packs.ts");
   const open = new Date(Date.now() - 5 * 60_000).toISOString();

@@ -105,11 +105,31 @@ export function coverTiltButtons(st: HassEntity | undefined): boolean {
   return typeof st.attributes.current_tilt_position === "number" || !NO_SLATS.has(String(st.attributes.device_class ?? ""));
 }
 
+/**
+ * A device's area: its own, else that of the device it is a channel of. Home Assistant 2026.11 moves the entities
+ * of Tuya multi-channel devices, Z-Wave endpoints and ZHA groups onto child devices, often without an area of their
+ * own; clients are to take the parent's then. Older versions have no parent: the device's own area as before.
+ */
+export function deviceAreaId(hass: HomeAssistant, deviceId: string | null | undefined): string | null {
+  const seen = new Set<string>();
+  let id = deviceId;
+  // a parent chain that runs in a circle ends instead of looping
+  while (id && !seen.has(id)) {
+    seen.add(id);
+    const device = hass.devices?.[id];
+    if (!device) return null;
+    if (device.area_id) return device.area_id;
+    id = device.parent_device_id;
+  }
+  return null;
+}
+
+/** An entity's area: its own, else its device's (or that device's parent's, see deviceAreaId). */
 export function entityAreaId(hass: HomeAssistant, entityId: string): string | null {
   const entry = hass.entities?.[entityId];
   if (!entry) return null;
   if (entry.area_id) return entry.area_id;
-  return (entry.device_id && hass.devices?.[entry.device_id]?.area_id) || null;
+  return deviceAreaId(hass, entry.device_id);
 }
 
 /**

@@ -33,6 +33,8 @@ export interface HassEntityEntry {
 export interface HassDevice {
   id: string;
   area_id?: string | null;
+  /** Home Assistant 2026.11: the device this one is a channel of (a Tuya multi-gang, a Z-Wave endpoint). */
+  parent_device_id?: string | null;
   name?: string | null;
   name_by_user?: string | null;
 }
