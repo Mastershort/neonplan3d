@@ -106,3 +106,16 @@ test("a balcony on the floor above does not lift a light well below it (#602)", 
   setTerrain(b);
   assert.ok(Math.abs(top(earthOf(b, 0)!) - bare) < 1e-6);
 });
+
+test("a cellar window in a thicker wall of its own still gets its light well, in front of that wall (#843)", () => {
+  const win: Opening = { id: "w", room_id: "k", edge: 0, offset: 5, width: 1, type: "window", sill: 1.65, height: 0.5, hinge: "left", leaves: 1, swing: "in", contact2: null } as Opening;
+  const b = house();
+  // the cellar's outer walls are 0.5 m, the settings say 0.3 m
+  b.floors[0].rooms[0].wall_thickness = [0.5, 0.5, 0.5, 0.5];
+  b.floors[0].openings = [win];
+  const g = earthOf(b, 0)!;
+  assert.ok(g.wells.count > 0);
+  // the well's floor starts at the wall's outer face (z = −0.5), not inside the wall
+  const zs = g.wells.p.filter((_, i) => i % 3 === 2);
+  assert.ok(Math.max(...zs) <= -0.5 + 1e-6, `well reaches z ${Math.max(...zs)}`);
+});

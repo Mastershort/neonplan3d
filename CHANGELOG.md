@@ -4,6 +4,13 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 [releases page](https://github.com/Mastershort/neonplan3d/releases). Ideas and votes:
 [Discussions → Ideas](https://github.com/Mastershort/neonplan3d/discussions/categories/ideas).
 
+## 2.0.10 (in progress)
+
+### Fixed
+
+- **Light wells in thicker cellar walls (#843):** a cellar window in a room edge with a wall thicker than the settings' outer walls gets its light well again, in front of that wall. Thanks to @RkcCorian and @1970lexi!
+- **The form of what you tap in the plan (#837):** choosing a door, a garage door, an item or a room in the plan scrolls the editor's sidebar to its form, which was out of sight when the sidebar was scrolled down. Thanks to @golfinho24!
+
 ## 2.0.9
 
 ### New

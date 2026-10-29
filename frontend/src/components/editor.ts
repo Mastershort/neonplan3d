@@ -4583,6 +4583,10 @@ export class Fp3dEditor extends LitElement {
     this._notice = null;
     // a selection made in the plan (or by a tool) opens the folded sidebar
     if (id) this._sideOpen = true;
+    // something else chosen: its form sits at the top of the sidebar, which may be scrolled far down (#837: a garage
+    // door "could not be selected" – its form was out of sight)
+    const shown = this._openingId ? `opening:${this._openingId}` : this._furnitureId ? `furniture:${this._furnitureId}` : this._deviceId ? `device:${this._deviceId}` : this._outdoorId ? `outdoor:${this._outdoorId}` : this._wallId ? `wall:${this._wallId}` : `room:${this._roomId}`;
+    if (id && `${kind}:${id}` !== shown) void this.updateComplete.then(() => this.renderRoot.querySelector(".fp3d-side")?.scrollTo(0, 0));
     this._outdoorId = kind === "outdoor" ? id : null;
     this._wallId = kind === "wall" ? id : null;
     this._edgeHi = null;
