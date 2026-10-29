@@ -15,3 +15,26 @@ ask:
       default: false
       selector:
         boolean:
+announce:
+  fields:
+    message:
+      required: true
+      example: "Es hat geklingelt!"
+      selector:
+        text:
+    rooms:
+      required: false
+      example: "Küche"
+      selector:
+        text:
+          multiple: true
+    floor:
+      required: false
+      example: "Obergeschoss"
+      selector:
+        text:
+    ignore_quiet:
+      required: false
+      default: false
+      selector:
+        boolean:

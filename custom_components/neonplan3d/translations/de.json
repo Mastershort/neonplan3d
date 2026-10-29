@@ -28,6 +28,28 @@
           "description": "Die Ansicht spricht ihre Antwort mit der Sprachausgabe von Assist (aus: sie zeigt sie nur)."
         }
       }
+    },
+    "announce": {
+      "name": "Durchsage",
+      "description": "Sagt eine Nachricht über die Lautsprecher der Räume im Plan, wie das Modul Durchsagen (braucht das Modul). Jeder Raum nutzt seinen gewählten Lautsprecher, sonst einen im Raum platzierten, sonst einen aus seinem Bereich, sonst den Standard-Lautsprecher aus den Einstellungen des Moduls.",
+      "fields": {
+        "message": {
+          "name": "Nachricht",
+          "description": "Was die Lautsprecher sagen."
+        },
+        "rooms": {
+          "name": "Räume",
+          "description": "Raumnamen im Plan (oder ihre Home-Assistant-Bereiche). Leer: alle Räume (der Etage, wenn eine angegeben ist)."
+        },
+        "floor": {
+          "name": "Etage",
+          "description": "Nur die Räume dieser Etage (ihr Name im Plan)."
+        },
+        "ignore_quiet": {
+          "name": "Ruhezeit übergehen",
+          "description": "Auch in Räumen sprechen, die gerade Ruhezeit haben. Ein einzelner, namentlich genannter Raum spricht immer."
+        }
+      }
     }
   }
 }
