@@ -672,7 +672,7 @@ NeonPlan 3D warns for free and without setup:
 |---|---|
 | Smoke, gas, carbon monoxide, water | A `binary_sensor` of that device class in the area reports on |
 | Alarm | An `alarm_control_panel` is triggered or about to trigger |
-| Power outage | The entity from the plan settings (**Report a power outage with**) reports an outage: a grid sensor of class power is "off", a UPS runs on battery, the mains voltage is below 100 V, or a helper of your own is "on". The grid connection in 3D is crossed out meanwhile |
+| Power outage | The entity from the plan settings (**Report a power outage with**) reports an outage: a grid sensor of class power is "off", a UPS runs on battery, the mains voltage is below 100 V, a grid status says "Off Grid", or a helper of your own is "on". Since 2.0.8 the list only offers entities that fit, no switches. The grid connection in 3D is crossed out meanwhile |
 | Window open in the rain | A window is open or tilted while the weather entity reports rain, lightning rain, hail or sleet |
 
 The room pulses red and a banner appears at the top. A tap on the warning jumps into the room. The rain warning uses the weather entity from the plan settings and can be switched off there on its own under **Warning: window open while it rains**. A single window that may stay open in the rain (under a canopy, say) gets the tick **No rain warning** in its form. With a weather station of your own, choose its rain sensor (on = rain) or rain rate (mm/h) under **Rain from your own weather station**: then what counts is whether it really rains at the house – for the warning and, with Weather outside, for the rain in 3D.

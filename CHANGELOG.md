@@ -16,6 +16,7 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 - **Window glow on the driveway (#822):** a window over a balcony lights the balcony, and the glow ends at its edge instead of falling onto the ground below. Thanks to @1970lexi!
 - **24-hour clock (#823):** the clock, the sunrise and sunset times on the sun's arc and the times of the motion trail and the time travel follow the time format of your Home Assistant profile (12 or 24 hours), not only the language. Thanks to @erwinsnl!
 - **Outdoor areas in locating (#828):** outdoor areas with a Home Assistant area (a terrace) can be chosen as a scanner's room, people are shown there, and a terrace door joins them with the room behind it. Thanks to @dennisgoedde!
+- **Power outage from a switch (#831):** **Report a power outage with** offers grid sensors, UPS and grid states, the mains voltage and helpers of your own, no longer every switch (a battery's "phase power control" that is on is no outage); a grid status "Off Grid" counts as an outage. A switch chosen before keeps working. Thanks to @Wolk9!
 - **Ready for Home Assistant 2026.11:** devices split into channels (Tuya, Z-Wave, ZHA groups) keep their room.
 
 ## 2.0.7

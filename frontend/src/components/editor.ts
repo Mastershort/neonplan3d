@@ -17,6 +17,7 @@ import { connectionsAt, laidPipe, nearestOnOutline, planConnection, poolNodeAt, 
 import { devicePorts, FILTER_VALVES, jointPortAt, jointPorts, nodePart, poolPortFlow, portFlow, splitNode, type PortName } from "../pool-ports.ts";
 import { holeInRoom } from "../geometry/holes.ts";
 import { weatherEntity, isRainSource } from "../weather.ts";
+import { isOutageSource } from "../outage.ts";
 import { SHOW_PRESENCE } from "../flags.ts";
 import { hasFeature, labOn, manualUrl, released, shopUrl, UNRELEASED } from "../features.ts";
 import { loadLocate } from "../load-locate.ts";
@@ -10762,6 +10763,8 @@ export class Fp3dEditor extends LitElement {
   }
 
   /** The options of a filter, kept while the same filter asks again and no entity came or went (see memoFields). */
+  /** Picker filter for the outage entity (#831): sensible sources, plus a switch already chosen before. */
+  private isOutageChoice = (id: string) => isOutageSource(this.hass?.states[id]) || id === this._doc.settings.outage_entity;
   private _optionsMemo = new WeakMap<(id: string) => boolean, { entities: unknown; count: number; options: { id: string; label: string }[] }>();
 
   private entityOptions(filter: (id: string) => boolean) {
@@ -13411,7 +13414,7 @@ export class Fp3dEditor extends LitElement {
                 this.t("outage_entity"),
                 s.outage_entity ?? null,
                 undefined,
-                this.entityOptions((id) => /^(binary_sensor|sensor|input_boolean|switch)\./.test(id)),
+                this.entityOptions(this.isOutageChoice),
                 (v) => set({ outage_entity: v === "none" ? null : v }),
               )}
               <p class="fp3d-sub fp3d-wide">${this.t("outage_entity_hint")}</p>`
