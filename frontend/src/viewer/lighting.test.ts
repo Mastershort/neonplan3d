@@ -3,7 +3,7 @@ import { test } from "node:test";
 import type { Floor, Opening, Room } from "../model.ts";
 import { newFloor } from "../model.ts";
 import { buildFloorGeometry } from "./build.ts";
-import { buildLightSurface, lightColors, type LightSource, shadowed, zoneOf } from "./lighting.ts";
+import { buildLightSurface, lightColors, type LightSource, shadowed, spillLength, zoneOf } from "./lighting.ts";
 
 function rect(id: string, x0: number, z0: number, x1: number, z1: number): Room {
   return { id, name: id, area_id: null, points: [[x0, z0], [x1, z0], [x1, z1], [x0, z1]], floor_material: "wood" };
@@ -237,4 +237,13 @@ test("a sloping wall: its lit face ends below the slope and it blocks light only
   assert.equal(shadowed(lamp0, [wall], 0.5, 1, -1), true);
   const lamp1 = { x: 3.5, y: 1, z: 1 };
   assert.equal(shadowed(lamp1, [wall], 3.5, 1, -1), false);
+});
+
+test("a window's light at night ends at the edge of the balcony it looks onto, not on the drive below (#822)", () => {
+  // a balcony 1.5 m deep at the floor's level, the driveway 2.8 m below past its edge
+  const balcony = (_s: number, d: number) => (d < 1.5 ? 0.02 : -2.8);
+  const len = spillLength(balcony, 0.02, 3.2);
+  assert.ok(len > 1.3 && len <= 1.5, `${len}`);
+  // level ground: the full reach
+  assert.equal(spillLength(() => -0.2, -0.2, 3.2), 3.2);
 });

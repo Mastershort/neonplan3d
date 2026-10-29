@@ -78,7 +78,7 @@ import { accentOnUniform, accentUniform, parseAccent, lineBlending, themed, them
 
 export type { Theme } from "./theme.ts";
 import { ALWAYS, DEG, GeoBuffer, LineBuffer, pushPrism, triangulate } from "./geo.ts";
-import { buildLightSurface, lightColors, roomIndexAt, type LightKind, type LightSource, type LightSurface, zoneOf } from "./lighting.ts";
+import { buildLightSurface, lightColors, roomIndexAt, spillLength, type LightKind, type LightSource, type LightSurface, zoneOf } from "./lighting.ts";
 import { buildOpeningParts, CLOSED, type OpeningState } from "./openings.ts";
 import { circlePath, cleaningPath, stepRobot, type RobotInfo, type RobotMotion } from "./robot.ts";
 import { decorDelay, lowEndDevice, petDelay } from "./pace.ts";
@@ -1715,10 +1715,19 @@ export class FloorplanViewer {
         const near = new Color((light[0] / peak) * k, (light[1] / peak) * k, (light[2] / peak) * k);
         // from the wall's outer face outwards, wider and fainter the further out (a tall window throws it further)
         const out: [number, number] = [-info.toRoom[0], -info.toRoom[1]];
-        const len = Math.min(3.5, 0.8 + 1.1 * info.top);
+        const reach = Math.min(3.5, 0.8 + 1.1 * info.top);
+        // the patch lies on the ground just in front of the window and ends where that ground does: a window onto
+        // a balcony lights the balcony, not the driveway below it past its edge (#822)
+        const groundAt = (s: number, d: number, spread: number) => {
+          const t = d / reach;
+          const sx = -spread * t + s * (info.width + 2 * spread * t);
+          return groundUnder(fv.floor, { x: info.start[0] + info.axis[0] * sx + out[0] * (info.faceOut + d), z: info.start[1] + info.axis[1] * sx + out[1] * (info.faceOut + d) });
+        };
+        const foot = groundAt(0.5, 0.05, 0);
+        const len = spillLength((s, d) => groundAt(s, d, 0.35 * reach), foot, reach);
+        if (len < 0.2) continue;
         const spread = 0.35 * len;
-        const mid = [info.start[0] + info.axis[0] * (info.width / 2) + out[0] * (info.faceOut + len / 2), info.start[1] + info.axis[1] * (info.width / 2) + out[1] * (info.faceOut + len / 2)];
-        const y = groundUnder(fv.floor, { x: mid[0], z: mid[1] }) + 0.014;
+        const y = foot + 0.014;
         const at = (s: number, d: number) => {
           const t = d / len;
           const sx = -spread * t + s * (info.width + 2 * spread * t);

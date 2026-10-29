@@ -422,6 +422,16 @@ export function shadowed(s: { x: number; y: number; z: number }, walls: readonly
   return false;
 }
 
+/**
+ * How far a window's light at night reaches out over the ground (at most `reach`): it ends where the ground
+ * under it leaves the level at the window's foot – the edge of a balcony or a terrace (#822). `groundAt(s, d)`
+ * is the ground at `s` across the patch (0–1) and `d` metres out.
+ */
+export function spillLength(groundAt: (s: number, d: number) => number, foot: number, reach: number): number {
+  for (let d = 0.1; d < reach; d += 0.1) if ([0.1, 0.5, 0.9].some((s) => Math.abs(groundAt(s, d) - foot) > 0.1)) return d - 0.05;
+  return reach;
+}
+
 /** Index of the room a point lies in; outside every room: the outside zone (rooms.length). */
 export function roomIndexAt(floor: Floor, x: number, z: number): number {
   const i = floor.rooms.findIndex((r) => r.points.length >= 3 && pointInPolygon([x, z], r.points));
