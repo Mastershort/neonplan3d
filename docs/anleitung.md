@@ -585,7 +585,7 @@ Oben rechts stehen:
 | Schalter | Wirkung |
 |---|---|
 | **Auto** / **Tablet** / **Hoch** | Qualitätsstufe. Tablet lässt Muster, Schatten und Halos weg und wird auf Fire-Tablets automatisch gewählt. Hoch zeigt zusätzlich Lichtkegel unter Spots |
-| **Uhr** | Datum und Uhrzeit in einer Ecke der Ansicht (↖ ↗ ↙ ↘) oder aus – pro Gerät; in der Karte `clock: tr` |
+| **Uhr** | Datum und Uhrzeit in einer Ecke der Ansicht (↖ ↗ ↙ ↘) oder aus – pro Gerät; in der Karte `clock: tr`. 12 oder 24 Stunden wie im Home-Assistant-Profil unter **Zeitformat** eingestellt |
 | **Neon** / **Blueprint** / **Tag** / **Auto** | Der Look; **Auto** zeigt Tag, solange die Sonne über dem Horizont steht (`sun.sun`), und Neon nach Sonnenuntergang – fürs Wandtablet. In der Karte `theme: auto`. Das Farbfeld daneben setzt eine **eigene Akzentfarbe**: Im Neon-Look nehmen Linien und Leuchtkanten sie an, die Knöpfe und Pins in jedem Look; ↺ bringt das Cyan zurück |
 | **Keine** / **Im Raum** / **Wichtige** / **Alle** | Welche Gerätesymbole erscheinen. Wichtige zeigt nur Geräte ohne eigenes 3D-Modell und Werte wie Watt oder die laufende App. **Im Raum** zeigt in der Haus- und Etagenansicht keine Symbole und in einem geöffneten Raum nur dessen eigene – praktisch bei vielen Steckdosen und Sensoren |
 | **Klein** / **Normal** / **Groß** | Wie groß die Gerätesymbole sind; das Gerät merkt sich die Wahl (Karte: `marker_size`) |

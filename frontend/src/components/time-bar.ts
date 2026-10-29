@@ -11,6 +11,7 @@ import { CATEGORY, clusterEvents, groupByHour, type Category, type Cluster, type
 import { parseMoment } from "../timetravel/playback.ts";
 import type { AwayRow, DaySummary, RoomDay } from "../timetravel/summary.ts";
 import { dayStart, hourOf, hourStart, zoneOption } from "../timetravel/tz.ts";
+import { hourCycle } from "../units.ts";
 
 const ICONS = {
   prev: "M6 6h2v12H6zM20 6v12l-10-6z",
@@ -259,7 +260,7 @@ export class Fp3dTimeBar extends LitElement {
   }
 
   private time(t: number): string {
-    return new Date(t).toLocaleTimeString(this.language, { hour: "2-digit", minute: "2-digit", ...zoneOption() });
+    return new Date(t).toLocaleTimeString(this.language, { hour: "2-digit", minute: "2-digit", ...hourCycle(this.session?.opts.live), ...zoneOption() });
   }
 
   // ---- scrubbing on the track ----

@@ -145,6 +145,7 @@ import type { ClockPos } from "../card-config.ts";
 import { Director, HOLD_DEFAULT, directorAny, doorbellCamera, doorbellEntities, doorbellRang, triggerFired, type DirectorSettings, type Shot } from "../director.ts";
 import type { HistorySpec, ReplayInfo } from "../timetravel/types.ts";
 import { sunPath, type SunPath } from "../sun-path.ts";
+import { hourCycle } from "../units.ts";
 
 /** Which HTML markers are shown: none, only what has no 3D object or shows a value, or all. */
 /** "room": no symbols in the house and floor views, in a room only that room's (D477, D595). */
@@ -1508,7 +1509,7 @@ export class Fp3dView3d extends LitElement {
     v.setSun(elevation !== null && typeof sun?.azimuth === "number" ? { elevation, azimuth: sun.azimuth } : null);
     // the compass ring's letters: the first letter of each direction in the user's language
     const letter = (k: I18nKey) => translate(hass, k).charAt(0).toUpperCase();
-    v.setSunPath(this.sunPathToday(hass), [letter("compass_n"), letter("compass_e"), letter("compass_s"), letter("compass_w")]);
+    v.setSunPath(this.sunPathToday(hass), [letter("compass_n"), letter("compass_e"), letter("compass_s"), letter("compass_w")], hourCycle(hass));
     // the automatic look follows the sun (setTheme ignores a look it already shows)
     if (this.theme === "auto") v.setTheme(this.effectiveTheme());
     // the weather outside: clouds darken the sky, rain, snow and fog fall over the plot
@@ -3816,7 +3817,7 @@ export class Fp3dView3d extends LitElement {
         return now.toLocaleString(lang, o);
       }
     };
-    return html`<div class="fp3d-clock fp3d-clock-${pos}" aria-hidden="true"><b>${fmt({ hour: "2-digit", minute: "2-digit" })}</b><span>${fmt({ weekday: "short", day: "numeric", month: "short" })}</span></div>`;
+    return html`<div class="fp3d-clock fp3d-clock-${pos}" aria-hidden="true"><b>${fmt({ hour: "2-digit", minute: "2-digit", ...hourCycle(this.hass) })}</b><span>${fmt({ weekday: "short", day: "numeric", month: "short" })}</span></div>`;
   }
 
   private renderAlerts() {

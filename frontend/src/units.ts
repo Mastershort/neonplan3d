@@ -79,3 +79,23 @@ export function areaText(m2: number, unit: LengthUnit, metric: (v: number) => st
 export function unitLabel(label: string, unit: LengthUnit): string {
   return unit === "imperial" ? label.replace(/\((?:m|cm)([,)])/g, "(ft$1").replace(/\s(?:m|cm)$/, " ft") : label;
 }
+
+/**
+ * 12 or 24 hours, as the user's profile in Home Assistant says (#823): "12" or "24" set it, "system" follows the
+ * device; "language" (the default) and older versions without the setting leave it to the language. Spread into
+ * the options of toLocaleTimeString and friends.
+ */
+export function hourCycle(hass: HomeAssistant | null | undefined): { hourCycle?: "h12" | "h23" } {
+  const format = (hass as { locale?: { time_format?: string } } | null | undefined)?.locale?.time_format;
+  if (format === "12") return { hourCycle: "h12" };
+  if (format === "24") return { hourCycle: "h23" };
+  if (format === "system") {
+    try {
+      const cycle = new Intl.DateTimeFormat(undefined, { hour: "numeric" }).resolvedOptions().hourCycle;
+      return cycle ? { hourCycle: cycle === "h11" || cycle === "h12" ? "h12" : "h23" } : {};
+    } catch {
+      return {};
+    }
+  }
+  return {};
+}

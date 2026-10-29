@@ -585,7 +585,7 @@ At the top right:
 | Switch | Effect |
 |---|---|
 | **Auto** / **Tablet** / **High** | Quality level. Tablet leaves out patterns, shadows and halos and is chosen automatically on Fire tablets. High adds light cones under spots |
-| **Clock** | Date and time in a corner of the view (↖ ↗ ↙ ↘) or off – per device; in the card `clock: tr` |
+| **Clock** | Date and time in a corner of the view (↖ ↗ ↙ ↘) or off – per device; in the card `clock: tr`. 12 or 24 hours as set in your Home Assistant profile under **Time format** |
 | **Neon** / **Blueprint** / **Day** / **Auto** | The look; **Auto** shows Day while the sun is above the horizon (`sun.sun`) and Neon after sunset – for the wall tablet. In the card `theme: auto`. The colour well beside it sets an **accent colour of your own**: in the neon look lines and glowing edges take it, the buttons and pins in every look; ↺ brings the cyan back |
 | **None** / **In the room** / **Important** / **All** | Which device markers appear. Important shows only devices without their own 3D model and values such as watts or the running app. **In the room** shows no markers in the house and floor views and, in an open room, only that room's own – handy with many sockets and sensors |
 | **Small** / **Normal** / **Large** | How large the device markers are; the device remembers the choice (card: `marker_size`) |

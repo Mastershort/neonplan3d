@@ -13,6 +13,7 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 - **Plant tag in a room (#817):** a thirsty plant's tag (Household Pro) also shows with its room opened, like bins and post. Thanks to @frops83!
 - **Sloping walls (#821):** the light on a sloping wall ends at its slope (no glowing rectangle above it), the wall blocks light only below it, and where the slope crosses the cut height no piece of the wall is missing. Thanks to @RealSkyMaster!
 - **Window glow on the driveway (#822):** a window over a balcony lights the balcony, and the glow ends at its edge instead of falling onto the ground below. Thanks to @1970lexi!
+- **24-hour clock (#823):** the clock, the sunrise and sunset times on the sun's arc and the times of the motion trail and the time travel follow the time format of your Home Assistant profile (12 or 24 hours), not only the language. Thanks to @erwinsnl!
 
 ## 2.0.7
 
