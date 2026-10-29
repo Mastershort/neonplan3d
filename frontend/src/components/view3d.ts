@@ -1591,7 +1591,7 @@ export class Fp3dView3d extends LitElement {
       this.goTo(item);
       return;
     }
-    const area = hass.entities?.[entity]?.area_id ?? hass.devices?.[hass.entities?.[entity]?.device_id ?? ""]?.area_id ?? null;
+    const area = entityAreaId(hass, entity);
     for (const floor of b.floors) {
       const opening = floor.openings.find((o) => {
         const l = this.openingLinks?.get(o.id);

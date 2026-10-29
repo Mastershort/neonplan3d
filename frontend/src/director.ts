@@ -4,6 +4,7 @@
 // event in the house settings and per screen (card option or this device's switch).
 
 import type { BuildingSettings } from "./model.ts";
+import { entityAreaId } from "./devices.ts";
 import type { HassEntity, HomeAssistant } from "./types.ts";
 
 export type DirectorSettings = NonNullable<BuildingSettings["director"]>;
@@ -116,7 +117,7 @@ export function doorbellCamera(hass: HomeAssistant, doorbell: string, placed: re
   const cams = placed.filter((id) => id.startsWith("camera."));
   const same = device ? cams.find((id) => reg[id]?.device_id === device) : undefined;
   if (same) return same;
-  const areaOf = (id: string) => reg[id]?.area_id ?? hass.devices?.[reg[id]?.device_id ?? ""]?.area_id ?? null;
+  const areaOf = (id: string) => entityAreaId(hass, id);
   const area = areaOf(doorbell);
   return (area && cams.find((id) => areaOf(id) === area)) || null;
 }

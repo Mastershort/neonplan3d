@@ -20,7 +20,7 @@ from homeassistant.helpers.storage import Store
 
 from .engine import AWAY_AFTER, OWN_SHARE, STEP, THING_AWAY_AFTER, Fingerprints, RoomTracker, evidence
 from .identity import Identity, ibeacon_key
-from .scanners import ScanReader, scanner_list
+from .scanners import ScanReader, device_area_id, scanner_list
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -282,7 +282,7 @@ class LocateService:
         area = entry.area_id if entry else None
         if entry and not area and entry.device_id:
             device = dr.async_get(self.hass).async_get(entry.device_id)
-            area = device.area_id if device else None
+            area = device_area_id(self.hass, device) if device else None
         if area:
             room = next((r["id"] for r in self.rooms if r.get("area_id") == area), None)
         self._sensor_rooms[entity_id] = room

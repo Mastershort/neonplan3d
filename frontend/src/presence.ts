@@ -1,7 +1,7 @@
 // Presence and floor summaries: which room a person is in (from a room sensor such as ESPresense or
 // Bermuda, whose state names a room or area), and the counts shown on the floor labels.
 
-import { areaEntities, kindOf, openingState, primaryEntities, type OpeningEntities } from "./devices.ts";
+import { areaEntities, entityAreaId, kindOf, openingState, primaryEntities, type OpeningEntities } from "./devices.ts";
 import { translate } from "./i18n.ts";
 import type { Building, Room } from "./model.ts";
 import { centroid, pointInPolygon, zonesOf } from "./model.ts";
@@ -290,8 +290,7 @@ export function zoneSpots(hass: HomeAssistant, building: Building, floorId: stri
     if (!entityId.startsWith("binary_sensor.") || st.state !== "on") continue;
     const cls = st.attributes.device_class;
     if (cls !== "occupancy" && cls !== "presence") continue;
-    const entry = hass.entities?.[entityId];
-    const area = entry?.area_id ?? (entry?.device_id ? hass.devices?.[entry.device_id]?.area_id : null);
+    const area = entityAreaId(hass, entityId);
     if (area !== room.area_id) continue;
     // the zone's own words: not the room's name nor the sensor's ("Wohnzimmer Präsenz Sofa" → "sofa")
     const said = new Set(words(String(st.attributes.friendly_name ?? entityId.slice(14))).filter((w) => !skip.has(w)));

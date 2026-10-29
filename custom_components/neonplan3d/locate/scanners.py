@@ -91,10 +91,24 @@ def _lower(text: str | None) -> str:
     return (text or "").lower()
 
 
+def device_area_id(hass: HomeAssistant, device: dr.DeviceEntry) -> str | None:
+    """A device's area. Home Assistant 2026.11 moves channels (Tuya multi-gang, Z-Wave endpoints, ZHA groups) onto
+    child devices that often have no area of their own: its helper then gives the parent's. Older versions: the
+    device's own area."""
+    effective = getattr(dr, "async_get_effective_area_id", None)
+    if effective is not None:
+        try:
+            return effective(hass, device)
+        except TypeError:
+            # a signature other than (hass, device): the device's own area rather than no locating at all
+            pass
+    return device.area_id
+
+
 def _device_area(hass: HomeAssistant, device: dr.DeviceEntry) -> str | None:
     """The device's area, else the area most of its entities are in."""
-    if device.area_id:
-        return device.area_id
+    if area := device_area_id(hass, device):
+        return area
     from homeassistant.helpers import entity_registry as er
 
     areas = [e.area_id for e in er.async_entries_for_device(er.async_get(hass), device.id) if e.area_id]
