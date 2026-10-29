@@ -1376,6 +1376,9 @@ Qualität auf **Tablet** stellen und mit **FPS** prüfen, was zeichnet. Im Leerl
 **Die Zeitreise zeigt nichts, „unbekannt“ oder Lücken.**
 Die Zeitreise nimmt den Verlauf aus dem Recorder von Home Assistant. Steht dort „Ohne den Recorder … gibt es keinen Verlauf“, ist der Recorder abgeschaltet (`recorder:` in der `configuration.yaml`). Steht ein Gerät auf „unbekannt“, ist es vom Recorder ausgeschlossen (`exclude:` unter `recorder:`) oder erst seit Kurzem da. Graue Flächen am Anfang der Leiste: Der Recorder hat noch keine 24 Stunden gesammelt (frisch eingerichtet, oder `purge_keep_days` ist kleiner als 1). Schraffierte Flächen: Home Assistant war in dieser Zeit aus oder startete neu. Temperaturen und Leistungen kommen aus den Fünf-Minuten-Statistiken; ein Sensor ohne Zustandsklasse (`state_class: measurement`) wird stattdessen aus seinen Zuständen gezeigt. Meldet die Leiste „Bitte Home Assistant neu starten“, läuft im Hintergrund noch eine ältere Version.
 
+**Die 3D-Ansicht bricht gleich nach dem Start ab (Grafik verloren, „Error creating WebGL context“).**
+Manche ältere Grafikchips scheitern an Sonnenbahn, Hausschatten oder dem Fensterschein bei Nacht (etwa ältere AMD-Chips in Chrome auf dem Mac). Geht der 3D-Ansicht in den ersten Sekunden die Grafik verloren, merkt sich der Browser das: Ab dem nächsten Laden startet er ohne diese Effekte, und ⚙ Einstellungen sagt es dazu. Jede neue NeonPlan-Version probiert sie einmal wieder. Hat Chrome die Grafik nach mehreren Abstürzen gesperrt, Chrome ganz beenden und neu öffnen.
+
 **Das Sonnenlicht fällt durch die falschen Fenster.**
 Unter Einstellungen die **Nordrichtung** prüfen: Grad im Uhrzeigersinn von „oben“ im Plan.
 

@@ -1376,6 +1376,9 @@ Set quality to **Tablet** and check with **FPS** what is drawing. At rest it sho
 **Time travel shows nothing, "unknown" or gaps.**
 Time travel takes the history from Home Assistant's recorder. If the bar says "Without Home Assistant's recorder there is no history", the recorder is switched off (`recorder:` in `configuration.yaml`). A device reading "unknown" is excluded from the recorder (`exclude:` under `recorder:`) or new. Grey areas at the start of the bar: the recorder has not collected 24 hours yet (freshly set up, or `purge_keep_days` is below 1). Hatched areas: Home Assistant was off or restarting then. Temperatures and power come from the five-minute statistics; a sensor without a state class (`state_class: measurement`) is shown from its states instead. If the bar says "Please restart Home Assistant", an older version still runs in the background.
 
+**The 3D view breaks off right after it starts (graphics lost, "Error creating WebGL context").**
+Some older graphics chips fail on the sun's arc, the house shadow or the window glow at night (e.g. older AMD chips in Chrome on a Mac). If the 3D view loses its graphics within the first seconds, the browser remembers it: from the next load on, this browser starts without these effects, and ⚙ Settings says so. Every new NeonPlan version tries them again once. If Chrome has blocked the graphics after several crashes, quit Chrome completely and open it again.
+
 **Sunlight falls through the wrong windows.**
 Check **North** under Settings: degrees clockwise from "up" in the plan.
 

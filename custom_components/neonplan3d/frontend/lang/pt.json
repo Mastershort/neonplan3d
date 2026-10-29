@@ -2103,5 +2103,6 @@
  "sun_shadow": "Percurso do sol e sombra da casa",
  "sun_shadow_hint": "Um arco sobre a casa mostra o percurso do sol hoje com nascer e pôr do sol, e a sombra da casa fica no chão e acompanha o sol. Precisa da direção norte; no nível «Tablet» só o arco.",
  "window_glow": "Janelas iluminam lá fora à noite",
- "window_glow_hint": "Quando está escuro, a luz das divisões acesas sai pelas janelas como um brilho quente sobre o relvado e o terraço – na cor da luz da divisão, mais fraca atrás de estores descidos."
+ "window_glow_hint": "Quando está escuro, a luz das divisões acesas sai pelas janelas como um brilho quente sobre o relvado e o terraço – na cor da luz da divisão, mais fraca atrás de estores descidos.",
+ "gpu_safe_note": "Neste navegador, o arco do sol, a sombra da casa e o brilho das janelas à noite estão desligados: os gráficos perderam-se logo após o arranque. A próxima versão do NeonPlan tentará de novo."
 }

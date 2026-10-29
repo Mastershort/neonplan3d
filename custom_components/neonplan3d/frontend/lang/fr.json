@@ -2103,5 +2103,6 @@
  "sun_shadow": "Course du soleil et ombre de la maison",
  "sun_shadow_hint": "Un arc au-dessus de la maison montre la course du soleil aujourd'hui avec lever et coucher, et l'ombre de la maison se pose au sol et suit le soleil. Nécessite l'orientation nord ; au niveau « Tablette », seulement l'arc.",
  "window_glow": "Les fenêtres éclairent dehors la nuit",
- "window_glow_hint": "Quand il fait nuit, la lumière des pièces éclairées sort par les fenêtres en une lueur chaude sur la pelouse et la terrasse – dans la couleur de la pièce, plus faible derrière les volets baissés."
+ "window_glow_hint": "Quand il fait nuit, la lumière des pièces éclairées sort par les fenêtres en une lueur chaude sur la pelouse et la terrasse – dans la couleur de la pièce, plus faible derrière les volets baissés.",
+ "gpu_safe_note": "Dans ce navigateur, la course du soleil, l'ombre de la maison et la lueur des fenêtres la nuit sont désactivées : le graphisme s'est perdu juste après le démarrage. La prochaine version de NeonPlan réessaiera."
 }

@@ -97,6 +97,13 @@ export interface ViewerOptions {
   quality?: Quality;
   /** Pull floors apart in the house view (default true). */
   explode?: boolean;
+  /**
+   * Without the newer effects – the sun's arc, the house shadow and the window light at night – for a graphics
+   * chip that lost its context on them before (#827).
+   */
+  safeFx?: boolean;
+  /** The WebGL context was lost (not by dispose()). */
+  onContextLost?: () => void;
   onRoomTap?: (floorId: string, roomId: string | null) => void;
   onFloorTap?: (floorId: string) => void;
   onBack?: () => void;
@@ -760,6 +767,9 @@ export class FloorplanViewer {
     this.options = options;
     this.explode = options.explode ?? true;
     this.renderer = this.makeRenderer(options.quality ?? "auto");
+    this.renderer.domElement.addEventListener("webglcontextlost", () => {
+      if (!this.disposed) this.options.onContextLost?.();
+    });
     this.labels = document.createElement("div");
     this.labels.className = "fp3d-labels";
     host.append(this.labels);
@@ -1618,7 +1628,7 @@ export class FloorplanViewer {
   private buildSunFx(): void {
     const b = this.building;
     const sun = this.sun;
-    const on = !!b && !!sun && b.settings.sun_shadow !== false;
+    const on = !!b && !!sun && b.settings.sun_shadow !== false && !this.options.safeFx;
     const north = (b?.settings.north ?? 0) * DEG;
     const cloud = this.weather?.cloud ?? 0;
     const shade = on && !this.lowQuality && sun.elevation > 1 && cloud < 0.9 && !this.roomTint;
@@ -1683,7 +1693,7 @@ export class FloorplanViewer {
    */
   private buildSpill(fv: FloorView, sources: LightSource[]): void {
     const b = this.building;
-    const night = b?.settings.window_glow === false ? 0 : this.nightFactor();
+    const night = b?.settings.window_glow === false || this.options.safeFx ? 0 : this.nightFactor();
     const gf = b && night > 0 ? groundFloor(b) : null;
     const ground = !!gf && Math.abs(fv.floor.elevation - gf.elevation) < 0.5;
     // the light per light zone: colour weighted by brightness

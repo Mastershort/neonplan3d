@@ -2103,5 +2103,6 @@
  "sun_shadow": "Auringon rata ja talon varjo",
  "sun_shadow_hint": "Talon yllä kaari näyttää auringon radan tänään nousuineen ja laskuineen, ja talon varjo lepää maassa ja kulkee auringon mukana. Vaatii pohjoissuunnan; ”Tabletti”-tasolla vain kaari.",
  "window_glow": "Ikkunat hehkuvat ulos yöllä",
- "window_glow_hint": "Pimeällä valaistujen huoneiden valo lankeaa ikkunoista lämpimänä hehkuna nurmikolle ja terassille – huoneen valon värissä, himmeämpänä laskettujen kaihtimien takana."
+ "window_glow_hint": "Pimeällä valaistujen huoneiden valo lankeaa ikkunoista lämpimänä hehkuna nurmikolle ja terassille – huoneen valon värissä, himmeämpänä laskettujen kaihtimien takana.",
+ "gpu_safe_note": "Tässä selaimessa auringon kaari, talon varjo ja ikkunoiden hehku yöllä ovat pois päältä: grafiikka katosi heti käynnistyksen jälkeen. Seuraava NeonPlan-versio yrittää uudelleen."
 }

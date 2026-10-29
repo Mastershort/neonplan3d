@@ -2103,5 +2103,6 @@
  "sun_shadow": "Recorrido del sol y sombra de la casa",
  "sun_shadow_hint": "Un arco sobre la casa muestra el recorrido del sol hoy con amanecer y atardecer, y la sombra de la casa se dibuja en el suelo y se mueve con el sol. Necesita la orientación norte; en el nivel «Tableta» solo el arco.",
  "window_glow": "Las ventanas iluminan fuera de noche",
- "window_glow_hint": "Cuando está oscuro, la luz de las habitaciones encendidas sale por las ventanas como un brillo cálido sobre el césped y la terraza – en el color de la luz de la habitación, más tenue tras persianas bajadas."
+ "window_glow_hint": "Cuando está oscuro, la luz de las habitaciones encendidas sale por las ventanas como un brillo cálido sobre el césped y la terraza – en el color de la luz de la habitación, más tenue tras persianas bajadas.",
+ "gpu_safe_note": "En este navegador, el arco del sol, la sombra de la casa y el brillo de las ventanas de noche están desactivados: los gráficos se perdieron justo después de arrancar. La próxima versión de NeonPlan lo intentará de nuevo."
 }

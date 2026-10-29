@@ -134,6 +134,7 @@ import { floorCounts, floorInfoText, locatedPersons, personLook, personsInRooms,
 import { controls, tokens } from "../styles.ts";
 import type { HassEntity, HomeAssistant } from "../types.ts";
 import { countView, diagnosticsActive, recordFrame, watchDiagnostics } from "../diagnostics.ts";
+import { GUARD_VERSION, gpuSafeMode, noteContextLost } from "../gpu-guard.ts";
 import type { DeviceMarker, FloorplanViewer, FloorStack, RobotInfo, Quality, ScreenState, SoundSource, SurfaceGrab, ViewerStats, WallMode } from "../viewer/viewer3d.ts";
 import { wallLayout } from "../camera-wall.ts";
 import { watchedEntities } from "../watched.ts";
@@ -864,9 +865,14 @@ export class Fp3dView3d extends LitElement {
         if (this._central && !(e.target as Element | null)?.closest?.(".fp3d-central, .fp3d-central-btn")) this._central = false;
         if (this._info) this._info = null;
       });
+      // a graphics chip that lost its context right at the start of this version before starts without the newer
+      // effects (#827); only a loss within the first seconds while the page is shown is remembered
+      const startedAt = Date.now();
       this.viewer = mod.createViewer(host, {
         quality: this.quality,
         explode: this.explode,
+        safeFx: gpuSafeMode(GUARD_VERSION),
+        onContextLost: () => noteContextLost(GUARD_VERSION, startedAt, Date.now(), document.hidden),
         onRoomTap: (floorId, roomId) => this.fire("room-tap", { floorId, roomId }),
         onFloorTap: (floorId) => this.fire("floor-tap", { floorId }),
         floorInfo: (floor) =>
@@ -4917,6 +4923,7 @@ export class Fp3dView3d extends LitElement {
         <h4>${t("view_settings_look")}</h4>
         ${check("sun_shadow", st.sun_shadow !== false, (v) => ({ sun_shadow: v }), "sun_shadow_hint")}
         ${check("window_glow", st.window_glow !== false, (v) => ({ window_glow: v }), "window_glow_hint")}
+        ${gpuSafeMode(GUARD_VERSION) ? html`<p class="fp3d-set-note">${t("gpu_safe_note")}</p>` : nothing}
         ${check("sun_patches", st.sun_patches !== false, (v) => ({ sun_patches: v }))}
         <h4>${t("view_settings_alerts")}</h4>
         ${check("rain_warning", st.rain_warning !== false, (v) => ({ rain_warning: v }))}

@@ -2103,5 +2103,6 @@
  "sun_shadow": "Drumul soarelui și umbra casei",
  "sun_shadow_hint": "Un arc deasupra casei arată drumul soarelui de azi cu răsărit și apus, iar umbra casei stă pe sol și se mișcă odată cu soarele. Are nevoie de direcția nord; la nivelul „Tabletă” doar arcul.",
  "window_glow": "Ferestrele luminează afară noaptea",
- "window_glow_hint": "Când e întuneric, lumina camerelor aprinse cade prin ferestre ca o strălucire caldă pe gazon și terasă – în culoarea luminii camerei, mai slab în spatele jaluzelelor coborâte."
+ "window_glow_hint": "Când e întuneric, lumina camerelor aprinse cade prin ferestre ca o strălucire caldă pe gazon și terasă – în culoarea luminii camerei, mai slab în spatele jaluzelelor coborâte.",
+ "gpu_safe_note": "În acest browser, arcul soarelui, umbra casei și lumina ferestrelor noaptea sunt oprite: grafica s-a pierdut imediat după pornire. Următoarea versiune NeonPlan va încerca din nou."
 }

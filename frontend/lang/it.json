@@ -2103,5 +2103,6 @@
  "sun_shadow": "Percorso del sole e ombra della casa",
  "sun_shadow_hint": "Un arco sopra la casa mostra il percorso del sole oggi con alba e tramonto, e l'ombra della casa si posa a terra e segue il sole. Serve la direzione nord; al livello «Tablet» solo l'arco.",
  "window_glow": "Le finestre illuminano fuori di notte",
- "window_glow_hint": "Quando fuori è buio, la luce delle stanze accese esce dalle finestre come un bagliore caldo su prato e terrazza – nel colore della luce della stanza, più debole dietro le tapparelle abbassate."
+ "window_glow_hint": "Quando fuori è buio, la luce delle stanze accese esce dalle finestre come un bagliore caldo su prato e terrazza – nel colore della luce della stanza, più debole dietro le tapparelle abbassate.",
+ "gpu_safe_note": "In questo browser l'arco del sole, l'ombra della casa e il bagliore delle finestre di notte sono disattivati: la grafica si è persa subito dopo l'avvio. La prossima versione di NeonPlan riproverà."
 }
