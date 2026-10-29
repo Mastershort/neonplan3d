@@ -34,6 +34,8 @@ SIGNAL_BUILDING_UPDATED = f"{DOMAIN}_building_updated"
 # a sentence for the open views (see voice.py) and the hass.data key of its broker
 SIGNAL_ASK = f"{DOMAIN}_ask"
 DATA_ASK = f"{DOMAIN}_ask"
+# an announcement for the open views (see announce.py): they speak and show it
+SIGNAL_ANNOUNCE = f"{DOMAIN}_announce"
 # the voice settings (which sentences Assist hands to NeonPlan), kept in .storage
 DATA_VOICE = f"{DOMAIN}_voice"
 STORAGE_KEY_VOICE = f"{DOMAIN}.voice"

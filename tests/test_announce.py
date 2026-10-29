@@ -142,3 +142,23 @@ async def test_player_that_can_announce_lowers_its_music(hass: HomeAssistant) ->
     )
     assert play[0].data["announce"] is True
     assert play[0].data["media_content_id"] == "media-source://tts/tts.cloud?message=Essen%20ist%20fertig%21&cache=true"
+
+
+async def test_screens_get_the_announcement(hass: HomeAssistant, hass_ws_client) -> None:
+    await _ready(hass, [APPROVED])
+    view = await hass_ws_client(hass)
+    await view.send_json({"id": 1, "type": "neonplan3d/voice/subscribe", "announce": True})
+    assert (await view.receive_json())["success"]
+    # an older view (without `announce`) never gets it
+    old = await hass_ws_client(hass)
+    await old.send_json({"id": 1, "type": "neonplan3d/voice/subscribe"})
+    assert (await old.receive_json())["success"]
+    speak = async_mock_service(hass, "tts", "speak")
+
+    result = await hass.services.async_call(
+        DOMAIN, "announce", {"message": "Es hat geklingelt!", "screens": ["Flur"]}, blocking=True, return_response=True
+    )
+    event = (await view.receive_json())["event"]["announce"]
+    assert event["message"] == "Es hat geklingelt!" and event["screens"] == ["Flur"]
+    # only the screens asked for: no room's speaker
+    assert speak == [] and result["screens"] is True

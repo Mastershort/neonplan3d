@@ -8,7 +8,7 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 
 ### New
 
-- **Announcements from automations:** the action **NeonPlan 3D: Announcement** (`neonplan3d.announce`) says a message on the rooms' speakers with the Announcements module's settings (speaker per room, quiet time, text-to-speech), also with no NeonPlan page open – to every room, to rooms by name or area, or to one floor. Needs the Announcements module.
+- **Announcements from automations:** the action **NeonPlan 3D: Announcement** (`neonplan3d.announce`) says a message on the rooms' speakers with the Announcements module's settings (speaker per room, quiet time, text-to-speech), also with no NeonPlan page open – to every room, to rooms by name or area, or to one floor. **On NeonPlan screens** every open NeonPlan screen speaks it itself with a chime and shows it big – an old wall tablet becomes a speaker. Needs the Announcements module.
 
 ## 2.0.8
 

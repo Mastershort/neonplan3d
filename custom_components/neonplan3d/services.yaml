@@ -38,3 +38,14 @@ announce:
       default: false
       selector:
         boolean:
+    on_screens:
+      required: false
+      default: false
+      selector:
+        boolean:
+    screens:
+      required: false
+      example: "Flur"
+      selector:
+        text:
+          multiple: true

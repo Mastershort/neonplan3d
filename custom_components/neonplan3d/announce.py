@@ -13,6 +13,7 @@ from datetime import datetime
 import logging
 from typing import Any
 from urllib.parse import quote
+import uuid
 
 from homeassistant.core import HomeAssistant, ServiceCall, ServiceResponse, SupportsResponse
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
@@ -20,10 +21,11 @@ from homeassistant.helpers import area_registry as ar
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.util import dt as dt_util
 import voluptuous as vol
 
-from .const import DOMAIN
+from .const import DOMAIN, SIGNAL_ANNOUNCE
 from .locate.scanners import device_area_id
 from .packs import module_sha
 
@@ -40,6 +42,9 @@ ANNOUNCE_SCHEMA = vol.Schema(
         vol.Optional("rooms", default=[]): vol.All(cv.ensure_list, [vol.All(cv.string, vol.Length(max=80))]),
         vol.Optional("floor"): vol.All(cv.string, vol.Length(max=80)),
         vol.Optional("ignore_quiet", default=False): cv.boolean,
+        # the open NeonPlan screens speak and show it too: every one, or only those with these screen names
+        vol.Optional("on_screens", default=False): cv.boolean,
+        vol.Optional("screens", default=[]): vol.All(cv.ensure_list, [vol.All(cv.string, vol.Length(max=60))]),
     }
 )
 
@@ -256,6 +261,16 @@ async def async_announce(hass: HomeAssistant, call: ServiceCall) -> ServiceRespo
             "The Announcements module is not installed (or waits for an admin's approval in NeonPlan → Extensions)"
         )
     building = data.building
+    screens = call.data["screens"]
+    to_screens = call.data["on_screens"] or bool(screens)
+    if to_screens:
+        # the screens speak themselves (an old wall tablet is a speaker too) and show the words
+        async_dispatcher_send(
+            hass, SIGNAL_ANNOUNCE, {"id": uuid.uuid4().hex[:12], "message": call.data["message"], "screens": screens}
+        )
+        if not call.data["rooms"] and not call.data.get("floor"):
+            # only the screens asked for: no room's speaker
+            return {"speakers": [], "quiet": [], "no_speaker": [], "failed": [], "screens": True}
     area_names = {a.id: a.name for a in ar.async_get(hass).async_list_areas()}
     rooms, missing = target_rooms(building, call.data["rooms"], call.data.get("floor"), area_names)
     if missing:
@@ -282,13 +297,14 @@ async def async_announce(hass: HomeAssistant, call: ServiceCall) -> ServiceRespo
         except HomeAssistantError as err:
             _LOGGER.warning("Announcement on %s failed: %s", player, err)
             failed[player] = str(err)
-    if players and len(failed) == len(players):
+    if players and len(failed) == len(players) and not to_screens:
         raise HomeAssistantError(f"The announcement went out nowhere: {next(iter(failed.values()))}")
     response: dict[str, Any] = {
         "speakers": [p for p in players if p not in failed],
         "quiet": [r.get("name", "") for r in quiet],
         "no_speaker": silent,
         "failed": list(failed),
+        "screens": to_screens,
     }
     return response
 

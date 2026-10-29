@@ -48,6 +48,14 @@
         "ignore_quiet": {
           "name": "Ruhezeit übergehen",
           "description": "Auch in Räumen sprechen, die gerade Ruhezeit haben. Ein einzelner, namentlich genannter Raum spricht immer."
+        },
+        "on_screens": {
+          "name": "Auf NeonPlan-Bildschirmen",
+          "description": "Jeder offene NeonPlan-Bildschirm (auch ein Wand-Tablet) spricht die Nachricht selbst und zeigt sie an. Ohne Räume oder Etage sprechen nur die Bildschirme."
+        },
+        "screens": {
+          "name": "Bildschirme",
+          "description": "Nur die NeonPlan-Bildschirme mit diesen Bildschirmnamen (in den Einstellungen der Ansicht oder in der Kartenoption screen gesetzt)."
         }
       }
     }

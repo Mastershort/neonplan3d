@@ -48,6 +48,14 @@
         "ignore_quiet": {
           "name": "Ignore quiet time",
           "description": "Speak in rooms that have their quiet time now, too. A single room asked for by name always speaks."
+        },
+        "on_screens": {
+          "name": "On NeonPlan screens",
+          "description": "Every open NeonPlan screen (a wall tablet too) speaks the message itself and shows it. Without rooms or a floor only the screens speak."
+        },
+        "screens": {
+          "name": "Screens",
+          "description": "Only the NeonPlan screens with these screen names (set in the view's settings or the card's option screen)."
         }
       }
     }

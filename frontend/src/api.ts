@@ -33,8 +33,22 @@ export interface Ask {
   admins_only?: boolean;
 }
 
-export function subscribeAsk(hass: HomeAssistant, callback: (ask: Ask) => void): Promise<() => Promise<void>> {
-  return hass.connection.subscribeMessage<Ask>(callback, { type: "neonplan3d/voice/subscribe" });
+/** An announcement for the open screens (the service `neonplan3d.announce` with "On NeonPlan screens"). */
+export interface ScreenAnnouncement {
+  id: string;
+  message: string;
+  /** Only the views with these screen names (empty: every open view). */
+  screens: string[];
+}
+
+export function subscribeAsk(hass: HomeAssistant, callback: (ask: Ask) => void, onAnnounce?: (a: ScreenAnnouncement) => void): Promise<() => Promise<void>> {
+  return hass.connection.subscribeMessage<Ask | { announce: ScreenAnnouncement }>(
+    (ev) => {
+      if ("announce" in ev) onAnnounce?.(ev.announce);
+      else callback(ev);
+    },
+    { type: "neonplan3d/voice/subscribe", ...(onAnnounce ? { announce: true } : {}) },
+  );
 }
 
 /** The view's answer; `taken` is false when another view was first. */
