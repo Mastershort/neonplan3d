@@ -217,3 +217,24 @@ test("the floor's light cells cover an L-shaped room off the grid exactly – no
   }
   assert.ok(Math.abs(area - (4 * 1.7 + 2.1 * 1.3)) < 1e-6, `${area}`);
 });
+
+test("a sloping wall: its lit face ends below the slope and it blocks light only below it (#821)", () => {
+  // edge 0 from (0,0) to (4,0): 1.45 m high at the start, 0.05 m at the end (beside a stair)
+  const room = { ...rect("r", 0, 0, 4, 3), wall_slopes: [[1.45, 0.05] as [number, number], null, null, null] };
+  const floor: Floor = { ...newFloor("f", "Floor", 0), rooms: [room], height: 2.5 };
+  const s = surfaceOf(floor);
+  // the wall's lit face towards the room (normal +z, near z = 0): no vertex above the slope there
+  for (let v = 0; v < s.room.length; v++) {
+    if (s.normal[v * 3 + 2] < 0.9 || Math.abs(s.pos[v * 3 + 2]) > 0.2) continue;
+    const x = Math.min(4, Math.max(0, s.pos[v * 3]));
+    const top = 1.45 + (0.05 - 1.45) * (x / 4);
+    assert.ok(s.pos[v * 3 + 1] <= top + 1e-3, `vertex at x ${s.pos[v * 3].toFixed(2)} y ${s.pos[v * 3 + 1].toFixed(3)} above the slope ${top.toFixed(3)}`);
+  }
+  // as a blocker: a line crossing the wall at 1 m height is stopped near the high end, passes near the low end
+  const wall = s.blockers.find((b) => Math.abs(b.a[1]) < 0.2 && Math.abs(b.b[1]) < 0.2)!;
+  assert.ok(wall.h1 !== undefined);
+  const lamp0 = { x: 0.5, y: 1, z: 1 };
+  assert.equal(shadowed(lamp0, [wall], 0.5, 1, -1), true);
+  const lamp1 = { x: 3.5, y: 1, z: 1 };
+  assert.equal(shadowed(lamp1, [wall], 3.5, 1, -1), false);
+});

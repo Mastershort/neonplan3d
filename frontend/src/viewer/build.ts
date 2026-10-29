@@ -366,7 +366,28 @@ export function buildFloorGeometry(
         inner1: i < n - 1 || piece.inner1,
       })).filter((st) => !clipAlong(wall.footprint, wall.a, ax, st.t0, st.t1).every(([x, z]) => buried(x, z)));
     };
-    for (const piece of underRoof ? steps.flatMap(fine) : steps) {
+    // a step whose top crosses the cut height is split where it does: built whole, the part above the cut was
+    // left out and the part below ended on a straight line from its low corner to the cut – a notch in the
+    // slope (#821)
+    const crossing = (piece: (typeof steps)[number]): (typeof steps)[number][] => {
+      const topOn = (t: number) => topAt(wall.a[0] + ax[0] * t, wall.a[1] + ax[1] * t, H, wall);
+      let lo = Math.max(piece.t0, 0);
+      let hi = Math.min(piece.t1, len);
+      if (hi - lo < 0.01 || (topOn(lo) - cut) * (topOn(hi) - cut) >= 0) return [piece];
+      const rising = topOn(hi) > cut;
+      for (let i = 0; i < 24; i++) {
+        const mid = (lo + hi) / 2;
+        if (topOn(mid) > cut === rising) hi = mid;
+        else lo = mid;
+      }
+      // the split lies on the high side, so the upper step's lowest top is never below the cut
+      const t = rising ? hi : lo;
+      return [
+        { ...piece, t1: t, inner1: true },
+        { ...piece, t0: t, inner0: true },
+      ];
+    };
+    for (const piece of underRoof ? steps.flatMap(fine).flatMap(crossing) : steps) {
       const poly = clipAlong(wall.footprint, wall.a, ax, piece.t0, piece.t1);
       if (poly.length < 3) continue;
       // the faces between two steps of one piece are inside the wall: left out, or they show as stripes
@@ -387,7 +408,7 @@ export function buildFloorGeometry(
           const capped = sloped && roofTop < cut ? (x: number, z: number) => Math.min(cut, topOf(x, z)) : Math.min(y1, cut);
           pushPrism(wallBuf, poly, y0, capped, NEON.wall, NEON.wallTop, { aoFrom: 0, bottom: lintel, fold: LOWER_OFFSET + b, topFold, skipSide });
         }
-        if (y1 > cut + 1e-6 && roofTop > cut + 1e-6) pushPrism(wallBuf, poly, Math.max(y0, cut), sloped ? topOf : y1, NEON.wall, NEON.wallTop, { aoFrom: 0, fold: b, bottom: lintel && y0 >= cut, skipSide });
+        if (y1 > cut + 1e-6 && roofTop > cut - 1e-6) pushPrism(wallBuf, poly, Math.max(y0, cut), sloped ? topOf : y1, NEON.wall, NEON.wallTop, { aoFrom: 0, fold: b, bottom: lintel && y0 >= cut, skipSide });
       }
     }
   }

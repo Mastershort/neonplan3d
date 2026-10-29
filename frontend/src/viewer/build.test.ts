@@ -211,6 +211,32 @@ test("a sloping wall: its top runs from the height at its start to the one at it
   assert.ok(info && info.top < 1.19 && info.top > 1.1, `window top ${info?.top}`);
 });
 
+test("a sloping wall crossing the cut height keeps its full face: no notch where it crosses (#821)", () => {
+  // 1.45 m down to 0.05 m over 4 m, the cut at 1.1 m: the slope crosses it 1 m from the start
+  const room = { ...rect("r", 0, 0, 4, 3), wall_slopes: [[1.45, 0.05] as [number, number], null, null, null] };
+  const floor = { ...floorWith([room]), height: 2.5, cut_height: 1.1 };
+  const pos = buildFloorGeometry(floor, EXT, INT).walls.getAttribute("position");
+  // the triangles of the wall's outer face (in the plane z = -EXT), seen from the front
+  const tris: number[][] = [];
+  for (let i = 0; i < pos.count; i += 3) {
+    if ([0, 1, 2].some((k) => Math.abs(pos.getZ(i + k) + EXT) > 1e-6)) continue;
+    tris.push([0, 1, 2].flatMap((k) => [pos.getX(i + k), pos.getY(i + k)]));
+  }
+  const inside = (x: number, y: number) =>
+    tris.some(([ax, ay, bx, by, cx, cy]) => {
+      const d1 = (x - bx) * (ay - by) - (ax - bx) * (y - by);
+      const d2 = (x - cx) * (by - cy) - (bx - cx) * (y - cy);
+      const d3 = (x - ax) * (cy - ay) - (cx - ax) * (y - ay);
+      return !((d1 < 0 || d2 < 0 || d3 < 0) && (d1 > 0 || d2 > 0 || d3 > 0));
+    });
+  for (let x = 0.1; x < 3.9; x += 0.01) {
+    const top = 1.45 + (0.05 - 1.45) * (x / 4);
+    // just below the slope the face is there, just above it nothing
+    assert.ok(inside(x, top - 0.005), `no face below the slope at x ${x.toFixed(2)}`);
+    assert.ok(!inside(x, top + 0.005), `face above the slope at x ${x.toFixed(2)}`);
+  }
+});
+
 test("where a tall wall meets a lower one, its top edge runs across the joint and comes down to the lower top (#417)", () => {
   // two rooms in a row, the right one with low walls (1.2 m) on its three free sides
   const low = { ...rect("b", 4, 0, 7, 3), wall_heights: [1.2, 1.2, 1.2, null] };
