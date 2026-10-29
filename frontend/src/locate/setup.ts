@@ -1778,7 +1778,8 @@ export class LocateSetup extends LitElement {
   }
 
   private get rooms(): LocateRoom[] {
-    return locateRooms(this.building);
+    // an outdoor area without a name of its own goes by its Home Assistant area's name
+    return locateRooms(this.building).map((r) => (r.name || !r.area_id ? r : { ...r, name: this.hass.areas?.[r.area_id]?.name ?? r.area_id }));
   }
 
   connectedCallback(): void {

@@ -4,7 +4,7 @@
 import { areaEntities, kindOf, openingState, primaryEntities, type OpeningEntities } from "./devices.ts";
 import { translate } from "./i18n.ts";
 import type { Building, Room } from "./model.ts";
-import { centroid, pointInPolygon } from "./model.ts";
+import { centroid, pointInPolygon, zonesOf } from "./model.ts";
 import type { HomeAssistant } from "./types.ts";
 
 export interface PersonMarker {
@@ -125,7 +125,8 @@ export function locatedPersons(hass: HomeAssistant, building: Building, skip: Re
     if (!entityId.startsWith("sensor.") || a.neonplan_locate !== true || typeof a.room_id !== "string") continue;
     let hit: { floorId: string; room: Room } | null = null;
     for (const floor of building.floors) {
-      const room = floor.rooms.find((r) => r.id === a.room_id);
+      // an outdoor area acting as a room counts too (a terrace, #828)
+      const room = zonesOf(floor).find((r) => r.id === a.room_id);
       if (room) hit = { floorId: floor.id, room };
     }
     if (!hit) continue;
