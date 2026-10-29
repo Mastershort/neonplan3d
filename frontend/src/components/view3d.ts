@@ -4322,7 +4322,8 @@ export class Fp3dView3d extends LitElement {
     try {
       const Ctx = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
       started = new Ctx();
-      void started.resume();
+      // closed again before it resumed (no pipeline, the microphone denied): no unhandled rejection
+      started.resume().catch(() => undefined);
     } catch {
       started = undefined;
     }
