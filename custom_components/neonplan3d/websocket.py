@@ -14,7 +14,15 @@ from homeassistant.loader import async_get_integration
 import voluptuous as vol
 
 from . import license as lic
-from .const import DATA_ASK, DATA_DIAGNOSTICS, DATA_VOICE, DOMAIN, SIGNAL_ASK, SIGNAL_BUILDING_UPDATED
+from .const import (
+    DATA_ASK,
+    DATA_DIAGNOSTICS,
+    DATA_VOICE,
+    DOMAIN,
+    SIGNAL_ANNOUNCE,
+    SIGNAL_ASK,
+    SIGNAL_BUILDING_UPDATED,
+)
 from .diagnostics_report import DiagnosticsError, DiagnosticsReporter
 from .locate.recorder import ws_locate_rec
 from .locate.ws import COMMANDS as LOCATE_COMMANDS
@@ -547,16 +555,32 @@ def ws_diagnostics_client(hass: HomeAssistant, connection: websocket_api.ActiveC
     connection.send_result(msg["id"], {"enabled": True})
 
 
-@websocket_api.websocket_command({vol.Required("type"): "neonplan3d/voice/subscribe"})
+@websocket_api.websocket_command(
+    {vol.Required("type"): "neonplan3d/voice/subscribe", vol.Optional("announce", default=False): bool}
+)
 @callback
 def ws_voice_subscribe(hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]) -> None:
-    """Every sentence Assist (or the service `neonplan3d.ask`) hands to the views; each open view listens."""
+    """Every sentence Assist (or the service `neonplan3d.ask`) hands to the views; each open view listens. A view
+    that knows them (`announce`) also gets the announcements of the service `neonplan3d.announce` for the screens."""
 
     @callback
     def forward(ask: dict[str, Any]) -> None:
         connection.send_message(websocket_api.event_message(msg["id"], ask))
 
-    connection.subscriptions[msg["id"]] = async_dispatcher_connect(hass, SIGNAL_ASK, forward)
+    @callback
+    def forward_announce(announce: dict[str, Any]) -> None:
+        connection.send_message(websocket_api.event_message(msg["id"], {"announce": announce}))
+
+    unsubs = [async_dispatcher_connect(hass, SIGNAL_ASK, forward)]
+    if msg["announce"]:
+        unsubs.append(async_dispatcher_connect(hass, SIGNAL_ANNOUNCE, forward_announce))
+
+    @callback
+    def unsubscribe() -> None:
+        for unsub in unsubs:
+            unsub()
+
+    connection.subscriptions[msg["id"]] = unsubscribe
     connection.send_result(msg["id"])
 
 

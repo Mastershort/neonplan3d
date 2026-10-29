@@ -137,7 +137,8 @@ function copyFonts() {
 // main 722 KB, editor 944 KB, card editor 273 KB on 2026-10-28: a module's list edited entry by entry, module markers standing in rooms, the backup import's reason
 // editor 946 KB on 2026-10-29: the power outage picker offers fitting sources only (#831)
 // main 724 KB on 2026-10-29 for the 3D safety net on graphics chips that fail on the sun effects (#827), the 24-hour clock from the profile (#823) and their texts
-const BUDGET = { "neonplan3d.js": 724 * 1024, "neonplan3d-fun.js": 40 * 1024, "neonplan3d-voice.js": 60 * 1024, "neonplan3d-locate.js": 160 * 1024, "neonplan3d-timetravel.js": 120 * 1024, "neonplan3d-3d.js": 836 * 1024, "neonplan3d-editor.js": 946 * 1024, "neonplan3d-card-editor.js": 273 * 1024 };
+// main 726 KB on 2026-10-29: announcements from automations shown and spoken on the screens
+const BUDGET = { "neonplan3d.js": 726 * 1024, "neonplan3d-fun.js": 40 * 1024, "neonplan3d-voice.js": 60 * 1024, "neonplan3d-locate.js": 160 * 1024, "neonplan3d-timetravel.js": 120 * 1024, "neonplan3d-3d.js": 836 * 1024, "neonplan3d-editor.js": 946 * 1024, "neonplan3d-card-editor.js": 273 * 1024 };
 
 copyFonts();
 if (watch) {
