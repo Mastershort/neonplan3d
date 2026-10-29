@@ -140,7 +140,7 @@ import { wallLayout } from "../camera-wall.ts";
 import { watchedEntities } from "../watched.ts";
 import { backdropCss } from "../backdrop.ts";
 import { loadVoice, micProbeAsked, micProbeDone, voicePipeline } from "../load-voice.ts";
-import { answerAsk, subscribeAsk, type Ask } from "../api.ts";
+import { answerAsk, subscribeAsk, type Ask, type ScreenAnnouncement } from "../api.ts";
 import { pipePlanner } from "../pipe-planner.ts";
 import type { ClockPos } from "../card-config.ts";
 import { Director, HOLD_DEFAULT, directorAny, doorbellCamera, doorbellEntities, doorbellRang, triggerFired, type DirectorSettings, type Shot } from "../director.ts";
@@ -197,6 +197,39 @@ function roofWindowState(hass: HomeAssistant, w: RoofWindow): { open: number; ti
     open = typeof pos === "number" ? Math.min(1, Math.max(0, pos / 100)) : motor.state === "open" || motor.state === "opening" ? 1 : 0;
   }
   return { open, tilt: s.tilt, cover: s.cover ?? 0 };
+}
+
+
+/** Announcements this page already said (a card and the panel both listen). */
+const heardAnnouncements = new Set<string>();
+
+/** A soft two-tone gong before an announcement; silent where the browser does not let the page play sound yet. */
+async function chime(): Promise<void> {
+  const Ctx = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+  if (!Ctx) return;
+  const ctx = new Ctx();
+  try {
+    await Promise.race([ctx.resume(), new Promise((r) => setTimeout(r, 300))]);
+    if (ctx.state !== "running") return;
+    const start = ctx.currentTime;
+    for (const [freq, at] of [
+      [784, 0],
+      [523, 0.45],
+    ] as const) {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0.0001, start + at);
+      gain.gain.exponentialRampToValueAtTime(0.3, start + at + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, start + at + 0.9);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(start + at);
+      osc.stop(start + at + 0.95);
+    }
+    await new Promise((r) => setTimeout(r, 1300));
+  } finally {
+    void ctx.close().catch(() => undefined);
+  }
 }
 
 export class Fp3dView3d extends LitElement {
@@ -283,6 +316,7 @@ export class Fp3dView3d extends LitElement {
     voice: { attribute: false },
     screen: { attribute: false },
     _voice: { state: true },
+    _announce: { state: true },
     scenes: { attribute: false },
     dimmed: { attribute: false },
     autoOrbit: { attribute: false },
@@ -480,6 +514,9 @@ export class Fp3dView3d extends LitElement {
   /** The subscription to the sentences Assist hands over (every open view listens, with or without a microphone). */
   private unsubAsk: Promise<() => Promise<void>> | null = null;
   private voiceTimer: ReturnType<typeof setTimeout> | undefined;
+  /** An announcement shown big over the plan for a moment (from an automation, see onAnnounce). */
+  private declare _announce: string | null;
+  private announceTimer: ReturnType<typeof setTimeout> | undefined;
   private declare _alerts: Alert[];
   /** Haushalt Pro: what is due in the household now (the glass card "Today in the household"). */
   private declare _household: HouseholdItem[];
@@ -744,7 +781,11 @@ export class Fp3dView3d extends LitElement {
   private watchAsk(): void {
     const hass = this.hass;
     if (this.unsubAsk || !hass?.connection || !this.isConnected) return;
-    this.unsubAsk = subscribeAsk(hass, (ask) => void this.onAsk(ask)).catch(() => {
+    this.unsubAsk = subscribeAsk(
+      hass,
+      (ask) => void this.onAsk(ask),
+      (a) => void this.onAnnounce(a),
+    ).catch(() => {
       // a replay or an older backend: nothing to listen to
       this.unsubAsk = null;
       return async () => {};
@@ -4308,6 +4349,29 @@ export class Fp3dView3d extends LitElement {
     }
   }
 
+  /**
+   * An announcement from an automation for the screens: shown big over the plan and spoken by the device itself, so an
+   * old wall tablet is a speaker too. A card and the panel on one page say it once.
+   */
+  private async onAnnounce(a: ScreenAnnouncement): Promise<void> {
+    const hass = this.hass;
+    if (!hass) return;
+    const mine = (this.screen ?? "").trim().toLowerCase();
+    if (a.screens.length && !a.screens.some((s) => s.trim().toLowerCase() === mine)) return;
+    if (heardAnnouncements.has(a.id)) return;
+    heardAnnouncements.add(a.id);
+    this._announce = a.message;
+    clearTimeout(this.announceTimer);
+    this.announceTimer = setTimeout(() => (this._announce = null), 12000);
+    try {
+      await chime();
+      const v = await loadVoice();
+      await v.speak(hass, a.message, voicePipeline());
+    } catch {
+      // no sound (the browser waits for a first tap, no text-to-speech): the words still show
+    }
+  }
+
   /** One spoken sentence: a place to show ("Zeig das Wohnzimmer") is shown, anything else goes to Assist. */
   private async onMic(): Promise<void> {
     const hass = this.hass;
@@ -5547,6 +5611,7 @@ export class Fp3dView3d extends LitElement {
       ${this.renderClock()} ${this.renderAlerts()} ${this.clean || this._walk ? nothing : html`${this.renderHousehold()} ${this.renderThumbs()} ${this.renderScenes()} ${this.renderFind()} ${this.renderCentral()}`} ${this.clean ? nothing : this.renderWalk()} ${this.renderSwipe()} ${this.renderInfo()} ${this.renderBinInfo()} ${this.renderGangMenu()} ${this.renderThrough()} ${this.renderCameraWall()} ${this.renderSheet()} ${this.renderSettings()} ${this.renderNote()}
       ${this.clean ? nothing : this.renderProHint()} ${this.renderMenu()} ${this.renderEye()}
       ${this.renderMic()}
+      ${this._announce ? html`<div class="fp3d-announce" role="status" @click=${() => (this._announce = null)}>📢 ${this._announce}</div>` : nothing}
       ${this.pivotMark && !this._walk ? html`<span class="fp3d-pivot" aria-hidden="true"></span>` : nothing}
       ${this._micProbe && this.hass ? html`<fp3d-mic-probe .hass=${this.hass} .building=${this.building} @close=${() => ((this._micProbe = false), micProbeDone())}></fp3d-mic-probe>` : nothing}
       ${this.showStats && this._stats
@@ -6486,6 +6551,22 @@ export class Fp3dView3d extends LitElement {
         color: var(--fp3d-text);
         font-size: 14px;
         z-index: 4;
+      }
+      .fp3d-announce {
+        position: absolute;
+        left: 50%;
+        top: 18%;
+        transform: translateX(-50%);
+        max-width: min(640px, calc(100% - 32px));
+        padding: 16px 26px;
+        border-radius: 18px;
+        background: rgba(8, 16, 34, 0.9);
+        border: 1px solid rgba(160, 240, 255, 0.6);
+        box-shadow: 0 0 24px rgba(0, 229, 255, 0.35);
+        color: var(--fp3d-text);
+        font-size: clamp(20px, 4vw, 34px);
+        text-align: center;
+        z-index: 6;
       }
       .fp3d-mic-err {
         border-color: rgba(255, 90, 106, 0.7);

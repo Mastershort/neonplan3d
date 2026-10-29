@@ -19,6 +19,7 @@ from homeassistant.helpers.http import KEY_HASS
 from homeassistant.helpers.typing import ConfigType
 from homeassistant.loader import async_get_integration
 
+from .announce import async_setup_announce, async_unload_announce
 from .card_resource import (
     LOADER_FILE,
     LOADER_URL,
@@ -147,6 +148,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     # Assist asks the house: service, intent and the sentences Assist understands (with the names locating knows)
     await async_setup_voice(hass)
+    # announcements from automations (answers only while the Announcements module is installed)
+    async_setup_announce(hass)
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
     await _async_register_static(hass)
@@ -179,6 +182,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     with contextlib.suppress(KeyError, ValueError):
         frontend.remove_extra_js_url(hass, await _async_main_url(hass))
     async_unload_voice(hass)
+    async_unload_announce(hass)
     await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if (locate := hass.data.pop(DATA_LOCATE, None)) is not None:
         locate.stop()

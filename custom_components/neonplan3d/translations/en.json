@@ -28,6 +28,36 @@
           "description": "The view speaks its answer with Assist's text-to-speech (off: it only shows it)."
         }
       }
+    },
+    "announce": {
+      "name": "Announcement",
+      "description": "Says a message on the speakers of the plan's rooms, as the Announcements module does (needs the module). Each room uses its chosen speaker, else one placed in it, else one of its area, else the default speaker from the module's settings.",
+      "fields": {
+        "message": {
+          "name": "Message",
+          "description": "What the speakers say."
+        },
+        "rooms": {
+          "name": "Rooms",
+          "description": "Room names in the plan (or their Home Assistant areas). Empty: every room (of the floor, when one is given)."
+        },
+        "floor": {
+          "name": "Floor",
+          "description": "Only the rooms of this floor (its name in the plan)."
+        },
+        "ignore_quiet": {
+          "name": "Ignore quiet time",
+          "description": "Speak in rooms that have their quiet time now, too. A single room asked for by name always speaks."
+        },
+        "on_screens": {
+          "name": "On NeonPlan screens",
+          "description": "Every open NeonPlan screen (a wall tablet too) speaks the message itself and shows it. Without rooms or a floor only the screens speak."
+        },
+        "screens": {
+          "name": "Screens",
+          "description": "Only the NeonPlan screens with these screen names (set in the view's settings or the card's option screen)."
+        }
+      }
     }
   }
 }
