@@ -8,10 +8,19 @@ import hashlib
 
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ServiceValidationError
+from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers import entity_registry as er
 import pytest
-from pytest_homeassistant_custom_component.common import async_mock_service
+from pytest_homeassistant_custom_component.common import MockConfigEntry, async_mock_service
 
-from custom_components.neonplan3d.announce import MODULE_ID, is_quiet, module_ready, placed_players, target_rooms
+from custom_components.neonplan3d.announce import (
+    MODULE_ID,
+    is_quiet,
+    module_ready,
+    placed_players,
+    target_rooms,
+    zones_of,
+)
 from custom_components.neonplan3d.const import DOMAIN
 
 from .test_init import BUILDING, _setup
@@ -66,6 +75,27 @@ def test_rooms_by_name_area_or_floor() -> None:
     assert len(rooms) == 3
     assert target_rooms(b, ["Garage"], None, areas)[1] == ["Garage"]
     assert target_rooms(b, [], "Keller", areas) == ([], ["Keller"])
+
+
+def test_outdoor_areas_with_an_area_act_as_rooms() -> None:
+    """A terrace with a Home Assistant area gets announcements; a hedge or one without an area does not (#866)."""
+    floor = {
+        "rooms": [{"id": "r1", "name": "Wohnen", "points": [[0, 0], [4, 0], [4, 3]]}],
+        "outdoor": [
+            {
+                "id": "t",
+                "type": "terrace",
+                "name": "Terrasse",
+                "area_id": "terrace",
+                "points": [[5, 0], [8, 0], [8, 3]],
+            },
+            {"id": "h", "type": "hedge", "name": "Hecke", "area_id": "garden", "points": [[9, 0], [12, 0], [12, 3]]},
+            {"id": "l", "type": "lawn", "name": "Rasen", "area_id": None, "points": [[0, 5], [4, 5], [4, 8]]},
+        ],
+    }
+    assert [z["id"] for z in zones_of(floor)] == ["r1", "t"]
+    rooms, missing = target_rooms({"floors": [floor]}, ["Terrasse"], None, {})
+    assert [r["id"] for _, r in rooms] == ["t"] and missing == []
 
 
 def test_quiet_time_runs_over_midnight() -> None:
@@ -142,6 +172,41 @@ async def test_player_that_can_announce_lowers_its_music(hass: HomeAssistant) ->
     )
     assert play[0].data["announce"] is True
     assert play[0].data["media_content_id"] == "media-source://tts/tts.cloud?message=Essen%20ist%20fertig%21&cache=true"
+
+
+async def test_echo_of_alexa_devices_announces_through_its_notify_entity(hass: HomeAssistant) -> None:
+    """Home Assistant's own Alexa Devices integration cannot play text-to-speech on an Echo (#865)."""
+    await _ready(hass, [APPROVED])
+    entry = MockConfigEntry(domain="alexa_devices", data={})
+    entry.add_to_hass(hass)
+    device = dr.async_get(hass).async_get_or_create(
+        config_entry_id=entry.entry_id, identifiers={("alexa_devices", "e1")}
+    )
+    entities = er.async_get(hass)
+    for domain, uid, name, key in (
+        ("media_player", "e1", "living_echo", None),
+        ("notify", "e1-speak", "living_echo_speak", "speak"),
+        ("notify", "e1-announce", "living_echo_announce", "announce"),
+    ):
+        entities.async_get_or_create(
+            domain,
+            "alexa_devices",
+            uid,
+            config_entry=entry,
+            device_id=device.id,
+            suggested_object_id=name,
+            translation_key=key,
+        )
+    hass.states.async_set("notify.living_echo_speak", "unknown")
+    hass.states.async_set("notify.living_echo_announce", "unknown")
+    send = async_mock_service(hass, "notify", "send_message")
+    speak = async_mock_service(hass, "tts", "speak")
+    await hass.services.async_call(
+        DOMAIN, "announce", {"message": "Es hat geklingelt!", "rooms": ["Living"]}, blocking=True
+    )
+    assert len(send) == 1 and send[0].data["message"] == "Es hat geklingelt!"
+    assert send[0].data["entity_id"] in ("notify.living_echo_announce", ["notify.living_echo_announce"])
+    assert speak == []
 
 
 async def test_screens_get_the_announcement(hass: HomeAssistant, hass_ws_client) -> None:

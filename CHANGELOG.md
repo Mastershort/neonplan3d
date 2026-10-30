@@ -10,6 +10,12 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 
 - **Switch devices only in the opened room** (⚙ Settings → Controls, off by default): in the house and floor views a tap on a device opens its room instead of switching it, so a tap meant for a floor no longer moves a blind by accident; a long press still opens the menu.
 
+### Fixed
+
+- **Power strips and multi-gang sockets switch again (#868):** the menu of a socket or wall switch with several gangs showed its buttons, but a tap went through them. Thanks to @legospieler!
+- **Announcements on Echos of Home Assistant's own Alexa Devices integration (#865):** such an Echo now announces through its own announce notify entity instead of text-to-speech, which it cannot play. Thanks to @wh1tetiger for the detailed report!
+- **Announcements on the terrace (#866):** an outdoor area with a Home Assistant area counts as a room for announcements; the speaker there gets its 📢 too. Thanks to @daene85!
+
 ## 2.0.10
 
 ### Fixed

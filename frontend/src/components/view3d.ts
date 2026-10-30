@@ -4824,7 +4824,8 @@ export class Fp3dView3d extends LitElement {
     const out: { entity: string; name: string; floorId: string; roomId: string | null; furnitureId?: string; at?: [number, number]; top?: number }[] = [];
     const seen = new Set<string>();
     for (const floor of b.floors) {
-      const roomAt = (x: number, z: number) => floor.rooms.find((r) => r.points.length >= 3 && pointInPolygon([x, z], r.points))?.id ?? null;
+      // a room, else an outdoor area that acts as one (the terrace's speaker, #866)
+      const roomAt = (x: number, z: number) => zonesOf(floor).find((r) => r.points.length >= 3 && pointInPolygon([x, z], r.points))?.id ?? null;
       for (const pl of floor.placements) {
         if (!pl.entity_id.startsWith("media_player.") || seen.has(pl.entity_id) || !hass.states[pl.entity_id]) continue;
         seen.add(pl.entity_id);
@@ -4845,7 +4846,7 @@ export class Fp3dView3d extends LitElement {
     const hass = this.hass;
     const b = this.building;
     if (!hass || !b || this.ro || !anyModule()) return [];
-    const floor = b.floors.find((f) => f.rooms.some((r) => r.id === roomId));
+    const floor = b.floors.find((f) => zonesOf(f).some((r) => r.id === roomId));
     if (!floor) return [];
     return moduleRoomSheets(this.sceneHost(hass, b), { floorId: floor.id, roomId }).map((sh) => ({ id: sh.id, icon: sh.icon, title: sh.title }));
   }
@@ -5744,11 +5745,14 @@ export class Fp3dView3d extends LitElement {
       .fp3d-holo-link[style*="--bin"] circle {
         stroke: var(--bin);
       }
-      .fp3d-gang-menu {
+      /* two classes, like the bin bubble: the info bubbles' rule (.fp3d-swipe) lets taps through – its buttons must
+         take them (#868) */
+      .fp3d-swipe.fp3d-gang-menu {
         display: flex;
         flex-direction: column;
         gap: 6px;
         z-index: 6;
+        pointer-events: auto;
       }
       .fp3d-gang-menu .fp3d-chip {
         text-align: left;

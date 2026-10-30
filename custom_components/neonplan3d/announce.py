@@ -68,6 +68,17 @@ def _same(text: str, *names: Any) -> bool:
     return any(isinstance(n, str) and n.strip().casefold() == key for n in names)
 
 
+def zones_of(floor: dict[str, Any]) -> list[dict[str, Any]]:
+    """The rooms of a floor and its outdoor areas that act as rooms: a name and a Home Assistant area, not a hedge,
+    fence or pergola (the terrace with its speaker, #866)."""
+    outdoor = [
+        a
+        for a in floor.get("outdoor") or []
+        if a.get("area_id") and len(a.get("points") or []) >= 3 and a.get("type") not in ("hedge", "fence", "pergola")
+    ]
+    return [*(floor.get("rooms") or []), *outdoor]
+
+
 def target_rooms(
     building: dict[str, Any], rooms: list[str], floor: str | None, area_names: dict[str, str]
 ) -> tuple[list[Room], list[str]]:
@@ -78,7 +89,7 @@ def target_rooms(
         floors = [f for f in floors if _same(floor, f.get("name"), f.get("id"))]
         if not floors:
             return [], [floor]
-    every: list[Room] = [(f, r) for f in floors for r in f.get("rooms") or []]
+    every: list[Room] = [(f, r) for f in floors for r in zones_of(f)]
     if not rooms:
         return every, []
     out: list[Room] = []
@@ -156,8 +167,23 @@ class Speakers:
         entry = self.entities.async_get(entity_id)
         return entry.platform if entry else None
 
+    def _echo_notify(self, player: str) -> str | None:
+        """An Echo of Home Assistant's own Alexa Devices integration speaks through the announce notify entity on its
+        device, never through text-to-speech (#865)."""
+        entry = self.entities.async_get(player)
+        if entry is None or entry.platform != "alexa_devices" or not entry.device_id:
+            return None
+        for other in er.async_entries_for_device(self.entities, entry.device_id):
+            if (
+                other.entity_id.startswith("notify.")
+                and (other.translation_key == "announce" or other.entity_id.endswith("_announce"))
+                and self._exists(other.entity_id)
+            ):
+                return other.entity_id
+        return None
+
     def _rank(self, entity_id: str) -> int:
-        if self._platform(entity_id) == "alexa_media":
+        if self._platform(entity_id) in ("alexa_media", "alexa_devices"):
             return 0
         device_class = self.hass.states.get(entity_id).attributes.get("device_class")  # type: ignore[union-attr]
         return 1 if device_class == "speaker" else 3 if device_class == "tv" else 2
@@ -223,6 +249,9 @@ class Speakers:
             await services.async_call(
                 "notify", "alexa_media", {"message": message, "target": [player], "data": {"type": "announce"}}
             )
+            return
+        if notify := self._echo_notify(player):
+            await services.async_call("notify", "send_message", {"entity_id": notify, "message": message})
             return
         if satellite := self._satellite(player):
             await services.async_call("assist_satellite", "announce", {"entity_id": satellite, "message": message})
