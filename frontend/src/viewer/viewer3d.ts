@@ -46,6 +46,7 @@ import {
   type Material,
 } from "three";
 import type { Building, Floor, Furniture, Room, StartView } from "../model.ts";
+import { floorNavigationGroups } from "../floor-navigation.ts";
 import { recolorLamps, SHADE_SENTINEL, shadeFactors } from "./lamp-colors.ts";
 import { centroid, GANG_TYPES, outdoorZones, pointInPolygon, openingStyle, setTerrain, WALL_LAMP_Y, zonesOf } from "../model.ts";
 import { placeWallPlate } from "../geometry/walls.ts";
@@ -627,6 +628,7 @@ export class FloorplanViewer {
   private floors: FloorView[] = [];
   private building: Building | null = null;
   private floorId: string | null = null;
+  private groupFloors = true;
   private roomId: string | null = null;
   private wallMode: WallMode = "auto";
   private explode: boolean;
@@ -2972,17 +2974,34 @@ export class FloorplanViewer {
     return this.floorId === null && this.floors.length > 1;
   }
 
+  setNavigationGroups(enabled: boolean): void {
+    if (this.groupFloors === enabled) return;
+    this.groupFloors = enabled;
+    this.applyTargets(false);
+    this.fit(700);
+  }
+
+  private navigationGroups(): FloorView[][] {
+    const ordered = [...this.floors].sort((a, b) => a.rank - b.rank);
+    return this.groupFloors
+      ? floorNavigationGroups(ordered.map((f) => f.floor)).map((g) => g.floors.map((f) => this.floorMap.get(f.id)!))
+      : ordered.map((f) => [f]);
+  }
+
   /** Target height offset and opacity of every floor for the current view. */
   private applyTargets(immediate: boolean): void {
     const sel = this.floorId ? this.floorMap.get(this.floorId) : undefined;
+    const groups = this.navigationGroups();
+    const selected = groups.findIndex((group) => sel && group.includes(sel));
     for (const fv of this.floors) {
+      const level = groups.findIndex((group) => group.includes(fv));
       let ty = 0;
       let to = 1;
-      if (!sel) ty = this.explode ? fv.rank * EXPLODE_GAP : 0;
-      else if (fv.rank > sel.rank) {
+      if (!sel) ty = this.explode ? level * EXPLODE_GAP : 0;
+      else if (level > selected) {
         ty = 5 + fv.rank; // floors above fly away
         to = 0;
-      } else if (fv.rank < sel.rank) {
+      } else if (level < selected) {
         // floors below: a dim reference, the house stacked up to this floor, or hidden
         if (this.floorStack === "stacked") ty = 0;
         else {
@@ -2993,7 +3012,7 @@ export class FloorplanViewer {
       fv.ty = ty;
       fv.to = to;
       // an open floor in the ground: the earth is seen from inside, like a pit around it (the near side goes)
-      const pit = sel === fv;
+      const pit = !!sel && level === selected;
       const side = pit ? BackSide : FrontSide;
       if (fv.materials.earth.side !== side) {
         fv.materials.earth.side = side;
@@ -4545,8 +4564,8 @@ export class FloorplanViewer {
    * the same renderer, so nothing is uploaded twice; the view is restored afterwards.
    */
   floorThumbnails(width = 200, height = 150): { floorId: string; url: string }[] {
-    const floors = this.floors.filter((fv) => fv.floor.rooms.some((r) => r.points.length >= 3));
-    if (!floors.length) return [];
+    const groups = this.navigationGroups().filter((g) => g.some((fv) => fv.floor.rooms.some((r) => r.points.length >= 3)));
+    if (!groups.length) return [];
     const scale = this.lowQuality ? 1 : Math.min(2, window.devicePixelRatio || 1);
     const w = Math.round(width * scale);
     const h = Math.round(height * scale);
@@ -4567,21 +4586,21 @@ export class FloorplanViewer {
       if (this.roof) this.roof.group.visible = this.roof.wins.visible = false;
       if (this.ghost) this.ghost.visible = false;
       this.renderer.setClearAlpha(0);
-      for (const fv of floors) {
-        for (const other of this.floors) other.group.visible = other === fv;
-        fv.y = 0;
-        fv.o = 1;
-        this.applyFloor(fv);
-        fv.group.visible = true;
-        fv.mask.standing.value = 0;
-        fv.mask.glass.value = 0;
-        // fit the floor's rooms (with the cut walls) into the picture
-        const pts = fv.floor.rooms.flatMap((r) => r.points);
-        const y0 = fv.floor.elevation;
-        const box = new Box3(
-          new Vector3(Math.min(...pts.map((p) => p[0])) - 0.3, y0, Math.min(...pts.map((p) => p[1])) - 0.3),
-          new Vector3(Math.max(...pts.map((p) => p[0])) + 0.3, y0 + Math.min(fv.floor.cut_height, fv.floor.height), Math.max(...pts.map((p) => p[1])) + 0.3),
-        );
+      for (const group of groups) {
+        for (const other of this.floors) other.group.visible = group.includes(other);
+        const box = new Box3();
+        for (const fv of group) {
+          fv.y = 0;
+          fv.o = 1;
+          this.applyFloor(fv);
+          fv.group.visible = true;
+          fv.mask.standing.value = 0;
+          fv.mask.glass.value = 0;
+          for (const [x, z] of fv.floor.rooms.flatMap((r) => r.points)) {
+            box.expandByPoint(new Vector3(x - 0.3, fv.floor.elevation, z - 0.3));
+            box.expandByPoint(new Vector3(x + 0.3, fv.floor.elevation + Math.min(fv.floor.cut_height, fv.floor.height), z + 0.3));
+          }
+        }
         const center = box.getCenter(new Vector3());
         const theta = -0.6;
         const phi = 0.8;
@@ -4615,7 +4634,7 @@ export class FloorplanViewer {
         const img = ctx.createImageData(w, h);
         for (let row = 0; row < h; row++) img.data.set(pixels.subarray((h - 1 - row) * w * 4, (h - row) * w * 4), row * w * 4);
         ctx.putImageData(img, 0, 0);
-        out.push({ floorId: fv.floor.id, url: canvas.toDataURL("image/png") });
+        out.push({ floorId: group[0].floor.id, url: canvas.toDataURL("image/png") });
       }
     } finally {
       this.renderer.setRenderTarget(null);
@@ -5111,11 +5130,21 @@ export class FloorplanViewer {
     const v = new Vector3();
     const house = this.houseView;
     const placed: { fv: FloorView; left: number; y: number; h: number }[] = [];
+    const groups = this.navigationGroups();
     for (const fv of this.floors) {
-      const box = fv.bbox;
-      if (!(house && fv.o > 0.5 && box)) {
+      const group = groups.find((g) => g.includes(fv))!;
+      const boxes = group.flatMap((f) => f.bbox ? [f.bbox] : []);
+      const box = boxes.length ? { x0: Math.min(...boxes.map((b) => b.x0)), x1: Math.max(...boxes.map((b) => b.x1)),
+        z0: Math.min(...boxes.map((b) => b.z0)), z1: Math.max(...boxes.map((b) => b.z1)) } : null;
+      if (!(house && fv.o > 0.5 && box) || group[0] !== fv) {
         this.place(fv.label, null);
         continue;
+      }
+      const name = (this.groupFloors && fv.floor.navigation_group?.trim()) || fv.floor.name || "–";
+      const title = fv.label.querySelector("b")!;
+      if (title.textContent !== name) {
+        title.textContent = name;
+        fv.labelSize = null;
       }
       // left of the leftmost corner of the floor's bounding box, at half the cut height;
       // right of the rightmost one when the floor pictures take that space
