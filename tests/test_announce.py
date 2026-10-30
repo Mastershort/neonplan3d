@@ -176,7 +176,6 @@ async def test_player_that_can_announce_lowers_its_music(hass: HomeAssistant) ->
 
 async def test_echo_of_alexa_devices_announces_through_its_notify_entity(hass: HomeAssistant) -> None:
     """Home Assistant's own Alexa Devices integration cannot play text-to-speech on an Echo (#865)."""
-    await _ready(hass, [APPROVED])
     entry = MockConfigEntry(domain="alexa_devices", data={})
     entry.add_to_hass(hass)
     device = dr.async_get(hass).async_get_or_create(
@@ -197,6 +196,8 @@ async def test_echo_of_alexa_devices_announces_through_its_notify_entity(hass: H
             suggested_object_id=name,
             translation_key=key,
         )
+    # registered before the states exist: the registry would give media_player.living_echo_2 otherwise
+    await _ready(hass, [APPROVED])
     hass.states.async_set("notify.living_echo_speak", "unknown")
     hass.states.async_set("notify.living_echo_announce", "unknown")
     send = async_mock_service(hass, "notify", "send_message")
