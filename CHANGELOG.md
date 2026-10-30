@@ -8,7 +8,7 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 
 ### New
 
-- **Switch devices only in the opened room** (⚙ Settings → Controls, off by default): in the house and floor views a tap on a device opens its room instead of switching it, so a tap meant for a floor no longer moves a blind by accident; a long press still opens the menu. Idea from NextFloor (@Mika2108).
+- **Switch devices only in the opened room** (⚙ Settings → Controls, off by default): in the house and floor views a tap on a device opens its room instead of switching it, so a tap meant for a floor no longer moves a blind by accident; a long press still opens the menu.
 
 ## 2.0.10
 
