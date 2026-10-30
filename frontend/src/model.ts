@@ -1958,6 +1958,12 @@ export function syncCameraLooks(next: Building, base: Building): void {
         m.z = pl.z;
         m.rotation = pl.rotation ?? 0;
       }
+      // the look hangs where the camera does: its middle at the symbol's height, under the ceiling for a ceiling
+      // camera (the same default heights as the pin's)
+      const ceiling = pl.mount === "ceiling";
+      const y = pl.y ?? (ceiling ? Math.max(0.5, floor.height - 0.05) : 2.2);
+      const mountY = Math.round(Math.max(0, ceiling && pl.y == null ? floor.height - m.h : y - m.h / 2) * 1000) / 1000;
+      if (m.mount_y !== mountY) m.mount_y = mountY;
       return true;
     });
   }

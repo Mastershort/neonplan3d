@@ -41,6 +41,8 @@ interface Well {
   bottom: number;
   /** Rim and grate above the ground (m). */
   rim: number;
+  /** How far the window's outer face stands out of the outline (a room edge with a thicker wall of its own, #843). */
+  off: number;
 }
 
 /**
@@ -109,11 +111,13 @@ export function buildEarth(b: Building, floor: Floor, openings: readonly Opening
       const cx = o.start[0] + o.axis[0] * (o.width / 2) - o.toRoom[0] * o.faceOut;
       const cz = o.start[1] + o.axis[1] * (o.width / 2) - o.toRoom[1] * o.faceOut;
       const s = (cx - a[0]) * ax[0] + (cz - a[1]) * ax[1];
-      const d = Math.abs((cx - a[0]) * n[0] + (cz - a[1]) * n[1]);
-      if (d > 0.08 || s < -0.05 || s > len + 0.05) continue;
+      // the outline lies at the settings' outer wall thickness; a room edge with a thicker wall of its own puts the
+      // window's face further out (#843: a cellar's 36 cm walls lost their wells) – along this edge, never across it
+      const off = (cx - a[0]) * n[0] + (cz - a[1]) * n[1];
+      if (Math.abs(o.axis[0] * ax[0] + o.axis[1] * ax[1]) < 0.99 || off < -0.08 || off > 0.6 || s < -0.05 || s > len + 0.05) continue;
       // the same decision the editor offers its "Light well" switch by (#524)
       if (!wellBelowGround(b, floor, o.exterior, o.sill, [cx, cz])) continue;
-      holes.push({ s0: Math.max(0, s - o.width / 2 - WELL_SIDE), s1: Math.min(len, s + o.width / 2 + WELL_SIDE), bottom: Math.max(bottom + 0.05, o.sill - WELL_BELOW), rim: o.opening.well_rim ?? 0 });
+      holes.push({ s0: Math.max(0, s - o.width / 2 - WELL_SIDE), s1: Math.min(len, s + o.width / 2 + WELL_SIDE), bottom: Math.max(bottom + 0.05, o.sill - WELL_BELOW), rim: o.opening.well_rim ?? 0, off: Math.max(0, off) });
     }
     // the earth in pieces of at most half a metre, lower where a light well is
     const cuts = new Set<number>([0, len]);
@@ -158,8 +162,8 @@ export function buildEarth(b: Building, floor: Floor, openings: readonly Opening
     }
     // the light wells: floor, two sides and the front, from their bottom up to the ground, a grate on top
     for (const h of holes) {
-      const w0 = at(h.s0, 0);
-      const w1 = at(h.s1, 0);
+      const w0 = at(h.s0, h.off);
+      const w1 = at(h.s1, h.off);
       const f0: Vec2 = [w0[0] + n[0] * WELL_DEPTH, w0[1] + n[1] * WELL_DEPTH];
       const f1: Vec2 = [w1[0] + n[0] * WELL_DEPTH, w1[1] + n[1] * WELL_DEPTH];
       // the rim may stand above the ground (above gravel or a path laid around the house); under a lawn, a path or

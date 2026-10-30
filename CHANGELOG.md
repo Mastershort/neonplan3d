@@ -4,6 +4,16 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 [releases page](https://github.com/Mastershort/neonplan3d/releases). Ideas and votes:
 [Discussions → Ideas](https://github.com/Mastershort/neonplan3d/discussions/categories/ideas).
 
+## 2.0.10
+
+### Fixed
+
+- **Light wells in thicker cellar walls (#843):** a cellar window in a room edge with a wall thicker than the settings' outer walls gets its light well again, in front of that wall. Thanks to @RkcCorian and @1970lexi!
+- **The form of what you tap in the plan (#837):** choosing a door, a garage door, an item or a room in the plan scrolls the editor's sidebar to its form, which was out of sight when the sidebar was scrolled down. Thanks to @golfinho24!
+- **Fog only outside (#854):** the weather's fog now starts behind the house as seen from the view, so the rooms and their lights stay clear and the surroundings fade. Thanks to @frops83!
+- **Turned roof sections can be resized (#856):** a section turned by any angle (also 180° for a pent roof's other side) shows its corner handles again; dragging one keeps the opposite corner where it is. Thanks to @frops83!
+- **A camera's look at the camera's height (#779):** the furniture item that shows a camera hangs where the camera's symbol is (under the ceiling for a ceiling camera) and follows a new height; the built-in camera model goes at once when a look is chosen. Thanks to @EduK85!
+
 ## 2.0.9
 
 ### New

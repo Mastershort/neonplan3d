@@ -248,3 +248,22 @@ test("a camera and its look stay together: either one moved takes the other alon
   syncCameraLooks(gone, base);
   assert.equal(gone.floors[0].furniture.length, 0);
 });
+
+test("a camera's look hangs at the camera's height, not on the floor (#779)", () => {
+  const b = emptyBuilding();
+  const f = newFloor("eg", "EG", 0);
+  f.placements.push({ entity_id: "camera.flur", x: 1, z: 1, y: 1.8, rotation: 0 }, { entity_id: "camera.decke", x: 2, z: 2, y: null, rotation: 0, mount: "ceiling" });
+  f.furniture.push(
+    { id: "a", type: "camera_dome", x: 1, z: 1, rotation: 0, w: 0.2, d: 0.2, h: 0.2, variant: null, entity: "none", look_of: "camera.flur" } as Furniture,
+    { id: "b", type: "camera_dome", x: 2, z: 2, rotation: 0, w: 0.2, d: 0.2, h: 0.2, variant: null, entity: "none", look_of: "camera.decke" } as Furniture,
+  );
+  b.floors = [f];
+  const next = structuredClone(b);
+  syncCameraLooks(next, b);
+  assert.equal(next.floors[0].furniture[0].mount_y, 1.7);
+  assert.equal(next.floors[0].furniture[1].mount_y, 2.3);
+  next.floors[0].placements[0].y = 2.4;
+  const later = structuredClone(next);
+  syncCameraLooks(later, next);
+  assert.equal(later.floors[0].furniture[0].mount_y, 2.3);
+});
