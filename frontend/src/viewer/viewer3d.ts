@@ -8,7 +8,7 @@
 import {
   AdditiveBlending,
   RingGeometry,
-  FogExp2,
+  Fog,
   CircleGeometry,
   Box3,
   CanvasTexture,
@@ -1509,13 +1509,27 @@ export class FloorplanViewer {
     const w = this.weather;
     const on = !!w && !this.lowQuality;
     const skyColor = w ? new Color(w.sky[0] / 255, w.sky[1] / 255, w.sky[2] / 255) : null;
-    this.scene.fog = on && w.fog > 0 && skyColor ? new FogExp2(skyColor, 0.01 + 0.035 * w.fog) : null;
+    // the fog lies around the house, not in it (#854): it starts behind the house as seen from the camera
+    this.scene.fog = on && w.fog > 0 && skyColor ? new Fog(skyColor, 1, 2) : null;
+    this.placeFog();
     const rainCount = on ? Math.round(700 * w.rain) : 0;
     const snowCount = on ? Math.round(450 * w.snow) : 0;
     this.seedParticles(this.rain, rainCount * 2, true);
     this.seedParticles(this.snow, snowCount, false);
     this.rain.visible = rainCount > 0;
     this.snow.visible = snowCount > 0;
+  }
+
+  /** Moves the fog's start behind the house for the current camera (cheap: two numbers per frame). */
+  private placeFog(): void {
+    const fog = this.scene.fog;
+    if (!(fog instanceof Fog)) return;
+    const b = this.weatherBox;
+    // the weather box has a 6 m margin around the house
+    const half = Math.hypot((b.x1 - b.x0) / 2 - 6, (b.z1 - b.z0) / 2 - 6, (b.y1 - b.y0) / 2);
+    const dist = this.camera.position.distanceTo(new Vector3((b.x0 + b.x1) / 2, (b.y0 + b.y1) / 2, (b.z0 + b.z1) / 2));
+    fog.near = dist + half;
+    fog.far = fog.near + 8 + 50 * (1 - (this.weather?.fog ?? 0));
   }
 
   /** Random positions over the plot (rain as pairs: a streak's top and bottom). */
@@ -3151,7 +3165,7 @@ export class FloorplanViewer {
     const shapeSig =
       this.wallMode +
       (this.lowQuality ? "L" : this.highQuality ? "H" : "M") +
-      lamps.map((d) => `${d.id},${d.lamp ?? d.model},${d.variant},${d.x},${d.z},${d.y},${d.rotation ?? 0},${d.roll ?? 0},${d.upright ? 1 : 0},${d.rise ?? 0},${d.size?.join("/")},${d.base ?? 0},${d.pack ?? ""},${d.mirror ? 1 : 0}`).join(";");
+      lamps.map((d) => `${d.id},${d.lamp ?? d.model},${d.variant},${d.x},${d.z},${d.y},${d.rotation ?? 0},${d.roll ?? 0},${d.upright ? 1 : 0},${d.rise ?? 0},${d.size?.join("/")},${d.base ?? 0},${d.pack ?? ""},${d.mirror ? 1 : 0},${d.ownLook ? 1 : 0}`).join(";");
     const glows = lamps.map((d) => this.glowOf(d));
     const colorSig = lamps.map((d, i) => `${flash(d.id)},${glows[i] ? `${glows[i]!.level.toFixed(3)},${glows[i]!.color.map((c) => c.toFixed(3)).join("/")}` : "off"}`).join(";");
     if (shapeSig !== fv.lampShapeSig || !fv.lampMesh.geometry.getAttribute("position")) {
@@ -4962,6 +4976,7 @@ export class FloorplanViewer {
     if (this.projections.active) this.updateProjections();
     // the house's shadow belongs to the whole house
     this.sunFx.showShadow(this.floorId === null && this.shadowSig !== "");
+    this.placeFog();
     this.renderer.render(this.scene, this.camera);
     this.disposeRetired();
     // labels are placed only when the view or something on it moved (style writes cost layout)

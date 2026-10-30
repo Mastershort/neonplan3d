@@ -29,7 +29,7 @@ import { screenName, setScreenName, setVoiceHere, setVoicePipeline, voiceOnHere,
 import { doorbellCamera, doorbellEntities, directorOnHere, HOLD_DEFAULT, HOLD_MAX, HOLD_MIN, setDirectorHere, type DirectorSettings } from "../director.ts";
 import { deviceSensors, energySummary, flowSegments, gridPoint, powerSensorFor, proposeEnergySensors, type EnergyPrefs, type FlowSegment, proposeMeters } from "../energy.ts";
 import { CLIMATE_ATTRS, isPulseDrive, isStatusSensor, robotRoomSensor, TOGGLE_KINDS } from "../devices.ts";
-import { activeSections, sectionFloor, dormerParent, effectiveDormer, proposeDormer, sectionGeometry, floorOutline, polygonBox, headroomLines, ridgeHeight, sectionAbove, sectionCutsBelow, roofSectionsFromRooms, sectionFrame, sectionTurn, turnSectionAbout, wallTopUnder } from "../roof-sections.ts";
+import { activeSections, sectionFloor, dormerParent, effectiveDormer, proposeDormer, sectionGeometry, floorOutline, polygonBox, headroomLines, ridgeHeight, sectionAbove, sectionCutsBelow, roofSectionsFromRooms, sectionFrame, sectionTurn, turnPoint, turnSectionAbout, wallTopUnder } from "../roof-sections.ts";
 import { bestFace, clampField, faceAt, faceCompass, fieldFace, fieldModules, GROUND, moveField, pointOnFace, proposeField, proposeGroundField, proposeWindow, proposeWallField, roofFaces, rowCounts, turnGroundField, fieldCenter, wallFaces, windowAsField, windowCorners, onFace, onField, rayOnFace, type RoofFace } from "../solar.ts";
 import type { SurfaceGrab, SurfaceRay } from "../viewer/viewer3d.ts";
 import { storedImageIds } from "../transfer.ts";
@@ -2307,10 +2307,16 @@ export class Fp3dEditor extends LitElement {
           (doc) => {
             const sec = doc.settings.roof.sections?.find((x) => x.id === drag.id);
             if (!sec) return;
-            if (drag.corner[0]) sec.x1 = round(p[0]);
-            else sec.x0 = round(p[0]);
-            if (drag.corner[1]) sec.z1 = round(p[1]);
-            else sec.z0 = round(p[1]);
+            // a turned section (#856): the corner moves in the section's own frame, about a fixed point, so
+            // the opposite corner stays where it is
+            const t = sectionTurn(sec);
+            if (t && !sec.pivot) sec.pivot = [round(t.p[0]), round(t.p[1])];
+            const [px, pz] = turnPoint(sectionTurn(sec), p, true);
+            // the handle sits at the larger or the smaller coordinate, whichever of the two fields holds it
+            if (drag.corner[0] === (sec.x1 >= sec.x0 ? 1 : 0)) sec.x1 = round(px);
+            else sec.x0 = round(px);
+            if (drag.corner[1] === (sec.z1 >= sec.z0 ? 1 : 0)) sec.z1 = round(pz);
+            else sec.z0 = round(pz);
           },
           drag.base,
           false,
@@ -3264,9 +3270,10 @@ export class Fp3dEditor extends LitElement {
               return svg`<g class="fp3d-vertex" data-roof-vertex=${`${sec.id}:${k}`}><circle cx=${x} cy=${y} r="16" class="fp3d-hit" /><circle cx=${x} cy=${y} r="6" /></g>`;
             })
           : nothing}
-        ${sel && this.isAdmin && !this.roofFixed(sec) && !shape && !sectionTurn(sec)
+        ${sel && this.isAdmin && !this.roofFixed(sec) && !shape
           ? ([[0, 0], [1, 0], [1, 1], [0, 1]] as const).map(([kx, kz]) => {
-              const [x, y] = this.toScreen([kx ? Math.max(sec.x0, sec.x1) : Math.min(sec.x0, sec.x1), kz ? Math.max(sec.z0, sec.z1) : Math.min(sec.z0, sec.z1)]);
+              // a turned section (#856) shows its corners where they lie after the turn
+              const [x, y] = this.toScreen(turnPoint(sectionTurn(sec), [kx ? Math.max(sec.x0, sec.x1) : Math.min(sec.x0, sec.x1), kz ? Math.max(sec.z0, sec.z1) : Math.min(sec.z0, sec.z1)]));
               return svg`<g class="fp3d-vertex" data-roof-corner=${`${sec.id}:${kx}:${kz}`}><circle cx=${x} cy=${y} r="16" class="fp3d-hit" /><circle cx=${x} cy=${y} r="6" /></g>`;
             })
           : nothing}`;
