@@ -796,6 +796,8 @@ SETTINGS_SCHEMA = vol.Schema(
         vol.Optional("sun_patches", default=True): bool,
         vol.Optional("sun_shadow", default=True): bool,
         vol.Optional("window_glow", default=True): bool,
+        # devices switch only in an opened room; elsewhere a tap opens the room
+        vol.Optional("tap_in_room", default=False): bool,
         # fun pack "Halloween": the ghost floating through the house (on unless switched off)
         # Haushalt Pro: the hours a waste bin glows (from the day before, until on the day)
         vol.Optional("household"): vol.Any(

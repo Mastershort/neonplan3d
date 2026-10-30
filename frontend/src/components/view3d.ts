@@ -4990,6 +4990,8 @@ export class Fp3dView3d extends LitElement {
         ${check("window_glow", st.window_glow !== false, (v) => ({ window_glow: v }), "window_glow_hint")}
         ${gpuSafeMode(GUARD_VERSION) ? html`<p class="fp3d-set-note">${t("gpu_safe_note")}</p>` : nothing}
         ${check("sun_patches", st.sun_patches !== false, (v) => ({ sun_patches: v }))}
+        <h4>${t("view_settings_control")}</h4>
+        ${check("tap_in_room", !!st.tap_in_room, (v) => ({ tap_in_room: v }), "tap_in_room_hint")}
         <h4>${t("view_settings_alerts")}</h4>
         ${check("rain_warning", st.rain_warning !== false, (v) => ({ rain_warning: v }))}
         ${check("alert_unavailable", !!st.alert_unavailable, (v) => ({ alert_unavailable: v }))}

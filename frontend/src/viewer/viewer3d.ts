@@ -2260,6 +2260,12 @@ export class FloorplanViewer {
       if (held) return;
       const r = pin.getBoundingClientRect();
       const h = this.host.getBoundingClientRect();
+      // outside an opened room the pin's tap opens the room (or floor) under it, if that is set
+      if (this.tapOpens) {
+        const d = this.devices.find((m) => m.id === entityId);
+        if (d) return this.options.onRoomTap?.(d.floorId, d.roomId ?? null);
+        return this.onTap(r.left + r.width / 2 - h.left, r.bottom - h.top);
+      }
       this.options.onDeviceTap?.(entityId, r.left + r.width / 2 - h.left, r.top + r.height / 2 - h.top);
     });
     pin.addEventListener("keydown", (e) => {
@@ -4142,7 +4148,7 @@ export class FloorplanViewer {
     return ray;
   }
 
-  private pick(x: number, y: number): { entity: string } | { floorId: string; roomId: string | null } | null {
+  private pick(x: number, y: number, devices = true): { entity: string } | { floorId: string; roomId: string | null } | null {
     const ray = this.rayAt(x, y);
     const floors = this.activeFloors();
     const meshes = floors.flatMap((f) => [f.lampMesh, f.coneMesh, f.framesMesh, f.glassMesh, f.blindsMesh, f.wallMesh, f.floorMesh].filter((m) => m.visible));
@@ -4154,7 +4160,7 @@ export class FloorplanViewer {
       if (hit.object === fv.lampMesh || hit.object === fv.coneMesh) {
         // a camera's wedge on the floor is a far bigger target than the camera itself
         const id = inRange(hit.object === fv.lampMesh ? fv.lampTris : fv.coneTris, tri);
-        if (id) return { entity: id };
+        if (id && devices) return { entity: id };
       } else if (hit.object === fv.framesMesh || hit.object === fv.blindsMesh || hit.object === fv.glassMesh) {
         // the part above the cut is folded away with its wall: a tap there is meant for what lies behind
         if (this.wallMode === "cut" && hit.face) {
@@ -4164,11 +4170,11 @@ export class FloorplanViewer {
         // the whole window counts, glass included: a small blind is a poor target
         const id = inRange(hit.object === fv.framesMesh ? fv.frameTris : hit.object === fv.glassMesh ? fv.glassTris : fv.blindTris, tri);
         const entity = id ? this.pickOpenings.get(id) : undefined;
-        if (entity) return { entity };
+        if (entity && devices) return { entity };
       } else if (hit.object === fv.wallMesh) {
         const id = inRange(fv.geo.furnitureTris, tri);
         const entity = id ? this.pickFurniture.get(id) : undefined;
-        if (entity) return { entity };
+        if (entity && devices) return { entity };
         // an outdoor area acting as a room (#100): its surface lies in the wall mesh; a tap on it opens it
         if (!id && hit.face && hit.face.normal.y > 0.7) {
           const zone = outdoorZones(fv.floor).find((z) => pointInPolygon([hit.point.x, hit.point.z], z.points));
@@ -4200,8 +4206,13 @@ export class FloorplanViewer {
     return null;
   }
 
+  /** Devices switch only in an opened room (a setting): in the house and floor views a tap opens what lies there. */
+  private get tapOpens(): boolean {
+    return !!this.building?.settings.tap_in_room && this.roomId === null && !this.furnish;
+  }
+
   private onTap(x: number, y: number): void {
-    const hit = this.pick(x, y);
+    const hit = this.pick(x, y, !this.tapOpens);
     if (hit && "entity" in hit && this.furnish) {
       this.selectDevice(hit.entity);
       this.options.onDeviceSelect?.(hit.entity);
