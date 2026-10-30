@@ -911,7 +911,7 @@ If the entity provides `cloud_coverage` and `wind_speed`, NeonPlan 3D uses them.
 
 ![Snow](images/view-weather-snow.jpg)
 
-**Settings** in the editor: **Weather entity** picks the entity, **Weather effects in 3D** switches single effects off. Fog starts off because it greys the whole scene. At the Tablet quality level only the dimming by clouds remains.
+**Settings** in the editor: **Weather entity** picks the entity, **Weather effects in 3D** switches single effects off. Fog starts off; switched on, it lies around the house – the rooms and their lights stay clear. At the Tablet quality level only the dimming by clouds remains.
 
 ### 6.3 Live screens
 

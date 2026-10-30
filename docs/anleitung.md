@@ -911,7 +911,7 @@ Liefert die Entität `cloud_coverage` und `wind_speed`, nutzt NeonPlan 3D diese 
 
 ![Schnee](images/view-weather-snow.jpg)
 
-**Einstellungen** im Editor: Unter **Wetter-Entität** wählst du die Entität, unter **Wetter-Effekte in 3D** schaltest du einzelne Effekte ab. Nebel ist anfangs aus, weil er die ganze Szene eingraut. Auf der Qualitätsstufe Tablet bleibt nur die Abdunkelung durch Wolken.
+**Einstellungen** im Editor: Unter **Wetter-Entität** wählst du die Entität, unter **Wetter-Effekte in 3D** schaltest du einzelne Effekte ab. Nebel ist anfangs aus; eingeschaltet liegt er um das Haus herum – die Räume und ihre Lichter bleiben klar. Auf der Qualitätsstufe Tablet bleibt nur die Abdunkelung durch Wolken.
 
 ### 6.3 Bildschirme live
 
