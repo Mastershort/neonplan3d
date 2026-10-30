@@ -1,6 +1,7 @@
 // Lit wrapper around the lazily loaded 3D viewer.
 
 import { css, html, LitElement, nothing, svg, type PropertyValues } from "lit";
+import { floorNavigationGroup, floorNavigationGroups } from "../floor-navigation.ts";
 import { linesField } from "./lines-field.ts";
 import { carState, type CarState, heatSensorOn, roomClimateValue,
   appColor,
@@ -237,6 +238,7 @@ export class Fp3dView3d extends LitElement {
     hass: { attribute: false },
     building: { attribute: false },
     floorId: { attribute: false },
+    groupFloors: { attribute: false },
     roomId: { attribute: false },
     wallMode: { attribute: false },
     explode: { type: Boolean },
@@ -356,6 +358,7 @@ export class Fp3dView3d extends LitElement {
   /** How long the last full sync took (ms, smoothed), shown with the stats. */
   private syncMs = 0;
   declare floorId: string | null;
+  declare groupFloors: boolean;
   declare roomId: string | null;
   declare wallMode: WallMode;
   declare explode: boolean;
@@ -663,6 +666,7 @@ export class Fp3dView3d extends LitElement {
     this.replay = null;
     this._info = null;
     this.floorId = null;
+    this.groupFloors = true;
     this.roomId = null;
     this.wallMode = "auto";
     this.explode = true;
@@ -961,6 +965,7 @@ export class Fp3dView3d extends LitElement {
       this.syncDevices(true);
       void this.syncPets();
       void this.syncGhost();
+      this.viewer.setNavigationGroups(this.groupFloors);
       this.viewer.setFloor(this.floorId, false);
       if (this.roomId) this.viewer.selectRoom(this.roomId);
     } catch (err) {
@@ -1017,9 +1022,10 @@ export class Fp3dView3d extends LitElement {
       v.setStartView(this.startViewOf());
       if (this.floorId === null) v.resetView();
     }
-    if (changed.has("building") || changed.has("theme") || changed.has("floorThumbs") || changed.has("packs")) this.scheduleThumbs();
+    if (changed.has("groupFloors")) v.setNavigationGroups(this.groupFloors);
+    if (changed.has("building") || changed.has("theme") || changed.has("floorThumbs") || changed.has("packs") || changed.has("groupFloors")) this.scheduleThumbs();
     // with symbols only in rooms, opening or closing a room changes which ones show
-    const forced = ["building", "markerMode", "heatMode", "flows", "alerts", "dimmed"].some((k) => changed.has(k)) || (this.markerMode === "room" && changed.has("roomId"));
+    const forced = ["building", "groupFloors", "markerMode", "heatMode", "flows", "alerts", "dimmed"].some((k) => changed.has(k)) || (this.markerMode === "room" && changed.has("roomId"));
     // time travel: a tick moves the clock even when no replayed state changed – the trail and a camera's
     // detections follow it (one sync per tick at most, and only when they are shown)
     const ticked = this.replayTicked && !!this.replay;
@@ -1548,7 +1554,7 @@ export class Fp3dView3d extends LitElement {
     v.setPersonLook(personLook(b) === "pin" ? "pin" : "figure");
     v.setPersons(persons);
     this.lastPersons = persons.map((p) => ({ floorId: p.floorId, roomId: p.roomId }));
-    const counts = floorCounts(hass, b, this.openingLinks!, persons);
+    const counts = floorCounts(hass, b, this.openingLinks!, persons, this.groupFloors);
     v.setFloorInfo(new Map([...counts].map(([id, c]) => [id, floorInfoText(hass, c)])));
     // daylight: sun through the windows and a lighter sky
     const sun = hass.states["sun.sun"]?.attributes;
@@ -3666,7 +3672,9 @@ export class Fp3dView3d extends LitElement {
 
   private renderThumbs() {
     if (!this._thumbs.length || !this.building) return nothing;
-    const names = new Map(this.building.floors.map((f) => [f.id, f.name]));
+    const groups = this.groupFloors ? floorNavigationGroups(this.building.floors) : this.building.floors.map((f) => ({ id: f.id, name: f.name, floors: [f] }));
+    const names = new Map(groups.map((g) => [g.id, g.name]));
+    const selected = this.groupFloors ? floorNavigationGroup(this.building.floors, this.floorId)?.id : this.floorId;
     // the highest floor on top
     const order = [...this._thumbs].sort(
       (a, b) => (this.building!.floors.find((f) => f.id === b.floorId)?.elevation ?? 0) - (this.building!.floors.find((f) => f.id === a.floorId)?.elevation ?? 0),
@@ -3687,7 +3695,7 @@ export class Fp3dView3d extends LitElement {
         <span>${translate(this.hass, "all_floors")}</span>
       </button>
       ${order.map(
-        (t) => html`<button class="fp3d-thumb" aria-pressed=${this.floorId === t.floorId} @click=${() => this.fire("floor-tap", { floorId: t.floorId })}>
+        (t) => html`<button class="fp3d-thumb" aria-pressed=${selected === t.floorId} @click=${() => this.fire("floor-tap", { floorId: t.floorId })}>
           ${compact ? nothing : html`<img src=${t.url} alt="" />`}
           <span>${names.get(t.floorId) ?? ""}</span>
         </button>`,
@@ -4147,9 +4155,9 @@ export class Fp3dView3d extends LitElement {
     </button>`;
     if (!this._central) return star;
     const floor = this.floorId ? b.floors.find((f) => f.id === this.floorId) : undefined;
-    const floors = floor ? [floor] : b.floors;
-    const lights = floors.flatMap((f) => floorControls(hass, f).lights);
-    const covers = floors.flatMap((f) => floorControls(hass, f).covers);
+    const floors = floor ? (this.groupFloors ? floorNavigationGroup(b.floors, floor.id)?.floors ?? [floor] : [floor]) : b.floors;
+    const lights = [...new Set(floors.flatMap((f) => floorControls(hass, f).lights))];
+    const covers = [...new Set(floors.flatMap((f) => floorControls(hass, f).covers))];
     const lightsOn = lights.filter((id) => hass.states[id]?.state === "on").length;
     const house = !floor;
     // house-wide: the first tap arms the button ("sure?"), the second runs it
@@ -4174,7 +4182,7 @@ export class Fp3dView3d extends LitElement {
     return html`${star}
       <div class="fp3d-central" role="dialog" aria-label=${t("central")}>
         <div class="fp3d-central-top">
-          <b>${floor ? floor.name : t("central_house")}</b>
+          <b>${floor ? (this.groupFloors && floor.navigation_group?.trim()) || floor.name : t("central_house")}</b>
           <button class="fp3d-btn fp3d-central-gear" title=${t("view_settings")} aria-label=${t("view_settings")} @click=${() => {
             this._central = false;
             this._settingsOpen = true;

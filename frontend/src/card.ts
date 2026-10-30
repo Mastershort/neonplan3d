@@ -1,6 +1,7 @@
 // Lovelace card (loaded automatically by the integration, no resource needed).
 
 import { zonesOf } from "./model.ts";
+import { floorNavigationGroup } from "./floor-navigation.ts";
 import { confirmEntities } from "./devices.ts";
 import { countView } from "./diagnostics.ts";
 import { css, html, LitElement, nothing, type PropertyValues } from "lit";
@@ -383,6 +384,7 @@ clearTimeout(this.cleanTimer);
               .keepView=${c?.keep_view === true}
               .angleLock=${c?.angle_lock === true}
               .floorStack=${c?.floor_stack ?? "dim"}
+              .groupFloors=${this.canSwitch}
               .panelOpen=${!!this._roomId && c?.room_panel !== false}
               .alerts=${c?.alerts !== false}
               .householdCard=${c?.household_card !== false}
@@ -412,15 +414,18 @@ clearTimeout(this.cleanTimer);
                 // in the house view (or on another floor) a tap first opens the whole floor; the floor as it is now,
                 // not as rendered: a jump switches the floor and opens the room 60 ms later, before a slow tablet
                 // has drawn again (#784)
-                if (this.canSwitch && (b?.floors.length ?? 0) > 1 && e.detail.floorId && this.currentFloor() !== e.detail.floorId) {
+                const selected = floorNavigationGroup(b?.floors ?? [], this.currentFloor());
+                if (this.canSwitch && (b?.floors.length ?? 0) > 1 && e.detail.floorId && !selected?.floors.some((f) => f.id === e.detail.floorId)) {
                   this._floorId = e.detail.floorId;
                   this._roomId = null;
                   return;
                 }
                 if (!e.detail.roomId) return;
+                if (this.canSwitch) this._floorId = e.detail.floorId;
                 this._roomId = e.detail.roomId === this._roomId ? null : e.detail.roomId;
               }}
               @floor-tap=${(e: CustomEvent<{ floorId: string | null }>) => {
+                if (!this.canSwitch) return;
                 this._floorId = e.detail.floorId;
                 this._roomId = null;
               }}

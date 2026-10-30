@@ -23,6 +23,8 @@ jobs:
       - run: npm test
       - name: Build and check budgets
         run: npm run build
+      - name: Split-level navigation in desktop, phone and tablet views
+        run: CHROME_PATH="$(command -v google-chrome)" npm run test:browser
       - name: Committed bundles are up to date
         run: git diff --exit-code -- ../custom_components/neonplan3d/frontend
 

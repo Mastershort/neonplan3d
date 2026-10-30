@@ -708,6 +708,10 @@ FREE_WALL_SCHEMA = vol.Schema(
 
 FLOOR_SCHEMA = vol.Schema(
     {
+        # Navigation only: each floor retains its geometry and elevation.
+        vol.Optional("navigation_group", default=None): vol.Any(
+            None, vol.All(str, vol.Length(max=100), lambda value: value.strip() or None)
+        ),
         vol.Required("id"): _ID,
         vol.Required("name"): _NAME,
         vol.Required("elevation"): vol.All(vol.Coerce(float), vol.Range(min=-100, max=500)),

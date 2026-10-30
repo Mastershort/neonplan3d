@@ -3,6 +3,7 @@
 import { formatImperial, lengthUnit, parseLength } from "./units.ts";
 import { css, html, LitElement, nothing, type PropertyValues } from "lit";
 import { BuildingController } from "./building-controller.ts";
+import { floorNavigationGroup, floorNavigationGroups } from "./floor-navigation.ts";
 import { countView } from "./diagnostics.ts";
 import { loadEditor } from "./load-editor.ts";
 import "./components/room-panel.ts";
@@ -259,12 +260,14 @@ export class Floorplan3dPanel extends LitElement {
   private onRoomTap(e: CustomEvent<{ floorId: string; roomId: string | null }>): void {
     const { floorId, roomId } = e.detail;
     // in the house view (or on another floor) a tap first opens the whole floor; rooms come next
-    if ((this.data.building?.floors.length ?? 0) > 1 && floorId && this._floorId !== floorId) {
+    const selected = floorNavigationGroup(this.data.building?.floors ?? [], this._floorId);
+    if ((this.data.building?.floors.length ?? 0) > 1 && floorId && !selected?.floors.some((f) => f.id === floorId)) {
       this._floorId = floorId;
       this._roomId = null;
       return;
     }
     if (!roomId) return;
+    this._floorId = floorId;
     this._roomId = roomId === this._roomId ? null : roomId;
   }
 
@@ -900,7 +903,9 @@ export class Floorplan3dPanel extends LitElement {
       </div>`;
     }
     const floor = b.floors.find((f) => f.id === this._floorId);
-    const roomFloors = floor ? [floor] : b.floors;
+    const navigation = floorNavigationGroups(b.floors);
+    const selected = floorNavigationGroup(b.floors, floor?.id);
+    const roomFloors = selected?.floors ?? b.floors;
     const tt = this.tt.active;
     return html`
       ${this._clean ? nothing : html`<nav class="fp3d-nav ${this._navWrap ? "fp3d-nav-wrap" : ""}" @wheel=${this.onNavWheel}>
@@ -911,10 +916,10 @@ export class Floorplan3dPanel extends LitElement {
               }}>
                 ${this.t("all_floors")}
               </button>
-              ${[...b.floors].reverse().map(
+              ${[...navigation].reverse().map(
                 (f) => html`<button
                   class="fp3d-chip"
-                  aria-pressed=${f.id === this._floorId}
+                  aria-pressed=${f.id === selected?.id}
                   @click=${() => {
                     this._floorId = f.id;
                     this._roomId = null;

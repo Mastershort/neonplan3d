@@ -2,6 +2,7 @@
 // Bermuda, whose state names a room or area), and the counts shown on the floor labels.
 
 import { areaEntities, entityAreaId, kindOf, openingState, primaryEntities, type OpeningEntities } from "./devices.ts";
+import { floorNavigationGroups } from "./floor-navigation.ts";
 import { translate } from "./i18n.ts";
 import type { Building, Room } from "./model.ts";
 import { centroid, pointInPolygon, zonesOf } from "./model.ts";
@@ -316,16 +317,19 @@ export interface FloorCounts {
   persons: number;
 }
 
-/** Counts per floor for the floor labels in the house view. */
-export function floorCounts(hass: HomeAssistant, building: Building, links: Map<string, OpeningEntities>, persons: PersonMarker[]): Map<string, FloorCounts> {
+/** Counts keyed by physical floor id; grouped labels share totals with unique light entities. */
+export function floorCounts(hass: HomeAssistant, building: Building, links: Map<string, OpeningEntities>, persons: PersonMarker[], groupFloors = false): Map<string, FloorCounts> {
   const out = new Map<string, FloorCounts>();
   const on = (id: string | null) => !!id && hass.states[id]?.state === "on";
-  for (const floor of building.floors) {
+  const groups = groupFloors ? floorNavigationGroups(building.floors).map((g) => g.floors) : building.floors.map((f) => [f]);
+  for (const floors of groups) {
     const lights = new Set<string>();
     // main entities only: a LED strip with 30 segment entities is one light
-    for (const room of floor.rooms) for (const id of primaryEntities(hass, areaEntities(hass, room.area_id))) if (kindOf(id) === "light") lights.add(id);
-    for (const pl of floor.placements) if (kindOf(pl.entity_id) === "light") lights.add(pl.entity_id);
-    const open = floor.openings.filter((o) => {
+    for (const floor of floors) {
+      for (const room of floor.rooms) for (const id of primaryEntities(hass, areaEntities(hass, room.area_id))) if (kindOf(id) === "light") lights.add(id);
+      for (const pl of floor.placements) if (kindOf(pl.entity_id) === "light") lights.add(pl.entity_id);
+    }
+    const open = floors.flatMap((f) => f.openings).filter((o) => {
       const l = links.get(o.id);
       if (!l) return false;
       // a garage door counts as open while its cover is not (almost) down
@@ -334,12 +338,13 @@ export function floorCounts(hass: HomeAssistant, building: Building, links: Map<
       const s = openingState(hass, l, "window");
       return s.open > 0.5 || s.tilt > 0.5 || s.open2 > 0.5 || s.tilt2 > 0.5;
     }).length;
-    out.set(floor.id, {
-      rooms: floor.rooms.length,
+    const counts = {
+      rooms: floors.reduce((sum, f) => sum + f.rooms.length, 0),
       lightsOn: [...lights].filter((id) => hass.states[id]?.state === "on").length,
       open,
-      persons: persons.filter((p) => p.floorId === floor.id).length,
-    });
+      persons: persons.filter((p) => floors.some((f) => f.id === p.floorId)).length,
+    };
+    for (const floor of floors) out.set(floor.id, counts);
   }
   return out;
 }

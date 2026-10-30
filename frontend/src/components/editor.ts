@@ -1144,6 +1144,7 @@ export class Fp3dEditor extends LitElement {
           </div>`}
       ${this.render3dBar()}
       <fp3d-view3d
+              .groupFloors=${false}
               .walkable=${false}
         .pivotMark=${true}
         .hass=${this.hass}
@@ -7235,6 +7236,7 @@ export class Fp3dEditor extends LitElement {
               </div>`}
         ${this._wallView3d
           ? html`<fp3d-view3d
+              .groupFloors=${false}
               .walkable=${false}
               class="fp3d-wv-3d"
               ${ref((el) => el && this.setupWall3d(el as HTMLElement, room, v.edge))}
@@ -10477,6 +10479,21 @@ export class Fp3dEditor extends LitElement {
                   </div>`
                 : nothing}
               ${this.len(this.t("height"), floor.height, (v) => this.updateFloor({ height: Math.max(1, v) }), 0.05, 1)}
+              <label class="fp3d-field fp3d-wide"
+                >${this.t("floor_navigation_group")}
+                <input
+                  .value=${floor.navigation_group ?? ""}
+                  ?disabled=${!admin}
+                  maxlength="100"
+                  list="fp3d-navigation-groups"
+                  aria-describedby="fp3d-navigation-group-hint"
+                  @change=${(e: Event) => this.updateFloor({ navigation_group: (e.target as HTMLInputElement).value.trim() || null })}
+                />
+                <datalist id="fp3d-navigation-groups">
+                  ${[...new Set(floors.map((f) => f.navigation_group?.trim()).filter(Boolean))].map((name) => html`<option value=${name!}></option>`)}
+                </datalist>
+              </label>
+              <p class="fp3d-sub fp3d-wide" id="fp3d-navigation-group-hint">${this.t("floor_navigation_group_hint")}</p>
               ${Object.keys(this.hass?.floors ?? {}).length
                 ? html`<label class="fp3d-field fp3d-wide"
                     >${this.t("ha_floor")}

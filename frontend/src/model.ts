@@ -382,6 +382,8 @@ export interface Background {
 }
 
 export interface Floor {
+  /** Floors with the same group name share navigation; elevations remain independent. */
+  navigation_group?: string | null;
   id: string;
   name: string;
   elevation: number;
