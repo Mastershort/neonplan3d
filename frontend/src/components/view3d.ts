@@ -1554,15 +1554,7 @@ export class Fp3dView3d extends LitElement {
     v.setPersonLook(personLook(b) === "pin" ? "pin" : "figure");
     v.setPersons(persons);
     this.lastPersons = persons.map((p) => ({ floorId: p.floorId, roomId: p.roomId }));
-    const counts = floorCounts(hass, b, this.openingLinks!, persons);
-    if (this.groupFloors) for (const group of floorNavigationGroups(b.floors)) {
-      const total = { rooms: 0, lightsOn: 0, open: 0, persons: 0 };
-      for (const floor of group.floors) {
-        const c = counts.get(floor.id);
-        if (c) for (const key of ["rooms", "lightsOn", "open", "persons"] as const) total[key] += c[key];
-      }
-      for (const floor of group.floors) counts.set(floor.id, total);
-    }
+    const counts = floorCounts(hass, b, this.openingLinks!, persons, this.groupFloors);
     v.setFloorInfo(new Map([...counts].map(([id, c]) => [id, floorInfoText(hass, c)])));
     // daylight: sun through the windows and a lighter sky
     const sun = hass.states["sun.sun"]?.attributes;
@@ -4164,8 +4156,8 @@ export class Fp3dView3d extends LitElement {
     if (!this._central) return star;
     const floor = this.floorId ? b.floors.find((f) => f.id === this.floorId) : undefined;
     const floors = floor ? (this.groupFloors ? floorNavigationGroup(b.floors, floor.id)?.floors ?? [floor] : [floor]) : b.floors;
-    const lights = floors.flatMap((f) => floorControls(hass, f).lights);
-    const covers = floors.flatMap((f) => floorControls(hass, f).covers);
+    const lights = [...new Set(floors.flatMap((f) => floorControls(hass, f).lights))];
+    const covers = [...new Set(floors.flatMap((f) => floorControls(hass, f).covers))];
     const lightsOn = lights.filter((id) => hass.states[id]?.state === "on").length;
     const house = !floor;
     // house-wide: the first tap arms the button ("sure?"), the second runs it

@@ -212,3 +212,23 @@ test("a located person whose Home Assistant person has no tracker (state unknown
   hass.states["person.tom"] = st("person.tom", "not_home", { friendly_name: "Tom" });
   assert.ok(!locatedPersons(hass, building, new Set(), now).some((p) => p.id === "person.tom"));
 });
+
+
+test("navigation summaries count a shared light once while retaining physical rooms and people", () => {
+  const { hass, building } = setup();
+  building.floors[0].navigation_group = "Living level";
+  building.floors.push({ ...newFloor("wing", "Raised wing", 1.5), navigation_group: "Living level",
+    rooms: [rect("raised", "Raised kitchen", "kitchen", 8)] });
+  const persons = personsInRooms(hass, building);
+  const physical = floorCounts(hass, building, new Map(), persons);
+  assert.deepEqual(physical.get("eg"), { rooms: 2, lightsOn: 1, open: 0, persons: 2 });
+  assert.deepEqual(physical.get("wing"), { rooms: 1, lightsOn: 1, open: 0, persons: 0 });
+  const grouped = floorCounts(hass, building, new Map(), persons, true);
+  assert.deepEqual(grouped.get("eg"), { rooms: 3, lightsOn: 1, open: 0, persons: 2 });
+  assert.deepEqual(grouped.get("wing"), grouped.get("eg"));
+  hass.states["light.a"].state = "off";
+  assert.equal(floorCounts(hass, building, new Map(), persons, true).get("wing")?.lightsOn, 0);
+  building.floors[1].navigation_group = null;
+  assert.equal(floorCounts(hass, building, new Map(), persons, true).get("eg")?.rooms, 2);
+  assert.equal(floorCounts(hass, building, new Map(), persons, true).get("wing")?.rooms, 1);
+});

@@ -421,10 +421,11 @@ clearTimeout(this.cleanTimer);
                   return;
                 }
                 if (!e.detail.roomId) return;
-                this._floorId = e.detail.floorId;
+                if (this.canSwitch) this._floorId = e.detail.floorId;
                 this._roomId = e.detail.roomId === this._roomId ? null : e.detail.roomId;
               }}
               @floor-tap=${(e: CustomEvent<{ floorId: string | null }>) => {
+                if (!this.canSwitch) return;
                 this._floorId = e.detail.floorId;
                 this._roomId = null;
               }}

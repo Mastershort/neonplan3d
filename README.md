@@ -154,6 +154,7 @@ npm test            # pure logic
 npm run typecheck
 npm run build       # writes the bundles to custom_components/neonplan3d/frontend (committed) and checks the size budgets
 npm run screenshot  # renders preview/index.html (invented demo data) with a local Chrome or Edge
+CHROME_PATH=/path/to/chromium npm run test:browser # synthetic navigation regression, after build
 ```
 
 - **Preview without Home Assistant**: open `preview/index.html` through any local web server.

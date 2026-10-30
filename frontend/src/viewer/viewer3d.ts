@@ -4100,9 +4100,11 @@ export class FloorplanViewer {
     // distance but looks from the same side, so the house never turns round when a floor is opened
     const house = this.floorId === null;
     // a floor may have a start view of its own (#182): it opens from that side and distance
-    const own = !house ? (this.floorMap.get(this.floorId!)?.floor.start_view ?? null) : null;
+    const group = !house ? this.navigationGroups().find((g) => g.some((f) => f.floor.id === this.floorId)) : undefined;
+    const own = group?.[0].floor.start_view ?? null;
     const start = own ?? this.startView;
-    const useRadius = !!start && (house || !!own);
+    // A physical floor's saved framing can crop siblings; groups keep its direction and fit their union.
+    const useRadius = !!start && (house || (!!own && group?.length === 1));
     if (start && useRadius) this.controls.maxRadius = Math.max(this.controls.maxRadius, start.radius * 1.5);
     // the start view's framing (#206): the point it looks at, counted from the opened floor
     const at = useRadius ? start!.target : null;
@@ -5190,7 +5192,7 @@ export class FloorplanViewer {
           return;
         }
         // a single floor is the house view as well (#255)
-        if (this.floorId !== null && this.floors.length > 1 && (a.views === "house" || a.floorId !== this.floorId)) {
+        if (this.floorId !== null && this.floors.length > 1 && (a.views === "house" || !fv || this.otherFloor(fv))) {
           this.anchorCb!(i, 0, 0, false, 1, true);
           return;
         }
@@ -5230,9 +5232,11 @@ export class FloorplanViewer {
     }
   }
 
-  /** A floor other than the opened one (shown below it when floors are stacked). */
+  /** Stacked reference floors have no labels; every member of the opened group does. */
   private otherFloor(fv: FloorView): boolean {
-    return this.floorId !== null && fv.floor.id !== this.floorId;
+    if (this.floorId === null || fv.floor.id === this.floorId) return false;
+    const group = this.groupFloors && fv.floor.navigation_group?.trim();
+    return !group || group !== this.floorMap.get(this.floorId)?.floor.navigation_group?.trim();
   }
 
   private updateDevicePins(w: number, h: number): void {

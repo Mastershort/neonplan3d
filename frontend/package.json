@@ -8,7 +8,8 @@
     "test": "node --test \"src/**/*.test.ts\"",
     "typecheck": "tsc --noEmit",
     "screenshot": "node screenshot.mjs",
-    "deploy": "node build.mjs && node ../scripts/deploy.mjs"
+    "deploy": "node build.mjs && node ../scripts/deploy.mjs",
+    "test:browser": "node check-floor-navigation.mjs"
   },
   "dependencies": {
     "lit": "^3.3.3",

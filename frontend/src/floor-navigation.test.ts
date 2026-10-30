@@ -42,3 +42,15 @@ test("a group's navigation anchor stays at its lowest physical floor when editor
   assert.equal(floorNavigationGroups([high, low])[0].id, "low");
   assert.equal(floorNavigationGroup([low, high], "high")?.id, "low");
 });
+
+
+test("equal-height members and an empty anchor keep valid physical navigation ids", () => {
+  const empty = { ...newFloor("empty", "Empty landing", 0), navigation_group: "Level" };
+  const wing = { ...newFloor("wing", "Wing", 0), navigation_group: "Level" };
+  for (const floors of [[empty, wing], [wing, empty]]) {
+    const group = floorNavigationGroups(floors)[0];
+    assert.equal(group.id, floors[0].id);
+    assert.equal(floorNavigationGroup(floors, "wing")?.id, group.id);
+    assert.deepEqual(group.floors, floors);
+  }
+});
