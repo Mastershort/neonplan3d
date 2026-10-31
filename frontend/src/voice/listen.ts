@@ -2,6 +2,7 @@
 // speech to text, so NeonPlan decides what the sentence means), and handing a sentence to Assist's conversation.
 
 import type { HomeAssistant } from "../types.ts";
+import { withoutHere } from "./commands.ts";
 
 export interface Pipeline {
   id: string;
@@ -233,8 +234,21 @@ async function findSpeaking(hass: HomeAssistant, chosen: string | null): Promise
   }
 }
 
-/** Hand a sentence to Assist's conversation ("Licht im Flur an"); its spoken answer as text. */
-export async function converse(hass: HomeAssistant, text: string): Promise<string> {
-  const res = await hass.callWS<{ response?: { speech?: { plain?: { speech?: string } } } }>({ type: "conversation/process", text, language: hass.language });
+type Conversed = { response?: { speech?: { plain?: { speech?: string } } } };
+
+/**
+ * Hand a sentence to Assist's conversation ("Licht im Flur an"); its spoken answer as text. `area`: the Home
+ * Assistant area this device hangs in – "Licht an" and "Mach hier das Licht an" switch the lights there.
+ */
+export async function converse(hass: HomeAssistant, text: string, area: string | null = null): Promise<string> {
+  if (area) {
+    try {
+      const res = await hass.callWS<Conversed>({ type: "neonplan3d/voice/converse", text: withoutHere(text, hass.language), area_id: area, language: hass.language });
+      return res.response?.speech?.plain?.speech ?? "";
+    } catch {
+      // an older NeonPlan on the server (or Assist off): the sentence goes to Assist as it was said
+    }
+  }
+  const res = await hass.callWS<Conversed>({ type: "conversation/process", text, language: hass.language });
   return res.response?.speech?.plain?.speech ?? "";
 }

@@ -18,8 +18,10 @@ from pathlib import Path
 from typing import Any, ClassVar
 import uuid
 
-from homeassistant.core import HomeAssistant, ServiceCall, ServiceResponse, SupportsResponse, callback
+from homeassistant.core import Context, HomeAssistant, ServiceCall, ServiceResponse, SupportsResponse, callback
+from homeassistant.helpers import area_registry as ar
 from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import intent
 from homeassistant.helpers.dispatcher import async_dispatcher_connect, async_dispatcher_send
 from homeassistant.helpers.storage import Store
@@ -459,6 +461,28 @@ def show_located(hass: HomeAssistant, located: Located, screen: str | None = Non
             "admins_only": located.persons and service.admins_only,
         },
     )
+
+
+def area_device(hass: HomeAssistant, area_id: str) -> str | None:
+    """A device of the area that a wall tablet's sentence is said in. Assist takes a sentence's room from the device
+    that heard it ("Licht an" switches the lights there); a tablet that only runs a browser is no device of Home
+    Assistant's, so a device of its room stands in for it. None when the area is gone or has no device."""
+    if ar.async_get(hass).async_get_area(area_id) is None:
+        return None
+    devices = [d for d in dr.async_entries_for_area(dr.async_get(hass), area_id) if d.disabled_by is None]
+    return min(devices, key=lambda d: d.id).id if devices else None
+
+
+async def async_converse_here(
+    hass: HomeAssistant, text: str, language: str | None, area_id: str, context: Context
+) -> dict[str, Any]:
+    """A sentence for Assist, said in a room ("Licht an" on the kitchen's tablet switches the kitchen's lights)."""
+    from homeassistant.components import conversation  # not a dependency: Assist may be off
+
+    result = await conversation.async_converse(
+        hass, text, None, context, language=language, device_id=area_device(hass, area_id)
+    )
+    return result.as_dict()
 
 
 class AskIntentHandler(intent.IntentHandler):

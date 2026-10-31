@@ -769,6 +769,8 @@ data:
 
 **Screen names.** With several tablets, give each view a name: in the editor under **⚙ Settings → 🎙 Voice control → Screen name** (for this device) or on the card with the option `screen: Kitchen`. When the service names a screen, only the view with that name reacts; without one, all of them do. With no view open, Assist answers "No NeonPlan screen is open right now".
 
+**Room of this device – "here"** (new in 2.1). When a tablet hangs in one room, choose it under **⚙ Settings → 🎙 Voice control → Room of this device** (for this device, empty by default). Then sentences without a room name are enough: "Lights on", "Turn off the lights here" or "Close the blinds" switch only in that room. When you name a room ("Turn on the kitchen lights"), that room counts. You can choose the rooms (and outdoor areas) that have a Home Assistant area, because Assist switches by area: NeonPlan hands the sentence to Assist as if a device in that area had heard it. A voice satellite like the Voice PE does not need this setting, it knows its area itself.
+
 **Testing:** in the **🎙️ Voice control** section, **🎙️ Test the microphone** starts a probe. It checks https, the microphone, the level and Assist one after the other. It also shows which room a spoken sentence would open, and switches nothing while doing so. Wherever there is a ✖, the fix stands next to it.
 
 **Good to know:**

@@ -4,6 +4,12 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 [releases page](https://github.com/Mastershort/neonplan3d/releases). Ideas and votes:
 [Discussions → Ideas](https://github.com/Mastershort/neonplan3d/discussions/categories/ideas).
 
+## 2.1.0 (in progress)
+
+### New
+
+- **Voice control knows where the tablet hangs** (⚙ Settings → 🎙 Voice control → Room of this device, empty by default): on a tablet with a room, sentences without a room name apply to that room – "Lights on", "Turn off the lights here" or "Close the blinds". A room you name still wins. Home Assistant's Assist hears the sentence as said in that room's area, as from a voice satellite there.
+
 ## 2.0.11
 
 ### New

@@ -139,7 +139,7 @@ import type { DeviceMarker, FloorplanViewer, FloorStack, RobotInfo, Quality, Scr
 import { wallLayout } from "../camera-wall.ts";
 import { watchedEntities } from "../watched.ts";
 import { backdropCss } from "../backdrop.ts";
-import { loadVoice, micProbeAsked, micProbeDone, voicePipeline } from "../load-voice.ts";
+import { loadVoice, micProbeAsked, micProbeDone, voiceArea, voicePipeline } from "../load-voice.ts";
 import { answerAsk, subscribeAsk, type Ask, type ScreenAnnouncement } from "../api.ts";
 import { pipePlanner } from "../pipe-planner.ts";
 import type { ClockPos } from "../card-config.ts";
@@ -4400,7 +4400,7 @@ export class Fp3dView3d extends LitElement {
       }
       if ((await this.handleSentence(hass, b, v, text, true)) !== null) return;
       say("wait", `“${text}” …`);
-      const answer = await v.converse(hass, text);
+      const answer = await v.converse(hass, text, voiceArea());
       say("done", answer ? `“${text}” – ${answer}` : `“${text}”`);
     } catch (err) {
       const e = err as { name?: string; message?: string };

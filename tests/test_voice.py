@@ -3,13 +3,16 @@
 from __future__ import annotations
 
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import area_registry as ar
+from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import intent
+from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.neonplan3d.const import DOMAIN
-from custom_components.neonplan3d.voice import remove_sentences, sentences_yaml, write_sentences
+from custom_components.neonplan3d.voice import area_device, remove_sentences, sentences_yaml, write_sentences
 
 from .test_init import _setup
 
@@ -241,3 +244,36 @@ def test_the_names_locating_knows_are_sentences(tmp_path: Path) -> None:
     # names changed: the file is ours, so it is rewritten
     _, kept, changed = write_sentences(tmp_path, "distinct", hashes, ["Frauke"])
     assert kept == [] and changed and "Torstens iPhone" not in de.read_text(encoding="utf-8")
+
+
+async def test_a_sentence_said_in_a_room_goes_to_assist_with_a_device_of_that_room(
+    hass: HomeAssistant, hass_ws_client
+) -> None:
+    """On the kitchen's tablet "Licht an" reaches Assist from a device in the kitchen (the room is its area)."""
+    await _setup(hass)
+    kitchen = ar.async_get(hass).async_create("Küche")
+    hall = ar.async_get(hass).async_create("Flur")
+    entry = MockConfigEntry(domain="hue", data={})
+    entry.add_to_hass(hass)
+    devices = dr.async_get(hass)
+    lamp = devices.async_get_or_create(config_entry_id=entry.entry_id, identifiers={("hue", "lamp")})
+    devices.async_update_device(lamp.id, area_id=kitchen.id)
+    off = devices.async_get_or_create(config_entry_id=entry.entry_id, identifiers={("hue", "off")})
+    devices.async_update_device(off.id, area_id=kitchen.id, disabled_by=dr.DeviceEntryDisabler.USER)
+    assert area_device(hass, kitchen.id) == lamp.id
+    assert area_device(hass, hall.id) is None
+    assert area_device(hass, "gone") is None
+
+    result = MagicMock()
+    result.as_dict.return_value = {"response": {"speech": {"plain": {"speech": "Licht ist an"}}}}
+    converse = AsyncMock(return_value=result)
+    client = await hass_ws_client(hass)
+    with patch("homeassistant.components.conversation.async_converse", converse):
+        await client.send_json(
+            {"id": 1, "type": "neonplan3d/voice/converse", "text": "Licht an", "area_id": kitchen.id, "language": "de"}
+        )
+        res = await client.receive_json()
+    assert res["success"]
+    assert res["result"]["response"]["speech"]["plain"]["speech"] == "Licht ist an"
+    assert converse.await_args.args[1] == "Licht an"
+    assert converse.await_args.kwargs == {"language": "de", "device_id": lamp.id}

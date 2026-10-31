@@ -90,3 +90,39 @@ export function showCommand(sentence: string, building: Building, alias?: RoomAl
   if (place.kind === "house") rest = rest.replace(HOUSE, " ");
   return rest.split(" ").every((w) => !w || FILLER.has(w)) ? place : null;
 }
+
+/** "here" in the languages NeonPlan speaks (by Home Assistant's language: Danish "her" is no English word here). */
+const HERE: Record<string, string[]> = {
+  de: ["hier"],
+  en: ["here"],
+  nl: ["hier"],
+  fr: ["ici"],
+  it: ["qui", "qua"],
+  es: ["aquí", "aqui"],
+  pt: ["aqui"],
+  da: ["her"],
+  nb: ["her"],
+  nn: ["her"],
+  sv: ["här"],
+  fi: ["täällä"],
+  cs: ["tady", "zde"],
+  pl: ["tutaj", "tu"],
+  ro: ["aici"],
+  sl: ["tukaj", "tu"],
+  hu: ["itt"],
+  zh: ["这里"],
+};
+
+/**
+ * A sentence for Assist said in the tablet's room, without its "here" ("Mach hier das Licht an" → "Mach das Licht
+ * an"): Assist knows the room from the device, and its sentences have no "here".
+ */
+export function withoutHere(sentence: string, language: string): string {
+  const lang = language.toLowerCase().startsWith("no") ? "nb" : language.slice(0, 2).toLowerCase();
+  let out = sentence;
+  for (const word of HERE[lang] ?? []) {
+    out = lang === "zh" ? out.split(word).join("") : out.replace(new RegExp(`(^|[\\s,])${word}(?=[\\s,.!?]|$)`, "giu"), "$1");
+  }
+  out = out.replace(/\s{2,}/g, " ").replace(/\s+([,.!?])/g, "$1").trim();
+  return out || sentence;
+}
