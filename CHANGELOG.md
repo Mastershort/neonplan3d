@@ -17,6 +17,7 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 
 - **Card:** the "values" heatmap (numbers at the room names) is a valid card option, and the "Extensions" button in a Pro hint opens the extensions in the NeonPlan panel instead of doing nothing.
 - **"Switch devices only in the opened room" is easy to find (#883):** it sat only in the ⚙ menu of the 3D view (⭐ → ⚙ Settings → Controls); now it is in the editor too (⚙ Settings → Weather & warnings). Thanks to @PaulBiod!
+- **The attic no longer stands out of the roof as a step (#855):** a wall of a high attic floor that runs along the eaves can lie under the slope across its thickness – its outer edge stood out of the roof along the whole length once the wall turned opaque. It now ends where the roof passes through it. Thanks to Frank (@Kuddelsoft) for the plan and the patience!
 - **Colour effects no longer slow the 3D view (#885):** a light with an effect (colour loop, "Breathe", "Movie Mode" …) recoloured the light on floors and walls by computing it anew eight times a second; now the light is computed once and only its colour changes, and while you turn or zoom the view the effect holds. Thanks to @kzaoaai!
 - **A shared template leaves out every link to your home:** "Share as template" also removes entities that newer features keep (door locks, gas and water meters, the rain and outage sensors, the extra entities of furniture, module settings), wherever they stand in the plan. Thanks to Frank (@Kuddelsoft) for noticing!
 

@@ -136,3 +136,26 @@ test("a loft wider than the half-hip above it leaves no wall stub standing out o
   // the walls under the ridge are still there
   assert.ok(maxY(geo.walls, (x, z) => x > 3.5 && x < 4 && z < 0.1) > 0.5, "gable wall under the ridge");
 });
+
+test("a high attic floor's wall along the eaves is cut where the slope passes through its thickness (#855)", () => {
+  // the attic room starts 2.23 m in from the eave of a 45° roof, on a floor at 5.3 m: at its outer face the
+  // roof's underside lies 15 cm below the floor, at its inner face 9 cm above it
+  const steep: RoofSection = { ...section, pitch_a: 45, pitch_b: 45, eave_a: 3.3, eave_b: 3.3, base: 3.3, z0: -0.1, z1: 8.1, x0: -0.24, x1: 8.24, axis: "x" };
+  const b = { settings: { roof: { type: "custom" as const, pitch: 45, overhang: 0.4, sections: [steep] } } };
+  const floor: Floor = { ...newFloor("db", "DB", 5.3), height: 1.9, rooms: [rect("a", 0.5, 2.13, 7.5, 5.87)] };
+  const under = (x: number, z: number) => {
+    const y = roofUnderAt(b, x, z);
+    return y === null ? null : y - floor.elevation;
+  };
+  const geo = buildFloorGeometry(floor, 0.24, 0.12, [], [], under);
+  const p = geo.walls.getAttribute("position");
+  let worst = Infinity;
+  for (let i = 0; i < p.count; i++) {
+    const r = under(p.getX(i), p.getZ(i));
+    if (r !== null) worst = Math.min(worst, r);
+  }
+  // no corner of a wall stands where the roof's underside lies deeper than the buried depth (6 cm below the floor)
+  assert.ok(worst >= -0.06 - 1e-6, `a wall corner where the roof lies ${worst.toFixed(3)} m below the floor`);
+  // the walls along the eaves are still there, cut to the slope
+  assert.ok(maxY(geo.walls, (x, z) => z < 2.2 && x > 2 && x < 6) > 0.04, "the eave wall is kept");
+});

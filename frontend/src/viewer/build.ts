@@ -141,6 +141,31 @@ export function buildFloorGeometry(
     const r = roofUnder ? roofUnder(x, z) : null;
     return r !== null && r < BURIED;
   };
+  // the part of a wall step the roof leaves standing: a wall along the eaves of a high attic floor can run under
+  // the slope across its thickness – the outer face below the roof's top, the inner face above – and its outer
+  // edge stood out of the roof as a step along the whole length (#855); the footprint ends where the roof's
+  // underside passes the buried depth (the roof is one plane over a step, so the line between is straight)
+  const unburied = (poly: Vec2[]): Vec2[] => {
+    if (!roofUnder) return poly;
+    const depth = poly.map(([x, z]) => {
+      const r = roofUnder(x, z);
+      return r === null ? Infinity : r - BURIED;
+    });
+    if (depth.every((d) => d >= 0)) return poly;
+    if (depth.every((d) => d < 0)) return [];
+    const out: Vec2[] = [];
+    for (let i = 0; i < poly.length; i++) {
+      const j = (i + 1) % poly.length;
+      const [p, q] = [poly[i], poly[j]];
+      const [dp, dq] = [depth[i], depth[j]];
+      if (dp >= 0) out.push(p);
+      if (dp >= 0 !== dq >= 0 && Number.isFinite(dp) && Number.isFinite(dq)) {
+        const k = dp / (dp - dq);
+        out.push([p[0] + (q[0] - p[0]) * k, p[1] + (q[1] - p[1]) * k]);
+      }
+    }
+    return out;
+  };
   // the lowest wall top along a stretch of a wall (sampled), for openings and the top edge line
   const lowestTop = (a: Vec2, ax: Vec2, s0: number, s1: number, H: number, wall?: Wall): number => {
     if (!roofUnder && !wall?.slope) return H;
@@ -388,7 +413,7 @@ export function buildFloorGeometry(
       ];
     };
     for (const piece of underRoof ? steps.flatMap(fine).flatMap(crossing) : steps) {
-      const poly = clipAlong(wall.footprint, wall.a, ax, piece.t0, piece.t1);
+      const poly = underRoof ? unburied(clipAlong(wall.footprint, wall.a, ax, piece.t0, piece.t1)) : clipAlong(wall.footprint, wall.a, ax, piece.t0, piece.t1);
       if (poly.length < 3) continue;
       // the faces between two steps of one piece are inside the wall: left out, or they show as stripes
       // through the see-through walls (D180)
