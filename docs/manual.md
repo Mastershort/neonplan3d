@@ -637,7 +637,7 @@ The **star** above the magnifier opens the **central menu**: lights on or off an
 
 **⚙ Settings (since 2.0.7):** at the top of the central menu, **⚙ Settings** opens the most used settings right in the 3D view, without the editor: **Look** (sun path and house shadow, windows glowing out at night, sunlight through the windows), **Controls** and **Warnings** (window open while it rains, contact unavailable, device names in warnings). Below, every module with settings has a section of its own, such as the **Announcements** (7.5). The settings apply to the whole house; only administrators can change them. Everything else stays in the editor under ⚙ Settings.
 
-**Switch devices only in the opened room (since 2.0.11, off by default):** under **⚙ Settings → Controls**. In the **All floors** view and on a floor, a tap on a device, a pin or a linked piece of furniture then opens its room instead of switching it, so no blind starts moving when you only meant to tap the ground floor. In the opened room a tap switches as usual, and a long press opens the device's menu everywhere. Good for wall tablets.
+**Switch devices only in the opened room (since 2.0.11, off by default):** in the 3D view under **⭐ (the star above the magnifier) → ⚙ Settings → Controls**, in the editor under **⚙ Settings → Weather & warnings**. In the **All floors** view and on a floor, a tap on a device, a pin or a linked piece of furniture then opens its room instead of switching it, so no blind starts moving when you only meant to tap the ground floor. In the opened room a tap switches as usual, and a long press opens the device's menu everywhere. Good for wall tablets.
 
 When a module offers something for the whole house (📢 **Announcement**), it is in the central menu too.
 
