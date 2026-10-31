@@ -9,6 +9,7 @@ What comes next. The order follows your wishes (issues, Discord and 👍 in [Dis
 ## ✅ Recently done (1.13 – 2.0)
 
 - **Locating** (2.0, free): who and what is where – from the Shelly plugs and ESPHome proxies you already have, learned in 90 seconds per room, without Bermuda; people as glowing figures, a sensor per device, "Where is my iPhone?".
+- **Voice control knows the room, and Slovak** (2.1.0): a wall tablet or dashboard card gets its room, so "lights on" switches there; Slovak as the 19th language; more card options without YAML; glass card size for everyone; colour effects no longer slow the view; attic and template fixes.
 - **Switch only in the opened room, and fixes** (2.0.11): a tap in the house or floor view opens the room instead of switching a device (setting, off by default); power strips switch again; announcements on Echos of Home Assistant's Alexa Devices integration and on the terrace.
 - **Fixes in plan and 3D** (2.0.10): light wells in thicker cellar walls, fog stays outside the house, turned roof sections can be resized again, a camera's furniture look at the camera's height, the sidebar jumps to what you tap.
 - **Announcements from automations and on the screens** (2.0.9): the doorbell rings – the speakers in the rooms and every NeonPlan screen say it; an old wall tablet becomes a speaker (Announcements module, beta).
@@ -132,6 +133,7 @@ Was als Nächstes kommt. Die Reihenfolge richtet sich nach euren Wünschen (Issu
 ## ✅ Zuletzt erledigt (1.13 – 2.0)
 
 - **Ortung** (2.0, kostenlos): Wer und was ist wo – über die Shelly-Steckdosen und ESPHome-Proxys, die du schon hast, in 90 Sekunden pro Raum eingelernt, ohne Bermuda; Personen als leuchtende Figuren, ein Sensor pro Gerät, „Wo ist mein iPhone?“.
+- **Sprachsteuerung kennt den Raum, und Slowakisch** (2.1.0): Ein Wandtablet oder eine Dashboard-Karte bekommt seinen Raum, „Licht an“ schaltet dann dort; Slowakisch als 19. Sprache; mehr Karten-Optionen ohne YAML; Größe der Glas-Kacheln für alle; Lichteffekte bremsen die Ansicht nicht mehr; Korrekturen an Spitzboden und Vorlage.
 - **Nur im geöffneten Raum schalten, und Korrekturen** (2.0.11): Ein Tipp in der Haus- oder Etagenansicht öffnet den Raum, statt ein Gerät zu schalten (Einstellung, ab Werk aus); Mehrfachsteckdosen schalten wieder; Durchsagen auf Echos der Home-Assistant-Integration Alexa Devices und auf der Terrasse.
 - **Korrekturen in Plan und 3D** (2.0.10): Lichtschächte in dickeren Kellerwänden, Nebel bleibt draußen vor dem Haus, gedrehte Dachflächen wieder in der Größe änderbar, das Möbel-Aussehen einer Kamera auf Kamerahöhe, die Seitenleiste springt zum angetippten Teil.
 - **Durchsagen aus Automationen und auf den Bildschirmen** (2.0.9): Es klingelt – die Lautsprecher in den Räumen und jeder NeonPlan-Bildschirm sagen es; ein altes Wand-Tablet wird zum Lautsprecher (Modul Durchsagen, Beta).
