@@ -396,6 +396,8 @@ const de = {
   view_settings: "Einstellungen",
   view_settings_admin: "Nur Administratoren können diese Einstellungen ändern – sie gelten für das ganze Haus.",
   view_settings_look: "Darstellung",
+  glass_size: "Größe der Glas-Kacheln",
+  glass_size_hint: "Energie, Wärmepumpe, Auto, Geräte und die anderen Glas-Kacheln in der 3D-Ansicht",
   view_settings_alerts: "Warnungen",
   view_settings_control: "Bedienung",
   view_settings_more: "Alle weiteren Einstellungen findest du im Editor unter ⚙ Einstellungen.",
@@ -2527,6 +2529,8 @@ const en: Record<Key, string> = {
   view_settings: "Settings",
   view_settings_admin: "Only administrators can change these settings – they apply to the whole house.",
   view_settings_look: "Look",
+  glass_size: "Size of the glass cards",
+  glass_size_hint: "Energy, heat pump, car, devices and the other glass cards in the 3D view",
   view_settings_alerts: "Warnings",
   view_settings_control: "Controls",
   view_settings_more: "Every other setting is in the editor under ⚙ Settings.",
@@ -4272,7 +4276,7 @@ declare const __FP3D_LANG_HASH__: string;
  * keys fall back to English.
  */
 // "zh" is Simplified Chinese (zh-Hans; zh-Hant reads it too until it has its own), "pt" Portuguese for Portugal and Brazil
-export const EXTRA_LANGUAGES = ["fr", "es", "nl", "it", "hu", "da", "sv", "nb", "nn", "fi", "cs", "pl", "ro", "sl", "zh", "pt"] as const;
+export const EXTRA_LANGUAGES = ["fr", "es", "nl", "it", "hu", "da", "sv", "nb", "nn", "fi", "cs", "pl", "ro", "sl", "sk", "zh", "pt"] as const;
 const extra = new Map<string, Record<string, string>>();
 const pending = new Map<string, Promise<void>>();
 

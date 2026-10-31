@@ -359,6 +359,8 @@
  "view_settings": "设置",
  "view_settings_admin": "只有管理员可以更改这些设置——它们适用于整栋房子。",
  "view_settings_look": "显示",
+ "glass_size": "玻璃卡片大小",
+ "glass_size_hint": "3D 视图中的能源、热泵、汽车、设备及其他玻璃卡片",
  "view_settings_alerts": "警告",
  "view_settings_control": "操作",
  "view_settings_more": "其他所有设置都在编辑器的 ⚙ 设置中。",

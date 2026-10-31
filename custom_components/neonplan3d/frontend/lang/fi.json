@@ -359,6 +359,8 @@
  "view_settings": "Asetukset",
  "view_settings_admin": "Vain ylläpitäjät voivat muuttaa näitä asetuksia – ne koskevat koko taloa.",
  "view_settings_look": "Ulkoasu",
+ "glass_size": "Lasikorttien koko",
+ "glass_size_hint": "Energia, lämpöpumppu, auto, laitteet ja muut lasikortit 3D-näkymässä",
  "view_settings_alerts": "Varoitukset",
  "view_settings_control": "Käyttö",
  "view_settings_more": "Kaikki muut asetukset löytyvät editorista kohdasta ⚙ Asetukset.",

@@ -359,6 +359,8 @@
  "view_settings": "Setări",
  "view_settings_admin": "Doar administratorii pot schimba aceste setări – se aplică întregii case.",
  "view_settings_look": "Aspect",
+ "glass_size": "Mărimea cardurilor de sticlă",
+ "glass_size_hint": "Energie, pompă de căldură, mașină, dispozitive și celelalte carduri de sticlă din vederea 3D",
  "view_settings_alerts": "Avertizări",
  "view_settings_control": "Comenzi",
  "view_settings_more": "Toate celelalte setări sunt în editor, la ⚙ Setări.",

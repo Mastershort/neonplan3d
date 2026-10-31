@@ -359,6 +359,8 @@
  "view_settings": "Innstillingar",
  "view_settings_admin": "Berre administratorar kan endre desse innstillingane – dei gjeld for heile huset.",
  "view_settings_look": "Vising",
+ "glass_size": "Storleik på glaskorta",
+ "glass_size_hint": "Energi, varmepumpe, bil, einingar og dei andre glaskorta i 3D-visinga",
  "view_settings_alerts": "Varsel",
  "view_settings_control": "Betjening",
  "view_settings_more": "Alle andre innstillingar finn du i redigeringsverktøyet under ⚙ Innstillingar.",

@@ -9,6 +9,8 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 ### New
 
 - **Voice control knows where the tablet hangs** (⚙ Settings → 🎙 Voice control → Room of this device, empty by default): on a tablet with a room, sentences without a room name apply to that room – "Lights on", "Turn off the lights here" or "Close the blinds". On a dashboard the card has the same choice (Features → Room for "here", YAML `voice_area: <area id>`). A room you name still wins. Home Assistant's Assist hears the sentence as said in that room's area, as from a voice satellite there.
+- **Slovenčina – Slovak (#870):** NeonPlan now speaks Slovak, the 19th language (fetched only when Home Assistant runs in Slovak). Thanks to @Havinko1991 for the setup texts!
+- **The size of the glass cards for everyone:** ⭐ → ⚙ Settings → Look → "Size of the glass cards" sets how large the energy, heat pump, car and device cards are – before, only the Energie Pro settings in the editor offered it.
 - **More of the card in its visual editor:** start room, 3D lock, keep view, walk on or off, controls left or right, and the time travel's range and speed – no YAML needed for them any more.
 
 ### Fixed

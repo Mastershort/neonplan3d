@@ -359,6 +359,8 @@
  "view_settings": "Ustawienia",
  "view_settings_admin": "Tylko administratorzy mogą zmieniać te ustawienia – dotyczą całego domu.",
  "view_settings_look": "Wygląd",
+ "glass_size": "Rozmiar szklanych kart",
+ "glass_size_hint": "Energia, pompa ciepła, auto, urządzenia i pozostałe szklane karty w widoku 3D",
  "view_settings_alerts": "Ostrzeżenia",
  "view_settings_control": "Obsługa",
  "view_settings_more": "Wszystkie inne ustawienia są w edytorze w ⚙ Ustawienia.",

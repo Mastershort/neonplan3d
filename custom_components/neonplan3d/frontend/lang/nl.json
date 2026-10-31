@@ -359,6 +359,8 @@
  "view_settings": "Instellingen",
  "view_settings_admin": "Alleen beheerders kunnen deze instellingen wijzigen – ze gelden voor het hele huis.",
  "view_settings_look": "Weergave",
+ "glass_size": "Grootte van de glazen kaarten",
+ "glass_size_hint": "Energie, warmtepomp, auto, apparaten en de andere glazen kaarten in de 3D-weergave",
  "view_settings_alerts": "Waarschuwingen",
  "view_settings_control": "Bediening",
  "view_settings_more": "Alle andere instellingen vind je in de editor onder ⚙ Instellingen.",

@@ -359,6 +359,8 @@
  "view_settings": "Réglages",
  "view_settings_admin": "Seuls les administrateurs peuvent modifier ces réglages – ils valent pour toute la maison.",
  "view_settings_look": "Affichage",
+ "glass_size": "Taille des cartes en verre",
+ "glass_size_hint": "Énergie, pompe à chaleur, voiture, appareils et les autres cartes en verre de la vue 3D",
  "view_settings_alerts": "Alertes",
  "view_settings_control": "Commande",
  "view_settings_more": "Tous les autres réglages se trouvent dans l'éditeur sous ⚙ Réglages.",

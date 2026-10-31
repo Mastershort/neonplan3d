@@ -359,6 +359,8 @@
  "view_settings": "Beállítások",
  "view_settings_admin": "Ezeket a beállításokat csak rendszergazdák módosíthatják – az egész házra vonatkoznak.",
  "view_settings_look": "Megjelenés",
+ "glass_size": "Az üvegkártyák mérete",
+ "glass_size_hint": "Energia, hőszivattyú, autó, eszközök és a többi üvegkártya a 3D nézetben",
  "view_settings_alerts": "Figyelmeztetések",
  "view_settings_control": "Kezelés",
  "view_settings_more": "Minden további beállítás a szerkesztőben van, a ⚙ Beállítások alatt.",

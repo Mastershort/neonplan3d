@@ -359,6 +359,8 @@
  "view_settings": "Inställningar",
  "view_settings_admin": "Bara administratörer kan ändra de här inställningarna – de gäller hela huset.",
  "view_settings_look": "Utseende",
+ "glass_size": "Storlek på glaskorten",
+ "glass_size_hint": "Energi, värmepump, bil, enheter och de andra glaskorten i 3D-vyn",
  "view_settings_alerts": "Varningar",
  "view_settings_control": "Styrning",
  "view_settings_more": "Alla andra inställningar finns i redigeraren under ⚙ Inställningar.",

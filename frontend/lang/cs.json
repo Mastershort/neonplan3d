@@ -359,6 +359,8 @@
  "view_settings": "Nastavení",
  "view_settings_admin": "Tato nastavení mohou měnit jen správci – platí pro celý dům.",
  "view_settings_look": "Vzhled",
+ "glass_size": "Velikost skleněných karet",
+ "glass_size_hint": "Energie, tepelné čerpadlo, auto, zařízení a další skleněné karty ve 3D zobrazení",
  "view_settings_alerts": "Upozornění",
  "view_settings_control": "Ovládání",
  "view_settings_more": "Všechna další nastavení najdeš v editoru pod ⚙ Nastavení.",

@@ -359,6 +359,8 @@
  "view_settings": "Ajustes",
  "view_settings_admin": "Solo los administradores pueden cambiar estos ajustes; se aplican a toda la casa.",
  "view_settings_look": "Aspecto",
+ "glass_size": "Tamaño de las tarjetas de cristal",
+ "glass_size_hint": "Energía, bomba de calor, coche, dispositivos y las demás tarjetas de cristal de la vista 3D",
  "view_settings_alerts": "Avisos",
  "view_settings_control": "Manejo",
  "view_settings_more": "El resto de ajustes está en el editor, en ⚙ Ajustes.",

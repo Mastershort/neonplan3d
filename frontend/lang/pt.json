@@ -359,6 +359,8 @@
  "view_settings": "Definições",
  "view_settings_admin": "Só os administradores podem alterar estas definições – aplicam-se à casa toda.",
  "view_settings_look": "Aspeto",
+ "glass_size": "Tamanho dos cartões de vidro",
+ "glass_size_hint": "Energia, bomba de calor, carro, dispositivos e os outros cartões de vidro na vista 3D",
  "view_settings_alerts": "Avisos",
  "view_settings_control": "Controlo",
  "view_settings_more": "Todas as outras definições estão no editor, em ⚙ Definições.",

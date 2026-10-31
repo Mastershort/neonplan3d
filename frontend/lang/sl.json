@@ -359,6 +359,8 @@
  "view_settings": "Nastavitve",
  "view_settings_admin": "Te nastavitve lahko spreminjajo le skrbniki – veljajo za vso hišo.",
  "view_settings_look": "Prikaz",
+ "glass_size": "Velikost steklenih kartic",
+ "glass_size_hint": "Energija, toplotna črpalka, avto, naprave in druge steklene kartice v 3D-pogledu",
  "view_settings_alerts": "Opozorila",
  "view_settings_control": "Upravljanje",
  "view_settings_more": "Vse druge nastavitve so v urejevalniku pod ⚙ Nastavitve.",

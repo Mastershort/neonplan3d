@@ -359,6 +359,8 @@
  "view_settings": "Impostazioni",
  "view_settings_admin": "Solo gli amministratori possono modificare queste impostazioni: valgono per tutta la casa.",
  "view_settings_look": "Aspetto",
+ "glass_size": "Dimensione delle schede di vetro",
+ "glass_size_hint": "Energia, pompa di calore, auto, dispositivi e le altre schede di vetro nella vista 3D",
  "view_settings_alerts": "Avvisi",
  "view_settings_control": "Comandi",
  "view_settings_more": "Tutte le altre impostazioni sono nell'editor sotto ⚙ Impostazioni.",

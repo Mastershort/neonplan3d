@@ -109,6 +109,7 @@ const HERE: Record<string, string[]> = {
   pl: ["tutaj", "tu"],
   ro: ["aici"],
   sl: ["tukaj", "tu"],
+  sk: ["tu", "tuná"],
   hu: ["itt"],
   zh: ["这里"],
 };
