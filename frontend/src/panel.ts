@@ -532,6 +532,8 @@ export class Floorplan3dPanel extends LitElement {
   connectedCallback(): void {
     super.connectedCallback();
     window.addEventListener("keydown", this.onKey);
+    // the card's Pro hint links here ("?tab=extensions")
+    if (new URLSearchParams(location.search).get("tab") === "extensions") this._mode = "extensions";
   }
 
   /** Once per page: are there shop offers the admin has not seen yet? (Only with a shop key.) */

@@ -1222,9 +1222,9 @@ The card `custom:neonplan3d-card` brings the 3D view into any dashboard. It load
 
 | Section | Options |
 |---|---|
-| **View** | One floor or the whole house, fixed size or full screen, height, look, walls, quality, floors below |
-| **Show** | Markers, heatmap, switches in the card, floor pictures, room names, room panel, full-screen button, clock (corner of your choice, `clock: tl/tr/bl/br`), floors apart, performance display |
-| **Features** | Warnings, jump to a warning, scene buttons, motion trail, camera wall, time travel, weather with weather entity |
+| **View** | One floor or the whole house, start room, fixed size or full screen, height, look, walls, quality, floors below |
+| **Show** | Markers, heatmap (also "values"), switches in the card, 3D lock, keep view, walk, controls left or right, floor pictures, room names, room panel, full-screen button, clock (corner of your choice, `clock: tl/tr/bl/br`), floors apart, performance display |
+| **Features** | Warnings, jump to a warning, voice control with screen name and room for "here", scene buttons, motion trail, camera wall, time travel with range and speed, weather with weather entity |
 | **Wall tablet (kiosk)** | Back to the start view, night dimming, camera turn as screensaver |
 
 ![A card with scenes](images/card-scenes.jpg)
@@ -1255,7 +1255,7 @@ buttons:                # own buttons for this card only (replace the ones from 
     icon: window-shutter
     action: fire_dom_event   # navigate | more_info | service | fire_dom_event
     data: { browser_mod: { service: browser_mod.popup, data: { title: Blinds, content: { type: "custom:my-blind-card" } } } }
-heatmap: none           # none | temperature | humidity | co2
+heatmap: none           # none | temperature | humidity | co2 | values (numbers at the room names)
 room_panel: true        # tapping a room opens the room panel
 room_names: true
 controls: true          # switches in the card, or a list: walls, floors, temperature, humidity, co2

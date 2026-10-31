@@ -1222,9 +1222,9 @@ Die Karte `custom:neonplan3d-card` bringt die 3D-Ansicht in jedes Dashboard. Sie
 
 | Abschnitt | Optionen |
 |---|---|
-| **Ansicht** | Etage oder ganzes Haus, Größe fest oder bildschirmfüllend, Höhe, Look, Wände, Qualität, Etagen darunter |
-| **Anzeigen** | Symbole, Heatmap, Schalter in der Karte, Etagen-Miniaturen, Raumnamen, Raumfenster, Vollbild-Knopf, Uhr (Ecke wählbar, `clock: tl/tr/bl/br`), Etagen auseinander, Leistungsanzeige |
-| **Funktionen** | Warnungen, Sprung zur Warnung, Szenen-Knöpfe, Bewegungsspur, Kamera-Wand, Zeitreise, Wetter mit Wetter-Entität |
+| **Ansicht** | Etage oder ganzes Haus, Start-Raum, Größe fest oder bildschirmfüllend, Höhe, Look, Wände, Qualität, Etagen darunter |
+| **Anzeigen** | Symbole, Heatmap (auch „Werte“), Schalter in der Karte, 3D-Sperre, Ansicht halten, Rundgang, Bedienleiste links oder rechts, Etagen-Miniaturen, Raumnamen, Raumfenster, Vollbild-Knopf, Uhr (Ecke wählbar, `clock: tl/tr/bl/br`), Etagen auseinander, Leistungsanzeige |
+| **Funktionen** | Warnungen, Sprung zur Warnung, Sprachsteuerung mit Bildschirmname und Raum für „hier“, Szenen-Knöpfe, Bewegungsspur, Kamera-Wand, Zeitreise mit Zeitraum und Tempo, Wetter mit Wetter-Entität |
 | **Wandtablet (Kiosk)** | Rückkehr zur Startansicht, Nachtdimmung, Kamerafahrt als Bildschirmschoner |
 
 ![Karte mit Szenen](images/card-scenes.jpg)
@@ -1255,7 +1255,7 @@ buttons:                # eigene Knöpfe nur für diese Karte (ersetzen die aus 
     icon: window-shutter
     action: fire_dom_event   # navigate | more_info | service | fire_dom_event
     data: { browser_mod: { service: browser_mod.popup, data: { title: Rollos, content: { type: "custom:meine-rollo-karte" } } } }
-heatmap: none           # none | temperature | humidity | co2
+heatmap: none           # none | temperature | humidity | co2 | values (Zahlen an den Raumnamen)
 room_panel: true        # Raum antippen öffnet das Raumfenster
 room_names: true
 controls: true          # Schalter in der Karte, oder eine Liste: walls, floors, temperature, humidity, co2

@@ -46,6 +46,12 @@ const DEFAULTS: Partial<CardConfig> = {
   ghost: true,
   night: "off",
   idle_orbit: false,
+  angle_lock: false,
+  keep_view: false,
+  controls_side: "left",
+  walk: true,
+  time_travel_range: "24h",
+  time_travel_speed: 360,
 };
 
 type Choice = [value: string, label: I18nKey];
@@ -59,7 +65,7 @@ export class Floorplan3dCardEditor extends LitElement {
 
   declare hass: HomeAssistant | undefined;
   private declare _config: CardConfig;
-  private declare _floors: { id: string; name: string }[];
+  private declare _floors: { id: string; name: string; rooms: { id: string; name: string }[] }[];
   private loading = false;
 
   constructor() {
@@ -79,7 +85,7 @@ export class Floorplan3dCardEditor extends LitElement {
     if (this.hass && !this.loading && !this._floors.length) {
       this.loading = true;
       fetchBuilding(this.hass).then(
-        (res) => (this._floors = res.building.floors.map((f) => ({ id: f.id, name: f.name }))),
+        (res) => (this._floors = res.building.floors.map((f) => ({ id: f.id, name: f.name, rooms: [...f.rooms, ...(f.outdoor ?? []).filter((a) => a.area_id && a.name)].map((r) => ({ id: r.id, name: r.name ?? r.id })) }))),
         () => undefined,
       );
     }
@@ -89,7 +95,7 @@ export class Floorplan3dCardEditor extends LitElement {
     return translate(this.hass, key, vars);
   }
 
-  private get value(): Required<Omit<CardConfig, "floor" | "flows" | "holograms">> & Pick<CardConfig, "floor" | "flows" | "holograms"> {
+  private get value(): Required<Omit<CardConfig, "floor" | "room" | "flows" | "holograms">> & Pick<CardConfig, "floor" | "room" | "flows" | "holograms"> {
     return { ...(DEFAULTS as Required<CardConfig>), ...this._config };
   }
 
@@ -111,12 +117,52 @@ export class Floorplan3dCardEditor extends LitElement {
     </label>`;
   }
 
-  private toggle(key: "explode" | "roof_fade" | "roof" | "camera_wall" | "energy" | "room_panel" | "stats" | "fullscreen_button" | "room_names" | "alerts" | "alert_jump" | "director" | "voice" | "scenes" | "idle_orbit" | "motion_trail" | "time_travel" | "household_card" | "weather", label: I18nKey, hint?: I18nKey) {
+  private toggle(
+    key: "explode" | "roof_fade" | "roof" | "camera_wall" | "energy" | "room_panel" | "stats" | "fullscreen_button" | "room_names" | "alerts" | "alert_jump" | "director" | "voice" | "scenes" | "idle_orbit" | "motion_trail" | "time_travel" | "household_card" | "weather" | "angle_lock" | "keep_view" | "walk",
+    label: I18nKey,
+    hint?: I18nKey,
+  ) {
     const on = this.value[key];
     return html`<label class="toggle">
       <input type="checkbox" .checked=${on} @change=${(e: Event) => this.set(key, (e.target as HTMLInputElement).checked)} />
       <span>${this.t(label)}${hint ? html`<small>${this.t(hint)}</small>` : nothing}</span>
     </label>`;
+  }
+
+  /** The room the card starts in (a display for one room): the rooms of the start floor, else of every floor. */
+  private renderStartRoom() {
+    const v = this.value;
+    const floors = v.floor ? this._floors.filter((f) => f.id === v.floor) : this._floors;
+    const rooms = floors.flatMap((f) => f.rooms.map((r) => ({ id: r.id, name: floors.length > 1 ? `${f.name} · ${r.name}` : r.name })));
+    return html`<label class="field wide"
+      >${this.t("card_room")}
+      <select @change=${(e: Event) => this.set("room", (e.target as HTMLSelectElement).value || undefined)}>
+        <option value="" ?selected=${!v.room}>${this.t("card_room_none")}</option>
+        ${rooms.map((r) => html`<option value=${r.id} ?selected=${r.id === v.room}>${r.name}</option>`)}
+        ${v.room && !rooms.some((r) => r.id === v.room) ? html`<option value=${v.room} selected>${v.room}</option>` : nothing}
+      </select>
+    </label>`;
+  }
+
+  /** Time travel: how far back it starts and how fast it plays. */
+  private renderTimeTravel() {
+    const v = this.value;
+    const speeds: [number, string][] = [
+      [60, this.t("tt_speed", { s: "1 min" })],
+      [360, this.t("tt_speed", { s: "10 s" })],
+      [900, this.t("tt_speed", { s: "4 s" })],
+      [3600, this.t("tt_speed", { s: "1 s" })],
+      ...(v.time_travel_range === "7d" ? ([[14400, this.t("card_tt_speed_day")]] as [number, string][]) : []),
+    ];
+    return html`<div class="grid">
+      ${this.select("time_travel_range", "card_tt_range", [["24h", "card_tt_range_24h"], ["7d", "card_tt_range_7d"]], v.time_travel_range)}
+      <label class="field"
+        >${this.t("card_tt_speed")}
+        <select @change=${(e: Event) => this.set("time_travel_speed", Number((e.target as HTMLSelectElement).value) as CardConfig["time_travel_speed"])}>
+          ${speeds.map(([n, text]) => html`<option value=${n} ?selected=${n === v.time_travel_speed}>${text}</option>`)}
+        </select>
+      </label>
+    </div>`;
   }
 
   /** Floor pictures: on by default without a start floor, off with one (but can be switched on). */
@@ -280,6 +326,7 @@ export class Floorplan3dCardEditor extends LitElement {
       ${this.toggle("scenes", "card_scenes", "card_scenes_hint")}
       ${this.toggle("motion_trail", "card_motion_trail", "card_motion_trail_hint")} ${this.toggle("camera_wall", "card_camera_wall", "card_camera_wall_hint")}
       ${this.toggle("time_travel", "card_time_travel", "card_time_travel_hint")}
+      ${v.time_travel ? this.renderTimeTravel() : nothing}
       ${!UNRELEASED.includes("household") || labOn() ? this.toggle("household_card", "card_household", "card_household_hint") : nothing}
       ${this.toggle("weather", "card_weather", "card_weather_hint")}
       ${v.weather !== false
@@ -312,6 +359,7 @@ export class Floorplan3dCardEditor extends LitElement {
             ${v.floor && !this._floors.some((f) => f.id === v.floor) ? html`<option value=${v.floor} selected>${v.floor}</option>` : nothing}
           </select>
         </label>
+        ${this.renderStartRoom()}
         <label class="field"
           >${this.t("card_size")}
           <select @change=${(e: Event) => this.set("fill", (e.target as HTMLSelectElement).value === "fill")}>
@@ -376,6 +424,9 @@ export class Floorplan3dCardEditor extends LitElement {
         </label>
       </div>
       ${this.renderControls()}
+      ${this.toggle("angle_lock", "angle_lock", "angle_lock_hint")} ${this.toggle("keep_view", "keep_view", "keep_view_hint")}
+      ${this.toggle("walk", "card_walk", "card_walk_hint")}
+      <div class="grid">${this.select("controls_side", "controls_side", [["left", "controls_left"], ["right", "controls_right"]], v.controls_side)}</div>
       ${this.renderThumbsToggle()} ${this.toggle("room_names", "card_room_names")}
       ${this.toggle("energy", "card_energy")} ${this.toggle("room_panel", "card_room_panel", "card_room_panel_hint")}
       ${this.toggle("fullscreen_button", "card_fullscreen_button", "card_fullscreen_button_hint")}

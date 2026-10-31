@@ -9,9 +9,11 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 ### New
 
 - **Voice control knows where the tablet hangs** (⚙ Settings → 🎙 Voice control → Room of this device, empty by default): on a tablet with a room, sentences without a room name apply to that room – "Lights on", "Turn off the lights here" or "Close the blinds". On a dashboard the card has the same choice (Features → Room for "here", YAML `voice_area: <area id>`). A room you name still wins. Home Assistant's Assist hears the sentence as said in that room's area, as from a voice satellite there.
+- **More of the card in its visual editor:** start room, 3D lock, keep view, walk on or off, controls left or right, and the time travel's range and speed – no YAML needed for them any more.
 
 ### Fixed
 
+- **Card:** the "values" heatmap (numbers at the room names) is a valid card option, and the "Extensions" button in a Pro hint opens the extensions in the NeonPlan panel instead of doing nothing.
 - **"Switch devices only in the opened room" is easy to find (#883):** it sat only in the ⚙ menu of the 3D view (⭐ → ⚙ Settings → Controls); now it is in the editor too (⚙ Settings → Weather & warnings). Thanks to @PaulBiod!
 - **Colour effects no longer slow the 3D view (#885):** a light with an effect (colour loop, "Breathe", "Movie Mode" …) recoloured the light on floors and walls by computing it anew eight times a second; now the light is computed once and only its colour changes, and while you turn or zoom the view the effect holds. Thanks to @kzaoaai!
 - **A shared template leaves out every link to your home:** "Share as template" also removes entities that newer features keep (door locks, gas and water meters, the rain and outage sensors, the extra entities of furniture, module settings), wherever they stand in the plan. Thanks to Frank (@Kuddelsoft) for noticing!
