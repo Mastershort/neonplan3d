@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 from pathlib import Path
+import sys
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from homeassistant.core import HomeAssistant
@@ -268,9 +270,8 @@ async def test_a_sentence_said_in_a_room_goes_to_assist_with_a_device_of_that_ro
     result.as_dict.return_value = {"response": {"speech": {"plain": {"speech": "Licht ist an"}}}}
     converse = AsyncMock(return_value=result)
     client = await hass_ws_client(hass)
-    from homeassistant.components import conversation  # imported as late as the integration does
-
-    with patch.object(conversation, "async_converse", converse):
+    # Assist itself stands in: its requirements (hassil) are not installed for the tests
+    with patch.dict(sys.modules, {"homeassistant.components.conversation": SimpleNamespace(async_converse=converse)}):
         await client.send_json(
             {"id": 1, "type": "neonplan3d/voice/converse", "text": "Licht an", "area_id": kitchen.id, "language": "de"}
         )
