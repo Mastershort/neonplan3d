@@ -138,9 +138,10 @@ function copyFonts() {
 // editor 946 KB on 2026-10-29: the power outage picker offers fitting sources only (#831)
 // main 724 KB on 2026-10-29 for the 3D safety net on graphics chips that fail on the sun effects (#827), the 24-hour clock from the profile (#823) and their texts
 // main 726 KB on 2026-10-29: announcements from automations shown and spoken on the screens
+// 3D 837 KB on 2026-10-31: the light of every lamp kept while a colour effect only recolours it (#885)
 // editor 950 KB on 2026-10-31: templates leave out every entity, wherever it stands (#855), and the room-tap setting in the editor (#883)
 // main 728 KB, editor 949 KB, card editor 276 KB on 2026-10-31: the room of this device and of the card (`voice_area`) for sentences without a room ("Licht an") and their texts
-const BUDGET = { "neonplan3d.js": 728 * 1024, "neonplan3d-fun.js": 40 * 1024, "neonplan3d-voice.js": 60 * 1024, "neonplan3d-locate.js": 160 * 1024, "neonplan3d-timetravel.js": 120 * 1024, "neonplan3d-3d.js": 836 * 1024, "neonplan3d-editor.js": 950 * 1024, "neonplan3d-card-editor.js": 276 * 1024 };
+const BUDGET = { "neonplan3d.js": 728 * 1024, "neonplan3d-fun.js": 40 * 1024, "neonplan3d-voice.js": 60 * 1024, "neonplan3d-locate.js": 160 * 1024, "neonplan3d-timetravel.js": 120 * 1024, "neonplan3d-3d.js": 837 * 1024, "neonplan3d-editor.js": 950 * 1024, "neonplan3d-card-editor.js": 276 * 1024 };
 
 copyFonts();
 if (watch) {

@@ -358,39 +358,83 @@ export function lightColors(surface: LightSurface, sources: LightSource[], stren
       }
       const level = Math.max(c[0], c[1], c[2]);
       if (level < 0.01) continue;
-      all.push({ x: door.x, y: door.y, z: door.z, color: [c[0] / level, c[1] / level, c[2] / level], level: Math.min(1, level * 0.9 * (0.35 + 0.65 * open)), kind: "wall", room: to });
+      // in steps of 2 %: a colour effect changes it a little all the time, and every step would be new to the cache
+      all.push({ x: door.x, y: door.y, z: door.z, color: [c[0] / level, c[1] / level, c[2] / level], level: Math.round(Math.min(1, level * 0.9 * (0.35 + 0.65 * open)) * 50) / 50, kind: "wall", room: to });
     }
   });
-  const byRoom = new Map<number, (LightSource & { walls: Blocker[] })[]>();
+  const cache = cacheOf(surface);
+  const { pos, room } = surface;
+  const sum = new Float32Array(pos.length);
+  const used = new Set<string>();
   for (const s of all) {
-    // warm light stays warm on the blue floor (the same curve as before); only the walls of its own
-    // room can stand between a lamp and what it lights
-    const walls = surface.blockers.filter((w) => w.ra === s.room || w.rb === s.room);
-    const t = { ...s, color: s.color.map((v) => Math.pow(v, 1.5)) as [number, number, number], walls };
-    byRoom.set(s.room, [...(byRoom.get(s.room) ?? []), t]);
+    const weights = weightsOf(surface, cache, s);
+    used.add(weights.key);
+    // warm light stays warm on the blue floor (the same curve as before)
+    const c = s.color.map((v) => Math.pow(v, 1.5));
+    const { verts, k } = weights;
+    for (let n = 0; n < verts.length; n++) {
+      const i = verts[n] * 3;
+      sum[i] += c[0] * k[n];
+      sum[i + 1] += c[1] * k[n];
+      sum[i + 2] += c[2] * k[n];
+    }
   }
-  const { pos, normal, room } = surface;
+  // only the lamps of now are kept (a colour effect keeps the same ones, a switched lamp drops out)
+  for (const key of cache.weights.keys()) if (!used.has(key)) cache.weights.delete(key);
   const out = new Float32Array(pos.length);
   for (let v = 0; v < room.length; v++) {
-    const list = byRoom.get(room[v]);
-    if (!list) continue;
     const i = v * 3;
-    let r = 0;
-    let g = 0;
-    let b = 0;
-    for (const s of list) {
-      if (s.walls.length && shadowed(s, s.walls, pos[i], pos[i + 1], pos[i + 2])) continue;
-      const k = contribution(s, pos[i], pos[i + 1], pos[i + 2], normal[i], normal[i + 1], normal[i + 2]);
-      r += s.color[0] * k;
-      g += s.color[1] * k;
-      b += s.color[2] * k;
-    }
     // soft saturation: several lamps add up without clipping to flat white
-    out[i] = 1 - Math.exp(-r * strength * 1.6);
-    out[i + 1] = 1 - Math.exp(-g * strength * 1.6);
-    out[i + 2] = 1 - Math.exp(-b * strength * 1.6);
+    if (sum[i] || sum[i + 1] || sum[i + 2]) {
+      out[i] = 1 - Math.exp(-sum[i] * strength * 1.6);
+      out[i + 1] = 1 - Math.exp(-sum[i + 1] * strength * 1.6);
+      out[i + 2] = 1 - Math.exp(-sum[i + 2] * strength * 1.6);
+    }
   }
   return out;
+}
+
+/**
+ * How much of a lamp reaches each vertex of its room (walls of its own room may stand between), kept per surface:
+ * a colour effect only recolours the lamps, so the costly part – distances, facing, shadows – is done once (#885).
+ */
+interface LightCache {
+  roomVerts: Map<number, Uint32Array>;
+  weights: Map<string, { key: string; verts: Uint32Array; k: Float32Array }>;
+}
+const caches = new WeakMap<LightSurface, LightCache>();
+
+function cacheOf(surface: LightSurface): LightCache {
+  let cache = caches.get(surface);
+  if (!cache) {
+    const lists = new Map<number, number[]>();
+    surface.room.forEach((r, v) => {
+      const list = lists.get(r);
+      if (list) list.push(v);
+      else lists.set(r, [v]);
+    });
+    cache = { roomVerts: new Map([...lists].map(([r, l]) => [r, Uint32Array.from(l)])), weights: new Map() };
+    caches.set(surface, cache);
+  }
+  return cache;
+}
+
+function weightsOf(surface: LightSurface, cache: LightCache, s: LightSource): { key: string; verts: Uint32Array; k: Float32Array } {
+  const key = `${s.x},${s.y},${s.z},${s.kind},${s.level},${s.room}`;
+  const known = cache.weights.get(key);
+  if (known) return known;
+  const verts = cache.roomVerts.get(s.room) ?? new Uint32Array(0);
+  const walls = surface.blockers.filter((w) => w.ra === s.room || w.rb === s.room);
+  const { pos, normal } = surface;
+  const k = new Float32Array(verts.length);
+  for (let n = 0; n < verts.length; n++) {
+    const i = verts[n] * 3;
+    if (walls.length && shadowed(s, walls, pos[i], pos[i + 1], pos[i + 2])) continue;
+    k[n] = contribution(s, pos[i], pos[i + 1], pos[i + 2], normal[i], normal[i + 1], normal[i + 2]);
+  }
+  const w = { key, verts, k };
+  cache.weights.set(key, w);
+  return w;
 }
 
 /**

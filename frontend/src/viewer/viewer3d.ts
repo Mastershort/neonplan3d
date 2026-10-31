@@ -5002,9 +5002,10 @@ export class FloorplanViewer {
     const decorNow = this.flowActive || this.solarActive || this.soundActive || this.poolActive || robotsMoving || fansTurning || this.effectFloors.size > 0;
     if (decorNow && !this.decorWas) this.lastWake = now;
     this.decorWas = decorNow;
-    // colour effects: a few steps per second are enough and keep the tablet idle in between
+    // colour effects: a few steps per second are enough and keep the tablet idle in between; while the view turns
+    // or zooms the colour holds, so every frame goes to the movement (#885)
     const effectMs = this.effectFloors.size ? this.decor(this.lowQuality ? 2 * EFFECT_MS : EFFECT_MS) : null;
-    if (effectMs !== null && !this.effectTimer && !document.hidden) {
+    if (effectMs !== null && !this.effectTimer && !document.hidden && !moving) {
       const ms = effectMs;
       this.effectTimer = setTimeout(() => {
         this.effectTimer = undefined;
