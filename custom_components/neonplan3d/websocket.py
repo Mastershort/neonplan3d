@@ -9,6 +9,7 @@ from typing import Any
 
 from homeassistant.components import websocket_api
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.loader import async_get_integration
 import voluptuous as vol
@@ -30,7 +31,7 @@ from .packs import MAX_PACK_SIZE, PackError, module_sha, parts_of, verify_pack
 from .schema import BUILDING_SCHEMA, IMAGE_DATA
 from .storage import FloorplanData, complete
 from .timetravel import ws_timetravel_history
-from .voice import SENTENCE_MODES, AskBroker, VoiceSettings
+from .voice import SENTENCE_MODES, AskBroker, VoiceSettings, async_converse_here
 
 _IMAGE_ID = vol.All(str, vol.Length(min=1, max=64), vol.Match(r"^[A-Za-z0-9_\-.]+$"))
 
@@ -70,6 +71,7 @@ def async_register_commands(hass: HomeAssistant) -> None:
         ws_voice_answer,
         ws_voice_settings,
         ws_voice_settings_set,
+        ws_voice_converse,
         ws_locate_rec,
     ):
         websocket_api.async_register_command(hass, command)
@@ -627,6 +629,31 @@ async def ws_voice_settings_set(
         connection.send_error(msg["id"], "write_failed", str(err))
         return
     connection.send_result(msg["id"], {"sentences": settings.sentences, "kept": kept})
+
+
+@websocket_api.websocket_command(
+    {
+        vol.Required("type"): "neonplan3d/voice/converse",
+        vol.Required("text"): vol.All(str, vol.Length(min=1, max=300)),
+        vol.Required("area_id"): vol.All(str, vol.Length(min=1, max=64)),
+        vol.Optional("language"): vol.All(str, vol.Length(max=16)),
+    }
+)
+@websocket_api.async_response
+async def ws_voice_converse(
+    hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]
+) -> None:
+    """A sentence for Assist from a wall tablet that hangs in a room (any user, like Assist's own
+    `conversation/process`): "Licht an" switches the lights of that room."""
+    try:
+        result = await async_converse_here(
+            hass, msg["text"], msg.get("language"), msg["area_id"], connection.context(msg)
+        )
+    except (KeyError, ValueError, HomeAssistantError) as err:
+        # Assist is not set up: the view hands the sentence to Assist the usual way
+        connection.send_error(msg["id"], "converse_failed", str(err))
+        return
+    connection.send_result(msg["id"], result)
 
 
 @websocket_api.websocket_command(

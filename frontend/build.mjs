@@ -22,7 +22,7 @@ const common = {
 const viewerConfig = { ...common, entryPoints: ["src/viewer/viewer3d.ts"], outfile: `${out}/neonplan3d-3d.js` };
 // the card's visual editor only loads in the dashboard's card dialog
 // the language files (lang/*.json) are fetched with a hash of their content, so a new text is never stale
-const LANGS = ["fr", "es", "nl", "it", "hu", "da", "sv", "nb", "nn", "fi", "cs", "pl", "ro", "sl", "zh", "pt"];
+const LANGS = ["fr", "es", "nl", "it", "hu", "da", "sv", "nb", "nn", "fi", "cs", "pl", "ro", "sl", "sk", "zh", "pt"];
 const langHash = createHash("sha256")
   .update(LANGS.map((l) => (existsSync(`lang/${l}.json`) ? readFileSync(`lang/${l}.json`) : "")).join("\n"))
   .digest("hex")
@@ -138,7 +138,12 @@ function copyFonts() {
 // editor 946 KB on 2026-10-29: the power outage picker offers fitting sources only (#831)
 // main 724 KB on 2026-10-29 for the 3D safety net on graphics chips that fail on the sun effects (#827), the 24-hour clock from the profile (#823) and their texts
 // main 726 KB on 2026-10-29: announcements from automations shown and spoken on the screens
-const BUDGET = { "neonplan3d.js": 727 * 1024, "neonplan3d-fun.js": 40 * 1024, "neonplan3d-voice.js": 60 * 1024, "neonplan3d-locate.js": 160 * 1024, "neonplan3d-timetravel.js": 120 * 1024, "neonplan3d-3d.js": 836 * 1024, "neonplan3d-editor.js": 946 * 1024, "neonplan3d-card-editor.js": 274 * 1024 };
+// main 730 KB, editor 951 KB on 2026-10-31: Slovak as a language, the glass cards' size in the ⚙ menu for everyone
+// main 729 KB, card editor 279 KB on 2026-10-31: the card editor offers start room, 3D lock, keep view, walk, controls side and the time travel range and speed, with their texts
+// 3D 837 KB on 2026-10-31: the light of every lamp kept while a colour effect only recolours it (#885)
+// editor 950 KB on 2026-10-31: templates leave out every entity, wherever it stands (#855), and the room-tap setting in the editor (#883)
+// main 728 KB, editor 949 KB, card editor 276 KB on 2026-10-31: the room of this device and of the card (`voice_area`) for sentences without a room ("Licht an") and their texts
+const BUDGET = { "neonplan3d.js": 730 * 1024, "neonplan3d-fun.js": 40 * 1024, "neonplan3d-voice.js": 60 * 1024, "neonplan3d-locate.js": 160 * 1024, "neonplan3d-timetravel.js": 120 * 1024, "neonplan3d-3d.js": 837 * 1024, "neonplan3d-editor.js": 951 * 1024, "neonplan3d-card-editor.js": 279 * 1024 };
 
 copyFonts();
 if (watch) {

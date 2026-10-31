@@ -139,7 +139,7 @@ import type { DeviceMarker, FloorplanViewer, FloorStack, RobotInfo, Quality, Scr
 import { wallLayout } from "../camera-wall.ts";
 import { watchedEntities } from "../watched.ts";
 import { backdropCss } from "../backdrop.ts";
-import { loadVoice, micProbeAsked, micProbeDone, voicePipeline } from "../load-voice.ts";
+import { loadVoice, micProbeAsked, micProbeDone, voiceArea, voicePipeline } from "../load-voice.ts";
 import { answerAsk, subscribeAsk, type Ask, type ScreenAnnouncement } from "../api.ts";
 import { pipePlanner } from "../pipe-planner.ts";
 import type { ClockPos } from "../card-config.ts";
@@ -315,6 +315,7 @@ export class Fp3dView3d extends LitElement {
     hideRoof: { attribute: false },
     voice: { attribute: false },
     screen: { attribute: false },
+    voiceArea: { attribute: false },
     _voice: { state: true },
     _announce: { state: true },
     scenes: { attribute: false },
@@ -510,6 +511,8 @@ export class Fp3dView3d extends LitElement {
   declare voice: boolean;
   /** This view's screen name: a sentence from Assist that names a screen is only for the view with that name. */
   declare screen: string | null;
+  /** The Home Assistant area of this view's tablet (card option `voice_area`); null: the device's setting. */
+  declare voiceArea: string | null;
   private declare _voice: { phase: "wait" | "listen" | "done" | "error"; text: string } | null;
   /** The subscription to the sentences Assist hands over (every open view listens, with or without a microphone). */
   private unsubAsk: Promise<() => Promise<void>> | null = null;
@@ -738,6 +741,7 @@ export class Fp3dView3d extends LitElement {
     this.hideRoof = false;
     this.voice = false;
     this.screen = null;
+    this.voiceArea = null;
     this._voice = null;
     this._micProbe = micProbeAsked();
     this._alerts = [];
@@ -4400,7 +4404,7 @@ export class Fp3dView3d extends LitElement {
       }
       if ((await this.handleSentence(hass, b, v, text, true)) !== null) return;
       say("wait", `“${text}” …`);
-      const answer = await v.converse(hass, text);
+      const answer = await v.converse(hass, text, this.voiceArea ?? voiceArea());
       say("done", answer ? `“${text}” – ${answer}` : `“${text}”`);
     } catch (err) {
       const e = err as { name?: string; message?: string };
@@ -4991,6 +4995,7 @@ export class Fp3dView3d extends LitElement {
         ${check("window_glow", st.window_glow !== false, (v) => ({ window_glow: v }), "window_glow_hint")}
         ${gpuSafeMode(GUARD_VERSION) ? html`<p class="fp3d-set-note">${t("gpu_safe_note")}</p>` : nothing}
         ${check("sun_patches", st.sun_patches !== false, (v) => ({ sun_patches: v }))}
+        ${this.renderGlassSize(t, admin, st)}
         <h4>${t("view_settings_control")}</h4>
         ${check("tap_in_room", !!st.tap_in_room, (v) => ({ tap_in_room: v }), "tap_in_room_hint")}
         <h4>${t("view_settings_alerts")}</h4>
@@ -5000,6 +5005,22 @@ export class Fp3dView3d extends LitElement {
         ${modules.map((fields) => html`<div class="fp3d-set-module">${fields.map((f) => this.renderViewField(hass, f, admin))}</div>`)}
         <p class="fp3d-set-note">${t("view_settings_more")}</p>
       </div>`;
+  }
+
+  /**
+   * How large the glass cards are (energy, heat pump, car, devices …): the hologram's size, which the editor shows
+   * with Energie Pro only – here for everyone with a glass card.
+   */
+  private renderGlassSize(t: (k: I18nKey) => string, admin: boolean, st: Building["settings"]) {
+    const h = st.roof.hologram ?? DEFAULT_HOLOGRAM;
+    const sizes = [0.75, 1, 1.25, 1.5, 2];
+    const shown = sizes.includes(h.size) ? sizes : [...sizes, h.size].sort((a, b) => a - b);
+    return html`<label class="fp3d-set-field" title=${t("glass_size_hint")}
+      >${t("glass_size")}
+      <select ?disabled=${!admin} @change=${(e: Event) => this.setPlanSettings({ roof: { ...st.roof, hologram: { ...h, size: Number((e.target as HTMLSelectElement).value) } } })}>
+        ${shown.map((s) => html`<option value=${s} ?selected=${s === h.size}>${Math.round(s * 100)} %</option>`)}
+      </select></label
+    >`;
   }
 
   /** A module's field in the ⚙ menu, drawn like the editor's (the lists of entities are short native lists here). */

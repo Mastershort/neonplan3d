@@ -247,3 +247,15 @@ test("a window's light at night ends at the edge of the balcony it looks onto, n
   // level ground: the full reach
   assert.equal(spillLength(() => -0.2, -0.2, 3.2), 3.2);
 });
+
+test("a lamp that only changes colour is lit the same as on a fresh surface (colour effects reuse the light, #885)", () => {
+  const floor = { ...newFloor("f", "F", 0), rooms: [rect("k", 0, 0, 6, 3)] };
+  const s = surfaceOf(floor);
+  lightColors(s, [lamp(1.5, 1.5, [1, 0, 0]), lamp(4.5, 1.5, [0, 0, 1])]);
+  const again = lightColors(s, [lamp(1.5, 1.5, [0, 1, 0]), lamp(4.5, 1.5, [1, 1, 0])]);
+  const fresh = lightColors(surfaceOf(floor), [lamp(1.5, 1.5, [0, 1, 0]), lamp(4.5, 1.5, [1, 1, 0])]);
+  assert.deepEqual([...again], [...fresh]);
+  // a lamp switched off is gone from the light
+  const one = lightColors(s, [lamp(1.5, 1.5, [0, 1, 0])]);
+  assert.deepEqual([...one], [...lightColors(surfaceOf(floor), [lamp(1.5, 1.5, [0, 1, 0])])]);
+});

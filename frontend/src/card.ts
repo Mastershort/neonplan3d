@@ -390,6 +390,8 @@ clearTimeout(this.cleanTimer);
               .director=${!!c?.director}
               .voice=${!!c?.voice}
               .screen=${c?.screen?.trim() || null}
+              .voiceArea=${c?.voice_area?.trim() || null}
+              @open-extensions=${() => this.openDashboard("/neonplan3d?tab=extensions")}
               .scenes=${c?.scenes !== false}
               ?trail=${!!c?.motion_trail}
               .cameraWall=${this._cameraWall && !tt}

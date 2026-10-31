@@ -83,6 +83,24 @@ export function setVoicePipeline(id: string | null): void {
   }
 }
 
+/** The Home Assistant area this device hangs in, for sentences without a room ("Licht an"); null: none (as before). */
+export function voiceArea(): string | null {
+  try {
+    return localStorage.getItem("neonplan3d.voiceArea");
+  } catch {
+    return null;
+  }
+}
+
+export function setVoiceArea(id: string | null): void {
+  try {
+    if (id) localStorage.setItem("neonplan3d.voiceArea", id);
+    else localStorage.removeItem("neonplan3d.voiceArea");
+  } catch {
+    // private mode: nothing remembered
+  }
+}
+
 /** The probe closed: it does not open again in this tab. */
 export function micProbeDone(): void {
   try {

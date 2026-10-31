@@ -87,7 +87,7 @@ Oben gibt es drei Reiter:
 
 Zusätzlich gibt es die Dashboard-Karte, die dieselbe 3D-Ansicht in jedes Dashboard bringt. Mehr dazu in [Kapitel 8](#8-die-dashboard-karte).
 
-**Sprache:** NeonPlan folgt der Sprache deines Home-Assistant-Nutzers (Profil → Sprache). Deutsch und Englisch sind eingebaut; Französisch, Spanisch, Niederländisch, Italienisch, Ungarisch, Dänisch, Schwedisch, Norwegisch (Bokmål und Nynorsk), Finnisch, Tschechisch, Polnisch, Rumänisch, Slowenisch, Portugiesisch und Chinesisch (vereinfacht) werden bei Bedarf nachgeladen, so bleiben die Bundles für Wandtablets klein. Fehlt ein Text in einer Sprache, erscheint er auf Englisch.
+**Sprache:** NeonPlan folgt der Sprache deines Home-Assistant-Nutzers (Profil → Sprache). Deutsch und Englisch sind eingebaut; Französisch, Spanisch, Niederländisch, Italienisch, Ungarisch, Dänisch, Schwedisch, Norwegisch (Bokmål und Nynorsk), Finnisch, Tschechisch, Polnisch, Rumänisch, Slowenisch, Slowakisch, Portugiesisch und Chinesisch (vereinfacht) werden bei Bedarf nachgeladen, so bleiben die Bundles für Wandtablets klein. Fehlt ein Text in einer Sprache, erscheint er auf Englisch.
 
 ---
 
@@ -637,7 +637,7 @@ Der **Stern** über der Lupe öffnet das **Zentral-Menü**: Lichter an oder aus 
 
 **⚙ Einstellungen (seit 2.0.7):** Oben im Zentral-Menü öffnet **⚙ Einstellungen** die wichtigsten Einstellungen direkt in der 3D-Ansicht, ohne den Editor: **Darstellung** (Sonnenbahn und Hausschatten, Fenster leuchten nachts nach draußen, Sonnenlicht durch die Fenster), **Bedienung** und **Warnungen** (Fenster offen bei Regen, Kontakt nicht verfügbar, Gerätenamen in Warnungen). Darunter hat jedes Modul mit Einstellungen seinen eigenen Abschnitt, etwa die **Durchsagen** (7.5). Die Einstellungen gelten für das ganze Haus; ändern dürfen sie nur Administratoren. Alles Weitere steht wie bisher im Editor unter ⚙ Einstellungen.
 
-**Geräte nur im geöffneten Raum schalten (seit 2.0.11, ab Werk aus):** Unter **⚙ Einstellungen → Bedienung**. In der Ansicht **Alle Etagen** und in einer Etage öffnet ein Tipp auf ein Gerät, einen Pin oder ein verknüpftes Möbel dann seinen Raum, statt es zu schalten. So fährt kein Rollladen los, wenn du eigentlich das Erdgeschoss antippen wolltest. Im geöffneten Raum schaltet ein Tipp wie gewohnt, und langes Drücken öffnet überall das Menü des Geräts. Gut für Wand-Tablets.
+**Geräte nur im geöffneten Raum schalten (seit 2.0.11, ab Werk aus):** In der 3D-Ansicht unter **⭐ (Stern über der Lupe) → ⚙ Einstellungen → Bedienung**, im Editor unter **⚙ Einstellungen → Wetter & Warnungen**. In der Ansicht **Alle Etagen** und in einer Etage öffnet ein Tipp auf ein Gerät, einen Pin oder ein verknüpftes Möbel dann seinen Raum, statt es zu schalten. So fährt kein Rollladen los, wenn du eigentlich das Erdgeschoss antippen wolltest. Im geöffneten Raum schaltet ein Tipp wie gewohnt, und langes Drücken öffnet überall das Menü des Geräts. Gut für Wand-Tablets.
 
 Bietet ein Modul etwas fürs ganze Haus an (📢 **Durchsage**), steht es ebenfalls im Zentral-Menü.
 
@@ -768,6 +768,8 @@ data:
 ```
 
 **Bildschirmnamen.** Hast du mehrere Tablets, gib jeder Ansicht einen Namen: im Editor unter **⚙ Einstellungen → 🎙 Sprachsteuerung → Bildschirmname** (gilt für dieses Gerät) oder an der Karte mit der Option `screen: Küche`. Nennt der Dienst einen Bildschirm, reagiert nur die Ansicht mit diesem Namen; ohne Angabe reagieren alle. Ist keine Ansicht offen, antwortet Assist „Kein NeonPlan-Bildschirm ist gerade offen“.
+
+**Raum dieses Geräts – „hier“** (neu in 2.1). Hängt ein Tablet fest in einem Raum, wählst du unter **⚙ Einstellungen → 🎙 Sprachsteuerung → Raum dieses Geräts** den Raum (gilt für dieses Gerät, ab Werk leer). Dann reichen Sätze ohne Raumnamen: „Licht an“, „Mach hier das Licht aus“ oder „Rollladen runter“ schalten nur in diesem Raum. Nennst du einen Raum („Licht in der Küche an“), gilt der genannte. Zur Auswahl stehen die Räume (und Außenbereiche) mit Home-Assistant-Bereich, denn Assist schaltet nach Bereichen: NeonPlan gibt den Satz so an Assist, als hätte ihn ein Gerät in diesem Bereich gehört. Auf einem **Dashboard** stellst du das an der Karte ein: Dashboard bearbeiten → NeonPlan-Karte → **Funktionen** → **Raum für „hier“**, oder im YAML `voice_area: kueche` (die Bereichs-ID aus Home Assistant). Die Karte gilt auf jedem Gerät, das dieses Dashboard zeigt; ohne Auswahl gilt der Raum, der auf dem Gerät eingestellt ist. Ein Sprach-Satellit wie der Voice PE braucht diese Einstellung nicht, er kennt seinen Bereich selbst.
 
 **Testen:** Im Abschnitt **🎙️ Sprachsteuerung** startet **🎙️ Mikrofon testen** eine Probe. Sie prüft der Reihe nach https, Mikrofon, Pegel und Assist. Sie zeigt auch, welchen Raum ein gesprochener Satz öffnen würde, und schaltet dabei nichts. Steht irgendwo ein ✖, steht daneben, was zu tun ist.
 
@@ -1220,9 +1222,9 @@ Die Karte `custom:neonplan3d-card` bringt die 3D-Ansicht in jedes Dashboard. Sie
 
 | Abschnitt | Optionen |
 |---|---|
-| **Ansicht** | Etage oder ganzes Haus, Größe fest oder bildschirmfüllend, Höhe, Look, Wände, Qualität, Etagen darunter |
-| **Anzeigen** | Symbole, Heatmap, Schalter in der Karte, Etagen-Miniaturen, Raumnamen, Raumfenster, Vollbild-Knopf, Uhr (Ecke wählbar, `clock: tl/tr/bl/br`), Etagen auseinander, Leistungsanzeige |
-| **Funktionen** | Warnungen, Sprung zur Warnung, Szenen-Knöpfe, Bewegungsspur, Kamera-Wand, Zeitreise, Wetter mit Wetter-Entität |
+| **Ansicht** | Etage oder ganzes Haus, Start-Raum, Größe fest oder bildschirmfüllend, Höhe, Look, Wände, Qualität, Etagen darunter |
+| **Anzeigen** | Symbole, Heatmap (auch „Werte“), Schalter in der Karte, 3D-Sperre, Ansicht halten, Rundgang, Bedienleiste links oder rechts, Etagen-Miniaturen, Raumnamen, Raumfenster, Vollbild-Knopf, Uhr (Ecke wählbar, `clock: tl/tr/bl/br`), Etagen auseinander, Leistungsanzeige |
+| **Funktionen** | Warnungen, Sprung zur Warnung, Sprachsteuerung mit Bildschirmname und Raum für „hier“, Szenen-Knöpfe, Bewegungsspur, Kamera-Wand, Zeitreise mit Zeitraum und Tempo, Wetter mit Wetter-Entität |
 | **Wandtablet (Kiosk)** | Rückkehr zur Startansicht, Nachtdimmung, Kamerafahrt als Bildschirmschoner |
 
 ![Karte mit Szenen](images/card-scenes.jpg)
@@ -1253,7 +1255,7 @@ buttons:                # eigene Knöpfe nur für diese Karte (ersetzen die aus 
     icon: window-shutter
     action: fire_dom_event   # navigate | more_info | service | fire_dom_event
     data: { browser_mod: { service: browser_mod.popup, data: { title: Rollos, content: { type: "custom:meine-rollo-karte" } } } }
-heatmap: none           # none | temperature | humidity | co2
+heatmap: none           # none | temperature | humidity | co2 | values (Zahlen an den Raumnamen)
 room_panel: true        # Raum antippen öffnet das Raumfenster
 room_names: true
 controls: true          # Schalter in der Karte, oder eine Liste: walls, floors, temperature, humidity, co2

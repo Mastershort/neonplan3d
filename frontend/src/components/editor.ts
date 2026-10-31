@@ -25,7 +25,7 @@ import { isBeta, supporterUrl } from "../beta.ts";
 import { BIN_SHAPES, BIN_SIZE, binColors, binShape, householdCountry, isPackPlant, MAILBOX_SHAPES, MAILBOX_SIZE, mailboxShape, WASTE_KINDS, wasteColors } from "../household.ts";
 import { cameraMotionSensors, cameraOwnSensors, detectionKind, setCameraSensors } from "../markers.ts";
 import { backdropImage } from "../backdrop.ts";
-import { screenName, setScreenName, setVoiceHere, setVoicePipeline, voiceOnHere, voicePipeline } from "../load-voice.ts";
+import { screenName, setScreenName, setVoiceArea, setVoiceHere, setVoicePipeline, voiceArea, voiceOnHere, voicePipeline } from "../load-voice.ts";
 import { doorbellCamera, doorbellEntities, directorOnHere, HOLD_DEFAULT, HOLD_MAX, HOLD_MIN, setDirectorHere, type DirectorSettings } from "../director.ts";
 import { deviceSensors, energySummary, flowSegments, gridPoint, powerSensorFor, proposeEnergySensors, type EnergyPrefs, type FlowSegment, proposeMeters } from "../energy.ts";
 import { CLIMATE_ATTRS, isPulseDrive, isStatusSensor, robotRoomSensor, TOGGLE_KINDS } from "../devices.ts";
@@ -50,6 +50,7 @@ import { type CarLinks, type Background, OUTDOOR_TOP, sidelightLayout, DEFAULT_W
   type PoolPort,
   type PoolJoint,
   type ValvePosition,
+  zonesOf,
 } from "../model.ts";
 import { furnishRoom, PACKAGES, type PackageId } from "../packages.ts";
 import { edgeReach, generateWalls, locateOpening, openingHost, pointOnRoomEdge, type Wall } from "../geometry/walls.ts";
@@ -11662,6 +11663,33 @@ export class Fp3dEditor extends LitElement {
     </div>`;
   }
 
+  /**
+   * The room this device hangs in, for sentences without a room ("Licht an" switches the lights there): one of the
+   * plan's rooms (and outdoor areas acting as rooms) with a Home Assistant area. None: as before.
+   */
+  private renderVoiceRoom() {
+    const own = voiceArea();
+    const rooms = this._doc.floors.flatMap((f) => zonesOf(f).filter((r) => r.area_id).map((r) => ({ area: r.area_id!, name: this._doc.floors.length > 1 ? `${f.name} · ${r.name}` : r.name })));
+    // an area chosen earlier whose room is gone from the plan stays shown, so the choice is not lost unseen
+    const lost = own && !rooms.some((r) => r.area === own) ? (this.hass?.areas?.[own]?.name ?? own) : null;
+    return html`<div class="fp3d-form">
+        <label class="fp3d-field fp3d-wide"
+          >${this.t("voice_room")}
+          <select
+            @change=${(e: Event) => {
+              setVoiceArea((e.target as HTMLSelectElement).value || null);
+              this.requestUpdate();
+            }}
+          >
+            <option value="" ?selected=${!own}>${this.t("voice_room_none")}</option>
+            ${rooms.map((r) => html`<option value=${r.area} ?selected=${own === r.area}>${r.name}</option>`)}
+            ${lost ? html`<option value=${own} selected>${lost}</option>` : nothing}
+          </select></label
+        >
+      </div>
+      <p class="fp3d-sub">${this.t("voice_room_hint")}</p>`;
+  }
+
   /** Voice control: the microphone button on this device (a card has its own option), and the microphone test. */
   private renderVoice() {
     const here = voiceOnHere();
@@ -11700,6 +11728,7 @@ export class Fp3dEditor extends LitElement {
         </label>
       </div>
       <p class="fp3d-sub">${this.t("screen_name_hint")}</p>
+      ${this.renderVoiceRoom()}
       ${this.renderVoicePipeline()}
       <p class="fp3d-sub">${this.t("voice_needs")}</p>
       <div class="fp3d-actions">
@@ -13437,6 +13466,10 @@ export class Fp3dEditor extends LitElement {
         <label class="fp3d-check fp3d-wide" title=${this.t("sun_shadow_hint")}
           ><input type="checkbox" .checked=${s.sun_shadow !== false} @change=${(ev: Event) => set({ sun_shadow: (ev.target as HTMLInputElement).checked })} />
           ${this.t("sun_shadow")}</label
+        >
+        <label class="fp3d-check fp3d-wide" title=${this.t("tap_in_room_hint")}
+          ><input type="checkbox" .checked=${!!s.tap_in_room} @change=${(ev: Event) => set({ tap_in_room: (ev.target as HTMLInputElement).checked })} />
+          ${this.t("tap_in_room")}</label
         >
         <label class="fp3d-check fp3d-wide" title=${this.t("window_glow_hint")}
           ><input type="checkbox" .checked=${s.window_glow !== false} @change=${(ev: Event) => set({ window_glow: (ev.target as HTMLInputElement).checked })} />

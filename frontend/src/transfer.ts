@@ -12,9 +12,32 @@ export interface ExportFile {
   building: Building;
 }
 
+/** Home Assistant's entity domains: a string "<domain>.<object>" in a plan is a link to this home. */
+const DOMAINS = new Set(
+  "alarm_control_panel assist_satellite automation binary_sensor button calendar camera climate conversation counter cover date datetime device_tracker event fan group humidifier image input_boolean input_button input_datetime input_number input_select input_text lawn_mower light lock media_player notify number person remote scene script select sensor siren stt sun switch text time timer todo tts update vacuum valve wake_word water_heater weather zone".split(" "),
+);
+const ENTITY = /^([a-z_]+)\.[a-z0-9_]+$/;
+const isEntity = (v: unknown): v is string => typeof v === "string" && DOMAINS.has(ENTITY.exec(v)?.[1] ?? "");
+
+/**
+ * Every link to this home, wherever it stands (a lock on a door, the gas meter, the rain sensor, a fan on a lamp,
+ * a module's setting): entity ids become null or leave their lists and maps, areas and devices are cleared.
+ */
+function scrub(v: unknown): unknown {
+  if (Array.isArray(v)) return v.filter((x) => !isEntity(x)).map(scrub);
+  if (!v || typeof v !== "object") return isEntity(v) ? null : v;
+  const o = v as Record<string, unknown>;
+  for (const key of Object.keys(o)) {
+    if (isEntity(key)) delete o[key];
+    else if (/(^|_)(area|area_id|areas|device|device_id|devices)$/.test(key) && o[key] !== null && typeof o[key] !== "boolean" && typeof o[key] !== "number") o[key] = Array.isArray(o[key]) ? [] : null;
+    else o[key] = scrub(o[key]);
+  }
+  return o;
+}
+
 /** A copy of the building without any link to entities or areas (background images stay out anyway). */
 export function withoutEntities(b: Building): Building {
-  const out = structuredClone(b);
+  const out = scrub(structuredClone(b)) as Building;
   out.energy = { ...out.energy, grid: null, solar: null, battery: null, battery_soc: null, tariff: null };
   out.presence = [];
   for (const f of out.floors) {

@@ -4,7 +4,7 @@
 
 NeonPlan 3D draws your home right inside Home Assistant and shows it as a 3D model in a neon look. Lights glow in their colours, blinds move, windows tilt, doors swing open, cameras look into the room and the TV shows what is playing. Everything runs locally in Home Assistant, without a cloud or external programs, and it is built for wall tablets.
 
-This manual describes every feature of the current version. What changed in which version is in the [changelog](../CHANGELOG.md) and on the [releases page](https://github.com/Mastershort/neonplan3d/releases). The pictures come from the demo with invented data. The app follows the language of your Home Assistant user (profile → language); the labels below are the English ones. German and English are built in; French, Spanish, Dutch, Italian, Hungarian, Danish, Swedish, Norwegian (Bokmål and Nynorsk), Finnish, Czech, Polish, Romanian, Slovenian, Portuguese and Chinese (Simplified) are fetched when needed, so the bundles stay small for wall tablets. A text missing in a language shows in English.
+This manual describes every feature of the current version. What changed in which version is in the [changelog](../CHANGELOG.md) and on the [releases page](https://github.com/Mastershort/neonplan3d/releases). The pictures come from the demo with invented data. The app follows the language of your Home Assistant user (profile → language); the labels below are the English ones. German and English are built in; French, Spanish, Dutch, Italian, Hungarian, Danish, Swedish, Norwegian (Bokmål and Nynorsk), Finnish, Czech, Polish, Romanian, Slovenian, Slovak, Portuguese and Chinese (Simplified) are fetched when needed, so the bundles stay small for wall tablets. A text missing in a language shows in English.
 
 ![The house in the 3D view](images/view-house.jpg)
 
@@ -637,7 +637,7 @@ The **star** above the magnifier opens the **central menu**: lights on or off an
 
 **⚙ Settings (since 2.0.7):** at the top of the central menu, **⚙ Settings** opens the most used settings right in the 3D view, without the editor: **Look** (sun path and house shadow, windows glowing out at night, sunlight through the windows), **Controls** and **Warnings** (window open while it rains, contact unavailable, device names in warnings). Below, every module with settings has a section of its own, such as the **Announcements** (7.5). The settings apply to the whole house; only administrators can change them. Everything else stays in the editor under ⚙ Settings.
 
-**Switch devices only in the opened room (since 2.0.11, off by default):** under **⚙ Settings → Controls**. In the **All floors** view and on a floor, a tap on a device, a pin or a linked piece of furniture then opens its room instead of switching it, so no blind starts moving when you only meant to tap the ground floor. In the opened room a tap switches as usual, and a long press opens the device's menu everywhere. Good for wall tablets.
+**Switch devices only in the opened room (since 2.0.11, off by default):** in the 3D view under **⭐ (the star above the magnifier) → ⚙ Settings → Controls**, in the editor under **⚙ Settings → Weather & warnings**. In the **All floors** view and on a floor, a tap on a device, a pin or a linked piece of furniture then opens its room instead of switching it, so no blind starts moving when you only meant to tap the ground floor. In the opened room a tap switches as usual, and a long press opens the device's menu everywhere. Good for wall tablets.
 
 When a module offers something for the whole house (📢 **Announcement**), it is in the central menu too.
 
@@ -768,6 +768,8 @@ data:
 ```
 
 **Screen names.** With several tablets, give each view a name: in the editor under **⚙ Settings → 🎙 Voice control → Screen name** (for this device) or on the card with the option `screen: Kitchen`. When the service names a screen, only the view with that name reacts; without one, all of them do. With no view open, Assist answers "No NeonPlan screen is open right now".
+
+**Room of this device – "here"** (new in 2.1). When a tablet hangs in one room, choose it under **⚙ Settings → 🎙 Voice control → Room of this device** (for this device, empty by default). Then sentences without a room name are enough: "Lights on", "Turn off the lights here" or "Close the blinds" switch only in that room. When you name a room ("Turn on the kitchen lights"), that room counts. You can choose the rooms (and outdoor areas) that have a Home Assistant area, because Assist switches by area: NeonPlan hands the sentence to Assist as if a device in that area had heard it. On a **dashboard** you set it on the card: edit the dashboard → NeonPlan card → **Features** → **Room for "here"**, or in YAML `voice_area: kitchen` (the area id from Home Assistant). The card applies on every device that shows this dashboard; without a choice, the room set on the device counts. A voice satellite like the Voice PE does not need this setting, it knows its area itself.
 
 **Testing:** in the **🎙️ Voice control** section, **🎙️ Test the microphone** starts a probe. It checks https, the microphone, the level and Assist one after the other. It also shows which room a spoken sentence would open, and switches nothing while doing so. Wherever there is a ✖, the fix stands next to it.
 
@@ -1220,9 +1222,9 @@ The card `custom:neonplan3d-card` brings the 3D view into any dashboard. It load
 
 | Section | Options |
 |---|---|
-| **View** | One floor or the whole house, fixed size or full screen, height, look, walls, quality, floors below |
-| **Show** | Markers, heatmap, switches in the card, floor pictures, room names, room panel, full-screen button, clock (corner of your choice, `clock: tl/tr/bl/br`), floors apart, performance display |
-| **Features** | Warnings, jump to a warning, scene buttons, motion trail, camera wall, time travel, weather with weather entity |
+| **View** | One floor or the whole house, start room, fixed size or full screen, height, look, walls, quality, floors below |
+| **Show** | Markers, heatmap (also "values"), switches in the card, 3D lock, keep view, walk, controls left or right, floor pictures, room names, room panel, full-screen button, clock (corner of your choice, `clock: tl/tr/bl/br`), floors apart, performance display |
+| **Features** | Warnings, jump to a warning, voice control with screen name and room for "here", scene buttons, motion trail, camera wall, time travel with range and speed, weather with weather entity |
 | **Wall tablet (kiosk)** | Back to the start view, night dimming, camera turn as screensaver |
 
 ![A card with scenes](images/card-scenes.jpg)
@@ -1253,7 +1255,7 @@ buttons:                # own buttons for this card only (replace the ones from 
     icon: window-shutter
     action: fire_dom_event   # navigate | more_info | service | fire_dom_event
     data: { browser_mod: { service: browser_mod.popup, data: { title: Blinds, content: { type: "custom:my-blind-card" } } } }
-heatmap: none           # none | temperature | humidity | co2
+heatmap: none           # none | temperature | humidity | co2 | values (numbers at the room names)
 room_panel: true        # tapping a room opens the room panel
 room_names: true
 controls: true          # switches in the card, or a list: walls, floors, temperature, humidity, co2
