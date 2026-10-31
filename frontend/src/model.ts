@@ -740,6 +740,8 @@ export interface BuildingSettings {
   sun_shadow?: boolean;
   /** At night lit rooms throw their light out of the windows onto the ground in front (default on). */
   window_glow?: boolean;
+  /** Devices switch only in an opened room: in the house and floor views a tap opens the room instead (default off). */
+  tap_in_room?: boolean;
   /** The ground around the house: its height and the earth around cellars. */
   terrain?: Terrain | null;
   /**
