@@ -264,6 +264,19 @@ export class Floorplan3dCardEditor extends LitElement {
         </label>
       </div>
       <p class="hint">${this.t("screen_name_hint")}</p>
+      <div class="grid">
+        <label class="field wide"
+          >${this.t("card_voice_area")}
+          <select @change=${(e: Event) => this.set("voice_area", (e.target as HTMLSelectElement).value || undefined)}>
+            <option value="" ?selected=${!v.voice_area}>${this.t("card_voice_area_none")}</option>
+            ${Object.values(this.hass?.areas ?? {})
+              .sort((a, b) => a.name.localeCompare(b.name))
+              .map((a) => html`<option value=${a.area_id} ?selected=${a.area_id === v.voice_area}>${a.name}</option>`)}
+            ${v.voice_area && !this.hass?.areas?.[v.voice_area] ? html`<option value=${v.voice_area} selected>${v.voice_area}</option>` : nothing}
+          </select></label
+        >
+      </div>
+      <p class="hint">${this.t("card_voice_area_hint")}</p>
       ${this.toggle("scenes", "card_scenes", "card_scenes_hint")}
       ${this.toggle("motion_trail", "card_motion_trail", "card_motion_trail_hint")} ${this.toggle("camera_wall", "card_camera_wall", "card_camera_wall_hint")}
       ${this.toggle("time_travel", "card_time_travel", "card_time_travel_hint")}

@@ -94,6 +94,8 @@ export interface CardConfig {
   voice?: boolean;
   /** This card's screen name for Assist and the service `neonplan3d.ask`: a sentence that names a screen is only for it. */
   screen?: string;
+  /** The Home Assistant area this card's tablet hangs in: sentences without a room ("Lights on") apply there; else the device's setting. */
+  voice_area?: string;
   /** Scene and script chips of the selected room (default true). */
   scenes?: boolean;
   /** Motion trail: where motion was reported in the last half hour, with times (default off). */

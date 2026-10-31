@@ -315,6 +315,7 @@ export class Fp3dView3d extends LitElement {
     hideRoof: { attribute: false },
     voice: { attribute: false },
     screen: { attribute: false },
+    voiceArea: { attribute: false },
     _voice: { state: true },
     _announce: { state: true },
     scenes: { attribute: false },
@@ -510,6 +511,8 @@ export class Fp3dView3d extends LitElement {
   declare voice: boolean;
   /** This view's screen name: a sentence from Assist that names a screen is only for the view with that name. */
   declare screen: string | null;
+  /** The Home Assistant area of this view's tablet (card option `voice_area`); null: the device's setting. */
+  declare voiceArea: string | null;
   private declare _voice: { phase: "wait" | "listen" | "done" | "error"; text: string } | null;
   /** The subscription to the sentences Assist hands over (every open view listens, with or without a microphone). */
   private unsubAsk: Promise<() => Promise<void>> | null = null;
@@ -738,6 +741,7 @@ export class Fp3dView3d extends LitElement {
     this.hideRoof = false;
     this.voice = false;
     this.screen = null;
+    this.voiceArea = null;
     this._voice = null;
     this._micProbe = micProbeAsked();
     this._alerts = [];
@@ -4400,7 +4404,7 @@ export class Fp3dView3d extends LitElement {
       }
       if ((await this.handleSentence(hass, b, v, text, true)) !== null) return;
       say("wait", `“${text}” …`);
-      const answer = await v.converse(hass, text, voiceArea());
+      const answer = await v.converse(hass, text, this.voiceArea ?? voiceArea());
       say("done", answer ? `“${text}” – ${answer}` : `“${text}”`);
     } catch (err) {
       const e = err as { name?: string; message?: string };
