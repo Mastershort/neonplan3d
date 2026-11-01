@@ -192,10 +192,13 @@ export function buildFloorGeometry(
     // an opening across a room line is cut in every room it covers: here, the part inside this room (#353)
     // the openings are clipped one by one and only then merged: an opening joined with the stairs' own hole before
     // (overlapping, no longer convex) and reaching past the room was not cut at all (#375)
+    // one only within a few centimetres of the edge is clipped as well when it can be: a corner just past the room
+    // line (stairs below reaching 2.5 cm beyond the wall's face) crossed the floor's outline, and the floor was not
+    // cut at all (#813)
     const parts = holes.flatMap((h) => {
-      if (holeInRoom(h, poly)) return [h];
+      if (holeInRoom(h, poly) && (!isConvex(h) || holeInRoom(h, poly, 0.002))) return [h];
       if (!isConvex(h)) return [];
-      const part = clipConvex(poly, h);
+      const part = dropRepeats(clipConvex(poly, h));
       return part.length >= 3 && Math.abs(polygonArea(part)) > 0.01 ? [ccw(part)] : [];
     });
     const inside = mergeHoles(parts).map((h) => insetHole(ccw(h), 0.003));
@@ -779,6 +782,14 @@ export function wallHeight(wall: Wall, floorHeight: number): number {
 function unit(v: Vec2): Vec2 {
   const l = Math.hypot(v[0], v[1]) || 1;
   return [v[0] / l, v[1] / l];
+}
+
+/** A ring without points that repeat the one before (a clipped corner on the clipper's edge): the inset needs real edges. */
+function dropRepeats(points: Vec2[]): Vec2[] {
+  return points.filter((p, i) => {
+    const q = points[(i + points.length - 1) % points.length];
+    return points.length < 2 || Math.hypot(p[0] - q[0], p[1] - q[1]) > 1e-6;
+  });
 }
 
 function ccw(points: Vec2[]): Vec2[] {

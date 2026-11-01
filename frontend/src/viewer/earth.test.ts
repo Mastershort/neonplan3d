@@ -80,6 +80,36 @@ test("a light well under a lawn or a terrace drawn up to the house shows its rim
   assert.ok(Math.abs(top(earthOf(b, 0)!) - bare - 0.3) < 1e-6);
 });
 
+test("a cellar window above a low ground but below the path laid up to the house gets its light well (#890)", () => {
+  const win = (extra: Partial<Opening> = {}): Opening => ({ id: "w", room_id: "k", edge: 0, offset: 5, width: 1, type: "window", sill: 1.65, height: 0.5, hinge: "left", leaves: 1, swing: "in", contact2: null, ...extra }) as Opening;
+  // the ground 1.75 m under the ground floor (0.85 m above the cellar floor): the sill lies above it
+  const b = house({ level: -1.75 });
+  b.floors[0].openings = [win()];
+  assert.equal(earthOf(b, 0)!.wells.count, 0);
+  // a path raised 1.55 m along the wall, 0.7 m wide in front of its outer face (z −0.3): the window lies below it
+  const path = { id: "p", type: "path", offset: 1.55, points: [[-1, -1], [11, -1], [11, -0.3], [-1, -0.3]] } as never;
+  b.floors[1].outdoor = [path];
+  const g = earthOf(b, 0)!;
+  assert.ok(g.wells.count > 0);
+  // the rim stands just above the path (−1.75 + 1.55 + 0.02 under the ground floor, the cellar at −2.6)
+  const top = Math.max(...g.lines.p.filter((_, i) => i % 3 === 1));
+  assert.ok(Math.abs(top - (2.6 - 0.2 + 0.02 + 0.02 + 0.01)) < 1e-6, `rim ${top}`);
+  // a path along another wall does not count
+  b.floors[1].outdoor = [{ id: "p", type: "path", offset: 1.55, points: [[-1, 8.3], [11, 8.3], [11, 9], [-1, 9]] } as never];
+  assert.equal(earthOf(b, 0)!.wells.count, 0);
+});
+
+test("a light well reaches out as far as the window says, 0.8 m by default (#890)", () => {
+  const win = (extra: Partial<Opening> = {}): Opening => ({ id: "w", room_id: "k", edge: 0, offset: 5, width: 1, type: "window", sill: 1.65, height: 0.5, hinge: "left", leaves: 1, swing: "in", contact2: null, ...extra }) as Opening;
+  const reach = (b: Building) => Math.min(...earthOf(b, 0)!.wells.p.filter((_, i) => i % 3 === 2));
+  const b = house();
+  b.floors[0].openings = [win()];
+  // the outer face at z −0.3
+  assert.ok(Math.abs(reach(b) - (-0.3 - 0.8)) < 1e-6);
+  b.floors[0].openings = [win({ well_depth: 0.45 })];
+  assert.ok(Math.abs(reach(b) - (-0.3 - 0.45)) < 1e-6);
+});
+
 test("a raised house (the ground lower, no cellar) stands on a plinth; on a flat plot it gets none", () => {
   const flat = house();
   flat.floors = [flat.floors[1]];

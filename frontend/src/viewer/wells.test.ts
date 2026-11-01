@@ -18,6 +18,12 @@ function house(terrain?: Building["settings"]["terrain"], cellarElevation = -2.6
 
 const win = (extra: Partial<Opening> = {}): Opening => ({ id: "w", room_id: "k", edge: 0, offset: 2.5, width: 1, type: "window", sill: 1.65, height: 0.5, hinge: "left", leaves: 1, swing: "in", contact2: null, ...extra }) as Opening;
 
+/** A path on the ground floor raised 1 m above the ground. */
+function withPath(b: Building, points: [number, number][]): Building {
+  b.floors[1].outdoor = [{ id: "p", type: "path", offset: 1, points } as never];
+  return b;
+}
+
 /** Whether 3D draws a well for the window (with its switch on). */
 function drawn(b: Building): boolean {
   const f = b.floors[0];
@@ -36,6 +42,9 @@ test("the editor offers the light well switch exactly where 3D draws a light wel
     ["window in an inner wall", house(), { edge: 1, offset: 4 }],
     ["a raised ground floor without cellar", house(undefined, 0), {}],
     ["a door is no window", house(), { type: "door", sill: 0 }],
+    // #890: the ground low, a path raised up to the house in front of the window, the sill between the two
+    ["semi-basement, sill below a raised path in front", withPath(house({ level: -1.2 }), [[-1, -1], [11, -1], [11, -0.3], [-1, -0.3]]), {}],
+    ["semi-basement, the raised path along another wall", withPath(house({ level: -1.2 }), [[-1, 8.3], [11, 8.3], [11, 9], [-1, 9]]), {}],
   ];
   let some = false;
   for (const [name, b, extra] of cases) {
