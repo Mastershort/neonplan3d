@@ -2497,7 +2497,8 @@ export class FloorplanViewer {
 
   private makeMaterials(mask: FoldMasks): FloorMaterials {
     return {
-      floor: themed(new MeshBasicMaterial({ vertexColors: true }), this.themeUniform),
+      // a floor is never cyan of its own: an own accent colour turned the heatmap's cool rooms into it (#558)
+      floor: themed(new MeshBasicMaterial({ vertexColors: true }), this.themeUniform, false, false),
       pattern: patternMaterial(this.patternTexture),
       // the walls sit a hair behind their glowing edges in depth: lines lying on a wall's top or face no longer
       // flicker in and out at corners and joints as the view turns (#417)
