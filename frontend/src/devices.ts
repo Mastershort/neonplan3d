@@ -1,7 +1,7 @@
 // Devices of a room: which entities belong to an area, what kind they are, how they are placed and
 // what their state looks like. Pure functions (no Lit, no three.js) so they can be tested directly.
 
-import type { Furniture, EntityRef, Floor, LampMount, Opening, Placement, RoofWindow, Room, Vec2 } from "./model.ts";
+import type { Furniture, EntityRef, FenceGate, Floor, LampMount, Opening, Placement, RoofWindow, Room, Vec2 } from "./model.ts";
 import { centroid, outdoorZones, pointInPolygon } from "./model.ts";
 import { isRobotVacuum, packMotion, packScreen } from "./packs.ts";
 import type { HassEntity, HomeAssistant } from "./types.ts";
@@ -944,6 +944,8 @@ export interface AwningState {
   moving: -1 | 0 | 1;
   /** Seconds for a full run (to move along while no position is reported). */
   time: number;
+  /** `moving` tells where it stands, not a run (a gate's contact): seen for the first time, it stands there at once. */
+  settled?: boolean;
 }
 
 /**
@@ -974,7 +976,26 @@ export function awningStates(hass: HomeAssistant, floors: readonly Floor[]): Map
       // without a position: open (a cover) or on (a switch that drives it) is fully out
       else out.set(f.id, { out: flip(st.state === "open" || st.state === "on" ? 1 : 0), moving: 0, time });
     }
+  for (const floor of floors) for (const a of floor.outdoor ?? []) if (a.type === "fence") for (const g of a.gates ?? []) out.set(g.id, gateState(hass, g));
   return out;
+}
+
+/**
+ * A fence gate (#818), by the awnings' rules: a cover's position, or its opening and closing at the run time; a
+ * switch or input_boolean that is on stands open. A contact wins: it says open or shut, and the leaf runs there.
+ */
+export function gateState(hass: HomeAssistant, g: FenceGate): AwningState {
+  const time = g.time ?? (g.kind === "slide" ? 15 : 4);
+  const ref = (id: EntityRef | null | undefined) => (id && id !== "none" ? hass.states[id] : undefined);
+  const contact = ref(g.contact);
+  if (contact && !isUnavailable(contact)) return { out: null, moving: contact.state === "on" || contact.state === "open" ? 1 : -1, time, settled: true };
+  const st = ref(g.entity);
+  if (!st || isUnavailable(st)) return { out: null, moving: -1, time, settled: true };
+  const raw = st.attributes.current_position;
+  if (typeof raw === "number" && Number.isFinite(raw)) return { out: Math.min(1, Math.max(0, raw / 100)), moving: 0, time };
+  if (st.state === "opening") return { out: null, moving: 1, time };
+  if (st.state === "closing") return { out: null, moving: -1, time };
+  return { out: null, moving: st.state === "open" || st.state === "on" ? 1 : -1, time, settled: true };
 }
 
 /** Smart fridges: which of their doors stand open now (a door sensor reporting "on" or "open"). */

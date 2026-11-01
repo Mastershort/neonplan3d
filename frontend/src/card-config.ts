@@ -29,6 +29,8 @@ export interface CardConfig {
   roof_fade?: boolean;
   /** Show the roof (default true); false leaves it out altogether, as if the house had none (D601). */
   roof?: boolean;
+  /** A plain floor plan: walls, doors and stairs without furniture (default false); the devices stay. */
+  plain?: boolean;
   quality?: Quality;
   /** Show the performance display (frames per second, draw calls). */
   stats?: boolean;

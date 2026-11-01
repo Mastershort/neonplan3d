@@ -5,8 +5,8 @@
 // can sit higher or lower (offset), fall along one direction (slope) and have patches cut out of it.
 
 import { Color } from "three";
-import type { Floor, OutdoorArea, OutdoorType, Vec2 } from "../model.ts";
-import { areaGround, bounds, groundDrop, isAxisRect, OUTDOOR_TOP, outdoorStanding, pointInPolygon, poolFloorY, poolRimY, poolSunken, poolWaterY, signedArea } from "../model.ts";
+import type { Floor, GateSpan, OutdoorArea, OutdoorType, Vec2 } from "../model.ts";
+import { areaGround, bounds, centroid, gateSpans, groundDrop, isAxisRect, OUTDOOR_TOP, outdoorStanding, pointInPolygon, poolFloorY, poolRimY, poolSunken, poolWaterY, signedArea } from "../model.ts";
 import { ALWAYS, type GeoBuffer, type LineBuffer, pushPrism, shade, triangulate } from "./geo.ts";
 
 interface Look {
@@ -48,6 +48,73 @@ function againstWall(floor: Floor, p: Vec2, q: Vec2): boolean {
       return Math.hypot(a[0] + ex * t - mid[0], a[1] + ez * t - mid[1]) < 0.4;
     }),
   );
+}
+
+const GATE_SIDE = 0x31467d;
+const GATE_TOP = 0x5b7cff;
+
+/** The side of a gate's edge the fenced area lies on (a gate swings into it), as a unit normal. */
+function gateInward(a: OutdoorArea, span: GateSpan): Vec2 {
+  const { p, q } = span;
+  const len = Math.hypot(q[0] - p[0], q[1] - p[1]) || 1;
+  const n: Vec2 = [-(q[1] - p[1]) / len, (q[0] - p[0]) / len];
+  const s = (span.s0 + span.s1) / 2 / len;
+  const mid: Vec2 = [p[0] + (q[0] - p[0]) * s, p[1] + (q[1] - p[1]) * s];
+  // a closed fence: the side where a step off the edge lands inside; an open one leans on the house, its middle decides
+  const probe: Vec2 = [mid[0] + n[0] * 0.05, mid[1] + n[1] * 0.05];
+  const c = centroid(a.points);
+  const inside = a.open ? (c[0] - mid[0]) * n[0] + (c[1] - mid[1]) * n[1] > 0 : pointInPolygon(probe, a.points);
+  const sign = (inside ? 1 : -1) * (span.gate.outward ? -1 : 1);
+  return [n[0] * sign, n[1] * sign];
+}
+
+/**
+ * A fence gate's leaf (#818) at `open` 0 (shut) … 1 (fully open): a frame with upright slats, swinging into the fenced
+ * area (or out of it), as two leaves from both posts, or sliding along the fence on its inner side.
+ */
+export function pushGate(buf: GeoBuffer, floor: Floor, a: OutdoorArea, span: GateSpan, open: number): void {
+  const { gate, p, q, s0, s1 } = span;
+  const len = Math.hypot(q[0] - p[0], q[1] - p[1]) || 1;
+  const d: Vec2 = [(q[0] - p[0]) / len, (q[1] - p[1]) / len];
+  const n = gateInward(a, span);
+  const at = (s: number): Vec2 => [p[0] + d[0] * s, p[1] + d[1] * s];
+  const mid = at((s0 + s1) / 2);
+  const g = areaGround(floor, a) - groundDrop(floor, a, mid[0], mid[1]);
+  const h = Math.max(0.4, (a.height ?? OUTDOOR_TOP.fence) - 0.05);
+  const t = Math.min(1, Math.max(0, open));
+  // a bar from `from` along u, `l` long and `w` thick
+  const bar = (from: Vec2, u: Vec2, l: number, w: number, y0: number, y1: number) => {
+    const v: Vec2 = [-u[1] * (w / 2), u[0] * (w / 2)];
+    const e: Vec2 = [from[0] + u[0] * l, from[1] + u[1] * l];
+    pushPrism(buf, ccw([[from[0] + v[0], from[1] + v[1]], [e[0] + v[0], e[1] + v[1]], [e[0] - v[0], e[1] - v[1]], [from[0] - v[0], from[1] - v[1]]]), g + y0, g + y1, GATE_SIDE, GATE_TOP);
+  };
+  // one leaf from its hinge along u: rails at the foot and the top, stiles at both ends, slats every ~12 cm
+  const leaf = (hinge: Vec2, u: Vec2, w: number) => {
+    if (w < 0.1) return;
+    const from: Vec2 = [hinge[0] + u[0] * 0.03, hinge[1] + u[1] * 0.03];
+    const l = w - 0.06;
+    bar(from, u, l, 0.04, 0.08, 0.15);
+    bar(from, u, l, 0.04, h - 0.07, h);
+    const k = Math.max(1, Math.round(l / 0.12));
+    for (let i = 0; i <= k; i++) {
+      const s = Math.min(l - 0.03, (l * i) / k);
+      bar([from[0] + u[0] * s, from[1] + u[1] * s], u, 0.03, i === 0 || i === k ? 0.05 : 0.025, 0.08, h);
+    }
+  };
+  const turn = (base: Vec2, angle: number): Vec2 => [base[0] * Math.cos(angle) + n[0] * Math.sin(angle), base[1] * Math.cos(angle) + n[1] * Math.sin(angle)];
+  const swing = t * Math.PI * 0.5;
+  const w = s1 - s0;
+  const kind = gate.kind ?? "swing";
+  if (kind === "slide") {
+    // a sliding gate runs beside the fence, off the gap towards the edge's start (flip: its end)
+    const dir = gate.flip ? 1 : -1;
+    const start = at(s0 + dir * t * w);
+    leaf([start[0] + n[0] * 0.08, start[1] + n[1] * 0.08], d, w);
+  } else if (kind === "double") {
+    leaf(at(s0), turn(d, swing), w / 2);
+    leaf(at(s1), turn([-d[0], -d[1]], swing), w / 2);
+  } else if (gate.flip) leaf(at(s1), turn([-d[0], -d[1]], swing), w);
+  else leaf(at(s0), turn(d, swing), w);
 }
 
 /** Height of the visible surface of an area (for the lighting layer), at its high edge. */
@@ -213,25 +280,48 @@ export function pushOutdoor(buf: GeoBuffer, lines: LineBuffer, floor: Floor, wat
         break;
       }
       case "fence": {
-        // posts every ~2 m and two rails along the outline, following the ground
-        for (let i = 0; i < poly.length; i++) {
-          if (i === openEnd) continue;
-          const p = poly[i];
-          const q = poly[(i + 1) % poly.length];
+        // posts every ~2 m and two rails along the outline, following the ground; the edges run as drawn (a
+        // gate names its edge that way), a gate leaves a gap with a post on either side (#818)
+        const pts = a.points;
+        const last = pts.length - 1;
+        const gates = gateSpans(a);
+        const post = (x: number, z: number, r: number) => {
+          const gy = groundAt(x, z);
+          pushPrism(buf, ccw([[x - r, z - r], [x + r, z - r], [x + r, z + r], [x - r, z + r]]), gy, gy + look.top, look.side, look.color);
+        };
+        for (let i = 0; i < pts.length; i++) {
+          if (a.open && i === last) continue;
+          const p = pts[i];
+          const q = pts[(i + 1) % pts.length];
           const len = Math.hypot(q[0] - p[0], q[1] - p[1]);
-          const n = Math.max(1, Math.round(len / 2));
+          if (len < 1e-6) continue;
+          const at = (s: number): Vec2 => [p[0] + ((q[0] - p[0]) * s) / len, p[1] + ((q[1] - p[1]) * s) / len];
+          // the runs of fence between the gates
+          const gaps = gates.filter((g) => g.gate.edge === i).sort((x, y) => x.s0 - y.s0);
+          const runs: [number, number][] = [];
+          let from = 0;
+          for (const g of gaps) {
+            if (g.s0 > from + 0.01) runs.push([from, g.s0]);
+            from = Math.max(from, g.s1);
+          }
+          if (len > from + 0.01) runs.push([from, len]);
           // an open fence also gets the post at its far end
-          const last = openEnd >= 0 && i === openEnd - 1 ? n : n - 1;
-          for (let k = 0; k <= last; k++) {
-            const t = k / n;
-            const x = p[0] + (q[0] - p[0]) * t;
-            const z = p[1] + (q[1] - p[1]) * t;
-            const gy = groundAt(x, z);
-            pushPrism(buf, ccw([[x - 0.04, z - 0.04], [x + 0.04, z - 0.04], [x + 0.04, z + 0.04], [x - 0.04, z + 0.04]]), gy, gy + look.top, look.side, look.color);
+          const farEnd = a.open && i === last - 1;
+          for (const [u0, u1] of runs) {
+            const n = Math.max(1, Math.round((u1 - u0) / 2));
+            // a run's end at a gate has the gate's post; at the edge's end the next edge draws it
+            const first = u0 > 1e-6 ? 1 : 0;
+            const upTo = u1 >= len - 1e-6 && farEnd ? n : n - 1;
+            for (let k = first; k <= upTo; k++) {
+              const [x, z] = at(u0 + ((u1 - u0) * k) / n);
+              post(x, z, 0.04);
+            }
+            const a0 = at(u0);
+            const a1 = at(u1);
+            for (const y of [0.35, 0.85]) lines.seg([a0[0], groundAt(a0[0], a0[1]) + y * look.top, a0[1]], [a1[0], groundAt(a1[0], a1[1]) + y * look.top, a1[1]], edge, ALWAYS);
           }
-          for (const y of [0.35, 0.85]) {
-            lines.seg([p[0], groundAt(p[0], p[1]) + y * look.top, p[1]], [q[0], groundAt(q[0], q[1]) + y * look.top, q[1]], edge, ALWAYS);
-          }
+          // the gate posts are a little stronger
+          for (const g of gaps) for (const s of [g.s0, g.s1]) post(...at(s), 0.055);
         }
         break;
       }

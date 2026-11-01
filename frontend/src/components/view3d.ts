@@ -123,7 +123,7 @@ import { load3d } from "../load3d.ts";
 import { loadFun } from "../load-fun.ts";
 import { detectionKind, scaleGlow, buildMarkers, cameraMotionSensors, openMoreInfo, setCameraSensors, stateText, toggleEntity } from "../markers.ts";
 import { activeSections, roofUnderAt, sectionAbove, sectionCutsBelow } from "../roof-sections.ts";
-import { centroid, furnitureFootprint, gangEntities, gangsOf, GANG_TYPES, TECH_TYPES, isLamp, setTerrain, poolFloorY, LAMP_MODEL, LIFT_SPOTS, outdoorGround, pointInPolygon, poolWaterY, spotDepth, surfaceHeight, zonesOf, type Building, type Floor, type Furniture, type Pet, type StartView } from "../model.ts";
+import { centroid, furnitureFootprint, gangEntities, gangsOf, GANG_TYPES, STAIR_TYPES, TECH_TYPES, isLamp, setTerrain, poolFloorY, LAMP_MODEL, LIFT_SPOTS, outdoorGround, pointInPolygon, poolWaterY, spotDepth, surfaceHeight, zonesOf, type Building, type Floor, type Furniture, type Pet, type StartView } from "../model.ts";
 
 import { pathLength, pipePath, pointAlong, type P3 } from "../geometry/runs.ts";
 import { pipePieces, poolAreas, poolNodeAt, poolWallNormal, underBasin, PIPE_IDLE, type PipePiece } from "../pool-runs.ts";
@@ -241,6 +241,7 @@ export class Fp3dView3d extends LitElement {
     wallMode: { attribute: false },
     explode: { type: Boolean },
     keepRoof: { attribute: false },
+    plain: { attribute: false },
     markerMode: { attribute: false },
     pinSize: { attribute: false },
     markerNames: { attribute: false },
@@ -362,6 +363,8 @@ export class Fp3dView3d extends LitElement {
   declare explode: boolean;
   /** The roof stays while zooming in (no lift, no fade). */
   declare keepRoof: boolean;
+  /** A plain floor plan: walls, doors and stairs, no furniture (the devices stay). */
+  declare plain: boolean;
   declare markerMode: MarkerMode;
   /** How large the device symbols are (D596). */
   declare pinSize: "small" | "normal" | "large";
@@ -670,6 +673,7 @@ export class Fp3dView3d extends LitElement {
     this.wallMode = "auto";
     this.explode = true;
     this.keepRoof = false;
+    this.plain = false;
     this.markerMode = "important";
     this.pinSize = "normal";
     this.heatMode = "none";
@@ -959,7 +963,7 @@ export class Fp3dView3d extends LitElement {
       if (this.building) {
         this.shownStartView = JSON.stringify(this.startViewOf());
         this.viewer.setStartView(this.startViewOf());
-        this.viewer.setBuilding(this.building);
+        this.viewer.setBuilding(this.shownBuilding()!);
       }
       this.scheduleThumbs();
       this.syncDevices(true);
@@ -1012,9 +1016,9 @@ export class Fp3dView3d extends LitElement {
       const startChanged = this.shownStartView !== undefined && this.shownStartView !== start;
       this.shownStartView = start;
       v.setStartView(this.startViewOf());
-      v.setBuilding(this.building);
+      v.setBuilding(this.shownBuilding()!);
       if (startChanged && this.floorId === null) v.resetView();
-    }
+    } else if (changed.has("plain") && changed.get("plain") !== undefined && this.building) v.setBuilding(this.shownBuilding()!);
     if (changed.has("building") || changed.has("packs") || changed.has("petsOn")) void this.syncPets();
     if (changed.has("building") || changed.has("packs") || changed.has("ghostOn")) void this.syncGhost();
     if (changed.has("startView") && changed.get("startView") !== undefined) {
@@ -4856,6 +4860,22 @@ export class Fp3dView3d extends LitElement {
   }
 
   /** Opens a module's sheet for a room (from its panel). */
+  private plainOf: { from: Building; to: Building } | null = null;
+
+  /**
+   * The building the 3D view draws: as it is, or in the plain view without furniture – stairs, stairwells and
+   * pack stairs stay (they cut the floors); lamps go with the rest, the device pins stay.
+   */
+  private shownBuilding(): Building | null {
+    const b = this.building;
+    if (!b || !this.plain) return b;
+    if (this.plainOf?.from === b) return this.plainOf.to;
+    const keep = (f: Furniture) => STAIR_TYPES.has(f.type) || f.type === "stairwell" || !!packItem(f.type)?.hole;
+    const to = { ...b, floors: b.floors.map((f) => ({ ...f, furniture: f.furniture.filter(keep) })) };
+    this.plainOf = { from: b, to };
+    return to;
+  }
+
   openRoomSheet(roomId: string, id: string): void {
     const floor = this.building?.floors.find((f) => f.rooms.some((r) => r.id === roomId));
     this._sheet = { id, floorId: floor?.id ?? null, roomId };
@@ -4992,12 +5012,22 @@ export class Fp3dView3d extends LitElement {
         ${admin ? nothing : html`<p class="fp3d-set-note">${t("view_settings_admin")}</p>`}
         <h4>${t("view_settings_look")}</h4>
         ${check("sun_shadow", st.sun_shadow !== false, (v) => ({ sun_shadow: v }), "sun_shadow_hint")}
+        ${st.sun_shadow !== false
+          ? html`<label class="fp3d-set-field" title=${t("sun_arc_hint")}
+              >${t("sun_arc")}
+              <select ?disabled=${!admin} @change=${(e: Event) => this.setPlanSettings({ sun_arc: (e.target as HTMLSelectElement).value === "plot" ? "plot" : null })}>
+                <option value="house" ?selected=${st.sun_arc !== "plot"}>${t("sun_arc_house")}</option>
+                <option value="plot" ?selected=${st.sun_arc === "plot"}>${t("sun_arc_plot")}</option>
+              </select></label
+            >`
+          : nothing}
         ${check("window_glow", st.window_glow !== false, (v) => ({ window_glow: v }), "window_glow_hint")}
         ${gpuSafeMode(GUARD_VERSION) ? html`<p class="fp3d-set-note">${t("gpu_safe_note")}</p>` : nothing}
         ${check("sun_patches", st.sun_patches !== false, (v) => ({ sun_patches: v }))}
         ${this.renderGlassSize(t, admin, st)}
         <h4>${t("view_settings_control")}</h4>
         ${check("tap_in_room", !!st.tap_in_room, (v) => ({ tap_in_room: v }), "tap_in_room_hint")}
+        ${check("right_click_back", !!st.right_click_back, (v) => ({ right_click_back: v }), "right_click_back_hint")}
         <h4>${t("view_settings_alerts")}</h4>
         ${check("rain_warning", st.rain_warning !== false, (v) => ({ rain_warning: v }))}
         ${check("alert_unavailable", !!st.alert_unavailable, (v) => ({ alert_unavailable: v }))}

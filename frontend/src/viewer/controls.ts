@@ -22,6 +22,8 @@ export interface ControlEvents {
   grab?(x: number, y: number): boolean;
   drag?(x: number, y: number): void;
   drop?(): void;
+  /** A short right click (with rightClickBack on): one step back. */
+  back?(): void;
   /**
    * A one-finger drag starts at (x, y) moving by (dx, dy): return true to take it as a swipe on an
    * object (dimming a lamp, moving a blind) instead of turning the view. Moves then report the
@@ -62,6 +64,8 @@ export class OrbitControls {
   leftDragTurns = true;
   /** 3D lock (idea from dlavrantonis' fork): the angle stays put – a drag moves the view, zooming still works. */
   angleLock = false;
+  /** A short right click goes one step back (room → floor → house) instead of tapping (a setting, default off). */
+  rightClickBack = false;
 
   private pointers = new Map<number, { x: number; y: number; button: number; type: string }>();
   private velocity = { theta: 0, phi: 0 };
@@ -270,7 +274,8 @@ export class OrbitControls {
   }
 
   private onUp(e: PointerEvent): void {
-    if (!this.pointers.has(e.pointerId)) return;
+    const button = this.pointers.get(e.pointerId)?.button;
+    if (button === undefined) return;
     if (this.grabbing) {
       this.grabbing = false;
       this.pointers.delete(e.pointerId);
@@ -294,7 +299,10 @@ export class OrbitControls {
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
       const now = performance.now();
-      if (now - this.lastTap < 320) {
+      if (button === 2 && this.rightClickBack && this.events.back) {
+        this.lastTap = 0;
+        this.events.back();
+      } else if (now - this.lastTap < 320) {
         this.lastTap = 0;
         this.events.doubleTap(x, y);
       } else {

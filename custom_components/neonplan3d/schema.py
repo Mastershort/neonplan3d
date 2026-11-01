@@ -177,6 +177,10 @@ OPENING_SCHEMA = vol.Schema(
         # a window below the ground: its light well (False: none) and how far its rim stands above the ground
         vol.Optional("well", default=True): bool,
         vol.Optional("well_rim", default=None): vol.Any(None, vol.All(vol.Coerce(float), vol.Range(min=-0.3, max=1))),
+        # how far the light well reaches out from the wall (None: 0.8 m)
+        vol.Optional("well_depth", default=None): vol.Any(
+            None, vol.All(vol.Coerce(float), vol.Range(min=0.2, max=1.5))
+        ),
         # highlight in 3D while open (None) or while closed ("closed": a WC or a child's room door)
         vol.Optional("mark", default=None): vol.Any(None, vol.In(["closed"])),
         # windows: board inside and sill outside, "auto" (from 0.3 m sill height, none for a window
@@ -264,6 +268,8 @@ FURNITURE_SCHEMA = vol.Schema(
         # Energie Pro, inverter: its plant card moved along the eave / up the slope (m)
         vol.Optional("plant_right"): vol.All(vol.Coerce(float), vol.Range(min=-30, max=30)),
         vol.Optional("plant_up"): vol.All(vol.Coerce(float), vol.Range(min=-30, max=30)),
+        # Energie Pro, inverter: its cable ends at the grid point instead of the meter (#841)
+        vol.Optional("cable_to"): vol.Any(None, vol.In(["meter", "grid"])),
         vol.Optional("status", default=None): vol.Any(None, vol.All(str, vol.Length(max=255))),
         # robot vacuum: sensor naming the room it cleans right now (None = automatic)
         vol.Optional("room_sensor", default=None): vol.Any(None, vol.All(str, vol.Length(max=255))),
@@ -489,6 +495,23 @@ POOL_SCHEMA = vol.Schema(
 
 OUTDOOR_TYPES = ["lawn", "terrace", "path", "driveway", "pool", "bed", "wild", "hedge", "fence", "pergola", "balcony"]
 
+# a gate in a fence (#818): a gap in one edge with a leaf that opens with its entity
+GATE_SCHEMA = vol.Schema(
+    {
+        vol.Required("id"): _ID,
+        vol.Required("edge"): vol.All(vol.Coerce(int), vol.Range(min=0, max=MAX_POINTS)),
+        vol.Required("at"): vol.All(vol.Coerce(float), vol.Range(min=0, max=1000)),
+        vol.Required("width"): vol.All(vol.Coerce(float), vol.Range(min=0.3, max=20)),
+        vol.Optional("kind", default="swing"): vol.In(["swing", "double", "slide"]),
+        vol.Optional("flip", default=False): bool,
+        vol.Optional("outward", default=False): bool,
+        vol.Optional("entity", default=None): _ENTITY_REF,
+        vol.Optional("contact", default=None): _ENTITY_REF,
+        vol.Optional("time", default=None): vol.Any(None, vol.All(vol.Coerce(float), vol.Range(min=1, max=300))),
+    },
+    extra=vol.ALLOW_EXTRA,
+)
+
 OUTDOOR_SCHEMA = vol.Schema(
     {
         vol.Required("id"): _ID,
@@ -506,6 +529,8 @@ OUTDOOR_SCHEMA = vol.Schema(
         # fences and pergolas: the closing edge is left out; pergola: X-bracing on the sides
         vol.Optional("open", default=False): bool,
         vol.Optional("bracing", default=False): bool,
+        # fences: gates cut into the edges
+        vol.Optional("gates"): vol.All([GATE_SCHEMA], vol.Length(max=20)),
         # cut out of every area beneath it that contains it
         vol.Optional("cut", default=False): bool,
         # pools: round or oval, resized as a whole
@@ -551,6 +576,14 @@ ROOF_SECTION_SCHEMA = vol.Schema(
         vol.Optional("pitch_b", default=35): vol.All(vol.Coerce(float), vol.Range(min=0, max=80)),
         vol.Required("base"): _HEIGHT,
         vol.Optional("overhang", default=None): vol.Any(None, vol.All(vol.Coerce(float), vol.Range(min=0, max=2))),
+        # the overhang per side set by hand (a, b, u0, u1; None = automatic, #863)
+        vol.Optional("overhang_sides"): vol.Any(
+            None,
+            vol.All(
+                [vol.Any(None, vol.All(vol.Coerce(float), vol.Range(min=0, max=2)))],
+                vol.Length(min=4, max=4),
+            ),
+        ),
         vol.Optional("flip", default=False): bool,
         # a flat roof as a free shape: its footprint polygon (x0 … z1 hold the bounding box)
         vol.Optional("points", default=None): vol.Any(None, vol.All([_POINT], vol.Length(min=3, max=MAX_POINTS))),
@@ -702,6 +735,11 @@ FREE_WALL_SCHEMA = vol.Schema(
         vol.Required("b"): _POINT,
         vol.Optional("thickness", default=None): vol.Any(None, vol.All(vol.Coerce(float), vol.Range(min=0.02, max=1))),
         vol.Optional("height", default=None): vol.Any(None, vol.All(vol.Coerce(float), vol.Range(min=0.05, max=20))),
+        # a sloping top (#834): the height at end a and at end b (None = the plain height)
+        vol.Optional("slope"): vol.Any(
+            None,
+            vol.All([vol.All(vol.Coerce(float), vol.Range(min=0.05, max=20))], vol.Length(min=2, max=2)),
+        ),
     },
     extra=vol.ALLOW_EXTRA,
 )
@@ -795,9 +833,13 @@ SETTINGS_SCHEMA = vol.Schema(
         # sunlight through the windows as patches on the floor
         vol.Optional("sun_patches", default=True): bool,
         vol.Optional("sun_shadow", default=True): bool,
+        # what the sun's arc and compass ring stand around: the house (None, default) or the whole plot (#833)
+        vol.Optional("sun_arc"): vol.Any(None, vol.In(["house", "plot"])),
         vol.Optional("window_glow", default=True): bool,
         # devices switch only in an opened room; elsewhere a tap opens the room
         vol.Optional("tap_in_room", default=False): bool,
+        # a short right click in 3D goes one step back
+        vol.Optional("right_click_back", default=False): bool,
         # fun pack "Halloween": the ghost floating through the house (on unless switched off)
         # Haushalt Pro: the hours a waste bin glows (from the day before, until on the day)
         vol.Optional("household"): vol.Any(
@@ -941,6 +983,8 @@ ENERGY_DEFAULTS = {
 ENERGY_SCHEMA = vol.Schema(
     {
         vol.Optional("meter", default=None): vol.Any(None, METER_SCHEMA),
+        # the cables meet at the point `meter` (e.g. the house board) instead of the meter cabinet (#841)
+        vol.Optional("hub_point"): bool,
         vol.Optional("grid", default=None): _ENTITY,
         vol.Optional("grid_invert", default=False): bool,
         vol.Optional("solar", default=None): _ENTITY,

@@ -157,6 +157,8 @@ export interface ShopOffer {
   kind: "pack" | "pro" | "bundle" | "fun";
   price: string;
   new: boolean;
+  /** The Supporter Pass (its tile mentions NeonPlan Print); missing from older shops. */
+  supporter_pass?: boolean;
 }
 
 /** The customer's loyalty code: a discount on further purchases. */

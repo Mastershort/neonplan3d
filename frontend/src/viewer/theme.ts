@@ -31,13 +31,13 @@ const GLSL = `
 uniform int uTheme;
 uniform vec3 uAccent;
 uniform int uAccentOn;
-vec3 fp3dThemed(vec3 c, bool line) {
+vec3 fp3dThemed(vec3 c, bool line, bool accent) {
   float mx = max(c.r, max(c.g, c.b));
   float mn = min(c.r, min(c.g, c.b));
   float sat = mx > 0.0 ? (mx - mn) / mx : 0.0;
   if (uTheme == 0) {
     // an own accent: every line and every cyan surface takes it, as bright as it was
-    if (uAccentOn == 1 && (line || (sat > 0.35 && c.r < c.g * 0.8 && c.b > c.g * 0.85 && c.g > c.b * 0.6))) return uAccent * mx;
+    if (accent && uAccentOn == 1 && (line || (sat > 0.35 && c.r < c.g * 0.8 && c.b > c.g * 0.85 && c.g > c.b * 0.6))) return uAccent * mx;
     return c;
   }
   // signal colours keep their colour
@@ -58,9 +58,10 @@ vec3 fp3dThemed(vec3 c, bool line) {
 
 /**
  * Maps a material's colours to the look in `uniform` (0 neon, 1 blueprint, 2 day). Composes with an
- * existing onBeforeCompile (e.g. the fold patch). `line`: edges are mapped as lines.
+ * existing onBeforeCompile (e.g. the fold patch). `line`: edges are mapped as lines. `accent`: false keeps the
+ * material's cyan colours from an own accent colour (the floors: a heatmap's cool rooms are cyan, #558).
  */
-export function themed<T extends Material>(material: T, uniform: ThemeUniform, line = false): T {
+export function themed<T extends Material>(material: T, uniform: ThemeUniform, line = false, accent = true): T {
   const before = material.onBeforeCompile.bind(material);
   const key = material.customProgramCacheKey.bind(material);
   material.onBeforeCompile = (shader, renderer) => {
@@ -70,9 +71,9 @@ export function themed<T extends Material>(material: T, uniform: ThemeUniform, l
     shader.uniforms.uAccentOn = accentOnUniform;
     shader.fragmentShader = shader.fragmentShader
       .replace("#include <common>", `#include <common>\n${GLSL}`)
-      .replace("#include <color_fragment>", `#include <color_fragment>\n  diffuseColor.rgb = fp3dThemed(diffuseColor.rgb, ${line ? "true" : "false"});`);
+      .replace("#include <color_fragment>", `#include <color_fragment>\n  diffuseColor.rgb = fp3dThemed(diffuseColor.rgb, ${line}, ${accent});`);
   };
-  material.customProgramCacheKey = () => `${key()}-themed-${line ? "l" : "s"}`;
+  material.customProgramCacheKey = () => `${key()}-themed-${line ? "l" : "s"}${accent ? "" : "-na"}`;
   return material;
 }
 

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { emptyBuilding, newFloor, type Building } from "../model.ts";
-import { houseShadow, shadowBox, SHADOW_REACH } from "./sun-shadow.ts";
+import { houseShadow, shadowBox, SHADOW_REACH, sunEdge } from "./sun-shadow.ts";
 
 function box(height: number): Building {
   const b = emptyBuilding();
@@ -29,4 +29,18 @@ test("a low sun stretches the shadow no further than its reach, and no sun throw
   // the lawn 20 cm below the floor: the shadow starts at the walls' foot, measured from the lawn
   const [, low] = shadowBox(houseShadow(box(2.5), [], [0, 1], 45, -0.2))!;
   assert.ok(Math.abs(low - -2.7) < 1e-6, String(low));
+});
+
+test("a sun patch fades out at its edges and is full inside (#819)", () => {
+  assert.equal(sunEdge(0, 2), 0);
+  assert.equal(sunEdge(2, 2), 0);
+  assert.equal(sunEdge(1, 2), 1);
+  assert.ok(Math.abs(sunEdge(0.15, 2) - 0.5) < 1e-9);
+  // a patch shorter than both fades together still peaks in its middle
+  assert.equal(sunEdge(0.2, 0.4), 1);
+  assert.ok(sunEdge(0.1, 0.4) > 0 && sunEdge(0.1, 0.4) < 1);
+  // nothing for an empty or broken side
+  assert.equal(sunEdge(0, 0), 0);
+  assert.equal(sunEdge(0.5, -1), 0);
+  assert.equal(sunEdge(Number.NaN, 2), 0);
 });

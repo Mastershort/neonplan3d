@@ -920,3 +920,21 @@ test("a child device without an area takes its parent's (Home Assistant 2026.11)
   // the room's device list finds the channel in the parent's room
   assert.ok(areaEntities(hass, "kitchen").includes("switch.gang_2"));
 });
+
+test("a fence gate opens with its cover, switch or contact (#818)", async () => {
+  const { gateState } = await import("./devices.ts");
+  const st = (entity_id: string, state: string, attributes: Record<string, unknown> = {}) => ({ entity_id, state, attributes, last_changed: "", last_updated: "", context: { id: "", user_id: null, parent_id: null } });
+  const hass = (...list: ReturnType<typeof st>[]) => ({ states: Object.fromEntries(list.map((s) => [s.entity_id, s])) }) as never;
+  const gate = { id: "g", edge: 0, at: 1, width: 1, entity: "cover.gate" };
+  // a cover with its position follows it; running without one moves at the run time
+  assert.deepEqual(gateState(hass(st("cover.gate", "open", { current_position: 40 })), gate), { out: 0.4, moving: 0, time: 4 });
+  assert.equal(gateState(hass(st("cover.gate", "opening")), gate).moving, 1);
+  // open, or a switch that is on: it stands open, and stands there at once when first seen
+  assert.deepEqual(gateState(hass(st("cover.gate", "open")), gate), { out: null, moving: 1, time: 4, settled: true });
+  assert.equal(gateState(hass(st("switch.gate", "on")), { ...gate, entity: "switch.gate", kind: "slide" }).time, 15);
+  // the contact wins over the motor's state
+  const both = hass(st("cover.gate", "closed"), st("binary_sensor.gate", "on"));
+  assert.equal(gateState(both, { ...gate, contact: "binary_sensor.gate" }).moving, 1);
+  // nothing linked: shut
+  assert.equal(gateState(hass(), { id: "g", edge: 0, at: 1, width: 1 }).moving, -1);
+});

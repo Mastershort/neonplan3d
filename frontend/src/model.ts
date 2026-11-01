@@ -135,6 +135,8 @@ export interface Opening {
   well?: boolean;
   /** How far the light well's rim and grate stand above the ground in m (null = level with it), e.g. above gravel. */
   well_rim?: number | null;
+  /** How far the light well reaches out from the wall in m (null = 0.8 m), e.g. to stay within a path (#890). */
+  well_depth?: number | null;
   /** Highlight in 3D while open (null, default) or while closed (a WC or a child's room door). */
   mark?: "closed" | null;
   /**
@@ -263,6 +265,8 @@ export interface Furniture {
   /** Energie Pro, inverter: its plant card moved from its field's middle along the eave (m, + = right) and up the slope (#335). */
   plant_right?: number;
   plant_up?: number;
+  /** Energie Pro, inverter: where its cable ends – the meter (null, default) or the grid point (#841). */
+  cable_to?: "meter" | "grid" | null;
   status?: EntityRef;
   /** Robot vacuum: sensor naming the room it cleans right now (null = automatic, "none" = the dock's room). */
   room_sensor?: EntityRef;
@@ -410,6 +414,8 @@ export interface FreeWall {
   thickness?: number | null;
   /** Height in metres (null = full floor height), e.g. a half-height wall or a counter. */
   height?: number | null;
+  /** A sloping top (#834): the height at end a and at end b, straight in between; null = the plain height. */
+  slope?: [number, number] | null;
 }
 
 /** "custom": the roof is made of sections (wings of an L- or T-shaped house, a barn, a lean-to …). */
@@ -447,6 +453,11 @@ export interface RoofSection {
   base: number;
   /** Overhang beyond the walls (null = the roof setting). */
   overhang?: number | null;
+  /**
+   * Overhang per side set by hand (#863), in the order a, b, u0, u1: a number wins over the automatic one (the
+   * overhang above, none against a taller part of the house); null or a missing list = automatic.
+   */
+  overhang_sides?: (number | null)[] | null;
   /** Sides a and b swapped: side a is the high coordinate (a pent roof then rises the other way). */
   flip?: boolean;
   /**
@@ -738,10 +749,14 @@ export interface BuildingSettings {
   sun_patches?: boolean;
   /** The sun's arc over the house and the house's shadow on the ground (default on). */
   sun_shadow?: boolean;
+  /** What the sun's arc and its compass ring stand around: the house (null, default) or everything drawn on the plot (#833). */
+  sun_arc?: "house" | "plot" | null;
   /** At night lit rooms throw their light out of the windows onto the ground in front (default on). */
   window_glow?: boolean;
   /** Devices switch only in an opened room: in the house and floor views a tap opens the room instead (default off). */
   tap_in_room?: boolean;
+  /** A short right click in the 3D view goes one step back (room → floor → house) instead of tapping (default off). */
+  right_click_back?: boolean;
   /** The ground around the house: its height and the earth around cellars. */
   terrain?: Terrain | null;
   /**
@@ -921,6 +936,58 @@ export interface CarLinks {
   tracker?: EntityRef;
 }
 
+/** A gate: one leaf (a garden gate), two leaves (a driveway gate) or a leaf sliding along the fence. */
+export const GATE_KINDS = ["swing", "double", "slide"] as const;
+export type GateKind = (typeof GATE_KINDS)[number];
+
+/** A gate in a fence (#818): a gap in one of its edges, cut like a door in a wall, with a leaf that opens with its entity. */
+export interface FenceGate {
+  id: string;
+  /** The edge it sits in: from point `edge` to the next one, as drawn. */
+  edge: number;
+  /** Distance of the gate's middle from the edge's start, m. */
+  at: number;
+  width: number;
+  kind?: GateKind;
+  /** The hinge at the other end (a sliding leaf runs the other way). */
+  flip?: boolean;
+  /** Opens outwards instead of into the fenced area. */
+  outward?: boolean;
+  /** What opens it and tells its state: a cover (gate, garage), a switch, an input_boolean or a lock. */
+  entity?: EntityRef | null;
+  /** A contact that tells "open" (wins over the entity's state). */
+  contact?: EntityRef | null;
+  /** Seconds for a full run while only opening or closing is known (null = 4 s, sliding 15 s). */
+  time?: number | null;
+}
+
+/** Where a gate lies: its edge's ends and the gap along the edge (s0 … s1 from the edge's start), clamped into the edge. */
+export interface GateSpan {
+  gate: FenceGate;
+  p: Vec2;
+  q: Vec2;
+  s0: number;
+  s1: number;
+}
+
+export function gateSpans(a: OutdoorArea): GateSpan[] {
+  if (a.type !== "fence" || !a.gates?.length) return [];
+  const n = a.points.length;
+  const out: GateSpan[] = [];
+  for (const gate of a.gates) {
+    // an open fence has no closing edge
+    if (gate.edge < 0 || gate.edge >= n || (a.open && gate.edge === n - 1)) continue;
+    const p = a.points[gate.edge];
+    const q = a.points[(gate.edge + 1) % n];
+    const len = Math.hypot(q[0] - p[0], q[1] - p[1]);
+    if (len < 0.4) continue;
+    const w = Math.min(Math.max(0.3, gate.width), len - 0.1);
+    const mid = Math.min(Math.max(w / 2 + 0.05, gate.at), len - w / 2 - 0.05);
+    out.push({ gate, p, q, s0: mid - w / 2, s1: mid + w / 2 });
+  }
+  return out;
+}
+
 /** Area outside the house (lawn, terrace, pool, hedge …), drawn like a room. */
 export interface OutdoorArea {
   id: string;
@@ -939,6 +1006,8 @@ export interface OutdoorArea {
   open?: boolean;
   /** Pergola: diagonal X-bracing on every side. */
   bracing?: boolean;
+  /** Fences: gates cut into the edges (#818), each opening with its entity. */
+  gates?: FenceGate[];
   /** This area is cut out of every area beneath it that contains it (a wild patch or pond inside a lawn). */
   cut?: boolean;
   /** Pool: round or oval (chosen before drawing); its outline is made from its box and resized as a whole. */
@@ -1122,7 +1191,10 @@ export function poolShapePoints(shape: "rect" | "round" | "oval", x0: number, z0
 
 /** Energy flow: meter position and power sensors (W). Grid positive = import, battery positive = discharging. */
 export interface EnergySettings {
+  /** The meter spot of older plans, or the cable hub set by hand (with `hub_point`). */
   meter: { floor_id: string; x: number; z: number } | null;
+  /** The cables meet at `meter` (e.g. the house board) instead of the meter cabinet in the plan (default off, #841). */
+  hub_point?: boolean;
   grid: string | null;
   grid_invert: boolean;
   solar: string | null;

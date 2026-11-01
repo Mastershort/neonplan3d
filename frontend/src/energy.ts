@@ -99,13 +99,23 @@ export function deviceSensors(building: Building, power: (f: Furniture) => strin
   return out;
 }
 
-/** Where the cables meet: the meter cabinet in the plan, else the meter spot set in older plans. */
+/**
+ * Where the cables meet: the meter cabinet in the plan, else the meter spot set in older plans. A hub point set by
+ * hand (`hub_point`, e.g. the house board while the meter stands at the grid connection, #841) wins over the cabinet.
+ */
 export function meterPosition(building: Building): { floor_id: string; x: number; z: number } | null {
+  if (hubPoint(building)) return building.energy.meter;
   for (const floor of building.floors) {
     const m = floor.furniture.find((f) => f.type === "meter");
     if (m) return { floor_id: floor.id, x: m.x, z: m.z };
   }
   return building.energy.meter;
+}
+
+/** Whether the cables meet at a point set by hand (switched on, set, on a floor of the plan). */
+export function hubPoint(building: Building): boolean {
+  const m = building.energy.meter;
+  return !!building.energy.hub_point && !!m && building.floors.some((f) => f.id === m.floor_id);
 }
 
 /** Home Assistant's energy dashboard settings (`energy/get_prefs`), as far as the proposals need them. */
@@ -734,10 +744,14 @@ export function flowSegments({ building, consumers, summary, battery, fieldPower
     const invFloor = building.floors.find((x) => x.id === inv.floorId);
     if (summary.solar !== null || summary.battery !== null) {
       const hand = laid(`inv:${inv.id}`);
+      // the cable ends at the meter, or at the grid point when the inverter is told so (#841)
+      const grid = inverterToGrid(building, inv.id) ? gridPoint(building) : null;
+      const end = grid ? { floorId: grid.floorId, x: grid.end[0], z: grid.end[1], y: Math.max(CABLE_Y, grid.height) } : { floorId: meter.floor_id, x: meter.x, z: meter.z, y: 1.5 };
+      const endFloor = grid ? (building.floors.find((x) => x.id === grid.floorId) ?? meterFloor) : meterFloor;
       const pieces =
         hand && invFloor
-          ? absolutePolyline(building, manualPoints(building, hand, [inv.x, invFloor.elevation + invTop, inv.z], [meter.x, meterFloor.elevation + 1.5, meter.z]), Math.max(0, feed), "inverter", invFloor)
-          : deviceRoute(building, inv, invTop, { floorId: meter.floor_id, x: meter.x, z: meter.z }, 1.5, Math.max(0, feed), "inverter", 0);
+          ? absolutePolyline(building, manualPoints(building, hand, [inv.x, invFloor.elevation + invTop, inv.z], [end.x, endFloor.elevation + end.y, end.z]), Math.max(0, feed), "inverter", invFloor)
+          : deviceRoute(building, inv, invTop, end, end.y, Math.max(0, feed), "inverter", 0);
       out.push(...tag(pieces, `inv:${inv.id}`));
     }
     for (const bat of mine) {
@@ -834,6 +848,11 @@ export function gridPoint(building: Building): { floorId: string; wall: Vec2; en
   }
   const t = far > ext + 1 ? far : ext + 2.5;
   return { floorId: floor.id, wall: [q[0] + out[0] * (ext / 2 + 0.05), q[1] + out[1] * (ext / 2 + 0.05)], end: [q[0] + out[0] * t, q[1] + out[1] * t], height: 0 };
+}
+
+/** Whether an inverter's cable ends at the grid point instead of the meter (#841). */
+export function inverterToGrid(building: Building, id: string): boolean {
+  return building.floors.some((f) => f.furniture.some((m) => m.id === id && m.type === "inverter" && m.cable_to === "grid"));
 }
 
 /** All energy devices of a type in the plan (where cables start or end). */

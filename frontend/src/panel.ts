@@ -25,6 +25,7 @@ import { directorOnHere } from "./director.ts";
 import { loadVoice, micProbeDone, screenName, voiceOnHere } from "./load-voice.ts";
 import type { ClockPos } from "./card-config.ts";
 import { getLicense, unseenOffers, unseenUpdates } from "./api.ts";
+import { markPrintSeen, printDot, printSeen } from "./print.ts";
 import { TimeTravel } from "./load-timetravel.ts";
 import type { HistorySpec } from "./timetravel/types.ts";
 import type { Feature } from "./features.ts";
@@ -61,6 +62,7 @@ export class Floorplan3dPanel extends LitElement {
     panel: { attribute: false },
     _mode: { state: true },
     _newOffers: { state: true },
+    _printDot: { state: true },
     _readyPacks: { state: true },
     _shopConnected: { state: true },
     _giftLater: { state: true },
@@ -71,6 +73,7 @@ export class Floorplan3dPanel extends LitElement {
     _wallMode: { state: true },
     _explode: { state: true },
     _keepRoof: { state: true },
+    _plain: { state: true },
     _quality: { state: true },
     _stats: { state: true },
     _markers: { state: true },
@@ -107,6 +110,8 @@ export class Floorplan3dPanel extends LitElement {
   private declare _mode: Mode;
   /** Shop offers not seen yet (a dot on the extensions tab). */
   private declare _newOffers: number;
+  /** Supporters who have not opened the extensions page since NeonPlan Print came: a "new" dot on its tab. */
+  private declare _printDot: boolean;
   /** Bought packs waiting here: updates and packs not installed yet (a gift such as a fun pack too). */
   private declare _readyPacks: number;
   /** Whether this installation is connected to the shop (null until known). */
@@ -123,6 +128,8 @@ export class Floorplan3dPanel extends LitElement {
   private declare _wallMode: WallMode;
   private declare _explode: boolean;
   private declare _keepRoof: boolean;
+  /** The plain floor plan without furniture, remembered on this device. */
+  private declare _plain: boolean;
   private declare _quality: Quality;
   /** Performance display (per device; also switched on by ?fp3d_stats in the URL). */
   private declare _stats: boolean;
@@ -178,6 +185,7 @@ export class Floorplan3dPanel extends LitElement {
     this.narrow = false;
     this._mode = "view";
     this._newOffers = 0;
+    this._printDot = false;
     this._readyPacks = 0;
     this._shopConnected = null;
     this._giftLater = false;
@@ -189,6 +197,7 @@ export class Floorplan3dPanel extends LitElement {
     this._wallMode = prefs.get("walls") === "cut" ? "cut" : "auto";
     this._explode = prefs.get("explode") !== "0";
     this._keepRoof = prefs.get("roof") === "1";
+    this._plain = prefs.get("plain") === "1";
     const quality = prefs.get("quality");
     this._quality = quality === "low" || quality === "high" ? quality : "auto";
     this._stats = prefs.get("stats") === "1" || new URLSearchParams(location.search).has("fp3d_stats");
@@ -253,6 +262,7 @@ export class Floorplan3dPanel extends LitElement {
     this.tt.stop();
     if (mode === "view") void this.data.flush();
     this._mode = mode;
+    if (mode === "extensions") this.printOpened();
     countView(mode);
   }
 
@@ -271,6 +281,11 @@ export class Floorplan3dPanel extends LitElement {
   private setWallMode(mode: WallMode): void {
     this._wallMode = mode;
     prefs.set("walls", mode);
+  }
+
+  private setPlain(on: boolean): void {
+    this._plain = on;
+    prefs.set("plain", on ? "1" : "0");
   }
 
   private setKeepRoof(on: boolean): void {
@@ -547,9 +562,18 @@ export class Floorplan3dPanel extends LitElement {
         // offers still wait under Extensions (fun packs and taster packs are gifts, not purchases)
         const bought = (lic.packs ?? []).some((p) => !/^(mastershort\.)?fun_|_sample$/.test(p.id));
         this._newOffers = lic.active && bought ? unseenOffers(lic.offers ?? []).length : 0;
+        this._printDot = printDot(!!(lic.active && lic.supporter), printSeen());
+        if (this._mode === "extensions") this.printOpened();
         this._readyPacks = lic.active ? unseenUpdates(lic.updates ?? []).length + (lic.packs ?? []).filter((p) => p.installed === null).length : 0;
       })
       .catch(() => undefined);
+  }
+
+  /** The extensions page was opened: the NeonPlan Print dot has done its job (only remembered for supporters). */
+  private printOpened(): void {
+    if (!this._printDot) return;
+    this._printDot = false;
+    markPrintSeen();
   }
 
   disconnectedCallback(): void {
@@ -580,7 +604,9 @@ export class Floorplan3dPanel extends LitElement {
                     ? html`<span class="fp3d-badge" title=${this.t("ext_badge_ready_hint")}>⬇ ${this.t("ext_badge_ready", { n: this._readyPacks })}</span>`
                     : this._newOffers
                       ? html`<span class="fp3d-badge" title=${this.t("offers_dot")}>${this.t("ext_badge_new", { n: this._newOffers })}</span>`
-                      : nothing}
+                      : this._printDot
+                        ? html`<span class="fp3d-badge" title=${this.t("print_dot_hint")}>${this.t("print_dot")}</span>`
+                        : nothing}
                 </button>
               </div>`
             : nothing}
@@ -994,6 +1020,7 @@ export class Floorplan3dPanel extends LitElement {
           .wallMode=${this._wallMode}
           .explode=${this._explode}
           .keepRoof=${this._keepRoof}
+          .plain=${this._plain}
           .markerMode=${this._markers}
           .pinSize=${this._pinSize}
           .heatMode=${this._heat}
@@ -1041,6 +1068,10 @@ export class Floorplan3dPanel extends LitElement {
           <div class="fp3d-seg">
             <button aria-pressed=${this._wallMode === "auto"} @click=${() => this.setWallMode("auto")}>${this.t("walls_auto")}</button>
             <button aria-pressed=${this._wallMode === "cut"} @click=${() => this.setWallMode("cut")}>${this.t("walls_cut")}</button>
+          </div>
+          <div class="fp3d-seg" title=${this.t("plain_hint")}>
+            <button aria-pressed=${!this._plain} @click=${() => this.setPlain(false)}>${this.t("plain_off")}</button>
+            <button aria-pressed=${this._plain} @click=${() => this.setPlain(true)}>${this.t("plain_on")}</button>
           </div>
           ${b.floors.length > 1 && !this._floorId
             ? html`<div class="fp3d-seg">

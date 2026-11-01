@@ -2,9 +2,14 @@
 // editor (it offers the "Light well" switch exactly where 3D draws one). No three.js here, the editor bundle uses it.
 
 import type { Building, Floor, Opening, Vec2 } from "../model.ts";
-import { terrainAt } from "../model.ts";
+import { outdoorStanding, outdoorTopAt, pointInPolygon, terrainAt } from "../model.ts";
 import { floorOutline } from "../roof-sections.ts";
 import { generateWalls, locateOpening, openingHost } from "./walls.ts";
+
+/** A light well's depth from the wall's outer face when the window sets none (m). */
+export const WELL_DEPTH = 0.8;
+/** How far out from the window's outer face the ground in front of it is looked at (m). */
+const PROBE = 0.3;
 
 /** The outline of a floor's outer walls, null without rooms. */
 export function earthOutline(b: Building, floor: Floor): Vec2[] | null {
@@ -20,13 +25,35 @@ export function inGround(b: Building, floor: Floor): boolean {
 }
 
 /**
+ * The highest surface of an outdoor area lying on the ground over point `p` (lawn, path, terrace, gravel …), its
+ * slope at that point included, in the heights of `floor`; null where none lies.
+ */
+export function coverAt(b: Building, floor: Floor, p: Vec2): number | null {
+  let top: number | null = null;
+  for (const f of b.floors) {
+    // only areas on the ground: a balcony on an upper floor floats above (#602)
+    if (f.elevation > 0.3) continue;
+    for (const a of f.outdoor ?? []) {
+      if (a.points.length < 3 || a.type === "pool" || a.type === "balcony" || outdoorStanding(a.type) || !pointInPolygon(p, a.points)) continue;
+      const y = f.elevation + outdoorTopAt(f, a, p[0], p[1]) - floor.elevation;
+      top = top === null ? y : Math.max(top, y);
+    }
+  }
+  return top;
+}
+
+/**
  * Whether a window in an outer wall with its sill at `sill` (the floor's heights) gets a light well in 3D, its own
  * "no light well" switch aside: the floor lies in the ground and the sill lies more than 5 cm under the ground at
- * `at` (the window's outer face).
+ * `at` (the window's outer face). With `out` (the wall's outward direction) a lawn or path laid higher than the
+ * ground just in front of the window counts as the ground there: a plan with a low ground and its garden raised up
+ * to the house lost the wells of its cellar windows as soon as they sat above that low ground (#890).
  */
-export function wellBelowGround(b: Building, floor: Floor, exterior: boolean, sill: number, at: Vec2): boolean {
+export function wellBelowGround(b: Building, floor: Floor, exterior: boolean, sill: number, at: Vec2, out?: Vec2): boolean {
   if (!exterior || !inGround(b, floor)) return false;
-  return sill < Math.min(floor.height, terrainAt(at[0], at[1]) - floor.elevation) - 0.05;
+  let ground = terrainAt(at[0], at[1]) - floor.elevation;
+  if (out) ground = Math.max(ground, coverAt(b, floor, [at[0] + out[0] * PROBE, at[1] + out[1] * PROBE]) ?? -Infinity);
+  return sill < Math.min(floor.height, ground) - 0.05;
 }
 
 /**
@@ -45,5 +72,8 @@ export function windowGetsWell(b: Building, floor: Floor, o: Opening): boolean {
   const u: Vec2 = len > 1e-9 ? [(wall.b[0] - wall.a[0]) / len, (wall.b[1] - wall.a[1]) / len] : [1, 0];
   const top = Math.min(Math.min(floor.height, wall.height ?? floor.height) - 0.02, o.sill + o.height);
   const sill = Math.max(0, Math.min(o.sill, top - 0.1));
-  return wellBelowGround(b, floor, wall.exterior, sill, [wall.a[0] + u[0] * s, wall.a[1] + u[1] * s]);
+  // an outer wall has its room on the left: outward is to the right, its outer face `right` away from the line
+  const out: Vec2 = [u[1], -u[0]];
+  const face: Vec2 = [wall.a[0] + u[0] * s + out[0] * wall.right, wall.a[1] + u[1] * s + out[1] * wall.right];
+  return wellBelowGround(b, floor, wall.exterior, sill, face, out);
 }

@@ -4,6 +4,8 @@ import pytest
 import voluptuous as vol
 
 from custom_components.neonplan3d.schema import (
+    ENERGY_SCHEMA,
+    FREE_WALL_SCHEMA,
     FURNITURE_SCHEMA,
     HOLOGRAM_SCHEMA,
     OPENING_SCHEMA,
@@ -76,6 +78,29 @@ def test_length_units_follow_home_assistant_unless_set() -> None:
     assert SETTINGS_SCHEMA({**base, "units": "imperial"})["units"] == "imperial"
     assert SETTINGS_SCHEMA(base)["person_look"] is None
     assert SETTINGS_SCHEMA({**base, "person_look": "pin"})["person_look"] == "pin"
+
+
+def test_sun_arc_around_the_plot() -> None:
+    """The sun arc stands around the house unless the plan says the whole plot (#833)."""
+    base = {"wall_exterior": 0.3, "wall_interior": 0.12, "grid": 0.05}
+    assert "sun_arc" not in SETTINGS_SCHEMA(base)
+    assert SETTINGS_SCHEMA({**base, "sun_arc": "plot"})["sun_arc"] == "plot"
+    assert SETTINGS_SCHEMA({**base, "sun_arc": None})["sun_arc"] is None
+    with pytest.raises(vol.Invalid):
+        SETTINGS_SCHEMA({**base, "sun_arc": "street"})
+
+
+def test_cable_hub_point_and_inverter_to_grid() -> None:
+    """A cable hub set by hand and an inverter cable to the grid point are opt-in (#841)."""
+    assert "hub_point" not in ENERGY_SCHEMA({})
+    hub = ENERGY_SCHEMA({"meter": {"floor_id": "eg", "x": 1, "z": 2}, "hub_point": True})
+    assert hub["hub_point"] is True
+    assert hub["meter"] == {"floor_id": "eg", "x": 1.0, "z": 2.0}
+    inv = {"id": "f1", "type": "inverter", "x": 0, "z": 0, "rotation": 0, "w": 0.5, "d": 0.2, "h": 0.6, "variant": None}
+    assert "cable_to" not in FURNITURE_SCHEMA(inv)
+    assert FURNITURE_SCHEMA({**inv, "cable_to": "grid"})["cable_to"] == "grid"
+    with pytest.raises(vol.Invalid):
+        FURNITURE_SCHEMA({**inv, "cable_to": "roof"})
 
 
 def test_furniture_block() -> None:
@@ -201,6 +226,18 @@ def test_sloping_walls_keep_two_heights_per_edge() -> None:
         ROOM_SCHEMA({**ROOM, "wall_slopes": [[1.0]]})
 
 
+def test_free_wall_keeps_its_slope() -> None:
+    """A free wall may slope from end a to end b (#834); without one it stays as it was."""
+    wall = {"id": "w1", "a": [0, 0], "b": [3, 0]}
+    assert "slope" not in FREE_WALL_SCHEMA(wall)
+    assert FREE_WALL_SCHEMA({**wall, "slope": [2.4, 1.0]})["slope"] == [2.4, 1.0]
+    assert FREE_WALL_SCHEMA({**wall, "slope": None})["slope"] is None
+    with pytest.raises(vol.Invalid):
+        FREE_WALL_SCHEMA({**wall, "slope": [2.4]})
+    with pytest.raises(vol.Invalid):
+        FREE_WALL_SCHEMA({**wall, "slope": [2.4, 0]})
+
+
 def test_live_director_triggers_and_live_picture() -> None:
     """Own triggers with a camera each (D615) and the live picture switch (D589)."""
     base = {"wall_exterior": 0.3, "wall_interior": 0.12, "grid": 0.05}
@@ -301,6 +338,19 @@ def test_roof_section_keeps_its_turn() -> None:
         ROOF_SECTION_SCHEMA({**sec, "rotation": 400})
 
 
+def test_roof_section_keeps_its_overhang_per_side() -> None:
+    """An overhang per side set by hand (#863): four values a, b, u0, u1, None = automatic."""
+    sec = {"id": "s", "x0": 0, "z0": 0, "x1": 10, "z1": 8, "eave_a": 3, "eave_b": 3, "base": 3}
+    assert "overhang_sides" not in ROOF_SECTION_SCHEMA(sec)
+    sides = ROOF_SECTION_SCHEMA({**sec, "overhang_sides": [0.6, None, 0, 0.4]})["overhang_sides"]
+    assert sides == [0.6, None, 0, 0.4]
+    assert ROOF_SECTION_SCHEMA({**sec, "overhang_sides": None})["overhang_sides"] is None
+    with pytest.raises(vol.Invalid):
+        ROOF_SECTION_SCHEMA({**sec, "overhang_sides": [0.6, 0.4]})
+    with pytest.raises(vol.Invalid):
+        ROOF_SECTION_SCHEMA({**sec, "overhang_sides": [3, None, None, None]})
+
+
 def test_module_data_on_furniture_and_areas() -> None:
     """A module keeps its own data on an item of the plan, by its id; anything else is refused."""
     item = {"id": "f1", "type": "radiator", "x": 0, "z": 0, "rotation": 0, "w": 1, "d": 0.1, "h": 0.6, "variant": None}
@@ -321,3 +371,17 @@ def test_door_keeps_its_opening_angle() -> None:
     assert OPENING_SCHEMA({**door, "open_angle": 15})["open_angle"] == 15
     with pytest.raises(vol.Invalid):
         OPENING_SCHEMA({**door, "open_angle": 200})
+
+
+def test_fence_gates() -> None:
+    """A fence keeps its gates (#818) and refuses wrong ones."""
+    fence = {"id": "f", "type": "fence", "points": [[0, 0], [10, 0], [10, 6], [0, 6]]}
+    gate = {"id": "g1", "edge": 2, "at": 4.5, "width": 3.4, "kind": "slide", "entity": "cover.einfahrtstor"}
+    out = OUTDOOR_SCHEMA({**fence, "gates": [gate]})["gates"][0]
+    assert (out["kind"], out["flip"], out["outward"]) == ("slide", False, False)
+    assert (out["contact"], out["time"]) == (None, None)
+    with pytest.raises(vol.Invalid):
+        OUTDOOR_SCHEMA({**fence, "gates": [{**gate, "kind": "revolving"}]})
+    with pytest.raises(vol.Invalid):
+        OUTDOOR_SCHEMA({**fence, "gates": [{**gate, "width": 0.1}]})
+    assert "gates" not in OUTDOOR_SCHEMA(fence)
