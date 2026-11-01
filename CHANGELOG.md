@@ -4,13 +4,25 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 [releases page](https://github.com/Mastershort/neonplan3d/releases). Ideas and votes:
 [Discussions → Ideas](https://github.com/Mastershort/neonplan3d/discussions/categories/ideas).
 
-## 2.2.0 (in progress)
+## 2.1.1
 
 ### New
 
 - **Gates in fences (#818):** a fence's form has "+ Gate in the fence": a gap in one of its sides, cut like a door in a wall, with a garden gate (one leaf), a double gate or a sliding gate. With a motor or switch (cover, switch, input_boolean, lock) and/or a contact the gate opens in 3D – a sliding gate runs along the fence at its run time – and a tap on it switches it. Thanks to @fammastrodaiuto for the wish, and to ProvUK's fork for the idea of the cut.
 - **Floor plan only:** "Show" → "Floor plan only" (remembered on this device) draws walls, doors, windows and stairs without furniture; the devices and their pins stay. On a dashboard: card → "Floor plan only", or `plain: true`. Thanks to SteveBloX's fork for the push.
 - **Right click goes one step back** (⭐ → ⚙ Settings → Controls, off by default): a short right click in the 3D view closes the room or goes from the floor back to the house, like a double tap on empty space. Idea from ProvUK's fork.
+- **Sloping free-standing walls (#834):** a wall drawn with the wall tool can now fall in height from one end to the other, like a room wall – "◢ Sloping" in the wall's form, with a height at each end. Thanks to @daene85!
+- **Sun arc around the whole plot (#833):** the sun arc and compass ring can stand around everything drawn – rooms, outdoor areas, fences and free walls – instead of only the house (⭐ → ⚙ Settings → Look, or the editor's settings: "Sun arc around: the whole plot"); the house stays the default. Thanks to @grzegorz914!
+- **Energy cables: a cable hub of your own and the inverter cable to the grid point (#841):** with Energie Pro the cables can meet at a point of their own, set with a tap in the plan (the house board, while the meter stands at the grid connection), and the checklist counts it as done; an inverter's cable can end at the grid point instead of the meter. Plans without these settings stay as they were. Thanks to @grzegorz914!
+- **Overhang per side (#863):** a roof section's form can set the overhang of each side by hand ("Overhang per side"); off, it stays automatic.
+
+### Fixed
+
+- **Floor openings in split levels (#813):** a floor opening or stairs from the floor below whose outline reaches a few centimetres past the room line (into the wall) left the whole room floor closed; the opening is now cut in the part inside the room. Thanks to @PhilWil91!
+- **Light wells under a raised path or lawn (#890):** cellar windows above a low ground level but below a lawn or path raised up to the house get their light well, in 3D and in the editor, also after the window is changed or set to "Cellar window". Each well has its own depth ("Depth from the wall", 0.8 m as before), so it can stay within a narrow path. Thanks to @1970lexi!
+- **Terrace roof poking into the house (#863):** a roof section drawn against the outer face of a thick wall (from about 35 cm) or a hand's breadth short of it kept its overhang on the house side and ran into the house; it now stops at the wall, without posts there. Thanks to @daene85!
+- **Sun patches no longer look like white blocks (#819):** the sunlight through wall and roof windows lies on the floor as a soft, warm patch with fading edges instead of a flat grey slab; a window listed twice in a plan lights it only once. Thanks to @LucidityCrash!
+- **Heatmap colours with an own accent colour (#558):** rooms between about 18 and 20.5 °C no longer take the accent colour of the neon look – a cream accent made them look 23–25 °C warm. Floors keep their temperature colour; lines and buttons keep the accent. Thanks to @frops83!
 
 ## 2.1.0
 

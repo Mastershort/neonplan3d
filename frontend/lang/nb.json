@@ -2147,5 +2147,20 @@
  "plain_hint": "Bare plantegning: vegger, dører, vinduer og trapper uten møbler – enhetene blir.",
  "card_plain": "Bare plantegning (uten møbler)",
  "right_click_back": "Høyreklikk går ett steg tilbake",
- "right_click_back_hint": "Et kort høyreklikk i 3D-visningen lukker rommet eller går fra etasjen tilbake til huset. Av: et høyreklikk virker som et klikk."
+ "right_click_back_hint": "Et kort høyreklikk i 3D-visningen lukker rommet eller går fra etasjen tilbake til huset. Av: et høyreklikk virker som et klikk.",
+ "sun_arc": "Solbue rundt",
+ "sun_arc_house": "huset",
+ "sun_arc_plot": "hele tomten",
+ "sun_arc_hint": "Hvor solbuen og kompassringen står: rundt huset (standard) eller rundt alt som er tegnet – rom, uteområder, gjerder og frittstående vegger.",
+ "chk_hub": "Kabelknutepunkt satt",
+ "furn_cable_to_grid": "Kabelen ender ved nettilkoblingen",
+ "furn_cable_to_grid_hint": "Energi Pro: kabelen fra denne vekselretteren går til nettilkoblingen i stedet for måleren – for eksempel når vekselretter og tilkobling ligger langt fra sikringsskapet.",
+ "energy_hub": "Kabelknutepunkt",
+ "energy_hub_point": "Kablene møtes i et eget punkt",
+ "energy_hub_point_hint": "Energi Pro: alle kabler går til dette punktet (f.eks. sikringsskapet) i stedet for måleren – nyttig når måleren står ved nettilkoblingen.",
+ "energy_hub_set": "Sett punktet i planen",
+ "energy_hub_tap": "Trykk i planen der kablene møtes.",
+ "roof_overhang_sides": "Takutstikk per side",
+ "roof_overhang_sides_hint": "Bestem takutstikket for hver side selv. Av: automatisk – ikke noe utstikk der takflaten møter en høyere del av huset.",
+ "well_depth": "Dybde fra veggen (m)"
 }

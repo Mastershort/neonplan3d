@@ -2147,5 +2147,20 @@
  "plain_hint": "Bara planritning: väggar, dörrar, fönster och trappor utan möbler – enheterna finns kvar.",
  "card_plain": "Bara planritning (utan möbler)",
  "right_click_back": "Högerklick går ett steg tillbaka",
- "right_click_back_hint": "Ett kort högerklick i 3D-vyn stänger rummet eller går från våningen tillbaka till huset. Av: ett högerklick fungerar som ett klick."
+ "right_click_back_hint": "Ett kort högerklick i 3D-vyn stänger rummet eller går från våningen tillbaka till huset. Av: ett högerklick fungerar som ett klick.",
+ "sun_arc": "Solbåge runt",
+ "sun_arc_house": "huset",
+ "sun_arc_plot": "hela tomten",
+ "sun_arc_hint": "Var solbågen och kompassringen står: runt huset (standard) eller runt allt som är ritat – rum, utomhusytor, staket och fristående väggar.",
+ "chk_hub": "Kabelnod satt",
+ "furn_cable_to_grid": "Kabeln slutar vid nätanslutningen",
+ "furn_cable_to_grid_hint": "Energi Pro: den här växelriktarens kabel går till nätanslutningen i stället för mätaren – till exempel när växelriktaren och anslutningen ligger långt från elcentralen.",
+ "energy_hub": "Kabelnod",
+ "energy_hub_point": "Kablarna möts i en egen punkt",
+ "energy_hub_point_hint": "Energi Pro: alla kablar går till den här punkten (t.ex. elcentralen) i stället för mätaren – praktiskt när mätaren står vid nätanslutningen.",
+ "energy_hub_set": "Sätt punkten i planen",
+ "energy_hub_tap": "Tryck i planen där kablarna möts.",
+ "roof_overhang_sides": "Takutsprång per sida",
+ "roof_overhang_sides_hint": "Ställ in takutsprånget för varje sida själv. Av: automatiskt – inget utsprång där takytan möter en högre del av huset.",
+ "well_depth": "Djup från väggen (m)"
 }

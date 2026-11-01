@@ -2147,5 +2147,20 @@
  "plain_hint": "Solo plano: paredes, puertas, ventanas y escaleras sin muebles; los dispositivos se quedan.",
  "card_plain": "Solo plano (sin muebles)",
  "right_click_back": "El clic derecho retrocede un nivel",
- "right_click_back_hint": "Un clic derecho corto en la vista 3D cierra la habitación o vuelve de la planta a la casa. Desactivado: un clic derecho funciona como un clic."
+ "right_click_back_hint": "Un clic derecho corto en la vista 3D cierra la habitación o vuelve de la planta a la casa. Desactivado: un clic derecho funciona como un clic.",
+ "sun_arc": "Arco solar alrededor de",
+ "sun_arc_house": "la casa",
+ "sun_arc_plot": "toda la parcela",
+ "sun_arc_hint": "Dónde están el arco solar y el anillo de la brújula: alrededor de la casa (por defecto) o alrededor de todo lo dibujado – habitaciones, zonas exteriores, vallas y paredes libres.",
+ "chk_hub": "Punto de unión de cables definido",
+ "furn_cable_to_grid": "El cable termina en la acometida",
+ "furn_cable_to_grid_hint": "Energía Pro: el cable de este inversor va a la acometida en lugar del contador – por ejemplo cuando el inversor y la acometida están lejos del cuadro eléctrico.",
+ "energy_hub": "Punto de unión de cables",
+ "energy_hub_point": "Los cables se unen en un punto propio",
+ "energy_hub_point_hint": "Energía Pro: todos los cables van a este punto (p. ej. el cuadro eléctrico) en lugar del contador – útil cuando el contador está en la acometida.",
+ "energy_hub_set": "Poner el punto en el plano",
+ "energy_hub_tap": "Toca el plano donde se unen los cables.",
+ "roof_overhang_sides": "Alero por lado",
+ "roof_overhang_sides_hint": "Fijar tú mismo el alero de cada lado. Desactivado: automático – sin alero donde el faldón toca una parte más alta de la casa.",
+ "well_depth": "Profundidad desde la pared (m)"
 }

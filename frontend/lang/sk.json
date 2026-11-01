@@ -2147,5 +2147,20 @@
  "plain_hint": "Len pôdorys: steny, dvere, okná a schody bez nábytku – zariadenia zostávajú.",
  "card_plain": "Len pôdorys (bez nábytku)",
  "right_click_back": "Pravé kliknutie sa vráti o úroveň späť",
- "right_click_back_hint": "Krátke pravé kliknutie v 3D zobrazení zatvorí miestnosť alebo sa vráti z podlažia k domu. Vypnuté: pravé kliknutie funguje ako kliknutie."
+ "right_click_back_hint": "Krátke pravé kliknutie v 3D zobrazení zatvorí miestnosť alebo sa vráti z podlažia k domu. Vypnuté: pravé kliknutie funguje ako kliknutie.",
+ "sun_arc": "Slnečný oblúk okolo",
+ "sun_arc_house": "domu",
+ "sun_arc_plot": "celého pozemku",
+ "sun_arc_hint": "Kde stojí slnečný oblúk a kompasový kruh: okolo domu (predvolené) alebo okolo všetkého nakresleného – miestností, vonkajších plôch, plotov a voľných stien.",
+ "chk_hub": "Uzol káblov nastavený",
+ "furn_cable_to_grid": "Kábel končí pri prípojke siete",
+ "furn_cable_to_grid_hint": "Energie Pro: kábel tohto striedača vedie k prípojke siete namiesto k elektromeru – napríklad keď sú striedač a prípojka ďaleko od rozvádzača.",
+ "energy_hub": "Uzol káblov",
+ "energy_hub_point": "Káble sa stretávajú vo vlastnom bode",
+ "energy_hub_point_hint": "Energie Pro: všetky káble vedú k tomuto bodu (napr. rozvádzaču) namiesto k elektromeru – praktické, keď elektromer stojí pri prípojke siete.",
+ "energy_hub_set": "Nastaviť bod v pláne",
+ "energy_hub_tap": "Ťukni v pláne tam, kde sa káble stretávajú.",
+ "roof_overhang_sides": "Presah pre každú stranu",
+ "roof_overhang_sides_hint": "Nastav presah strechy pre každú stranu sám. Vypnuté: automaticky – bez presahu tam, kde strešná plocha naráža na vyššiu časť domu.",
+ "well_depth": "Hĺbka od steny (m)"
 }

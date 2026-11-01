@@ -2147,5 +2147,20 @@
  "plain_hint": "Alleen plattegrond: muren, deuren, ramen en trappen zonder meubels – de apparaten blijven.",
  "card_plain": "Alleen plattegrond (zonder meubels)",
  "right_click_back": "Rechtsklik gaat één stap terug",
- "right_click_back_hint": "Een korte rechtsklik in de 3D-weergave sluit de kamer of gaat van de verdieping terug naar het huis. Uit: een rechtsklik werkt als een klik."
+ "right_click_back_hint": "Een korte rechtsklik in de 3D-weergave sluit de kamer of gaat van de verdieping terug naar het huis. Uit: een rechtsklik werkt als een klik.",
+ "sun_arc": "Zonneboog rond",
+ "sun_arc_house": "het huis",
+ "sun_arc_plot": "het hele perceel",
+ "sun_arc_hint": "Waar de zonneboog en de kompasring staan: rond het huis (standaard) of rond alles wat getekend is – kamers, buitenruimtes, hekken en vrije muren.",
+ "chk_hub": "Kabelknooppunt ingesteld",
+ "furn_cable_to_grid": "Kabel eindigt bij de netaansluiting",
+ "furn_cable_to_grid_hint": "Energie Pro: de kabel van deze omvormer loopt naar de netaansluiting in plaats van naar de meter – bijvoorbeeld als omvormer en netaansluiting ver van de meterkast liggen.",
+ "energy_hub": "Kabelknooppunt",
+ "energy_hub_point": "Kabels komen samen op een eigen punt",
+ "energy_hub_point_hint": "Energie Pro: alle kabels lopen naar dit punt (bijv. de meterkast) in plaats van naar de meter – handig als de meter bij de netaansluiting staat.",
+ "energy_hub_set": "Punt in de plattegrond zetten",
+ "energy_hub_tap": "Tik op de plattegrond waar de kabels samenkomen.",
+ "roof_overhang_sides": "Overstek per zijde",
+ "roof_overhang_sides_hint": "Het dakoverstek per zijde zelf instellen. Uit: automatisch – geen overstek waar het dakvlak tegen een hoger deel van het huis komt.",
+ "well_depth": "Diepte vanaf de muur (m)"
 }

@@ -2147,5 +2147,20 @@
  "plain_hint": "Samo tloris: stene, vrata, okna in stopnice brez pohištva – naprave ostanejo.",
  "card_plain": "Samo tloris (brez pohištva)",
  "right_click_back": "Desni klik gre korak nazaj",
- "right_click_back_hint": "Kratek desni klik v 3D-pogledu zapre prostor ali se iz nadstropja vrne k hiši. Izklopljeno: desni klik deluje kot klik."
+ "right_click_back_hint": "Kratek desni klik v 3D-pogledu zapre prostor ali se iz nadstropja vrne k hiši. Izklopljeno: desni klik deluje kot klik.",
+ "sun_arc": "Sončni lok okoli",
+ "sun_arc_house": "hiše",
+ "sun_arc_plot": "celotne parcele",
+ "sun_arc_hint": "Kje stojita sončni lok in kompasni obroč: okoli hiše (privzeto) ali okoli vsega narisanega – prostorov, zunanjih površin, ograj in prostostoječih sten.",
+ "chk_hub": "Vozlišče kablov nastavljeno",
+ "furn_cable_to_grid": "Kabel se konča pri omrežnem priključku",
+ "furn_cable_to_grid_hint": "Energija Pro: kabel tega razsmernika vodi do omrežnega priključka namesto do števca – na primer, ko sta razsmernik in priključek daleč od razdelilnika.",
+ "energy_hub": "Vozlišče kablov",
+ "energy_hub_point": "Kabli se srečajo v lastni točki",
+ "energy_hub_point_hint": "Energija Pro: vsi kabli vodijo do te točke (npr. razdelilnika) namesto do števca – priročno, ko števec stoji pri omrežnem priključku.",
+ "energy_hub_set": "Nastavi točko v načrtu",
+ "energy_hub_tap": "Tapni v načrtu, kjer se kabli srečajo.",
+ "roof_overhang_sides": "Previs za vsako stran",
+ "roof_overhang_sides_hint": "Previs strehe za vsako stran nastavi sam. Izklopljeno: samodejno – brez previsa, kjer se strešina stika z višjim delom hiše.",
+ "well_depth": "Globina od stene (m)"
 }

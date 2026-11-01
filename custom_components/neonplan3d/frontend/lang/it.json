@@ -2147,5 +2147,20 @@
  "plain_hint": "Solo pianta: muri, porte, finestre e scale senza mobili – i dispositivi restano.",
  "card_plain": "Solo pianta (senza mobili)",
  "right_click_back": "Il clic destro torna indietro di un livello",
- "right_click_back_hint": "Un breve clic destro nella vista 3D chiude la stanza o torna dal piano alla casa. Disattivato: il clic destro funziona come un clic."
+ "right_click_back_hint": "Un breve clic destro nella vista 3D chiude la stanza o torna dal piano alla casa. Disattivato: il clic destro funziona come un clic.",
+ "sun_arc": "Arco solare intorno a",
+ "sun_arc_house": "la casa",
+ "sun_arc_plot": "tutto il terreno",
+ "sun_arc_hint": "Dove stanno l'arco solare e l'anello della bussola: intorno alla casa (predefinito) o intorno a tutto ciò che è disegnato – stanze, aree esterne, recinzioni e muri liberi.",
+ "chk_hub": "Nodo dei cavi impostato",
+ "furn_cable_to_grid": "Il cavo termina al punto di allaccio",
+ "furn_cable_to_grid_hint": "Energia Pro: il cavo di questo inverter va al punto di allaccio alla rete invece che al contatore – ad esempio quando inverter e allaccio sono lontani dal quadro elettrico.",
+ "energy_hub": "Nodo dei cavi",
+ "energy_hub_point": "I cavi si incontrano in un punto proprio",
+ "energy_hub_point_hint": "Energia Pro: tutti i cavi vanno a questo punto (ad es. il quadro elettrico) invece che al contatore – utile quando il contatore è all'allaccio alla rete.",
+ "energy_hub_set": "Imposta il punto nella pianta",
+ "energy_hub_tap": "Tocca la pianta dove si incontrano i cavi.",
+ "roof_overhang_sides": "Sporgenza per lato",
+ "roof_overhang_sides_hint": "Imposta tu la sporgenza del tetto per ogni lato. Disattivato: automatico – nessuna sporgenza dove la falda tocca una parte più alta della casa.",
+ "well_depth": "Profondità dal muro (m)"
 }

@@ -2147,5 +2147,20 @@
  "plain_hint": "Kun plantegning: vægge, døre, vinduer og trapper uden møbler – enhederne bliver.",
  "card_plain": "Kun plantegning (uden møbler)",
  "right_click_back": "Højreklik går et trin tilbage",
- "right_click_back_hint": "Et kort højreklik i 3D-visningen lukker rummet eller går fra etagen tilbage til huset. Fra: et højreklik virker som et klik."
+ "right_click_back_hint": "Et kort højreklik i 3D-visningen lukker rummet eller går fra etagen tilbage til huset. Fra: et højreklik virker som et klik.",
+ "sun_arc": "Solbue omkring",
+ "sun_arc_house": "huset",
+ "sun_arc_plot": "hele grunden",
+ "sun_arc_hint": "Hvor solbuen og kompasringen står: omkring huset (standard) eller omkring alt det tegnede – rum, udearealer, hegn og fritstående vægge.",
+ "chk_hub": "Kabelknudepunkt sat",
+ "furn_cable_to_grid": "Kablet ender ved nettilslutningen",
+ "furn_cable_to_grid_hint": "Energi Pro: denne inverters kabel går til nettilslutningen i stedet for måleren – fx når inverter og nettilslutning ligger langt fra eltavlen.",
+ "energy_hub": "Kabelknudepunkt",
+ "energy_hub_point": "Kablerne mødes i et eget punkt",
+ "energy_hub_point_hint": "Energi Pro: alle kabler går til dette punkt (fx eltavlen) i stedet for måleren – praktisk når måleren står ved nettilslutningen.",
+ "energy_hub_set": "Sæt punktet i planen",
+ "energy_hub_tap": "Tryk i planen, hvor kablerne mødes.",
+ "roof_overhang_sides": "Udhæng pr. side",
+ "roof_overhang_sides_hint": "Bestem selv tagudhænget for hver side. Fra: automatisk – intet udhæng, hvor tagfladen støder op til en højere del af huset.",
+ "well_depth": "Dybde fra væggen (m)"
 }

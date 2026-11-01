@@ -2147,5 +2147,20 @@
  "plain_hint": "Vain pohjapiirros: seinät, ovet, ikkunat ja portaat ilman huonekaluja – laitteet jäävät.",
  "card_plain": "Vain pohjapiirros (ilman huonekaluja)",
  "right_click_back": "Oikea napsautus palaa askeleen taaksepäin",
- "right_click_back_hint": "Lyhyt oikea napsautus 3D-näkymässä sulkee huoneen tai palaa kerroksesta taloon. Pois: oikea napsautus toimii kuin napsautus."
+ "right_click_back_hint": "Lyhyt oikea napsautus 3D-näkymässä sulkee huoneen tai palaa kerroksesta taloon. Pois: oikea napsautus toimii kuin napsautus.",
+ "sun_arc": "Aurinkokaari ympärillä:",
+ "sun_arc_house": "talo",
+ "sun_arc_plot": "koko tontti",
+ "sun_arc_hint": "Missä aurinkokaari ja kompassirengas ovat: talon ympärillä (oletus) tai kaiken piirretyn ympärillä – huoneet, ulkoalueet, aidat ja vapaat seinät.",
+ "chk_hub": "Kaapelien liitoskohta asetettu",
+ "furn_cable_to_grid": "Kaapeli päättyy verkkoliittymään",
+ "furn_cable_to_grid_hint": "Energia Pro: tämän invertterin kaapeli kulkee verkkoliittymään mittarin sijaan – esimerkiksi kun invertteri ja liittymä ovat kaukana sähkökeskuksesta.",
+ "energy_hub": "Kaapelien liitoskohta",
+ "energy_hub_point": "Kaapelit kohtaavat omassa pisteessä",
+ "energy_hub_point_hint": "Energia Pro: kaikki kaapelit kulkevat tähän pisteeseen (esim. sähkökeskukseen) mittarin sijaan – kätevä, kun mittari on verkkoliittymässä.",
+ "energy_hub_set": "Aseta piste pohjapiirrokseen",
+ "energy_hub_tap": "Napauta pohjapiirrosta kohdasta, jossa kaapelit kohtaavat.",
+ "roof_overhang_sides": "Räystäs sivuittain",
+ "roof_overhang_sides_hint": "Aseta räystään leveys itse jokaiselle sivulle. Pois: automaattinen – ei räystästä siellä, missä lappeen reuna kohtaa talon korkeamman osan.",
+ "well_depth": "Syvyys seinästä (m)"
 }

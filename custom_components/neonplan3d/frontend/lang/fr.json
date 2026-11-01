@@ -2147,5 +2147,20 @@
  "plain_hint": "Plan seul : murs, portes, fenêtres et escaliers sans meubles – les appareils restent.",
  "card_plain": "Plan seul (sans meubles)",
  "right_click_back": "Le clic droit revient d'un niveau",
- "right_click_back_hint": "Un clic droit court dans la vue 3D ferme la pièce ou revient de l'étage à la maison. Désactivé : un clic droit agit comme un clic."
+ "right_click_back_hint": "Un clic droit court dans la vue 3D ferme la pièce ou revient de l'étage à la maison. Désactivé : un clic droit agit comme un clic.",
+ "sun_arc": "Arc solaire autour de",
+ "sun_arc_house": "la maison",
+ "sun_arc_plot": "tout le terrain",
+ "sun_arc_hint": "Où se trouvent l'arc solaire et la rose des vents : autour de la maison (par défaut) ou autour de tout ce qui est dessiné – pièces, surfaces extérieures, clôtures et murs libres.",
+ "chk_hub": "Point de jonction des câbles défini",
+ "furn_cable_to_grid": "Le câble se termine au point de raccordement au réseau",
+ "furn_cable_to_grid_hint": "Énergie Pro : le câble de cet onduleur va au point de raccordement au réseau au lieu du compteur – par exemple quand l'onduleur et le raccordement sont loin du tableau électrique.",
+ "energy_hub": "Point de jonction des câbles",
+ "energy_hub_point": "Les câbles se rejoignent en un point propre",
+ "energy_hub_point_hint": "Énergie Pro : tous les câbles vont à ce point (p. ex. le tableau électrique) au lieu du compteur – pratique quand le compteur est au point de raccordement.",
+ "energy_hub_set": "Placer le point dans le plan",
+ "energy_hub_tap": "Touche le plan à l'endroit où les câbles se rejoignent.",
+ "roof_overhang_sides": "Débord par côté",
+ "roof_overhang_sides_hint": "Définir toi-même le débord de toit de chaque côté. Désactivé : automatique – pas de débord là où la surface touche une partie plus haute de la maison.",
+ "well_depth": "Profondeur depuis le mur (m)"
 }

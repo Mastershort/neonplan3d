@@ -2147,5 +2147,20 @@
  "plain_hint": "Csak alaprajz: falak, ajtók, ablakok és lépcsők bútorok nélkül – az eszközök maradnak.",
  "card_plain": "Csak alaprajz (bútorok nélkül)",
  "right_click_back": "A jobb kattintás egy szintet visszalép",
- "right_click_back_hint": "Egy rövid jobb kattintás a 3D nézetben bezárja a szobát, vagy a szintről visszalép a házhoz. Ki: a jobb kattintás kattintásként működik."
+ "right_click_back_hint": "Egy rövid jobb kattintás a 3D nézetben bezárja a szobát, vagy a szintről visszalép a házhoz. Ki: a jobb kattintás kattintásként működik.",
+ "sun_arc": "Napív körül:",
+ "sun_arc_house": "a ház",
+ "sun_arc_plot": "az egész telek",
+ "sun_arc_hint": "Hol áll a napív és az iránytűgyűrű: a ház körül (alapértelmezett) vagy minden megrajzolt körül – szobák, kültéri területek, kerítések és szabad falak.",
+ "chk_hub": "Kábelcsomópont beállítva",
+ "furn_cable_to_grid": "A kábel a hálózati csatlakozásnál ér véget",
+ "furn_cable_to_grid_hint": "Energy Pro: ennek az inverternek a kábele a hálózati csatlakozáshoz fut a mérő helyett – például ha az inverter és a csatlakozás messze van az elosztótáblától.",
+ "energy_hub": "Kábelcsomópont",
+ "energy_hub_point": "A kábelek egy saját pontban találkoznak",
+ "energy_hub_point_hint": "Energy Pro: minden kábel ehhez a ponthoz fut (pl. az elosztótáblához) a mérő helyett – hasznos, ha a mérő a hálózati csatlakozásnál áll.",
+ "energy_hub_set": "Pont kijelölése a tervben",
+ "energy_hub_tap": "Koppints a tervben oda, ahol a kábelek találkoznak.",
+ "roof_overhang_sides": "Ereszkiállás oldalanként",
+ "roof_overhang_sides_hint": "Állítsd be magad a tető kiállását minden oldalon. Ki: automatikus – nincs kiállás ott, ahol a tetőfelület a ház magasabb részéhez ér.",
+ "well_depth": "Mélység a faltól (m)"
 }

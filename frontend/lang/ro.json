@@ -2147,5 +2147,20 @@
  "plain_hint": "Doar planul: pereți, uși, ferestre și scări fără mobilă – dispozitivele rămân.",
  "card_plain": "Doar planul (fără mobilă)",
  "right_click_back": "Clic dreapta revine cu un nivel",
- "right_click_back_hint": "Un clic dreapta scurt în vizualizarea 3D închide camera sau revine de la etaj la casă. Oprit: clicul dreapta funcționează ca un clic."
+ "right_click_back_hint": "Un clic dreapta scurt în vizualizarea 3D închide camera sau revine de la etaj la casă. Oprit: clicul dreapta funcționează ca un clic.",
+ "sun_arc": "Arcul soarelui în jurul",
+ "sun_arc_house": "casei",
+ "sun_arc_plot": "întregului teren",
+ "sun_arc_hint": "Unde stau arcul soarelui și inelul busolei: în jurul casei (implicit) sau în jurul a tot ce e desenat – camere, zone exterioare, garduri și pereți liberi.",
+ "chk_hub": "Punct de joncțiune a cablurilor setat",
+ "furn_cable_to_grid": "Cablul se termină la branșamentul la rețea",
+ "furn_cable_to_grid_hint": "Energie Pro: cablul acestui invertor merge la branșamentul la rețea în loc de contor – de exemplu când invertorul și branșamentul sunt departe de tabloul electric.",
+ "energy_hub": "Punct de joncțiune a cablurilor",
+ "energy_hub_point": "Cablurile se întâlnesc într-un punct propriu",
+ "energy_hub_point_hint": "Energie Pro: toate cablurile merg la acest punct (de ex. tabloul electric) în loc de contor – util când contorul stă la branșamentul la rețea.",
+ "energy_hub_set": "Pune punctul în plan",
+ "energy_hub_tap": "Atinge planul acolo unde se întâlnesc cablurile.",
+ "roof_overhang_sides": "Streașină pe fiecare latură",
+ "roof_overhang_sides_hint": "Setează singur streașina pentru fiecare latură. Oprit: automat – fără streașină acolo unde suprafața acoperișului atinge o parte mai înaltă a casei.",
+ "well_depth": "Adâncime de la perete (m)"
 }

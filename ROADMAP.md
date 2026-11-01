@@ -9,6 +9,7 @@ What comes next. The order follows your wishes (issues, Discord and 👍 in [Dis
 ## ✅ Recently done (1.13 – 2.0)
 
 - **Locating** (2.0, free): who and what is where – from the Shelly plugs and ESPHome proxies you already have, learned in 90 seconds per room, without Bermuda; people as glowing figures, a sensor per device, "Where is my iPhone?".
+- **Gates in fences, the plain floor plan and an issue round** (2.1.1): garden, double and sliding gates in fences that open with their opener; "Floor plan only" without furniture; right click goes back; sloping free walls, an overhang per side, the sun arc around the whole plot, an own cable hub (Energie Pro); fixes for floor openings in split levels, light wells, terrace roofs, sun patches and heatmap colours.
 - **Voice control knows the room, and Slovak** (2.1.0): a wall tablet or dashboard card gets its room, so "lights on" switches there; Slovak as the 19th language; more card options without YAML; glass card size for everyone; colour effects no longer slow the view; attic and template fixes.
 - **Switch only in the opened room, and fixes** (2.0.11): a tap in the house or floor view opens the room instead of switching a device (setting, off by default); power strips switch again; announcements on Echos of Home Assistant's Alexa Devices integration and on the terrace.
 - **Fixes in plan and 3D** (2.0.10): light wells in thicker cellar walls, fog stays outside the house, turned roof sections can be resized again, a camera's furniture look at the camera's height, the sidebar jumps to what you tap.
@@ -77,7 +78,7 @@ What comes next. The order follows your wishes (issues, Discord and 👍 in [Dis
 | Curved walls | Wall arcs, windows follow | #63 |
 | Roofs | Gable at one end and hip at the other; windows in dormers; windows with a slanted top under the slope; a roof flush against a wall; a chimney through the roof | #209, #466, discussions #207, #203, #172 |
 | Blinds and covers | Interior blinds, several cover entities per window, Somfy "My" position | discussions #112, #197, #204 |
-| Driveway gates and garden gates | Swing or sliding gates and gates in fences and walls, moving live with their opener, a tap opens them (with a question first) | discussion #175, #297 |
+| Gates in walls | Gates in garden walls and driveway gates between walls, moving live with their opener – gates in fences came with 2.1.1 | discussion #175, #297 |
 | Doors with locks | A lock on a door: lock, unlock and open from 3D | discussion #173 |
 | Scenes and menu | Scenes higher up in the room panel, a larger start menu, an own tap action per device (a script or scene) | discussions #174, #196 |
 | Small tablets and phones | Larger room card on small tablets, a compact editor menu on phones | #191, discussions #190, #200 |
@@ -133,6 +134,7 @@ Was als Nächstes kommt. Die Reihenfolge richtet sich nach euren Wünschen (Issu
 ## ✅ Zuletzt erledigt (1.13 – 2.0)
 
 - **Ortung** (2.0, kostenlos): Wer und was ist wo – über die Shelly-Steckdosen und ESPHome-Proxys, die du schon hast, in 90 Sekunden pro Raum eingelernt, ohne Bermuda; Personen als leuchtende Figuren, ein Sensor pro Gerät, „Wo ist mein iPhone?“.
+- **Tore im Zaun, der reine Grundriss und eine Fehler-Runde** (2.1.1): Gartentor, Doppeltor und Schiebetor im Zaun, die mit ihrem Antrieb öffnen; „Nur Grundriss“ ohne Möbel; Rechtsklick geht zurück; schräge freie Wände, Überstand je Seite, der Sonnenbogen ums ganze Grundstück, ein eigener Kabelknoten (Energie Pro); Korrekturen bei Bodenöffnungen im Split-Level, Lichtschächten, Terrassendächern, Sonnenflecken und Heatmap-Farben.
 - **Sprachsteuerung kennt den Raum, und Slowakisch** (2.1.0): Ein Wandtablet oder eine Dashboard-Karte bekommt seinen Raum, „Licht an“ schaltet dann dort; Slowakisch als 19. Sprache; mehr Karten-Optionen ohne YAML; Größe der Glas-Kacheln für alle; Lichteffekte bremsen die Ansicht nicht mehr; Korrekturen an Spitzboden und Vorlage.
 - **Nur im geöffneten Raum schalten, und Korrekturen** (2.0.11): Ein Tipp in der Haus- oder Etagenansicht öffnet den Raum, statt ein Gerät zu schalten (Einstellung, ab Werk aus); Mehrfachsteckdosen schalten wieder; Durchsagen auf Echos der Home-Assistant-Integration Alexa Devices und auf der Terrasse.
 - **Korrekturen in Plan und 3D** (2.0.10): Lichtschächte in dickeren Kellerwänden, Nebel bleibt draußen vor dem Haus, gedrehte Dachflächen wieder in der Größe änderbar, das Möbel-Aussehen einer Kamera auf Kamerahöhe, die Seitenleiste springt zum angetippten Teil.
@@ -201,7 +203,7 @@ Was als Nächstes kommt. Die Reihenfolge richtet sich nach euren Wünschen (Issu
 | Runde Wände | Wandbögen, Fenster folgen | #63 |
 | Dächer | Giebel an einem und Walm am anderen Ende; Fenster in Gauben; Fenster mit schräger Oberkante unter der Dachschräge; Dach bündig an eine Wand; Schornstein durchs Dach | #209, #466, Diskussionen #207, #203, #172 |
 | Rollläden und Rollos | Rollos innen, mehrere Rollladen-Entitäten je Fenster, Somfy-„My“-Position | Diskussionen #112, #197, #204 |
-| Einfahrtstore und Gartentore | Dreh- oder Schiebetore und Tore in Zäunen und Mauern, die live mit ihrem Antrieb fahren, ein Tipp öffnet sie (mit Rückfrage) | Diskussion #175, #297 |
+| Tore in Mauern | Tore in Gartenmauern und Einfahrtstore zwischen Mauern, die live mit ihrem Antrieb fahren – Tore in Zäunen kamen mit 2.1.1 | Diskussion #175, #297 |
 | Türen mit Schloss | Ein Schloss an der Tür: Ver-/Entriegeln und Öffnen aus 3D | Diskussion #173 |
 | Szenen und Menü | Szenen weiter oben im Raumfenster, ein größeres Startmenü, eine eigene Tipp-Aktion je Gerät (Skript oder Szene) | Diskussionen #174, #196 |
 | Kleine Tablets und Handys | Größere Raumkarte auf kleinen Tablets, kompaktes Editor-Menü auf dem Handy | #191, Diskussionen #190, #200 |

@@ -2147,5 +2147,20 @@
  "plain_hint": "Tylko rzut: ściany, drzwi, okna i schody bez mebli – urządzenia zostają.",
  "card_plain": "Tylko rzut (bez mebli)",
  "right_click_back": "Prawy klik cofa o jeden poziom",
- "right_click_back_hint": "Krótki prawy klik w widoku 3D zamyka pokój albo wraca z piętra do domu. Wyłączone: prawy klik działa jak klik."
+ "right_click_back_hint": "Krótki prawy klik w widoku 3D zamyka pokój albo wraca z piętra do domu. Wyłączone: prawy klik działa jak klik.",
+ "sun_arc": "Łuk słońca wokół",
+ "sun_arc_house": "domu",
+ "sun_arc_plot": "całej działki",
+ "sun_arc_hint": "Gdzie stoją łuk słońca i pierścień kompasu: wokół domu (domyślnie) albo wokół wszystkiego, co narysowane – pomieszczeń, terenów zewnętrznych, ogrodzeń i wolnych ścian.",
+ "chk_hub": "Węzeł kabli ustawiony",
+ "furn_cable_to_grid": "Kabel kończy się przy przyłączu sieci",
+ "furn_cable_to_grid_hint": "Energia Pro: kabel tego falownika biegnie do przyłącza sieci zamiast do licznika – np. gdy falownik i przyłącze są daleko od rozdzielnicy.",
+ "energy_hub": "Węzeł kabli",
+ "energy_hub_point": "Kable spotykają się we własnym punkcie",
+ "energy_hub_point_hint": "Energia Pro: wszystkie kable biegną do tego punktu (np. rozdzielnicy) zamiast do licznika – przydatne, gdy licznik stoi przy przyłączu sieci.",
+ "energy_hub_set": "Ustaw punkt na planie",
+ "energy_hub_tap": "Dotknij planu w miejscu, gdzie spotykają się kable.",
+ "roof_overhang_sides": "Okap dla każdego boku",
+ "roof_overhang_sides_hint": "Samodzielnie ustaw okap dachu dla każdego boku. Wyłączone: automatycznie – bez okapu tam, gdzie połać styka się z wyższą częścią domu.",
+ "well_depth": "Głębokość od ściany (m)"
 }

@@ -2147,5 +2147,20 @@
  "plain_hint": "仅平面图：只显示墙、门、窗和楼梯，不显示家具——设备保留。",
  "card_plain": "仅平面图（不含家具）",
  "right_click_back": "右键返回上一级",
- "right_click_back_hint": "在 3D 视图中短按右键会关闭房间，或从楼层返回整栋房子。关闭时：右键与左键单击相同。"
+ "right_click_back_hint": "在 3D 视图中短按右键会关闭房间，或从楼层返回整栋房子。关闭时：右键与左键单击相同。",
+ "sun_arc": "太阳弧环绕",
+ "sun_arc_house": "房子",
+ "sun_arc_plot": "整个地块",
+ "sun_arc_hint": "太阳弧和罗盘环的位置：环绕房子（默认）或环绕所有已绘制的内容——房间、室外区域、围栏和独立墙。",
+ "chk_hub": "已设置电缆汇集点",
+ "furn_cable_to_grid": "电缆在电网接入点结束",
+ "furn_cable_to_grid_hint": "能源 Pro：此逆变器的电缆连到电网接入点而不是电表——例如逆变器和接入点离配电箱很远时。",
+ "energy_hub": "电缆汇集点",
+ "energy_hub_point": "电缆汇集到单独的点",
+ "energy_hub_point_hint": "能源 Pro：所有电缆都连到这个点（例如配电箱）而不是电表——电表位于电网接入点时很有用。",
+ "energy_hub_set": "在平面图中设置该点",
+ "energy_hub_tap": "在平面图中点按电缆汇集的位置。",
+ "roof_overhang_sides": "每边挑檐",
+ "roof_overhang_sides_hint": "为每一边单独设置屋顶挑檐。关闭：自动——屋面与房子较高部分相接处没有挑檐。",
+ "well_depth": "离墙深度（米）"
 }

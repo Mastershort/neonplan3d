@@ -2147,5 +2147,20 @@
  "plain_hint": "Só a planta: paredes, portas, janelas e escadas sem móveis – os dispositivos ficam.",
  "card_plain": "Só a planta (sem móveis)",
  "right_click_back": "O clique direito recua um nível",
- "right_click_back_hint": "Um clique direito curto na vista 3D fecha a divisão ou volta do piso para a casa. Desligado: o clique direito funciona como um clique."
+ "right_click_back_hint": "Um clique direito curto na vista 3D fecha a divisão ou volta do piso para a casa. Desligado: o clique direito funciona como um clique.",
+ "sun_arc": "Arco solar à volta de",
+ "sun_arc_house": "a casa",
+ "sun_arc_plot": "todo o terreno",
+ "sun_arc_hint": "Onde ficam o arco solar e o anel da bússola: à volta da casa (predefinição) ou à volta de tudo o que está desenhado – divisões, áreas exteriores, vedações e paredes livres.",
+ "chk_hub": "Ponto de junção dos cabos definido",
+ "furn_cable_to_grid": "O cabo termina na ligação à rede",
+ "furn_cable_to_grid_hint": "Energy Pro: o cabo deste inversor vai até à ligação à rede em vez do contador – por exemplo quando o inversor e a ligação estão longe do quadro elétrico.",
+ "energy_hub": "Ponto de junção dos cabos",
+ "energy_hub_point": "Os cabos encontram-se num ponto próprio",
+ "energy_hub_point_hint": "Energy Pro: todos os cabos vão para este ponto (p. ex. o quadro elétrico) em vez do contador – útil quando o contador está na ligação à rede.",
+ "energy_hub_set": "Definir o ponto na planta",
+ "energy_hub_tap": "Toca na planta onde os cabos se encontram.",
+ "roof_overhang_sides": "Beiral por lado",
+ "roof_overhang_sides_hint": "Definir tu mesmo o beiral de cada lado. Desligado: automático – sem beiral onde a água do telhado encosta a uma parte mais alta da casa.",
+ "well_depth": "Profundidade a partir da parede (m)"
 }
