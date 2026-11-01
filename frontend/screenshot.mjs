@@ -307,6 +307,11 @@ const shots = [
   { name: "extensions", query: "?shop", width: 1280, height: 1000, click: "✦ Erweiterungen", wait: 800 },
   { name: "tab-new-offers", query: "?shop", width: 1280, height: 300, wait: 1500 },
   { name: "extensions-locked", query: "?nopro", width: 1280, height: 1000, click: "✦ Erweiterungen", wait: 800 },
+  // NeonPlan Print (supporter beta): the "new" dot on the tab, the card in the supporter block, the editor button
+  { name: "tab-print-dot", query: "?supporter", width: 1280, height: 300, wait: 1500 },
+  { name: "extensions-print", query: "?supporter", width: 1280, height: 1000, click: "✦ Erweiterungen", wait: 800 },
+  { name: "extensions-print-en", query: "?supporter&lang=en", width: 1280, height: 1000, click: "✦ Extensions", wait: 800 },
+  { name: "editor-backup-print", query: "?supporter", width: 1280, height: 1600, editor: true, openDetails: true, scrollSide: true, wait: 800 },
   { name: "card-editor", query: "?card", width: 1400, height: 900 },
   { name: "card-og-dim", query: "?card&floor=og", width: 1400, height: 900 },
   { name: "card-og-stacked", query: "?card&floor=og&stack=stacked", width: 1400, height: 900 },

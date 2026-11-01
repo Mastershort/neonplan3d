@@ -24,19 +24,21 @@
       try {
         localStorage.setItem("neonplan3d.flows", params.has("flows") ? "1" : "0");
       } catch {}
-      // the shop connection of the demo: connected when ?shop is given, with one pack to install and one update
+      // the shop connection of the demo: connected when ?shop is given, with one pack to install and one update;
+      // ?supporter alone: a connected Supporter-Pass holder with nothing waiting (the NeonPlan Print dot shows on the tab)
+      const supporterOnly = params.has("supporter") && !params.has("shop");
       let license = {
         instance: "3f9c2a7b1e4d8c05",
-        active: params.has("shop"),
-        key_hint: params.has("shop") ? "…7K2M" : null,
-        licensee: params.has("shop") ? "Demo Kunde" : null,
-        checked_at: params.has("shop") ? Date.now() / 1000 - 3600 : null,
+        active: params.has("shop") || supporterOnly,
+        key_hint: params.has("shop") || supporterOnly ? "…7K2M" : null,
+        licensee: params.has("shop") || supporterOnly ? "Demo Kunde" : null,
+        checked_at: params.has("shop") || supporterOnly ? Date.now() / 1000 - 3600 : null,
         error: null,
         shop_url: "https://mastershort.de/neonplan3d/",
         packs: [
           { id: "mastershort.living", name: "Wohnzimmer", release: 2, url: "https://mastershort.de/neonplan3d/", installed: 1 },
           { id: "mastershort.kitchen", name: "Küche", release: 1, url: "https://mastershort.de/neonplan3d/", installed: 1 },
-          { id: "mastershort.vehicles", name: "Fahrzeuge", release: 1, url: "https://mastershort.de/neonplan3d/", installed: null },
+          ...(supporterOnly ? [] : [{ id: "mastershort.vehicles", name: "Fahrzeuge", release: 1, url: "https://mastershort.de/neonplan3d/", installed: null }]),
         ],
         // invented offers of the demo shop and a loyalty code
         offers: params.has("shop")
@@ -47,7 +49,7 @@
             ]
           : [],
         loyalty: params.has("shop") ? { code: "NP-TREUE-DEMO42", percent: 10 } : null,
-        supporter: params.has("shop") ? { code: "NPS-DEMO-7KQ4", until: "2027-12-31" } : null,
+        supporter: params.has("shop") || supporterOnly ? { code: "NPS-DEMO-7KQ4", until: "2027-12-31" } : null,
         newsletter: params.has("shop") ? { url: "https://mastershort.de/neonplan3d/newsletter/" } : null,
         updates: params.has("shop") ? [{ id: "mastershort.kitchen", name: "Küche", release: 2, added: 10, at: Date.now() / 1000 - 600 }] : [],
       };

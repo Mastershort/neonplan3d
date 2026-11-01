@@ -21,6 +21,7 @@ import {
   type ModuleReview,
 } from "../api.ts";
 import { DISCORD_URL, isBeta, supporterUrl } from "../beta.ts";
+import { copyText, PRINT_URL } from "../print.ts";
 import { FEATURES, FUN, knownFeature, manualUrl, registerUrl, released, shopUrl, unlockedFeatures, type Feature } from "../features.ts";
 import { DOG_BREEDS, PET_FURS_OF, type Building, type Pet } from "../model.ts";
 import { translate, type I18nKey } from "../i18n.ts";
@@ -41,6 +42,7 @@ export class Extensions extends LitElement {
     _licenseKey: { state: true },
     _licenseBusy: { state: true },
     _licenseMsg: { state: true },
+    _printMsg: { state: true },
     _open: { state: true },
     _nlState: { state: true },
   };
@@ -59,6 +61,8 @@ export class Extensions extends LitElement {
   /** What runs right now: "activate", "refresh", "remove" or a pack id being installed. */
   private declare _licenseBusy: string | null;
   private declare _licenseMsg: { ok: boolean; text: string } | null;
+  /** The short notice under the NeonPlan Print button (code copied or not). */
+  private declare _printMsg: { ok: boolean; text: string } | null;
   /** The newsletter box: shown, opened (the sign-up page is open, waiting for the confirmation) or hidden for good. */
   private declare _nlState: "show" | "opened" | "hidden";
   /** Long lists opened by the viewer (the shop's packs, the installed packs); closed, a bar sums them up. */
@@ -76,6 +80,7 @@ export class Extensions extends LitElement {
     this._licenseKey = "";
     this._licenseBusy = null;
     this._licenseMsg = null;
+    this._printMsg = null;
     let open: string[] = [];
     try {
       open = JSON.parse(localStorage.getItem("neonplan3d.ext.open") ?? "[]") as string[];
@@ -423,6 +428,25 @@ export class Extensions extends LitElement {
         <a class="fp3d-btn fp3d-primary" href=${DISCORD_URL} target="_blank" rel="noopener">💬 ${this.t("supporter_open")}</a>
       </div>
       <p class="fp3d-sub">${this.t("supporter_how", { code: sup.code })}</p>
+      <div class="fp3d-print">
+        <b>${this.t("print_title")}</b>
+        <span class="fp3d-sub">${this.t("print_text")}</span>
+        <span class="fp3d-print-row">
+          <a
+            class="fp3d-btn fp3d-primary"
+            href=${PRINT_URL}
+            target="_blank"
+            rel="noopener"
+            @click=${() => {
+              // the code goes to the clipboard (started while this page still has the focus), never into the link
+              void copyText(sup.code).then((ok) => (this._printMsg = { ok, text: this.t(ok ? "print_copied" : "print_copy_failed") }));
+            }}
+          >
+            ${this.t("print_open")}
+          </a>
+          ${this._printMsg ? html`<span class="fp3d-sub ${this._printMsg.ok ? "fp3d-notice" : "fp3d-pack-error"}">${this._printMsg.text}</span>` : nothing}
+        </span>
+      </div>
     </section>`;
   }
 
@@ -809,6 +833,25 @@ export class Extensions extends LitElement {
         margin: 4px 0;
       }
       .fp3d-loyalty a {
+        text-decoration: none;
+      }
+      .fp3d-print {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        margin-top: 12px;
+        padding: 10px 12px;
+        border: 1px solid color-mix(in srgb, var(--fp3d-accent) 55%, transparent);
+        border-radius: 12px;
+        background: color-mix(in srgb, var(--fp3d-accent) 8%, transparent);
+      }
+      .fp3d-print-row {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+      }
+      .fp3d-print a {
         text-decoration: none;
       }
       .fp3d-loyalty {
