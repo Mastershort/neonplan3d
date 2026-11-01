@@ -27,7 +27,7 @@ import { cameraMotionSensors, cameraOwnSensors, detectionKind, setCameraSensors 
 import { backdropImage } from "../backdrop.ts";
 import { screenName, setScreenName, setVoiceArea, setVoiceHere, setVoicePipeline, voiceArea, voiceOnHere, voicePipeline } from "../load-voice.ts";
 import { doorbellCamera, doorbellEntities, directorOnHere, HOLD_DEFAULT, HOLD_MAX, HOLD_MIN, setDirectorHere, type DirectorSettings } from "../director.ts";
-import { deviceSensors, energySummary, flowSegments, gridPoint, powerSensorFor, proposeEnergySensors, type EnergyPrefs, type FlowSegment, proposeMeters } from "../energy.ts";
+import { deviceSensors, energySummary, flowSegments, gridPoint, hubPoint, inverterToGrid, powerSensorFor, proposeEnergySensors, type EnergyPrefs, type FlowSegment, proposeMeters } from "../energy.ts";
 import { CLIMATE_ATTRS, isPulseDrive, isStatusSensor, robotRoomSensor, TOGGLE_KINDS } from "../devices.ts";
 import { activeSections, sectionFloor, dormerParent, effectiveDormer, proposeDormer, sectionGeometry, floorOutline, polygonBox, headroomLines, ridgeHeight, sectionAbove, sectionCutsBelow, roofSectionsFromRooms, sectionFrame, sectionTurn, turnPoint, turnSectionAbout, wallTopUnder } from "../roof-sections.ts";
 import { bestFace, clampField, faceAt, faceCompass, fieldFace, fieldModules, GROUND, moveField, pointOnFace, proposeField, proposeGroundField, proposeWindow, proposeWallField, roofFaces, rowCounts, turnGroundField, fieldCenter, wallFaces, windowAsField, windowCorners, onFace, onField, rayOnFace, type RoofFace } from "../solar.ts";
@@ -390,6 +390,7 @@ export class Fp3dEditor extends LitElement {
     _solarPick: { state: true },
     _roofWinId: { state: true },
     _energyNote: { state: true },
+    _placeHub: { state: true },
     _cableId: { state: true },
     _expanded: { state: true },
     _notice: { state: true },
@@ -513,6 +514,8 @@ export class Fp3dEditor extends LitElement {
   private declare _roofWinId: string | null;
   /** What the import from the energy dashboard did (shown under its button). */
   private declare _energyNote: string | null;
+  /** The next tap in the plan sets the cable hub (energy tool, #841). */
+  private declare _placeHub: boolean;
   /** The cable picked in the energy tool (its key), shown with its points in the plan. */
   private declare _cableId: string | null;
   /** The cables' ways for the plan, computed once per document. */
@@ -711,6 +714,7 @@ export class Fp3dEditor extends LitElement {
     this._solarPick = false;
     this._roofWinId = null;
     this._energyNote = null;
+    this._placeHub = false;
     this._cableId = null;
     this._expanded = new Set();
     this._notice = null;
@@ -1574,6 +1578,17 @@ export class Fp3dEditor extends LitElement {
     }
     if (this._tool === "pool" && this.poolDown(e, target, world, local)) return;
     if (this._tool === "roof" || this._tool === "energy") {
+      if (this._tool === "energy" && this._placeHub) {
+        // the cable hub set by hand (#841): where the tap lands, on the grid
+        this._placeHub = false;
+        if (this.isAdmin && this._floorId) {
+          const g = this._doc.settings.grid;
+          const [x, z] = world.map((v) => round(Math.round(v / g) * g));
+          this.setEnergy({ meter: { floor_id: this._floorId, x, z }, hub_point: true });
+        }
+        this.drag = { kind: "pan", last: local };
+        return;
+      }
       const corner = target.closest("[data-roof-corner]")?.getAttribute("data-roof-corner");
       const vertex = target.closest("[data-roof-vertex]")?.getAttribute("data-roof-vertex");
       const body = target.closest("[data-roof]")?.getAttribute("data-roof");
@@ -3483,7 +3498,7 @@ export class Fp3dEditor extends LitElement {
       return m ? m.name || this.t(`furn_${m.type}` as I18nKey) : "?";
     };
     const meter = this._doc.floors.flatMap((f) => f.furniture).find((x) => x.type === "meter");
-    const meterName = meter ? meter.name || this.t("furn_meter") : this.t("energy_meter");
+    const meterName = hubPoint(this._doc) ? this.t("energy_hub") : meter ? meter.name || this.t("furn_meter") : this.t("energy_meter");
     if (key === "grid") return `${meterName} → ${this.t("furn_grid_point")}`;
     const [kind, id] = [key.slice(0, key.indexOf(":")), key.slice(key.indexOf(":") + 1)];
     if (kind === "solar") {
@@ -3492,7 +3507,7 @@ export class Fp3dEditor extends LitElement {
       const f = fields[i];
       return `${f?.name || `${this.t("solar_field")} ${i + 1}`} → ${this.t("furn_inverter")}`;
     }
-    if (kind === "inv") return `${furn(id)} → ${meterName}`;
+    if (kind === "inv") return `${furn(id)} → ${inverterToGrid(this._doc, id) ? this.t("furn_grid_point") : meterName}`;
     return `${this.t("furn_inverter")} ↔ ${furn(id)}`;
   }
 
@@ -4135,6 +4150,7 @@ export class Fp3dEditor extends LitElement {
     const batteries = of("home_battery");
     const grid = of("grid_point");
     const meterOk = !!doc.energy.grid || meters.some((x) => this.devicePower(x.m, links));
+    const hub = hubPoint(doc) ? doc.energy.meter : null;
     const inverterOk = !!doc.energy.solar || (inverters.length > 0 && inverters.every((x) => this.devicePower(x.m, links)));
     const batteryOk = batteries.every((x) => this.devicePower(x.m, links) && x.m.soc && x.m.soc !== "none") || !!doc.energy.battery;
     const pro = hasFeature("energy_pro");
@@ -4143,7 +4159,10 @@ export class Fp3dEditor extends LitElement {
       { state: fields.length ? "ok" : "todo", label: this.t(fields.length ? "chk_solar" : "chk_solar_add"), action: fields.length ? () => (this._solarId = fields[0].id) : () => this.addSolarField() },
       meters.length
         ? { state: meterOk ? "ok" : "todo", label: this.t(meterOk ? "chk_meter" : "chk_meter_sensor"), action: () => goTo(meters[0]) }
-        : { state: "todo", label: this.t("chk_meter_add"), action: () => this.addEnergyDevice("meter") },
+        : hub
+          ? // a hub set by hand stands in for the meter cabinet (#841)
+            { state: "ok", label: this.t("chk_hub"), action: () => ((this._floorId = hub.floor_id), this.showPoint(hub.x, hub.z)) }
+          : { state: "todo", label: this.t("chk_meter_add"), action: () => this.addEnergyDevice("meter") },
       inverters.length
         ? { state: inverterOk ? "ok" : "todo", label: this.t(inverterOk ? "chk_inverter" : "chk_inverter_sensor"), action: () => goTo(inverters.find((x) => !this.devicePower(x.m, links)) ?? inverters[0]) }
         : { state: "todo", label: this.t("chk_inverter_add"), action: () => this.addEnergyDevice("inverter") },
@@ -4302,7 +4321,41 @@ export class Fp3dEditor extends LitElement {
           </button>`,
         )}
       </div>
+      ${hasFeature("energy_pro") ? this.renderHubPoint() : nothing}
     </section>`;
+  }
+
+  /**
+   * Energie Pro: where the cables meet (#841) – at the meter cabinet (default), or at a point set by hand such as
+   * the house board while the meter stands at the grid connection.
+   */
+  private renderHubPoint() {
+    const admin = this.isAdmin;
+    const e = this._doc.energy;
+    const on = !!e.hub_point;
+    const m = on ? e.meter : null;
+    const floorName = m ? this._doc.floors.find((f) => f.id === m.floor_id)?.name : null;
+    return html`<label class="fp3d-check fp3d-wide" title=${this.t("energy_hub_point_hint")}
+        ><input
+          type="checkbox"
+          .checked=${on}
+          ?disabled=${!admin}
+          @change=${(ev: Event) => {
+            const checked = (ev.target as HTMLInputElement).checked;
+            this.setEnergy({ hub_point: checked || undefined });
+            // no point yet: the next tap in the plan sets it
+            this._placeHub = checked && !e.meter;
+          }}
+        />
+        ${this.t("energy_hub_point")}</label
+      >
+      ${on
+        ? html`<div class="fp3d-actions">
+              <button class="fp3d-btn ${this._placeHub ? "fp3d-primary" : ""}" ?disabled=${!admin || !this.floor} @click=${() => (this._placeHub = !this._placeHub)}>${this.t("energy_hub_set")}</button>
+              ${m ? html`<button class="fp3d-btn" @click=${() => ((this._floorId = m.floor_id), this.showPoint(m.x, m.z))}>${this.t("energy_hub")}: ${floorName ?? ""}</button>` : nothing}
+            </div>
+            <p class="fp3d-sub">${this.t(this._placeHub ? "energy_hub_tap" : "energy_hub_point_hint")}</p>`
+        : nothing}`;
   }
 
   private renderRoofSectionForm(sec: RoofSection) {
@@ -12287,7 +12340,11 @@ export class Fp3dEditor extends LitElement {
               ${f.plant_card !== false
                 ? html`${this.len(this.t("holo_right"), f.plant_right ?? 0, (v) => this.updateFurniture({ plant_right: Math.min(30, Math.max(-30, round(v))) || undefined }), 0.25)}
                   ${this.len(this.t("holo_up"), f.plant_up ?? 0, (v) => this.updateFurniture({ plant_up: Math.min(30, Math.max(-30, round(v))) || undefined }), 0.25)}`
-                : nothing}`
+                : nothing}
+              <label class="fp3d-check fp3d-wide" title=${this.t("furn_cable_to_grid_hint")}
+                ><input type="checkbox" .checked=${f.cable_to === "grid"} ?disabled=${!this.isAdmin} @change=${(ev: Event) => this.updateFurniture({ cable_to: (ev.target as HTMLInputElement).checked ? "grid" : undefined })} />
+                ${this.t("furn_cable_to_grid")}</label
+              >`
             : nothing}
       </div>
       ${f.type === "meter"
@@ -13544,6 +13601,15 @@ export class Fp3dEditor extends LitElement {
           ><input type="checkbox" .checked=${s.sun_shadow !== false} @change=${(ev: Event) => set({ sun_shadow: (ev.target as HTMLInputElement).checked })} />
           ${this.t("sun_shadow")}</label
         >
+        ${s.sun_shadow !== false
+          ? html`<label class="fp3d-field fp3d-wide" title=${this.t("sun_arc_hint")}
+              >${this.t("sun_arc")}
+              <select @change=${(e: Event) => set({ sun_arc: (e.target as HTMLSelectElement).value === "plot" ? "plot" : null })}>
+                <option value="house" ?selected=${s.sun_arc !== "plot"}>${this.t("sun_arc_house")}</option>
+                <option value="plot" ?selected=${s.sun_arc === "plot"}>${this.t("sun_arc_plot")}</option>
+              </select></label
+            >`
+          : nothing}
         <label class="fp3d-check fp3d-wide" title=${this.t("tap_in_room_hint")}
           ><input type="checkbox" .checked=${!!s.tap_in_room} @change=${(ev: Event) => set({ tap_in_room: (ev.target as HTMLInputElement).checked })} />
           ${this.t("tap_in_room")}</label

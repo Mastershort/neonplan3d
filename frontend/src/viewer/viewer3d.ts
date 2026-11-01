@@ -72,6 +72,7 @@ import { buildRoof, type RoofGeometry, type RoofWindowState } from "./roof.ts";
 import { SunFx } from "./sun-fx.ts";
 import { houseShadow, shadowBox, sunEdge } from "./sun-shadow.ts";
 import type { SunPath } from "../sun-path.ts";
+import { sunArcFrame, type SunArcFrame } from "./sun-arc.ts";
 import { GROUND, groundFace, groundFloor, roofFaces, roofWindowRoom, wallFaces } from "../solar.ts";
 import { buildSolarLive, solarLiveMaterial, writeSolarLevels, type SolarLive } from "./solar-live.ts";
 import { buildPools, disposePools, type PoolPiece } from "./pool-water.ts";
@@ -1691,16 +1692,9 @@ export class FloorplanViewer {
     });
   }
 
-  /** Where the sun's arc stands: around the middle of the house, a little wider than the house, on its ground. */
-  private arcFrame(): { x: number; y: number; z: number; r: number } | null {
-    const b = this.building;
-    const gf = b ? groundFloor(b) : null;
-    const pts = b?.floors.flatMap((f) => f.rooms.filter((r) => !r.outdoor).flatMap((r) => r.points)) ?? [];
-    if (!gf || !pts.length) return null;
-    const xs = pts.map((p) => p[0]);
-    const zs = pts.map((p) => p[1]);
-    const [x0, x1, z0, z1] = [Math.min(...xs), Math.max(...xs), Math.min(...zs), Math.max(...zs)];
-    return { x: (x0 + x1) / 2, z: (z0 + z1) / 2, y: gf.elevation, r: Math.max(7, Math.hypot(x1 - x0, z1 - z0) * 0.62) };
+  /** Where the sun's arc stands: around the middle of the house (or the whole plot, #833), on its ground. */
+  private arcFrame(): SunArcFrame | null {
+    return sunArcFrame(this.building);
   }
 
   /** How dark it is outside (0 by day, 1 from 6° below the horizon on); 0 without a sun. */

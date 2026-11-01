@@ -263,6 +263,8 @@ export interface Furniture {
   /** Energie Pro, inverter: its plant card moved from its field's middle along the eave (m, + = right) and up the slope (#335). */
   plant_right?: number;
   plant_up?: number;
+  /** Energie Pro, inverter: where its cable ends – the meter (null, default) or the grid point (#841). */
+  cable_to?: "meter" | "grid" | null;
   status?: EntityRef;
   /** Robot vacuum: sensor naming the room it cleans right now (null = automatic, "none" = the dock's room). */
   room_sensor?: EntityRef;
@@ -738,6 +740,8 @@ export interface BuildingSettings {
   sun_patches?: boolean;
   /** The sun's arc over the house and the house's shadow on the ground (default on). */
   sun_shadow?: boolean;
+  /** What the sun's arc and its compass ring stand around: the house (null, default) or everything drawn on the plot (#833). */
+  sun_arc?: "house" | "plot" | null;
   /** At night lit rooms throw their light out of the windows onto the ground in front (default on). */
   window_glow?: boolean;
   /** Devices switch only in an opened room: in the house and floor views a tap opens the room instead (default off). */
@@ -1178,7 +1182,10 @@ export function poolShapePoints(shape: "rect" | "round" | "oval", x0: number, z0
 
 /** Energy flow: meter position and power sensors (W). Grid positive = import, battery positive = discharging. */
 export interface EnergySettings {
+  /** The meter spot of older plans, or the cable hub set by hand (with `hub_point`). */
   meter: { floor_id: string; x: number; z: number } | null;
+  /** The cables meet at `meter` (e.g. the house board) instead of the meter cabinet in the plan (default off, #841). */
+  hub_point?: boolean;
   grid: string | null;
   grid_invert: boolean;
   solar: string | null;
