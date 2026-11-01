@@ -137,6 +137,7 @@ const PROJECTION_SCRIPT = `
 const shots = [
   { name: "view-house", query: "?fp3d_stats", width: 1280, height: 800 },
   { name: "promo-house", query: "", width: 1280, height: 800 },
+  { name: "view-sun-path", query: "?lang=en", width: 1280, height: 800, camera: { target: { x: 8, y: 0, z: 5 }, radius: 30, phi: 0.75 }, afterWait: 2500 },
   { name: "view-stacked", query: "", width: 1280, height: 800, click: "Gestapelt" },
   { name: "view-floor-og", query: "", width: 1280, height: 800, click: "Obergeschoss" },
   { name: "view-floor-eg", query: "?fp3d_stats", width: 1280, height: 800, click: "Erdgeschoss" },
