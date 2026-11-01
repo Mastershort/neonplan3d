@@ -489,6 +489,23 @@ POOL_SCHEMA = vol.Schema(
 
 OUTDOOR_TYPES = ["lawn", "terrace", "path", "driveway", "pool", "bed", "wild", "hedge", "fence", "pergola", "balcony"]
 
+# a gate in a fence (#818): a gap in one edge with a leaf that opens with its entity
+GATE_SCHEMA = vol.Schema(
+    {
+        vol.Required("id"): _ID,
+        vol.Required("edge"): vol.All(vol.Coerce(int), vol.Range(min=0, max=MAX_POINTS)),
+        vol.Required("at"): vol.All(vol.Coerce(float), vol.Range(min=0, max=1000)),
+        vol.Required("width"): vol.All(vol.Coerce(float), vol.Range(min=0.3, max=20)),
+        vol.Optional("kind", default="swing"): vol.In(["swing", "double", "slide"]),
+        vol.Optional("flip", default=False): bool,
+        vol.Optional("outward", default=False): bool,
+        vol.Optional("entity", default=None): _ENTITY_REF,
+        vol.Optional("contact", default=None): _ENTITY_REF,
+        vol.Optional("time", default=None): vol.Any(None, vol.All(vol.Coerce(float), vol.Range(min=1, max=300))),
+    },
+    extra=vol.ALLOW_EXTRA,
+)
+
 OUTDOOR_SCHEMA = vol.Schema(
     {
         vol.Required("id"): _ID,
@@ -506,6 +523,8 @@ OUTDOOR_SCHEMA = vol.Schema(
         # fences and pergolas: the closing edge is left out; pergola: X-bracing on the sides
         vol.Optional("open", default=False): bool,
         vol.Optional("bracing", default=False): bool,
+        # fences: gates cut into the edges
+        vol.Optional("gates"): vol.All([GATE_SCHEMA], vol.Length(max=20)),
         # cut out of every area beneath it that contains it
         vol.Optional("cut", default=False): bool,
         # pools: round or oval, resized as a whole
@@ -798,6 +817,8 @@ SETTINGS_SCHEMA = vol.Schema(
         vol.Optional("window_glow", default=True): bool,
         # devices switch only in an opened room; elsewhere a tap opens the room
         vol.Optional("tap_in_room", default=False): bool,
+        # a short right click in 3D goes one step back
+        vol.Optional("right_click_back", default=False): bool,
         # fun pack "Halloween": the ghost floating through the house (on unless switched off)
         # Haushalt Pro: the hours a waste bin glows (from the day before, until on the day)
         vol.Optional("household"): vol.Any(

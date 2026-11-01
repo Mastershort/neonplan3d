@@ -211,6 +211,8 @@ const DEVICES = [
   entity("binary_sensor.bett_links", "schlafzimmer", "on", { friendly_name: "Bett links belegt", device_class: "occupancy" }),
   entity("binary_sensor.bett_rechts", "schlafzimmer", "off", { friendly_name: "Bett rechts belegt", device_class: "occupancy" }),
   entity("cover.garagentor", "garage", "open", { friendly_name: "Garagentor", device_class: "garage", current_position: 60, supported_features: 15 }),
+  entity("cover.einfahrtstor", "garten", "open", { friendly_name: "Einfahrtstor", device_class: "gate", supported_features: 3 }),
+  entity("binary_sensor.gartenpforte", "garten", "off", { friendly_name: "Gartenpforte", device_class: "door" }),
   // Energie Pro: gas and water meters (counters)
   entity("sensor.wasserzaehler", null, "412.318", { friendly_name: "Wasserzähler", device_class: "water", unit_of_measurement: "m³", state_class: "total_increasing" }),
   // Pool Pro: an 8 x 4 m pool with heat pump, filter pump, light, pH and redox measurement and a cover
@@ -512,7 +514,14 @@ DEMO_BUILDING.floors[0].outdoor = [
   area("a6", "driveway", 10.2, 5.4, 13.4, 14),
   area("a7", "hedge", -3.5, -8.5, -2.9, 14),
   area("a8", "bed", 1.5, 10.2, 5.5, 11.2),
-  area("a9", "fence", -4, -9, 19, 14.5),
+  // the fence has a sliding gate at the driveway and a garden gate at the path (#818)
+  {
+    ...area("a9", "fence", -4, -9, 19, 14.5),
+    gates: [
+      { id: "gate_drive", edge: 2, at: 7.2, width: 3.4, kind: "slide", entity: "cover.einfahrtstor" },
+      { id: "gate_path", edge: 2, at: 11.4, width: 1.1, contact: "binary_sensor.gartenpforte" },
+    ],
+  },
   // a wild patch cut out of the front lawn, a pergola with bracing on the terrace side, the driveway falls to the street
   { ...area("a10", "wild", 9.5, -2.6, 12.2, -1.0), cut: true },
   { ...area("a11", "pergola", 13.4, -3.6, 16.2, -0.9), height: 2.3, bracing: true },

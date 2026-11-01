@@ -742,6 +742,8 @@ export interface BuildingSettings {
   window_glow?: boolean;
   /** Devices switch only in an opened room: in the house and floor views a tap opens the room instead (default off). */
   tap_in_room?: boolean;
+  /** A short right click in the 3D view goes one step back (room → floor → house) instead of tapping (default off). */
+  right_click_back?: boolean;
   /** The ground around the house: its height and the earth around cellars. */
   terrain?: Terrain | null;
   /**
@@ -921,6 +923,58 @@ export interface CarLinks {
   tracker?: EntityRef;
 }
 
+/** A gate: one leaf (a garden gate), two leaves (a driveway gate) or a leaf sliding along the fence. */
+export const GATE_KINDS = ["swing", "double", "slide"] as const;
+export type GateKind = (typeof GATE_KINDS)[number];
+
+/** A gate in a fence (#818): a gap in one of its edges, cut like a door in a wall, with a leaf that opens with its entity. */
+export interface FenceGate {
+  id: string;
+  /** The edge it sits in: from point `edge` to the next one, as drawn. */
+  edge: number;
+  /** Distance of the gate's middle from the edge's start, m. */
+  at: number;
+  width: number;
+  kind?: GateKind;
+  /** The hinge at the other end (a sliding leaf runs the other way). */
+  flip?: boolean;
+  /** Opens outwards instead of into the fenced area. */
+  outward?: boolean;
+  /** What opens it and tells its state: a cover (gate, garage), a switch, an input_boolean or a lock. */
+  entity?: EntityRef | null;
+  /** A contact that tells "open" (wins over the entity's state). */
+  contact?: EntityRef | null;
+  /** Seconds for a full run while only opening or closing is known (null = 4 s, sliding 15 s). */
+  time?: number | null;
+}
+
+/** Where a gate lies: its edge's ends and the gap along the edge (s0 … s1 from the edge's start), clamped into the edge. */
+export interface GateSpan {
+  gate: FenceGate;
+  p: Vec2;
+  q: Vec2;
+  s0: number;
+  s1: number;
+}
+
+export function gateSpans(a: OutdoorArea): GateSpan[] {
+  if (a.type !== "fence" || !a.gates?.length) return [];
+  const n = a.points.length;
+  const out: GateSpan[] = [];
+  for (const gate of a.gates) {
+    // an open fence has no closing edge
+    if (gate.edge < 0 || gate.edge >= n || (a.open && gate.edge === n - 1)) continue;
+    const p = a.points[gate.edge];
+    const q = a.points[(gate.edge + 1) % n];
+    const len = Math.hypot(q[0] - p[0], q[1] - p[1]);
+    if (len < 0.4) continue;
+    const w = Math.min(Math.max(0.3, gate.width), len - 0.1);
+    const mid = Math.min(Math.max(w / 2 + 0.05, gate.at), len - w / 2 - 0.05);
+    out.push({ gate, p, q, s0: mid - w / 2, s1: mid + w / 2 });
+  }
+  return out;
+}
+
 /** Area outside the house (lawn, terrace, pool, hedge …), drawn like a room. */
 export interface OutdoorArea {
   id: string;
@@ -939,6 +993,8 @@ export interface OutdoorArea {
   open?: boolean;
   /** Pergola: diagonal X-bracing on every side. */
   bracing?: boolean;
+  /** Fences: gates cut into the edges (#818), each opening with its entity. */
+  gates?: FenceGate[];
   /** This area is cut out of every area beneath it that contains it (a wild patch or pond inside a lawn). */
   cut?: boolean;
   /** Pool: round or oval (chosen before drawing); its outline is made from its box and resized as a whole. */

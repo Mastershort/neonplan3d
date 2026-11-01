@@ -321,3 +321,17 @@ def test_door_keeps_its_opening_angle() -> None:
     assert OPENING_SCHEMA({**door, "open_angle": 15})["open_angle"] == 15
     with pytest.raises(vol.Invalid):
         OPENING_SCHEMA({**door, "open_angle": 200})
+
+
+def test_fence_gates() -> None:
+    """A fence keeps its gates (#818) and refuses wrong ones."""
+    fence = {"id": "f", "type": "fence", "points": [[0, 0], [10, 0], [10, 6], [0, 6]]}
+    gate = {"id": "g1", "edge": 2, "at": 4.5, "width": 3.4, "kind": "slide", "entity": "cover.einfahrtstor"}
+    out = OUTDOOR_SCHEMA({**fence, "gates": [gate]})["gates"][0]
+    assert (out["kind"], out["flip"], out["outward"]) == ("slide", False, False)
+    assert (out["contact"], out["time"]) == (None, None)
+    with pytest.raises(vol.Invalid):
+        OUTDOOR_SCHEMA({**fence, "gates": [{**gate, "kind": "revolving"}]})
+    with pytest.raises(vol.Invalid):
+        OUTDOOR_SCHEMA({**fence, "gates": [{**gate, "width": 0.1}]})
+    assert "gates" not in OUTDOOR_SCHEMA(fence)

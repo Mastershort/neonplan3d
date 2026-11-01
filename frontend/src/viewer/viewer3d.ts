@@ -47,7 +47,7 @@ import {
 } from "three";
 import type { Building, Floor, Furniture, Room, StartView } from "../model.ts";
 import { recolorLamps, SHADE_SENTINEL, shadeFactors } from "./lamp-colors.ts";
-import { centroid, GANG_TYPES, outdoorZones, pointInPolygon, openingStyle, setTerrain, WALL_LAMP_Y, zonesOf } from "../model.ts";
+import { centroid, GANG_TYPES, gateSpans, outdoorZones, pointInPolygon, openingStyle, setTerrain, WALL_LAMP_Y, zonesOf } from "../model.ts";
 import { placeWallPlate } from "../geometry/walls.ts";
 import { buildEarth } from "./earth.ts";
 import { clampIntoRoom } from "../geometry/snap.ts";
@@ -58,6 +58,7 @@ import { makeFoldable, type FoldMasks } from "./fold.ts";
 import { CameraProjections, PROJECTION_LAYER, type ProjectionSurface, type ProjectorPose } from "./projection.ts";
 import { packGlowCentre, pushAwning, pushCameraModel, pushPackGlow, pushPackRobot, pushPackLamp, pushPackMotion, screenRect, screenPictureSize, pushFridgeDoors, setLightLook, hasFixedColors } from "./furniture.ts";
 import { pushPipeTube, type PipeTube } from "./pipes.ts";
+import { pushGate } from "./outdoor.ts";
 // the walk through the house at eye height (lives with the viewer it drives)
 export { FloorMap, WalkCamera, type WalkState } from "./walk.ts";
 
@@ -381,6 +382,11 @@ const GROUND_CELLS = 32;
 const HOLD_MS = 500;
 /** Time constant of window and blind movements (ms). */
 const OPENING_TAU = 160;
+
+/** Whether one of these ids moves on a floor: an item (fridge door, awning) or a fence gate (#818). */
+function movesOn(floor: Floor, ids: ReadonlySet<string>): boolean {
+  return floor.furniture.some((f) => ids.has(f.id)) || (floor.outdoor ?? []).some((a) => (a.gates ?? []).some((g) => ids.has(g.id)));
+}
 /** Frame interval while only the energy flow moves (ms): about 30 frames per second. */
 const FLOW_FRAME_MS = 33;
 /** Cable core and the soft glow around it (m). */
@@ -489,8 +495,10 @@ interface FloorView {
   coneMesh: Mesh;
   /** Motion trail on the floor (discs and ribbons). */
   trailMesh: Mesh;
-  /** Doors of smart fridges (they swing open with their sensors). */
+  /** Doors of smart fridges (they swing open with their sensors), awnings and fence gates. */
   fridgeMesh: Mesh;
+  /** The fence gates' triangles in fridgeMesh, by the entity a tap goes to (#818). */
+  gateTris: { id: string; start: number; end: number }[];
   /** Pool Pro: the pipes as tubes. */
   pipeMesh: Mesh;
   pipeSig: string;
@@ -907,6 +915,7 @@ export class FloorplanViewer {
     const first = this.building === null;
     this.lastWake = performance.now();
     this.building = building;
+    this.controls.rightClickBack = !!building.settings.right_click_back;
     // this bundle's own copy of the ground (outdoor areas, earth around cellars)
     setTerrain(building);
     this.rebuild();
@@ -1915,11 +1924,13 @@ export class FloorplanViewer {
    */
   private awnings = new Map<string, { cur: number; to: number; speed: number }>();
 
-  setAwnings(states: Map<string, { out: number | null; moving: -1 | 0 | 1; time: number }>): void {
+  setAwnings(states: Map<string, { out: number | null; moving: -1 | 0 | 1; time: number; settled?: boolean }>): void {
     const fresh = new Set<string>();
     for (const [id, a] of states) {
       if (!this.awnings.has(id)) fresh.add(id);
-      const st = this.awnings.get(id) ?? { cur: a.out ?? 0, to: a.out ?? 0, speed: 0 };
+      // a gate seen for the first time stands where its contact or switch says (#818)
+      const first = a.out ?? (a.settled && a.moving > 0 ? 1 : 0);
+      const st = this.awnings.get(id) ?? { cur: first, to: first, speed: 0 };
       if (a.out === null) {
         st.to = a.moving > 0 ? 1 : 0;
         st.speed = 1 / Math.max(2, a.time);
@@ -1940,7 +1951,7 @@ export class FloorplanViewer {
    */
   private showFresh(fresh: Set<string>): void {
     if (!fresh.size) return;
-    for (const fv of this.floors) if (fv.floor.furniture.some((f) => fresh.has(f.id))) this.buildFridges(fv);
+    for (const fv of this.floors) if (movesOn(fv.floor, fresh)) this.buildFridges(fv);
   }
 
   private stepAwnings(dt: number): Set<string> {
@@ -1981,7 +1992,7 @@ export class FloorplanViewer {
     }
     for (const id of this.stepAwnings(dt)) touched.add(id);
     if (!touched.size) return false;
-    for (const fv of this.floors) if (fv.floor.furniture.some((f) => touched.has(f.id))) this.buildFridges(fv);
+    for (const fv of this.floors) if (movesOn(fv.floor, touched)) this.buildFridges(fv);
     return true;
   }
 
@@ -2000,6 +2011,15 @@ export class FloorplanViewer {
       const item = kind ? packItem(f.type) : undefined;
       if (kind && item) pushPackMotion(buf, item, kind, f, mountBase(fv.floor, f), this.awnings.get(f.id)?.cur ?? 0);
     }
+    // and the gates in fences (#818), each a range of its own to be tapped
+    fv.gateTris = [];
+    for (const a of fv.floor.outdoor ?? [])
+      for (const span of gateSpans(a)) {
+        const start = buf.count;
+        pushGate(buf, fv.floor, a, span, this.awnings.get(span.gate.id)?.cur ?? 0);
+        const entity = span.gate.entity && span.gate.entity !== "none" ? span.gate.entity : span.gate.contact && span.gate.contact !== "none" ? span.gate.contact : null;
+        if (entity) fv.gateTris.push({ id: entity, start, end: buf.count });
+      }
     fv.fridgeMesh.geometry.dispose();
     fv.fridgeMesh.geometry = buf.geometry();
     fv.fridgeMesh.visible = buf.count > 0;
@@ -2157,6 +2177,7 @@ export class FloorplanViewer {
       grab: (x, y) => this.grabFurniture(x, y),
       drag: (x, y) => this.dragFurniture(x, y),
       drop: () => this.dropFurniture(),
+      back: () => this.options.onBack?.(),
       doubleTap: (x, y) => {
         const hit = this.floorId && this.options.onRoomDoubleTap ? this.pick(x, y) : null;
         if (hit && !("entity" in hit) && hit.roomId) this.options.onRoomDoubleTap!(hit.floorId, hit.roomId);
@@ -2757,6 +2778,7 @@ export class FloorplanViewer {
         coneTris: [],
         lampFurnTris: [],
         frameTris: [],
+        gateTris: [],
         glassTris: [],
         blindTris: [],
         wallMesh,
@@ -4151,13 +4173,17 @@ export class FloorplanViewer {
   private pick(x: number, y: number, devices = true): { entity: string } | { floorId: string; roomId: string | null } | null {
     const ray = this.rayAt(x, y);
     const floors = this.activeFloors();
-    const meshes = floors.flatMap((f) => [f.lampMesh, f.coneMesh, f.framesMesh, f.glassMesh, f.blindsMesh, f.wallMesh, f.floorMesh].filter((m) => m.visible));
+    const meshes = floors.flatMap((f) => [f.lampMesh, f.coneMesh, f.framesMesh, f.glassMesh, f.blindsMesh, f.fridgeMesh, f.wallMesh, f.floorMesh].filter((m) => m.visible));
     const inRange = (list: { id: string; start: number; end: number }[], tri: number) => list.find((r) => tri >= r.start && tri < r.end)?.id;
     for (const hit of ray.intersectObjects(meshes, false)) {
       if (hit.faceIndex == null) continue;
       const tri = hit.faceIndex;
       const fv = floors.find((f) => f.group === hit.object.parent)!;
-      if (hit.object === fv.lampMesh || hit.object === fv.coneMesh) {
+      if (hit.object === fv.fridgeMesh) {
+        // a fence gate opens with its entity; fridge doors and awnings belong to their item behind
+        const id = inRange(fv.gateTris, tri);
+        if (id && devices) return { entity: id };
+      } else if (hit.object === fv.lampMesh || hit.object === fv.coneMesh) {
         // a camera's wedge on the floor is a far bigger target than the camera itself
         const id = inRange(hit.object === fv.lampMesh ? fv.lampTris : fv.coneTris, tri);
         if (id && devices) return { entity: id };

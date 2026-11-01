@@ -83,6 +83,10 @@ import {
   LAMP_MODEL,
   isAxisRect,
   OUTDOOR_TYPES,
+  GATE_KINDS,
+  gateSpans,
+  type FenceGate,
+  type GateKind,
   BUTTON_ACTIONS,
   type ButtonAction,
   type CustomButton,
@@ -6288,8 +6292,80 @@ export class Fp3dEditor extends LitElement {
       return svg`<g data-outdoor=${a.id} class=${`fp3d-out fp3d-out-${a.type}${a.id === this._outdoorId ? " fp3d-out-sel" : ""}`}>
         <polygon points=${pts} />
         ${big ? svg`<text x=${cx} y=${cy + 4}>${this.t(`out_${a.type}` as I18nKey)}</text>` : nothing}
+        ${gateSpans(a).map((g) => {
+          // a gate: its gap as a bright bar across the fence line (#818)
+          const len = Math.hypot(g.q[0] - g.p[0], g.q[1] - g.p[1]) || 1;
+          const at = (s: number) => this.toScreen([g.p[0] + ((g.q[0] - g.p[0]) * s) / len, g.p[1] + ((g.q[1] - g.p[1]) * s) / len]);
+          const [x0, y0] = at(g.s0);
+          const [x1, y1] = at(g.s1);
+          return svg`<line class="fp3d-gate" x1=${x0} y1=${y0} x2=${x1} y2=${y1} />`;
+        })}
       </g>`;
     })}</g>`;
+  }
+
+  /** A fence's gates (#818): where each sits on which edge, how it opens and what opens it. */
+  private renderFenceGates(a: OutdoorArea) {
+    const admin = this.isAdmin;
+    const gates = a.gates ?? [];
+    const n = a.points.length;
+    const edges = Array.from({ length: a.open ? n - 1 : n }, (_, i) => {
+      const p = a.points[i];
+      const q = a.points[(i + 1) % n];
+      return { i, len: Math.hypot(q[0] - p[0], q[1] - p[1]) };
+    });
+    const setGate = (id: string, patch: Partial<FenceGate>) => this.updateOutdoor({ gates: gates.map((g) => (g.id === id ? { ...g, ...patch } : g)) });
+    const add = () => {
+      // on the longest edge, in its middle: a 1 m garden gate
+      const e = edges.reduce((m, x) => (x.len > m.len ? x : m), edges[0]);
+      if (!e || e.len < 0.5) return;
+      this.updateOutdoor({ gates: [...gates, { id: uid("gate"), edge: e.i, at: round(e.len / 2), width: Math.min(1, round(e.len - 0.2)) }] });
+    };
+    const drivers = this.entityOptions((id) => /^(cover|switch|input_boolean|lock)\./.test(id));
+    const contacts = this.entityOptions((id) => id.startsWith("binary_sensor."));
+    return html`<div class="fp3d-wide fp3d-gates">
+      <p class="fp3d-sub">${this.t("gate_hint")}</p>
+      ${gates.map(
+        (g, k) => html`<fieldset class="fp3d-gate-box">
+          <legend>${this.t("gate_n", { n: k + 1 })}</legend>
+          <div class="fp3d-form">
+            <label class="fp3d-field"
+              >${this.t("gate_edge")}
+              <select ?disabled=${!admin} @change=${(e: Event) => setGate(g.id, { edge: Number((e.target as HTMLSelectElement).value) })}>
+                ${edges.map((x) => html`<option value=${x.i} ?selected=${x.i === g.edge}>${this.t("gate_edge_n", { n: x.i + 1, len: x.len.toFixed(1) })}</option>`)}
+              </select></label
+            >
+            <label class="fp3d-field"
+              >${this.t("gate_kind")}
+              <select ?disabled=${!admin} @change=${(e: Event) => {
+                const kind = (e.target as HTMLSelectElement).value as GateKind;
+                // a driveway gate is wider than a garden gate
+                setGate(g.id, { kind: kind === "swing" ? undefined : kind, width: kind === "swing" ? Math.min(g.width, 1.2) : Math.max(g.width, 3) });
+              }}>
+                ${GATE_KINDS.map((x) => html`<option value=${x} ?selected=${x === (g.kind ?? "swing")}>${this.t(`gate_kind_${x}` as I18nKey)}</option>`)}
+              </select></label
+            >
+            ${this.len(this.t("gate_at"), g.at, (v) => setGate(g.id, { at: Math.max(0, round(v)) }), 0.05, 0)}
+            ${this.len(this.t("width"), g.width, (v) => setGate(g.id, { width: Math.min(20, Math.max(0.3, round(v))) }), 0.05, 0.3)}
+            <label class="fp3d-check fp3d-wide"
+              ><input type="checkbox" .checked=${!!g.flip} ?disabled=${!admin} @change=${(ev: Event) => setGate(g.id, { flip: (ev.target as HTMLInputElement).checked || undefined })} />
+              ${this.t(g.kind === "slide" ? "gate_flip_slide" : "gate_flip")}</label
+            >
+            ${g.kind === "slide"
+              ? nothing
+              : html`<label class="fp3d-check fp3d-wide"
+                  ><input type="checkbox" .checked=${!!g.outward} ?disabled=${!admin} @change=${(ev: Event) => setGate(g.id, { outward: (ev.target as HTMLInputElement).checked || undefined })} />
+                  ${this.t("gate_outward")}</label
+                >`}
+            ${this.entitySelect(this.t("gate_entity"), g.entity ?? null, undefined, drivers, (v) => setGate(g.id, { entity: v === "none" ? null : v }))}
+            ${this.entitySelect(this.t("gate_contact"), g.contact ?? null, undefined, contacts, (v) => setGate(g.id, { contact: v === "none" ? null : v }))}
+            ${this.num(this.t("gate_time"), g.time ?? (g.kind === "slide" ? 15 : 4), (v) => setGate(g.id, { time: Math.max(1, Math.min(300, Math.round(v))) }), 1)}
+          </div>
+          ${admin ? html`<button class="fp3d-link" @click=${() => this.updateOutdoor({ gates: gates.filter((x) => x.id !== g.id) })}>${this.t("gate_remove")}</button>` : nothing}
+        </fieldset>`,
+      )}
+      ${admin ? html`<button class="fp3d-btn" @click=${add}>${this.t("gate_add")}</button>` : nothing}
+    </div>`;
   }
 
   /** An outdoor area like a room (#100): a Home Assistant area (with its devices) and a name for chip and 3D. */
@@ -6445,6 +6521,7 @@ export class Fp3dEditor extends LitElement {
               ${this.t("outdoor_open")}</label
             >`
           : nothing}
+        ${a.type === "fence" ? this.renderFenceGates(a) : nothing}
         ${a.type === "pergola"
           ? html`<label class="fp3d-check fp3d-wide"
               ><input type="checkbox" .checked=${!!a.bracing} ?disabled=${!admin} @change=${(ev: Event) => this.updateOutdoor({ bracing: (ev.target as HTMLInputElement).checked || undefined })} />
@@ -15877,6 +15954,18 @@ export class Fp3dEditor extends LitElement {
         stroke: var(--fp3d-accent);
         stroke-width: 2;
         stroke-dasharray: none;
+      }
+      .fp3d-gate {
+        stroke: #ffd166;
+        stroke-width: 5;
+        stroke-linecap: round;
+        pointer-events: none;
+      }
+      .fp3d-gate-box {
+        border: 1px solid var(--fp3d-border, rgba(127, 127, 127, 0.3));
+        border-radius: 8px;
+        margin: 6px 0;
+        padding: 4px 8px 8px;
       }
       .fp3d-out text {
         fill: var(--fp3d-muted);

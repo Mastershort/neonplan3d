@@ -71,6 +71,7 @@ export class Floorplan3dPanel extends LitElement {
     _wallMode: { state: true },
     _explode: { state: true },
     _keepRoof: { state: true },
+    _plain: { state: true },
     _quality: { state: true },
     _stats: { state: true },
     _markers: { state: true },
@@ -123,6 +124,8 @@ export class Floorplan3dPanel extends LitElement {
   private declare _wallMode: WallMode;
   private declare _explode: boolean;
   private declare _keepRoof: boolean;
+  /** The plain floor plan without furniture, remembered on this device. */
+  private declare _plain: boolean;
   private declare _quality: Quality;
   /** Performance display (per device; also switched on by ?fp3d_stats in the URL). */
   private declare _stats: boolean;
@@ -189,6 +192,7 @@ export class Floorplan3dPanel extends LitElement {
     this._wallMode = prefs.get("walls") === "cut" ? "cut" : "auto";
     this._explode = prefs.get("explode") !== "0";
     this._keepRoof = prefs.get("roof") === "1";
+    this._plain = prefs.get("plain") === "1";
     const quality = prefs.get("quality");
     this._quality = quality === "low" || quality === "high" ? quality : "auto";
     this._stats = prefs.get("stats") === "1" || new URLSearchParams(location.search).has("fp3d_stats");
@@ -271,6 +275,11 @@ export class Floorplan3dPanel extends LitElement {
   private setWallMode(mode: WallMode): void {
     this._wallMode = mode;
     prefs.set("walls", mode);
+  }
+
+  private setPlain(on: boolean): void {
+    this._plain = on;
+    prefs.set("plain", on ? "1" : "0");
   }
 
   private setKeepRoof(on: boolean): void {
@@ -994,6 +1003,7 @@ export class Floorplan3dPanel extends LitElement {
           .wallMode=${this._wallMode}
           .explode=${this._explode}
           .keepRoof=${this._keepRoof}
+          .plain=${this._plain}
           .markerMode=${this._markers}
           .pinSize=${this._pinSize}
           .heatMode=${this._heat}
@@ -1041,6 +1051,10 @@ export class Floorplan3dPanel extends LitElement {
           <div class="fp3d-seg">
             <button aria-pressed=${this._wallMode === "auto"} @click=${() => this.setWallMode("auto")}>${this.t("walls_auto")}</button>
             <button aria-pressed=${this._wallMode === "cut"} @click=${() => this.setWallMode("cut")}>${this.t("walls_cut")}</button>
+          </div>
+          <div class="fp3d-seg" title=${this.t("plain_hint")}>
+            <button aria-pressed=${!this._plain} @click=${() => this.setPlain(false)}>${this.t("plain_off")}</button>
+            <button aria-pressed=${this._plain} @click=${() => this.setPlain(true)}>${this.t("plain_on")}</button>
           </div>
           ${b.floors.length > 1 && !this._floorId
             ? html`<div class="fp3d-seg">
