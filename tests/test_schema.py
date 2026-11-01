@@ -4,6 +4,7 @@ import pytest
 import voluptuous as vol
 
 from custom_components.neonplan3d.schema import (
+    ENERGY_SCHEMA,
     FURNITURE_SCHEMA,
     HOLOGRAM_SCHEMA,
     OPENING_SCHEMA,
@@ -76,6 +77,29 @@ def test_length_units_follow_home_assistant_unless_set() -> None:
     assert SETTINGS_SCHEMA({**base, "units": "imperial"})["units"] == "imperial"
     assert SETTINGS_SCHEMA(base)["person_look"] is None
     assert SETTINGS_SCHEMA({**base, "person_look": "pin"})["person_look"] == "pin"
+
+
+def test_sun_arc_around_the_plot() -> None:
+    """The sun arc stands around the house unless the plan says the whole plot (#833)."""
+    base = {"wall_exterior": 0.3, "wall_interior": 0.12, "grid": 0.05}
+    assert "sun_arc" not in SETTINGS_SCHEMA(base)
+    assert SETTINGS_SCHEMA({**base, "sun_arc": "plot"})["sun_arc"] == "plot"
+    assert SETTINGS_SCHEMA({**base, "sun_arc": None})["sun_arc"] is None
+    with pytest.raises(vol.Invalid):
+        SETTINGS_SCHEMA({**base, "sun_arc": "street"})
+
+
+def test_cable_hub_point_and_inverter_to_grid() -> None:
+    """A cable hub set by hand and an inverter cable to the grid point are opt-in (#841)."""
+    assert "hub_point" not in ENERGY_SCHEMA({})
+    hub = ENERGY_SCHEMA({"meter": {"floor_id": "eg", "x": 1, "z": 2}, "hub_point": True})
+    assert hub["hub_point"] is True
+    assert hub["meter"] == {"floor_id": "eg", "x": 1.0, "z": 2.0}
+    inv = {"id": "f1", "type": "inverter", "x": 0, "z": 0, "rotation": 0, "w": 0.5, "d": 0.2, "h": 0.6, "variant": None}
+    assert "cable_to" not in FURNITURE_SCHEMA(inv)
+    assert FURNITURE_SCHEMA({**inv, "cable_to": "grid"})["cable_to"] == "grid"
+    with pytest.raises(vol.Invalid):
+        FURNITURE_SCHEMA({**inv, "cable_to": "roof"})
 
 
 def test_furniture_block() -> None:

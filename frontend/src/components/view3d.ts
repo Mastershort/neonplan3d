@@ -5012,6 +5012,15 @@ export class Fp3dView3d extends LitElement {
         ${admin ? nothing : html`<p class="fp3d-set-note">${t("view_settings_admin")}</p>`}
         <h4>${t("view_settings_look")}</h4>
         ${check("sun_shadow", st.sun_shadow !== false, (v) => ({ sun_shadow: v }), "sun_shadow_hint")}
+        ${st.sun_shadow !== false
+          ? html`<label class="fp3d-set-field" title=${t("sun_arc_hint")}
+              >${t("sun_arc")}
+              <select ?disabled=${!admin} @change=${(e: Event) => this.setPlanSettings({ sun_arc: (e.target as HTMLSelectElement).value === "plot" ? "plot" : null })}>
+                <option value="house" ?selected=${st.sun_arc !== "plot"}>${t("sun_arc_house")}</option>
+                <option value="plot" ?selected=${st.sun_arc === "plot"}>${t("sun_arc_plot")}</option>
+              </select></label
+            >`
+          : nothing}
         ${check("window_glow", st.window_glow !== false, (v) => ({ window_glow: v }), "window_glow_hint")}
         ${gpuSafeMode(GUARD_VERSION) ? html`<p class="fp3d-set-note">${t("gpu_safe_note")}</p>` : nothing}
         ${check("sun_patches", st.sun_patches !== false, (v) => ({ sun_patches: v }))}

@@ -264,6 +264,8 @@ FURNITURE_SCHEMA = vol.Schema(
         # Energie Pro, inverter: its plant card moved along the eave / up the slope (m)
         vol.Optional("plant_right"): vol.All(vol.Coerce(float), vol.Range(min=-30, max=30)),
         vol.Optional("plant_up"): vol.All(vol.Coerce(float), vol.Range(min=-30, max=30)),
+        # Energie Pro, inverter: its cable ends at the grid point instead of the meter (#841)
+        vol.Optional("cable_to"): vol.Any(None, vol.In(["meter", "grid"])),
         vol.Optional("status", default=None): vol.Any(None, vol.All(str, vol.Length(max=255))),
         # robot vacuum: sensor naming the room it cleans right now (None = automatic)
         vol.Optional("room_sensor", default=None): vol.Any(None, vol.All(str, vol.Length(max=255))),
@@ -814,6 +816,8 @@ SETTINGS_SCHEMA = vol.Schema(
         # sunlight through the windows as patches on the floor
         vol.Optional("sun_patches", default=True): bool,
         vol.Optional("sun_shadow", default=True): bool,
+        # what the sun's arc and compass ring stand around: the house (None, default) or the whole plot (#833)
+        vol.Optional("sun_arc"): vol.Any(None, vol.In(["house", "plot"])),
         vol.Optional("window_glow", default=True): bool,
         # devices switch only in an opened room; elsewhere a tap opens the room
         vol.Optional("tap_in_room", default=False): bool,
@@ -962,6 +966,8 @@ ENERGY_DEFAULTS = {
 ENERGY_SCHEMA = vol.Schema(
     {
         vol.Optional("meter", default=None): vol.Any(None, METER_SCHEMA),
+        # the cables meet at the point `meter` (e.g. the house board) instead of the meter cabinet (#841)
+        vol.Optional("hub_point"): bool,
         vol.Optional("grid", default=None): _ENTITY,
         vol.Optional("grid_invert", default=False): bool,
         vol.Optional("solar", default=None): _ENTITY,
