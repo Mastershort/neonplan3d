@@ -144,7 +144,8 @@ function copyFonts() {
 // main 734 KB, 3D 841 KB, editor 958 KB, card editor 281 KB on 2026-11-01: gates in fences (#818), the plain floor plan without furniture, right click back – with their texts
 // editor 950 KB on 2026-10-31: templates leave out every entity, wherever it stands (#855), and the room-tap setting in the editor (#883)
 // main 728 KB, editor 949 KB, card editor 276 KB on 2026-10-31: the room of this device and of the card (`voice_area`) for sentences without a room ("Licht an") and their texts
-const BUDGET = { "neonplan3d.js": 734 * 1024, "neonplan3d-fun.js": 40 * 1024, "neonplan3d-voice.js": 60 * 1024, "neonplan3d-locate.js": 160 * 1024, "neonplan3d-timetravel.js": 120 * 1024, "neonplan3d-3d.js": 841 * 1024, "neonplan3d-editor.js": 958 * 1024, "neonplan3d-card-editor.js": 281 * 1024 };
+// main 735 KB, editor 959 KB on 2026-11-01: sloping free walls (#834), terrace roofs stop at thick walls and an overhang per side (#863)
+const BUDGET = { "neonplan3d.js": 735 * 1024, "neonplan3d-fun.js": 40 * 1024, "neonplan3d-voice.js": 60 * 1024, "neonplan3d-locate.js": 160 * 1024, "neonplan3d-timetravel.js": 120 * 1024, "neonplan3d-3d.js": 841 * 1024, "neonplan3d-editor.js": 959 * 1024, "neonplan3d-card-editor.js": 281 * 1024 };
 
 copyFonts();
 if (watch) {

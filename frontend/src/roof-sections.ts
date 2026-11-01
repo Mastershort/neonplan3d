@@ -672,21 +672,42 @@ export interface SectionOverhang {
 /**
  * Overhang per edge: none where the section meets a taller part of the house (a room right outside
  * that edge whose walls rise above the section's wall tops), so a lean-to roof ends at the wall
- * instead of running into the house.
+ * instead of running into the house. An overhang set by hand for a side (`overhang_sides`) wins.
  */
 export function sectionOverhang(b: Building, s: RoofSection, overhang: number): SectionOverhang {
   const fr = sectionFrame(s);
   const taller = b.floors.flatMap((f) => f.rooms.filter((r) => r.points.length >= 3 && f.elevation + f.height > s.base + 0.05));
-  const blocked = (pts: Vec2[]) => pts.some((p) => taller.some((r) => pointInPolygon(p, r.points)));
+  // the taller rooms out to their outer wall faces: a section drawn against the outer face of a thick
+  // wall, or a hand's breadth away from it, meets the house in its wall, not in the room (#863)
+  const ext = b.settings.wall_exterior;
+  const outer = taller.map((r) => offsetPolygon(r.points, Math.max(ext, ...(r.wall_thickness ?? []).map((t) => t ?? 0)) + 0.01));
   const d = 0.35;
-  const along = [0.15, 0.5, 0.85].map((t) => fr.u0 + (fr.u1 - fr.u0) * t);
-  const across = [0.15, 0.5, 0.85].map((t) => fr.w * t);
-  return {
-    a: blocked(along.map((u) => fr.at(u, -d))) ? 0 : overhang,
-    b: blocked(along.map((u) => fr.at(u, fr.w + d))) ? 0 : overhang,
-    u0: blocked(across.map((v) => fr.at(fr.u0 - d, v))) ? 0 : overhang,
-    u1: blocked(across.map((v) => fr.at(fr.u1 + d, v))) ? 0 : overhang,
+  // a sample point of an edge, `k` metres outwards (negative: into the section); `depth` is the section's
+  // size at right angles to the edge
+  const hits = (at: (k: number) => Vec2, depth: number) => {
+    // a room right outside the edge (as before) …
+    if (taller.some((r) => pointInPolygon(at(d), r.points))) return true;
+    // … or its wall: the section ends at or just short of a taller room's outer wall face – a room it does not
+    // stand over itself (the attic under its own roof, a dormer over the attic)
+    const inside = at(-Math.min(0.3, depth / 2));
+    return outer.some((o) => !pointInPolygon(inside, o) && [0.05, 0.2, d].some((k) => pointInPolygon(at(k), o)));
   };
+  const ts = [0.15, 0.5, 0.85];
+  const along = ts.map((t) => fr.u0 + (fr.u1 - fr.u0) * t);
+  const across = ts.map((t) => fr.w * t);
+  const blocked = (side: "a" | "b" | "u0" | "u1"): boolean => {
+    if (side === "a") return along.some((u) => hits((k) => fr.at(u, -k), fr.w));
+    if (side === "b") return along.some((u) => hits((k) => fr.at(u, fr.w + k), fr.w));
+    if (side === "u0") return across.some((v) => hits((k) => fr.at(fr.u0 - k, v), fr.u1 - fr.u0));
+    return across.some((v) => hits((k) => fr.at(fr.u1 + k, v), fr.u1 - fr.u0));
+  };
+  // a side set by hand (#863): its own overhang, whatever the house beside it
+  const own = s.overhang_sides ?? null;
+  const pick = (i: number, side: "a" | "b" | "u0" | "u1") => {
+    const set = own?.[i];
+    return typeof set === "number" ? Math.max(0, set) : blocked(side) ? 0 : overhang;
+  };
+  return { a: pick(0, "a"), b: pick(1, "b"), u0: pick(2, "u0"), u1: pick(3, "u1") };
 }
 
 /** Wall tops below a rectangle: the highest floor with a room under its middle (null = none). */

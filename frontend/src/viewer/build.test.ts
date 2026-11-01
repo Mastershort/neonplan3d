@@ -1,9 +1,10 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { BufferGeometry } from "three";
-import type { Floor, Furniture, Opening, Room } from "../model.ts";
+import type { Floor, Furniture, Opening, Room, Vec2 } from "../model.ts";
 import { newFloor } from "../model.ts";
-import { buildFloorGeometry, clipAlong, stairHoles, stairHoleParts } from "./build.ts";
+import { generateWalls } from "../geometry/walls.ts";
+import { buildFloorGeometry, clipAlong, stairHoles, stairHoleParts, wallHeight } from "./build.ts";
 
 const EXT = 0.24;
 const INT = 0.12;
@@ -209,6 +210,29 @@ test("a sloping wall: its top runs from the height at its start to the one at it
   // centred 0.8 m along the wall it starts at 0.5 m, where the top is 1.0 + 1.5 × 0.5 / 4 ≈ 1.19 m: it ends just below
   const info = geo.openings.find((o) => o.opening.id === win.id);
   assert.ok(info && info.top < 1.19 && info.top > 1.1, `window top ${info?.top}`);
+});
+
+test("a free wall slopes like a room edge: from the height at end a to the one at end b (#834)", () => {
+  const room = rect("r", 0, 0, 6, 4);
+  const plain = { id: "fw", a: [1, 2] as Vec2, b: [5, 2] as Vec2, thickness: 0.1 };
+  // its top near each end, on the free wall alone (z around 2, inside the room)
+  const top = (floor: Floor, x0: number, x1: number) => {
+    const pos = buildFloorGeometry(floor, EXT, INT).walls.getAttribute("position");
+    let hi = -Infinity;
+    for (let i = 0; i < pos.count; i++) if (Math.abs(pos.getZ(i) - 2) < 0.06 && pos.getX(i) >= x0 && pos.getX(i) <= x1) hi = Math.max(hi, pos.getY(i));
+    return hi;
+  };
+  // without a slope it stands at its height, as before
+  const flat = { ...floorWith([room]), height: 2.5, walls: [{ ...plain, height: 1.2 }] };
+  near(top(flat, 0.9, 1.1), 1.2, 0.01);
+  near(top(flat, 4.9, 5.1), 1.2, 0.01);
+  // with one it falls from 2.4 m at a to 0.6 m at b (and the plain height no longer counts)
+  const sloped = { ...flat, walls: [{ ...plain, height: 1.2, slope: [2.4, 0.6] as [number, number] }] };
+  near(top(sloped, 0.95, 1.05), 2.4, 0.05);
+  near(top(sloped, 4.95, 5.05), 0.6, 0.05);
+  const w = generateWalls([room], { exterior: EXT, interior: INT }, sloped.walls).walls.find((x) => x.free === "fw")!;
+  assert.deepEqual(w.slope, { p: [1, 2], q: [5, 2], h0: 2.4, h1: 0.6 });
+  assert.equal(wallHeight(w, 2.5), 2.4);
 });
 
 test("a sloping wall crossing the cut height keeps its full face: no notch where it crosses (#821)", () => {

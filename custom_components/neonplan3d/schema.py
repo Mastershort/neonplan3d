@@ -570,6 +570,14 @@ ROOF_SECTION_SCHEMA = vol.Schema(
         vol.Optional("pitch_b", default=35): vol.All(vol.Coerce(float), vol.Range(min=0, max=80)),
         vol.Required("base"): _HEIGHT,
         vol.Optional("overhang", default=None): vol.Any(None, vol.All(vol.Coerce(float), vol.Range(min=0, max=2))),
+        # the overhang per side set by hand (a, b, u0, u1; None = automatic, #863)
+        vol.Optional("overhang_sides"): vol.Any(
+            None,
+            vol.All(
+                [vol.Any(None, vol.All(vol.Coerce(float), vol.Range(min=0, max=2)))],
+                vol.Length(min=4, max=4),
+            ),
+        ),
         vol.Optional("flip", default=False): bool,
         # a flat roof as a free shape: its footprint polygon (x0 … z1 hold the bounding box)
         vol.Optional("points", default=None): vol.Any(None, vol.All([_POINT], vol.Length(min=3, max=MAX_POINTS))),
@@ -721,6 +729,11 @@ FREE_WALL_SCHEMA = vol.Schema(
         vol.Required("b"): _POINT,
         vol.Optional("thickness", default=None): vol.Any(None, vol.All(vol.Coerce(float), vol.Range(min=0.02, max=1))),
         vol.Optional("height", default=None): vol.Any(None, vol.All(vol.Coerce(float), vol.Range(min=0.05, max=20))),
+        # a sloping top (#834): the height at end a and at end b (None = the plain height)
+        vol.Optional("slope"): vol.Any(
+            None,
+            vol.All([vol.All(vol.Coerce(float), vol.Range(min=0.05, max=20))], vol.Length(min=2, max=2)),
+        ),
     },
     extra=vol.ALLOW_EXTRA,
 )

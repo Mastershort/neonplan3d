@@ -75,6 +75,17 @@ const FARM_SCRIPT = `
   e.setDoc(b);
 `;
 
+// the farmhouse with 42 cm outer walls and a glass terrace roof flush with the house's outer wall face (#863):
+// the roof stops at the wall instead of poking through it
+const TERRACE_SCRIPT = FARM_SCRIPT + `
+  const t = structuredClone(e._doc);
+  t.settings.wall_exterior = 0.42;
+  const haus = t.settings.roof.sections.find((s) => s.id === "haus");
+  Object.assign(haus, { x0: -0.42, z0: -0.42, x1: 10.42, z1: 9.42 });
+  t.settings.roof.sections.push({ id: "terrasse", x0: 10.42, z0: 1, x1: 14, z1: 8, shape: "pent", axis: "z", flip: true, eave_a: 2.5, eave_b: 2.5, pitch_a: 10, pitch_b: 10, base: 2.5, overhang: 0.3, open: true });
+  e.setDoc(t);
+`;
+
 // kitchen with pack furniture on the island, pendant lights from a pack and a wallbox (local packs)
 const PACK_MOUNT_SCRIPT = `
   const f = e._doc.floors[0];
@@ -251,6 +262,10 @@ const shots = [
   { name: "view-roof-garage-pent", query: "", width: 1280, height: 800, editor: true, editorScript: "e.useRoofSections(); setTimeout(() => { const g = e._doc.settings.roof.sections.find((s) => s.x0 > 9.5); e._tool = 'roof'; e._roofId = g.id; e.updateRoofSection({ shape: 'pent', axis: 'z', flip: true, pitch_a: 25, pitch_b: 25, eave_a: 2.6, eave_b: 2.6 }); }, 700);", afterWait: 1500, then3d: "Alle Etagen", then3dAlso: ["Gestapelt"], camera: { theta: 0.6, phi: 1.15, radius: 24 } },
   { name: "view-roof-farmhouse-front", query: "", width: 1280, height: 800, editor: true, editorScript: FARM_SCRIPT, then3d: "Alle Etagen", then3dAlso: "Gestapelt", camera: { theta: 2.3, phi: 0.95, radius: 52 } },
   { name: "view-roof-farmhouse", query: "", width: 1280, height: 800, editor: true, editorScript: FARM_SCRIPT, then3d: "Alle Etagen", then3dAlso: "Gestapelt" },
+  { name: "view-terrace-roof-wall", query: "", width: 1280, height: 800, editor: true, editorScript: TERRACE_SCRIPT, then3d: "Alle Etagen", then3dAlso: ["Anzeige", "Gestapelt", "Dach bleibt", "Anzeige"], camera: { target: { x: 10, y: 2.5, z: 4.5 }, theta: 0.7, phi: 1.15, radius: 16 } },
+  { name: "editor-roof-overhang-sides", query: "", width: 1500, height: 1100, editor: true, editorScript: TERRACE_SCRIPT + "e._floorId = e._doc.floors[0].id; setTimeout(() => { e._tool = 'roof'; e._roofId = 'terrasse'; e.updateRoofSection({ overhang_sides: [0.3, 0, 0.6, 0.3] }); }, 600); setTimeout(() => e.fit(), 1000);", afterWait: 1800, scrollSide: true },
+  { name: "view-free-wall-slope", query: "", width: 1280, height: 800, editor: true, editorScript: "const w = e._doc.floors[0].walls.find((x) => x.id === 'wall_garage'); w.slope = [2.4, 0.6]; const f = e._doc.floors[0]; f.openings = f.openings.filter((o) => o.wall !== w.id); e.setDoc(structuredClone(e._doc));", then3d: "Garage", camera: { target: { x: 11.3, y: 1, z: 1.1 }, theta: 0.35, phi: 1.25, radius: 7 } },
+  { name: "editor-free-wall-slope", query: "", width: 1280, height: 900, editor: true, editorScript: "const w = e._doc.floors[0].walls.find((x) => x.id === 'wall_garage'); w.slope = [2.4, 0.6]; e.setDoc(structuredClone(e._doc)); e._floorId = e._doc.floors[0].id; e._tool = 'select'; e._wallId = w.id;" },
   // the state hint above "Power sensor" must not overlap it (customer mail 2026-10-09)
   { name: "editor-state-hint", query: "", width: 1280, height: 900, editor: true, editorScript: "const fl = e._doc.floors[0]; const f = fl.furniture.find((x) => ['stove', 'kitchen', 'dishwasher', 'washer', 'fridge', 'desk'].includes(x.type)); f.state_entity = 'switch.kaffeemaschine'; e._roomId = null; e._furnitureId = f.id; e.setDoc(structuredClone(e._doc)); setTimeout(() => { const a = e.renderRoot.querySelector('aside'); const h = [...a.querySelectorAll('p')].find((x) => /glows|leuchtet/.test(x.textContent)); h?.scrollIntoView({ block: 'center' }); }, 600);", afterWait: 1200 },
   { name: "editor-state-hint-phone", query: "?lang=en", width: 412, height: 900, editor: true, editorScript: "const fl = e._doc.floors[0]; const f = fl.furniture.find((x) => ['stove', 'kitchen', 'dishwasher', 'washer', 'fridge', 'desk'].includes(x.type)); f.state_entity = 'switch.kaffeemaschine'; e._roomId = null; e._furnitureId = f.id; e.setDoc(structuredClone(e._doc)); setTimeout(() => { const a = e.renderRoot.querySelector('aside'); const h = [...a.querySelectorAll('p')].find((x) => /glows|leuchtet/.test(x.textContent)); h?.scrollIntoView({ block: 'center' }); }, 600);", afterWait: 1200 },

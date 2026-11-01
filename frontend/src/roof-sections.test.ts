@@ -127,6 +127,72 @@ test("a canopy over a terrace draws see-through panels and posts instead of wall
   assert.equal(sectionOverhang(b, canopy, 0.15).b, 0);
 });
 
+/** A two-storey house 10 × 8 with thick outer walls, and a terrace roof against its wall at z = 8 (side b). */
+function terraceCase(ext: number) {
+  const b = emptyBuilding();
+  b.settings.wall_exterior = ext;
+  b.floors = [
+    { ...newFloor("eg", "EG", 0), height: 2.6, rooms: [rect("house", 0, 0, 10, 8)] },
+    { ...newFloor("dg", "DG", 2.8), height: 2.5, rooms: [rect("up", 0, 0, 10, 8)] },
+  ];
+  const canopy = (z0: number, patch: Partial<RoofSection> = {}) =>
+    section({ x0: 2, z0, x1: 8, z1: z0 + 3, shape: "pent", axis: "x", flip: true, eave_a: 2.4, eave_b: 2.4, pitch_a: 6, pitch_b: 6, base: 2.4, open: true, ...patch });
+  return { b, canopy };
+}
+
+test("a terrace roof against the outer face of a thick wall has no overhang into the house (#863)", () => {
+  for (const ext of [0.24, 0.365, 0.42, 0.5]) {
+    const { b, canopy } = terraceCase(ext);
+    // drawn at the room's corners (into the wall), flush with the outer wall face, or a little short of it
+    for (const z0 of [8, 8 + ext, 8 + ext + 0.1, 8 + ext + 0.25]) {
+      const o = sectionOverhang(b, canopy(z0), 0.15);
+      assert.deepEqual([o.a, o.b, o.u0, o.u1], [0.15, 0, 0.15, 0.15], `wall ${ext}, edge at z ${z0}`);
+    }
+    // on the walls of the ground floor too (a terrace drawn as a room: the roof sits at its wall tops)
+    assert.equal(sectionOverhang(b, canopy(8 + ext, { base: 2.6, eave_a: 2.6, eave_b: 2.6 }), 0.15).b, 0, `wall ${ext} on the walls`);
+    // a carport a metre away from the house keeps its overhang all round
+    assert.equal(sectionOverhang(b, canopy(8 + ext + 1), 0.15).b, 0.15, `wall ${ext} free`);
+  }
+});
+
+test("a roof over its own floor keeps its overhang beside thick walls (#863)", () => {
+  for (const ext of [0.24, 0.5]) {
+    const { b } = terraceCase(ext);
+    // the attic roof starts below the top floor's ceiling (knee walls): that floor is "taller", but the roof stands over it
+    const attic = (x0: number, z0: number, x1: number, z1: number) => section({ x0, z0, x1, z1, eave_a: 3.8, eave_b: 3.8, base: 3.8 });
+    for (const s of [attic(-ext, -ext, 10 + ext, 8 + ext), attic(0, 0, 10, 8), attic(-ext + 0.03, -ext + 0.03, 10 + ext - 0.03, 8 + ext - 0.03)]) {
+      const o = sectionOverhang(b, s, 0.4);
+      assert.deepEqual([o.a, o.b, o.u0, o.u1], [0.4, 0.4, 0.4, 0.4], `wall ${ext}, ${s.x0}`);
+    }
+  }
+});
+
+test("a turned terrace roof finds the turned house's wall as well (#863)", () => {
+  const { b, canopy } = terraceCase(0.42);
+  // the house and its terrace roof, both turned 30° about the house's corner
+  const flat = canopy(8.42);
+  const turned = { ...flat, rotation: 30, pivot: [0, 0] as [number, number] };
+  const t = sectionTurn(turned);
+  for (const f of b.floors) for (const r of f.rooms) r.points = r.points.map((p) => turnPoint(t, p));
+  const o = sectionOverhang(b, turned, 0.15);
+  assert.deepEqual([o.a, o.b, o.u0, o.u1], [0.15, 0, 0.15, 0.15]);
+});
+
+test("an overhang set per side wins over the automatic one; unset sides stay automatic (#863)", () => {
+  const { b, canopy } = terraceCase(0.24);
+  const auto = sectionOverhang(b, canopy(8.24), 0.15);
+  assert.deepEqual([auto.a, auto.b, auto.u0, auto.u1], [0.15, 0, 0.15, 0.15]);
+  // a deeper overhang at the front, none at one end, the rest automatic (the house side stays at 0)
+  const o = sectionOverhang(b, canopy(8.24, { overhang_sides: [0.6, null, 0, null] }), 0.15);
+  assert.deepEqual([o.a, o.b, o.u0, o.u1], [0.6, 0, 0, 0.15]);
+  // set by hand, even the house side gets one
+  assert.equal(sectionOverhang(b, canopy(8.24, { overhang_sides: [null, 0.3, null, null] }), 0.15).b, 0.3);
+  // the viewer and the solar faces take it from there: the roof reaches 0.6 m beyond its front edge
+  b.settings.roof = { type: "custom", pitch: 35, overhang: 0.4, sections: [canopy(8.24, { overhang_sides: [0.6, null, null, null] })] };
+  const zs = buildRoof(b)[0].glass.p.filter((_, i) => i % 3 === 2);
+  near(Math.max(...zs), 8.24 + 3 + 0.6, 0.02);
+});
+
 test("a flat roof as a free shape: the floor's outline, grown by the wall thickness, covers the rooms only", () => {
   // an L-shaped floor: a 8×6 house with a 4×4 wing
   const outline = floorOutline([rect("a", 0, 0, 8, 6), rect("b", 8, 0, 12, 4)], [], 0.24, 0.12)!;
