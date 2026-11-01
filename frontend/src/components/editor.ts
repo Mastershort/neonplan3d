@@ -4,7 +4,7 @@ import { css, html, LitElement, nothing, svg, type PropertyValues, type Template
 import { linesField } from "./lines-field.ts";
 import { unsafeHTML } from "lit/directives/unsafe-html.js";
 import { ref } from "lit/directives/ref.js";
-import { fetchImage, importPack, listHistory, restoreSnapshot, storeImage, takeSnapshot, type Snapshot, getVoiceSettings, setVoiceSentences, type SentenceMode } from "../api.ts";
+import { fetchImage, getLicense, importPack, listHistory, restoreSnapshot, storeImage, takeSnapshot, type Snapshot, getVoiceSettings, setVoiceSentences, type SentenceMode } from "../api.ts";
 import { download, exportFile, parseExport } from "../transfer.ts";
 import { carEntities, type CarEntities, areaEntities, autoPlace, hiddenInHa, CLIMATE_CLASSES, defaultHeight, entityName, entityAreaId, furnitureEntities, groupByDevice, hasScreen, isMediaFurniture, isPlaceable, isRoomClimateSensor, kindOf, openingEntities, otherAreaEntities, pictureRuleMatches, roomClimateSensors, roomPanelEntities, unassignedEntities, windowPosition, type ClimateKey } from "../devices.ts";
 import { furnitureSymbol } from "./furniture2d.ts";
@@ -22,6 +22,7 @@ import { SHOW_PRESENCE } from "../flags.ts";
 import { hasFeature, labOn, manualUrl, released, shopUrl, UNRELEASED } from "../features.ts";
 import { loadLocate } from "../load-locate.ts";
 import { isBeta, supporterUrl } from "../beta.ts";
+import { openPrint } from "../print.ts";
 import { BIN_SHAPES, BIN_SIZE, binColors, binShape, householdCountry, isPackPlant, MAILBOX_SHAPES, MAILBOX_SIZE, mailboxShape, WASTE_KINDS, wasteColors } from "../household.ts";
 import { cameraMotionSensors, cameraOwnSensors, detectionKind, setCameraSensors } from "../markers.ts";
 import { backdropImage } from "../backdrop.ts";
@@ -370,6 +371,7 @@ export class Fp3dEditor extends LitElement {
     _split: { state: true },
     _splitRatio: { state: true },
     _backupBusy: { state: true },
+    _supporter: { state: true },
     _wall3d: { state: true },
     _sidePinned: { state: true },
     _sideMin: { state: true },
@@ -474,6 +476,9 @@ export class Fp3dEditor extends LitElement {
   /** Share of the width the plan takes next to the 3D pane (0.2 … 0.8). */
   private declare _splitRatio: number;
   private declare _backupBusy: boolean;
+  /** A Supporter-Pass holder (asked from the shop connection when the backup section opens): NeonPlan Print is offered. */
+  private declare _supporter: boolean;
+  private supporterChecked = false;
   /** Walls in the 3D pane: full height ("auto") or cut at the cut height (shows wall units and shelves). */
   private declare _wall3d: WallMode;
   /** Sidebar beside the 3D pane: pinned open always, or folded to a strip while nothing is selected. */
@@ -786,6 +791,7 @@ export class Fp3dEditor extends LitElement {
       /* no storage */
     }
     this._backupBusy = false;
+    this._supporter = false;
     // the 3D pane's wall view stays as it was last set on this device (#309)
     this._wall3d = "cut";
     try {
@@ -13284,6 +13290,15 @@ export class Fp3dEditor extends LitElement {
     </div>`;
   }
 
+  /** Once per editor: is this a Supporter-Pass holder? (Admins only, like the shop connection.) */
+  private checkSupporter(): void {
+    if (this.supporterChecked || !this.hass || !this.isAdmin) return;
+    this.supporterChecked = true;
+    getLicense(this.hass)
+      .then((lic) => (this._supporter = !!(lic.active && lic.supporter)))
+      .catch(() => undefined);
+  }
+
   private async loadHistory(): Promise<void> {
     if (!this.hass) return;
     try {
@@ -13405,7 +13420,10 @@ export class Fp3dEditor extends LitElement {
     return html`<details
       class="fp3d-section"
       @toggle=${(e: Event) => {
-        if ((e.target as HTMLDetailsElement).open) void this.loadHistory();
+        if ((e.target as HTMLDetailsElement).open) {
+          void this.loadHistory();
+          this.checkSupporter();
+        }
       }}
     >
       <summary>${this.t("backup")}</summary>
@@ -13426,11 +13444,24 @@ export class Fp3dEditor extends LitElement {
       <div class="fp3d-actions">
         <button class="fp3d-btn" @click=${() => this.exportPlan(false)}>${this.t("backup_export")}</button>
         <button class="fp3d-btn" title=${this.t("backup_export_share_hint")} @click=${() => this.exportPlan(true)}>${this.t("backup_export_share")}</button>
+        ${this._supporter && this.isAdmin
+          ? html`<button
+              class="fp3d-btn"
+              @click=${() => {
+                // the same file as "Export plan"; the print site reads it
+                this.exportPlan(false);
+                openPrint();
+              }}
+            >
+              ${this.t("print_editor")}
+            </button>`
+          : nothing}
         <label class="fp3d-btn fp3d-upload"
           >${this.t("backup_import")}<input type="file" accept="application/json,.json" @change=${this.importPlan}
         /></label>
       </div>
       <p class="fp3d-sub">${this.t("backup_hint")}</p>
+      ${this._supporter && this.isAdmin ? html`<p class="fp3d-sub">${this.t("print_editor_hint")}</p>` : nothing}
       <p class="fp3d-sub">
         ${this.t("backup_other_hint")}
         <a href=${`https://neonplan3d.mastershort.de/import/?lang=${(this.hass?.language ?? "en").startsWith("de") ? "de" : "en"}`} target="_blank" rel="noopener">${this.t("backup_other")}</a>
