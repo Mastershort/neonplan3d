@@ -144,7 +144,7 @@ import {
   setTerrain,
   clearFirstState,
 } from "../model.ts";
-import { windowGetsWell } from "../geometry/wells.ts";
+import { WELL_DEPTH, windowGetsWell } from "../geometry/wells.ts";
 import { controls, tokens } from "../styles.ts";
 import "./entity-picker.ts";
 import type { HassArea, HassFloor, HomeAssistant } from "../types.ts";
@@ -11251,7 +11251,13 @@ export class Fp3dEditor extends LitElement {
                 ><input type="checkbox" .checked=${o.well !== false} ?disabled=${!admin} @change=${(ev: Event) => this.updateOpening({ well: (ev.target as HTMLInputElement).checked ? undefined : false })} />
                 ${this.t("well")}</label
               >
-              ${o.well !== false ? this.len(this.t("well_rim"), o.well_rim ?? 0, (v) => this.updateOpening({ well_rim: Math.max(-0.3, Math.min(1, v)) || null }), 0.01, -0.3) : nothing}`
+              ${o.well !== false ? this.len(this.t("well_rim"), o.well_rim ?? 0, (v) => this.updateOpening({ well_rim: Math.max(-0.3, Math.min(1, v)) || null }), 0.01, -0.3) : nothing}
+              ${o.well !== false
+                ? this.len(this.t("well_depth"), o.well_depth ?? WELL_DEPTH, (v) => {
+                    const d = Math.round(Math.max(0.2, Math.min(1.5, v)) * 100) / 100;
+                    this.updateOpening({ well_depth: d === WELL_DEPTH ? null : d });
+                  }, 0.05, 0.2)
+                : nothing}`
           : nothing}
         ${o.type === "window"
           ? html`<label class="fp3d-check fp3d-wide" title=${this.t("rain_ignore_hint")}

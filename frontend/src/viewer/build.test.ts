@@ -191,6 +191,25 @@ test("a stairwell joined with the stairs' own hole is cut even where the two rea
   assert.ok(solid - cut > 3.9 && solid - cut < 4.06, `${solid - cut}`);
 });
 
+test("an opening reaching a few centimetres past the room line is still cut, the part inside the room (#813)", () => {
+  // the split-level stair room of #813: narrow, with a point on its left edge; the cellar stairs below reach 2.5 cm
+  // past that edge (into the wall), across the point
+  const room: Room = { ...rect("r", 0, 0, 1, 1), points: [[1.6, -0.15], [2.74, -0.15], [2.74, 3.5], [1.6, 3.5], [1.6, 1.25]] };
+  const upper = floorWith([room]);
+  upper.elevation = -1.4;
+  const lower = floorWith([rect("k", -2, -0.14, 2.74, 3.5)]);
+  lower.elevation = -2.5;
+  lower.furniture.push({ id: "s", type: "stairs", x: 2.14, z: 1.55, rotation: 0, w: 1.13, d: 1.8, h: 1.4, variant: null });
+  const solid = area(buildFloorGeometry(upper, EXT, INT).floor);
+  const cut = area(buildFloorGeometry(upper, EXT, INT, stairHoleParts([lower, upper], upper)).floor);
+  // the part inside the room: x 1.6–2.705, z 0.65–2.45 (1.105 × 1.8 m), minus the 3 mm inset
+  assert.ok(solid - cut > 1.95 && solid - cut < 1.99, `${solid - cut}`);
+  // a stairwell opening snapped 2 cm past the edge on the other side as well
+  upper.furniture.push({ id: "w", type: "stairwell", x: 2.17, z: 1.55, rotation: 0, w: 1.18, d: 1.8, h: 0.02, variant: null });
+  const both = area(buildFloorGeometry(upper, EXT, INT, stairHoleParts([upper], upper)).floor);
+  assert.ok(solid - both > 1.98 && solid - both < 2.06, `${solid - both}`);
+});
+
 test("a sloping wall: its top runs from the height at its start to the one at its end (D569)", () => {
   // edge 0 of the room runs from (0,0) to (4,0): 1.0 m high at the start, 2.5 m at the end
   const room = { ...rect("r", 0, 0, 4, 3), wall_slopes: [[1.0, 2.5] as [number, number], null, null, null] };

@@ -4,7 +4,7 @@
 import { Color } from "three";
 import type { Building, Floor, Vec2 } from "../model.ts";
 import { areaGround, OUTDOOR_TOP, outdoorStanding, pointInPolygon, terrainAt } from "../model.ts";
-import { earthOutline, inGround, wellBelowGround } from "../geometry/wells.ts";
+import { earthOutline, inGround, WELL_DEPTH, wellBelowGround } from "../geometry/wells.ts";
 import { SLAB, type OpeningInfo } from "./build.ts";
 import { GeoBuffer, LineBuffer } from "./geo.ts";
 
@@ -21,8 +21,7 @@ const PLINTH = new Color(0x22314a);
 const PLINTH_LOW = new Color(0x141f30);
 /** How far the earth reaches under the floor slab. */
 const BELOW = 0.35;
-/** A light well in front of a cellar window: depth from the wall and how far it reaches below the sill. */
-const WELL_DEPTH = 0.8;
+/** A light well in front of a cellar window: how far it reaches below the sill (its depth: the window's own or WELL_DEPTH). */
 const WELL_BELOW = 0.2;
 const WELL_SIDE = 0.1;
 
@@ -43,6 +42,8 @@ interface Well {
   rim: number;
   /** How far the window's outer face stands out of the outline (a room edge with a thicker wall of its own, #843). */
   off: number;
+  /** How far the well reaches out from the window's outer face (m). */
+  depth: number;
 }
 
 /**
@@ -116,8 +117,9 @@ export function buildEarth(b: Building, floor: Floor, openings: readonly Opening
       const off = (cx - a[0]) * n[0] + (cz - a[1]) * n[1];
       if (Math.abs(o.axis[0] * ax[0] + o.axis[1] * ax[1]) < 0.99 || off < -0.08 || off > 0.6 || s < -0.05 || s > len + 0.05) continue;
       // the same decision the editor offers its "Light well" switch by (#524)
-      if (!wellBelowGround(b, floor, o.exterior, o.sill, [cx, cz])) continue;
-      holes.push({ s0: Math.max(0, s - o.width / 2 - WELL_SIDE), s1: Math.min(len, s + o.width / 2 + WELL_SIDE), bottom: Math.max(bottom + 0.05, o.sill - WELL_BELOW), rim: o.opening.well_rim ?? 0, off: Math.max(0, off) });
+      if (!wellBelowGround(b, floor, o.exterior, o.sill, [cx, cz], n)) continue;
+      const depth = o.opening.well_depth ?? WELL_DEPTH;
+      holes.push({ s0: Math.max(0, s - o.width / 2 - WELL_SIDE), s1: Math.min(len, s + o.width / 2 + WELL_SIDE), bottom: Math.max(bottom + 0.05, o.sill - WELL_BELOW), rim: o.opening.well_rim ?? 0, off: Math.max(0, off), depth });
     }
     // the earth in pieces of at most half a metre, lower where a light well is
     const cuts = new Set<number>([0, len]);
@@ -164,8 +166,8 @@ export function buildEarth(b: Building, floor: Floor, openings: readonly Opening
     for (const h of holes) {
       const w0 = at(h.s0, h.off);
       const w1 = at(h.s1, h.off);
-      const f0: Vec2 = [w0[0] + n[0] * WELL_DEPTH, w0[1] + n[1] * WELL_DEPTH];
-      const f1: Vec2 = [w1[0] + n[0] * WELL_DEPTH, w1[1] + n[1] * WELL_DEPTH];
+      const f0: Vec2 = [w0[0] + n[0] * h.depth, w0[1] + n[1] * h.depth];
+      const f1: Vec2 = [w1[0] + n[0] * h.depth, w1[1] + n[1] * h.depth];
       // the rim may stand above the ground (above gravel or a path laid around the house); under a lawn, a path or
       // a terrace drawn over the well it stands just above that surface by itself, or the area would cover it
       const mid: Vec2 = [(w0[0] + w1[0] + f0[0] + f1[0]) / 4, (w0[1] + w1[1] + f0[1] + f1[1]) / 4];
@@ -190,7 +192,7 @@ export function buildEarth(b: Building, floor: Floor, openings: readonly Opening
       for (let j = 1; j < bars; j++) {
         const t = j / bars;
         const p: Vec2 = [w0[0] + (w1[0] - w0[0]) * t, w0[1] + (w1[1] - w0[1]) * t];
-        lines.seg(top(p), top([p[0] + n[0] * WELL_DEPTH, p[1] + n[1] * WELL_DEPTH]), GRATE);
+        lines.seg(top(p), top([p[0] + n[0] * h.depth, p[1] + n[1] * h.depth]), GRATE);
       }
     }
   }

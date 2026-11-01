@@ -135,6 +135,8 @@ export interface Opening {
   well?: boolean;
   /** How far the light well's rim and grate stand above the ground in m (null = level with it), e.g. above gravel. */
   well_rim?: number | null;
+  /** How far the light well reaches out from the wall in m (null = 0.8 m), e.g. to stay within a path (#890). */
+  well_depth?: number | null;
   /** Highlight in 3D while open (null, default) or while closed (a WC or a child's room door). */
   mark?: "closed" | null;
   /**

@@ -177,6 +177,10 @@ OPENING_SCHEMA = vol.Schema(
         # a window below the ground: its light well (False: none) and how far its rim stands above the ground
         vol.Optional("well", default=True): bool,
         vol.Optional("well_rim", default=None): vol.Any(None, vol.All(vol.Coerce(float), vol.Range(min=-0.3, max=1))),
+        # how far the light well reaches out from the wall (None: 0.8 m)
+        vol.Optional("well_depth", default=None): vol.Any(
+            None, vol.All(vol.Coerce(float), vol.Range(min=0.2, max=1.5))
+        ),
         # highlight in 3D while open (None) or while closed ("closed": a WC or a child's room door)
         vol.Optional("mark", default=None): vol.Any(None, vol.In(["closed"])),
         # windows: board inside and sill outside, "auto" (from 0.3 m sill height, none for a window
