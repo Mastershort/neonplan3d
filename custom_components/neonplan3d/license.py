@@ -196,6 +196,8 @@ def _offers(raw: Any) -> list[dict[str, Any]]:
                 "kind": o.get("kind") if o.get("kind") in ("pack", "pro", "bundle", "fun") else "pack",
                 "price": str(o.get("price") or "")[:40],
                 "new": bool(o.get("new")),
+                # the Supporter Pass: its tile mentions what comes with it (NeonPlan Print)
+                "supporter_pass": bool(o.get("supporter_pass")),
             }
         )
     return out

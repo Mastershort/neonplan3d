@@ -2171,5 +2171,6 @@
  "print_dot": "Nou",
  "print_dot_hint": "Nou pentru susținători: NeonPlan Print",
  "print_editor": "🖨 Printează în 3D",
- "print_editor_hint": "Încarcă fișierul acolo."
+ "print_editor_hint": "Încarcă fișierul acolo.",
+ "print_pass_line": "🖨 include NeonPlan Print (beta): casa ta ca print 3D"
 }

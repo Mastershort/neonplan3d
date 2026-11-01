@@ -2171,5 +2171,6 @@
  "print_dot": "Nouveau",
  "print_dot_hint": "Nouveau pour les supporters : NeonPlan Print",
  "print_editor": "🖨 Imprimer en 3D",
- "print_editor_hint": "Importe le fichier là-bas."
+ "print_editor_hint": "Importe le fichier là-bas.",
+ "print_pass_line": "🖨 NeonPlan Print inclus (bêta) : ta maison en impression 3D"
 }

@@ -2171,5 +2171,6 @@
  "print_dot": "Nové",
  "print_dot_hint": "Novinka pre supporterov: NeonPlan Print",
  "print_editor": "🖨 Tlačiť v 3D",
- "print_editor_hint": "Nahraj tam súbor."
+ "print_editor_hint": "Nahraj tam súbor.",
+ "print_pass_line": "🖨 vrátane NeonPlan Print (beta): tvoj dom ako 3D tlač"
 }

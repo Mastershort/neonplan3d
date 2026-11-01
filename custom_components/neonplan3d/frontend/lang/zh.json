@@ -2171,5 +2171,6 @@
  "print_dot": "新",
  "print_dot_hint": "支持者新功能：NeonPlan Print",
  "print_editor": "🖨 3D 打印",
- "print_editor_hint": "在那里上传文件。"
+ "print_editor_hint": "在那里上传文件。",
+ "print_pass_line": "🖨 包含 NeonPlan Print（测试版）：把你的房子 3D 打印出来"
 }

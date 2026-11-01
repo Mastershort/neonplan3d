@@ -2171,5 +2171,6 @@
  "print_dot": "Nytt",
  "print_dot_hint": "Nytt for supportere: NeonPlan Print",
  "print_editor": "🖨 Skriv ut i 3D",
- "print_editor_hint": "Last opp filen der."
+ "print_editor_hint": "Last opp filen der.",
+ "print_pass_line": "🖨 inkludert NeonPlan Print (beta): huset ditt som 3D-utskrift"
 }

@@ -2171,5 +2171,6 @@
  "print_dot": "Nieuw",
  "print_dot_hint": "Nieuw voor supporters: NeonPlan Print",
  "print_editor": "🖨 In 3D printen",
- "print_editor_hint": "Upload het bestand daar."
+ "print_editor_hint": "Upload het bestand daar.",
+ "print_pass_line": "🖨 inclusief NeonPlan Print (bèta): je huis als 3D-print"
 }

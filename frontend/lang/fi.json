@@ -2171,5 +2171,6 @@
  "print_dot": "Uusi",
  "print_dot_hint": "Uutta tukijoille: NeonPlan Print",
  "print_editor": "🖨 Tulosta 3D:nä",
- "print_editor_hint": "Lataa tiedosto sinne."
+ "print_editor_hint": "Lataa tiedosto sinne.",
+ "print_pass_line": "🖨 sisältää NeonPlan Printin (beta): talosi 3D-tulosteena"
 }

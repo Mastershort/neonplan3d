@@ -2171,5 +2171,6 @@
  "print_dot": "Új",
  "print_dot_hint": "Új a támogatóknak: NeonPlan Print",
  "print_editor": "🖨 Nyomtatás 3D-ben",
- "print_editor_hint": "Töltsd fel ott a fájlt."
+ "print_editor_hint": "Töltsd fel ott a fájlt.",
+ "print_pass_line": "🖨 benne van a NeonPlan Print (béta): a házad 3D-nyomtatásban"
 }
