@@ -70,7 +70,7 @@ import { groundUnder, isCooktopZone, mountBase, packItem, packMotion, setPacks, 
 import { withVehicles } from "../parking.ts";
 import { buildRoof, type RoofGeometry, type RoofWindowState } from "./roof.ts";
 import { SunFx } from "./sun-fx.ts";
-import { houseShadow, shadowBox } from "./sun-shadow.ts";
+import { houseShadow, shadowBox, sunEdge } from "./sun-shadow.ts";
 import type { SunPath } from "../sun-path.ts";
 import { GROUND, groundFace, groundFloor, roofFaces, roofWindowRoom, wallFaces } from "../solar.ts";
 import { buildSolarLive, solarLiveMaterial, writeSolarLevels, type SolarLive } from "./solar-live.ts";
@@ -2497,7 +2497,8 @@ export class FloorplanViewer {
 
   private makeMaterials(mask: FoldMasks): FloorMaterials {
     return {
-      floor: themed(new MeshBasicMaterial({ vertexColors: true }), this.themeUniform),
+      // a floor is never cyan of its own: an own accent colour turned the heatmap's cool rooms into it (#558)
+      floor: themed(new MeshBasicMaterial({ vertexColors: true }), this.themeUniform, false, false),
       pattern: patternMaterial(this.patternTexture),
       // the walls sit a hair behind their glowing edges in depth: lines lying on a wall's top or face no longer
       // flicker in and out at corners and joints as the view turns (#417)
@@ -3275,25 +3276,36 @@ export class FloorplanViewer {
       // horizontal direction towards the sun in plan coordinates (x right, z down, "up" = -z)
       const toSun: [number, number] = [Math.sin(north + az), -Math.cos(north + az)];
       const reach = 1 / Math.tan(el);
+      // a window twice in the plan (a generated plan, #819) would light its patch twice
+      const seen = new Set<string>();
       for (const info of fv.geo.openings) {
-        if (info.opening.type !== "window" || !info.exterior) continue;
+        if (info.opening.type !== "window" || !info.exterior || !(info.width > 0.05)) continue;
         const out: [number, number] = [-info.toRoom[0], -info.toRoom[1]];
         const facing = out[0] * toSun[0] + out[1] * toSun[1];
         if (facing < 0.05) continue;
         const st = fv.openings.get(info.opening.id);
-        const top = info.top - (st?.cover ?? 0) * (info.top - info.sill);
-        if (top - info.sill < 0.05) continue;
+        const sill = Math.max(0, info.sill);
+        const top = info.top - (st?.cover ?? 0) * (info.top - sill);
+        if (top - sill < 0.05) continue;
+        const key = [info.start, info.axis, info.width, sill, top].join();
+        if (seen.has(key)) continue;
+        seen.add(key);
+        const dist = (y: number) => Math.min(7, y * reach);
         const at = (s: number, y: number) => {
-          const d = Math.min(7, y * reach);
+          const d = dist(y);
           return [
             info.start[0] + info.axis[0] * s + info.toRoom[0] * info.faceRoom - toSun[0] * d,
             0.02,
             info.start[1] + info.axis[1] * s + info.toRoom[1] * info.faceRoom - toSun[1] * d,
           ];
         };
-        const k = 0.14 * day * Math.min(1, facing * 1.5);
-        const near = new Color(1 * k, 0.82 * k, 0.55 * k);
-        const far = near.clone().multiplyScalar(0.45);
+        // the blending adds the patch after the screen's colour conversion: a warmer, fainter colour stays sunlight on
+        // the dark floor instead of a grey block (#819), and the edges fade out
+        const k = 0.085 * day * Math.min(1, facing * 1.5);
+        const near = new Color(1 * k, 0.72 * k, 0.36 * k);
+        const far = near.clone().multiplyScalar(0.5);
+        const len = dist(top) - dist(sill);
+        const col = (s: number, y: number) => near.clone().lerp(far, (y - sill) / (top - sill)).multiplyScalar(sunEdge(s, info.width) * sunEdge(dist(y) - dist(sill), len));
         // the patch stays inside the window's room – and the rooms joined to it without a wall, like the
         // lamps' light (#455 reported): it is laid in small cells, and only cells whose centre lies in one
         // of them are drawn (so it never crosses walls or leaves the house)
@@ -3301,26 +3313,23 @@ export class FloorplanViewer {
         if (ri < 0 || fv.floor.rooms[ri].points.length < 3) continue;
         const zone = zones[ri];
         const lit = fv.floor.rooms.filter((r, i) => zones[i] === zone && r.points.length >= 3).map((r) => r.points);
-        const rows = Math.max(1, Math.ceil(Math.min(7, top * reach) / 0.25));
-        const cols = Math.max(1, Math.ceil(info.width / 0.3));
+        // at least two cells each way, so the faded edges leave a lit middle
+        const rows = Math.max(2, Math.ceil(Math.min(7, top * reach) / 0.25));
+        const cols = Math.max(2, Math.ceil(info.width / 0.3));
         for (let i = 0; i < rows; i++) {
-          const y0 = info.sill + ((top - info.sill) * i) / rows;
-          const y1 = info.sill + ((top - info.sill) * (i + 1)) / rows;
-          const t0 = i / rows;
-          const t1 = (i + 1) / rows;
-          const c0 = near.clone().lerp(far, t0);
-          const c1 = near.clone().lerp(far, t1);
+          const y0 = sill + ((top - sill) * i) / rows;
+          const y1 = sill + ((top - sill) * (i + 1)) / rows;
           for (let j = 0; j < cols; j++) {
             const s0 = (info.width * j) / cols;
             const s1 = (info.width * (j + 1)) / cols;
             const m = at((s0 + s1) / 2, (y0 + y1) / 2);
             if (!lit.some((pts) => pointInPolygon([m[0], m[2]], pts))) continue;
             const a = at(s0, y0);
-            const b = at(s1, y0);
             const c = at(s1, y1);
-            const d = at(s0, y1);
-            buf.tri(a, b, c, c0, c0, c1);
-            buf.tri(a, c, d, c0, c1, c1);
+            const ca = col(s0, y0);
+            const cc = col(s1, y1);
+            buf.tri(a, at(s1, y0), c, ca, col(s1, y0), cc);
+            buf.tri(a, c, at(s0, y1), ca, cc, col(s0, y1));
           }
         }
       }
@@ -3357,27 +3366,25 @@ export class FloorplanViewer {
       const ri = fv.floor.rooms.findIndex((r) => r.id === under.roomId);
       if (ri < 0) continue;
       const lit = fv.floor.rooms.filter((r, i) => zones[i] === zones[ri] && r.points.length >= 3).map((r) => r.points);
-      // a patch on the floor from the glass's four corners, kept inside the room (and rooms open to it)
+      // a patch on the floor from the glass's four corners, kept inside the room (and rooms open to it); its edges
+      // fade out like a wall window's (#819)
       const patch = (g: number[][], col: Color) => {
-        const at = (s: number, t: number) => mix(mix(g[0], g[1], s), mix(g[3], g[2], s), t);
         const n = 6;
+        const at = (i: number, j: number) => mix(mix(g[0], g[1], i / n), mix(g[3], g[2], i / n), j / n);
+        const c = (i: number, j: number) => col.clone().multiplyScalar(sunEdge(i, n, 1) * sunEdge(j, n, 1));
         for (let i = 0; i < n; i++) {
           for (let j = 0; j < n; j++) {
-            const m = at((i + 0.5) / n, (j + 0.5) / n);
+            const m = at(i + 0.5, j + 0.5);
             if (!lit.some((pts) => pointInPolygon([m[0], m[2]], pts))) continue;
-            const p0 = at(i / n, j / n);
-            const p1 = at((i + 1) / n, j / n);
-            const p2 = at((i + 1) / n, (j + 1) / n);
-            const p3 = at(i / n, (j + 1) / n);
-            buf.tri(p0, p1, p2, col, col, col);
-            buf.tri(p0, p2, p3, col, col, col);
+            buf.tri(at(i, j), at(i + 1, j), at(i + 1, j + 1), c(i, j), c(i + 1, j), c(i + 1, j + 1));
+            buf.tri(at(i, j), at(i + 1, j + 1), at(i, j + 1), c(i, j), c(i + 1, j + 1), c(i, j + 1));
           }
         }
       };
       // daylight from the sky: a soft patch straight under the window, also when the sun is on the other side
       // of the roof or so low that its patch would fall onto the walls of a small room (D340)
       const below = (p: number[]): number[] => [p[0], 0.019, p[2]];
-      const sky = 0.06 * day;
+      const sky = 0.04 * day;
       patch([below(a), below(c), below(top1), below(top0)], new Color(0.75 * sky, 0.85 * sky, 1 * sky));
       if (facing < 0.05) continue;
       // a point of the glass, followed down the sun's rays to the floor (at most 7 m away)
@@ -3385,8 +3392,8 @@ export class FloorplanViewer {
         const t = Math.min(7, (p[1] - fv.floor.elevation) / Math.tan(el));
         return [p[0] - toSun[0] * t, 0.02, p[2] - toSun[1] * t];
       };
-      const k = 0.16 * day * Math.min(1, facing * 1.5);
-      patch([ground(a), ground(c), ground(top1), ground(top0)], new Color(1 * k, 0.84 * k, 0.6 * k));
+      const k = 0.1 * day * Math.min(1, facing * 1.5);
+      patch([ground(a), ground(c), ground(top1), ground(top0)], new Color(1 * k, 0.72 * k, 0.36 * k));
     }
   }
 

@@ -68,3 +68,14 @@ export function shadowBox(tris: readonly number[]): [number, number, number, num
   }
   return [x0, z0, x1, z1];
 }
+
+/**
+ * How bright a patch of sunlight on the floor is at `d` along one of its sides (`len` long): full inside, fading out
+ * over `soft` at both ends. A patch with hard edges read as a white block on the dark floor (#819).
+ */
+export function sunEdge(d: number, len: number, soft = 0.3): number {
+  if (!(len > 0)) return 0;
+  const s = Math.min(soft, len / 2);
+  const k = Math.min(1, d / s, (len - d) / s);
+  return k > 0 ? k : 0;
+}
