@@ -2162,5 +2162,14 @@
  "energy_hub_tap": "Toca na planta onde os cabos se encontram.",
  "roof_overhang_sides": "Beiral por lado",
  "roof_overhang_sides_hint": "Definir tu mesmo o beiral de cada lado. Desligado: automático – sem beiral onde a água do telhado encosta a uma parte mais alta da casa.",
- "well_depth": "Profundidade a partir da parede (m)"
+ "well_depth": "Profundidade a partir da parede (m)",
+ "print_title": "🖨 Novo: a tua casa em impressão 3D",
+ "print_text": "Pisos que se levantam, o telhado como tampa, uma base com o vosso nome – grátis para supporters. Beta – diz-nos como corre.",
+ "print_open": "Abrir NeonPlan Print",
+ "print_copied": "Código copiado – cola-o lá",
+ "print_copy_failed": "Não foi possível copiar o código – copia-o acima",
+ "print_dot": "Novo",
+ "print_dot_hint": "Novo para supporters: NeonPlan Print",
+ "print_editor": "🖨 Imprimir em 3D",
+ "print_editor_hint": "Carrega lá o ficheiro."
 }

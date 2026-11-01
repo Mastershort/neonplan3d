@@ -2162,5 +2162,14 @@
  "energy_hub_tap": "Dotknij planu w miejscu, gdzie spotykają się kable.",
  "roof_overhang_sides": "Okap dla każdego boku",
  "roof_overhang_sides_hint": "Samodzielnie ustaw okap dachu dla każdego boku. Wyłączone: automatycznie – bez okapu tam, gdzie połać styka się z wyższą częścią domu.",
- "well_depth": "Głębokość od ściany (m)"
+ "well_depth": "Głębokość od ściany (m)",
+ "print_title": "🖨 Nowość: twój dom jako wydruk 3D",
+ "print_text": "Piętra do zdejmowania, dach jako pokrywa, podstawa z waszym imieniem – za darmo dla supporterów. Beta – daj znać, jak działa.",
+ "print_open": "Otwórz NeonPlan Print",
+ "print_copied": "Kod skopiowany – wklej go tam",
+ "print_copy_failed": "Nie udało się skopiować kodu – przepisz go z góry",
+ "print_dot": "Nowe",
+ "print_dot_hint": "Nowość dla supporterów: NeonPlan Print",
+ "print_editor": "🖨 Drukuj w 3D",
+ "print_editor_hint": "Prześlij tam plik."
 }

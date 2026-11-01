@@ -2162,5 +2162,14 @@
  "energy_hub_tap": "Koppints a tervben oda, ahol a kábelek találkoznak.",
  "roof_overhang_sides": "Ereszkiállás oldalanként",
  "roof_overhang_sides_hint": "Állítsd be magad a tető kiállását minden oldalon. Ki: automatikus – nincs kiállás ott, ahol a tetőfelület a ház magasabb részéhez ér.",
- "well_depth": "Mélység a faltól (m)"
+ "well_depth": "Mélység a faltól (m)",
+ "print_title": "🖨 Új: a házad 3D-nyomtatásban",
+ "print_text": "Leemelhető szintek, tető fedélként, talplemez a nevetekkel – támogatóknak ingyenes. Béta – mondd el, hogyan működik.",
+ "print_open": "NeonPlan Print megnyitása",
+ "print_copied": "Kód kimásolva – illeszd be ott",
+ "print_copy_failed": "A kódot nem sikerült kimásolni – másold le fentről",
+ "print_dot": "Új",
+ "print_dot_hint": "Új a támogatóknak: NeonPlan Print",
+ "print_editor": "🖨 Nyomtatás 3D-ben",
+ "print_editor_hint": "Töltsd fel ott a fájlt."
 }

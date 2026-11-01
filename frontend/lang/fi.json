@@ -2162,5 +2162,14 @@
  "energy_hub_tap": "Napauta pohjapiirrosta kohdasta, jossa kaapelit kohtaavat.",
  "roof_overhang_sides": "Räystäs sivuittain",
  "roof_overhang_sides_hint": "Aseta räystään leveys itse jokaiselle sivulle. Pois: automaattinen – ei räystästä siellä, missä lappeen reuna kohtaa talon korkeamman osan.",
- "well_depth": "Syvyys seinästä (m)"
+ "well_depth": "Syvyys seinästä (m)",
+ "print_title": "🖨 Uutta: talosi 3D-tulosteena",
+ "print_text": "Irti nostettavat kerrokset, katto kantena, pohjalevy nimellänne – ilmainen tukijoille. Beta – kerro meille, miten se toimii.",
+ "print_open": "Avaa NeonPlan Print",
+ "print_copied": "Koodi kopioitu – liitä se sinne",
+ "print_copy_failed": "Koodia ei voitu kopioida – kopioi se yltä",
+ "print_dot": "Uusi",
+ "print_dot_hint": "Uutta tukijoille: NeonPlan Print",
+ "print_editor": "🖨 Tulosta 3D:nä",
+ "print_editor_hint": "Lataa tiedosto sinne."
 }

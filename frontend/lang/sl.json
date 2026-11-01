@@ -2162,5 +2162,14 @@
  "energy_hub_tap": "Tapni v načrtu, kjer se kabli srečajo.",
  "roof_overhang_sides": "Previs za vsako stran",
  "roof_overhang_sides_hint": "Previs strehe za vsako stran nastavi sam. Izklopljeno: samodejno – brez previsa, kjer se strešina stika z višjim delom hiše.",
- "well_depth": "Globina od stene (m)"
+ "well_depth": "Globina od stene (m)",
+ "print_title": "🖨 Novo: tvoja hiša kot 3D-tisk",
+ "print_text": "Nadstropja za dvigniti, streha kot pokrov, podnožje z vašim imenom – za podpornike brezplačno. Beta – povej nam, kako deluje.",
+ "print_open": "Odpri NeonPlan Print",
+ "print_copied": "Koda kopirana – prilepi jo tam",
+ "print_copy_failed": "Kode ni bilo mogoče kopirati – prepiši jo zgoraj",
+ "print_dot": "Novo",
+ "print_dot_hint": "Novo za podpornike: NeonPlan Print",
+ "print_editor": "🖨 Natisni v 3D",
+ "print_editor_hint": "Tam naloži datoteko."
 }

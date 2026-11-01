@@ -2162,5 +2162,14 @@
  "energy_hub_tap": "Atinge planul acolo unde se întâlnesc cablurile.",
  "roof_overhang_sides": "Streașină pe fiecare latură",
  "roof_overhang_sides_hint": "Setează singur streașina pentru fiecare latură. Oprit: automat – fără streașină acolo unde suprafața acoperișului atinge o parte mai înaltă a casei.",
- "well_depth": "Adâncime de la perete (m)"
+ "well_depth": "Adâncime de la perete (m)",
+ "print_title": "🖨 Nou: casa ta ca print 3D",
+ "print_text": "Etaje care se ridică, acoperișul ca un capac, o placă de bază cu numele vostru – gratuit pentru susținători. Beta – spune-ne cum merge.",
+ "print_open": "Deschide NeonPlan Print",
+ "print_copied": "Cod copiat – lipește-l acolo",
+ "print_copy_failed": "Codul nu a putut fi copiat – copiază-l de mai sus",
+ "print_dot": "Nou",
+ "print_dot_hint": "Nou pentru susținători: NeonPlan Print",
+ "print_editor": "🖨 Printează în 3D",
+ "print_editor_hint": "Încarcă fișierul acolo."
 }

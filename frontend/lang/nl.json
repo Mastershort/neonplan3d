@@ -2162,5 +2162,14 @@
  "energy_hub_tap": "Tik op de plattegrond waar de kabels samenkomen.",
  "roof_overhang_sides": "Overstek per zijde",
  "roof_overhang_sides_hint": "Het dakoverstek per zijde zelf instellen. Uit: automatisch – geen overstek waar het dakvlak tegen een hoger deel van het huis komt.",
- "well_depth": "Diepte vanaf de muur (m)"
+ "well_depth": "Diepte vanaf de muur (m)",
+ "print_title": "🖨 Nieuw: je huis als 3D-print",
+ "print_text": "Verdiepingen om op te tillen, het dak als deksel, een bodemplaat met jullie naam – gratis voor supporters. Bèta – laat ons weten hoe het werkt.",
+ "print_open": "Naar NeonPlan Print",
+ "print_copied": "Code gekopieerd – plak hem daar",
+ "print_copy_failed": "Code kon niet worden gekopieerd – neem hem hierboven over",
+ "print_dot": "Nieuw",
+ "print_dot_hint": "Nieuw voor supporters: NeonPlan Print",
+ "print_editor": "🖨 In 3D printen",
+ "print_editor_hint": "Upload het bestand daar."
 }

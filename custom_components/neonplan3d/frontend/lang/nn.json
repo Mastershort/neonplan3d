@@ -2162,5 +2162,14 @@
  "energy_hub_tap": "Trykk i planen der kablane møtest.",
  "roof_overhang_sides": "Takutstikk per side",
  "roof_overhang_sides_hint": "Bestem takutstikket for kvar side sjølv. Av: automatisk – ikkje noko utstikk der takflata møter ein høgare del av huset.",
- "well_depth": "Djupn frå veggen (m)"
+ "well_depth": "Djupn frå veggen (m)",
+ "print_title": "🖨 Nytt: huset ditt som 3D-utskrift",
+ "print_text": "Etasjar du kan løfte av, taket som lok, ei botnplate med namnet dykkar – gratis for supporterar. Beta – fortel oss korleis det går.",
+ "print_open": "Opne NeonPlan Print",
+ "print_copied": "Koden er kopiert – lim han inn der",
+ "print_copy_failed": "Koden kunne ikkje kopierast – skriv han av ovanfor",
+ "print_dot": "Nytt",
+ "print_dot_hint": "Nytt for supporterar: NeonPlan Print",
+ "print_editor": "🖨 Skriv ut i 3D",
+ "print_editor_hint": "Last opp fila der."
 }

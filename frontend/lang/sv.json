@@ -2162,5 +2162,14 @@
  "energy_hub_tap": "Tryck i planen där kablarna möts.",
  "roof_overhang_sides": "Takutsprång per sida",
  "roof_overhang_sides_hint": "Ställ in takutsprånget för varje sida själv. Av: automatiskt – inget utsprång där takytan möter en högre del av huset.",
- "well_depth": "Djup från väggen (m)"
+ "well_depth": "Djup från väggen (m)",
+ "print_title": "🖨 Nytt: ditt hus som 3D-utskrift",
+ "print_text": "Våningar att lyfta av, taket som lock, en bottenplatta med ert namn – gratis för supportrar. Beta – berätta hur det går.",
+ "print_open": "Öppna NeonPlan Print",
+ "print_copied": "Koden kopierad – klistra in den där",
+ "print_copy_failed": "Koden kunde inte kopieras – skriv av den ovan",
+ "print_dot": "Nytt",
+ "print_dot_hint": "Nytt för supportrar: NeonPlan Print",
+ "print_editor": "🖨 Skriv ut i 3D",
+ "print_editor_hint": "Ladda upp filen där."
 }

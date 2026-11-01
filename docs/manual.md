@@ -1322,6 +1322,7 @@ Under **Backup** in the editor:
 - **Restore points** are kept at most every 10 minutes while you edit, the last 20 stay. **Restore** brings back a state, the current one is kept as a restore point itself.
 - **Export** saves the plan as a file, **Import …** loads such a file.
 - **Share as template** exports without areas, devices, sensors and pictures. Good for passing a floor plan on.
+- **🖨 Print in 3D** (since 2.2, for Supporter-Pass holders): downloads the plan like **Export** and opens [NeonPlan Print](https://print.mastershort.de/) – upload the file there and get your house as 3D-print files: floors you lift off, the roof as a lid, a base plate with your name. Unlock it with your supporter code (under **Extensions**, where **Open NeonPlan Print** copies it for you). Free during the beta until 30 November 2026, for private, non-commercial use with your own homes. A small "New" dot on **Extensions** points supporters to it once.
 - **Full backup:** **Back up everything (plan, pictures, packs)** saves one file with the plan, every background and screen picture and the installed packs. **Restore a full backup …** brings it back into the same or another installation. Every pack is checked again. Packs signed for another installation are fetched there again through the shop connection. The licence key is not in the file.
 
 Home Assistant's own backup includes NeonPlan 3D completely as well.

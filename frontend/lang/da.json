@@ -2162,5 +2162,14 @@
  "energy_hub_tap": "Tryk i planen, hvor kablerne mødes.",
  "roof_overhang_sides": "Udhæng pr. side",
  "roof_overhang_sides_hint": "Bestem selv tagudhænget for hver side. Fra: automatisk – intet udhæng, hvor tagfladen støder op til en højere del af huset.",
- "well_depth": "Dybde fra væggen (m)"
+ "well_depth": "Dybde fra væggen (m)",
+ "print_title": "🖨 Nyt: dit hus som 3D-print",
+ "print_text": "Etager man kan løfte af, taget som låg, en bundplade med jeres navn – gratis for supportere. Beta – fortæl os, hvordan det går.",
+ "print_open": "Åbn NeonPlan Print",
+ "print_copied": "Kode kopieret – indsæt den der",
+ "print_copy_failed": "Koden kunne ikke kopieres – skriv den af ovenfor",
+ "print_dot": "Ny",
+ "print_dot_hint": "Nyt for supportere: NeonPlan Print",
+ "print_editor": "🖨 Print i 3D",
+ "print_editor_hint": "Upload filen der."
 }

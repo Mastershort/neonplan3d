@@ -2162,5 +2162,14 @@
  "energy_hub_tap": "Tocca la pianta dove si incontrano i cavi.",
  "roof_overhang_sides": "Sporgenza per lato",
  "roof_overhang_sides_hint": "Imposta tu la sporgenza del tetto per ogni lato. Disattivato: automatico – nessuna sporgenza dove la falda tocca una parte più alta della casa.",
- "well_depth": "Profondità dal muro (m)"
+ "well_depth": "Profondità dal muro (m)",
+ "print_title": "🖨 Novità: la tua casa in stampa 3D",
+ "print_text": "Piani da sollevare, il tetto come coperchio, una base con il vostro nome – gratis per i supporter. Beta – dicci come funziona.",
+ "print_open": "Apri NeonPlan Print",
+ "print_copied": "Codice copiato – incollalo lì",
+ "print_copy_failed": "Impossibile copiare il codice – copialo da sopra",
+ "print_dot": "Nuovo",
+ "print_dot_hint": "Novità per i supporter: NeonPlan Print",
+ "print_editor": "🖨 Stampa in 3D",
+ "print_editor_hint": "Carica lì il file."
 }

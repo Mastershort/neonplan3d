@@ -2162,5 +2162,14 @@
  "energy_hub_tap": "Toca el plano donde se unen los cables.",
  "roof_overhang_sides": "Alero por lado",
  "roof_overhang_sides_hint": "Fijar tú mismo el alero de cada lado. Desactivado: automático – sin alero donde el faldón toca una parte más alta de la casa.",
- "well_depth": "Profundidad desde la pared (m)"
+ "well_depth": "Profundidad desde la pared (m)",
+ "print_title": "🖨 Nuevo: tu casa en impresión 3D",
+ "print_text": "Plantas que se levantan, el tejado como tapa, una base con vuestro nombre – gratis para supporters. Beta – cuéntanos qué tal funciona.",
+ "print_open": "Abrir NeonPlan Print",
+ "print_copied": "Código copiado – pégalo allí",
+ "print_copy_failed": "No se pudo copiar el código – cópialo de arriba",
+ "print_dot": "Nuevo",
+ "print_dot_hint": "Nuevo para supporters: NeonPlan Print",
+ "print_editor": "🖨 Imprimir en 3D",
+ "print_editor_hint": "Sube el archivo allí."
 }

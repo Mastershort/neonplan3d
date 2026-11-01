@@ -2162,5 +2162,14 @@
  "energy_hub_tap": "Ťukni v pláne tam, kde sa káble stretávajú.",
  "roof_overhang_sides": "Presah pre každú stranu",
  "roof_overhang_sides_hint": "Nastav presah strechy pre každú stranu sám. Vypnuté: automaticky – bez presahu tam, kde strešná plocha naráža na vyššiu časť domu.",
- "well_depth": "Hĺbka od steny (m)"
+ "well_depth": "Hĺbka od steny (m)",
+ "print_title": "🖨 Novinka: tvoj dom ako 3D tlač",
+ "print_text": "Poschodia na zdvihnutie, strecha ako veko, podstavec s vaším menom – pre supporterov zadarmo. Beta – daj nám vedieť, ako to funguje.",
+ "print_open": "Otvoriť NeonPlan Print",
+ "print_copied": "Kód skopírovaný – vlož ho tam",
+ "print_copy_failed": "Kód sa nepodarilo skopírovať – odpíš ho vyššie",
+ "print_dot": "Nové",
+ "print_dot_hint": "Novinka pre supporterov: NeonPlan Print",
+ "print_editor": "🖨 Tlačiť v 3D",
+ "print_editor_hint": "Nahraj tam súbor."
 }

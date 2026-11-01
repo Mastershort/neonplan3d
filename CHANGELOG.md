@@ -8,6 +8,7 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 
 ### New
 
+- **NeonPlan Print for supporters (beta):** your house as a 3D print – floors you lift off, the roof as a lid, a base plate with your name. Supporter-Pass holders find it under Extensions ("Open NeonPlan Print" copies their supporter code) and in the editor's backup section ("🖨 Print in 3D" exports the plan and opens [print.mastershort.de](https://print.mastershort.de/)); a small "New" dot on Extensions points to it once. Free during the beta until 30 November 2026, private and non-commercial use only.
 - **Gates in fences (#818):** a fence's form has "+ Gate in the fence": a gap in one of its sides, cut like a door in a wall, with a garden gate (one leaf), a double gate or a sliding gate. With a motor or switch (cover, switch, input_boolean, lock) and/or a contact the gate opens in 3D – a sliding gate runs along the fence at its run time – and a tap on it switches it. Thanks to @fammastrodaiuto for the wish, and to ProvUK's fork for the idea of the cut.
 - **Floor plan only:** "Show" → "Floor plan only" (remembered on this device) draws walls, doors, windows and stairs without furniture; the devices and their pins stay. On a dashboard: card → "Floor plan only", or `plain: true`. Thanks to SteveBloX's fork for the push.
 - **Right click goes one step back** (⭐ → ⚙ Settings → Controls, off by default): a short right click in the 3D view closes the room or goes from the floor back to the house, like a double tap on empty space. Idea from ProvUK's fork.

@@ -2162,5 +2162,14 @@
  "energy_hub_tap": "Touche le plan à l'endroit où les câbles se rejoignent.",
  "roof_overhang_sides": "Débord par côté",
  "roof_overhang_sides_hint": "Définir toi-même le débord de toit de chaque côté. Désactivé : automatique – pas de débord là où la surface touche une partie plus haute de la maison.",
- "well_depth": "Profondeur depuis le mur (m)"
+ "well_depth": "Profondeur depuis le mur (m)",
+ "print_title": "🖨 Nouveau : ta maison en impression 3D",
+ "print_text": "Étages à soulever, toit en couvercle, socle avec votre nom – gratuit pour les supporters. Bêta – dis-nous comment ça marche.",
+ "print_open": "Ouvrir NeonPlan Print",
+ "print_copied": "Code copié – colle-le là-bas",
+ "print_copy_failed": "Impossible de copier le code – recopie-le ci-dessus",
+ "print_dot": "Nouveau",
+ "print_dot_hint": "Nouveau pour les supporters : NeonPlan Print",
+ "print_editor": "🖨 Imprimer en 3D",
+ "print_editor_hint": "Importe le fichier là-bas."
 }
