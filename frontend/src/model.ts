@@ -412,6 +412,8 @@ export interface FreeWall {
   thickness?: number | null;
   /** Height in metres (null = full floor height), e.g. a half-height wall or a counter. */
   height?: number | null;
+  /** A sloping top (#834): the height at end a and at end b, straight in between; null = the plain height. */
+  slope?: [number, number] | null;
 }
 
 /** "custom": the roof is made of sections (wings of an L- or T-shaped house, a barn, a lean-to …). */
@@ -449,6 +451,11 @@ export interface RoofSection {
   base: number;
   /** Overhang beyond the walls (null = the roof setting). */
   overhang?: number | null;
+  /**
+   * Overhang per side set by hand (#863), in the order a, b, u0, u1: a number wins over the automatic one (the
+   * overhang above, none against a taller part of the house); null or a missing list = automatic.
+   */
+  overhang_sides?: (number | null)[] | null;
   /** Sides a and b swapped: side a is the high coordinate (a pent roof then rises the other way). */
   flip?: boolean;
   /**

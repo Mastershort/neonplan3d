@@ -5,6 +5,7 @@ import voluptuous as vol
 
 from custom_components.neonplan3d.schema import (
     ENERGY_SCHEMA,
+    FREE_WALL_SCHEMA,
     FURNITURE_SCHEMA,
     HOLOGRAM_SCHEMA,
     OPENING_SCHEMA,
@@ -225,6 +226,18 @@ def test_sloping_walls_keep_two_heights_per_edge() -> None:
         ROOM_SCHEMA({**ROOM, "wall_slopes": [[1.0]]})
 
 
+def test_free_wall_keeps_its_slope() -> None:
+    """A free wall may slope from end a to end b (#834); without one it stays as it was."""
+    wall = {"id": "w1", "a": [0, 0], "b": [3, 0]}
+    assert "slope" not in FREE_WALL_SCHEMA(wall)
+    assert FREE_WALL_SCHEMA({**wall, "slope": [2.4, 1.0]})["slope"] == [2.4, 1.0]
+    assert FREE_WALL_SCHEMA({**wall, "slope": None})["slope"] is None
+    with pytest.raises(vol.Invalid):
+        FREE_WALL_SCHEMA({**wall, "slope": [2.4]})
+    with pytest.raises(vol.Invalid):
+        FREE_WALL_SCHEMA({**wall, "slope": [2.4, 0]})
+
+
 def test_live_director_triggers_and_live_picture() -> None:
     """Own triggers with a camera each (D615) and the live picture switch (D589)."""
     base = {"wall_exterior": 0.3, "wall_interior": 0.12, "grid": 0.05}
@@ -323,6 +336,19 @@ def test_roof_section_keeps_its_turn() -> None:
     assert (turned["rotation"], turned["pivot"]) == (30, [5, 4])
     with pytest.raises(vol.Invalid):
         ROOF_SECTION_SCHEMA({**sec, "rotation": 400})
+
+
+def test_roof_section_keeps_its_overhang_per_side() -> None:
+    """An overhang per side set by hand (#863): four values a, b, u0, u1, None = automatic."""
+    sec = {"id": "s", "x0": 0, "z0": 0, "x1": 10, "z1": 8, "eave_a": 3, "eave_b": 3, "base": 3}
+    assert "overhang_sides" not in ROOF_SECTION_SCHEMA(sec)
+    sides = ROOF_SECTION_SCHEMA({**sec, "overhang_sides": [0.6, None, 0, 0.4]})["overhang_sides"]
+    assert sides == [0.6, None, 0, 0.4]
+    assert ROOF_SECTION_SCHEMA({**sec, "overhang_sides": None})["overhang_sides"] is None
+    with pytest.raises(vol.Invalid):
+        ROOF_SECTION_SCHEMA({**sec, "overhang_sides": [0.6, 0.4]})
+    with pytest.raises(vol.Invalid):
+        ROOF_SECTION_SCHEMA({**sec, "overhang_sides": [3, None, None, None]})
 
 
 def test_module_data_on_furniture_and_areas() -> None:

@@ -317,7 +317,10 @@ export function generateWalls(rooms: readonly Room[], options: WallOptions, free
     const room = rooms.find((r) => r.points.length >= 3 && pointInPolygon(mid, r.points))?.id ?? null;
     const half = (w.thickness ?? options.interior) / 2;
     const height = typeof w.height === "number" && w.height > 0 ? w.height : undefined;
-    drafts.push({ free: w.id, a: ia, b: ib, left: half, right: half, exterior: false, roomLeft: room, roomRight: room, sources: [], height });
+    // a sloping free wall (#834): the same slope as a room edge's, from end a to end b
+    const sl = w.slope;
+    const slope: WallSlope | undefined = sl ? { p: [w.a[0], w.a[1]], q: [w.b[0], w.b[1]], h0: Math.max(0.05, sl[0]), h1: Math.max(0.05, sl[1]) } : undefined;
+    drafts.push({ free: w.id, a: ia, b: ib, left: half, right: half, exterior: false, roomLeft: room, roomRight: room, sources: [], ...(slope ? { height: Math.max(slope.h0, slope.h1), slope } : { height }) });
   });
 
   // 5. merge collinear runs through nodes where nothing else meets (never across a split point)

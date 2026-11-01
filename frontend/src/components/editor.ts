@@ -29,7 +29,7 @@ import { screenName, setScreenName, setVoiceArea, setVoiceHere, setVoicePipeline
 import { doorbellCamera, doorbellEntities, directorOnHere, HOLD_DEFAULT, HOLD_MAX, HOLD_MIN, setDirectorHere, type DirectorSettings } from "../director.ts";
 import { deviceSensors, energySummary, flowSegments, gridPoint, hubPoint, inverterToGrid, powerSensorFor, proposeEnergySensors, type EnergyPrefs, type FlowSegment, proposeMeters } from "../energy.ts";
 import { CLIMATE_ATTRS, isPulseDrive, isStatusSensor, robotRoomSensor, TOGGLE_KINDS } from "../devices.ts";
-import { activeSections, sectionFloor, dormerParent, effectiveDormer, proposeDormer, sectionGeometry, floorOutline, polygonBox, headroomLines, ridgeHeight, sectionAbove, sectionCutsBelow, roofSectionsFromRooms, sectionFrame, sectionTurn, turnPoint, turnSectionAbout, wallTopUnder } from "../roof-sections.ts";
+import { activeSections, sectionFloor, sectionOverhang, dormerParent, effectiveDormer, proposeDormer, sectionGeometry, floorOutline, polygonBox, headroomLines, ridgeHeight, sectionAbove, sectionCutsBelow, roofSectionsFromRooms, sectionFrame, sectionTurn, turnPoint, turnSectionAbout, wallTopUnder } from "../roof-sections.ts";
 import { bestFace, clampField, faceAt, faceCompass, fieldFace, fieldModules, GROUND, moveField, pointOnFace, proposeField, proposeGroundField, proposeWindow, proposeWallField, roofFaces, rowCounts, turnGroundField, fieldCenter, wallFaces, windowAsField, windowCorners, onFace, onField, rayOnFace, type RoofFace } from "../solar.ts";
 import type { SurfaceGrab, SurfaceRay } from "../viewer/viewer3d.ts";
 import { storedImageIds } from "../transfer.ts";
@@ -2784,6 +2784,9 @@ export class Fp3dEditor extends LitElement {
       ${sel && this.isAdmin && !isFixed(w, true, this._doc.settings)
         ? svg`<g class="fp3d-vertex" data-wall-end=${`${w.id}:a`}><circle cx=${x0} cy=${y0} r="16" class="fp3d-hit" /><circle cx=${x0} cy=${y0} r="6" /></g>
             <g class="fp3d-vertex" data-wall-end=${`${w.id}:b`}><circle cx=${x1} cy=${y1} r="16" class="fp3d-hit" /><circle cx=${x1} cy=${y1} r="6" /></g>`
+        : nothing}
+      ${sel && w.slope
+        ? svg`<text class="fp3d-vertex-no" x=${x0 + 9} y=${y0 - 9}>1</text><text class="fp3d-vertex-no" x=${x1 + 9} y=${y1 - 9}>2</text>`
         : nothing}`;
     })}</g>`;
   }
@@ -2803,6 +2806,10 @@ export class Fp3dEditor extends LitElement {
       const shift = (p: Vec2): Vec2 => (i === 0 ? [round(p[0] + d), p[1]] : [p[0], round(p[1] + d)]);
       this.updateFreeWall({ a: shift(w.a), b: shift(w.b) });
     };
+    // a sloping top (#834): a height at each end (1 = a, 2 = b), like a room edge's sloping wall
+    const H = this.floor?.height ?? 2.5;
+    const slope = w.slope ?? null;
+    const setSlope = (s: [number, number] | null) => this.updateFreeWall({ slope: s ? [Math.round(Math.max(0.05, s[0]) * 1000) / 1000, Math.round(Math.max(0.05, s[1]) * 1000) / 1000] : null });
     return html`<section>
       <div class="fp3d-h3row"><h3>${this.t("free_wall")}</h3>${this.fixButton("wall", w.id)}</div>
       <div class="fp3d-form">
@@ -2810,7 +2817,13 @@ export class Fp3dEditor extends LitElement {
         <p class="fp3d-sub fp3d-wide">${this.t("wall_pos_hint")}</p>
         ${this.len(this.t("wall_length"), length, setLength, 0.01, 0.1)}
         ${this.len(this.t("wall_thickness"), w.thickness ?? this._doc.settings.wall_interior, (v) => this.updateFreeWall({ thickness: Math.min(1, Math.max(0.02, v)) }), 0.01, 0.02)}
-        ${this.len(this.t("wall_height"), w.height ?? this.floor?.height ?? 2.5, (v) => this.updateFreeWall({ height: v >= (this.floor?.height ?? 2.5) - 0.005 ? null : Math.max(0.05, v) }), 0.05, 0.05)}
+        ${slope
+          ? html`${this.len(this.t("wall_slope_start", { n: 1 }), slope[0], (v) => setSlope([v, slope[1]]), 0.05, 0.05)}
+            ${this.len(this.t("wall_slope_end", { n: 2 }), slope[1], (v) => setSlope([slope[0], v]), 0.05, 0.05)}`
+          : this.len(this.t("wall_height"), w.height ?? H, (v) => this.updateFreeWall({ height: v >= H - 0.005 ? null : Math.max(0.05, v) }), 0.05, 0.05)}
+        ${admin
+          ? html`<button class="fp3d-btn" aria-pressed=${!!slope} title=${this.t("wall_slope_hint")} @click=${() => setSlope(slope ? null : [w.height ?? H, w.height ?? H])}>◢ ${this.t("wall_slope")}</button>`
+          : nothing}
       </div>
       ${admin
         ? html`<div class="fp3d-actions">
@@ -4461,6 +4474,7 @@ export class Fp3dEditor extends LitElement {
           >
           <p class="fp3d-sub fp3d-wide">${this.t("roof_base_hint")}</p>
           ${num(this.t("roof_overhang"), sec.overhang ?? this._doc.settings.roof.overhang, (v) => set({ overhang: Math.min(2, v) }), 0.05, 0)}
+          ${sec.points || sec.shape === "parapet" ? nothing : this.renderOverhangSides(sec, sideA, sideB)}
         </div>
         ${flat && admin
           ? html`<div class="fp3d-actions">
@@ -4484,6 +4498,32 @@ export class Fp3dEditor extends LitElement {
             </div>`
           : nothing}
       </section>`;
+  }
+
+  /**
+   * The overhang per side (#863): off, every side is automatic (none against a taller part of the house); on, each
+   * side takes its own value, starting from what the automatic one gives.
+   */
+  private renderOverhangSides(sec: RoofSection, sideA: string, sideB: string) {
+    const admin = this.isAdmin;
+    const own = sec.overhang_sides ?? null;
+    const auto = sectionOverhang(this._doc, sec, sec.overhang ?? this._doc.settings.roof.overhang);
+    const toggle = admin
+      ? html`<button class="fp3d-btn" aria-pressed=${!!own} title=${this.t("roof_overhang_sides_hint")} @click=${() => this.updateRoofSection({ overhang_sides: own ? null : [auto.a, auto.b, auto.u0, auto.u1] })}>
+          ${this.t("roof_overhang_sides")}
+        </button>`
+      : nothing;
+    if (!own) return toggle;
+    // the u0 end is the left one (ridge across the plan) or the top one (ridge up and down), as for the ends' shapes
+    const ends = sec.axis === "x" ? [this.t("roof_side_left"), this.t("roof_side_right")] : [this.t("roof_side_top"), this.t("roof_side_bottom")];
+    const values = [auto.a, auto.b, auto.u0, auto.u1];
+    const setSide = (i: number, v: number) => {
+      const list = [0, 1, 2, 3].map((k) => own[k] ?? null);
+      list[i] = Math.min(2, Math.max(0, round(v)));
+      this.updateRoofSection({ overhang_sides: list });
+    };
+    return html`${toggle}
+      ${[sideA, sideB, ...ends].map((where, i) => this.len(`${this.t("roof_overhang")} ${where}`, values[i], (v) => setSide(i, v), 0.05, 0))}`;
   }
 
   /** The item of a fixable kind on a floor. */
