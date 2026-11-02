@@ -1293,6 +1293,15 @@ export function roomTiles(floor: Floor, areas: { area_id: string; name: string }
  * Resizes a furniture item by dragging one corner (`corner`: signs of the corner in the item's own
  * frame) to a plan point; the opposite corner stays in place. Sizes snap to `grid`.
  */
+/** A corner of an item in the plan, optionally `out` metres further out along both of its sides. */
+export function furnitureCorner(f: Pick<Furniture, "x" | "z" | "w" | "d" | "rotation">, corner: [1 | -1, 1 | -1], out = 0): Vec2 {
+  const a = (f.rotation * Math.PI) / 180;
+  const [sx, sz] = corner;
+  const hw = f.w / 2 + out;
+  const hd = f.d / 2 + out;
+  return [f.x + sx * hw * Math.cos(a) - sz * hd * Math.sin(a), f.z + sx * hw * Math.sin(a) + sz * hd * Math.cos(a)];
+}
+
 export function resizeFurniture(f: Furniture, corner: [1 | -1, 1 | -1], p: Vec2, grid: number): Pick<Furniture, "x" | "z" | "w" | "d"> {
   const a = (f.rotation * Math.PI) / 180;
   const c = Math.cos(a);
