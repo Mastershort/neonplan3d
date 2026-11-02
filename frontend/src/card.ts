@@ -5,6 +5,7 @@ import { confirmEntities } from "./devices.ts";
 import { countView } from "./diagnostics.ts";
 import { css, html, LitElement, nothing, type PropertyValues } from "lit";
 import { BuildingController } from "./building-controller.ts";
+import "./components/room-bar.ts";
 import "./components/room-panel.ts";
 import "./components/view3d.ts";
 import { languageReady, loadLanguage, translate, type I18nKey } from "./i18n.ts";
@@ -343,6 +344,8 @@ clearTimeout(this.cleanTimer);
     // the bar of switches at the bottom (the back button belongs to it)
     const bar = !!b && !this._clean && (canGoBack || ((!!c?.controls || !!c?.time_travel) && !(this._roomId && c.room_panel !== false)));
     const tt = this.tt.active;
+    // the room bar (room_bar: true): above the switches; not while travelling in time or with a room panel open
+    const roomBar = !!b && !!c?.room_bar && !this._clean && !tt && !(this._roomId && c.room_panel !== false);
     const eye = c?.controls_hidden !== undefined || (c?.controls_hide_after ?? 0) > 0;
     const t = (k: Parameters<typeof translate>[1]) => translate(this.hass, k);
     const accent = /^#[0-9a-f]{6}$/i.test(c?.accent ?? "") ? c!.accent : null;
@@ -410,7 +413,7 @@ clearTimeout(this.cleanTimer);
               .dimmed=${this._night}
               .autoOrbit=${this._orbit}
               .startView=${c?.start_view ?? null}
-              style=${tt ? `--fp3d-bottom-inset: ${bar ? "calc(52px + var(--fp3d-tt-h))" : "var(--fp3d-tt-h)"}` : bar ? "--fp3d-bottom-inset: 52px" : ""}
+              style=${tt ? `--fp3d-bottom-inset: ${bar ? "calc(52px + var(--fp3d-tt-h))" : "var(--fp3d-tt-h)"}` : bar || roomBar ? `--fp3d-bottom-inset: ${(bar ? 52 : 0) + (roomBar ? 96 : 0)}px` : ""}
               @room-tap=${(e: CustomEvent<{ floorId: string; roomId: string | null }>) => {
                 // in the house view (or on another floor) a tap first opens the whole floor; the floor as it is now,
                 // not as rendered: a jump switches the floor and opens the room 60 ms later, before a slow tablet
@@ -430,6 +433,25 @@ clearTimeout(this.cleanTimer);
               @back=${() => this.back()}
             ></fp3d-view3d>`
           : html`<p class="fp3d-card-msg">${this.data.error ?? (b ? translate(this.hass, "no_building") : translate(this.hass, "loading"))}</p>`}
+        ${roomBar
+          ? html`<fp3d-room-bar
+              class="fp3d-card-room-bar"
+              style="bottom:${bar ? 58 : 10}px"
+              .hass=${this.hass}
+              .building=${b}
+              .floorId=${floorId}
+              .roomId=${this._roomId}
+              ?favorites=${c?.room_bar_favorites === true}
+              @room-pick=${(e: CustomEvent<{ floorId: string; roomId: string }>) => {
+                // straight into the room; on another floor only where the card may switch floors
+                if (e.detail.floorId !== this.currentFloor()) {
+                  if (!this.canSwitch) return;
+                  this._floorId = e.detail.floorId;
+                }
+                this._roomId = e.detail.roomId === this._roomId ? null : e.detail.roomId;
+              }}
+            ></fp3d-room-bar>`
+          : nothing}
         ${this._roomId && b && this._config?.room_panel !== false
           ? html`<fp3d-room-panel
               @camera-look=${(e: CustomEvent<{ entity: string }>) => this.view3d()?.lookThrough(e.detail.entity)}
@@ -603,6 +625,11 @@ clearTimeout(this.cleanTimer);
         color: var(--fp3d-muted);
         padding: 16px;
         text-align: center;
+      }
+      .fp3d-card-room-bar {
+        position: absolute;
+        left: 10px;
+        right: 10px;
       }
       .fp3d-card-panel {
         position: absolute;

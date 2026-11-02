@@ -567,6 +567,7 @@ Die Schalter für Wände, Etagen, Dach, Heatmap und die Pro-Anzeigen stecken unt
 |---|---|
 | **Wände hoch** / **Schnitt** | Wände in voller Höhe, die vorderen als getöntes Glas, oder alle Wände in Hüfthöhe geschnitten – hohe Möbel (Schrank, Treppe, Hochschrank) werden mitgeschnitten, damit sie nichts dahinter verdecken. Die Wahl merkt sich jedes Gerät |
 | **Mit Möbeln** / **Nur Grundriss** | Nur Grundriss (seit 2.2): Wände, Türen, Fenster und Treppen ohne Möbel – Geräte und ihre Symbole bleiben. Die Wahl merkt sich jedes Gerät |
+| **Ohne Raum-Leiste** / **Raum-Leiste** / **+ Favoriten** | Raum-Leiste (neu): unten eine Kachel pro Raum mit Temperatur, „💡 3 an“, „🪟 offen“ und „▶ läuft“; eine Kachel leuchtet, wenn dort etwas an oder offen ist. Tippen fliegt in den Raum und öffnet das Raumfenster, Tippen auf 💡 schaltet die Lichter dort aus. Mit **+ Favoriten** stehen deine Favoriten (Szenen, Skripte, Schalter aus ⚙ Einstellungen → Favoriten) vorne in der Leiste. ▾ klappt sie ein. Die Wahl merkt sich jedes Gerät; standardmäßig aus |
 | **Auseinander** / **Gestapelt** | In der Hausansicht: Etagen auseinandergezogen oder aufeinander |
 | **Dach bleibt** | In der Hausansicht: Das Dach bleibt beim Heranzoomen liegen, statt sich zu heben und auszublenden (im Editor gilt das im Werkzeug Dach und Energie immer) |
 | **Abgedunkelt** / **Gestapelt** / **Einzeln** | Bei einer offenen Etage: Was mit den Etagen darunter passiert |
@@ -1226,7 +1227,7 @@ Die Karte `custom:neonplan3d-card` bringt die 3D-Ansicht in jedes Dashboard. Sie
 | Abschnitt | Optionen |
 |---|---|
 | **Ansicht** | Etage oder ganzes Haus, Start-Raum, Größe fest oder bildschirmfüllend, Höhe, Look, Wände, Qualität, Etagen darunter |
-| **Anzeigen** | Symbole, Heatmap (auch „Werte“), Nur Grundriss (ohne Möbel), Schalter in der Karte, 3D-Sperre, Ansicht halten, Rundgang, Bedienleiste links oder rechts, Etagen-Miniaturen, Raumnamen, Raumfenster, Vollbild-Knopf, Uhr (Ecke wählbar, `clock: tl/tr/bl/br`), Etagen auseinander, Leistungsanzeige |
+| **Anzeigen** | Symbole, Heatmap (auch „Werte“), Nur Grundriss (ohne Möbel), Raum-Leiste unten (mit oder ohne Favoriten), Schalter in der Karte, 3D-Sperre, Ansicht halten, Rundgang, Bedienleiste links oder rechts, Etagen-Miniaturen, Raumnamen, Raumfenster, Vollbild-Knopf, Uhr (Ecke wählbar, `clock: tl/tr/bl/br`), Etagen auseinander, Leistungsanzeige |
 | **Funktionen** | Warnungen, Sprung zur Warnung, Sprachsteuerung mit Bildschirmname und Raum für „hier“, Szenen-Knöpfe, Bewegungsspur, Kamera-Wand, Zeitreise mit Zeitraum und Tempo, Wetter mit Wetter-Entität |
 | **Wandtablet (Kiosk)** | Rückkehr zur Startansicht, Nachtdimmung, Kamerafahrt als Bildschirmschoner |
 
@@ -1283,6 +1284,8 @@ time_travel_range: 24h  # Start der Zeitreise: 24h oder 7d (die Woche; auch auf 
 roof: true              # false: Haus ganz ohne Dach zeigen
 roof_fade: true         # false: Dach bleibt beim Heranzoomen auf dem Haus
 plain: false            # true: nur Grundriss – Wände, Türen, Fenster und Treppen ohne Möbel
+room_bar: false         # true: Raum-Leiste unten – eine Kachel pro Raum (Temperatur, Lichter, offene Fenster, was läuft)
+room_bar_favorites: false # true: die Favoriten vorne in der Raum-Leiste
 start_view: { theta: 0.8, phi: 1.0, radius: 20 }   # eigene Startansicht dieser Karte; die Zeile steht im Editor unter Startansicht (weglassen = die des Plans)
 idle_return: 0          # Sekunden ohne Berührung bis zur Startansicht
 night: "off"            # off | sun | "22:00-06:00"

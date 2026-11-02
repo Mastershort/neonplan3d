@@ -31,6 +31,10 @@ export interface CardConfig {
   roof?: boolean;
   /** A plain floor plan: walls, doors and stairs without furniture (default false); the devices stay. */
   plain?: boolean;
+  /** The room bar along the bottom: a tile per room with its temperature, lights, open windows (default false). */
+  room_bar?: boolean;
+  /** The favourites (scenes, scripts, switches) at the front of the room bar (default false). */
+  room_bar_favorites?: boolean;
   quality?: Quality;
   /** Show the performance display (frames per second, draw calls). */
   stats?: boolean;

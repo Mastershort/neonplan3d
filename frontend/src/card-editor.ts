@@ -16,6 +16,8 @@ const DEFAULTS: Partial<CardConfig> = {
   roof_fade: true,
   roof: true,
   plain: false,
+  room_bar: false,
+  room_bar_favorites: false,
   camera_wall: false,
   quality: "auto",
   stats: false,
@@ -119,7 +121,7 @@ export class Floorplan3dCardEditor extends LitElement {
   }
 
   private toggle(
-    key: "explode" | "roof_fade" | "roof" | "camera_wall" | "energy" | "room_panel" | "stats" | "fullscreen_button" | "room_names" | "alerts" | "alert_jump" | "director" | "voice" | "scenes" | "idle_orbit" | "motion_trail" | "time_travel" | "household_card" | "weather" | "angle_lock" | "keep_view" | "walk" | "plain",
+    key: "explode" | "roof_fade" | "roof" | "camera_wall" | "energy" | "room_panel" | "stats" | "fullscreen_button" | "room_names" | "alerts" | "alert_jump" | "director" | "voice" | "scenes" | "idle_orbit" | "motion_trail" | "time_travel" | "household_card" | "weather" | "angle_lock" | "keep_view" | "walk" | "plain" | "room_bar" | "room_bar_favorites",
     label: I18nKey,
     hint?: I18nKey,
   ) {
@@ -431,7 +433,8 @@ export class Floorplan3dCardEditor extends LitElement {
       ${this.renderThumbsToggle()} ${this.toggle("room_names", "card_room_names")}
       ${this.toggle("energy", "card_energy")} ${this.toggle("room_panel", "card_room_panel", "card_room_panel_hint")}
       ${this.toggle("fullscreen_button", "card_fullscreen_button", "card_fullscreen_button_hint")}
-      ${this.toggle("explode", "card_explode")} ${this.toggle("roof", "card_roof", "card_roof_hint")} ${this.toggle("roof_fade", "card_roof_fade", "card_roof_fade_hint")} ${this.toggle("plain", "card_plain", "plain_hint")} ${this.toggle("stats", "card_stats", "card_stats_hint")}
+      ${this.toggle("explode", "card_explode")} ${this.toggle("roof", "card_roof", "card_roof_hint")} ${this.toggle("roof_fade", "card_roof_fade", "card_roof_fade_hint")} ${this.toggle("plain", "card_plain", "plain_hint")} ${this.toggle("room_bar", "card_room_bar", "room_bar_hint")}
+      ${this.value.room_bar ? this.toggle("room_bar_favorites", "card_room_bar_favorites", "card_room_bar_favorites_hint") : nothing} ${this.toggle("stats", "card_stats", "card_stats_hint")}
       ${this.renderFeatures()}
       ${this.renderKiosk()}
     `;
