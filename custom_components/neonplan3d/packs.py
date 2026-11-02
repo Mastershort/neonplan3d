@@ -80,6 +80,8 @@ PART_SCHEMA = vol.Schema(
         # free sizes (1.23): the measures that stay when the item is resized ("w", "d", "h" or several): legs,
         # arms and plates keep their size and their distance from the edge, the parts between them stretch
         vol.Optional("fix"): vol.All(str, vol.Match(r"^[wdh]{1,3}$")),
+        # an Advent candle's flame (2.3): drawn only from the n-th Sunday of Advent until 6 January
+        vol.Optional("advent"): vol.All(vol.Coerce(int), vol.Range(min=1, max=4)),
     }
 )
 
@@ -160,6 +162,7 @@ KNOWN_FEATURES = [
     # fun packs: free extras one picks up in the shop (pets, later seasonal ones)
     "fun_pets",
     "fun_halloween",
+    "fun_winter",
 ]
 
 # A module: code the shop delivers (not part of the public repository), run by NeonPlan's module loader.
