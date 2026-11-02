@@ -105,6 +105,7 @@ import { HEAT_SCALES, heatColor, heatGradient, roomValues, type HeatMode } from 
 import { furnitureName } from "../furniture-names.ts";
 import { fetchImage, saveBuilding } from "../api.ts";
 import { formatNumber, translate, type I18nKey } from "../i18n.ts";
+import { furnitureShown, showIfSignature } from "../show-if.ts";
 import { getPacks, isPackCooktop, isPackHeater, isPackType, isRobotVacuum, mountBase, packItem, packRobotCentre, packMotion, packName, packsVersion } from "../packs.ts";
 import { parkedVehicle, PRESENT_STATES, parkedVehicles, vehicleFurniture } from "../parking.ts";
 import { TRAIL_ICON, TRAIL_WINDOW_MS, trailEvents, trailPoints, trailSources, trailTime, type HistoryRow } from "../trail.ts";
@@ -1019,6 +1020,11 @@ export class Fp3dView3d extends LitElement {
       v.setBuilding(this.shownBuilding()!);
       if (startChanged && this.floorId === null) v.resetView();
     } else if (changed.has("plain") && changed.get("plain") !== undefined && this.building) v.setBuilding(this.shownBuilding()!);
+    // a piece's condition came true or false: the furniture is drawn again (only then, not on every state change)
+    else if (changed.has("hass") && this.building && showIfSignature(this.hass, this.building) !== this.shownSig) {
+      v.setBuilding(this.shownBuilding()!);
+      this.syncDevices(true);
+    }
     if (changed.has("building") || changed.has("packs") || changed.has("petsOn")) void this.syncPets();
     if (changed.has("building") || changed.has("packs") || changed.has("ghostOn")) void this.syncGhost();
     if (changed.has("startView") && changed.get("startView") !== undefined) {
@@ -1079,7 +1085,8 @@ export class Fp3dView3d extends LitElement {
    */
   private syncDevices(force: boolean, timed = false): void {
     const v = this.viewer;
-    const b = this.building;
+    // pieces hidden by their condition have no light or pin either
+    const b = this.conditioned();
     if (!v || !b || !this.hass) return;
     const hass = this.hass;
     if (force || !this.openingLinks || this.linkedRegistry !== hass.entities) {
@@ -4861,13 +4868,31 @@ export class Fp3dView3d extends LitElement {
 
   /** Opens a module's sheet for a room (from its panel). */
   private plainOf: { from: Building; to: Building } | null = null;
+  private condOf: { from: Building; sig: string; to: Building } | null = null;
+  /** Which pieces with a condition ("only show while …") the 3D view shows now. */
+  private shownSig = "";
 
   /**
    * The building the 3D view draws: as it is, or in the plain view without furniture – stairs, stairwells and
    * pack stairs stay (they cut the floors); lamps go with the rest, the device pins stay.
    */
-  private shownBuilding(): Building | null {
+  /**
+   * The building without the pieces whose condition is false now ("only show while …", decoration for a season): they
+   * leave the 3D view with their light and their pin. The editor always shows them.
+   */
+  private conditioned(): Building | null {
     const b = this.building;
+    const sig = showIfSignature(this.hass, b);
+    this.shownSig = sig;
+    if (!b || !sig) return b;
+    if (this.condOf?.from === b && this.condOf.sig === sig) return this.condOf.to;
+    const to = { ...b, floors: b.floors.map((f) => ({ ...f, furniture: f.furniture.filter((x) => furnitureShown(this.hass, x)) })) };
+    this.condOf = { from: b, sig, to };
+    return to;
+  }
+
+  private shownBuilding(): Building | null {
+    const b = this.conditioned();
     if (!b || !this.plain) return b;
     if (this.plainOf?.from === b) return this.plainOf.to;
     const keep = (f: Furniture) => STAIR_TYPES.has(f.type) || f.type === "stairwell" || !!packItem(f.type)?.hole;

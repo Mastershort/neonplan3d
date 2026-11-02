@@ -146,8 +146,9 @@ function copyFonts() {
 // main 728 KB, editor 949 KB, card editor 276 KB on 2026-10-31: the room of this device and of the card (`voice_area`) for sentences without a room ("Licht an") and their texts
 // main 739 KB, editor 968 KB, card editor 284 KB on 2026-11-01: NeonPlan Print for supporters (card on Extensions, "new" dot, "Print in 3D" in the editor) with its texts
 // main 738 KB, 3D 842 KB, editor 964 KB, card editor 283 KB on 2026-11-01 (2.2.0): sloping free walls (#834), terrace roofs at thick walls and an overhang per side (#863), the sun arc around the whole plot (#833), the cable hub and the inverter cable to the grid point (#841), light-well depth (#890), soft sun patches (#819) – with their texts
+// main 758 KB, editor 974 KB, card editor 288 KB on 2026-11-02: "only show while …" for furniture and its texts
 // main 756 KB, editor 970 KB, card editor 286 KB on 2026-11-02: the room bar (a card per room with a light switch, the favourites before them) with its texts
-const BUDGET = { "neonplan3d.js": 756 * 1024, "neonplan3d-fun.js": 40 * 1024, "neonplan3d-voice.js": 60 * 1024, "neonplan3d-locate.js": 160 * 1024, "neonplan3d-timetravel.js": 120 * 1024, "neonplan3d-3d.js": 842 * 1024, "neonplan3d-editor.js": 970 * 1024, "neonplan3d-card-editor.js": 286 * 1024 };
+const BUDGET = { "neonplan3d.js": 758 * 1024, "neonplan3d-fun.js": 40 * 1024, "neonplan3d-voice.js": 60 * 1024, "neonplan3d-locate.js": 160 * 1024, "neonplan3d-timetravel.js": 120 * 1024, "neonplan3d-3d.js": 842 * 1024, "neonplan3d-editor.js": 974 * 1024, "neonplan3d-card-editor.js": 288 * 1024 };
 
 copyFonts();
 if (watch) {

@@ -182,6 +182,8 @@ const shots = [
   { name: "editor-diagnostics", query: "", width: 1280, height: 1000, editor: true, editorScript: DIAG_SCRIPT, afterWait: 800 },
   { name: "editor-diagnostics-data", query: "", width: 1280, height: 1000, editor: true, editorScript: DIAG_SCRIPT + " setTimeout(() => (e._diagView = true), 1100);", afterWait: 1200 },
   { name: "editor-library", query: "", width: 1280, height: 900, editor: true, editorScript: "e._roomId = 'wohnen'; e._furnQuery = 'sofa';" },
+  // "only show while …": a piece shown in 3D only while an entity is in a state (drawn faint in the plan while it is away)
+  { name: "editor-show-if", query: "", width: 1280, height: 1000, editor: true, editorScript: "const f = e._doc.floors[0].furniture.find((m) => m.id === 'm2'); f.show_if = { entity: 'input_boolean.gaeste', state: 'on' }; e.setDoc(structuredClone(e._doc)); e._furnitureId = 'm2';", scrollSide: true },
   { name: "editor-split-3d", query: "", width: 1400, height: 900, editor: true, editorScript: "e._split = true; e._furnitureId = 'm2';" },
   { name: "editor-free-wall", query: "", width: 1280, height: 800, editor: true, editorState: { _floorId: "og", _tool: "select" } },
   { name: "editor-room-wall-heights", query: "", width: 1280, height: 1000, editor: true, editorState: { _floorId: "og", _tool: "select", _roomId: "kind", _edgeHi: 1 }, scrollSide: true },

@@ -362,6 +362,16 @@ FURNITURE_SCHEMA = vol.Schema(
         vol.Optional("group", default=None): vol.Any(None, vol.All(str, vol.Length(max=64))),
         # fixed against moving by accident
         vol.Optional("locked", default=None): vol.Any(None, bool),
+        # shown in 3D only while an entity is in a state (decoration for a season)
+        vol.Optional("show_if", default=None): vol.Any(
+            None,
+            vol.Schema(
+                {
+                    vol.Required("entity"): vol.All(str, vol.Length(max=255)),
+                    vol.Optional("state", default=None): vol.Any(None, vol.All(str, vol.Length(max=120))),
+                }
+            ),
+        ),
         # a module's own data for this item
         vol.Optional("mods"): _MODULE_DATA,
     },
