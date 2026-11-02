@@ -1757,14 +1757,17 @@ export class FloorplanViewer {
         const len = spillLength((s, d) => groundAt(s, d, 0.35 * reach), foot, reach);
         if (len < 0.2) continue;
         const spread = 0.35 * len;
-        const y = foot + 0.014;
+        // each corner lies just above the ground under it: a path or lawn a few centimetres higher than the ground at
+        // the window would otherwise cover the patch – seen from close up it went missing (#893)
         const at = (s: number, d: number) => {
           const t = d / len;
           const sx = -spread * t + s * (info.width + 2 * spread * t);
-          return [info.start[0] + info.axis[0] * sx + out[0] * (info.faceOut + d), y, info.start[1] + info.axis[1] * sx + out[1] * (info.faceOut + d)];
+          const x = info.start[0] + info.axis[0] * sx + out[0] * (info.faceOut + d);
+          const z = info.start[1] + info.axis[1] * sx + out[1] * (info.faceOut + d);
+          return [x, Math.max(foot, groundUnder(fv.floor, { x, z })) + 0.014, z];
         };
-        // fading outwards and soft at both sides
-        const rows = 4;
+        // fading outwards and soft at both sides, in rows short enough to follow a step in the ground
+        const rows = Math.max(4, Math.ceil(len / 0.3));
         const cols: [number, number][] = [[0, 0], [0.18, 1], [0.82, 1], [1, 0]];
         for (let i = 0; i < rows; i++) {
           const d0 = (len * i) / rows;
@@ -3190,7 +3193,8 @@ export class FloorplanViewer {
       (this.lowQuality ? "L" : this.highQuality ? "H" : "M") +
       lamps.map((d) => `${d.id},${d.lamp ?? d.model},${d.variant},${d.x},${d.z},${d.y},${d.rotation ?? 0},${d.roll ?? 0},${d.upright ? 1 : 0},${d.rise ?? 0},${d.size?.join("/")},${d.base ?? 0},${d.pack ?? ""},${d.mirror ? 1 : 0},${d.ownLook ? 1 : 0}`).join(";");
     const glows = lamps.map((d) => this.glowOf(d));
-    const colorSig = lamps.map((d, i) => `${flash(d.id)},${glows[i] ? `${glows[i]!.level.toFixed(3)},${glows[i]!.color.map((c) => c.toFixed(3)).join("/")}` : "off"}`).join(";");
+    // a camera's motion is in it too: its wedge on the floor (buildHalos) turns red without any lamp changing (#901)
+    const colorSig = lamps.map((d, i) => `${flash(d.id)},${glows[i] ? `${glows[i]!.level.toFixed(3)},${glows[i]!.color.map((c) => c.toFixed(3)).join("/")}` : "off"}${d.motion ? ",m" : ""}`).join(";");
     if (shapeSig !== fv.lampShapeSig || !fv.lampMesh.geometry.getAttribute("position")) {
       fv.lampShapeSig = shapeSig;
       fv.lampColorSig = "";
