@@ -182,35 +182,36 @@ Array.prototype.at||Object.defineProperty(Array.prototype,"at",{configurable:!0,
       <button class="fp3d-rb-min" aria-expanded="true" title=${this.t("room_bar_hide")} aria-label=${this.t("room_bar_hide")} @click=${()=>this.setMin(!0)}>▾</button>
       ${r.map(a=>{let l=t.states[a.id];return b`<button
           class="fp3d-rb-tile fp3d-rb-fav ${a.on||this._fired===a.id?"fp3d-rb-on":""}"
+          title=${G(t,a.id)}
           ?disabled=${this.readOnly||U(l)}
           @click=${()=>{t.callService(a.domain,a.service,{entity_id:a.id}),this._fired=a.id,setTimeout(()=>this._fired=null,700)}}
         >
-          <b>${G(t,a.id)}</b>
+          <span class="fp3d-rb-head"><b>${G(t,a.id)}</b></span>
           <small>${a.domain==="homeassistant"?a.on?this.t("room_bar_on"):this.t("room_bar_off"):`\u25B6 ${this.t("room_bar_run")}`}</small>
         </button>`})}
       ${r.length&&n.length?b`<span class="fp3d-rb-sep" aria-hidden="true"></span>`:y}
-      ${n.map(a=>b`<div
-          class="fp3d-rb-tile fp3d-rb-room ${a.active?"fp3d-rb-active":""} ${a.roomId===this.roomId?"fp3d-rb-sel":""}"
+      ${n.map(a=>{let l=a.temp===null&&!a.lightsOn.length&&!a.open&&!a.playing;return b`<div
+          class="fp3d-rb-tile ${l?"fp3d-rb-quiet":""} ${a.active?"fp3d-rb-active":""} ${a.roomId===this.roomId?"fp3d-rb-sel":""}"
           role="button"
           tabindex="0"
+          title=${i?`${a.name} \xB7 ${s(a.floorId)}`:a.name}
           aria-pressed=${a.roomId===this.roomId}
           @click=${()=>this.pick(a.floorId,a.roomId)}
-          @keydown=${l=>(l.key==="Enter"||l.key===" ")&&(l.preventDefault(),this.pick(a.floorId,a.roomId))}
+          @keydown=${c=>(c.key==="Enter"||c.key===" ")&&(c.preventDefault(),this.pick(a.floorId,a.roomId))}
         >
-          <b>${a.name}</b>
-          ${i?b`<span class="fp3d-rb-floor">${s(a.floorId)}</span>`:y}
-          <span class="fp3d-rb-temp">${a.temp===null?"\u2013":`${ne(t,a.temp,1)}\xB0`}</span>
-          <span class="fp3d-rb-badges">
-            ${a.lightsOn.length?b`<button
-                  class="fp3d-rb-badge fp3d-rb-light"
-                  title=${this.t("room_bar_lights_off")}
-                  ?disabled=${this.readOnly}
-                  @click=${l=>{l.stopPropagation(),t.callService("light","turn_off",{entity_id:a.lightsOn})}}
-                >💡 ${this.t("room_bar_lights",{n:a.lightsOn.length})}</button>`:a.lights?b`<span class="fp3d-rb-badge fp3d-rb-dim">💡 ${this.t("room_bar_off")}</span>`:y}
-            ${a.open?b`<span class="fp3d-rb-badge fp3d-rb-open-win">🪟 ${this.t("room_bar_open")}</span>`:y}
-            ${a.playing?b`<span class="fp3d-rb-badge fp3d-rb-play">▶ ${this.t("room_bar_playing")}</span>`:y}
-          </span>
-        </div>`)}
+          <span class="fp3d-rb-head"><b>${a.name}</b>${a.temp===null?y:b`<span class="fp3d-rb-temp">${ne(t,a.temp,1)}°</span>`}</span>
+          ${l?y:b`<span class="fp3d-rb-icons">
+                ${a.lightsOn.length?b`<button
+                      class="fp3d-rb-light"
+                      title=${this.t("room_bar_lights_off")}
+                      aria-label=${`${this.t("room_bar_lights",{n:a.lightsOn.length})} \u2013 ${this.t("room_bar_lights_off")}`}
+                      ?disabled=${this.readOnly}
+                      @click=${c=>{c.stopPropagation(),t.callService("light","turn_off",{entity_id:a.lightsOn})}}
+                    >💡${a.lightsOn.length}</button>`:y}
+                ${a.open?b`<span title=${this.t("room_bar_open")}>🪟${a.open>1?a.open:""}</span>`:y}
+                ${a.playing?b`<span class="fp3d-rb-play" title=${this.t("room_bar_playing")}>▶</span>`:y}
+              </span>`}
+        </div>`})}
     </div>`}static styles=[De,Ge,ze`
       :host {
         display: block;
@@ -220,132 +221,130 @@ Array.prototype.at||Object.defineProperty(Array.prototype,"at",{configurable:!0,
       .fp3d-rb-open {
         pointer-events: auto;
       }
+      /* no bar: glass tiles floating over the plan, like the holograms (no blur: cheap on old tablets) */
       .fp3d-rb {
         display: flex;
-        align-items: stretch;
-        gap: 8px;
-        padding: 6px;
+        align-items: flex-end;
+        gap: 6px;
+        padding: 4px 2px;
         overflow-x: auto;
         scrollbar-width: none;
         overscroll-behavior-x: contain;
-        border-radius: 16px;
-        background: var(--fp3d-chrome);
-        border: 1px solid var(--fp3d-line);
-        box-shadow: var(--fp3d-shadow);
       }
       .fp3d-rb::-webkit-scrollbar {
         display: none;
       }
       .fp3d-rb-min {
         flex: none;
-        width: 26px;
-        border: 0;
-        border-radius: 10px;
-        background: transparent;
-        color: var(--fp3d-muted);
+        align-self: center;
+        width: 24px;
+        height: 24px;
+        padding: 0;
+        border: 1px solid rgba(160, 240, 255, 0.3);
+        border-radius: 999px;
+        background: rgba(10, 18, 34, 0.6);
+        color: #bfefff;
         font: inherit;
+        font-size: 11px;
         cursor: pointer;
+      }
+      .fp3d-rb-open {
+        padding: 4px 12px;
       }
       .fp3d-rb-sep {
         flex: none;
+        align-self: stretch;
         width: 1px;
-        margin: 4px 0;
-        background: var(--fp3d-line);
+        margin: 6px 2px;
+        background: rgba(160, 240, 255, 0.25);
       }
       .fp3d-rb-tile {
         flex: none;
         display: flex;
         flex-direction: column;
-        align-items: flex-start;
-        gap: 2px;
-        min-width: 112px;
-        max-width: 170px;
-        padding: 8px 10px;
+        gap: 1px;
+        min-width: 0;
+        max-width: 150px;
+        padding: 5px 10px 5px;
         border-radius: 12px;
-        border: 1px solid var(--fp3d-line);
-        background: var(--fp3d-chrome-solid);
-        color: var(--fp3d-text);
+        border: 1px solid rgba(160, 240, 255, 0.4);
+        background: linear-gradient(140deg, rgba(150, 235, 255, 0.16) 0%, rgba(40, 90, 170, 0.18) 55%, rgba(10, 30, 70, 0.42) 100%);
+        box-shadow:
+          0 0 14px rgba(55, 224, 255, 0.18),
+          inset 0 1px 0 rgba(255, 255, 255, 0.28);
+        color: #e6fbff;
+        text-shadow: 0 0 6px rgba(80, 220, 255, 0.45);
         font: inherit;
         text-align: left;
         cursor: pointer;
       }
-      .fp3d-rb-tile b {
-        max-width: 100%;
+      .fp3d-rb-head {
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+        min-width: 0;
+      }
+      .fp3d-rb-head b {
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
-        font-size: 13px;
+        font-size: 12px;
+        font-weight: 600;
       }
-      .fp3d-rb-tile small,
-      .fp3d-rb-floor {
-        color: var(--fp3d-muted);
+      .fp3d-rb-temp {
+        margin-left: auto;
+        font-size: 14px;
+        font-weight: 700;
+        font-family: var(--fp3d-title-font);
+      }
+      .fp3d-rb-tile small {
+        color: rgba(200, 235, 255, 0.7);
+        font-size: 10px;
+      }
+      .fp3d-rb-icons {
+        display: flex;
+        align-items: center;
+        gap: 6px;
         font-size: 11px;
+        line-height: 16px;
       }
-      .fp3d-rb-fav {
-        min-width: 96px;
-        justify-content: space-between;
+      .fp3d-rb-light {
+        padding: 0 6px;
+        border: 0;
+        border-radius: 999px;
+        background: rgba(255, 181, 71, 0.22);
+        color: #ffe2b0;
+        font: inherit;
+        cursor: pointer;
+      }
+      .fp3d-rb-play {
+        color: #7ff0ff;
+      }
+      /* nothing to tell: a small chip with the name */
+      .fp3d-rb-quiet {
+        padding: 4px 9px;
+        opacity: 0.72;
+        box-shadow: none;
+        background: rgba(10, 22, 44, 0.45);
+        border-color: rgba(160, 240, 255, 0.22);
       }
       .fp3d-rb-fav:disabled {
         opacity: 0.5;
         cursor: default;
       }
+      /* something on or open: a warm glow, like a lit room */
+      .fp3d-rb-active,
       .fp3d-rb-on {
-        border-color: var(--fp3d-warm);
-        box-shadow: inset 0 0 0 1px var(--fp3d-warm);
-      }
-      .fp3d-rb-active {
-        border-color: var(--fp3d-warm);
+        border-color: rgba(255, 200, 110, 0.75);
+        box-shadow:
+          0 0 16px rgba(255, 181, 71, 0.32),
+          inset 0 1px 0 rgba(255, 255, 255, 0.3);
       }
       .fp3d-rb-sel {
-        border-color: var(--fp3d-accent);
-        box-shadow: inset 0 0 0 1px var(--fp3d-accent);
-      }
-      .fp3d-rb-temp {
-        font-size: 20px;
-        font-weight: 700;
-        line-height: 1.1;
-        font-family: var(--fp3d-title-font);
-      }
-      .fp3d-rb-badges {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 4px;
-        min-height: 18px;
-      }
-      .fp3d-rb-badge {
-        display: inline-flex;
-        align-items: center;
-        gap: 3px;
-        padding: 1px 7px;
-        border-radius: 999px;
-        border: 0;
-        font: inherit;
-        font-size: 11px;
-        background: rgba(255, 255, 255, 0.07);
-        color: var(--fp3d-text);
-      }
-      .fp3d-rb-light {
-        background: rgba(255, 181, 71, 0.2);
-        cursor: pointer;
-      }
-      .fp3d-rb-dim {
-        color: var(--fp3d-muted);
-      }
-      .fp3d-rb-open-win {
-        background: rgba(255, 107, 139, 0.2);
-      }
-      .fp3d-rb-play {
-        background: rgba(55, 224, 255, 0.16);
-      }
-      /* phones: smaller tiles, so two or three fit */
-      @media (max-width: 600px) {
-        .fp3d-rb-tile {
-          min-width: 92px;
-          padding: 6px 8px;
-        }
-        .fp3d-rb-temp {
-          font-size: 17px;
-        }
+        border-color: rgba(120, 240, 255, 0.95);
+        box-shadow:
+          0 0 18px rgba(55, 224, 255, 0.5),
+          inset 0 0 0 1px rgba(120, 240, 255, 0.6);
       }
     `]};customElements.get("fp3d-room-bar")||customElements.define("fp3d-room-bar",sr);var lp=["camera_cockpit","weather","screens","energy_pro","sound","auto_pro","time_travel","pool","household"],dp=["fun_pets","fun_halloween"],ar=["pool"];function lr(){try{let o=new URLSearchParams(location.search).get("fp3d_lab");return o==="1"?localStorage.setItem("neonplan3d.lab","1"):o==="0"&&localStorage.removeItem("neonplan3d.lab"),localStorage.getItem("neonplan3d.lab")==="1"}catch{return!1}}function jl(){try{let o=new URLSearchParams(location.search).get("fp3d_projection");return o==="1"?localStorage.setItem("neonplan3d.projection","1"):o==="0"&&localStorage.removeItem("neonplan3d.projection"),localStorage.getItem("neonplan3d.projection")==="1"}catch{return!1}}function So(o){return!ar.includes(o)||o!=="diagnostics"&&o!=="locate"&&B(o)||lr()}var cp=["fridge_smart"];function up(o){return lp.includes(o)||cp.includes(o)||dp.includes(o)}var dr=o=>(o??navigator.language).toLowerCase().startsWith("de");function ql(o){return`https://mastershort.de/my-account/?lang=${dr(o)?"de":"en"}&src=neonplan-app`}function Zl(o){return dr(o)?"https://mastershort.de/neonplan3d/?lang=de":"https://mastershort.de/en/neonplan3d/?lang=en"}var hp={camera_cockpit:{de:"pro-erweiterungen/#61-kamera-cockpit",en:"pro-add-ons/#61-camera-cockpit"},weather:{de:"pro-erweiterungen/#62-wetter-drau%C3%9Fen",en:"pro-add-ons/#62-weather-outside"},screens:{de:"pro-erweiterungen/#63-bildschirme-live",en:"pro-add-ons/#63-live-screens"},energy_pro:{de:"pro-erweiterungen/#64-energie-pro",en:"pro-add-ons/#64-energy-pro"},sound:{de:"pro-erweiterungen/#65-klang-kino",en:"pro-add-ons/#65-sound-cinema"},auto_pro:{de:"pro-erweiterungen/#66-auto-pro",en:"pro-add-ons/#66-auto-pro"},time_travel:{de:"pro-erweiterungen/#67-zeitreise",en:"pro-add-ons/#67-time-travel"},pool:{de:"pro-erweiterungen/#68-pool-pro",en:"pro-add-ons/#68-pool-pro"},household:{de:"pro-erweiterungen/#68-haushalt-pro",en:"pro-add-ons/#68-household-pro"},extensions:{de:"erweiterungen-shop-moebel-packs/",en:"extensions-shop-furniture-packs/"}};function Yl(o,e){let t=dr(o),n=t?"https://mastershort.de/neonplan3d/anleitung/":"https://mastershort.de/en/neonplan3d/manual/",r=e?hp[e]:void 0,i=r?t?r.de:r.en:"",[s,a]=i.split("#");return`${n}${s}?lang=${t?"de":"en"}${a?`#${a}`:""}`}function pp(o=it()){let e=new Set;for(let t of o)for(let n of t.features??[])up(n)&&e.add(n);return e}function B(o,e){return pp(e).has(o)}function ur(o){return o?.settings.person_look??"figure"}function $o(o){return ur(o)!=="off"}var Xl=["#ff5fd2","#37e0ff","#ffb84d","#7dff8a","#b18cff","#ff7a6b","#4dd2c0","#f5e663"];function cr(o){let e=0;for(let t of o)e=e*31+t.charCodeAt(0)>>>0;return Xl[e%Xl.length]}var Ql=o=>o.toLowerCase().replace(/[_\-]+/g," ").replace(/\s+/g," ").trim();function fp(o,e,t){let n=Ql(t);if(!n||n==="unknown"||n==="unavailable"||n==="not home"||n==="away")return null;for(let r of e.floors)for(let i of r.rooms)if([i.name,i.area_id??"",i.area_id?o.areas?.[i.area_id]?.name??"":""].filter(Boolean).map(Ql).includes(n))return{floorId:r.id,room:i};return null}function Jl(o){let e=o.trim().split(/\s+/).filter(Boolean);return e.length?(e.length>1?e[0][0]+e[e.length-1][0]:e[0].slice(0,2)).toUpperCase():"?"}function mp(o){return!["home","on","unknown","unavailable",""].includes(o)}function ed(o,e){let t=[],n=new Map;for(let r of e.presence){let i=o.states[r.person];if(!i||!r.sensor||i.state!=="home"&&i.state!=="on")continue;let s=o.states[r.sensor];if(!s)continue;let a=fp(o,e,s.state);if(!a)continue;let l=n.get(a.room.id)??0;n.set(a.room.id,l+1);let[c,d]=Pe(a.room.points),u=-Math.PI/2+.9+l*1.15,p=.75,h=i.attributes.friendly_name??r.person;t.push({id:r.person,name:h,initials:Jl(h),picture:i.attributes.entity_picture??null,floorId:a.floorId,roomId:a.room.id,x:c+Math.cos(u)*p,z:d+Math.sin(u)*p})}return t}function Mo(o,e,t=new Set,n=Date.now()){let r=[];for(let[u,p]of Object.entries(o.states)){let h=p.attributes;if(!u.startsWith("sensor.")||h.neonplan_locate!==!0||typeof h.room_id!="string")continue;let g=null;for(let v of e.floors){let w=ce(v).find(m=>m.id===h.room_id);w&&(g={floorId:v.id,room:w})}if(!g)continue;let _=typeof h.last_seen=="string"?Date.parse(h.last_seen):NaN,f=typeof h.since=="string"?Date.parse(h.since):NaN;r.push({entityId:u,name:typeof h.device_name=="string"?h.device_name:u,person:typeof h.person=="string"?h.person:null,floorId:g.floorId,room:g.room,seen:Number.isFinite(_)?_:0,since:Number.isFinite(f)?f:0,probability:typeof h.probability=="number"?h.probability:0,worn:h.wearable===!0})}let i=[],s=new Map,a=new Map,l=(u,p)=>{let h=s.get(u.room.id)??0;if(s.set(u.room.id,h+1),!p.thing){let v=a.get(u.room.id);v||a.set(u.room.id,v=vp(o,e,u.floorId,u.room));let w=v.shift();if(w){i.push({...p,floorId:u.floorId,roomId:u.room.id,x:w[0],z:w[1]});return}}let[g,_]=Pe(u.room.points),f=-Math.PI/2+.9+h*1.15;i.push({...p,floorId:u.floorId,roomId:u.room.id,x:g+Math.cos(f)*.75,z:_+Math.sin(f)*.75})},c=(u,p)=>l(u,{id:u.entityId,name:u.name,initials:u.name.slice(0,1).toUpperCase(),picture:null,color:p,entity:u.entityId,tag:u.name,thing:!0}),d=new Map;for(let u of r)u.person?d.set(u.person,[...d.get(u.person)??[],u]):c(u,cr(u.entityId));for(let[u,p]of d){if(t.has(u))continue;let h=o.states[u];if(h&&mp(h.state))continue;let g=x=>x.reduce((T,A)=>A.seen>T.seen?A:T),_=p.filter(x=>x.worn&&n-x.seen<12e4),f=g(_.length?_:p),v=x=>n-x.seen<3e4&&n-f.seen<3e4&&x.since>=f.since-12e4,w=null;if(f.worn){let x=p.filter(A=>!A.worn&&A.room.id!==f.room.id&&v(A)),T=x.length?x.reduce((A,z)=>z.probability>A.probability?z:A):null;T&&n-f.since>=6e5&&T.since>f.since+12e4?(w=f,f=T):T&&T.probability>f.probability+.15&&(f=T)}let m=h?.attributes.friendly_name??f.name;l(f,{id:u,name:m,initials:Jl(m),picture:h?.attributes.entity_picture??null,color:cr(u),entity:f.entityId,tag:m.split(/\s+/)[0]});for(let x of p)x===f||x.room.id===f.room.id||x!==w&&(x.worn&&n-x.seen<12e4||v(x))||c(x,cr(u))}return i}var gp=[[/sofa|couch|corner|chesterfield|recamiere|chaise|^module_/,["sofa","couch","wohnlandschaft","ecksofa","eckcouch"]],[/armchair|club_chair|wingback|recliner|lounge_chair|cocktail_chair|rocking_chair|bean_bag/,["sessel","armchair","ohrensessel","relaxsessel","chair"]],[/bed/,["bett","bed"]],[/^dining/,["esstisch","essen","essbereich","dining","tisch","table"]],[/^coffee/,["couchtisch"]],[/desk/,["schreibtisch","desk","arbeitsplatz","office"]]],_p=["terrasse","garten","balkon","aussen","draussen","terrace","garden","patio","balcony","outside"];function bp(o,e){let t=[],[n,r]=Pe(e.points),i=(s,a)=>s.points.some((l,c)=>{let d=s.points[(c+1)%s.points.length],[u,p]=[d[0]-l[0],d[1]-l[1]],h=u*u+p*p||1,g=Math.max(0,Math.min(1,((a[0]-l[0])*u+(a[1]-l[1])*p)/h));return Math.hypot(l[0]+g*u-a[0],l[1]+g*p-a[1])<.3});for(let s of o.openings){if(s.wall||s.type==="window"&&s.sill>.3||s.type==="garage")continue;let a=o.rooms.find(g=>g.id===s.room_id);if(!a)continue;let l=a.points[s.edge],c=a.points[(s.edge+1)%a.points.length];if(!l||!c)continue;let d=Math.hypot(c[0]-l[0],c[1]-l[1])||1,u=[l[0]+(c[0]-l[0])*s.offset/d,l[1]+(c[1]-l[1])*s.offset/d];if(!i(e,u))continue;let p=o.rooms.find(g=>g.id!==e.id&&i(g,u)),h=.6/(Math.hypot(n-u[0],r-u[1])||1);t.push({to:p?ln(p.name):null,spot:[u[0]+(n-u[0])*h,u[1]+(r-u[1])*h]})}return t}var wp=["praesenz","presence","occupancy","anwesenheit","belegt","zone","bereich","raum","room","rest","sensor","fp2"],ln=o=>o.toLowerCase().replace(/ä/g,"ae").replace(/ö/g,"oe").replace(/ü/g,"ue").replace(/ß/g,"ss").split(/[^a-z0-9]+/).filter(e=>e.length>1);function vp(o,e,t,n){let r=e.floors.find(c=>c.id===t);if(!r||!n.area_id)return[];let i=r.furniture.filter(c=>K([c.x,c.z],n.points)),s=bp(r,n),a=[],l=new Set([...ln(n.name),...ln(o.areas?.[n.area_id]?.name??""),...ln(n.area_id),...wp]);for(let[c,d]of Object.entries(o.states)){if(!c.startsWith("binary_sensor.")||d.state!=="on")continue;let u=d.attributes.device_class;if(u!=="occupancy"&&u!=="presence"||Ee(o,c)!==n.area_id)continue;let h=new Set(ln(String(d.attributes.friendly_name??c.slice(14))).filter(v=>!l.has(v))),g=i.find(v=>v.name&&ln(v.name).some(w=>h.has(w))||gp.some(([w,m])=>w.test(v.type.split(":").pop()??"")&&m.some(x=>h.has(x)))),_=g?null:s.find(v=>v.to?v.to.some(w=>h.has(w)):[...h].some(w=>_p.some(m=>w.includes(m)))),f=g?[g.x,g.z]:_?_.spot:null;f&&!a.some(([v,w])=>v===f[0]&&w===f[1])&&a.push(f)}return a}function td(o,e,t,n){let r=new Map,i=s=>!!s&&o.states[s]?.state==="on";for(let s of e.floors){let a=new Set;for(let c of s.rooms)for(let d of po(o,fe(o,c.area_id)))W(d)==="light"&&a.add(d);for(let c of s.placements)W(c.entity_id)==="light"&&a.add(c.entity_id);let l=s.openings.filter(c=>{let d=t.get(c.id);if(!d)return!1;if(c.type==="garage")return(Ye(o,d,"garage").cover??1)<.95;if(c.type==="door")return i(d.contact)||i(d.contact2??null);let u=Ye(o,d,"window");return u.open>.5||u.tilt>.5||u.open2>.5||u.tilt2>.5}).length;r.set(s.id,{rooms:s.rooms.length,lightsOn:[...a].filter(c=>o.states[c]?.state==="on").length,open:l,persons:n.filter(c=>c.floorId===s.id).length})}return r}function nd(o,e){let t=[e.rooms===1?M(o,"floor_rooms_one"):M(o,"floor_rooms",{n:e.rooms})];return e.lightsOn&&t.push(M(o,"floor_lights",{n:e.lightsOn})),e.open&&t.push(M(o,"floor_open",{n:e.open})),e.persons&&t.push(M(o,"floor_persons",{n:e.persons})),t.join(" \xB7 ")}var od={light:"M9 18h6M10 21h4M12 3a6 6 0 0 0-3.6 10.8c.7.6 1.1 1.4 1.1 2.2v.5h5V16c0-.8.4-1.6 1.1-2.2A6 6 0 0 0 12 3z",switch:"M7 4h10a3 3 0 0 1 3 3v10a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3zM12 8v8",fan:"M12 12c0-4 1-8 4-8s2 5-4 8zm0 0c4 0 8 1 8 4s-5 2-8-4zm0 0c0 4-1 8-4 8s-2-5 4-8zm0 0c-4 0-8-1-8-4s5-2 8 4z",cover:"M4 4h16v3H4zM5 7v13M19 7v13M7 10h10M7 13h10M7 16h10",climate:"M12 14.5V5a2 2 0 1 0-4 0v9.5a4 4 0 1 0 4 0zM10 11v6M16 6h4M16 10h3",media:"M4 6h16v10H4zM9 20h6M12 16v4M10.5 8.8v4.4l3.8-2.2z",lock:"M6 11h12v9H6zM8.5 11V8a3.5 3.5 0 0 1 7 0v3M12 14.5v2",sensor:"M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 7v5l3 2",binary:"M5 21V4h11v17M16 21H4M8 21V7h5v14M12.5 13.5h.01",camera:"M4 7h11v10H4zM15 10.5l5-3v9l-5-3",scene:"M5 19l9-9M14 4l.8 2.2L17 7l-2.2.8L14 10l-.8-2.2L11 7l2.2-.8zM19 11l.5 1.5L21 13l-1.5.5L19 15l-.5-1.5L17 13l1.5-.5z",script:"M8 4h9a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-2h9M8 4a2 2 0 0 0-2 2v10M9 9h6M9 12h4"};function zo(o){return od[o]}function Qe(o){return`<ha-icon icon="mdi:${o.replace(/^mdi:/,"").replace(/[^a-z0-9-]/gi,"")}" style="--mdc-icon-size:18px"></ha-icon>`}function Ht(o){return`<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${od[o]}"/></svg>`}var pt=(o,e)=>M(o,e);function ue(o,e){if(!e||U(e))return pt(o,"state_unavailable");let t=e.attributes;switch(W(e.entity_id)){case"light":return e.state!=="on"?pt(o,"state_off"):typeof t.brightness=="number"?`${Math.round(t.brightness/255*100)} %`:pt(o,"state_on");case"switch":case"fan":return pt(o,e.state==="on"?"state_on":"state_off");case"cover":return typeof t.current_position=="number"&&e.state!=="opening"&&e.state!=="closing"?`${t.current_position} %`:Po(o,e.state);case"climate":{let n=typeof t.current_temperature=="number"?`${ne(o,t.current_temperature,1)} ${o?Le(o):"\xB0C"}`:null;return e.state==="off"?n?`${n} \xB7 ${pt(o,"state_off")}`:pt(o,"state_off"):n??Po(o,e.state)}case"media":{let n=e.state==="playing"||e.state==="paused"||e.state==="on"||e.state==="idle",r=[t.app_name,t.media_title,t.source].find(i=>typeof i=="string"&&i);return n&&r?r:Po(o,e.state)}case"lock":case"camera":return Po(o,e.state);case"binary":return["door","window","opening","garage_door"].includes(t.device_class)?pt(o,e.state==="on"?"state_open":"state_closed"):pt(o,e.state==="on"?"state_detected":"state_clear");case"sensor":{let n=Number(e.state),r=t.unit_of_measurement??"",i=o?.entities?.[e.entity_id]?.display_precision??1;return Number.isFinite(n)?`${ne(o,n,i)}${r?` ${r}`:""}`:e.state}default:return""}}function Po(o,e){let t=`state_${e}`,n=M(o,t);return n===t?e:n}function id(o,e){let t=[],n=new Set(e.floors.flatMap(r=>r.furniture.map(i=>i.look_of).filter(i=>!!i)));for(let r of e.floors)for(let i of r.placements){let s=W(i.entity_id),a=o.states[i.entity_id];if(!s||!a)continue;let l=r.rooms.find(d=>d.points.length>=3&&K([i.x,i.z],d.points))??null,c=l?.area_id?o.areas?.[l.area_id]?.name:void 0;t.push({id:i.entity_id,floorId:r.id,roomId:l?.id??null,x:i.x,z:i.z,y:i.y??tn(s,r.height,i.mount??null),lamp:s==="light"?i.mount??"ceiling":null,model:s==="camera"?i.mount==="ceiling"?"camera_ceiling":"camera_wall":void 0,...s==="camera"&&n.has(i.entity_id)?{ownLook:!0}:{},motion:s==="camera"?yp(o,i.entity_id):void 0,fov:i.fov??void 0,reach:i.reach??void 0,tilt:i.tilt??void 0,rotation:i.rotation??0,icon:i.icon?Qe(i.icon):Ht(s),cone:s==="camera"&&i.cone===!1?!1:void 0,name:i.name||G(o,i.entity_id,c),ownName:i.name||void 0,showName:!!i.show_name,text:ue(o,a),active:Fe(a),unavailable:U(a),glow:s==="light"?pr(Et(a),i.glow_scale):null,show:i.marker??void 0,fixed:!!i.locked})}return t}function hr(o,e){let t=`${e} ${String(o.states[e]?.attributes.friendly_name??"")}`.toLowerCase().replace(/[_.-]/g," ");return/person|people|human|pedestrian/.test(t)?"person":/\bcar\b|vehicle|truck|bus|motorcycle|bicycle|fahrzeug|auto\b/.test(t)?"car":/\bdog\b|\bcat\b|\bpet\b|animal|bird|hund|katze|tier/.test(t)?"pet":"motion"}function yp(o,e){return Je(o,e).some(t=>o.states[t]?.state==="on")}var rd=new Map;function sd(o){rd=new Map(o?.floors.flatMap(e=>e.placements.filter(t=>Array.isArray(t.detect_sensors)).map(t=>[t.entity_id,t.detect_sensors]))??[])}function Je(o,e){return rd.get(e)??kp(o,e)}function kp(o,e){let t=o.entities?.[e]?.device_id;return t?Object.values(o.entities??{}).filter(n=>n.device_id===t&&n.entity_id.startsWith("binary_sensor.")).map(n=>n.entity_id).filter(n=>["motion","occupancy","presence"].includes(String(o.states[n]?.attributes.device_class))):[]}function ad(o){return o.floors.flatMap(e=>e.placements.map(t=>t.entity_id))}function Se(o,e){o.dispatchEvent(new CustomEvent("hass-more-info",{detail:{entityId:e},bubbles:!0,composed:!0}))}function Eo(o,e){let t=e.slice(0,e.indexOf("."));return o.callService(t,"toggle",{entity_id:e})}function pr(o,e){return!o||e==null||e===1?o:{...o,level:Math.max(.02,Math.min(1.5,o.level*e))}}var xp=4,Sp=3e3,$p=8,Mp=[[255,181,71],[255,236,210],[55,224,255],[91,124,255],[255,95,210],[120,255,150]],dn=o=>b`<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
     <path d=${zo(o)} />
@@ -4747,15 +4746,17 @@ background:#0b1120f2;color:#e6f7ff;border:1px solid #37e0ff66;border-radius:12px
         background: #ffb020;
         color: #1a1200;
       }
-      /* the room bar: above the switches, the view's own buttons step up above it; beside an open room panel */
+      /* the room bar: above the switches, beside the view's own buttons (search, eye, microphone) – nothing moves for it;
+         beside an open room panel */
       .fp3d-room-bar {
         position: absolute;
-        left: 12px;
+        left: 148px;
         right: 12px;
-        bottom: 58px;
+        bottom: 56px;
       }
-      .fp3d-has-bar fp3d-view3d {
-        --fp3d-bottom-inset: 148px;
+      .fp3d-side-right .fp3d-room-bar {
+        left: 12px;
+        right: 148px;
       }
       .fp3d-room-open .fp3d-room-bar {
         right: calc(14px + min(360px, calc(100% - 28px)) + 10px);
@@ -4944,14 +4945,14 @@ background:#0b1120f2;color:#e6f7ff;border:1px solid #37e0ff66;border-radius:12px
               .dimmed=${this._night}
               .autoOrbit=${this._orbit}
               .startView=${n?.start_view??null}
-              style=${h?`--fp3d-bottom-inset: ${p?"calc(52px + var(--fp3d-tt-h))":"var(--fp3d-tt-h)"}`:p||g?`--fp3d-bottom-inset: ${(p?52:0)+(g?96:0)}px`:""}
+              style=${h?`--fp3d-bottom-inset: ${p?"calc(52px + var(--fp3d-tt-h))":"var(--fp3d-tt-h)"}`:p?"--fp3d-bottom-inset: 52px":""}
               @room-tap=${w=>{if(this.canSwitch&&(e?.floors.length??0)>1&&w.detail.floorId&&this.currentFloor()!==w.detail.floorId){this._floorId=w.detail.floorId,this._roomId=null;return}w.detail.roomId&&(this._roomId=w.detail.roomId===this._roomId?null:w.detail.roomId)}}
               @floor-tap=${w=>{this._floorId=w.detail.floorId,this._roomId=null}}
               @back=${()=>this.back()}
             ></fp3d-view3d>`:b`<p class="fp3d-card-msg">${this.data.error??(e?M(this.hass,"no_building"):M(this.hass,"loading"))}</p>`}
         ${g?b`<fp3d-room-bar
               class="fp3d-card-room-bar"
-              style="bottom:${p?58:10}px"
+              style="bottom:${p?54:8}px"
               .hass=${this.hass}
               .building=${e}
               .floorId=${r}
@@ -5108,9 +5109,10 @@ background:#0b1120f2;color:#e6f7ff;border:1px solid #37e0ff66;border-radius:12px
         padding: 16px;
         text-align: center;
       }
+      /* beside the view's own buttons (search, eye) at the bottom left: nothing moves for the room bar */
       .fp3d-card-room-bar {
         position: absolute;
-        left: 10px;
+        left: 148px;
         right: 10px;
       }
       .fp3d-card-panel {

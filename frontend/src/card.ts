@@ -413,7 +413,7 @@ clearTimeout(this.cleanTimer);
               .dimmed=${this._night}
               .autoOrbit=${this._orbit}
               .startView=${c?.start_view ?? null}
-              style=${tt ? `--fp3d-bottom-inset: ${bar ? "calc(52px + var(--fp3d-tt-h))" : "var(--fp3d-tt-h)"}` : bar || roomBar ? `--fp3d-bottom-inset: ${(bar ? 52 : 0) + (roomBar ? 96 : 0)}px` : ""}
+              style=${tt ? `--fp3d-bottom-inset: ${bar ? "calc(52px + var(--fp3d-tt-h))" : "var(--fp3d-tt-h)"}` : bar ? "--fp3d-bottom-inset: 52px" : ""}
               @room-tap=${(e: CustomEvent<{ floorId: string; roomId: string | null }>) => {
                 // in the house view (or on another floor) a tap first opens the whole floor; the floor as it is now,
                 // not as rendered: a jump switches the floor and opens the room 60 ms later, before a slow tablet
@@ -436,7 +436,7 @@ clearTimeout(this.cleanTimer);
         ${roomBar
           ? html`<fp3d-room-bar
               class="fp3d-card-room-bar"
-              style="bottom:${bar ? 58 : 10}px"
+              style="bottom:${bar ? 54 : 8}px"
               .hass=${this.hass}
               .building=${b}
               .floorId=${floorId}
@@ -626,9 +626,10 @@ clearTimeout(this.cleanTimer);
         padding: 16px;
         text-align: center;
       }
+      /* beside the view's own buttons (search, eye) at the bottom left: nothing moves for the room bar */
       .fp3d-card-room-bar {
         position: absolute;
-        left: 10px;
+        left: 148px;
         right: 10px;
       }
       .fp3d-card-panel {
