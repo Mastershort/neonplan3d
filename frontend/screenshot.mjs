@@ -375,6 +375,7 @@ const shots = [
   // the room bar (idea from HA-Floorplanner): favourites and a tile per room, in the house, on a floor, with a room open, on a tablet
   { name: "view-room-bar", query: "", width: 1280, height: 800, click: "Anzeige", then: "+ Favoriten", thenAlso: ["Erdgeschoss", "Anzeige"] },
   { name: "view-room-bar-house", query: "", width: 1280, height: 800, click: "Anzeige", then: "Raum-Leiste", thenAlso: ["Anzeige"] },
+  { name: "view-room-bar-clean", query: "", width: 1280, height: 800, click: "Anzeige", then: "+ Favoriten", thenAlso: ["Anzeige", "Erdgeschoss"], viewScript: "setTimeout(() => v.dispatchEvent(new CustomEvent('clean-toggle')), 0);" },
   { name: "view-room-bar-room", query: "", width: 1280, height: 800, click: "Anzeige", then: "Raum-Leiste", thenAlso: ["Anzeige", "Erdgeschoss", "Wohnzimmer"] },
   { name: "tablet-room-bar", query: "", width: 800, height: 1280, click: "Anzeige", then: "+ Favoriten", thenAlso: ["Erdgeschoss", "Anzeige"] },
   { name: "editor-outdoor-pergola", query: "", width: 1280, height: 900, editor: true, editorState: { _outdoorId: "a11" }, scrollSide: true },

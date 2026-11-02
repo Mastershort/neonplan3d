@@ -12,9 +12,11 @@ export interface RoomTile {
   name: string;
   /** In Home Assistant's unit (as the room panel shows it), null without a sensor or a thermostat telling it. */
   temp: number | null;
-  /** The room's lights that are on, and how many it has. */
+  /** The room's lights, and those of them that are on. */
+  lights: string[];
   lightsOn: string[];
-  lights: number;
+  /** Humidity in %, null without a sensor. */
+  humidity: number | null;
   /** Windows and doors with a contact that are open. */
   open: number;
   /** A player in the room plays (a paused one says nothing: many speakers sit paused all day, #815). */
@@ -69,9 +71,15 @@ export function roomTiles(hass: HomeAssistant, b: Building, floorId: string | nu
         const t = ids.filter((id) => kindOf(id) === "climate").map((id) => hass.states[id]?.attributes.current_temperature).find((v) => typeof v === "number");
         if (typeof t === "number") temp = t;
       }
-      out.push({ floorId: floor.id, roomId: room.id, name: room.name, temp, lightsOn, lights: lights.length, open, playing, active: lightsOn.length > 0 || open > 0 || playing });
+      const humidity = roomClimateValue(hass, floor, room, "humidity");
+      out.push({ floorId: floor.id, roomId: room.id, name: room.name, temp, humidity, lights, lightsOn, open, playing, active: lightsOn.length > 0 || open > 0 || playing });
     }
   return out;
+}
+
+/** The room's light switch: any light on switches them all off, else all of them on. */
+export function lightCall(tile: Pick<RoomTile, "lights" | "lightsOn">): ["turn_on" | "turn_off", string[]] {
+  return tile.lightsOn.length ? ["turn_off", tile.lightsOn] : ["turn_on", tile.lights];
 }
 
 /** The plan's favourites that Home Assistant knows. */
