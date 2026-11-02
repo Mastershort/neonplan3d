@@ -14,7 +14,7 @@
 
 📖 **Manual:** [English](https://mastershort.de/en/neonplan3d/manual/?lang=en) · [Deutsch](https://mastershort.de/neonplan3d/anleitung/?lang=de) (also here: [manual.md](https://github.com/Mastershort/neonplan3d/blob/main/docs/manual.md), [anleitung.md](https://github.com/Mastershort/neonplan3d/blob/main/docs/anleitung.md))
 💬 **Community:** [Discord](https://discord.gg/SSdVVFsev7) – show your 3D home, ask, share ideas
-🗺️ **What comes next:** [Roadmap](https://github.com/Mastershort/neonplan3d/blob/main/ROADMAP.md) · **What changed:** [Changelog](https://github.com/Mastershort/neonplan3d/blob/main/CHANGELOG.md)
+🗺️ **What changed:** [Changelog](https://github.com/Mastershort/neonplan3d/blob/main/CHANGELOG.md) · **Ideas:** [Discussions → Ideas](https://github.com/Mastershort/neonplan3d/discussions/categories/ideas)
 
 ---
 
