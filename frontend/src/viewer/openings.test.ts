@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { Opening } from "../model.ts";
 import type { OpeningInfo } from "./build.ts";
-import { sillBoards, stackedOnOpening } from "./openings.ts";
+import { blindPlace, buildOpeningParts, sillBoards, stackedOnOpening } from "./openings.ts";
 
 /** A window (or door) on the wall along x from (sx, sz), as the floor builder describes it. */
 function info(id: string, sx: number, width: number, sill: number, top: number, extra: Partial<Opening> & { axis?: [number, number]; exterior?: boolean; sz?: number } = {}): OpeningInfo {
@@ -77,4 +77,30 @@ test("a board chosen by hand shows on a window down to the floor; a glass wall h
   assert.deepEqual(sillBoards(glass, [glass]), { inside: false, outside: false });
   const glassBoard = info("gb", 1, 2.4, 0.9, 2.4, { style: "glass_wall", sill_board: "inside" });
   assert.deepEqual(sillBoards(glassBoard, [glassBoard]), { inside: true, outside: false });
+});
+
+test("a blind hangs outside as a roller shutter by default, inside as a roller shade when chosen", () => {
+  const outside = blindPlace(info("w", 1, 1.2, 0.9, 2.2, { cover: "cover.a" }));
+  assert.equal(outside.inside, false);
+  assert.ok(outside.n1 <= -0.12 && outside.plane < -0.12, "box and slats lie beyond the outer face");
+  assert.deepEqual(blindPlace(info("w", 1, 1.2, 0.9, 2.2, { blind_side: "outside" })), outside);
+  const inside = blindPlace(info("w", 1, 1.2, 0.9, 2.2, { cover: "cover.a", blind_side: "inside" }));
+  assert.equal(inside.inside, true);
+  assert.ok(inside.n0 >= 0.12, "the cassette sits on the room face");
+  // the fabric runs clear of the window board, which reaches 7 cm into the room
+  assert.ok(inside.plane > 0.12 + 0.07 && inside.plane < inside.n1);
+});
+
+test("the blind's fabric is drawn on the side it hangs", () => {
+  const blindSide = (o: Partial<Opening>) => {
+    const w = info("w", 1, 1.2, 0.9, 2.2, { cover: "cover.a", ...o });
+    const parts = buildOpeningParts([w], new Map([["w", { open: 0, tilt: 0, cover: 1 }]]), 99);
+    // the wall runs along x with the room towards +z: the fabric's z is its distance from the wall's middle
+    const pos = parts.blinds.getAttribute("position");
+    const zs = new Set<number>();
+    for (let i = 0; i < pos.count; i++) zs.add(Math.round(pos.getZ(i) * 1000) / 1000);
+    return [...zs];
+  };
+  assert.deepEqual(blindSide({}), [-0.19]);
+  assert.deepEqual(blindSide({ blind_side: "inside" }), [0.2]);
 });

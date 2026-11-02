@@ -243,6 +243,7 @@ Türen und Fenster lassen sich im Plan auch an einem breiten Streifen um die Öf
 | Feld | Wirkung in 3D |
 |---|---|
 | **Rollladen** | Der Rollladen fährt vor dem Fenster – oder vor einer Tür (Haustür, Terrassentür, Schiebetür) – mit der Position der Cover-Entität |
+| **Rollladen sitzt** | Fenster: **außen** (Standard) zeichnet einen Rollladen mit Kasten vor der Außenseite; **innen** ein Rollo im Raum – die Kassette an der Wand über dem Fenster, der Stoff läuft vor der Fensterbank herunter. Sonnenflecken und das nächtliche Leuchten der Fenster folgen ihm in beiden Fällen |
 | **Positions-Sensor** | Für Rollläden, deren Position über einen eigenen Sensor kommt, etwa bei Homematic. Bei Bedarf umkehrbar |
 | **Vor dem Schalten nachfragen** | Auf, Zu und Positionen fragen im Schnellmenü und im Raumfenster erst nach, und Wischen über das Symbol bewegt den Rollladen nicht mehr (es dreht dann die Ansicht). Stopp fragt nie. Gut für Tablets, auf denen Rollläden oder das Garagentor sonst versehentlich fahren |
 | **Kontakt** | Die Tür schwingt auf, das Fenster öffnet sich. Angeboten werden Binärsensoren der Klasse Tür, Fenster oder Öffnung und solche ohne Klasse (KNX, enOcean, Template-Sensoren haben oft keine) |

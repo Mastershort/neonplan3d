@@ -4,6 +4,12 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 [releases page](https://github.com/Mastershort/neonplan3d/releases). Ideas and votes:
 [Discussions → Ideas](https://github.com/Mastershort/neonplan3d/discussions/categories/ideas).
 
+## Unreleased
+
+### New
+
+- **Roller shades inside the room:** a window's form has "Blind sits" next to Cover – "outside" (default) draws the roller shutter as before, "inside" draws an interior roller shade: the cassette on the wall above the window and the fabric running down in the room, clear of the window board. Sun patches and the window glow still follow it. Plans without the setting stay as they were.
+
 ## 2.2.0
 
 ### New

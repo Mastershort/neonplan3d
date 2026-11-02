@@ -146,6 +146,20 @@ export function sillBoards(info: OpeningInfo, infos: readonly OpeningInfo[]): { 
   return { inside: auto, outside: auto && info.exterior };
 }
 
+/**
+ * Where a window's blind sits across the wall (n towards the room): its box from n0 to n1, `box` high above the
+ * opening, and the plane its slats or fabric run down in. Outside (the default) a roller shutter in front of the
+ * outer face; inside an interior roller shade, its cassette on the room face and the fabric clear of the window board.
+ */
+export function blindPlace(info: OpeningInfo): { inside: boolean; n0: number; n1: number; box: number; plane: number } {
+  if (info.opening.blind_side === "inside") {
+    const room = info.faceRoom;
+    return { inside: true, n0: room, n1: room + 0.1, box: 0.12, plane: room + 0.08 };
+  }
+  const out = -info.faceOut;
+  return { inside: false, n0: out - 0.15, n1: out, box: 0.2, plane: out - 0.07 };
+}
+
 export interface OpeningParts {
   frames: BufferGeometry;
   glass: BufferGeometry;
@@ -378,15 +392,16 @@ export function buildOpeningParts(infos: readonly OpeningInfo[], states: Readonl
         }
       }
     }
-    // blind on the outside: box above the opening, slats down to the closed fraction
+    // blind: box above the opening, slats (outside) or fabric (inside) down to the closed fraction
     if (st.cover !== null) {
-      const out = -info.faceOut;
-      const boxTop = T + 0.2;
-      splitBox(frames, tf, -0.05, W + 0.05, out - 0.15, out, T, boxTop, new Color(BLIND_BOX), frameTop, cut, bucket);
+      const p = blindPlace(info);
+      splitBox(frames, tf, -0.05, W + 0.05, p.n0, p.n1, T, T + p.box, new Color(BLIND_BOX), frameTop, cut, bucket);
       const closed = Math.min(1, Math.max(0, st.cover));
       if (closed > 0.01) {
         const bottom = T - closed * (T - S);
-        panel(blinds, tf, 0, W, out - 0.07, bottom, T, new Color(0xffffff), cut, bucket, 0.045);
+        panel(blinds, tf, 0, W, p.plane, bottom, T, new Color(0xffffff), cut, bucket, p.inside ? 0 : 0.045);
+        // the roller shade's bottom bar, so its edge is seen
+        if (p.inside) splitBox(frames, tf, 0, W, p.plane - 0.01, p.plane + 0.01, bottom, bottom + 0.025, new Color(BLIND_BOX), frameTop, cut, bucket);
       }
     }
     frameTris.push({ id: info.opening.id, start: fStart, end: frames.count });

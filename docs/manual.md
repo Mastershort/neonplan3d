@@ -243,6 +243,7 @@ Doors and windows can also be tapped in a wide band around the opening in the pl
 | Field | Effect in 3D |
 |---|---|
 | **Cover** | The blind moves in front of the window – or of a door (front door, French window, sliding door) – with the cover's position |
+| **Blind sits** | Windows: **outside** (default) draws a roller shutter with its box in front of the outer face; **inside** draws an interior roller shade in the room – the cassette on the wall above the window and the fabric running down in front of the window board. Sun patches and the window glow at night follow it either way |
 | **Position sensor** | For blinds whose position comes from a separate sensor, e.g. Homematic. Can be inverted |
 | **Ask before switching** | Open, close and positions ask first in the quick menu and the room panel, and a swipe on the marker no longer moves the blind (it turns the view instead). Stop never asks. Good for tablets where blinds or the garage door would otherwise move by accident |
 | **Contact** | The door swings open, the window opens. Offered are binary sensors of the door, window or opening class and ones without a class (KNX, enOcean, template sensors often have none) |
