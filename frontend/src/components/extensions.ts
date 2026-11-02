@@ -252,6 +252,8 @@ export class Extensions extends LitElement {
       ${shown.map((f) =>
         f === "fun_halloween"
           ? this.renderHalloween(unlocked.has(f))
+          : f === "fun_winter"
+          ? this.renderWinter(unlocked.has(f))
           : unlocked.has(f)
           ? html`<div class="fp3d-ext-feature fp3d-ext-on">
               <b>✓ ${this.t("fun_name_pets")}</b>
@@ -316,6 +318,16 @@ export class Extensions extends LitElement {
   }
 
   /** Fun pack "Halloween": decorations in the furniture library, and the ghost to switch on and off. */
+  /** Winter & Christmas: the decorations in the library (the roof lights, snow and the firework come with 2.3). */
+  private renderWinter(unlocked: boolean) {
+    if (!unlocked) return this.renderFunLocked("❄️", this.t("fun_name_winter"), this.t("fun_feature_winter"));
+    return html`<div class="fp3d-ext-feature fp3d-ext-on">
+      <b>✓ ❄️ ${this.t("fun_name_winter")}</b>
+      <span class="fp3d-sub">${this.t("fun_feature_winter")}</span>
+      <span class="fp3d-sub">${this.t("winter_deco_hint")}</span>
+    </div>`;
+  }
+
   private renderHalloween(unlocked: boolean) {
     const ghost = this.building?.settings.halloween?.ghost !== false;
     if (!unlocked) return this.renderFunLocked("🎃", this.t("fun_name_halloween"), this.t("fun_feature_halloween"));

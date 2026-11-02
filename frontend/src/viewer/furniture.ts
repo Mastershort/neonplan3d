@@ -6,7 +6,7 @@
 import { Color } from "three";
 import type { Furniture, Vec2 } from "../model.ts";
 import { builtinBase, gangsOf, stairsULayout, POOL_VALVE_Y } from "../model.ts";
-import { isRobotVacuum, mountBase, packItem, packMotion, packMovingPart, packRobotCentre, packRobotPart, packScreen, type PackItem, type PackMotion, type PackPart } from "../packs.ts";
+import { adventCandles, isRobotVacuum, mountBase, packItem, packMotion, packMovingPart, packRobotCentre, packRobotPart, packScreen, type PackItem, type PackMotion, type PackPart } from "../packs.ts";
 import { fitParts } from "../pack-scale.ts";
 import { binColors, binShape, householdCountry, mailboxShape, type BinShape, type MailboxShape } from "../household.ts";
 import type { Floor } from "../model.ts";
@@ -1883,8 +1883,11 @@ function packModel(
   skip: ((p: PackItem["parts"][number]) => boolean) | null = null,
 ): void {
   const onlyGlow = !!only;
+  const advent = item.parts.some((p) => p.advent) ? adventCandles() : 4;
   for (const q of fitParts(item, w, d, h)) {
     if (skip?.(q)) continue;
+    // an Advent candle's flame burns only from its Sunday on
+    if (q.advent && q.advent > advent) continue;
     // only some parts (the glowing ones of a speaker, a car's windows), a hair larger so they cover the item's own
     if (only && !only(q)) continue;
     const p = onlyGlow ? { ...q, glow: true, w: q.w + 0.006 / w, d: q.d + 0.006 / d, y: Math.max(0, q.y - 0.002 / h), h: q.h + 0.004 / h } : q;

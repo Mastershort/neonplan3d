@@ -17,6 +17,7 @@ const NAMES: Record<string, RegExp> = {
   pool: /pool\s*pro|pro_pool|pool-modul|pool module/i,
   diagnostics: /diagnostics_report|debug[- ]daten|nutzungs- und fehlerberichte|usage and error reports/i,
   locate: /\bortung\b|raumortung|bluetooth[- ]ortung|\blocating\b|room locating/i,
+  fun_winter: /winter\s*(&|und|and)\s*(weihnachten|christmas)|fun_winter|adventskranz|advent wreath/i,
 };
 
 test("unreleased add-ons are named in no public text", () => {
