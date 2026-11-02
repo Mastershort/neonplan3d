@@ -1589,15 +1589,17 @@ export class Floorplan3dPanel extends LitElement {
         background: #ffb020;
         color: #1a1200;
       }
-      /* the room bar: above the switches, the view's own buttons step up above it; beside an open room panel */
+      /* the room bar: above the switches, beside the view's own buttons (search, eye, microphone) – nothing moves for it;
+         beside an open room panel */
       .fp3d-room-bar {
         position: absolute;
-        left: 12px;
+        left: 148px;
         right: 12px;
-        bottom: 58px;
+        bottom: 56px;
       }
-      .fp3d-has-bar fp3d-view3d {
-        --fp3d-bottom-inset: 148px;
+      .fp3d-side-right .fp3d-room-bar {
+        left: 12px;
+        right: 148px;
       }
       .fp3d-room-open .fp3d-room-bar {
         right: calc(14px + min(360px, calc(100% - 28px)) + 10px);
