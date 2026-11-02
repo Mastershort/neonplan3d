@@ -344,8 +344,9 @@ clearTimeout(this.cleanTimer);
     // the bar of switches at the bottom (the back button belongs to it)
     const bar = !!b && !this._clean && (canGoBack || ((!!c?.controls || !!c?.time_travel) && !(this._roomId && c.room_panel !== false)));
     const tt = this.tt.active;
-    // the room bar (room_bar: true): above the switches; not while travelling in time or with a room panel open
-    const roomBar = !!b && !!c?.room_bar && !this._clean && !tt && !(this._roomId && c.room_panel !== false);
+    // the room bar (room_bar: true): above the switches, it stays when the switches are hidden; not while
+    // travelling in time or with a room panel open
+    const roomBar = !!b && !!c?.room_bar && !tt && !(this._roomId && c.room_panel !== false);
     const eye = c?.controls_hidden !== undefined || (c?.controls_hide_after ?? 0) > 0;
     const t = (k: Parameters<typeof translate>[1]) => translate(this.hass, k);
     const accent = /^#[0-9a-f]{6}$/i.test(c?.accent ?? "") ? c!.accent : null;

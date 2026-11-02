@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { emptyBuilding, newFloor, type Building, type Room } from "./model.ts";
-import { favoriteTiles, roomTiles } from "./room-bar.ts";
+import { favoriteTiles, lightCall, roomTiles } from "./room-bar.ts";
 import type { HomeAssistant } from "./types.ts";
 
 const room = (id: string, name: string, x0: number, panel: string[]): Room => ({ id, name, area_id: null, points: [[x0, 0], [x0 + 4, 0], [x0 + 4, 4], [x0, 4]], panel }) as Room;
@@ -41,7 +41,14 @@ test("room bar: a tile per room with its temperature, the lights on, an open win
   assert.equal(wohnen.playing, true);
   assert.equal(wohnen.active, true);
   // a speaker sitting paused says nothing (#815), and the lights are off: the tile stays calm
-  assert.deepEqual([bad.lights, bad.lightsOn.length, bad.playing, bad.active, bad.temp], [1, 0, false, false, null]);
+  assert.deepEqual([bad.lights, bad.lightsOn.length, bad.playing, bad.active, bad.temp, bad.humidity], [["light.bad"], 0, false, false, null, null]);
+});
+
+test("room bar: the light switch turns every light of the room on, or the ones that are on off", () => {
+  const { hass, b } = setup();
+  const [wohnen, bad] = roomTiles(hass, b, "eg");
+  assert.deepEqual(lightCall(wohnen), ["turn_off", ["light.decke", "light.stehlampe"]]);
+  assert.deepEqual(lightCall(bad), ["turn_on", ["light.bad"]]);
 });
 
 test("room bar: the house view lists every floor's rooms from the bottom up; a floor only its own", () => {

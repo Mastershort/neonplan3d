@@ -941,10 +941,12 @@ export class Floorplan3dPanel extends LitElement {
     const floor = b.floors.find((f) => f.id === this._floorId);
     const roomFloors = floor ? [floor] : b.floors;
     const tt = this.tt.active;
-    // the room bar: not while travelling in time (its bar sits there) or with the switches tidied away
-    const roomBar = this._roomBar !== "off" && !tt && !this._clean;
+    // the room bar: not while travelling in time (its bar sits there); it stays when the eye tidies the rest away
+    const roomBar = this._roomBar !== "off" && !tt;
+    // with the room bar the rooms live at the bottom: the top keeps only the floors (nothing at all with one floor)
+    const roomChips = this._roomBar === "off";
     return html`
-      ${this._clean ? nothing : html`<nav class="fp3d-nav ${this._navWrap ? "fp3d-nav-wrap" : ""}" @wheel=${this.onNavWheel}>
+      ${this._clean || (!roomChips && b.floors.length < 2) ? nothing : html`<nav class="fp3d-nav ${this._navWrap ? "fp3d-nav-wrap" : ""}" @wheel=${this.onNavWheel}>
         ${b.floors.length > 1
           ? html`<button class="fp3d-chip" aria-pressed=${this._floorId === null} @click=${() => {
                 this._floorId = null;
@@ -964,9 +966,9 @@ export class Floorplan3dPanel extends LitElement {
                   ${f.name}
                 </button>`,
               )}
-              <span class="fp3d-sep"></span>`
+              ${roomChips ? html`<span class="fp3d-sep"></span>` : nothing}`
           : nothing}
-        ${roomFloors.flatMap((f) => [
+        ${(roomChips ? roomFloors : []).flatMap((f) => [
           // in the house view the rooms of every floor follow a small floor label; a room without a name has
           // no button (an empty chip would only take space, #370)
           roomFloors.length > 1 && zonesOf(f).some((r) => r.name.trim()) ? html`<span class="fp3d-nav-floor">${f.name}</span>` : nothing,
@@ -1600,6 +1602,10 @@ export class Floorplan3dPanel extends LitElement {
       .fp3d-side-right .fp3d-room-bar {
         left: 12px;
         right: 148px;
+      }
+      /* the eye tidied the switches away: the room bar sits at the bottom */
+      .fp3d-clean .fp3d-room-bar {
+        bottom: 12px;
       }
       .fp3d-room-open .fp3d-room-bar {
         right: calc(14px + min(360px, calc(100% - 28px)) + 10px);
