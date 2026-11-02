@@ -70,6 +70,8 @@ export type OpeningType = "door" | "window" | "garage";
 /** Where a window gets its board / sill: automatic, none, only inside or only outside (#655). */
 export type SillBoard = "auto" | "none" | "inside" | "outside";
 export const SILL_BOARDS: readonly SillBoard[] = ["auto", "none", "inside", "outside"];
+export type BlindSide = "outside" | "inside";
+export const BLIND_SIDES: readonly BlindSide[] = ["outside", "inside"];
 
 /** Entity link of an opening: null = assigned automatically by area, "none" = no entity. */
 export type EntityRef = string | null;
@@ -145,6 +147,8 @@ export interface Opening {
    * split floor-to-ceiling front, #655); "none", "inside" or "outside" force it.
    */
   sill_board?: SillBoard | null;
+  /** Windows: where the blind (cover) hangs – null / "outside" a roller shutter outside, "inside" a roller shade in the room. */
+  blind_side?: BlindSide | null;
   /** Ask before moving the blind or garage door; it then does not follow a swipe either. */
   confirm?: boolean;
   cover: EntityRef;

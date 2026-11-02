@@ -188,6 +188,8 @@ OPENING_SCHEMA = vol.Schema(
         vol.Optional("sill_board", default="auto"): vol.Any(None, vol.In(["auto", "none", "inside", "outside"])),
         # ask before moving the blind or garage door (no moving by a swipe then)
         vol.Optional("confirm", default=False): bool,
+        # windows: the blind outside (None / "outside", a roller shutter) or inside (a roller shade in the room)
+        vol.Optional("blind_side", default=None): vol.Any(None, vol.In(["outside", "inside"])),
         vol.Optional("cover", default=None): _ENTITY_REF,
         vol.Optional("contact", default=None): _ENTITY_REF,
         vol.Optional("tilt", default=None): _ENTITY_REF,

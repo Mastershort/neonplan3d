@@ -136,6 +136,7 @@ import {
   DOOR_STYLES,
   WINDOW_STYLES,
   SILL_BOARDS,
+  BLIND_SIDES,
   openingStyle,
   isFrontDoor,
   type OpeningStyle,
@@ -11196,7 +11197,15 @@ export class Fp3dEditor extends LitElement {
         ${window || garage || door ? this.entitySelect(this.t(window ? "cover_entity" : "door_cover"), o.cover, autoPick("cover"), garage ? garageDrives : covers, (v) => this.updateOpening({ cover: v })) : nothing}
         ${garage && isPulseDrive(o.cover) ? html`<p class="fp3d-sub fp3d-wide">${this.t("garage_pulse_hint")}</p>` : nothing}
         ${(window || garage || door) && o.cover !== "none" && (o.cover || autoPick("cover"))
-          ? html`${isPulseDrive(o.cover) ? nothing : this.entitySelect(this.t("cover_position_entity"), o.position ?? null, undefined, positions, (v) => this.updateOpening({ position: v === "none" ? null : v }))}
+          ? html`${window
+                ? html`<label class="fp3d-field fp3d-wide" title=${this.t("blind_side_hint")}
+                    >${this.t("blind_side")}
+                    <select ?disabled=${!admin} @change=${(e: Event) => this.updateOpening({ blind_side: (e.target as HTMLSelectElement).value === "inside" ? "inside" : null })}>
+                      ${BLIND_SIDES.map((m) => html`<option value=${m} ?selected=${(o.blind_side ?? "outside") === m}>${this.t(`blind_side_${m}`)}</option>`)}
+                    </select></label
+                  >`
+                : nothing}
+              ${isPulseDrive(o.cover) ? nothing : this.entitySelect(this.t("cover_position_entity"), o.position ?? null, undefined, positions, (v) => this.updateOpening({ position: v === "none" ? null : v }))}
               ${o.position && !isPulseDrive(o.cover)
                 ? html`<label class="fp3d-check fp3d-wide"
                     ><input
