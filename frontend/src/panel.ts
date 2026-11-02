@@ -5,6 +5,7 @@ import { css, html, LitElement, nothing, type PropertyValues } from "lit";
 import { BuildingController } from "./building-controller.ts";
 import { countView } from "./diagnostics.ts";
 import { loadEditor } from "./load-editor.ts";
+import "./components/room-bar.ts";
 import "./components/room-panel.ts";
 import "./components/view3d.ts";
 import { languageReady, loadLanguage, translate, type I18nKey } from "./i18n.ts";
@@ -74,6 +75,7 @@ export class Floorplan3dPanel extends LitElement {
     _explode: { state: true },
     _keepRoof: { state: true },
     _plain: { state: true },
+    _roomBar: { state: true },
     _quality: { state: true },
     _stats: { state: true },
     _markers: { state: true },
@@ -130,6 +132,8 @@ export class Floorplan3dPanel extends LitElement {
   private declare _keepRoof: boolean;
   /** The plain floor plan without furniture, remembered on this device. */
   private declare _plain: boolean;
+  /** The room bar at the bottom: off, the rooms, or the favourites and the rooms – remembered on this device. */
+  private declare _roomBar: "off" | "rooms" | "all";
   private declare _quality: Quality;
   /** Performance display (per device; also switched on by ?fp3d_stats in the URL). */
   private declare _stats: boolean;
@@ -198,6 +202,8 @@ export class Floorplan3dPanel extends LitElement {
     this._explode = prefs.get("explode") !== "0";
     this._keepRoof = prefs.get("roof") === "1";
     this._plain = prefs.get("plain") === "1";
+    const bar = prefs.get("roombar");
+    this._roomBar = bar === "rooms" || bar === "all" ? bar : "off";
     const quality = prefs.get("quality");
     this._quality = quality === "low" || quality === "high" ? quality : "auto";
     this._stats = prefs.get("stats") === "1" || new URLSearchParams(location.search).has("fp3d_stats");
@@ -281,6 +287,11 @@ export class Floorplan3dPanel extends LitElement {
   private setWallMode(mode: WallMode): void {
     this._wallMode = mode;
     prefs.set("walls", mode);
+  }
+
+  private setRoomBar(v: "off" | "rooms" | "all"): void {
+    this._roomBar = v;
+    prefs.set("roombar", v);
   }
 
   private setPlain(on: boolean): void {
@@ -930,6 +941,8 @@ export class Floorplan3dPanel extends LitElement {
     const floor = b.floors.find((f) => f.id === this._floorId);
     const roomFloors = floor ? [floor] : b.floors;
     const tt = this.tt.active;
+    // the room bar: not while travelling in time (its bar sits there) or with the switches tidied away
+    const roomBar = this._roomBar !== "off" && !tt && !this._clean;
     return html`
       ${this._clean ? nothing : html`<nav class="fp3d-nav ${this._navWrap ? "fp3d-nav-wrap" : ""}" @wheel=${this.onNavWheel}>
         ${b.floors.length > 1
@@ -987,7 +1000,7 @@ export class Floorplan3dPanel extends LitElement {
           ${this._navWrap ? "\u2194" : "\u2261"}
         </button>
       </nav>`}
-      <div class="fp3d-stage-wrap ${this._roomId ? "fp3d-room-open" : ""} ${this._controlsRight ? "fp3d-side-right" : ""} ${tt ? "fp3d-tt" : ""}">
+      <div class="fp3d-stage-wrap ${this._roomId ? "fp3d-room-open" : ""} ${this._controlsRight ? "fp3d-side-right" : ""} ${tt ? "fp3d-tt" : ""} ${roomBar ? "fp3d-has-bar" : ""}">
         <fp3d-view3d
           class="fp3d-body"
           .pivotMark=${this._pinHover}
@@ -1058,6 +1071,21 @@ export class Floorplan3dPanel extends LitElement {
               @close=${() => (this._roomId = null)}
             ></fp3d-room-panel>`
           : nothing}
+        ${roomBar
+          ? html`<fp3d-room-bar
+              class="fp3d-room-bar"
+              .hass=${this.hass}
+              .building=${b}
+              .floorId=${b.floors.length > 1 ? this._floorId : (b.floors[0]?.id ?? null)}
+              .roomId=${this._roomId}
+              ?favorites=${this._roomBar === "all"}
+              @room-pick=${(e: CustomEvent<{ floorId: string; roomId: string }>) => {
+                // straight into the room, also from the house view or another floor
+                if (b.floors.length > 1) this._floorId = e.detail.floorId;
+                this._roomId = e.detail.roomId === this._roomId ? null : e.detail.roomId;
+              }}
+            ></fp3d-room-bar>`
+          : nothing}
         ${this.tt.session ? html`<fp3d-time-bar .session=${this.tt.session}></fp3d-time-bar>` : nothing}
         ${this._clean ? nothing : html`<div class="fp3d-overlay">
           <div class="fp3d-show-wrap">
@@ -1072,6 +1100,11 @@ export class Floorplan3dPanel extends LitElement {
           <div class="fp3d-seg" title=${this.t("plain_hint")}>
             <button aria-pressed=${!this._plain} @click=${() => this.setPlain(false)}>${this.t("plain_off")}</button>
             <button aria-pressed=${this._plain} @click=${() => this.setPlain(true)}>${this.t("plain_on")}</button>
+          </div>
+          <div class="fp3d-seg" title=${this.t("room_bar_hint")}>
+            <button aria-pressed=${this._roomBar === "off"} @click=${() => this.setRoomBar("off")}>${this.t("room_bar_none")}</button>
+            <button aria-pressed=${this._roomBar === "rooms"} @click=${() => this.setRoomBar("rooms")}>${this.t("room_bar_rooms")}</button>
+            <button aria-pressed=${this._roomBar === "all"} @click=${() => this.setRoomBar("all")}>${this.t("room_bar_all")}</button>
           </div>
           ${b.floors.length > 1 && !this._floorId
             ? html`<div class="fp3d-seg">
@@ -1556,8 +1589,24 @@ export class Floorplan3dPanel extends LitElement {
         background: #ffb020;
         color: #1a1200;
       }
+      /* the room bar: above the switches, the view's own buttons step up above it; beside an open room panel */
+      .fp3d-room-bar {
+        position: absolute;
+        left: 12px;
+        right: 12px;
+        bottom: 58px;
+      }
+      .fp3d-has-bar fp3d-view3d {
+        --fp3d-bottom-inset: 148px;
+      }
+      .fp3d-room-open .fp3d-room-bar {
+        right: calc(14px + min(360px, calc(100% - 28px)) + 10px);
+      }
       /* phones and portrait tablets: panel as a sheet at the bottom, the switches step aside */
       @container fp3d ((max-width: 700px) or ((orientation: portrait) and (max-width: 1000px))) {
+        .fp3d-room-open .fp3d-room-bar {
+          display: none;
+        }
         .fp3d-room-panel {
           top: auto;
           left: 8px;

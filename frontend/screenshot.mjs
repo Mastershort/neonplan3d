@@ -372,6 +372,11 @@ const shots = [
   { name: "editor-fence-gates", query: "", width: 1280, height: 1000, editor: true, editorState: { _floorId: "eg", _tool: "select", _outdoorId: "a9" }, scrollSide: true },
   // the plain floor plan: walls, doors, windows and stairs without furniture
   { name: "view-plain", query: "", width: 1280, height: 800, click: "Anzeige", then: "Nur Grundriss", thenAlso: ["Erdgeschoss"] },
+  // the room bar (idea from HA-Floorplanner): favourites and a tile per room, in the house, on a floor, with a room open, on a tablet
+  { name: "view-room-bar", query: "", width: 1280, height: 800, click: "Anzeige", then: "+ Favoriten", thenAlso: ["Erdgeschoss", "Anzeige"] },
+  { name: "view-room-bar-house", query: "", width: 1280, height: 800, click: "Anzeige", then: "Raum-Leiste", thenAlso: ["Anzeige"] },
+  { name: "view-room-bar-room", query: "", width: 1280, height: 800, click: "Anzeige", then: "Raum-Leiste", thenAlso: ["Anzeige", "Erdgeschoss", "Wohnzimmer"] },
+  { name: "tablet-room-bar", query: "", width: 800, height: 1280, click: "Anzeige", then: "+ Favoriten", thenAlso: ["Erdgeschoss", "Anzeige"] },
   { name: "editor-outdoor-pergola", query: "", width: 1280, height: 900, editor: true, editorState: { _outdoorId: "a11" }, scrollSide: true },
   { name: "view-room-ceiling", query: "", width: 1280, height: 800, editor: true, editorScript: "const k = e._doc.floors[0].rooms.find((r) => r.id === 'kueche'); k.ceiling_height = 1.4; e.setDoc(structuredClone(e._doc));", afterWait: 800, then3d: "Erdgeschoss", camera: { target: { x: 8, y: 1.4, z: 2.3 }, radius: 6, phi: 1.2, theta: 0.6 } },
   { name: "view-central", query: "", width: 1280, height: 800, click: "Erdgeschoss", viewScript: "v._central = true;", wait: 1200 },
