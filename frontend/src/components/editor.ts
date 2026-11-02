@@ -158,6 +158,7 @@ import { basicTypes, buildIndex, roomKindOf, type LibraryEntry } from "../librar
 import { packsVersion as libPacksVersion } from "../packs.ts";
 import type { WallMode } from "../viewer/viewer3d.ts";
 import { furnitureName } from "../furniture-names.ts";
+import { furnitureShown } from "../show-if.ts";
 import { furnitureSize, isElectric, isPackHeater, isPackSensor, isPackType, isRobotVacuum, mountBase, packDisplay, packItem, packItemName, packMotion, packName, packType, setPacks, type FurniturePack } from "../packs.ts";
 
 /** Items that can be fixed against moving. */
@@ -351,6 +352,9 @@ function volumeMeter(type: string): boolean {
   const item = packItem(type);
   return item?.family === "meter" && (item.tags ?? []).some((t) => /^(gas|water|wasser)$/i.test(t));
 }
+
+/** Any entity (the condition of "only show while …" may watch anything). */
+const ANY_ENTITY = (_id: string) => true;
 
 export class Fp3dEditor extends LitElement {
   static properties = {
@@ -10090,7 +10094,7 @@ export class Fp3dEditor extends LitElement {
       const [hx, hy] = this.toScreen([f.x - Math.sin(a) * reach, f.z + Math.cos(a) * reach]);
       const [fx, fy] = this.toScreen([f.x - Math.sin(a) * (f.d / 2), f.z + Math.cos(a) * (f.d / 2)]);
       const lit = isLamp(f.type) && !!f.entity && f.entity !== "none" && this.hass?.states[f.entity]?.state === "on";
-      return svg`<g data-furniture=${f.id} class=${`fp3d-furn${sel || member ? " fp3d-furn-sel" : ""}${lit ? " fp3d-furn-lit" : ""}${(ENERGY_DEVICES as readonly string[]).includes(f.type) ? " fp3d-energy-item" : ""}`}>
+      return svg`<g data-furniture=${f.id} class=${`fp3d-furn${sel || member ? " fp3d-furn-sel" : ""}${lit ? " fp3d-furn-lit" : ""}${f.show_if?.entity && !furnitureShown(this.hass, f) ? " fp3d-furn-away" : ""}${(ENERGY_DEVICES as readonly string[]).includes(f.type) ? " fp3d-energy-item" : ""}`}>
         <g transform="translate(${cx} ${cy}) rotate(${f.rotation}) scale(${f.mirror ? -k : k} ${k})">
           <rect class="fp3d-furn-body" x=${-f.w / 2} y=${-f.d / 2} width=${f.w} height=${f.d} />
           <g class="fp3d-furn-sym">${furnitureSymbol(f.type, f.w, f.d)}</g>
@@ -11288,6 +11292,34 @@ export class Fp3dEditor extends LitElement {
     </section>`;
   }
 
+  /** "Only show while …": the piece stands in 3D only while an entity is in a state (decoration for a season). */
+  private renderShowIf(f: Furniture) {
+    const cond = f.show_if ?? null;
+    const shown = !cond?.entity || furnitureShown(this.hass, f);
+    return html`<details class="fp3d-section" ?open=${!!cond?.entity}>
+      <summary>${this.t("show_if")}${cond?.entity ? html` <span class="fp3d-lib-count">${shown ? this.t("show_if_now_on") : this.t("show_if_now_off")}</span>` : nothing}</summary>
+      <p class="fp3d-sub">${this.t("show_if_hint")}</p>
+      <div class="fp3d-form">
+        ${this.entitySelect(this.t("show_if_entity"), cond?.entity ?? null, undefined, this.entityOptions(ANY_ENTITY), (v) =>
+          this.updateFurniture({ show_if: v && v !== "none" ? { entity: v, state: cond?.state ?? null } : null }),
+        )}
+        ${cond?.entity
+          ? html`<label class="fp3d-field fp3d-wide" title=${this.t("show_if_state_hint")}
+              >${this.t("show_if_state")}
+              <input
+                type="text"
+                maxlength="120"
+                .value=${cond.state ?? ""}
+                placeholder=${this.hass?.states[cond.entity]?.state ?? "on"}
+                ?disabled=${!this.isAdmin}
+                @change=${(e: Event) => this.updateFurniture({ show_if: { entity: cond.entity, state: (e.target as HTMLInputElement).value.trim() || null } })}
+            /></label>
+            <p class="fp3d-sub fp3d-wide">${this.t("show_if_state_hint")}</p>`
+          : nothing}
+      </div>
+    </details>`;
+  }
+
   private renderFurnitureForm(f: Furniture) {
     if (this.selection().length > 1) return this.renderBlockForm();
     const admin = this.isAdmin;
@@ -11397,6 +11429,7 @@ export class Fp3dEditor extends LitElement {
             <div class="fp3d-actions"><button class="fp3d-btn fp3d-primary" @click=${() => this.vehicleToSpot(f)}>🅿 ${this.t("vehicle_to_spot")}</button></div>
           </section>`
         : nothing}
+      ${this.renderShowIf(f)}
       ${admin
         ? html`<div class="fp3d-actions">
             <button class="fp3d-btn" @click=${() => this.rotateFurniture(-90)}>${this.t("rotate_left")}</button>
@@ -16337,6 +16370,10 @@ export class Fp3dEditor extends LitElement {
         font-size: 11px;
         text-anchor: middle;
         pointer-events: none;
+      }
+      /* "only show while …" and the condition is false: the piece is not in 3D right now */
+      .fp3d-furn-away {
+        opacity: 0.4;
       }
       .fp3d-furn-sel .fp3d-furn-body {
         fill: rgba(55, 224, 255, 0.16);

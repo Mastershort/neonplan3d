@@ -172,6 +172,8 @@ export interface Gang {
 export interface Furniture {
   /** Fixed against moving by accident. */
   locked?: boolean | null;
+  /** Shown in 3D only while an entity is in a state (decoration for a season, show-if.ts); the editor always shows it. */
+  show_if?: { entity: string; state?: string | null } | null;
   /** Furniture block: items with the same group id are selected, moved and turned together (a kitchen, a wall unit). */
   group?: string | null;
   /** Pool Pro, sand filter: the six-way valve's position (null = filter). */
