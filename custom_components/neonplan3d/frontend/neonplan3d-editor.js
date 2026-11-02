@@ -2963,24 +2963,28 @@ var li=globalThis,di=li.ShadowRoot&&(li.ShadyCSS===void 0||li.ShadyCSS.nativeSha
       </div>
       <p class="fp3d-sub">${this.t(n?"opening_hint":i?"garage_hint":"door_hint")}</p>
       ${t?m`<div class="fp3d-actions"><button class="fp3d-btn fp3d-danger" @click=${()=>this.deleteOpening()}>${this.t("delete")}</button></div>`:v}
-    </section>`}renderShowIf(e){let t=e.show_if??null,n=!t?.entity||cr(this.hass,e);return m`<details class="fp3d-section" ?open=${!!t?.entity}>
-      <summary>${this.t("show_if")}${t?.entity?m` <span class="fp3d-lib-count">${n?this.t("show_if_now_on"):this.t("show_if_now_off")}</span>`:v}</summary>
+    </section>`}renderShowIf(e){let t=e.show_if??null,n=!!t?.entity,i=!n||cr(this.hass,e);return m`<div class="fp3d-showif ${n?i?"fp3d-showif-on":"fp3d-showif-off":""}">
+      <div class="fp3d-showif-head">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" /></svg>
+        <b>${this.t("show_if")}</b>
+        ${n?m`<span class="fp3d-showif-badge">${i?this.t("show_if_now_on"):this.t("show_if_now_off")}</span>`:v}
+      </div>
       <p class="fp3d-sub">${this.t("show_if_hint")}</p>
       <div class="fp3d-form">
-        ${this.entitySelect(this.t("show_if_entity"),t?.entity??null,void 0,this.entityOptions($p),i=>this.updateFurniture({show_if:i&&i!=="none"?{entity:i,state:t?.state??null}:null}))}
-        ${t?.entity?m`<label class="fp3d-field fp3d-wide" title=${this.t("show_if_state_hint")}
+        ${this.entitySelect(this.t("show_if_entity"),t?.entity??null,void 0,this.entityOptions($p),o=>this.updateFurniture({show_if:o&&o!=="none"?{entity:o,state:t?.state??null}:null}))}
+        ${n?m`<label class="fp3d-field fp3d-wide"
               >${this.t("show_if_state")}
               <input
                 type="text"
                 maxlength="120"
                 .value=${t.state??""}
-                placeholder=${this.hass?.states[t.entity]?.state??"on"}
+                placeholder="on"
                 ?disabled=${!this.isAdmin}
-                @change=${i=>this.updateFurniture({show_if:{entity:t.entity,state:i.target.value.trim()||null}})}
+                @change=${o=>this.updateFurniture({show_if:{entity:t.entity,state:o.target.value.trim()||null}})}
             /></label>
             <p class="fp3d-sub fp3d-wide">${this.t("show_if_state_hint")}</p>`:v}
       </div>
-    </details>`}renderFurnitureForm(e){if(this.selection().length>1)return this.renderBlockForm();let t=this.isAdmin;return m`<section>
+    </div>`}renderFurnitureForm(e){if(this.selection().length>1)return this.renderBlockForm();let t=this.isAdmin;return m`<section>
       <div class="fp3d-h3row"><h3>${e.name||this.t("furniture")}</h3>${this.fixButton("furniture",e.id)}</div>
       ${e.group?m`<p class="fp3d-sub fp3d-block-note">▣ ${this.t("block_part")} <button class="fp3d-link" @click=${()=>{this._single=!1,this.requestUpdate()}}>${this.t("block_select")}</button></p>`:v}
       <div class="fp3d-form">
@@ -3045,12 +3049,12 @@ var li=globalThis,di=li.ShadowRoot&&(li.ShadyCSS===void 0||li.ShadyCSS.nativeSha
             >
           </div>`:v}
       ${Xt(e.type)?this.renderFurnitureLinks(e):kp.has(e.type)?v:m`<div class="fp3d-form fp3d-links">${this.renderStateLinks(e)}</div>`} ${il.has(e.type)?this.renderGangsForm(e):v} ${rl.has(e.type)?this.renderTechForm(e):v} ${e.type==="parking"?this.renderParkingForm(e):v} ${e.type==="waste_bin"||e.type==="mailbox"?this.renderHouseholdForm(e):this.renderHouseholdExtras(e)}
+      ${this.renderShowIf(e)}
       ${this.renderModuleFurnitureFields(e)}
       ${e.type.startsWith("pack:mastershort.vehicles:")&&this.isAdmin?m`<section>
             <p class="fp3d-sub">${this.t("vehicle_to_spot_hint")}</p>
             <div class="fp3d-actions"><button class="fp3d-btn fp3d-primary" @click=${()=>this.vehicleToSpot(e)}>🅿 ${this.t("vehicle_to_spot")}</button></div>
           </section>`:v}
-      ${this.renderShowIf(e)}
       ${t?m`<div class="fp3d-actions">
             <button class="fp3d-btn" @click=${()=>this.rotateFurniture(-90)}>${this.t("rotate_left")}</button>
             <button class="fp3d-btn" @click=${()=>this.rotateFurniture(90)}>${this.t("rotate_right")}</button>
@@ -6641,6 +6645,50 @@ var li=globalThis,di=li.ShadowRoot&&(li.ShadyCSS===void 0||li.ShadyCSS.nativeSha
         font-size: 11px;
         text-anchor: middle;
         pointer-events: none;
+      }
+      /* "only show while …": its own box among the piece's fields */
+      .fp3d-showif {
+        margin: 12px 0;
+        padding: 10px 12px 4px;
+        border: 1px solid var(--fp3d-line);
+        border-left: 3px solid var(--fp3d-accent);
+        border-radius: 12px;
+        background: rgba(55, 224, 255, 0.05);
+      }
+      .fp3d-showif-off {
+        border-left-color: var(--fp3d-warm);
+      }
+      .fp3d-showif-head {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 14px;
+      }
+      .fp3d-showif-head svg {
+        width: 18px;
+        height: 18px;
+        fill: none;
+        stroke: var(--fp3d-accent);
+        stroke-width: 1.8;
+      }
+      .fp3d-showif-head b,
+      .fp3d-showif-badge {
+        white-space: nowrap;
+      }
+      .fp3d-showif-badge {
+        margin-left: auto;
+        padding: 1px 8px;
+        border-radius: 999px;
+        font-size: 11px;
+        background: rgba(55, 224, 255, 0.16);
+        color: var(--fp3d-accent);
+      }
+      .fp3d-showif-off .fp3d-showif-badge {
+        background: rgba(255, 181, 71, 0.18);
+        color: var(--fp3d-warm);
+      }
+      .fp3d-showif .fp3d-sub {
+        margin: 6px 0 8px;
       }
       /* "only show while …" and the condition is false: the piece is not in 3D right now */
       .fp3d-furn-away {

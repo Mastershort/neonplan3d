@@ -11295,29 +11295,35 @@ export class Fp3dEditor extends LitElement {
   /** "Only show while …": the piece stands in 3D only while an entity is in a state (decoration for a season). */
   private renderShowIf(f: Furniture) {
     const cond = f.show_if ?? null;
-    const shown = !cond?.entity || furnitureShown(this.hass, f);
-    return html`<details class="fp3d-section" ?open=${!!cond?.entity}>
-      <summary>${this.t("show_if")}${cond?.entity ? html` <span class="fp3d-lib-count">${shown ? this.t("show_if_now_on") : this.t("show_if_now_off")}</span>` : nothing}</summary>
+    const on = !!cond?.entity;
+    const shown = !on || furnitureShown(this.hass, f);
+    // a box of its own, always open: easy to find among the piece's fields
+    return html`<div class="fp3d-showif ${on ? (shown ? "fp3d-showif-on" : "fp3d-showif-off") : ""}">
+      <div class="fp3d-showif-head">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" /></svg>
+        <b>${this.t("show_if")}</b>
+        ${on ? html`<span class="fp3d-showif-badge">${shown ? this.t("show_if_now_on") : this.t("show_if_now_off")}</span>` : nothing}
+      </div>
       <p class="fp3d-sub">${this.t("show_if_hint")}</p>
       <div class="fp3d-form">
         ${this.entitySelect(this.t("show_if_entity"), cond?.entity ?? null, undefined, this.entityOptions(ANY_ENTITY), (v) =>
           this.updateFurniture({ show_if: v && v !== "none" ? { entity: v, state: cond?.state ?? null } : null }),
         )}
-        ${cond?.entity
-          ? html`<label class="fp3d-field fp3d-wide" title=${this.t("show_if_state_hint")}
+        ${on
+          ? html`<label class="fp3d-field fp3d-wide"
               >${this.t("show_if_state")}
               <input
                 type="text"
                 maxlength="120"
-                .value=${cond.state ?? ""}
-                placeholder=${this.hass?.states[cond.entity]?.state ?? "on"}
+                .value=${cond!.state ?? ""}
+                placeholder="on"
                 ?disabled=${!this.isAdmin}
-                @change=${(e: Event) => this.updateFurniture({ show_if: { entity: cond.entity, state: (e.target as HTMLInputElement).value.trim() || null } })}
+                @change=${(e: Event) => this.updateFurniture({ show_if: { entity: cond!.entity, state: (e.target as HTMLInputElement).value.trim() || null } })}
             /></label>
             <p class="fp3d-sub fp3d-wide">${this.t("show_if_state_hint")}</p>`
           : nothing}
       </div>
-    </details>`;
+    </div>`;
   }
 
   private renderFurnitureForm(f: Furniture) {
@@ -11422,6 +11428,7 @@ export class Fp3dEditor extends LitElement {
           </div>`
         : nothing}
       ${isElectric(f.type) ? this.renderFurnitureLinks(f) : !NO_STATE_TYPES.has(f.type) ? html`<div class="fp3d-form fp3d-links">${this.renderStateLinks(f)}</div>` : nothing} ${GANG_TYPES.has(f.type) ? this.renderGangsForm(f) : nothing} ${TECH_TYPES.has(f.type) ? this.renderTechForm(f) : nothing} ${f.type === "parking" ? this.renderParkingForm(f) : nothing} ${f.type === "waste_bin" || f.type === "mailbox" ? this.renderHouseholdForm(f) : this.renderHouseholdExtras(f)}
+      ${this.renderShowIf(f)}
       ${this.renderModuleFurnitureFields(f)}
       ${f.type.startsWith("pack:mastershort.vehicles:") && this.isAdmin
         ? html`<section>
@@ -11429,7 +11436,6 @@ export class Fp3dEditor extends LitElement {
             <div class="fp3d-actions"><button class="fp3d-btn fp3d-primary" @click=${() => this.vehicleToSpot(f)}>🅿 ${this.t("vehicle_to_spot")}</button></div>
           </section>`
         : nothing}
-      ${this.renderShowIf(f)}
       ${admin
         ? html`<div class="fp3d-actions">
             <button class="fp3d-btn" @click=${() => this.rotateFurniture(-90)}>${this.t("rotate_left")}</button>
@@ -16370,6 +16376,50 @@ export class Fp3dEditor extends LitElement {
         font-size: 11px;
         text-anchor: middle;
         pointer-events: none;
+      }
+      /* "only show while …": its own box among the piece's fields */
+      .fp3d-showif {
+        margin: 12px 0;
+        padding: 10px 12px 4px;
+        border: 1px solid var(--fp3d-line);
+        border-left: 3px solid var(--fp3d-accent);
+        border-radius: 12px;
+        background: rgba(55, 224, 255, 0.05);
+      }
+      .fp3d-showif-off {
+        border-left-color: var(--fp3d-warm);
+      }
+      .fp3d-showif-head {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 14px;
+      }
+      .fp3d-showif-head svg {
+        width: 18px;
+        height: 18px;
+        fill: none;
+        stroke: var(--fp3d-accent);
+        stroke-width: 1.8;
+      }
+      .fp3d-showif-head b,
+      .fp3d-showif-badge {
+        white-space: nowrap;
+      }
+      .fp3d-showif-badge {
+        margin-left: auto;
+        padding: 1px 8px;
+        border-radius: 999px;
+        font-size: 11px;
+        background: rgba(55, 224, 255, 0.16);
+        color: var(--fp3d-accent);
+      }
+      .fp3d-showif-off .fp3d-showif-badge {
+        background: rgba(255, 181, 71, 0.18);
+        color: var(--fp3d-warm);
+      }
+      .fp3d-showif .fp3d-sub {
+        margin: 6px 0 8px;
       }
       /* "only show while …" and the condition is false: the piece is not in 3D right now */
       .fp3d-furn-away {
