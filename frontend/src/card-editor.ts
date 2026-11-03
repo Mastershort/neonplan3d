@@ -6,6 +6,7 @@ import { fetchBuilding } from "./api.ts";
 import { labOn, UNRELEASED } from "./features.ts";
 import { CARD_CONTROLS, type CardConfig, type CardControl } from "./card-config.ts";
 import { languageReady, loadLanguage, translate, type I18nKey } from "./i18n.ts";
+import type { Building } from "./model.ts";
 import type { HomeAssistant } from "./types.ts";
 
 /** Defaults of the card: options at their default are left out of the config. */
@@ -64,17 +65,32 @@ export class Floorplan3dCardEditor extends LitElement {
     hass: { attribute: false },
     _config: { state: true },
     _floors: { state: true },
+    _templates: { state: true },
+    _showForm: { state: true },
+    building: { attribute: false },
+    embedded: { type: Boolean },
   };
 
   declare hass: HomeAssistant | undefined;
+  /** Inside NeonPlan's editor (a card template): the plan being edited, and no template choice of its own. */
+  declare building: Building | null;
+  declare embedded: boolean;
   private declare _config: CardConfig;
   private declare _floors: { id: string; name: string; rooms: { id: string; name: string }[] }[];
+  /** The plan's card templates, to pick one. */
+  private declare _templates: { id: string; name: string }[];
+  /** With a template: the form shown anyway, its options then win over the template's. */
+  private declare _showForm: boolean;
   private loading = false;
 
   constructor() {
     super();
     this._config = { type: "custom:neonplan3d-card" };
     this._floors = [];
+    this._templates = [];
+    this._showForm = false;
+    this.building = null;
+    this.embedded = false;
   }
 
   setConfig(config: CardConfig): void {
@@ -84,14 +100,41 @@ export class Floorplan3dCardEditor extends LitElement {
   protected willUpdate(): void {
     // a language beyond German and English: its texts are fetched first, then everything renders
     if (this.hass && !languageReady(this.hass.language)) void loadLanguage(this.hass.language).then(() => this.requestUpdate());
-    // the floors of the plan, for the floor choice
-    if (this.hass && !this.loading && !this._floors.length) {
+    // the floors of the plan, for the floor choice (in NeonPlan's editor: the plan being edited)
+    if (this.building) this.takePlan(this.building);
+    else if (this.hass && !this.loading && !this._floors.length) {
       this.loading = true;
       fetchBuilding(this.hass).then(
-        (res) => (this._floors = res.building.floors.map((f) => ({ id: f.id, name: f.name, rooms: [...f.rooms, ...(f.outdoor ?? []).filter((a) => a.area_id && a.name)].map((r) => ({ id: r.id, name: r.name ?? r.id })) }))),
+        (res) => this.takePlan(res.building),
         () => undefined,
       );
     }
+  }
+
+  private plan: Building | null = null;
+
+  private takePlan(b: Building): void {
+    if (b === this.plan) return;
+    this.plan = b;
+    this._floors = b.floors.map((f) => ({ id: f.id, name: f.name, rooms: [...f.rooms, ...(f.outdoor ?? []).filter((a) => a.area_id && a.name)].map((r) => ({ id: r.id, name: r.name ?? r.id })) }));
+    this._templates = (b.card_templates ?? []).map((t) => ({ id: t.id, name: t.name }));
+  }
+
+  /** Which card template the card shows (made in NeonPlan's editor under Settings → Card templates). */
+  private renderTemplate() {
+    const id = this._config.template;
+    return html`<h3>${this.t("card_template")}</h3>
+      <label class="field wide">
+        <select @change=${(e: Event) => this.set("template", (e.target as HTMLSelectElement).value || undefined)}>
+          <option value="" ?selected=${!id}>${this.t("card_template_none")}</option>
+          ${this._templates.map((x) => html`<option value=${x.id} ?selected=${x.id === id}>${x.name}</option>`)}
+          ${id && !this._templates.some((x) => x.id === id) ? html`<option value=${id} selected>${id}</option>` : nothing}
+        </select>
+      </label>
+      <p class="hint">${this.t(id ? "card_template_on" : "card_template_hint")}</p>
+      ${id && !this._showForm
+        ? html`<button class="more" @click=${() => (this._showForm = true)}>${this.t("card_template_form")}</button>`
+        : nothing}`;
   }
 
   private t(key: I18nKey, vars?: Record<string, string | number>): string {
@@ -351,7 +394,9 @@ export class Floorplan3dCardEditor extends LitElement {
     const v = this.value;
     const flows = v.flows === undefined ? "switch" : v.flows ? "on" : "off";
     const holos = v.holograms === undefined ? "switch" : v.holograms ? "on" : "off";
+    if (!this.embedded && v.template && !this._showForm) return this.renderTemplate();
     return html`
+      ${this.embedded ? nothing : this.renderTemplate()}
       <h3>${this.t("card_section_view")}</h3>
       <div class="grid">
         <label class="field wide"
@@ -455,6 +500,17 @@ export class Floorplan3dCardEditor extends LitElement {
     }
     h3:first-child {
       margin-top: 0;
+    }
+    .more {
+      margin: 8px 0 0;
+      padding: 8px 12px;
+      border: 1px solid var(--divider-color, rgba(127, 127, 127, 0.4));
+      border-radius: 8px;
+      background: transparent;
+      color: var(--primary-color);
+      font: inherit;
+      font-size: 13px;
+      cursor: pointer;
     }
     .grid {
       display: grid;

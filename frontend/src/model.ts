@@ -1,6 +1,7 @@
 // Data model shared by editor, 3D view and backend (see custom_components/neonplan3d/schema.py).
 // Units are metres; x grows to the right, z grows downwards (as in the 2D editor).
 
+import type { CardConfig } from "./card-config.ts";
 import { packItem } from "./packs.ts";
 import type { LampModel } from "./viewer/viewer3d.ts";
 
@@ -1225,6 +1226,17 @@ export interface Building {
   settings: BuildingSettings;
   energy: EnergySettings;
   presence: PresenceLink[];
+  /** Card templates: a dashboard card names one (option `template`) and takes its options from here (absent: none). */
+  card_templates?: CardTemplate[];
+}
+
+/** A dashboard card set up in the editor: a wall tablet only picks it, a change here reaches every tablet showing it. */
+export interface CardTemplate {
+  /** Named in the card's YAML (`template: kueche_fire`); made from the first name, kept when it is renamed. */
+  id: string;
+  name: string;
+  /** The card's options (as its visual editor makes them), without `type`. */
+  config: Partial<CardConfig>;
 }
 
 export const DEFAULT_ENERGY: EnergySettings = {

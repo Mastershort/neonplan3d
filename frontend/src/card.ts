@@ -11,7 +11,7 @@ import "./components/view3d.ts";
 import { languageReady, loadLanguage, translate, type I18nKey } from "./i18n.ts";
 import { controls, tokens } from "./styles.ts";
 import type { HomeAssistant } from "./types.ts";
-import type { CardConfig, CardControl } from "./card-config.ts";
+import { cardTemplate, effectiveConfig, type CardConfig, type CardControl } from "./card-config.ts";
 import { nightActive } from "./kiosk.ts";
 import { loadCardEditor } from "./load-card-editor.ts";
 import type { WallMode } from "./viewer/viewer3d.ts";
@@ -50,7 +50,11 @@ export class Floorplan3dCard extends LitElement {
   };
 
   declare hass: HomeAssistant;
+  /** The options the card works with: its template's from the plan with its own YAML on top (see effectiveConfig). */
   private declare _config: CardConfig;
+  /** The card's own YAML, and the template it last applied (as text: a plan pushed again with it unchanged is no change). */
+  private yaml: CardConfig | null = null;
+  private appliedTemplate = "";
   private declare _roomId: string | null;
   /** The configured start room was applied once the building arrived. */
   private roomApplied = false;
@@ -257,6 +261,19 @@ clearTimeout(this.cleanTimer);
 
   setConfig(config: CardConfig): void {
     if (config.height !== undefined && !(config.height > 100)) throw new Error("height must be a number of pixels above 100");
+    this.yaml = config;
+    this.appliedTemplate = this.templateKey();
+    this.applyConfig(effectiveConfig(config, this.data.building));
+  }
+
+  /** The named template as it is in the plan now ("" without one). */
+  private templateKey(): string {
+    const tpl = cardTemplate(this.data.building, this.yaml?.template);
+    return tpl ? JSON.stringify([tpl.name, tpl.config]) : "";
+  }
+
+  /** New options: from the dashboard, or a template changed in the editor – the card starts over with them. */
+  private applyConfig(config: CardConfig): void {
     this._config = config;
     this._floorId = undefined;
     this._walls = savedWalls();
@@ -278,6 +295,15 @@ clearTimeout(this.cleanTimer);
   }
 
   protected willUpdate(changed: PropertyValues): void {
+    // the plan came (or came again): a template edited in the editor reaches the tablet without a reload
+    if (this.yaml?.template) {
+      const key = this.templateKey();
+      if (key !== this.appliedTemplate) {
+        this.appliedTemplate = key;
+        this.roomApplied = false;
+        this.applyConfig(effectiveConfig(this.yaml, this.data.building));
+      }
+    }
     if (changed.has("hass") && this.hass) {
       this.data.setHass(this.hass);
       this.tt.session?.setLive(this.hass);
@@ -395,6 +421,7 @@ clearTimeout(this.cleanTimer);
               .director=${!!c?.director}
               .voice=${!!c?.voice}
               .screen=${c?.screen?.trim() || null}
+              .template=${c?.template?.trim() || null}
               .voiceArea=${c?.voice_area?.trim() || null}
               @open-extensions=${() => this.openDashboard("/neonplan3d?tab=extensions")}
               .scenes=${c?.scenes !== false}
@@ -434,6 +461,7 @@ clearTimeout(this.cleanTimer);
               @back=${() => this.back()}
             ></fp3d-view3d>`
           : html`<p class="fp3d-card-msg">${this.data.error ?? (b ? translate(this.hass, "no_building") : translate(this.hass, "loading"))}</p>`}
+        ${b && c?.template && !cardTemplate(b, c.template) ? html`<div class="fp3d-card-tpl-missing">${translate(this.hass, "card_template_missing", { name: c.template })}</div>` : nothing}
         ${roomBar
           ? html`<fp3d-room-bar
               class="fp3d-card-room-bar"
@@ -620,6 +648,20 @@ clearTimeout(this.cleanTimer);
       }
       fp3d-view3d {
         flex: 1;
+      }
+      .fp3d-card-tpl-missing {
+        position: absolute;
+        top: 10px;
+        left: 50%;
+        transform: translateX(-50%);
+        max-width: calc(100% - 40px);
+        padding: 6px 12px;
+        border-radius: 10px;
+        background: var(--fp3d-chrome-solid, rgba(10, 16, 30, 0.92));
+        border: 1px solid rgba(255, 170, 60, 0.6);
+        color: var(--fp3d-text, #fff);
+        font-size: 13px;
+        z-index: 5;
       }
       .fp3d-card-msg {
         margin: auto;

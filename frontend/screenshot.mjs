@@ -185,6 +185,7 @@ const shots = [
   // "only show while …": a piece shown in 3D only while an entity is in a state (drawn faint in the plan while it is away)
   // ⚙ Settings → Fun packs: the free extras and their settings (moved from the extensions page)
   { name: "editor-fun-packs", query: "", width: 1280, height: 900, editor: true, editorScript: "e._settingsDialog = 'fun';", afterWait: 1200 },
+  { name: "editor-card-templates", query: "", width: 1280, height: 1000, editor: true, editorScript: "e._doc.card_templates = [{ id: 'kueche_fire', name: 'Küche Fire-Tablet', config: { floor: 'eg', room_bar: true, idle_return: 120 } }, { id: 'flur', name: 'Flur', config: {} }]; e.setDoc(structuredClone(e._doc)); e._settingsDialog = 'cards';", afterWait: 1500 },
   { name: "editor-show-if", query: "", width: 1280, height: 1000, editor: true, editorScript: "const f = e._doc.floors[0].furniture.find((m) => m.id === 'm2'); f.show_if = { entity: 'input_boolean.gaeste', state: 'on' }; e.setDoc(structuredClone(e._doc)); e._furnitureId = 'm2';" },
   { name: "editor-split-3d", query: "", width: 1400, height: 900, editor: true, editorScript: "e._split = true; e._furnitureId = 'm2';" },
   { name: "editor-free-wall", query: "", width: 1280, height: 800, editor: true, editorState: { _floorId: "og", _tool: "select" } },
@@ -442,6 +443,7 @@ const shots = [
   { name: "shop-tt-away-en", query: "?tt=11:30&lang=en", width: 1200, height: 860, click: "Erdgeschoss", viewScript: "const p = v.getRootNode().host; const s = p.tt.session; const bar = p.renderRoot.querySelector('fp3d-time-bar'); bar._sheet = 'away';", afterWait: 1500 },
   { name: "shop-tt-day-en", query: "?tt=-26h&lang=en", width: 1200, height: 860, click: "Erdgeschoss", viewScript: "const p = v.getRootNode().host; const s = p.tt.session; const bar = p.renderRoot.querySelector('fp3d-time-bar'); s.setRange('7d'); bar._sheet = 'day'; setTimeout(() => (bar._compare = true), 2500);", afterWait: 3500 },
   // "fill the screen" reaches the bottom edge, measured from where the card starts (#344)
+  { name: "card-template", query: "?card&tpl", width: 1400, height: 900, wait: 1500 },
   { name: "card-fill", query: "?card&fill", width: 1280, height: 800, wait: 1500 },
   { name: "card-timetravel", query: "?card&tt", width: 1400, height: 900, click: "⏪ Zeitreise" },
   { name: "view-timetravel-locked", query: "?nopro", width: 1280, height: 800, click: "🔒 Zeitreise" },

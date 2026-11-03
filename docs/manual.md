@@ -194,6 +194,7 @@ Everything that belongs to the whole plan rather than to a floor, a room or an i
 | **⛰ Ground** | see [4.21](#421-cellar-and-ground) |
 | **💾 Backup** | export, import, restore, see chapter 9 |
 | **🧩 Modules** | the modules installed (code from the shop, e.g. "The house answers") and **Import a module …** for the .fp3dpack file |
+| **🖥 Card templates** | ready-made dashboard cards for the wall tablets, see [8.1](#81-card-templates) |
 
 The **roof shape** (none, flat, gable, ridge, pitch, overhang) sits with the roof tool, see [4.19](#419-roof). The **start view** is remembered in the 3D view: turn and zoom the house, then tap **📌** in the view settings (gear at the top right); **📌✕** resets it. The 3D view, the card and the kiosk then open the house like that, and an opened floor is shown from the same side.
 
@@ -1234,10 +1235,30 @@ The card `custom:neonplan3d-card` brings the 3D view into any dashboard. It load
 
 ![A card with scenes](images/card-scenes.jpg)
 
+### 8.1 Card templates
+
+Instead of setting up every card on every tablet, you build it once in the editor: **⚙ Settings → 🖥 Card templates → + New template**. Give it a name (e.g. "Kitchen Fire tablet") and set everything below, with the same form as in Home Assistant's card dialog. **Duplicate** makes a copy to start the next tablet from.
+
+**On the tablet:** add a card, search for "NeonPlan" and pick the template under **Template** at the very top, done. The form below goes away. The YAML has two lines only:
+
+```yaml
+type: custom:neonplan3d-card
+template: kitchen_fire
+```
+
+- **Changing it:** when you change the template in the editor, every tablet with this template follows after a moment by itself, without a reload.
+- **Exceptions:** whatever is in the card's own YAML as well wins over the template (e.g. its own `height`). **Show the form anyway** in the card dialog opens the whole form for that.
+- **Screen name:** the template's name is also the card's screen name (for announcements and "here" in voice control), as long as the template has none of its own.
+- **Reload:** **Reload screens with this template** and **Reload all screens** make the open tablets load their page again, e.g. after a NeonPlan update (new code only arrives that way). Automations have the action `neonplan3d.reload_screens` for it (without `templates`: every screen).
+- **Deleted:** when the template is missing from the plan, the card shows a note and carries on with its own settings.
+
+### 8.2 All options in YAML
+
 In YAML a card looks like this. Every line except the first is optional:
 
 ```yaml
 type: custom:neonplan3d-card
+template: kitchen_fire  # a card template from the editor (the lines here win over it)
 floor: floor_ab12cd34   # show one floor (id from the editor)
 room: room_ab12cd34     # start in this room (the id is in the editor's room form), e.g. a display for the kids' room
 height: 420             # height in pixels

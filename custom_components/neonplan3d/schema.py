@@ -1030,6 +1030,17 @@ PRESENCE_SCHEMA = vol.Schema(
     extra=vol.ALLOW_EXTRA,
 )
 
+# A card template (see the editor's settings "Card templates"): a dashboard card on a wall tablet names it and takes
+# its options from here, so a change in the editor reaches every tablet. The options are the card's (checked there).
+CARD_TEMPLATE_SCHEMA = vol.Schema(
+    {
+        vol.Required("id"): vol.All(str, vol.Length(min=1, max=60)),
+        vol.Required("name"): vol.All(str, vol.Length(max=80)),
+        vol.Optional("config", default=dict): vol.Schema({}, extra=vol.ALLOW_EXTRA),
+    },
+    extra=vol.ALLOW_EXTRA,
+)
+
 BUILDING_SCHEMA = vol.Schema(
     {
         vol.Required("version"): 1,
@@ -1037,6 +1048,7 @@ BUILDING_SCHEMA = vol.Schema(
         vol.Required("settings"): SETTINGS_SCHEMA,
         vol.Optional("energy", default=lambda: dict(ENERGY_DEFAULTS)): ENERGY_SCHEMA,
         vol.Optional("presence", default=list): vol.All([PRESENCE_SCHEMA], vol.Length(max=50)),
+        vol.Optional("card_templates"): vol.All([CARD_TEMPLATE_SCHEMA], vol.Length(max=30)),
     },
     extra=vol.ALLOW_EXTRA,
 )
