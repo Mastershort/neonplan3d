@@ -2220,6 +2220,8 @@
  "card_template_publish": "Skicka till surfplattorna",
  "card_template_discard": "Förkasta",
  "card_template_published": "Skickat: surfplattorna visar nu det nya läget.",
+ "card_template_preview_big": "Stor",
+ "card_template_preview_small": "Liten",
  "card_template_use": "Så använder du den: lägg till NeonPlan-kortet på surfplattan och välj mallen högst upp, eller i YAML:",
  "card_template_copy": "Kopiera",
  "card_template_copied": "Kopierat.",

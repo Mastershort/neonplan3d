@@ -2220,6 +2220,8 @@
  "card_template_publish": "Enviar a las tablets",
  "card_template_discard": "Descartar",
  "card_template_published": "Enviado: las tablets muestran ahora el nuevo estado.",
+ "card_template_preview_big": "Grande",
+ "card_template_preview_small": "Pequeña",
  "card_template_use": "Cómo usarla: añade la tarjeta NeonPlan en la tablet y elige la plantilla arriba, o en YAML:",
  "card_template_copy": "Copiar",
  "card_template_copied": "Copiado.",

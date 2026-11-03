@@ -2220,6 +2220,8 @@
  "card_template_publish": "Odeslat na tablety",
  "card_template_discard": "Zahodit",
  "card_template_published": "Odesláno: tablety teď ukazují nový stav.",
+ "card_template_preview_big": "Velký",
+ "card_template_preview_small": "Malý",
  "card_template_use": "Jak ji použít: přidej na tabletu kartu NeonPlan a nahoře vyber šablonu, nebo v YAML:",
  "card_template_copy": "Kopírovat",
  "card_template_copied": "Zkopírováno.",

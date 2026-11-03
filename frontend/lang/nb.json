@@ -2220,6 +2220,8 @@
  "card_template_publish": "Send til nettbrettene",
  "card_template_discard": "Forkast",
  "card_template_published": "Sendt: nettbrettene viser nå den nye tilstanden.",
+ "card_template_preview_big": "Stor",
+ "card_template_preview_small": "Liten",
  "card_template_use": "Slik bruker du den: legg til NeonPlan-kortet på nettbrettet og velg malen øverst, eller i YAML:",
  "card_template_copy": "Kopier",
  "card_template_copied": "Kopiert.",
