@@ -1192,6 +1192,14 @@ Eingestellt werden die Fun-Packs im Editor unter **⚙ Einstellungen → 🎈 Fu
 
 **Halloween:** 13 Deko-Möbel in der Möbel-Bibliothek unter **Fun-Pack: Halloween** – Kürbis mit Gesicht, kleiner Kürbis, Kürbis-Trio, Spinnennetz (für die Ecke unter der Decke), Fledermaus-Girlande, zwei Grabsteine, Skelett, Hexenkessel, Kerzenständer, orange Lichterkette, Gespenst-Figur und Hexenbesen. Kürbis, Kessel und Kerzen leuchten, wenn du ein Licht verknüpfst. Dazu schwebt ab und zu ein kleiner **Geist** durchs Haus – mitten durch die Wände, nachts öfter. **Geist schweben lassen** unter **🎈 Fun-Packs** schaltet ihn ab; in der Dashboard-Karte blendet die Option **Halloween-Geist zeigen** (YAML `ghost: false`) ihn für diese Karte aus. Auch der Geist wird nur gezeichnet, solange er unterwegs ist.
 
+**Winter & Weihnachten** (neu): 11 Deko-Möbel in der Möbel-Bibliothek unter **Fun-Pack: Winter & Weihnachten** – Weihnachtsbaum mit Lichterkette (für die Steckdose), kleiner Tannenbaum, **Adventskranz**, der seine Kerzen nach Datum anzündet (am 1. Advent eine, am 4. Advent alle vier), leuchtender Fensterstern, Schwibbogen, Leucht-Rentier für den Garten, Schneemann, Geschenke-Stapel, Lichterketten warmweiß und bunt sowie ein Weihnachtsstern. Was leuchtet, leuchtet mit einem verknüpften Licht oder einer Steckdose. Mit **Nur zeigen, wenn …** (siehe [4.8](#48-möbel)) kommt die Deko jeden Dezember von selbst wieder, etwa solange ein Kalender oder ein Helfer „Weihnachtszeit“ an ist. Unter **⚙ Einstellungen → 🎈 Fun-Packs**:
+
+- **Lichterkette an der Dachkante:** Lämpchen entlang der Traufe. **Leuchtet mit** verknüpft sie mit deiner echten Außenbeleuchtung; ohne Auswahl leuchtet sie **automatisch abends ab dem 1. Advent bis 6. Januar**. **Bunt statt warmweiß** und **Auch an Giebeln und First** (das ganze Dach in Licht) wählst du dazu.
+- **Schnee:** Meldet die Wetter-Entität Schnee, liegt Schnee auf Dach und Rasen. Bei Frost bleibt er liegen, bei Plusgraden taut er in einigen Stunden weg.
+- **Feuerwerk:** An Silvester steigt um Mitternacht (23:59 bis 0:10 Uhr) ein Neon-Feuerwerk über dem Haus auf.
+
+Alles läuft auch auf alten Wandtablets: Lichterkette und Schnee kosten kaum etwas, das Feuerwerk wird nur in den elf Minuten gezeichnet.
+
 ---
 
 ### 7.5 Module
