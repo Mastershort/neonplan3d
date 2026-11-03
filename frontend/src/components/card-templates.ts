@@ -12,9 +12,27 @@ import type { HomeAssistant } from "../types.ts";
 
 const CARD_TYPE = "custom:neonplan3d-card";
 const PREVIEW_KEY = "neonplan3d.template_preview";
-/** The screen the preview stands for: a 10" wall tablet in landscape (a Fire HD 10), below the dashboard's header. */
-const TABLET_W = 1280;
-const TABLET_H = 720;
+const SCREEN_KEY = "neonplan3d.template_screen";
+/** Home Assistant's header above a dashboard: what "fill the screen" leaves of a screen's height. */
+const HEADER = 56;
+
+/** The screens the preview can stand for (a Fire HD 10 or 8, a Fire 7, a tablet upright, a phone). */
+const SCREENS = {
+  tablet: { w: 1280, h: 800, label: "card_template_screen_tablet" },
+  small: { w: 1024, h: 600, label: "card_template_screen_small" },
+  upright: { w: 800, h: 1280, label: "card_template_screen_upright" },
+  phone: { w: 390, h: 844, label: "card_template_screen_phone" },
+} as const satisfies Record<string, { w: number; h: number; label: I18nKey }>;
+type ScreenSize = keyof typeof SCREENS;
+
+function readScreen(): ScreenSize {
+  try {
+    const v = localStorage.getItem(SCREEN_KEY);
+    return v && v in SCREENS ? (v as ScreenSize) : "tablet";
+  } catch {
+    return "tablet";
+  }
+}
 
 /** The dashboard card as the preview uses it. */
 type PreviewCard = HTMLElement & { setConfig(c: CardConfig): void; hass?: HomeAssistant; preview?: boolean };
@@ -39,6 +57,8 @@ export class Fp3dCardTemplates extends LitElement {
     _preview: { state: true },
     _reloading: { state: true },
     _scale: { state: true },
+    _screen: { state: true },
+    initial: { attribute: false },
   };
 
   declare hass: HomeAssistant | undefined;
@@ -57,6 +77,10 @@ export class Fp3dCardTemplates extends LitElement {
   private declare _reloading: boolean;
   /** The preview is drawn at a wall tablet's size and shrunk to the column by this factor. */
   private declare _scale: number;
+  /** Which screen the preview stands for. */
+  private declare _screen: ScreenSize;
+  /** The template to open first (a link from the dashboard's card dialog names it). */
+  declare initial: string | null;
   private stageObserver: ResizeObserver | null = null;
   private previewCard: PreviewCard | null = null;
   private previewKey = "";
@@ -75,6 +99,8 @@ export class Fp3dCardTemplates extends LitElement {
     this._preview = readPreviewPref();
     this._reloading = false;
     this._scale = 0.5;
+    this._screen = readScreen();
+    this.initial = null;
   }
 
   disconnectedCallback(): void {
@@ -83,9 +109,20 @@ export class Fp3dCardTemplates extends LitElement {
     this.stageObserver = null;
   }
 
-  /** The height the card has on the tablet: its own, or a landscape tablet's screen below the header with "fill". */
+  /** The height the card has on the screen: its own, or the screen below the header with "fill". */
   private previewHeight(tpl: CardTemplate): number {
-    return tpl.config.fill ? TABLET_H : Math.max(150, tpl.config.height ?? 420);
+    const s = SCREENS[this._screen];
+    return tpl.config.fill ? s.h - HEADER : Math.min(s.h - HEADER, Math.max(150, tpl.config.height ?? 420));
+  }
+
+  private setScreen(size: ScreenSize): void {
+    this._screen = size;
+    this.previewKey = "";
+    try {
+      localStorage.setItem(SCREEN_KEY, size);
+    } catch {
+      // no storage: the tablet again next time
+    }
   }
 
   /** The preview: the real dashboard card with the template's options, at a fixed height (the main bundle defines it). */
@@ -105,11 +142,14 @@ export class Fp3dCardTemplates extends LitElement {
       }
     }
     if (this.hass) this.previewCard.hass = this.hass;
-    // laid out as on a wall tablet (the room panel beside the house, not over it as on a phone), then shrunk
+    // laid out as on that screen (on a tablet the room panel beside the house, on a phone over it), then shrunk; only
+    // to look at: a tap here must not switch the house's lights
     const h = this.previewHeight(tpl);
-    return html`<div class="fp3d-tpl-stage" style="height:${Math.round(h * this._scale)}px">
-      <div class="fp3d-tpl-screen" style="width:${TABLET_W}px;height:${h}px;transform:scale(${this._scale})">${this.previewCard}</div>
-    </div>`;
+    const w = SCREENS[this._screen].w;
+    return html`<div class="fp3d-tpl-stage" style="height:${Math.round(h * this._scale)}px;max-width:${Math.round(w * this._scale)}px">
+        <div class="fp3d-tpl-screen" style="width:${w}px;height:${h}px;transform:scale(${this._scale})">${this.previewCard}</div>
+      </div>
+      <span class="fp3d-sub">${this.t("card_template_preview_look")}</span>`;
   }
 
   private togglePreview(): void {
@@ -141,7 +181,8 @@ export class Fp3dCardTemplates extends LitElement {
 
   private get current(): CardTemplate | undefined {
     const list = this.templates;
-    return list.find((x) => x.id === this._selected) ?? list[0];
+    const want = this._selected ?? this.initial;
+    return list.find((x) => x.id === want) ?? list.find((x) => !!want && x.aliases?.includes(want)) ?? list[0];
   }
 
   private editTemplates(fn: (list: CardTemplate[]) => void): void {
@@ -155,7 +196,7 @@ export class Fp3dCardTemplates extends LitElement {
 
   private add(from?: CardTemplate): void {
     const name = from ? this.t("card_template_copy_name", { name: from.name }) : this.t("card_template_new_name");
-    const id = templateId(name, this.templates.map((x) => x.id));
+    const id = templateId(name, this.templates.flatMap((x) => this.idsOf(x)));
     this.editTemplates((list) => list.push({ id, name, config: from ? structuredClone(from.config) : {} }));
     this._selected = id;
   }
@@ -176,6 +217,8 @@ export class Fp3dCardTemplates extends LitElement {
     if (!this.hass || this._reloading) return;
     this._reloading = true;
     try {
+      // this page sent it: the editor here stays (a view on this page would else reload the editor with it)
+      (window as { fp3dReloadSent?: number }).fp3dReloadSent = Date.now();
       await reloadScreens(this.hass, ids);
       this.note(this.t("card_template_reloaded"));
       // the tablets reload within about five seconds: until then another tap would only reload them again
@@ -184,6 +227,37 @@ export class Fp3dCardTemplates extends LitElement {
       this._reloading = false;
       this.note(this.t("card_template_reload_failed"));
     }
+  }
+
+  /** Options set on a template from outside its form (the room it hangs in, the microphone). */
+  private setOption(tpl: CardTemplate, patch: Partial<CardConfig>): void {
+    this.editTemplates((list) => {
+      const x = list.find((y) => y.id === tpl.id);
+      if (x) x.config = { ...x.config, ...patch };
+    });
+  }
+
+  /**
+   * The rooms a tablet can hang in: the plan's rooms with a Home Assistant area by their own names (floor by floor),
+   * then the areas no room of the plan has. "here" switches by the area.
+   */
+  private whereOptions(current: string | undefined) {
+    const areas = this.hass?.areas ?? {};
+    const floors = (this.building?.floors ?? []).map((f) => ({ name: f.name, rooms: f.rooms.filter((r) => r.area_id && areas[r.area_id]) })).filter((f) => f.rooms.length);
+    const inPlan = new Set(floors.flatMap((f) => f.rooms.map((r) => r.area_id!)));
+    const others = Object.values(areas)
+      .filter((a) => !inPlan.has(a.area_id))
+      .sort((a, b) => a.name.localeCompare(b.name));
+    return html`${floors.map(
+        (f) => html`<optgroup label=${f.name}>
+          ${f.rooms.map((r) => html`<option value=${r.area_id!} ?selected=${r.area_id === current}>${r.name}</option>`)}
+        </optgroup>`,
+      )}
+      ${others.length
+        ? html`<optgroup label=${this.t("card_template_where_other")}>
+            ${others.map((a) => html`<option value=${a.area_id} ?selected=${a.area_id === current}>${a.name}</option>`)}
+          </optgroup>`
+        : nothing}`;
   }
 
   /** The ids a tablet may name this template by (its own and the earlier ones). */
@@ -196,16 +270,23 @@ export class Fp3dCardTemplates extends LitElement {
     super.updated(changed);
     const tpl = this.current;
     const el = this.renderRoot.querySelector("neonplan3d-card-editor") as (HTMLElement & { setConfig?: (c: CardConfig) => void }) | null;
-    const stage = this.renderRoot.querySelector(".fp3d-tpl-stage");
+    // the preview's column is measured (the stage itself is only as wide as the shrunk screen)
+    const stage = this.renderRoot.querySelector(".fp3d-tpl-stage")?.parentElement;
     if (stage && !this.stageObserver) {
       this.stageObserver = new ResizeObserver(([entry]) => {
-        const scale = Math.min(1, entry.contentRect.width / TABLET_W);
+        const scale = Math.min(1, entry.contentRect.width / SCREENS[this._screen].w);
         if (scale > 0 && Math.abs(scale - this._scale) > 0.005) this._scale = scale;
       });
       this.stageObserver.observe(stage);
     } else if (!stage && this.stageObserver) {
       this.stageObserver.disconnect();
       this.stageObserver = null;
+    }
+    // another screen: the scale is measured again for its width
+    if (changed.has("_screen") && this.stageObserver) {
+      this.stageObserver.disconnect();
+      this.stageObserver = null;
+      this.requestUpdate();
     }
     if (!tpl || !el?.setConfig) return;
     const key = JSON.stringify([tpl.id, tpl.config]);
@@ -295,11 +376,15 @@ export class Fp3dCardTemplates extends LitElement {
           }}
         >
           <option value="" ?selected=${!tpl.config.voice_area}>${this.t("card_voice_area_none")}</option>
-          ${Object.values(this.hass?.areas ?? {})
-            .sort((a, b) => a.name.localeCompare(b.name))
-            .map((a) => html`<option value=${a.area_id} ?selected=${a.area_id === tpl.config.voice_area}>${a.name}</option>`)}
+          ${this.whereOptions(tpl.config.voice_area)}
         </select>
         <span class="fp3d-sub">${this.t("card_template_where_hint")}</span>
+        ${tpl.config.voice_area && !tpl.config.voice
+          ? html`<span class="fp3d-tpl-warn"
+              >${this.t("card_template_voice_off")}
+              ${admin ? html`<button class="fp3d-btn" @click=${() => this.setOption(tpl, { voice: true })}>🎙 ${this.t("card_template_voice_on")}</button>` : nothing}</span
+            >`
+          : nothing}
       </label>
       <div class="fp3d-tpl-use">
         <span class="fp3d-sub">${this.t("card_template_use")}</span>
@@ -317,6 +402,11 @@ export class Fp3dCardTemplates extends LitElement {
         <div class="fp3d-tpl-preview">
           <div class="fp3d-tpl-row">
             <b>${this.t("card_template_preview")}</b>
+            ${this._preview
+              ? html`<select class="fp3d-tpl-size" aria-label=${this.t("card_template_screen")} @change=${(e: Event) => this.setScreen((e.target as HTMLSelectElement).value as ScreenSize)}>
+                  ${(Object.keys(SCREENS) as ScreenSize[]).map((k) => html`<option value=${k} ?selected=${k === this._screen}>${this.t(SCREENS[k].label)}</option>`)}
+                </select>`
+              : nothing}
             <button class="fp3d-btn" @click=${() => this.togglePreview()}>${this.t(this._preview ? "card_template_preview_off" : "card_template_preview_on")}</button>
           </div>
           ${this.previewOf(tpl)}
@@ -404,7 +494,7 @@ export class Fp3dCardTemplates extends LitElement {
         z-index: 1;
       }
       .fp3d-tpl-preview .fp3d-tpl-row {
-        justify-content: space-between;
+        flex-wrap: nowrap;
       }
       .fp3d-tpl-stage {
         position: relative;
@@ -417,6 +507,29 @@ export class Fp3dCardTemplates extends LitElement {
         top: 0;
         left: 0;
         transform-origin: 0 0;
+        pointer-events: none;
+      }
+      .fp3d-tpl-size {
+        margin-left: auto;
+        padding: 6px 8px;
+        border-radius: 8px;
+        border: 1px solid var(--fp3d-line);
+        background: #0a1324;
+        color: var(--fp3d-text);
+        font: inherit;
+        font-size: 13px;
+      }
+      .fp3d-tpl-warn {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+        margin-top: 4px;
+        padding: 8px 10px;
+        border-radius: 10px;
+        border: 1px solid rgba(255, 170, 60, 0.55);
+        color: #ffcf8a;
+        font-size: 13px;
       }
       .fp3d-tpl-screen neonplan3d-card {
         display: block;

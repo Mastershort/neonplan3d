@@ -508,14 +508,17 @@ export class Floorplan3dPanel extends LitElement {
     this.data.edit({ ...b, settings: { ...b.settings, start_view: view ?? null } });
   }
 
-  /** The extensions page's button: to the editor, with ⚙ Settings → Fun packs open (the editor may still be loading). */
-  private openFunSettings(): void {
+  /**
+   * To the editor with a topic of ⚙ Settings open: the extensions page's fun packs button, the dashboard card dialog's
+   * link to a card template (the editor may still be loading).
+   */
+  private openFunSettings(topic: "fun" | "cards" = "fun", template: string | null = null): void {
     this.setMode("editor");
     let tries = 0;
     const open = () => {
-      const ed = this.renderRoot.querySelector("fp3d-editor") as (HTMLElement & { openSettings?(topic: "fun"): void }) | null;
-      if (ed?.openSettings) ed.openSettings("fun");
-      else if (tries++ < 40) setTimeout(open, 100);
+      const ed = this.renderRoot.querySelector("fp3d-editor") as (HTMLElement & { openSettings?(topic: "fun" | "cards", template?: string | null): void }) | null;
+      if (ed?.openSettings) ed.openSettings(topic, template);
+      else if (tries++ < 60) setTimeout(open, 100);
     };
     void this.updateComplete.then(open);
   }
@@ -547,6 +550,11 @@ export class Floorplan3dPanel extends LitElement {
     if (!this.locateLab && this.hass?.user?.is_admin && this.data.building && labOn()) {
       this.locateLab = mountLocateLab(() => ({ hass: this.hass, building: this.data.building }));
     }
+    if (this.pendingTemplate !== null && this.hass?.user && this.data.building) {
+      const template = this.pendingTemplate;
+      this.pendingTemplate = null;
+      if (this.hass.user.is_admin) this.openFunSettings("cards", template || null);
+    }
     // a link with ?tt=07:42 or ?tt=-3h opens the time travel there, once the plan and the packs are loaded
     if (this.ttLinked || !this.data.building || !packsVersion() || this._mode !== "view" || !this.view3d()) return;
     this.ttLinked = true;
@@ -571,8 +579,14 @@ export class Floorplan3dPanel extends LitElement {
     super.connectedCallback();
     window.addEventListener("keydown", this.onKey);
     // the card's Pro hint links here ("?tab=extensions")
-    if (new URLSearchParams(location.search).get("tab") === "extensions") this._mode = "extensions";
+    const query = new URLSearchParams(location.search);
+    if (query.get("tab") === "extensions") this._mode = "extensions";
+    // the card dialog's "edit in NeonPlan": the template opens in the editor's settings (admins only, once hass is there)
+    if (query.get("settings") === "cards") this.pendingTemplate = query.get("template") ?? "";
   }
+
+  /** A card template to open once the panel knows the user (from a link, see connectedCallback). */
+  private pendingTemplate: string | null = null;
 
   /** Once per page: are there shop offers the admin has not seen yet? (Only with a shop key.) */
   private checkOffers(): void {

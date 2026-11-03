@@ -4,7 +4,7 @@
 import { css, html, LitElement, nothing } from "lit";
 import { fetchBuilding } from "./api.ts";
 import { labOn, UNRELEASED } from "./features.ts";
-import { CARD_CONTROLS, type CardConfig, type CardControl } from "./card-config.ts";
+import { CARD_CONTROLS, cardTemplate, type CardConfig, type CardControl } from "./card-config.ts";
 import { languageReady, loadLanguage, translate, type I18nKey } from "./i18n.ts";
 import type { Building } from "./model.ts";
 import type { HomeAssistant } from "./types.ts";
@@ -123,18 +123,33 @@ export class Floorplan3dCardEditor extends LitElement {
   /** Which card template the card shows (made in NeonPlan's editor under Settings → Card templates). */
   private renderTemplate() {
     const id = this._config.template;
+    // a card set up with an earlier id of a renamed template shows that template
+    const tpl = cardTemplate(this.plan, id);
+    const chosen = tpl?.id ?? id;
+    // to NeonPlan's editor (a new tab: this dialog and its unsaved card stay), admins only
+    const link = this.hass?.user?.is_admin
+      ? html`<a class="more" href=${`/neonplan3d?settings=cards${tpl ? `&template=${encodeURIComponent(tpl.id)}` : ""}`} target="_blank" rel="noopener"
+          >${this.t(tpl ? "card_template_open" : "card_template_make")} ↗</a
+        >`
+      : nothing;
     return html`<h3>${this.t("card_template")}</h3>
       <label class="field wide">
         <select @change=${(e: Event) => this.set("template", (e.target as HTMLSelectElement).value || undefined)}>
           <option value="" ?selected=${!id}>${this.t("card_template_none")}</option>
-          ${this._templates.map((x) => html`<option value=${x.id} ?selected=${x.id === id}>${x.name}</option>`)}
-          ${id && !this._templates.some((x) => x.id === id) ? html`<option value=${id} selected>${id}</option>` : nothing}
+          ${this._templates.map((x) => html`<option value=${x.id} ?selected=${x.id === chosen}>${x.name}</option>`)}
+          ${id && !tpl ? html`<option value=${id} selected>${id}</option>` : nothing}
         </select>
       </label>
       <p class="hint">${this.t(id ? "card_template_on" : "card_template_hint")}</p>
-      ${id && !this._showForm
-        ? html`<button class="more" @click=${() => (this._showForm = true)}>${this.t("card_template_form")}</button>`
-        : nothing}`;
+      <div class="links">
+        ${link}
+        ${id && !this._showForm ? html`<button class="more" @click=${() => (this._showForm = true)}>${this.t("card_template_form")}</button>` : nothing}
+      </div>`;
+  }
+
+  /** The options of the card's template (none inside NeonPlan's editor, where the form is the template). */
+  private get templateOptions(): Partial<CardConfig> {
+    return this.embedded ? {} : (cardTemplate(this.plan, this._config.template)?.config ?? {});
   }
 
   private t(key: I18nKey, vars?: Record<string, string | number>): string {
@@ -142,13 +157,19 @@ export class Floorplan3dCardEditor extends LitElement {
   }
 
   private get value(): Required<Omit<CardConfig, "floor" | "room" | "flows" | "holograms">> & Pick<CardConfig, "floor" | "room" | "flows" | "holograms"> {
-    return { ...(DEFAULTS as Required<CardConfig>), ...this._config };
+    // with a template the form shows what the card does: the template's options, the card's own on top
+    return { ...(DEFAULTS as Required<CardConfig>), ...this.templateOptions, ...this._config };
   }
 
-  /** Change one option; options back at their default disappear from the YAML. */
+  /**
+   * Change one option; options back at what they would be anyway disappear from the YAML – the default, or with a
+   * template the template's value (so a card can also set an option back to its default against its template).
+   */
   private set<K extends keyof CardConfig>(key: K, value: CardConfig[K] | undefined): void {
     const next: CardConfig = { ...this._config };
-    if (value === undefined || value === "" || DEFAULTS[key] === value) delete next[key];
+    const tpl = this.templateOptions;
+    const base = key in tpl ? tpl[key] : DEFAULTS[key];
+    if (value === undefined || value === "" || base === value) delete next[key];
     else next[key] = value;
     this._config = next;
     this.dispatchEvent(new CustomEvent("config-changed", { detail: { config: next }, bubbles: true, composed: true }));
@@ -500,6 +521,15 @@ export class Floorplan3dCardEditor extends LitElement {
     }
     h3:first-child {
       margin-top: 0;
+    }
+    .links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    a.more {
+      display: inline-block;
+      text-decoration: none;
     }
     .more {
       margin: 8px 0 0;
