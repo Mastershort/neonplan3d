@@ -138,16 +138,21 @@ export function cardTemplate(b: Building | null | undefined, id: string | undefi
   return key ? (list?.find((t) => t.id === key) ?? list?.find((t) => t.aliases?.includes(key))) : undefined;
 }
 
+/** What belongs to the dashboard the card sits on, not to its template: its size (a card on a tablet's whole screen). */
+export const CARD_OWN: readonly (keyof CardConfig)[] = ["fill", "height", "fullscreen_button"];
+
 /**
- * The options a card works with: a card that names a template shows exactly the template (options left on the card
- * from before are not used – they would else keep winning unseen, as `plain: true` from an old card did). The
- * template's name is the card's screen name unless the template has one of its own (announcements, "here" in voice
- * control). A card without a template, or with one the plan does not have, keeps its YAML as it is.
+ * The options a card works with: a card that names a template shows the template – only its size comes from the
+ * card itself (CARD_OWN: how it sits on that dashboard). Other options left on the card from before are not used: they
+ * would keep winning unseen, as `plain: true` from an old card hid the furniture. The template's name is the card's
+ * screen name unless the template has one of its own (announcements, "here" in voice control). A card without a
+ * template, or with one the plan does not have, keeps its YAML as it is.
  */
 export function effectiveConfig(yaml: CardConfig, b: Building | null | undefined): CardConfig {
   const tpl = cardTemplate(b, yaml.template);
   if (!tpl) return yaml;
-  return { ...tpl.config, screen: tpl.config.screen || tpl.name, type: yaml.type, template: yaml.template } as CardConfig;
+  const own = Object.fromEntries(CARD_OWN.filter((k) => yaml[k] !== undefined).map((k) => [k, yaml[k]]));
+  return { ...tpl.config, ...own, screen: tpl.config.screen || tpl.name, type: yaml.type, template: yaml.template } as CardConfig;
 }
 
 /**
