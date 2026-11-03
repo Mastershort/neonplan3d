@@ -4438,6 +4438,8 @@ export class Fp3dView3d extends LitElement {
     if (r.templates.length && !(this.template && r.templates.includes(this.template))) return;
     if (reloadsAsked.has(r.id)) return;
     reloadsAsked.add(r.id);
+    // say so, or someone at the tablet taps around while it waits
+    this._announce = translate(this.hass, "screen_reloading");
     setTimeout(() => location.reload(), 500 + Math.random() * 4000);
   }
 

@@ -1248,6 +1248,8 @@ template: kitchen_fire
 
 - **Changing it:** when you change the template in the editor, every tablet with this template follows after a moment by itself, without a reload.
 - **Exceptions:** whatever is in the card's own YAML as well wins over the template (e.g. its own `height`). **Show the form anyway** in the card dialog opens the whole form for that.
+- **Where does the tablet hang?** The field at the top of the template sets the room for "here" ("Turn on the lights here"), whatever floor or start room the card shows.
+- **Renaming:** the id in the YAML follows the new name. Tablets still set up with the old id keep finding the template.
 - **Screen name:** the template's name is also the card's screen name (for announcements and "here" in voice control), as long as the template has none of its own.
 - **Reload:** **Reload screens with this template** and **Reload all screens** make the open tablets load their page again, e.g. after a NeonPlan update (new code only arrives that way). Automations have the action `neonplan3d.reload_screens` for it (without `templates`: every screen).
 - **Deleted:** when the template is missing from the plan, the card shows a note and carries on with its own settings.

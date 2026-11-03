@@ -1235,6 +1235,8 @@ export interface CardTemplate {
   /** Named in the card's YAML (`template: kueche_fire`); made from the first name, kept when it is renamed. */
   id: string;
   name: string;
+  /** Earlier ids (the template was renamed): cards set up with them still find it. */
+  aliases?: string[];
   /** The card's options (as its visual editor makes them), without `type`. */
   config: Partial<CardConfig>;
 }

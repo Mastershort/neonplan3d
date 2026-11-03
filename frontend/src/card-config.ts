@@ -134,7 +134,8 @@ export type CardControl = (typeof CARD_CONTROLS)[number];
 /** The template a card names, if the plan has it. */
 export function cardTemplate(b: Building | null | undefined, id: string | undefined): CardTemplate | undefined {
   const key = id?.trim();
-  return key ? b?.card_templates?.find((t) => t.id === key) : undefined;
+  const list = b?.card_templates;
+  return key ? (list?.find((t) => t.id === key) ?? list?.find((t) => t.aliases?.includes(key))) : undefined;
 }
 
 /**
@@ -147,6 +148,24 @@ export function effectiveConfig(yaml: CardConfig, b: Building | null | undefined
   if (!tpl) return yaml;
   const { type, template, ...own } = yaml;
   return { ...tpl.config, screen: tpl.config.screen || tpl.name, ...own, type, template } as CardConfig;
+}
+
+/**
+ * A template renamed: its id follows the new name (the YAML shown in the editor matches it), the old id stays as an
+ * alias so a tablet already set up with it keeps working. Returns the template as it is then.
+ */
+export function renameTemplate(list: readonly CardTemplate[], id: string, name: string): CardTemplate | undefined {
+  const tpl = list.find((t) => t.id === id);
+  if (!tpl) return undefined;
+  tpl.name = name;
+  const taken = list.filter((t) => t !== tpl).flatMap((t) => [t.id, ...(t.aliases ?? [])]);
+  const next = templateId(name, taken);
+  if (next !== tpl.id) {
+    const aliases = [...(tpl.aliases ?? []), tpl.id].filter((a, i, all) => a !== next && all.indexOf(a) === i);
+    tpl.id = next;
+    tpl.aliases = aliases;
+  }
+  return tpl;
 }
 
 /** An id for a new template from its name: lower case, umlauts spelled out, words joined by "_", unique in the plan. */

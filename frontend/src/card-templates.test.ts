@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { effectiveConfig, templateId, type CardConfig } from "./card-config.ts";
+import { cardTemplate, effectiveConfig, renameTemplate, templateId, type CardConfig } from "./card-config.ts";
 import { emptyBuilding, type Building } from "./model.ts";
 
 const plan = (): Building => ({
@@ -33,4 +33,18 @@ test("card templates: an id from the name, umlauts spelled out, unique in the pl
   assert.equal(templateId("Flur", ["flur", "flur_2"]), "flur_3");
   assert.equal(templateId("  ", []), "vorlage");
   assert.equal(templateId("Café Straße", []), "cafe_strasse");
+});
+
+test("card templates: renamed, the id follows the name and the old one still finds the template", () => {
+  const b = plan();
+  const list = b.card_templates!;
+  list.push({ id: "flur", name: "Flur", config: {} });
+  assert.equal(renameTemplate(list, "kueche_fire", "Küchentablet")?.id, "kuechentablet");
+  assert.deepEqual(list[0].aliases, ["kueche_fire"]);
+  assert.equal(cardTemplate(b, "kueche_fire")?.name, "Küchentablet", "a tablet set up before");
+  assert.equal(effectiveConfig(card({ template: "kueche_fire" }), b).floor, "eg");
+  // named back: no alias for its own id; a name another template has gets a number
+  renameTemplate(list, "kuechentablet", "Küche Fire");
+  assert.deepEqual(list[0].aliases, ["kueche_fire", "kuechentablet"].filter((x) => x !== list[0].id));
+  assert.equal(renameTemplate(list, "flur", "Küchentablet")?.id, "kuechentablet_2", "the first one still answers to it");
 });

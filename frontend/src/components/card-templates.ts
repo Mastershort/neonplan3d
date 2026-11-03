@@ -3,7 +3,7 @@
 // as the plan reaches every open card. "Reload screens" lets the tablets load their page again (after an update).
 import { css, html, LitElement, nothing, type PropertyValues } from "lit";
 import { reloadScreens } from "../api.ts";
-import { templateId, type CardConfig } from "../card-config.ts";
+import { renameTemplate, templateId, type CardConfig } from "../card-config.ts";
 import { translate, type I18nKey } from "../i18n.ts";
 import { loadCardEditor } from "../load-card-editor.ts";
 import type { Building, CardTemplate } from "../model.ts";
@@ -34,6 +34,7 @@ export class Fp3dCardTemplates extends LitElement {
     _ready: { state: true },
     _note: { state: true },
     _preview: { state: true },
+    _reloading: { state: true },
   };
 
   declare hass: HomeAssistant | undefined;
@@ -48,6 +49,8 @@ export class Fp3dCardTemplates extends LitElement {
   private declare _note: string | null;
   /** The live preview of the card next to the form (one more 3D view while the dialog is open; can be switched off). */
   private declare _preview: boolean;
+  /** "Reload" was sent a moment ago (the tablets take a few seconds): the buttons wait and say so. */
+  private declare _reloading: boolean;
   private previewCard: PreviewCard | null = null;
   private previewKey = "";
   /** What the card editor shows now (as text): a template changed elsewhere (undo) is handed to it again. */
@@ -63,6 +66,7 @@ export class Fp3dCardTemplates extends LitElement {
     this._ready = false;
     this._note = null;
     this._preview = readPreviewPref();
+    this._reloading = false;
   }
 
   /** The preview: the real dashboard card with the template's options, at a fixed height (the main bundle defines it). */
@@ -146,13 +150,22 @@ export class Fp3dCardTemplates extends LitElement {
   }
 
   private async reload(ids: string[]): Promise<void> {
-    if (!this.hass) return;
+    if (!this.hass || this._reloading) return;
+    this._reloading = true;
     try {
       await reloadScreens(this.hass, ids);
       this.note(this.t("card_template_reloaded"));
+      // the tablets reload within about five seconds: until then another tap would only reload them again
+      setTimeout(() => (this._reloading = false), 8000);
     } catch {
+      this._reloading = false;
       this.note(this.t("card_template_reload_failed"));
     }
+  }
+
+  /** The ids a tablet may name this template by (its own and the earlier ones). */
+  private idsOf(tpl: CardTemplate): string[] {
+    return [tpl.id, ...(tpl.aliases ?? [])];
   }
 
   /** The card editor shows the open template; again when it changed from outside (undo, another browser). */
@@ -194,7 +207,9 @@ export class Fp3dCardTemplates extends LitElement {
       ${tpl ? this.renderTemplate(tpl, admin) : nothing}
       ${admin
         ? html`<div class="fp3d-tpl-reload">
-            <button class="fp3d-btn" @click=${() => void this.reload([])}>⟳ ${this.t("card_template_reload_all")}</button>
+            <button class="fp3d-btn" ?disabled=${this._reloading} @click=${() => void this.reload([])}>
+              ⟳ ${this.t(this._reloading ? "card_template_reloading" : "card_template_reload_all")}
+            </button>
             <span class="fp3d-sub">${this.t("card_template_reload_hint")}</span>
           </div>`
         : nothing}
@@ -215,7 +230,11 @@ export class Fp3dCardTemplates extends LitElement {
             ?disabled=${!admin}
             @change=${(e: Event) => {
               const name = (e.target as HTMLInputElement).value.trim();
-              if (name) this.editTemplates((list) => list.forEach((x) => x.id === tpl.id && (x.name = name)));
+              if (!name) return;
+              let id = tpl.id;
+              this.editTemplates((list) => (id = renameTemplate(list, tpl.id, name)?.id ?? id));
+              this._selected = id;
+              this.shown = "";
             }}
           />
         </label>
@@ -224,12 +243,40 @@ export class Fp3dCardTemplates extends LitElement {
               <button class="fp3d-btn fp3d-danger" @click=${() => this.deleteTemplate(tpl)}>${this.t("delete")}</button>`
           : nothing}
       </div>
+      <label class="fp3d-field"
+        >${this.t("card_template_where")}
+        <select
+          ?disabled=${!admin}
+          @change=${(e: Event) => {
+            const area = (e.target as HTMLSelectElement).value;
+            this.editTemplates((list) => {
+              const x = list.find((y) => y.id === tpl.id);
+              if (!x) return;
+              if (area) x.config = { ...x.config, voice_area: area };
+              else {
+                const { voice_area: _area, ...rest } = x.config;
+                x.config = rest;
+              }
+            });
+          }}
+        >
+          <option value="" ?selected=${!tpl.config.voice_area}>${this.t("card_voice_area_none")}</option>
+          ${Object.values(this.hass?.areas ?? {})
+            .sort((a, b) => a.name.localeCompare(b.name))
+            .map((a) => html`<option value=${a.area_id} ?selected=${a.area_id === tpl.config.voice_area}>${a.name}</option>`)}
+        </select>
+        <span class="fp3d-sub">${this.t("card_template_where_hint")}</span>
+      </label>
       <div class="fp3d-tpl-use">
         <span class="fp3d-sub">${this.t("card_template_use")}</span>
         <pre>${yaml}</pre>
         <div class="fp3d-tpl-row">
           <button class="fp3d-btn" @click=${() => void navigator.clipboard?.writeText(yaml).then(() => this.note(this.t("card_template_copied")), () => undefined)}>${this.t("card_template_copy")}</button>
-          ${admin ? html`<button class="fp3d-btn" @click=${() => void this.reload([tpl.id])}>⟳ ${this.t("card_template_reload")}</button>` : nothing}
+          ${admin
+            ? html`<button class="fp3d-btn" ?disabled=${this._reloading} @click=${() => void this.reload(this.idsOf(tpl))}>
+                ⟳ ${this.t(this._reloading ? "card_template_reloading" : "card_template_reload")}
+              </button>`
+            : nothing}
         </div>
       </div>
       <div class="fp3d-tpl-split ${this._preview ? "" : "fp3d-tpl-nopreview"}">
@@ -260,6 +307,7 @@ export class Fp3dCardTemplates extends LitElement {
     css`
       :host {
         display: block;
+        color-scheme: dark;
       }
       .fp3d-tpl {
         display: grid;
