@@ -29,12 +29,17 @@ const langHash = createHash("sha256")
   .slice(0, 12);
 const cardEditorConfig = { ...common, entryPoints: ["src/card-editor.ts"], outfile: `${out}/neonplan3d-card-editor.js`, define: { __FP3D_LANG_HASH__: JSON.stringify(langHash) } };
 // the editor is only needed by admins who open it, so it is a bundle of its own as well
-// (it draws furniture previews with the 3D bundle, so it knows that bundle's hash too)
-const editorConfig = (viewerHash, locateHash) => ({
+// (it draws furniture previews with the 3D bundle, so it knows that bundle's hash too; card templates use the card editor)
+const editorConfig = (viewerHash, locateHash, cardEditorHash) => ({
   ...common,
   entryPoints: ["src/components/editor.ts"],
   outfile: `${out}/neonplan3d-editor.js`,
-  define: { __FP3D_VIEWER_HASH__: JSON.stringify(viewerHash), __FP3D_LANG_HASH__: JSON.stringify(langHash), __FP3D_LOCATE_HASH__: JSON.stringify(locateHash) },
+  define: {
+    __FP3D_VIEWER_HASH__: JSON.stringify(viewerHash),
+    __FP3D_LANG_HASH__: JSON.stringify(langHash),
+    __FP3D_LOCATE_HASH__: JSON.stringify(locateHash),
+    __FP3D_CARD_EDITOR_HASH__: JSON.stringify(cardEditorHash),
+  },
 });
 // the time travel (Pro) only loads when it starts; its texts come from the main bundle
 const timeTravelConfig = { ...common, entryPoints: ["src/timetravel/entry.ts"], outfile: `${out}/neonplan3d-timetravel.js` };
@@ -88,6 +93,7 @@ function copyFonts() {
   }
 }
 
+// main 772 KB, editor 996 KB and card editor 300 KB on 2026-11-03 for card templates (made in the editor, picked on a tablet) and their texts
 // main 674 KB and 3D 812 KB on 2026-10-22 for richer module cards (a state line, a second value, a chain, cells, a hint), module markers and solid module pipes
 // main 668 KB and 3D 808 KB on 2026-10-22 for what modules may draw: lines in the flow layer, surfaces over floors and lawns, labels, layered light on an item, a card curve, fields on furniture and module settings
 // 3D 796 KB and editor 916 KB on 2026-10-21 for roof sections that cut each other, wings meeting a roof in valleys (#466, #605) and the ends per section
@@ -152,18 +158,18 @@ function copyFonts() {
 // editor 976 KB on 2026-11-03: the winter pack on the extensions page (Advent candles by date) with its texts
 // main 758 KB, editor 974 KB, card editor 288 KB on 2026-11-02: "only show while …" for furniture and its texts
 // main 756 KB, editor 970 KB, card editor 286 KB on 2026-11-02: the room bar (a card per room with a light switch, the favourites before them) with its texts
-const BUDGET = { "neonplan3d.js": 764 * 1024, "neonplan3d-fun.js": 40 * 1024, "neonplan3d-voice.js": 60 * 1024, "neonplan3d-locate.js": 160 * 1024, "neonplan3d-timetravel.js": 120 * 1024, "neonplan3d-3d.js": 850 * 1024, "neonplan3d-editor.js": 982 * 1024, "neonplan3d-card-editor.js": 290 * 1024 };
+const BUDGET = { "neonplan3d.js": 772 * 1024, "neonplan3d-fun.js": 40 * 1024, "neonplan3d-voice.js": 60 * 1024, "neonplan3d-locate.js": 160 * 1024, "neonplan3d-timetravel.js": 120 * 1024, "neonplan3d-3d.js": 850 * 1024, "neonplan3d-editor.js": 996 * 1024, "neonplan3d-card-editor.js": 300 * 1024 };
 
 copyFonts();
 if (watch) {
   // in watch mode the hash is not tracked; a dev reload fetches the bundle anyway
-  for (const c of [viewerConfig, editorConfig("dev", "dev"), cardEditorConfig, timeTravelConfig, funConfig, voiceConfig, locateConfig, mainConfig("dev", "dev", "dev", "dev", "dev", "dev", "dev")]) await (await context(c)).watch();
+  for (const c of [viewerConfig, editorConfig("dev", "dev", "dev"), cardEditorConfig, timeTravelConfig, funConfig, voiceConfig, locateConfig, mainConfig("dev", "dev", "dev", "dev", "dev", "dev", "dev")]) await (await context(c)).watch();
 } else {
   await build(viewerConfig);
   await build(locateConfig);
-  const editor = editorConfig(hashOf(viewerConfig.outfile), hashOf(locateConfig.outfile));
-  await build(editor);
   await build(cardEditorConfig);
+  const editor = editorConfig(hashOf(viewerConfig.outfile), hashOf(locateConfig.outfile), hashOf(cardEditorConfig.outfile));
+  await build(editor);
   await build(timeTravelConfig);
   await build(funConfig);
   await build(voiceConfig);

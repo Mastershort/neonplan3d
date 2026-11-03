@@ -220,7 +220,7 @@ const turnBy = (a: number, d: number): number => {
 };
 
 /** Topics of the ⚙ settings menu (everything that belongs to the whole plan). */
-type SettingsTopic = "house" | "weather" | "director" | "voice" | "locate" | "favorites" | "backdrop" | "terrain" | "backup" | "modules" | "fun" | "diagnostics";
+type SettingsTopic = "house" | "weather" | "director" | "voice" | "locate" | "favorites" | "backdrop" | "terrain" | "backup" | "modules" | "fun" | "cards" | "diagnostics";
 
 /** Wall view side bar: what stands or hangs at a wall, by kind. */
 const WALL_CATS: Record<string, string[]> = {
@@ -5735,6 +5735,7 @@ export class Fp3dEditor extends LitElement {
       { key: "backup", icon: "💾", label: this.t("backup"), admin: true },
       { key: "modules", icon: "🧩", label: this.t("settings_modules"), admin: true },
       { key: "fun", icon: "🎈", label: this.t("fun_title"), admin: true },
+      { key: "cards", icon: "🖥", label: this.t("card_templates"), admin: true },
       ...(released("diagnostics") ? [{ key: "diagnostics" as const, icon: "🛟", label: this.t("diag_menu"), admin: true }] : []),
     ];
     const topics = all.filter((t) => admin || !t.admin);
@@ -5798,6 +5799,7 @@ export class Fp3dEditor extends LitElement {
       backup: this.t("backup"),
       modules: this.t("settings_modules"),
       fun: this.t("fun_title"),
+      cards: this.t("card_templates"),
       diagnostics: this.t("diag_title"),
     };
     const body =
@@ -5821,7 +5823,9 @@ export class Fp3dEditor extends LitElement {
                         ? this.renderDiagnostics(true)
                         : topic === "fun"
                           ? html`<fp3d-fun-packs .hass=${this.hass} .building=${this._doc} .packs=${this.packs} ?admin=${this.isAdmin} .edit=${(fn: (b: Building) => void) => this.change((d) => fn(d))}></fp3d-fun-packs>`
-                          : this.renderModuleSettings();
+                          : topic === "cards"
+                            ? html`<fp3d-card-templates .hass=${this.hass} .building=${this._doc} ?admin=${this.isAdmin} .edit=${(fn: (b: Building) => void) => this.change((d) => fn(d))}></fp3d-card-templates>`
+                            : this.renderModuleSettings();
     return html`<div class="fp3d-dialog-veil" @click=${(e: Event) => e.target === e.currentTarget && close()}>
       <div class="fp3d-dialog" role="dialog" aria-label=${titles[topic]} tabindex="-1" @keydown=${(e: KeyboardEvent) => e.key === "Escape" && close()}>
         <div class="fp3d-dialog-head">
@@ -16751,6 +16755,7 @@ if (!customElements.get("fp3d-editor")) customElements.define("fp3d-editor", Fp3
 // the extensions page is part of this bundle: the panel loads it the same way as the editor
 import "./extensions.ts";
 import "./fun-packs.ts";
+import "./card-templates.ts";
 
 /** Distance of a plan point from a segment. */
 function distToSegment(p: Vec2, a: Vec2, b: Vec2): number {

@@ -194,6 +194,7 @@ Alles, was zum ganzen Plan gehört und nicht zu einer Etage, einem Raum oder ein
 | **⛰ Gelände** | siehe [4.21](#421-keller-und-gelände) |
 | **💾 Sicherung** | Export, Import, Wiederherstellen, siehe Kapitel 9 |
 | **🧩 Module** | die eingespielten Module (Code aus dem Shop, etwa „Das Haus antwortet“) und **Modul einspielen …** für die .fp3dpack-Datei |
+| **🖥 Karten-Vorlagen** | fertige Dashboard-Karten für die Wandtablets, siehe [8.1](#81-karten-vorlagen) |
 
 Die **Dachform** (kein Dach, Flachdach, Satteldach, First, Neigung, Überstand) steht beim Dach-Werkzeug, siehe [4.19](#419-dach). Die **Startansicht** merkst du dir in der 3D-Ansicht: Haus drehen und zoomen, dann in den Ansicht-Einstellungen (Zahnrad oben rechts) **📌** antippen; **📌✕** setzt sie zurück. 3D-Ansicht, Karte und Kiosk öffnen das Haus dann so, und eine geöffnete Etage wird von derselben Seite gezeigt.
 
@@ -1234,10 +1235,30 @@ Die Karte `custom:neonplan3d-card` bringt die 3D-Ansicht in jedes Dashboard. Sie
 
 ![Karte mit Szenen](images/card-scenes.jpg)
 
+### 8.1 Karten-Vorlagen
+
+Statt jede Karte auf jedem Tablet einzeln einzustellen, baust du sie einmal im Editor: **⚙ Einstellungen → 🖥 Karten-Vorlagen → + Neue Vorlage**. Gib ihr einen Namen (etwa „Küche Fire-Tablet“) und stell darunter alles ein, mit demselben Formular wie im Kartendialog von Home Assistant. **Duplizieren** macht eine Kopie als Ausgangspunkt für das nächste Tablet.
+
+**Auf dem Tablet:** Karte hinzufügen, nach „NeonPlan“ suchen und ganz oben unter **Vorlage** die Vorlage wählen, fertig. Das Formular darunter fällt weg. Im YAML stehen nur zwei Zeilen:
+
+```yaml
+type: custom:neonplan3d-card
+template: kueche_fire
+```
+
+- **Ändern:** Änderst du die Vorlage im Editor, übernimmt jedes Tablet mit dieser Vorlage das nach einem Moment von selbst, ohne Neuladen.
+- **Ausnahmen:** Was zusätzlich im YAML der Karte steht, gilt vor der Vorlage (etwa eine eigene `height`). **Formular trotzdem zeigen** im Kartendialog öffnet dafür das ganze Formular.
+- **Bildschirmname:** Der Name der Vorlage ist zugleich der Bildschirmname der Karte (für Durchsagen und „hier“ in der Sprachsteuerung), solange die Vorlage keinen eigenen hat.
+- **Neu laden:** **Bildschirme mit dieser Vorlage neu laden** und **Alle Bildschirme neu laden** lassen die offenen Tablets ihre Seite neu laden, etwa nach einem NeonPlan-Update (neuer Code kommt nur so an). In Automationen gibt es dafür die Aktion `neonplan3d.reload_screens` (ohne `templates` alle Bildschirme).
+- **Gelöscht:** Fehlt die Vorlage im Plan, zeigt die Karte einen Hinweis und läuft mit ihren eigenen Einstellungen weiter.
+
+### 8.2 Alle Optionen in YAML
+
 In YAML sieht eine Karte so aus. Alle Zeilen außer der ersten sind optional:
 
 ```yaml
 type: custom:neonplan3d-card
+template: kueche_fire   # eine Karten-Vorlage aus dem Editor (die Zeilen hier gelten vor ihr)
 floor: floor_ab12cd34   # eine Etage zeigen (ID aus dem Editor)
 room: room_ab12cd34     # in diesem Raum starten (ID steht im Raumformular des Editors), z. B. ein Display fürs Kinderzimmer
 height: 420             # Höhe in Pixeln

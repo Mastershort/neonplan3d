@@ -143,7 +143,7 @@ import { wallLayout } from "../camera-wall.ts";
 import { watchedEntities } from "../watched.ts";
 import { backdropCss } from "../backdrop.ts";
 import { loadVoice, micProbeAsked, micProbeDone, voiceArea, voicePipeline } from "../load-voice.ts";
-import { answerAsk, subscribeAsk, type Ask, type ScreenAnnouncement } from "../api.ts";
+import { answerAsk, subscribeAsk, type Ask, type ScreenAnnouncement, type ScreenReload } from "../api.ts";
 import { pipePlanner } from "../pipe-planner.ts";
 import type { ClockPos } from "../card-config.ts";
 import { Director, HOLD_DEFAULT, directorAny, doorbellCamera, doorbellEntities, doorbellRang, triggerFired, type DirectorSettings, type Shot } from "../director.ts";
@@ -205,6 +205,8 @@ function roofWindowState(hass: HomeAssistant, w: RoofWindow): { open: number; ti
 
 /** Announcements this page already said (a card and the panel both listen). */
 const heardAnnouncements = new Set<string>();
+/** Calls to load again already followed (a card and the panel on one page reload once). */
+const reloadsAsked = new Set<string>();
 
 /** A soft two-tone gong before an announcement; silent where the browser does not let the page play sound yet. */
 async function chime(): Promise<void> {
@@ -319,6 +321,7 @@ export class Fp3dView3d extends LitElement {
     hideRoof: { attribute: false },
     voice: { attribute: false },
     screen: { attribute: false },
+    template: { attribute: false },
     voiceArea: { attribute: false },
     _voice: { state: true },
     _announce: { state: true },
@@ -517,6 +520,8 @@ export class Fp3dView3d extends LitElement {
   declare voice: boolean;
   /** This view's screen name: a sentence from Assist that names a screen is only for the view with that name. */
   declare screen: string | null;
+  /** The card template this view shows (a dashboard card's option `template`): "reload screens" for it reaches it. */
+  declare template: string | null;
   /** The Home Assistant area of this view's tablet (card option `voice_area`); null: the device's setting. */
   declare voiceArea: string | null;
   private declare _voice: { phase: "wait" | "listen" | "done" | "error"; text: string } | null;
@@ -750,6 +755,7 @@ export class Fp3dView3d extends LitElement {
     this.hideRoof = false;
     this.voice = false;
     this.screen = null;
+    this.template = null;
     this.voiceArea = null;
     this._voice = null;
     this._micProbe = micProbeAsked();
@@ -798,6 +804,7 @@ export class Fp3dView3d extends LitElement {
       hass,
       (ask) => void this.onAsk(ask),
       (a) => void this.onAnnounce(a),
+      (r) => this.onReload(r),
     ).catch(() => {
       // a replay or an older backend: nothing to listen to
       this.unsubAsk = null;
@@ -4420,6 +4427,18 @@ export class Fp3dView3d extends LitElement {
     } catch {
       // no sound (the browser waits for a first tap, no text-to-speech): the words still show
     }
+  }
+
+  /**
+   * The editor's "Reload screens" (or the service): the views of these templates, or every view, load the page again –
+   * a few seconds apart, so a house full of tablets does not ask Home Assistant all at once. A card and the panel on
+   * one page load it once.
+   */
+  private onReload(r: ScreenReload): void {
+    if (r.templates.length && !(this.template && r.templates.includes(this.template))) return;
+    if (reloadsAsked.has(r.id)) return;
+    reloadsAsked.add(r.id);
+    setTimeout(() => location.reload(), 500 + Math.random() * 4000);
   }
 
   /** One spoken sentence: a place to show ("Zeig das Wohnzimmer") is shown, anything else goes to Assist. */

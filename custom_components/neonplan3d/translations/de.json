@@ -58,6 +58,16 @@
           "description": "Nur die NeonPlan-Bildschirme mit diesen Bildschirmnamen (in den Einstellungen der Ansicht oder in der Kartenoption screen gesetzt)."
         }
       }
+    },
+    "reload_screens": {
+      "name": "Bildschirme neu laden",
+      "description": "Die offenen NeonPlan-Ansichten dieser Karten-Vorlagen laden ihre Seite neu, zum Beispiel nach einem Update, damit die Wand-Tablets die neue Version bekommen. Ohne Vorlage: jede offene Ansicht.",
+      "fields": {
+        "templates": {
+          "name": "Karten-Vorlagen",
+          "description": "Die IDs der Karten-Vorlagen (wie der Editor sie unter Einstellungen → Karten-Vorlagen zeigt). Leer: jede offene Ansicht."
+        }
+      }
     }
   }
 }

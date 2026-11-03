@@ -49,3 +49,11 @@ announce:
       selector:
         text:
           multiple: true
+reload_screens:
+  fields:
+    templates:
+      required: false
+      example: "kueche_fire"
+      selector:
+        text:
+          multiple: true

@@ -280,3 +280,15 @@ async def test_a_sentence_said_in_a_room_goes_to_assist_with_a_device_of_that_ro
     assert res["result"]["response"]["speech"]["plain"]["speech"] == "Licht ist an"
     assert converse.await_args.args[1] == "Licht an"
     assert converse.await_args.kwargs == {"language": "de", "device_id": lamp.id}
+
+
+async def test_reload_screens_reaches_the_views_that_ask_for_it(hass: HomeAssistant, hass_ws_client) -> None:
+    """Card templates: the service lets the open views that ask for it load their page again."""
+    await _setup(hass)
+    new = await hass_ws_client(hass)
+    await new.send_json({"id": 1, "type": "neonplan3d/voice/subscribe", "announce": True, "reload": True})
+    assert (await new.receive_json())["success"]
+
+    await hass.services.async_call(DOMAIN, "reload_screens", {"templates": "kueche_fire"}, blocking=True)
+    event = (await new.receive_json())["event"]
+    assert event["reload"]["templates"] == ["kueche_fire"] and event["reload"]["id"]

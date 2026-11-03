@@ -58,6 +58,16 @@
           "description": "Only the NeonPlan screens with these screen names (set in the view's settings or the card's option screen)."
         }
       }
+    },
+    "reload_screens": {
+      "name": "Reload screens",
+      "description": "The open NeonPlan views of these card templates load their page again, e.g. after an update, so wall tablets get the new version. No template named: every open view.",
+      "fields": {
+        "templates": {
+          "name": "Card templates",
+          "description": "The ids of the card templates (as the editor shows them under Settings → Card templates). Empty: every open view."
+        }
+      }
     }
   }
 }

@@ -1,6 +1,6 @@
 // Configuration of the dashboard card, shared by the card and its visual editor (a bundle of its own).
 
-import type { StartView } from "./model.ts";
+import type { Building, CardTemplate, StartView } from "./model.ts";
 import type { Quality, WallMode } from "./viewer/viewer3d.ts";
 
 /** Where the clock sits: a corner, or none. */
@@ -8,6 +8,8 @@ export type ClockPos = "off" | "tl" | "tr" | "bl" | "br";
 
 export interface CardConfig {
   type: string;
+  /** A card template made in the editor (its id): its options apply, the ones written here win over them. */
+  template?: string;
   floor?: string;
   /** Start in this room (its id from the editor): a display for one room, e.g. for the kids. */
   room?: string;
@@ -128,3 +130,40 @@ export interface CardConfig {
 
 export const CARD_CONTROLS = ["walls", "floors", "temperature", "humidity", "co2"] as const;
 export type CardControl = (typeof CARD_CONTROLS)[number];
+
+/** The template a card names, if the plan has it. */
+export function cardTemplate(b: Building | null | undefined, id: string | undefined): CardTemplate | undefined {
+  const key = id?.trim();
+  return key ? b?.card_templates?.find((t) => t.id === key) : undefined;
+}
+
+/**
+ * The options a card works with: its template's (from the plan), then the ones in its own YAML on top. A template's
+ * name is the card's screen name unless it has one of its own (announcements, "here" in voice control). A card
+ * without a template, or with one the plan does not have, keeps its YAML as it is.
+ */
+export function effectiveConfig(yaml: CardConfig, b: Building | null | undefined): CardConfig {
+  const tpl = cardTemplate(b, yaml.template);
+  if (!tpl) return yaml;
+  const { type, template, ...own } = yaml;
+  return { ...tpl.config, screen: tpl.config.screen || tpl.name, ...own, type, template } as CardConfig;
+}
+
+/** An id for a new template from its name: lower case, umlauts spelled out, words joined by "_", unique in the plan. */
+export function templateId(name: string, taken: readonly string[]): string {
+  const base =
+    name
+      .toLowerCase()
+      .replace(/ä/g, "ae")
+      .replace(/ö/g, "oe")
+      .replace(/ü/g, "ue")
+      .replace(/ß/g, "ss")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9]+/g, "_")
+      .replace(/^_+|_+$/g, "")
+      .slice(0, 40) || "vorlage";
+  let id = base;
+  for (let n = 2; taken.includes(id); n++) id = `${base}_${n}`;
+  return id;
+}

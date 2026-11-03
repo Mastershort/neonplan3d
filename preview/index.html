@@ -387,6 +387,11 @@
           ...(params.has("tt") ? { time_travel: true } : {}),
           ...(params.has("fill") ? { fill: true } : {}),
         };
+        // ?tpl: the card only names a card template made in the editor (the room bar and the upper floor come from it)
+        if (params.has("tpl")) {
+          building.card_templates = [{ id: "kueche_fire", name: "Küche Fire-Tablet", config: { floor: "og", room_bar: true, controls: ["walls"] } }];
+          config = { type: "custom:neonplan3d-card", template: "kueche_fire", quality: "low" };
+        }
         card.setConfig(config);
         editor.setConfig(config);
         editor.addEventListener("config-changed", (e) => {

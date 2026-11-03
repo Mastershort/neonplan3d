@@ -41,14 +41,32 @@ export interface ScreenAnnouncement {
   screens: string[];
 }
 
-export function subscribeAsk(hass: HomeAssistant, callback: (ask: Ask) => void, onAnnounce?: (a: ScreenAnnouncement) => void): Promise<() => Promise<void>> {
-  return hass.connection.subscribeMessage<Ask | { announce: ScreenAnnouncement }>(
+/** The call to load the page again (the service `neonplan3d.reload_screens`, the editor's card templates). */
+export interface ScreenReload {
+  id: string;
+  /** Only the views of these card templates (empty: every open view). */
+  templates: string[];
+}
+
+export function subscribeAsk(
+  hass: HomeAssistant,
+  callback: (ask: Ask) => void,
+  onAnnounce?: (a: ScreenAnnouncement) => void,
+  onReload?: (r: ScreenReload) => void,
+): Promise<() => Promise<void>> {
+  return hass.connection.subscribeMessage<Ask | { announce: ScreenAnnouncement } | { reload: ScreenReload }>(
     (ev) => {
       if ("announce" in ev) onAnnounce?.(ev.announce);
+      else if ("reload" in ev) onReload?.(ev.reload);
       else callback(ev);
     },
-    { type: "neonplan3d/voice/subscribe", ...(onAnnounce ? { announce: true } : {}) },
+    { type: "neonplan3d/voice/subscribe", ...(onAnnounce ? { announce: true } : {}), ...(onReload ? { reload: true } : {}) },
   );
+}
+
+/** Lets the open views of these card templates (none: every view) load their page again. */
+export async function reloadScreens(hass: HomeAssistant, templates: string[] = []): Promise<void> {
+  await hass.callService("neonplan3d", "reload_screens", templates.length ? { templates } : {});
 }
 
 /** The view's answer; `taken` is false when another view was first. */
