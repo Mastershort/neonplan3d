@@ -168,6 +168,34 @@ export function renameTemplate(list: readonly CardTemplate[], id: string, name: 
   return tpl;
 }
 
+/** The options being edited: the unsent changes of a template that is not live, else what the tablets show. */
+export function workingConfig(tpl: CardTemplate): Partial<CardConfig> {
+  return tpl.live === false && tpl.draft ? tpl.draft : tpl.config;
+}
+
+/** Options edited: live straight to the tablets, else into the draft (a draft equal to what they show is none). */
+export function editWorking(tpl: CardTemplate, config: Partial<CardConfig>): void {
+  if (tpl.live !== false) {
+    tpl.config = config;
+    delete tpl.draft;
+  } else if (JSON.stringify(config) === JSON.stringify(tpl.config)) delete tpl.draft;
+  else tpl.draft = config;
+}
+
+/** "Send to the tablets": the draft becomes what they show. */
+export function publishDraft(tpl: CardTemplate): void {
+  if (tpl.draft) tpl.config = tpl.draft;
+  delete tpl.draft;
+}
+
+/** Live on or off; switched on, changes not sent yet go out with it. */
+export function setLive(tpl: CardTemplate, live: boolean): void {
+  if (live) {
+    publishDraft(tpl);
+    delete tpl.live;
+  } else tpl.live = false;
+}
+
 /** An id for a new template from its name: lower case, umlauts spelled out, words joined by "_", unique in the plan. */
 export function templateId(name: string, taken: readonly string[]): string {
   const base =

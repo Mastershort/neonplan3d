@@ -77,7 +77,8 @@ export function subscribeAsk(
     (ev) => {
       if ("announce" in ev) onAnnounce?.(ev.announce);
       else if ("reload" in ev) onReload?.(ev.reload);
-      else callback(ev);
+      // a sentence (anything else, e.g. a message this view does not know yet, is left alone)
+      else if (typeof (ev as Ask).text === "string") callback(ev as Ask);
     },
     { type: "neonplan3d/voice/subscribe", ...(onAnnounce ? { announce: true } : {}), ...(onReload ? { reload: true } : {}), ...(view ? { view } : {}) },
   );

@@ -1239,8 +1239,12 @@ export interface CardTemplate {
   name: string;
   /** Earlier ids (the template was renamed): cards set up with them still find it. */
   aliases?: string[];
-  /** The card's options (as its visual editor makes them), without `type`. */
+  /** The card's options (as its visual editor makes them), without `type`: what the tablets show. */
   config: Partial<CardConfig>;
+  /** false: changes collect in `draft` and reach the tablets only with "Send to the tablets" (absent: live). */
+  live?: boolean;
+  /** The changes not sent yet (only while not live). */
+  draft?: Partial<CardConfig>;
 }
 
 export const DEFAULT_ENERGY: EnergySettings = {

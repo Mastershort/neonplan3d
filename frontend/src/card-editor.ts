@@ -619,7 +619,8 @@ export class Floorplan3dCardEditor extends LitElement {
       box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary-color) 30%, transparent);
     }
     /* the open list of a choice in the same colours as the field (else the browser's grey) */
-    option {
+    option,
+    optgroup {
       background: var(--card-background-color, #fff);
       color: var(--primary-text-color);
     }

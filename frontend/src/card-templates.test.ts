@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { cardTemplate, effectiveConfig, renameTemplate, templateId, type CardConfig } from "./card-config.ts";
+import { cardTemplate, editWorking, effectiveConfig, publishDraft, renameTemplate, setLive, templateId, workingConfig, type CardConfig } from "./card-config.ts";
 import { emptyBuilding, type Building } from "./model.ts";
 
 const plan = (): Building => ({
@@ -47,4 +47,21 @@ test("card templates: renamed, the id follows the name and the old one still fin
   renameTemplate(list, "kuechentablet", "Küche Fire");
   assert.deepEqual(list[0].aliases, ["kueche_fire", "kuechentablet"].filter((x) => x !== list[0].id));
   assert.equal(renameTemplate(list, "flur", "Küchentablet")?.id, "kuechentablet_2", "the first one still answers to it");
+});
+
+test("card templates: with \"send with a button\" the tablets keep the old options until they are sent", () => {
+  const b = plan();
+  const tpl = b.card_templates![0];
+  setLive(tpl, false);
+  editWorking(tpl, { ...workingConfig(tpl), clock: "tl" });
+  assert.equal(effectiveConfig(card({ template: "kueche_fire" }), b).clock, undefined, "the tablet still shows the old state");
+  assert.equal(workingConfig(tpl).clock, "tl", "the editor and its preview the new one");
+  publishDraft(tpl);
+  assert.equal(effectiveConfig(card({ template: "kueche_fire" }), b).clock, "tl");
+  assert.equal(tpl.draft, undefined);
+  // back to live: a change not sent yet goes out with it
+  editWorking(tpl, { ...workingConfig(tpl), clock: "br" });
+  setLive(tpl, true);
+  assert.equal(tpl.config.clock, "br");
+  assert.equal(tpl.live, undefined);
 });
