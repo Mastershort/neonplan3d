@@ -5778,9 +5778,13 @@ export class Fp3dEditor extends LitElement {
   }
 
   /** Opens a topic of ⚙ Settings as its dialog (the extensions page sends people to the fun packs). */
-  openSettings(topic: "fun"): void {
+  openSettings(topic: "fun" | "cards", template: string | null = null): void {
     this._settingsDialog = topic;
+    this.openTemplate = template;
   }
+
+  /** The card template a link asked for (?settings=cards&template=…), opened first in Settings → Card templates. */
+  private openTemplate: string | null = null;
 
   /** The dialog of a settings topic: its section, as it stood in the side bar before, over the plan. */
   private renderSettingsDialog() {
@@ -5824,7 +5828,7 @@ export class Fp3dEditor extends LitElement {
                         : topic === "fun"
                           ? html`<fp3d-fun-packs .hass=${this.hass} .building=${this._doc} .packs=${this.packs} ?admin=${this.isAdmin} .edit=${(fn: (b: Building) => void) => this.change((d) => fn(d))}></fp3d-fun-packs>`
                           : topic === "cards"
-                            ? html`<fp3d-card-templates .hass=${this.hass} .building=${this._doc} ?admin=${this.isAdmin} .edit=${(fn: (b: Building) => void) => this.change((d) => fn(d))}></fp3d-card-templates>`
+                            ? html`<fp3d-card-templates .hass=${this.hass} .building=${this._doc} .initial=${this.openTemplate} ?admin=${this.isAdmin} .edit=${(fn: (b: Building) => void) => this.change((d) => fn(d))}></fp3d-card-templates>`
                             : this.renderModuleSettings();
     return html`<div class="fp3d-dialog-veil" @click=${(e: Event) => e.target === e.currentTarget && close()}>
       <div class="fp3d-dialog ${topic === "cards" ? "fp3d-dialog-wide" : ""}" role="dialog" aria-label=${titles[topic]} tabindex="-1" @keydown=${(e: KeyboardEvent) => e.key === "Escape" && close()}>
