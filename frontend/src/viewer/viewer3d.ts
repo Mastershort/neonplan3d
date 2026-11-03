@@ -5,46 +5,7 @@
 // flight into it). Each floor is a group with its own materials so its height and opacity can be
 // animated independently.
 
-import {
-  AdditiveBlending,
-  RingGeometry,
-  Fog,
-  CircleGeometry,
-  Box3,
-  CanvasTexture,
-  ClampToEdgeWrapping,
-  Color,
-  BackSide,
-  DoubleSide,
-  FrontSide,
-  Group,
-  LineBasicMaterial,
-  LineSegments,
-  Mesh,
-  MeshBasicMaterial,
-  MultiplyBlending,
-  OrthographicCamera,
-  PerspectiveCamera,
-  Points,
-  PointsMaterial,
-  PlaneGeometry,
-  Raycaster,
-  RepeatWrapping,
-  Scene,
-  SRGBColorSpace,
-  TextureLoader,
-  type Texture,
-  Float32BufferAttribute,
-  Uint32BufferAttribute,
-  DynamicDrawUsage,
-  BufferGeometry as Geometry,
-  Vector2,
-  Vector3,
-  WebGLRenderer,
-  WebGLRenderTarget,
-  type BufferGeometry,
-  type Material,
-} from "three";
+import { AdditiveBlending, RingGeometry, Fog, CircleGeometry, Box3, CanvasTexture, ClampToEdgeWrapping, Color, BackSide, DoubleSide, FrontSide, Group, LineBasicMaterial, LineSegments, Mesh, MeshBasicMaterial, MultiplyBlending, OrthographicCamera, PerspectiveCamera, Points, PointsMaterial, PlaneGeometry, Raycaster, RepeatWrapping, Scene, SRGBColorSpace, TextureLoader, type Texture, Float32BufferAttribute, Uint32BufferAttribute, DynamicDrawUsage, BufferGeometry as Geometry, Vector2, Vector3, WebGLRenderer, WebGLRenderTarget, type Material, BufferGeometry } from "three";
 import type { Building, Floor, Furniture, Room, StartView } from "../model.ts";
 import { recolorLamps, SHADE_SENTINEL, shadeFactors } from "./lamp-colors.ts";
 import { centroid, GANG_TYPES, gateSpans, outdoorZones, pointInPolygon, openingStyle, setTerrain, WALL_LAMP_Y, zonesOf } from "../model.ts";
@@ -75,6 +36,8 @@ import type { SunPath } from "../sun-path.ts";
 import { sunArcFrame, type SunArcFrame } from "./sun-arc.ts";
 import { GROUND, groundFace, groundFloor, roofFaces, roofWindowRoom, wallFaces } from "../solar.ts";
 import { buildSolarLive, solarLiveMaterial, writeSolarLevels, type SolarLive } from "./solar-live.ts";
+import { dotTexture, roofLightPoints, roofSnowGeometry } from "./snow.ts";
+import { Firework } from "./firework.ts";
 import { buildPools, disposePools, type PoolPiece } from "./pool-water.ts";
 import { accentOnUniform, accentUniform, parseAccent, lineBlending, themed, themeIndex, type Theme, type ThemeUniform } from "./theme.ts";
 
@@ -760,6 +723,17 @@ export class FloorplanViewer {
   private skyDisc = new Mesh(new CircleGeometry(1, 28), new MeshBasicMaterial({ color: 0xffd98a, transparent: true, opacity: 0, blending: AdditiveBlending, depthWrite: false }));
   private weatherBox = { x0: -10, x1: 10, z0: -10, z1: 10, y0: 0, y1: 8 };
   private weatherTimer: ReturnType<typeof setTimeout> | undefined;
+  /** Fun pack "Winter & Christmas": how much snow lies on the roof (0 … 1), and its material. */
+  private roofSnow = 0;
+  private snowMat: MeshBasicMaterial | null = null;
+  /** Winter: the fairy lights along the eaves (off, warm white or colourful) and their material. */
+  private roofLights: "off" | "warm" | "color" = "off";
+  private lightsMat: PointsMaterial | null = null;
+  private lightsHalo: PointsMaterial | null = null;
+  /** The New Year's firework while it flies, its frame timer and the time of its last step. */
+  private firework: Firework | null = null;
+  private fireworkTimer: ReturnType<typeof setTimeout> | undefined;
+  private fireworkAt = 0;
   private weatherLast = 0;
   /** Heatmap colour per room id (null: normal floors). */
   private roomTint: Map<string, [number, number, number]> | null = null;
@@ -1243,6 +1217,43 @@ export class FloorplanViewer {
   }
 
   /** A module's see-through surfaces (a warm tint on a room's floor, soil under a lawn). */
+  /** Winter: snow on the roof (0 none … 1 all of it); the roof is built again only when the amount changes. */
+  setRoofSnow(level: number): void {
+    const l = Math.round(Math.max(0, Math.min(1, level)) * 10) / 10;
+    if (l === this.roofSnow) return;
+    this.roofSnow = l;
+    this.buildRoofMesh();
+    this.invalidate();
+  }
+
+  /** Winter: the fairy lights along the eaves; the roof is built again only when they change. */
+  setRoofLights(mode: "off" | "warm" | "color"): void {
+    if (mode === this.roofLights) return;
+    this.roofLights = mode;
+    this.buildRoofMesh();
+    this.invalidate();
+  }
+
+  /** Winter: the New Year's firework over the house, on or off. */
+  setFirework(on: boolean): void {
+    if (on === !!this.firework) return;
+    if (!on) {
+      this.scene.remove(this.firework!.points);
+      this.firework!.dispose();
+      this.firework = null;
+      return;
+    }
+    const pts = (this.building?.floors ?? []).flatMap((f) => f.rooms.flatMap((r) => r.points));
+    if (!pts.length) return;
+    const top = Math.max(...(this.building?.floors ?? []).map((f) => f.elevation + f.height));
+    const xs = pts.map((q) => q[0]);
+    const zs = pts.map((q) => q[1]);
+    this.firework = new Firework({ x0: Math.min(...xs), z0: Math.min(...zs), x1: Math.max(...xs), z1: Math.max(...zs), top });
+    this.scene.add(this.firework.points);
+    this.fireworkAt = performance.now();
+    this.invalidate();
+  }
+
   setPatches(patches: PatchPiece[]): void {
     this.patches = patches;
     for (const fv of this.floors) this.buildPatches(fv);
@@ -2132,6 +2143,11 @@ export class FloorplanViewer {
     for (const f of this.fans.values()) f.mesh.geometry.dispose();
     this.fans.clear();
     this.fanMat?.dispose();
+    this.firework?.dispose();
+    this.snowMat?.dispose();
+    this.lightsMat?.dispose();
+    this.lightsHalo?.dispose();
+    clearTimeout(this.fireworkTimer);
     this.renderer.dispose();
     // frees the GPU context now instead of when the garbage collector gets to it
     this.renderer.forceContextLoss();
@@ -2885,6 +2901,36 @@ export class FloorplanViewer {
         part.add(mesh);
         lives.push(overlay);
         writeSolarLevels(overlay, this.solarLevels);
+      }
+      // winter: snow on the faces of this part
+      if (this.roofSnow > 0) {
+        const mine = [...faces.values()].filter((face) => (face.section ? geo.sections?.includes(face.section) : geo === geos[0]));
+        const snow = roofSnowGeometry(mine, geo.floor.elevation + geo.base);
+        if (snow) {
+          this.snowMat ??= new MeshBasicMaterial({ color: 0xf1f5ff, transparent: true, side: DoubleSide, depthWrite: false });
+          this.snowMat.opacity = 0.85 * this.roofSnow;
+          const mesh = new Mesh(snow, this.snowMat);
+          mesh.renderOrder = 9;
+          part.add(mesh);
+        }
+      }
+      // winter: the fairy lights along the eaves of this part, riding with it
+      if (this.roofLights !== "off") {
+        const mine = [...faces.values()].filter((face) => (face.section ? geo.sections?.includes(face.section) : geo === geos[0]));
+        const bulbs = roofLightPoints(mine, geo.floor.elevation + geo.base, this.roofLights === "color");
+        if (bulbs) {
+          const g = new BufferGeometry();
+          g.setAttribute("position", new Float32BufferAttribute(bulbs.positions, 3));
+          g.setAttribute("color", new Float32BufferAttribute(bulbs.colors, 3));
+          this.lightsMat ??= new PointsMaterial({ size: 0.24, vertexColors: true, sizeAttenuation: true, map: dotTexture(), alphaTest: 0.35, transparent: true });
+          // a soft glow round each bulb, added over what lies behind
+          this.lightsHalo ??= new PointsMaterial({ size: 0.8, vertexColors: true, transparent: true, opacity: 0.4, depthWrite: false, blending: AdditiveBlending, sizeAttenuation: true, map: dotTexture() });
+          const pts = new Points(g, this.lightsMat);
+          const halo = new Points(g, this.lightsHalo);
+          pts.renderOrder = 10;
+          halo.renderOrder = 11;
+          part.add(pts, halo);
+        }
       }
       // roof windows that only show in the roof ride and fade with it
       if (geo.winRoof?.solid.count) part.add(new Mesh(geo.winRoof.solid.geometry(), winSolid), new LineSegments(geo.winRoof.lines.geometry(), winLines));
@@ -5038,6 +5084,10 @@ export class FloorplanViewer {
     // the house's shadow belongs to the whole house
     this.sunFx.showShadow(this.floorId === null && this.shadowSig !== "");
     this.placeFog();
+    if (this.firework) {
+      this.firework.step((now - this.fireworkAt) / 1000);
+      this.fireworkAt = now;
+    }
     this.renderer.render(this.scene, this.camera);
     this.disposeRetired();
     // labels are placed only when the view or something on it moved (style writes cost layout)
@@ -5074,6 +5124,13 @@ export class FloorplanViewer {
       // the screensaver turn: about 30 frames per second, 15 on the tablet level
       this.orbitTimer = setTimeout(() => {
         this.orbitTimer = undefined;
+        this.invalidate();
+      }, this.lowQuality ? 66 : 33);
+    }
+    if (this.firework && !this.fireworkTimer && !document.hidden) {
+      // the firework: about 30 frames a second, 15 on the tablet level
+      this.fireworkTimer = setTimeout(() => {
+        this.fireworkTimer = undefined;
         this.invalidate();
       }, this.lowQuality ? 66 : 33);
     }

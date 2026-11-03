@@ -375,6 +375,9 @@ const shots = [
   // the plain floor plan: walls, doors, windows and stairs without furniture
   { name: "view-plain", query: "", width: 1280, height: 800, click: "Anzeige", then: "Nur Grundriss", thenAlso: ["Erdgeschoss"] },
   // the room bar (idea from HA-Floorplanner): favourites and a tile per room, in the house, on a floor, with a room open, on a tablet
+  // fun pack "Winter & Christmas": fairy lights along the eaves (on a light), snow on roof and lawn while it snows, the firework
+  { name: "view-winter", query: "", width: 1280, height: 800, viewScript: "v.building.settings.winter = { roof_entity: 'light.wohnzimmer_decke', roof_color: true }; v.hass.states['light.wohnzimmer_decke'] = { ...v.hass.states['light.wohnzimmer_decke'], state: 'on' }; v.hass.states['weather.zuhause'] = { ...v.hass.states['weather.zuhause'], state: 'snowy', attributes: { ...v.hass.states['weather.zuhause'].attributes, temperature: -2 } }; v.syncDevices(true);", afterWait: 1500 },
+  { name: "view-winter-firework", query: "?fp3d_firework", width: 1280, height: 800, viewScript: "v.dimmed = true; v.syncDevices(true);", afterWait: 2500 },
   { name: "view-room-bar", query: "", width: 1280, height: 800, click: "Anzeige", then: "+ Favoriten", thenAlso: ["Erdgeschoss", "Anzeige"] },
   { name: "view-room-bar-house", query: "", width: 1280, height: 800, click: "Anzeige", then: "Raum-Leiste", thenAlso: ["Anzeige"] },
   { name: "view-room-bar-clean", query: "", width: 1280, height: 800, click: "Anzeige", then: "+ Favoriten", thenAlso: ["Anzeige", "Erdgeschoss"], viewScript: "setTimeout(() => v.dispatchEvent(new CustomEvent('clean-toggle')), 0);" },

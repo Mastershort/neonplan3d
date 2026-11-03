@@ -917,6 +917,20 @@ SETTINGS_SCHEMA = vol.Schema(
         vol.Optional("halloween", default=None): vol.Any(
             None, vol.Schema({vol.Optional("ghost", default=True): bool}, extra=vol.ALLOW_EXTRA)
         ),
+        # fun pack "Winter & Christmas": fairy lights along the eaves, snow, the New Year's firework
+        vol.Optional("winter", default=None): vol.Any(
+            None,
+            vol.Schema(
+                {
+                    vol.Optional("roof_lights", default=True): bool,
+                    vol.Optional("roof_entity", default=None): vol.Any(None, vol.All(str, vol.Length(max=255))),
+                    vol.Optional("roof_color", default=False): bool,
+                    vol.Optional("snow", default=True): bool,
+                    vol.Optional("firework", default=True): bool,
+                },
+                extra=vol.ALLOW_EXTRA,
+            ),
+        ),
         # the ground around the house: its height and the earth around cellars
         vol.Optional("terrain", default=None): vol.Any(
             None,

@@ -772,6 +772,8 @@ export interface BuildingSettings {
   person_look?: "figure" | "pin" | "off" | null;
   /** Fun pack "Halloween": the ghost that floats through the house now and then (on unless switched off). */
   halloween?: { ghost?: boolean } | null;
+  /** Fun pack "Winter & Christmas": fairy lights along the eaves, snow on roof and lawn, the New Year's firework (winter.ts). */
+  winter?: { roof_lights?: boolean; roof_entity?: string | null; roof_color?: boolean; snow?: boolean; firework?: boolean } | null;
   /** Plan lock: rooms, walls, doors, windows and outdoor areas cannot be moved by accident. */
   lock_plan?: boolean;
   /** The camera the house view opens with (3D view, card, kiosk); null = fitted from the front left. */

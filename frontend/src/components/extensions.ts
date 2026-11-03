@@ -28,6 +28,8 @@ import { translate, type I18nKey } from "../i18n.ts";
 import { packName, type FurniturePack } from "../packs.ts";
 import { moduleWaits } from "../modules.ts";
 import { controls, tokens } from "../styles.ts";
+import { entityName } from "../devices.ts";
+import "./entity-picker.ts";
 import type { HomeAssistant } from "../types.ts";
 
 export class Extensions extends LitElement {
@@ -321,9 +323,40 @@ export class Extensions extends LitElement {
   /** Winter & Christmas: the decorations in the library (the roof lights, snow and the firework come with 2.3). */
   private renderWinter(unlocked: boolean) {
     if (!unlocked) return this.renderFunLocked("❄️", this.t("fun_name_winter"), this.t("fun_feature_winter"));
+    const w = this.building?.settings.winter ?? {};
+    const set = (patch: NonNullable<Building["settings"]["winter"]>) => this.editBuilding((b) => (b.settings.winter = { ...(b.settings.winter ?? {}), ...patch }));
+    const check = (on: boolean, label: I18nKey, patch: (v: boolean) => NonNullable<Building["settings"]["winter"]>) =>
+      html`<label class="fp3d-check"><input type="checkbox" .checked=${on} @change=${(e: Event) => set(patch((e.target as HTMLInputElement).checked))} /> ${this.t(label)}</label>`;
+    // the switch the fairy lights shine with: any light, switch or helper
+    const lights = this.hass
+      ? Object.keys(this.hass.states)
+          .filter((id) => /^(light|switch|input_boolean)\./.test(id))
+          .sort()
+          .map((id) => ({ id, label: entityName(this.hass!, id) }))
+      : [];
     return html`<div class="fp3d-ext-feature fp3d-ext-on">
       <b>✓ ❄️ ${this.t("fun_name_winter")}</b>
       <span class="fp3d-sub">${this.t("fun_feature_winter")}</span>
+      ${this.isAdmin && this.building
+        ? html`${check(w.roof_lights !== false, "winter_roof_lights", (v) => ({ roof_lights: v }))}
+            ${w.roof_lights !== false
+              ? html`<label class="fp3d-field"
+                    >${this.t("winter_roof_entity")}
+                    <fp3d-entity-picker
+                      .options=${lights}
+                      .fixed=${[{ id: "none", label: this.t("winter_roof_auto") }]}
+                      .value=${w.roof_entity ?? "none"}
+                      .placeholder=${this.t("entity_search")}
+                      @change=${(e: CustomEvent<{ value: string }>) => {
+                        e.stopPropagation();
+                        set({ roof_entity: e.detail.value === "none" ? null : e.detail.value });
+                      }}
+                    ></fp3d-entity-picker
+                  ></label>
+                  ${check(!!w.roof_color, "winter_roof_color", (v) => ({ roof_color: v }))}`
+              : nothing}
+            ${check(w.snow !== false, "winter_snow", (v) => ({ snow: v }))} ${check(w.firework !== false, "winter_firework", (v) => ({ firework: v }))}`
+        : nothing}
       <span class="fp3d-sub">${this.t("winter_deco_hint")}</span>
     </div>`;
   }

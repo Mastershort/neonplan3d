@@ -146,11 +146,12 @@ function copyFonts() {
 // main 728 KB, editor 949 KB, card editor 276 KB on 2026-10-31: the room of this device and of the card (`voice_area`) for sentences without a room ("Licht an") and their texts
 // main 739 KB, editor 968 KB, card editor 284 KB on 2026-11-01: NeonPlan Print for supporters (card on Extensions, "new" dot, "Print in 3D" in the editor) with its texts
 // main 738 KB, 3D 842 KB, editor 964 KB, card editor 283 KB on 2026-11-01 (2.2.0): sloping free walls (#834), terrace roofs at thick walls and an overhang per side (#863), the sun arc around the whole plot (#833), the cable hub and the inverter cable to the grid point (#841), light-well depth (#890), soft sun patches (#819) – with their texts
+// main 764 KB, 3D 850 KB, editor 978 KB, card editor 290 KB on 2026-11-03: winter – fairy lights along the eaves, snow on roof and lawn, the New Year's firework, their settings and texts
 // main 760 KB, 3D 844 KB on 2026-11-03: overhangs set by hand cut the walls under them (#921), slat-only blinds by their tilt (#920), a module glow on the top plate (#917)
 // editor 976 KB on 2026-11-03: the winter pack on the extensions page (Advent candles by date) with its texts
 // main 758 KB, editor 974 KB, card editor 288 KB on 2026-11-02: "only show while …" for furniture and its texts
 // main 756 KB, editor 970 KB, card editor 286 KB on 2026-11-02: the room bar (a card per room with a light switch, the favourites before them) with its texts
-const BUDGET = { "neonplan3d.js": 760 * 1024, "neonplan3d-fun.js": 40 * 1024, "neonplan3d-voice.js": 60 * 1024, "neonplan3d-locate.js": 160 * 1024, "neonplan3d-timetravel.js": 120 * 1024, "neonplan3d-3d.js": 844 * 1024, "neonplan3d-editor.js": 976 * 1024, "neonplan3d-card-editor.js": 288 * 1024 };
+const BUDGET = { "neonplan3d.js": 764 * 1024, "neonplan3d-fun.js": 40 * 1024, "neonplan3d-voice.js": 60 * 1024, "neonplan3d-locate.js": 160 * 1024, "neonplan3d-timetravel.js": 120 * 1024, "neonplan3d-3d.js": 850 * 1024, "neonplan3d-editor.js": 978 * 1024, "neonplan3d-card-editor.js": 290 * 1024 };
 
 copyFonts();
 if (watch) {
