@@ -36,6 +36,8 @@
  "floor_name": "Nimi",
  "elevation": "Korkeus maasta (m)",
  "floor_shift": "Siirrä kerrosta (m)",
+ "floor_shift_x": "X → oikealle",
+ "floor_shift_z": "Z ↓ alaspäin",
  "floor_shift_apply": "Siirrä",
  "floor_shift_hint": "Siirtää tämän kerroksen kaikkia huoneita, huonekaluja, laitteita, ulkoalueita, vapaita seiniä ja taustakuvaa X:n ja Z:n verran. Kattopinnat ja kaapelit pysyvät paikallaan.",
  "height": "Huonekorkeus (m)",

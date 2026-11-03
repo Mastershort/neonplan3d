@@ -36,6 +36,8 @@
  "floor_name": "Nome",
  "elevation": "Elevação (m)",
  "floor_shift": "Deslocar o piso (m)",
+ "floor_shift_x": "X → para a direita",
+ "floor_shift_z": "Z ↓ para baixo",
  "floor_shift_apply": "Deslocar",
  "floor_shift_hint": "Desloca todas as divisões, móveis, dispositivos, áreas exteriores, paredes livres e a imagem de fundo deste piso em X e Z. As secções do telhado e os cabos ficam.",
  "height": "Pé-direito (m)",

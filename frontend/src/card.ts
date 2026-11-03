@@ -30,6 +30,19 @@ function savedWalls(): WallMode | null {
   }
 }
 
+/**
+ * Whether the card sits in a sections dashboard's grid (hui-grid-section), across the shadow roots: only there is its
+ * cell sized by rows. Anywhere else (a masonry column, a stack) a taller box is someone else's layout.
+ */
+function inSectionsGrid(el: Element): boolean {
+  let n: Element | null = el;
+  for (let i = 0; n && i < 40; i++) {
+    if (n.localName === "hui-grid-section") return true;
+    n = n.parentElement ?? ((n.getRootNode() as ShadowRoot).host ?? null);
+  }
+  return false;
+}
+
 export class Floorplan3dCard extends LitElement {
   static properties = {
     hass: { attribute: false },
@@ -47,6 +60,7 @@ export class Floorplan3dCard extends LitElement {
     _clean: { state: true },
     _night: { state: true },
     _orbit: { state: true },
+    _stretch: { state: true },
   };
 
   declare hass: HomeAssistant;
@@ -77,6 +91,9 @@ export class Floorplan3dCard extends LitElement {
   /** Kiosk: the night dimming is active; the screensaver turn runs (after an idle return). */
   private declare _night: boolean;
   private declare _orbit: boolean;
+  /** The dashboard gives the card more room than its height (a sections grid cell: rows of 56 px plus their gaps). */
+  private declare _stretch: boolean;
+  private cellObserver: ResizeObserver | null = null;
   private idleTimer: ReturnType<typeof setTimeout> | undefined;
   private nightTimer: ReturnType<typeof setInterval> | undefined;
 
@@ -99,6 +116,7 @@ export class Floorplan3dCard extends LitElement {
     this._clean = false;
     this._night = false;
     this._orbit = false;
+    this._stretch = false;
   }
 
   /** Any touch ends the screensaver and restarts the idle clock. */
@@ -201,6 +219,13 @@ export class Floorplan3dCard extends LitElement {
     requestAnimationFrame(this.onViewport);
     // the dashboard may still be laying out: measure once more a moment later
     setTimeout(this.onViewport, 600);
+    // in a sections dashboard the card sits in a grid cell taller than its height: the house fills the cell (#926)
+    this.cellObserver ??= new ResizeObserver(() => {
+      const want = this._config?.height ?? 420;
+      const stretch = !this._config?.fill && this.clientHeight > want + 4 && inSectionsGrid(this);
+      if (stretch !== this._stretch) this._stretch = stretch;
+    });
+    this.cellObserver.observe(this);
     this.armIdle();
     // a time range for the night needs a look at the clock now and then
     this.nightTimer = setInterval(() => (this._night = nightActive(this._config?.night, this.hass)), 60000);
@@ -211,6 +236,8 @@ export class Floorplan3dCard extends LitElement {
     document.removeEventListener("fullscreenchange", this.onFullscreen);
     window.removeEventListener("resize", this.onViewport);
     window.visualViewport?.removeEventListener("resize", this.onViewport);
+    this.cellObserver?.disconnect();
+    this.cellObserver = null;
     this.tt.stop();
 clearTimeout(this.cleanTimer);
         clearTimeout(this.idleTimer);
@@ -276,17 +303,21 @@ clearTimeout(this.cleanTimer);
   }
 
   /** New options: from the dashboard, or a template changed in the editor – the card starts over with them. */
-  private applyConfig(config: CardConfig): void {
+  private applyConfig(config: CardConfig, previous?: CardConfig): void {
+    // a template changed in the editor: the card keeps where it is and starts over only in what changed (a clock
+    // switched on does not send the tablet back to its start view)
+    const differs = (k: keyof CardConfig) => !previous || JSON.stringify(previous[k]) !== JSON.stringify(config[k]);
     this._config = config;
-    this._floorId = undefined;
-    this._walls = savedWalls();
-    this._heat = null;
-    this._explode = null;
+    if (differs("floor")) this._floorId = undefined;
+    if (differs("room")) this.roomApplied = false;
+    if (differs("walls")) this._walls = savedWalls();
+    if (differs("heatmap")) this._heat = null;
+    if (differs("explode")) this._explode = null;
     this._orbit = false;
     this._night = nightActive(config.night, this.hass);
-    this._clean = config.controls_hidden === true;
-    this.armClean();
-    this.armIdle();
+    if (differs("controls_hidden")) this._clean = config.controls_hidden === true;
+    if (differs("controls_hide_after") || differs("controls_hidden")) this.armClean();
+    if (differs("idle_return") || differs("idle_orbit")) this.armIdle();
   }
 
   getCardSize(): number {
@@ -303,8 +334,7 @@ clearTimeout(this.cleanTimer);
       const key = this.templateKey();
       if (key !== this.appliedTemplate) {
         this.appliedTemplate = key;
-        this.roomApplied = false;
-        this.applyConfig(effectiveConfig(this.yaml, this.data.building));
+        this.applyConfig(effectiveConfig(this.yaml, this.data.building), this._config);
       }
     }
     if (changed.has("hass") && this.hass) {
@@ -369,7 +399,9 @@ clearTimeout(this.cleanTimer);
         ? this._top !== null
           ? `${Math.max(240, this._vh - this._top - 2)}px`
           : "calc(100vh - var(--header-height, 56px) - 2px)"
-        : `${height}px`;
+        : this._stretch
+          ? "100%"
+          : `${height}px`;
     // the bar of switches at the bottom (the back button belongs to it)
     const bar = !!b && !this._clean && (canGoBack || ((!!c?.controls || !!c?.time_travel) && !(this._roomId && c.room_panel !== false)));
     const tt = this.tt.active;
@@ -621,6 +653,10 @@ clearTimeout(this.cleanTimer);
         ha-card.fp3d-pseudo-full {
           height: 100dvh !important;
         }
+      }
+      /* a block, so the dashboard's grid cell gives it its height (and the card can measure it, #926) */
+      :host {
+        display: block;
       }
       ha-card {
         overflow: hidden;

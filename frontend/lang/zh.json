@@ -36,6 +36,8 @@
  "floor_name": "名称",
  "elevation": "标高 (m)",
  "floor_shift": "平移楼层 (m)",
+ "floor_shift_x": "X → 向右",
+ "floor_shift_z": "Z ↓ 向下",
  "floor_shift_apply": "平移",
  "floor_shift_hint": "将此楼层的所有房间、家具、设备、室外区域、独立墙体和背景图片按 X 和 Z 移动。屋顶部分和线缆保持不变。",
  "height": "层高 (m)",

@@ -36,6 +36,8 @@
  "floor_name": "Nume",
  "elevation": "Cotă (m)",
  "floor_shift": "Deplasează etajul (m)",
+ "floor_shift_x": "X → spre dreapta",
+ "floor_shift_z": "Z ↓ în jos",
  "floor_shift_apply": "Deplasează",
  "floor_shift_hint": "Mută fiecare cameră, piesă de mobilier, dispozitiv, zonă exterioară, perete liber și imaginea de fundal a acestui etaj cu X și Z. Secțiunile de acoperiș și cablurile rămân pe loc.",
  "height": "Înălțimea tavanului (m)",

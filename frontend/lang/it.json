@@ -36,6 +36,8 @@
  "floor_name": "Nome",
  "elevation": "Quota (m)",
  "floor_shift": "Sposta il piano (m)",
+ "floor_shift_x": "X → a destra",
+ "floor_shift_z": "Z ↓ verso il basso",
  "floor_shift_apply": "Sposta",
  "floor_shift_hint": "Sposta tutte le stanze, i mobili, i dispositivi, le aree esterne, i muri liberi e l'immagine di sfondo di questo piano di X e Z. Falde e cavi restano.",
  "height": "Altezza del soffitto (m)",

@@ -36,6 +36,8 @@
  "floor_name": "Nazwa",
  "elevation": "Wysokość posadowienia (m)",
  "floor_shift": "Przesuń piętro (m)",
+ "floor_shift_x": "X → w prawo",
+ "floor_shift_z": "Z ↓ w dół",
  "floor_shift_apply": "Przesuń",
  "floor_shift_hint": "Przesuwa wszystkie pokoje, meble, urządzenia, tereny zewnętrzne, wolne ściany i obraz tła tego piętra o X i Z. Połacie dachu i kable zostają.",
  "height": "Wysokość sufitu (m)",
