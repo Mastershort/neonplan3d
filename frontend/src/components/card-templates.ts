@@ -12,6 +12,9 @@ import type { HomeAssistant } from "../types.ts";
 
 const CARD_TYPE = "custom:neonplan3d-card";
 const PREVIEW_KEY = "neonplan3d.template_preview";
+/** The screen the preview stands for: a 10" wall tablet in landscape (a Fire HD 10), below the dashboard's header. */
+const TABLET_W = 1280;
+const TABLET_H = 720;
 
 /** The dashboard card as the preview uses it. */
 type PreviewCard = HTMLElement & { setConfig(c: CardConfig): void; hass?: HomeAssistant; preview?: boolean };
@@ -35,6 +38,7 @@ export class Fp3dCardTemplates extends LitElement {
     _note: { state: true },
     _preview: { state: true },
     _reloading: { state: true },
+    _scale: { state: true },
   };
 
   declare hass: HomeAssistant | undefined;
@@ -51,6 +55,9 @@ export class Fp3dCardTemplates extends LitElement {
   private declare _preview: boolean;
   /** "Reload" was sent a moment ago (the tablets take a few seconds): the buttons wait and say so. */
   private declare _reloading: boolean;
+  /** The preview is drawn at a wall tablet's size and shrunk to the column by this factor. */
+  private declare _scale: number;
+  private stageObserver: ResizeObserver | null = null;
   private previewCard: PreviewCard | null = null;
   private previewKey = "";
   /** What the card editor shows now (as text): a template changed elsewhere (undo) is handed to it again. */
@@ -67,6 +74,18 @@ export class Fp3dCardTemplates extends LitElement {
     this._note = null;
     this._preview = readPreviewPref();
     this._reloading = false;
+    this._scale = 0.5;
+  }
+
+  disconnectedCallback(): void {
+    super.disconnectedCallback();
+    this.stageObserver?.disconnect();
+    this.stageObserver = null;
+  }
+
+  /** The height the card has on the tablet: its own, or a landscape tablet's screen below the header with "fill". */
+  private previewHeight(tpl: CardTemplate): number {
+    return tpl.config.fill ? TABLET_H : Math.max(150, tpl.config.height ?? 420);
   }
 
   /** The preview: the real dashboard card with the template's options, at a fixed height (the main bundle defines it). */
@@ -80,13 +99,17 @@ export class Fp3dCardTemplates extends LitElement {
     if (key !== this.previewKey) {
       this.previewKey = key;
       try {
-        this.previewCard.setConfig({ ...tpl.config, type: CARD_TYPE, height: 380, fill: false, fullscreen_button: false });
+        this.previewCard.setConfig({ ...tpl.config, type: CARD_TYPE, height: this.previewHeight(tpl), fill: false, fullscreen_button: false });
       } catch {
         // an option the card refuses: the form shows it, the preview keeps the last good one
       }
     }
     if (this.hass) this.previewCard.hass = this.hass;
-    return this.previewCard;
+    // laid out as on a wall tablet (the room panel beside the house, not over it as on a phone), then shrunk
+    const h = this.previewHeight(tpl);
+    return html`<div class="fp3d-tpl-stage" style="height:${Math.round(h * this._scale)}px">
+      <div class="fp3d-tpl-screen" style="width:${TABLET_W}px;height:${h}px;transform:scale(${this._scale})">${this.previewCard}</div>
+    </div>`;
   }
 
   private togglePreview(): void {
@@ -173,6 +196,17 @@ export class Fp3dCardTemplates extends LitElement {
     super.updated(changed);
     const tpl = this.current;
     const el = this.renderRoot.querySelector("neonplan3d-card-editor") as (HTMLElement & { setConfig?: (c: CardConfig) => void }) | null;
+    const stage = this.renderRoot.querySelector(".fp3d-tpl-stage");
+    if (stage && !this.stageObserver) {
+      this.stageObserver = new ResizeObserver(([entry]) => {
+        const scale = Math.min(1, entry.contentRect.width / TABLET_W);
+        if (scale > 0 && Math.abs(scale - this._scale) > 0.005) this._scale = scale;
+      });
+      this.stageObserver.observe(stage);
+    } else if (!stage && this.stageObserver) {
+      this.stageObserver.disconnect();
+      this.stageObserver = null;
+    }
     if (!tpl || !el?.setConfig) return;
     const key = JSON.stringify([tpl.id, tpl.config]);
     if (key === this.shown) return;
@@ -372,11 +406,21 @@ export class Fp3dCardTemplates extends LitElement {
       .fp3d-tpl-preview .fp3d-tpl-row {
         justify-content: space-between;
       }
-      .fp3d-tpl-preview neonplan3d-card {
-        display: block;
-        border-radius: 12px;
+      .fp3d-tpl-stage {
+        position: relative;
         overflow: hidden;
+        border-radius: 12px;
         border: 1px solid var(--fp3d-line);
+      }
+      .fp3d-tpl-screen {
+        position: absolute;
+        top: 0;
+        left: 0;
+        transform-origin: 0 0;
+      }
+      .fp3d-tpl-screen neonplan3d-card {
+        display: block;
+        height: 100%;
       }
       @media (max-width: 900px) {
         .fp3d-tpl-split,
