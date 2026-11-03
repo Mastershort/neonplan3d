@@ -127,3 +127,87 @@ export function withoutHere(sentence: string, language: string): string {
   out = out.replace(/\s{2,}/g, " ").replace(/\s+([,.!?])/g, "$1").trim();
   return out || sentence;
 }
+
+/** "there" – the room that is open in the view ("Mach da das Licht aus" after tapping into the living room). */
+const THERE: Record<string, string[]> = {
+  de: ["da", "dort"],
+  en: ["there"],
+  nl: ["daar"],
+  it: ["lì", "là"],
+  es: ["allí", "ahí", "alli", "ahi"],
+  pt: ["ali", "lá"],
+  da: ["der"],
+  nb: ["der"],
+  nn: ["der"],
+  sv: ["där"],
+  fi: ["siellä"],
+  cs: ["tam"],
+  pl: ["tam"],
+  ro: ["acolo"],
+  sl: ["tam"],
+  sk: ["tam"],
+  hu: ["ott"],
+  zh: ["那里"],
+};
+
+function langOf(language: string): string {
+  return language.toLowerCase().startsWith("no") ? "nb" : language.slice(0, 2).toLowerCase();
+}
+
+function hasWord(sentence: string, words: readonly string[], lang: string): boolean {
+  if (lang === "zh") return words.some((w) => sentence.includes(w));
+  const text = ` ${normalize(sentence)} `;
+  return words.some((w) => text.includes(` ${normalize(w)} `));
+}
+
+/** Whether a sentence says "there" (the room open in the view). */
+export function saysThere(sentence: string, language: string): boolean {
+  const lang = langOf(language);
+  return hasWord(sentence, THERE[lang] ?? [], lang);
+}
+
+/** The sentence without its "there", for Assist (which then gets the open room's area). */
+export function withoutThere(sentence: string, language: string): string {
+  const lang = langOf(language);
+  let out = sentence;
+  for (const word of THERE[lang] ?? []) {
+    out = lang === "zh" ? out.split(word).join("") : out.replace(new RegExp(`(^|[\\s,])${word}(?=[\\s,.!?]|$)`, "giu"), "$1");
+  }
+  out = out.replace(/\s{2,}/g, " ").replace(/\s+([,.!?])/g, "$1").trim();
+  return out || sentence;
+}
+
+/** Words for sending the robot vacuum ("saug", "staubsaugen", "vacuum", "clean" …), on the normalised sentence. */
+const CLEAN =
+  /\b(saug\w*|staubsaug\w*|absaug\w*|putz\w*|reinig\w*|wisch\w*|vacuum\w*|hoover\w*|clean\w*|mop|stofzuig\w*|aspir\w*|nettoi\w*|pulisci|limpia\w*|dammsug\w*|stovsug\w*|imuroi\w*|vysav\w*|odkurz\w*|posesa\w*|porszivo\w*|吸尘|扫地)\b/;
+/** "everything off" ("alles aus", "schalte alles aus", "everything off", "turn everything off" …). */
+const ALL_OFF =
+  /\b(alles (aus|ausschalten|ab)|schalte?\w* alles (aus|ab)|mach\w* alles aus|everything off|turn (off )?everything( off)?|switch (off )?everything( off)?|all off|alles uit|zet alles uit|tout eteindre|eteins tout|spegni tutto|apaga todo|apagar todo|desliga tudo|sluk alt|slukk alt|slokk alt|slack allt|stang av allt|sammuta kaikki|vypni vse|wylacz wszystko|opreste tot|izklopi vse|kapcsolj ki mindent|全部关闭|关掉所有)\b/;
+
+/** A room action a sentence asks for, and which room it means. */
+export interface RoomIntent {
+  action: "clean" | "off";
+  /** A room named in the sentence; else "here" (the tablet's room), "there" (the room open in the view) or none. */
+  room: { floorId: string; roomId: string } | "here" | "there" | null;
+}
+
+/**
+ * "Saug die Küche", "Saug hier", "Mach da alles aus", "Everything off in the kitchen": the robot vacuum or everything
+ * off for a room. Null for any other sentence (it goes on to Assist).
+ */
+export function roomIntent(sentence: string, building: Building, language: string, alias?: RoomAlias): RoomIntent | null {
+  const text = normalize(sentence);
+  const action = ALL_OFF.test(text) ? "off" : CLEAN.test(text) ? "clean" : null;
+  if (!action) return null;
+  const place = findPlace(sentence, building, alias);
+  const lang = langOf(language);
+  const room =
+    place?.kind === "room"
+      ? { floorId: place.floorId, roomId: place.roomId }
+      : hasWord(sentence, THERE[lang] ?? [], lang)
+        ? "there"
+        : hasWord(sentence, HERE[lang] ?? [], lang)
+          ? "here"
+          : null;
+  return { action, room };
+}

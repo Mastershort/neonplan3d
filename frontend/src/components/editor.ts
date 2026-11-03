@@ -10810,6 +10810,14 @@ export class Fp3dEditor extends LitElement {
             ${areas.map((a) => html`<option value=${a.area_id} ?selected=${a.area_id === room.area_id}>${a.name}</option>`)}
           </select></label
         >
+        ${this.entitySelect(
+          this.t("room_cleaning"),
+          room.cleaning ?? null,
+          undefined,
+          this.entityOptions((id) => /^(script|button|input_button|scene|automation)\./.test(id)),
+          (v) => this.updateRoom({ cleaning: v === "none" ? null : v }),
+        )}
+        <p class="fp3d-sub fp3d-wide">${this.t("room_cleaning_hint")}</p>
         <label class="fp3d-field fp3d-wide"
           >${this.t("material")}
           <select ?disabled=${!admin} @change=${(e: Event) => this.updateRoom({ floor_material: (e.target as HTMLSelectElement).value })}>
