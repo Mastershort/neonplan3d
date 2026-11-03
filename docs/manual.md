@@ -698,7 +698,7 @@ A tap on the camera or on its wedge opens the snapshot, which refreshes every fe
 
 ### 5.10 Voice control (new)
 
-> **New in 1.20 and still in development.** Voice control is switched on for everyone, free, and already works well. It will grow over the next versions. If a sentence is not understood the way you mean it, send us the sentence on Discord or in a GitHub issue.
+> **New in 1.20 and still in development.** Voice control is switched on for everyone, free, and already works well. If a sentence is not understood the way you mean it, send us the sentence in a GitHub issue.
 
 Talk to your house. A **microphone button** 🎙️ appears at the bottom left of the 3D view. Tap it: it turns red and "Listening …" shows above it. Say your sentence and pause briefly, and NeonPlan responds.
 
