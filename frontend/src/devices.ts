@@ -106,6 +106,33 @@ export function coverTiltButtons(st: HassEntity | undefined): boolean {
 }
 
 /**
+ * How a cover opens, closes or stops (#920). A blind with slats only – it turns its slats but has no open and close
+ * of its own – does it by its tilt: open/close tilt when it has them, else the tilt position 100 / 0. Every other
+ * cover, and one that reports no features, as always.
+ */
+export function coverCall(st: HassEntity | undefined, what: "open" | "close" | "stop"): { service: string; data: Record<string, unknown> } {
+  const f = ((st?.attributes.supported_features as number) ?? 0) | 0;
+  const tiltOnly = f !== 0 && !(f & 3) && (f & (16 | 32 | 128)) !== 0;
+  if (!tiltOnly) return { service: what === "open" ? "open_cover" : what === "close" ? "close_cover" : "stop_cover", data: {} };
+  if (what === "stop") return { service: "stop_cover_tilt", data: {} };
+  if (f & (what === "open" ? 16 : 32)) return { service: what === "open" ? "open_cover_tilt" : "close_cover_tilt", data: {} };
+  return { service: "set_cover_tilt_position", data: { tilt_position: what === "open" ? 100 : 0 } };
+}
+
+/** Several covers at once: one call per kind of cover (roller shutters by open/close, slat-only blinds by their tilt). */
+export function coverCalls(hass: HomeAssistant, ids: readonly string[], what: "open" | "close" | "stop"): { service: string; data: Record<string, unknown> }[] {
+  const groups = new Map<string, { service: string; data: Record<string, unknown>; ids: string[] }>();
+  for (const id of ids) {
+    const c = coverCall(hass.states[id], what);
+    const key = `${c.service}|${JSON.stringify(c.data)}`;
+    const g = groups.get(key) ?? { ...c, ids: [] };
+    g.ids.push(id);
+    groups.set(key, g);
+  }
+  return [...groups.values()].map((g) => ({ service: g.service, data: { ...g.data, entity_id: g.ids } }));
+}
+
+/**
  * A device's area: its own, else that of the device it is a channel of. Home Assistant 2026.11 moves the entities
  * of Tuya multi-channel devices, Z-Wave endpoints and ZHA groups onto child devices, often without an area of their
  * own; clients are to take the parent's then. Older versions have no parent: the device's own area as before.
