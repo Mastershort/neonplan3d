@@ -2211,6 +2211,8 @@
  "screens_old": "versão antiga – recarregar",
  "screens_reload": "Recarregar",
  "screens_unknown_device": "Dispositivo desconhecido",
+ "card_template_own": "Este cartão tem definições próprias que prevalecem sobre o modelo: {list}.",
+ "card_template_own_clear": "Remover as definições próprias (só o modelo)",
  "card_template_use": "Como usar: adiciona o cartão NeonPlan no tablet e escolhe o modelo no topo, ou em YAML:",
  "card_template_copy": "Copiar",
  "card_template_copied": "Copiado.",

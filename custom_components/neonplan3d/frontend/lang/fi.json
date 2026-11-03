@@ -2211,6 +2211,8 @@
  "screens_old": "vanha versio – lataa uudelleen",
  "screens_reload": "Lataa uudelleen",
  "screens_unknown_device": "Tuntematon laite",
+ "card_template_own": "Tällä kortilla on omia asetuksia, jotka menevät mallin edelle: {list}.",
+ "card_template_own_clear": "Poista omat asetukset (vain malli)",
  "card_template_use": "Käyttö: lisää NeonPlan-kortti tabletille ja valitse malli ylhäältä, tai YAML:ssa:",
  "card_template_copy": "Kopioi",
  "card_template_copied": "Kopioitu.",

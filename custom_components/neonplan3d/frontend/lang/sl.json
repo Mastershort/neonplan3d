@@ -2211,6 +2211,8 @@
  "screens_old": "stara različica – znova naloži",
  "screens_reload": "Znova naloži",
  "screens_unknown_device": "Neznana naprava",
+ "card_template_own": "Ta kartica ima lastne nastavitve, ki veljajo pred predlogo: {list}.",
+ "card_template_own_clear": "Odstrani lastne nastavitve (samo predloga)",
  "card_template_use": "Kako jo uporabiš: na tablici dodaj kartico NeonPlan in zgoraj izberi predlogo, ali v YAML:",
  "card_template_copy": "Kopiraj",
  "card_template_copied": "Kopirano.",

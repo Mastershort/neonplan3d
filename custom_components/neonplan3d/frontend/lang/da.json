@@ -2211,6 +2211,8 @@
  "screens_old": "gammel version – genindlæs",
  "screens_reload": "Genindlæs",
  "screens_unknown_device": "Ukendt enhed",
+ "card_template_own": "Dette kort har egne indstillinger, der går forud for skabelonen: {list}.",
+ "card_template_own_clear": "Fjern egne indstillinger (kun skabelonen)",
  "card_template_use": "Sådan bruger du den: tilføj NeonPlan-kortet på tabletten og vælg skabelonen øverst, eller i YAML:",
  "card_template_copy": "Kopiér",
  "card_template_copied": "Kopieret.",

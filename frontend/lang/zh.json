@@ -2211,6 +2211,8 @@
  "screens_old": "旧版本 – 请重新加载",
  "screens_reload": "重新加载",
  "screens_unknown_device": "未知设备",
+ "card_template_own": "此卡片有自己的设置，优先于模板：{list}。",
+ "card_template_own_clear": "移除自身设置（仅使用模板）",
  "card_template_use": "使用方法：在平板上添加 NeonPlan 卡片并在顶部选择模板，或在 YAML 中：",
  "card_template_copy": "复制",
  "card_template_copied": "已复制。",

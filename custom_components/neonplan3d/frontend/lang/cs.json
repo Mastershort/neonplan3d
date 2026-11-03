@@ -2211,6 +2211,8 @@
  "screens_old": "stará verze – načíst znovu",
  "screens_reload": "Načíst znovu",
  "screens_unknown_device": "Neznámé zařízení",
+ "card_template_own": "Tato karta má vlastní nastavení, která mají přednost před šablonou: {list}.",
+ "card_template_own_clear": "Odebrat vlastní nastavení (jen šablona)",
  "card_template_use": "Jak ji použít: přidej na tabletu kartu NeonPlan a nahoře vyber šablonu, nebo v YAML:",
  "card_template_copy": "Kopírovat",
  "card_template_copied": "Zkopírováno.",

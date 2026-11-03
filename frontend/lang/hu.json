@@ -2211,6 +2211,8 @@
  "screens_old": "régi verzió – újratöltés",
  "screens_reload": "Újratöltés",
  "screens_unknown_device": "Ismeretlen eszköz",
+ "card_template_own": "Ennek a kártyának saját beállításai vannak, amelyek a sablon előtt érvényesek: {list}.",
+ "card_template_own_clear": "Saját beállítások törlése (csak a sablon)",
  "card_template_use": "Használat: add hozzá a NeonPlan-kártyát a tableten, és fent válaszd ki a sablont, vagy YAML-ben:",
  "card_template_copy": "Másolás",
  "card_template_copied": "Másolva.",
