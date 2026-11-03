@@ -5,6 +5,7 @@ import { linesField } from "./lines-field.ts";
 import { carState, type CarState, heatSensorOn, roomClimateValue,
   appColor,
   areaEntities,
+  coverCalls,
   entityName,
   furnitureEntities,
   isActive,
@@ -2986,6 +2987,7 @@ export class Fp3dView3d extends LitElement {
     // a module's band of light round an item, or its layers (a tank warm above, cool below): on any item, over its own glow
     for (const g of glows.values()) {
       if (g.top) screens.set(g.furnitureId, { color: g.color, level: g.level, faces: [{ part: "strata", color: g.color, top: g.top, level: g.level }] });
+      else if (g.plate) screens.set(g.furnitureId, { color: g.color, level: g.level, faces: [{ part: "plate", color: g.color, level: g.level }] });
       else if (g.band) screens.set(g.furnitureId, { color: g.color, level: g.level, faces: [{ part: "band", color: g.color, level: g.level }] });
     }
     this.watchCameras(this.cameraScreens > 0 || !!this._through || this.cameraWall || this.projecting);
@@ -4177,6 +4179,11 @@ export class Fp3dView3d extends LitElement {
         return;
       }
       this._armed = null;
+      // covers each the way it can: slat-only blinds by their tilt (#920)
+      if (domain === "cover" && (service === "open_cover" || service === "close_cover")) {
+        for (const c of coverCalls(hass, ids, service === "open_cover" ? "open" : "close")) void hass.callService("cover", c.service, c.data);
+        return;
+      }
       void hass.callService(domain, service, { entity_id: ids });
     };
     const button = (key: string, label: I18nKey, domain: string, service: string, ids: string[]) =>

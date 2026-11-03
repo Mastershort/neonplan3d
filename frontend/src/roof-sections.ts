@@ -139,14 +139,21 @@ export function roofUnderAt(b: RoofHolder, x: number, z: number, level?: number)
     if (s.open) continue;
     // with a floor level: roofs lying wholly below that floor are left out (#621)
     if (level !== undefined && !sectionAbove(s, level)) continue;
-    if (!onSection(s, x, z)) continue;
+    // a side whose overhang is set by hand (#863) covers what stands under that overhang too: a balcony's walls under
+    // a wide eave end under the roof instead of rising through it (#921); the automatic sides end at the walls, as
+    // they always did
+    const own = s.points && s.points.length >= 3 ? null : (s.overhang_sides ?? null);
+    const set = (i: number) => (typeof own?.[i] === "number" ? Math.max(0, own[i] as number) : null);
+    const [u, v] = sectionUV(s, x, z);
+    const fr = sectionFrame({ ...s, rotation: 0 });
+    const m = 1e-6;
+    if (u < fr.u0 - (set(2) ?? 0) - m || u > fr.u1 + (set(3) ?? 0) + m || v < -(set(0) ?? 0) - m || v > fr.w + (set(1) ?? 0) + m) continue;
     // a free-shaped flat roof covers its polygon only
     if (s.points && s.points.length >= 3 && !pointInPolygon([x, z], s.points)) continue;
-    const [u, v] = sectionUV(s, x, z);
     // hipped ends and broken slopes: the planes decide, the profile across is the fallback
     const flat = s.shape === "flat" || s.shape === "parapet";
     const so = Math.max(0, s.overhang ?? o);
-    const planes = flat ? null : sectionHeightAt(sectionGeometry(s, { u0: so, u1: so, a: so, b: so }), u, v);
+    const planes = flat ? null : sectionHeightAt(sectionGeometry(s, { a: set(0) ?? so, b: set(1) ?? so, u0: set(2) ?? so, u1: set(3) ?? so }), u, v);
     const y = (planes ?? sectionProfile(s).y(v)) - ROOF_THICK;
     best = best === null ? y : Math.max(best, y);
   }

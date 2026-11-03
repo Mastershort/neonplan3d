@@ -292,7 +292,7 @@ export interface ScreenState {
   /** Furniture with a state: glowing faces on top of the item instead of a screen – the whole top, or a half of it. */
   // (see also SoundSource below)
   // "gang": one rocker or socket of a wall switch or socket (`index` of `of`)
-  faces?: { part: "all" | "left" | "right" | "top" | "bottom" | "band" | "cabin" | "lights" | "burners" | "lid" | "beacon" | "gang" | "drum" | "apring" | "strata"; color: [number, number, number]; level: number; index?: number; of?: number; accent?: boolean; top?: [number, number, number] }[];
+  faces?: { part: "all" | "left" | "right" | "top" | "bottom" | "band" | "cabin" | "lights" | "burners" | "lid" | "beacon" | "gang" | "drum" | "apring" | "strata" | "plate"; color: [number, number, number]; level: number; index?: number; of?: number; accent?: boolean; top?: [number, number, number] }[];
 }
 
 /** Position of the sun (from sun.sun): degrees above the horizon and clockwise from north. */
@@ -3613,6 +3613,25 @@ export class FloorplanViewer {
                 const a1 = ((i + 1) / n) * Math.PI * 2;
                 buf.tri(P(cx, y, cz), P(cx + Math.cos(a0) * br, y, cz + Math.sin(a0) * br), P(cx + Math.cos(a1) * br, y, cz + Math.sin(a1) * br), col);
               }
+            }
+            continue;
+          }
+          if (face.part === "plate") {
+            // the top plate glows, with a thin rim round its top edge (#917): free of a fan or a grille in the middle
+            const col = new Color(...face.color.map((v) => Math.min(1, v * (0.3 + 0.45 * face.level))) as [number, number, number]);
+            const hw = Math.abs(w) / 2 + 0.008;
+            const hd = d / 2 + 0.008;
+            const yt = base + h + 0.006;
+            const sx = Math.sign(w) || 1;
+            buf.tri(P(-hw * sx, yt, -hd), P(hw * sx, yt, -hd), P(hw * sx, yt, hd), col);
+            buf.tri(P(-hw * sx, yt, -hd), P(hw * sx, yt, hd), P(-hw * sx, yt, hd), col);
+            const y0 = base + h - 0.035;
+            const corners: [number, number][] = [[-hw, -hd], [hw, -hd], [hw, hd], [-hw, hd]];
+            for (let i = 0; i < 4; i++) {
+              const a0 = corners[i];
+              const a1 = corners[(i + 1) % 4];
+              buf.tri(P(a0[0] * sx, y0, a0[1]), P(a1[0] * sx, y0, a1[1]), P(a1[0] * sx, yt, a1[1]), col);
+              buf.tri(P(a0[0] * sx, y0, a0[1]), P(a1[0] * sx, yt, a1[1]), P(a0[0] * sx, yt, a0[1]), col);
             }
             continue;
           }

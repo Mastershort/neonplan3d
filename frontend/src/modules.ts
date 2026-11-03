@@ -216,6 +216,8 @@ export type ScenePiece =
       level: number;
       /** A band of light round the item at mid height instead of its screen. */
       band?: boolean;
+      /** Its top plate glows instead (with a thin rim at its top edge): free of a fan or a grille in the middle (#917). */
+      plate?: boolean;
       /** Layers: light round the item from its foot (`color`) up to its top (this colour) – a tank warm above, cool below. */
       top?: [number, number, number];
     }

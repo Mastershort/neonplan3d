@@ -938,3 +938,22 @@ test("a fence gate opens with its cover, switch or contact (#818)", async () => 
   // nothing linked: shut
   assert.equal(gateState(hass(), { id: "g", edge: 0, at: 1, width: 1 }).moving, -1);
 });
+
+test("covers open, close and stop the way they can: a slat-only blind by its tilt (#920)", async () => {
+  const { coverCall, coverCalls } = await import("./devices.ts");
+  const st = (f: number) => ({ entity_id: "cover.x", state: "open", attributes: { supported_features: f } }) as never;
+  // a roller shutter (open, close, stop, position): as always
+  assert.deepEqual(coverCall(st(15), "open"), { service: "open_cover", data: {} });
+  // slats only, with open/close tilt and stop tilt
+  assert.deepEqual(coverCall(st(16 | 32 | 64 | 128), "open"), { service: "open_cover_tilt", data: {} });
+  assert.deepEqual(coverCall(st(16 | 32 | 64 | 128), "stop"), { service: "stop_cover_tilt", data: {} });
+  // only a tilt position: open is 100, close is 0
+  assert.deepEqual(coverCall(st(128), "close"), { service: "set_cover_tilt_position", data: { tilt_position: 0 } });
+  // no features reported: as always
+  assert.deepEqual(coverCall(st(0), "close"), { service: "close_cover", data: {} });
+  const hass = { states: { "cover.a": st(15), "cover.b": st(128), "cover.c": st(3) } } as never;
+  assert.deepEqual(coverCalls(hass, ["cover.a", "cover.b", "cover.c"], "open"), [
+    { service: "open_cover", data: { entity_id: ["cover.a", "cover.c"] } },
+    { service: "set_cover_tilt_position", data: { tilt_position: 100, entity_id: ["cover.b"] } },
+  ]);
+});
