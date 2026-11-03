@@ -1248,6 +1248,8 @@ template: kueche_fire
 
 - **Ändern:** Änderst du die Vorlage im Editor, übernimmt jedes Tablet mit dieser Vorlage das nach einem Moment von selbst, ohne Neuladen.
 - **Ausnahmen:** Was zusätzlich im YAML der Karte steht, gilt vor der Vorlage (etwa eine eigene `height`). **Formular trotzdem zeigen** im Kartendialog öffnet dafür das ganze Formular.
+- **Wo hängt das Tablet?** Das Feld oben in der Vorlage legt den Raum für „hier“ fest („Mach hier das Licht an“), unabhängig davon, welche Etage oder welchen Start-Raum die Karte zeigt.
+- **Umbenennen:** Die ID im YAML folgt dem neuen Namen. Tablets, die noch mit der alten ID eingerichtet sind, finden die Vorlage weiter.
 - **Bildschirmname:** Der Name der Vorlage ist zugleich der Bildschirmname der Karte (für Durchsagen und „hier“ in der Sprachsteuerung), solange die Vorlage keinen eigenen hat.
 - **Neu laden:** **Bildschirme mit dieser Vorlage neu laden** und **Alle Bildschirme neu laden** lassen die offenen Tablets ihre Seite neu laden, etwa nach einem NeonPlan-Update (neuer Code kommt nur so an). In Automationen gibt es dafür die Aktion `neonplan3d.reload_screens` (ohne `templates` alle Bildschirme).
 - **Gelöscht:** Fehlt die Vorlage im Plan, zeigt die Karte einen Hinweis und läuft mit ihren eigenen Einstellungen weiter.
