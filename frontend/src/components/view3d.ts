@@ -143,6 +143,7 @@ import { wallLayout } from "../camera-wall.ts";
 import { watchedEntities } from "../watched.ts";
 import { backdropCss } from "../backdrop.ts";
 import { loadVoice, micProbeAsked, micProbeDone, voiceArea, voicePipeline } from "../load-voice.ts";
+import { callCount, cleaningCall, everythingOff, roomOfArea } from "../room-actions.ts";
 import { answerAsk, subscribeAsk, type Ask, type ScreenAnnouncement, type ScreenReload } from "../api.ts";
 import { pipePlanner } from "../pipe-planner.ts";
 import type { ClockPos } from "../card-config.ts";
@@ -4443,6 +4444,46 @@ export class Fp3dView3d extends LitElement {
     setTimeout(() => location.reload(), 500 + Math.random() * 4000);
   }
 
+  /** The room open in the view (tapped into), with its floor. */
+  private openRoom(b: Building): { floor: Floor; room: NonNullable<ReturnType<typeof zonesOf>[number]> } | null {
+    if (!this.roomId) return null;
+    for (const floor of b.floors) {
+      const room = zonesOf(floor).find((r) => r.id === this.roomId);
+      if (room) return { floor, room };
+    }
+    return null;
+  }
+
+  /**
+   * A room action by voice: the room named, "there" (open in the view), "here" (where the tablet hangs), or without
+   * either the tablet's room, else the open one. What to say back.
+   */
+  private async roomAction(hass: HomeAssistant, b: Building, intent: { action: "clean" | "off"; room: { floorId: string; roomId: string } | "here" | "there" | null }): Promise<string> {
+    const here = () => roomOfArea(b.floors, this.voiceArea ?? voiceArea());
+    const named = (id: { floorId: string; roomId: string }) => {
+      const floor = b.floors.find((f) => f.id === id.floorId);
+      const room = floor && zonesOf(floor).find((r) => r.id === id.roomId);
+      return floor && room ? { floor, room } : null;
+    };
+    const target =
+      intent.room === "there" ? this.openRoom(b) : intent.room === "here" ? here() : intent.room ? named(intent.room) : (here() ?? this.openRoom(b));
+    if (!target) return translate(hass, intent.room === "there" ? "voice_noroom_open" : "voice_noroom");
+    const name = target.room.name;
+    const run = async (calls: { domain: string; service: string; data: Record<string, unknown> }[]) => {
+      await Promise.all(calls.map((c) => hass.callService(c.domain, c.service, c.data)));
+    };
+    if (intent.action === "clean") {
+      const call = cleaningCall(hass, target.room);
+      if (!call) return translate(hass, "voice_clean_none", { room: name });
+      await run([call]);
+      return translate(hass, "voice_clean_started", { room: name });
+    }
+    const calls = everythingOff(hass, target.floor, target.room);
+    if (!calls.length) return translate(hass, "voice_off_nothing", { room: name });
+    await run(calls);
+    return translate(hass, "voice_off_done", { room: name, n: callCount(calls) });
+  }
+
   /** One spoken sentence: a place to show ("Zeig das Wohnzimmer") is shown, anything else goes to Assist. */
   private async onMic(): Promise<void> {
     const hass = this.hass;
@@ -4471,7 +4512,16 @@ export class Fp3dView3d extends LitElement {
       }
       if ((await this.handleSentence(hass, b, v, text, true)) !== null) return;
       say("wait", `“${text}” …`);
-      const answer = await v.converse(hass, text, this.voiceArea ?? voiceArea());
+      // "there" is the room open in the view ("Mach da das Licht aus" after tapping into the living room); "here" and
+      // a sentence without a room are the tablet's
+      let area = this.voiceArea ?? voiceArea();
+      let said = text;
+      const open = this.openRoom(b);
+      if (open?.room.area_id && v.saysThere(text, hass.language)) {
+        area = open.room.area_id;
+        said = v.withoutThere(text, hass.language);
+      }
+      const answer = await v.converse(hass, said, area);
       say("done", answer ? `“${text}” – ${answer}` : `“${text}”`);
     } catch (err) {
       const e = err as { name?: string; message?: string };
@@ -4495,6 +4545,14 @@ export class Fp3dView3d extends LitElement {
   private async handleSentence(hass: HomeAssistant, b: Building, v: Awaited<ReturnType<typeof loadVoice>>, text: string, speak: boolean): Promise<string | null> {
     const say = (phase: "wait" | "listen" | "done" | "error", t: string) => this.sayVoice(phase, t);
     const { devices, items } = this.spokenDevices(hass, b, v.SYNONYMS);
+    // "Saug die Küche", "Saug hier", "Mach da alles aus": the robot vacuum or everything off for a room
+    const intent = this.replay ? null : v.roomIntent(text, b, hass.language, (r) => (r.area_id ? hass.areas?.[r.area_id]?.name : null));
+    if (intent) {
+      const answer = await this.roomAction(hass, b, intent);
+      say("done", `“${text}” – ${answer}`);
+      if (speak) void v.speak(hass, answer, voicePipeline());
+      return answer;
+    }
     {
       const place = v.showTarget(text, b, devices, (r) => (r.area_id ? hass.areas?.[r.area_id]?.name : null));
       if (place) {

@@ -397,3 +397,8 @@ def test_card_templates_keep_the_card_options() -> None:
     assert "card_templates" not in BUILDING_SCHEMA(empty_building())
     with pytest.raises(vol.Invalid):
         BUILDING_SCHEMA({**b, "card_templates": [{"id": "", "name": "x"}]})
+
+
+def test_room_keeps_its_cleaning() -> None:
+    assert ROOM_SCHEMA({**ROOM, "cleaning": "script.saug_bad"})["cleaning"] == "script.saug_bad"
+    assert "cleaning" not in ROOM_SCHEMA(ROOM)

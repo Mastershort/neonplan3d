@@ -64,6 +64,8 @@ ROOM_SCHEMA = vol.Schema(
         # further names the voice answers to
         vol.Optional("aliases"): vol.All([vol.All(str, vol.Length(min=1, max=60))], vol.Length(max=12)),
         vol.Required("area_id"): vol.Any(None, vol.All(str, vol.Length(max=255))),
+        # the script or button that sends the robot vacuum to clean this room
+        vol.Optional("cleaning"): vol.Any(None, vol.All(str, vol.Length(max=255))),
         vol.Required("points"): vol.All([_POINT], vol.Length(min=3, max=MAX_POINTS)),
         vol.Required("floor_material"): vol.All(str, vol.Length(max=32)),
         # the camera this room opens with when it is tapped (None = framed from above)
