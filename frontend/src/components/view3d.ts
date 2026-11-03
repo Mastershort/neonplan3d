@@ -107,6 +107,7 @@ import { furnitureName } from "../furniture-names.ts";
 import { fetchImage, saveBuilding } from "../api.ts";
 import { formatNumber, translate, type I18nKey } from "../i18n.ts";
 import { furnitureShown, showIfSignature } from "../show-if.ts";
+import { fireworkNow, lawnSnow, roofLightsOn, snowLevel, winterOf } from "../winter.ts";
 import { getPacks, isPackCooktop, isPackHeater, isPackType, isRobotVacuum, mountBase, packItem, packRobotCentre, packMotion, packName, packsVersion } from "../packs.ts";
 import { parkedVehicle, PRESENT_STATES, parkedVehicles, vehicleFurniture } from "../parking.ts";
 import { TRAIL_ICON, TRAIL_WINDOW_MS, trailEvents, trailPoints, trailSources, trailTime, type HistoryRow } from "../trail.ts";
@@ -649,6 +650,8 @@ export class Fp3dView3d extends LitElement {
   private fridgeTimer: ReturnType<typeof setTimeout> | undefined;
   /** Tablet level: measured values alone are shown at most every SENSOR_SYNC_MS (the pending sync, the last one). */
   private sensorTimer: ReturnType<typeof setTimeout> | undefined;
+  /** Winter: a look once a minute (night falls, the snow melts, midnight on New Year's Eve). */
+  private winterTimer: ReturnType<typeof setInterval> | undefined;
   /** A module asked to be drawn again (its own state changed: a target just set, a simulation ticking). */
   private moduleTimer: ReturnType<typeof setTimeout> | undefined;
   private lastSync = 0;
@@ -823,6 +826,7 @@ export class Fp3dView3d extends LitElement {
 
   disconnectedCallback(): void {
     super.disconnectedCallback();
+    this.watchWinter(false);
     document.removeEventListener("visibilitychange", this.onVisible);
     this.stopWalk();
     this.pets?.dispose();
@@ -1079,6 +1083,15 @@ export class Fp3dView3d extends LitElement {
     if (changed.has("building")) this.findIndex = null;
   }
 
+  /** Winter: what comes with the time of day and the year is looked at once a minute while the pack is there. */
+  private watchWinter(on: boolean): void {
+    if (on && !this.winterTimer) this.winterTimer = setInterval(() => this.syncDevices(false, true), 60_000);
+    else if (!on && this.winterTimer) {
+      clearInterval(this.winterTimer);
+      this.winterTimer = undefined;
+    }
+  }
+
   /**
    * Send device markers, door/window states, energy cables, people and floor label texts to the viewer
    * when a watched entity changed (or the building). Openings are matched with entities again when
@@ -1105,6 +1118,11 @@ export class Fp3dView3d extends LitElement {
         weatherEntityId: this.weatherEntityId,
       });
       if (anyModule()) this.watched = [...new Set([...this.watched, ...moduleWatched(this.sceneHost(hass, b))])];
+      // winter: the fairy lights' own switch and the weather that brings the snow
+      if (hasFeature("fun_winter")) {
+        const extra = [winterOf(b).roof_entity, weatherEntity(hass, this.weatherEntityId ?? b.settings.weather_entity), "sun.sun"].filter((id): id is string => !!id);
+        this.watched = [...new Set([...this.watched, ...extra])];
+      }
       force = true;
     }
     let changed = force || timed;
@@ -1556,9 +1574,19 @@ export class Fp3dView3d extends LitElement {
     const pool = this.poolPipes(b);
     // a module's lines (pipes, a loop in the ground) flow in the same layer; its surfaces lie over floors and lawns
     const lines = this.scene.filter((p): p is Extract<ScenePiece, { kind: "line" }> => p.kind === "line");
+    // fun pack "Winter & Christmas": fairy lights along the eaves, snow on roof and lawn, the New Year's firework
+    const winter = hasFeature("fun_winter") && !this.replay;
+    v.setRoofLights(winter && roofLightsOn(hass, b) ? (winterOf(b).roof_color ? "color" : "warm") : "off");
+    const snow = winter ? snowLevel(hass, b, weatherEntity(hass, this.weatherEntityId ?? b.settings.weather_entity)) : 0;
+    v.setRoofSnow(snow);
+    v.setFirework(winter && fireworkNow(b));
+    this.watchWinter(winter);
     v.setFlows(this.dimmed ? energyFlows : [...energyFlows, ...pool.flows, ...lineFlows(lines)]);
     v.setPipes(pool.tubes);
-    v.setPatches(this.scene.filter((p): p is Extract<ScenePiece, { kind: "patch" }> => p.kind === "patch").map((p) => ({ floorId: p.floorId, points: p.points, y: p.y, color: p.color, opacity: this.dimmed ? p.opacity * 0.4 : p.opacity, ...(p.glow ? { glow: true } : {}) })));
+    v.setPatches([
+      ...this.scene.filter((p): p is Extract<ScenePiece, { kind: "patch" }> => p.kind === "patch").map((p) => ({ floorId: p.floorId, points: p.points, y: p.y, color: p.color, opacity: this.dimmed ? p.opacity * 0.4 : p.opacity, ...(p.glow ? { glow: true } : {}) })),
+      ...lawnSnow(b, snow),
+    ]);
     const roomSensors = SHOW_PRESENCE ? personsInRooms(hass, b) : [];
     const persons = released("locate") && personsShown(b) ? [...roomSensors, ...locatedPersons(hass, b, new Set(roomSensors.map((p) => p.id)))] : roomSensors;
     v.setPersonLook(personLook(b) === "pin" ? "pin" : "figure");
