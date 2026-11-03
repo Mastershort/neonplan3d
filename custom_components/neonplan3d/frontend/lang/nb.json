@@ -817,6 +817,7 @@
  "winter_roof_entity": "Lyser med",
  "winter_roof_auto": "Automatisk: om kvelden fra 1. søndag i advent til 6. januar",
  "winter_roof_color": "Fargerik i stedet for varmhvit",
+ "winter_roof_outline": "Også langs gavler og møne (hele taket)",
  "winter_snow": "Snø på tak og plen mens det snør (smelter i mildvær)",
  "winter_firework": "Fyrverkeri over huset ved midnatt nyttårsaften",
  "fun_name_halloween": "Halloween",

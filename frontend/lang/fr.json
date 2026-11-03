@@ -817,6 +817,7 @@
  "winter_roof_entity": "S'allume avec",
  "winter_roof_auto": "Automatique : le soir du 1er dimanche de l'Avent au 6 janvier",
  "winter_roof_color": "Multicolore au lieu de blanc chaud",
+ "winter_roof_outline": "Aussi sur les pignons et le faîtage (tout le toit)",
  "winter_snow": "Neige sur le toit et la pelouse tant qu'il neige (fond au dégel)",
  "winter_firework": "Feu d'artifice au-dessus de la maison à minuit le soir du réveillon",
  "fun_name_halloween": "Halloween",

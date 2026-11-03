@@ -817,6 +817,7 @@
  "winter_roof_entity": "Együtt világít ezzel",
  "winter_roof_auto": "Automatikusan: esténként advent 1. vasárnapjától január 6-ig",
  "winter_roof_color": "Színes a meleg fehér helyett",
+ "winter_roof_outline": "Az oromzatokon és a gerincen is (az egész tető)",
  "winter_snow": "Hó a tetőn és a gyepen, amíg havazik (olvadáskor elolvad)",
  "winter_firework": "Tűzijáték a ház fölött szilveszter éjfélkor",
  "fun_name_halloween": "Halloween",

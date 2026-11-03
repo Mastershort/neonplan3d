@@ -12,27 +12,33 @@ const COLOURS = [
 ];
 
 /**
- * The fairy lights along the eaves of these faces: a bulb every 25 cm, just in front of the eave and a little below
- * it, warm white or the colours in turn (positions and colours for points). Part of the roof, so they ride with it
- * when the floors are pulled apart. Null without an eave.
+ * The fairy lights of these faces: a bulb every 25 cm along every eave and, with `outline`, up the gable edges (a hip
+ * roof's hips) and along the ridge – the whole roof drawn in light. Just in front of the edges, under the eaves and
+ * verges and on top of the ridge; where two faces share an edge it gets one chain. Warm white or the colours in turn
+ * (positions and colours for points). Part of the roof, so they ride with it when the floors are pulled apart.
  */
-export function roofLightPoints(faces: readonly RoofFace[], dy: number, colourful: boolean): { positions: Float32Array; colors: Float32Array } | null {
+export function roofLightPoints(faces: readonly RoofFace[], dy: number, colourful: boolean, outline = true): { positions: Float32Array; colors: Float32Array } | null {
   const p: number[] = [];
   const c: number[] = [];
+  const seen = new Set<string>();
   let k = 0;
   const bulb = (x: number, y: number, z: number) => {
+    // one bulb where two faces' edges meet (a ridge, a hip): the second chain would sit on the first
+    const key = `${Math.round(x / 0.08)},${Math.round(y / 0.08)},${Math.round(z / 0.08)}`;
+    if (seen.has(key)) return;
+    seen.add(key);
     p.push(x, y - dy, z);
     c.push(...(colourful ? COLOURS[k++ % COLOURS.length] : WARM));
   };
-  const along = (a: number[], b: number[], away: number[]) => {
-    const l = Math.hypot(away[0], away[2]) || 1;
-    const ox = (away[0] / l) * 0.05;
-    const oz = (away[2] / l) * 0.05;
+  const along = (a: number[], b: number[], away: number[], lift = -0.04) => {
+    const l = Math.hypot(away[0], away[2]);
+    const ox = l ? (away[0] / l) * 0.05 : 0;
+    const oz = l ? (away[2] / l) * 0.05 : 0;
     const len = Math.hypot(b[0] - a[0], b[1] - a[1], b[2] - a[2]);
     const n = Math.max(2, Math.round(len / 0.25) + 1);
     for (let i = 0; i < n; i++) {
       const t = i / (n - 1);
-      bulb(a[0] + (b[0] - a[0]) * t + ox, a[1] + (b[1] - a[1]) * t - 0.04, a[2] + (b[2] - a[2]) * t + oz);
+      bulb(a[0] + (b[0] - a[0]) * t + ox, a[1] + (b[1] - a[1]) * t + lift, a[2] + (b[2] - a[2]) * t + oz);
     }
   };
   const at = (f: RoofFace, u: number, s: number) => [f.o[0] + f.eu[0] * u + f.es[0] * s, f.o[1] + f.eu[1] * u + f.es[1] * s, f.o[2] + f.eu[2] * u + f.es[2] * s];
@@ -41,6 +47,13 @@ export function roofLightPoints(faces: readonly RoofFace[], dy: number, colourfu
     const [u0, u1] = f.span(0);
     if (!f.flat) {
       along(at(f, u0, 0), at(f, u1, 0), [-f.es[0], 0, -f.es[2]]);
+      if (outline && f.ls > 0) {
+        const [t0, t1] = f.span(f.ls);
+        // the gable edges (or hips) up to the ridge, and the ridge on top
+        along(at(f, u0, 0), at(f, t0, f.ls), [-f.eu[0], 0, -f.eu[2]]);
+        along(at(f, u1, 0), at(f, t1, f.ls), [f.eu[0], 0, f.eu[2]]);
+        if (t1 - t0 > 0.05) along(at(f, t0, f.ls), at(f, t1, f.ls), [0, 0, 0], 0.04);
+      }
       continue;
     }
     // a flat roof: its whole rim, each side outwards from the middle

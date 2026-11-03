@@ -728,6 +728,8 @@ export class FloorplanViewer {
   private snowMat: MeshBasicMaterial | null = null;
   /** Winter: the fairy lights along the eaves (off, warm white or colourful) and their material. */
   private roofLights: "off" | "warm" | "color" = "off";
+  /** … only along the eaves, or the whole roof (gable edges and ridge too). */
+  private roofOutline = true;
   private lightsMat: PointsMaterial | null = null;
   private lightsHalo: PointsMaterial | null = null;
   /** The New Year's firework while it flies, its frame timer and the time of its last step. */
@@ -1227,9 +1229,10 @@ export class FloorplanViewer {
   }
 
   /** Winter: the fairy lights along the eaves; the roof is built again only when they change. */
-  setRoofLights(mode: "off" | "warm" | "color"): void {
-    if (mode === this.roofLights) return;
+  setRoofLights(mode: "off" | "warm" | "color", outline = true): void {
+    if (mode === this.roofLights && outline === this.roofOutline) return;
     this.roofLights = mode;
+    this.roofOutline = outline;
     this.buildRoofMesh();
     this.invalidate();
   }
@@ -2917,7 +2920,7 @@ export class FloorplanViewer {
       // winter: the fairy lights along the eaves of this part, riding with it
       if (this.roofLights !== "off") {
         const mine = [...faces.values()].filter((face) => (face.section ? geo.sections?.includes(face.section) : geo === geos[0]));
-        const bulbs = roofLightPoints(mine, geo.floor.elevation + geo.base, this.roofLights === "color");
+        const bulbs = roofLightPoints(mine, geo.floor.elevation + geo.base, this.roofLights === "color", this.roofOutline);
         if (bulbs) {
           const g = new BufferGeometry();
           g.setAttribute("position", new Float32BufferAttribute(bulbs.positions, 3));

@@ -817,6 +817,7 @@
  "winter_roof_entity": "Se enciende con",
  "winter_roof_auto": "Automático: por la tarde desde el 1.er domingo de Adviento hasta el 6 de enero",
  "winter_roof_color": "De colores en lugar de blanco cálido",
+ "winter_roof_outline": "También en los hastiales y la cumbrera (todo el tejado)",
  "winter_snow": "Nieve en el tejado y el césped mientras nieva (se derrite con el deshielo)",
  "winter_firework": "Fuegos artificiales sobre la casa a medianoche en Nochevieja",
  "fun_name_halloween": "Halloween",

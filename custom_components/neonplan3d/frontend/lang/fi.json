@@ -817,6 +817,7 @@
  "winter_roof_entity": "Palaa yhdessä",
  "winter_roof_auto": "Automaattisesti: iltaisin 1. adventtisunnuntaista 6. tammikuuta",
  "winter_roof_color": "Värikäs lämpimän valkoisen sijaan",
+ "winter_roof_outline": "Myös päätyihin ja harjalle (koko katto)",
  "winter_snow": "Lunta katolla ja nurmikolla lumisateen aikana (sulaa suojasäällä)",
  "winter_firework": "Ilotulitus talon yllä uudenvuodenaaton keskiyöllä",
  "fun_name_halloween": "Halloween",

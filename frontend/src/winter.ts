@@ -13,6 +13,8 @@ export interface WinterSettings {
   roof_entity?: string | null;
   /** Colourful bulbs instead of warm white. */
   roof_color?: boolean;
+  /** Up the gable edges and along the ridge too (default), not only along the eaves. */
+  roof_outline?: boolean;
   /** Snow on the roof and the lawn while it snows; off with false. */
   snow?: boolean;
   /** The firework at New Year's midnight; off with false. */

@@ -817,6 +817,7 @@
  "winter_roof_entity": "Si accendono con",
  "winter_roof_auto": "Automatico: la sera dalla 1ª domenica d'Avvento al 6 gennaio",
  "winter_roof_color": "Colorate invece che bianco caldo",
+ "winter_roof_outline": "Anche sui timpani e sul colmo (tutto il tetto)",
  "winter_snow": "Neve sul tetto e sul prato mentre nevica (si scioglie col disgelo)",
  "winter_firework": "Fuochi d'artificio sopra la casa a mezzanotte di San Silvestro",
  "fun_name_halloween": "Halloween",
