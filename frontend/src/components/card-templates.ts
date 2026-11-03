@@ -4,7 +4,7 @@
 import { css, html, LitElement, nothing, type PropertyValues } from "lit";
 import { listScreens, reloadScreen, reloadScreens, type OpenScreen } from "../api.ts";
 import { FRONTEND_VERSION } from "../building-controller.ts";
-import { renameTemplate, templateId, type CardConfig } from "../card-config.ts";
+import { editWorking, publishDraft, renameTemplate, setLive, templateId, workingConfig, type CardConfig } from "../card-config.ts";
 import { translate, type I18nKey } from "../i18n.ts";
 import { loadCardEditor } from "../load-card-editor.ts";
 import type { Building, CardTemplate } from "../model.ts";
@@ -120,7 +120,8 @@ export class Fp3dCardTemplates extends LitElement {
   /** The height the card has on the screen: its own, or the screen below the header with "fill". */
   private previewHeight(tpl: CardTemplate): number {
     const s = SCREENS[this._screen];
-    return tpl.config.fill ? s.h - HEADER : Math.min(s.h - HEADER, Math.max(150, tpl.config.height ?? 420));
+    const c = workingConfig(tpl);
+    return c.fill ? s.h - HEADER : Math.min(s.h - HEADER, Math.max(150, c.height ?? 420));
   }
 
   private setScreen(size: ScreenSize): void {
@@ -140,11 +141,13 @@ export class Fp3dCardTemplates extends LitElement {
       this.previewCard = document.createElement("neonplan3d-card") as PreviewCard;
       this.previewCard.preview = true;
     }
-    const key = JSON.stringify(tpl.config);
+    // the preview shows what is being edited (with "send later" the changes not sent yet)
+    const cfg = workingConfig(tpl);
+    const key = JSON.stringify(cfg);
     if (key !== this.previewKey) {
       this.previewKey = key;
       try {
-        this.previewCard.setConfig({ ...tpl.config, type: CARD_TYPE, height: this.previewHeight(tpl), fill: false, fullscreen_button: false });
+        this.previewCard.setConfig({ ...cfg, type: CARD_TYPE, height: this.previewHeight(tpl), fill: false, fullscreen_button: false });
       } catch {
         // an option the card refuses: the form shows it, the preview keeps the last good one
       }
@@ -259,7 +262,7 @@ export class Fp3dCardTemplates extends LitElement {
   private setOption(tpl: CardTemplate, patch: Partial<CardConfig>): void {
     this.editTemplates((list) => {
       const x = list.find((y) => y.id === tpl.id);
-      if (x) x.config = { ...x.config, ...patch };
+      if (x) editWorking(x, { ...workingConfig(x), ...patch });
     });
   }
 
@@ -316,10 +319,10 @@ export class Fp3dCardTemplates extends LitElement {
       this.requestUpdate();
     }
     if (!tpl || !el?.setConfig) return;
-    const key = JSON.stringify([tpl.id, tpl.config]);
+    const key = JSON.stringify([tpl.id, workingConfig(tpl)]);
     if (key === this.shown) return;
     this.shown = key;
-    el.setConfig({ type: CARD_TYPE, ...tpl.config });
+    el.setConfig({ type: CARD_TYPE, ...workingConfig(tpl) });
   }
 
   private changed(tpl: CardTemplate, e: CustomEvent<{ config: CardConfig }>): void {
@@ -329,8 +332,39 @@ export class Fp3dCardTemplates extends LitElement {
     this.shown = JSON.stringify([tpl.id, config]);
     this.editTemplates((list) => {
       const x = list.find((y) => y.id === tpl.id);
-      if (x) x.config = config;
+      if (x) editWorking(x, config);
     });
+  }
+
+  /** Live or "send later", and the buttons for changes not sent yet. */
+  private renderMode(tpl: CardTemplate, admin: boolean) {
+    const live = tpl.live !== false;
+    const set = (fn: (x: CardTemplate) => void) =>
+      this.editTemplates((list) => {
+        const x = list.find((y) => y.id === tpl.id);
+        if (x) fn(x);
+      });
+    return html`<div class="fp3d-tpl-mode">
+      <span class="fp3d-sub">${this.t("card_template_mode")}</span>
+      <div class="fp3d-seg">
+        <button aria-pressed=${live} ?disabled=${!admin} @click=${() => set((x) => setLive(x, true))}>${this.t("card_template_live")}</button>
+        <button aria-pressed=${!live} ?disabled=${!admin} @click=${() => set((x) => setLive(x, false))}>${this.t("card_template_manual")}</button>
+      </div>
+      ${!live && tpl.draft
+        ? html`<span class="fp3d-tpl-warn"
+            >${this.t("card_template_pending")}
+            <button class="fp3d-btn fp3d-primary" ?disabled=${!admin} @click=${() => {
+                set(publishDraft);
+                this.shown = "";
+                this.note(this.t("card_template_published"));
+              }}>⇪ ${this.t("card_template_publish")}</button>
+            <button class="fp3d-btn" ?disabled=${!admin} @click=${() => {
+                set((x) => void delete x.draft);
+                this.shown = "";
+              }}>${this.t("card_template_discard")}</button></span
+          >`
+        : nothing}
+    </div>`;
   }
 
   protected render() {
@@ -431,6 +465,7 @@ export class Fp3dCardTemplates extends LitElement {
               <button class="fp3d-btn fp3d-danger" @click=${() => this.deleteTemplate(tpl)}>${this.t("delete")}</button>`
           : nothing}
       </div>
+      ${this.renderMode(tpl, admin)}
       <label class="fp3d-field"
         >${this.t("card_template_where")}
         <select
@@ -440,19 +475,16 @@ export class Fp3dCardTemplates extends LitElement {
             this.editTemplates((list) => {
               const x = list.find((y) => y.id === tpl.id);
               if (!x) return;
-              if (area) x.config = { ...x.config, voice_area: area };
-              else {
-                const { voice_area: _area, ...rest } = x.config;
-                x.config = rest;
-              }
+              const { voice_area: _area, ...rest } = workingConfig(x);
+              editWorking(x, area ? { ...rest, voice_area: area } : rest);
             });
           }}
         >
-          <option value="" ?selected=${!tpl.config.voice_area}>${this.t("card_voice_area_none")}</option>
-          ${this.whereOptions(tpl.config.voice_area)}
+          <option value="" ?selected=${!workingConfig(tpl).voice_area}>${this.t("card_voice_area_none")}</option>
+          ${this.whereOptions(workingConfig(tpl).voice_area)}
         </select>
         <span class="fp3d-sub">${this.t("card_template_where_hint")}</span>
-        ${tpl.config.voice_area && !tpl.config.voice
+        ${workingConfig(tpl).voice_area && !workingConfig(tpl).voice
           ? html`<span class="fp3d-tpl-warn"
               >${this.t("card_template_voice_off")}
               ${admin ? html`<button class="fp3d-btn" @click=${() => this.setOption(tpl, { voice: true })}>🎙 ${this.t("card_template_voice_on")}</button>` : nothing}</span
@@ -591,6 +623,23 @@ export class Fp3dCardTemplates extends LitElement {
         color: var(--fp3d-text);
         font: inherit;
         font-size: 13px;
+      }
+      /* the open list of a choice dark like the field, the floor headings readable (the browser draws them white) */
+      select option,
+      select optgroup {
+        background: #0a1324;
+        color: var(--fp3d-text);
+      }
+      select optgroup {
+        color: var(--fp3d-accent);
+        font-style: normal;
+        font-weight: 600;
+      }
+      .fp3d-tpl-mode {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
       }
       .fp3d-tpl-warn {
         display: flex;

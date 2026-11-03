@@ -1259,6 +1259,7 @@ template: kitchen_fire
 
 - **Changing it:** when you change the template in the editor, every tablet with this template follows after a moment by itself, without a reload.
 - **Exceptions:** whatever is in the card's own YAML as well wins over the template (e.g. its own `height`). **Show the form anyway** in the card dialog opens the whole form for that.
+- **Straight away or with a button:** under **Changes** each template is either **Straight to the tablets** (the default) or **Send with a button**. Then only the preview shows your changes; the tablets keep the old state until you press **Send to the tablets**. **Discard** drops the changes.
 - **Where does the tablet hang?** The field at the top of the template sets the room for "here" ("Turn on the lights here"), whatever floor or start room the card shows.
 - **Renaming:** the id in the YAML follows the new name. Tablets still set up with the old id keep finding the template.
 - **Screen name:** the template's name is also the card's screen name (for announcements and "here" in voice control), as long as the template has none of its own.
