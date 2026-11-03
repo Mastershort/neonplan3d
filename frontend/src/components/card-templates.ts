@@ -11,6 +11,18 @@ import { controls, tokens } from "../styles.ts";
 import type { HomeAssistant } from "../types.ts";
 
 const CARD_TYPE = "custom:neonplan3d-card";
+const PREVIEW_KEY = "neonplan3d.template_preview";
+
+/** The dashboard card as the preview uses it. */
+type PreviewCard = HTMLElement & { setConfig(c: CardConfig): void; hass?: HomeAssistant; preview?: boolean };
+
+function readPreviewPref(): boolean {
+  try {
+    return localStorage.getItem(PREVIEW_KEY) !== "0";
+  } catch {
+    return true;
+  }
+}
 
 export class Fp3dCardTemplates extends LitElement {
   static properties = {
@@ -21,6 +33,7 @@ export class Fp3dCardTemplates extends LitElement {
     _selected: { state: true },
     _ready: { state: true },
     _note: { state: true },
+    _preview: { state: true },
   };
 
   declare hass: HomeAssistant | undefined;
@@ -33,6 +46,10 @@ export class Fp3dCardTemplates extends LitElement {
   /** The card editor's bundle is loaded. */
   private declare _ready: boolean;
   private declare _note: string | null;
+  /** The live preview of the card next to the form (one more 3D view while the dialog is open; can be switched off). */
+  private declare _preview: boolean;
+  private previewCard: PreviewCard | null = null;
+  private previewKey = "";
   /** What the card editor shows now (as text): a template changed elsewhere (undo) is handed to it again. */
   private shown = "";
   private noteTimer: ReturnType<typeof setTimeout> | undefined;
@@ -45,6 +62,38 @@ export class Fp3dCardTemplates extends LitElement {
     this._selected = null;
     this._ready = false;
     this._note = null;
+    this._preview = readPreviewPref();
+  }
+
+  /** The preview: the real dashboard card with the template's options, at a fixed height (the main bundle defines it). */
+  private previewOf(tpl: CardTemplate) {
+    if (!this._preview || !customElements.get("neonplan3d-card")) return nothing;
+    if (!this.previewCard) {
+      this.previewCard = document.createElement("neonplan3d-card") as PreviewCard;
+      this.previewCard.preview = true;
+    }
+    const key = JSON.stringify(tpl.config);
+    if (key !== this.previewKey) {
+      this.previewKey = key;
+      try {
+        this.previewCard.setConfig({ ...tpl.config, type: CARD_TYPE, height: 380, fill: false, fullscreen_button: false });
+      } catch {
+        // an option the card refuses: the form shows it, the preview keeps the last good one
+      }
+    }
+    if (this.hass) this.previewCard.hass = this.hass;
+    return this.previewCard;
+  }
+
+  private togglePreview(): void {
+    this._preview = !this._preview;
+    if (!this._preview) this.previewCard = null;
+    this.previewKey = "";
+    try {
+      localStorage.setItem(PREVIEW_KEY, this._preview ? "1" : "0");
+    } catch {
+      // no storage: on for the next time
+    }
   }
 
   connectedCallback(): void {
@@ -183,16 +232,25 @@ export class Fp3dCardTemplates extends LitElement {
           ${admin ? html`<button class="fp3d-btn" @click=${() => void this.reload([tpl.id])}>⟳ ${this.t("card_template_reload")}</button>` : nothing}
         </div>
       </div>
-      ${this._ready
-        ? html`<neonplan3d-card-editor
-            class="fp3d-tpl-form"
-            embedded
-            ?inert=${!admin}
-            .hass=${this.hass}
-            .building=${this.building}
-            @config-changed=${(e: CustomEvent<{ config: CardConfig }>) => this.changed(tpl, e)}
-          ></neonplan3d-card-editor>`
-        : html`<p class="fp3d-sub">${this.t("loading")}</p>`}
+      <div class="fp3d-tpl-split ${this._preview ? "" : "fp3d-tpl-nopreview"}">
+        <div class="fp3d-tpl-preview">
+          <div class="fp3d-tpl-row">
+            <b>${this.t("card_template_preview")}</b>
+            <button class="fp3d-btn" @click=${() => this.togglePreview()}>${this.t(this._preview ? "card_template_preview_off" : "card_template_preview_on")}</button>
+          </div>
+          ${this.previewOf(tpl)}
+        </div>
+        ${this._ready
+          ? html`<neonplan3d-card-editor
+              class="fp3d-tpl-form"
+              embedded
+              ?inert=${!admin}
+              .hass=${this.hass}
+              .building=${this.building}
+              @config-changed=${(e: CustomEvent<{ config: CardConfig }>) => this.changed(tpl, e)}
+            ></neonplan3d-card-editor>`
+          : html`<p class="fp3d-sub">${this.t("loading")}</p>`}
+      </div>
     </div>`;
   }
 
@@ -246,13 +304,50 @@ export class Fp3dCardTemplates extends LitElement {
         white-space: pre-wrap;
         user-select: all;
       }
-      /* the card editor follows Home Assistant's colours: here it takes NeonPlan's */
+      /* the preview on the left (it stays in sight while the form scrolls), the form on the right */
+      .fp3d-tpl-split {
+        display: grid;
+        grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+        gap: 16px;
+        align-items: start;
+      }
+      .fp3d-tpl-split.fp3d-tpl-nopreview {
+        grid-template-columns: auto minmax(0, 1fr);
+      }
+      .fp3d-tpl-preview {
+        position: sticky;
+        top: 0;
+        display: grid;
+        gap: 8px;
+        z-index: 1;
+      }
+      .fp3d-tpl-preview .fp3d-tpl-row {
+        justify-content: space-between;
+      }
+      .fp3d-tpl-preview neonplan3d-card {
+        display: block;
+        border-radius: 12px;
+        overflow: hidden;
+        border: 1px solid var(--fp3d-line);
+      }
+      @media (max-width: 900px) {
+        .fp3d-tpl-split,
+        .fp3d-tpl-split.fp3d-tpl-nopreview {
+          grid-template-columns: 1fr;
+        }
+        .fp3d-tpl-preview {
+          position: static;
+        }
+      }
+      /* the card editor follows Home Assistant's colours: here it takes NeonPlan's, fields dark and clear like the editor's */
       .fp3d-tpl-form {
         --primary-text-color: var(--fp3d-text);
         --secondary-text-color: var(--fp3d-soft);
-        --divider-color: var(--fp3d-line);
-        --card-background-color: rgba(4, 8, 18, 0.6);
+        --divider-color: rgba(120, 190, 255, 0.35);
+        --card-background-color: #0a1324;
         --primary-color: var(--fp3d-accent);
+        --fp3d-field-hover: rgba(55, 224, 255, 0.08);
+        color-scheme: dark;
       }
       .fp3d-tpl-note {
         margin: 0;
