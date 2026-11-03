@@ -159,8 +159,8 @@
               const t = Date.now() / 1000;
               return {
                 screens: [
-                  { id: "s1", kind: "card", template: "kueche_fire", screen: null, device: "Fire HD 10 · Fully Kiosk", version: "2.3.0", user: "Tablet", since: t - 9 * 3600, reloadable: true },
-                  { id: "s2", kind: "card", template: "flur", screen: null, device: "Fire 7 · Fully Kiosk", version: "2.2.0", user: "Tablet", since: t - 30 * 3600, reloadable: true },
+                  { id: "s1", kind: "card", template: "kitchen_tablet", screen: null, device: "Fire HD 10 · Fully Kiosk", version: "2.3.0", user: "Tablet", since: t - 9 * 3600, reloadable: true },
+                  { id: "s2", kind: "card", template: "hall", screen: null, device: "Fire 7 · Fully Kiosk", version: "2.2.0", user: "Tablet", since: t - 30 * 3600, reloadable: true },
                   { id: "s3", kind: "panel", template: null, screen: null, device: "Windows · Chrome", version: "2.3.0", user: "Demo", since: t - 600, reloadable: true },
                 ],
               };
@@ -402,8 +402,8 @@
         };
         // ?tpl: the card only names a card template made in the editor (the room bar and the upper floor come from it)
         if (params.has("tpl")) {
-          building.card_templates = [{ id: "kueche_fire", name: "Küche Fire-Tablet", config: { floor: "og", room_bar: true, controls: ["walls"] } }];
-          config = { type: "custom:neonplan3d-card", template: "kueche_fire", quality: "low" };
+          building.card_templates = [{ id: "kitchen_tablet", name: params.get("lang") === "en" ? "Kitchen tablet" : "Küchen-Tablet", config: { floor: "og", controls: ["walls"], quality: "low" } }];
+          config = { type: "custom:neonplan3d-card", template: "kitchen_tablet" };
         }
         card.setConfig(config);
         editor.setConfig(config);

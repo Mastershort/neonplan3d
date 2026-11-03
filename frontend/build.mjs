@@ -28,6 +28,7 @@ const langHash = createHash("sha256")
   .digest("hex")
   .slice(0, 12);
 const cardEditorConfig = { ...common, entryPoints: ["src/card-editor.ts"], outfile: `${out}/neonplan3d-card-editor.js`, define: { __FP3D_LANG_HASH__: JSON.stringify(langHash) } };
+const version = JSON.parse(readFileSync("../custom_components/neonplan3d/manifest.json", "utf8")).version;
 // the editor is only needed by admins who open it, so it is a bundle of its own as well
 // (it draws furniture previews with the 3D bundle, so it knows that bundle's hash too; card templates use the card editor)
 const editorConfig = (viewerHash, locateHash, cardEditorHash) => ({
@@ -39,6 +40,8 @@ const editorConfig = (viewerHash, locateHash, cardEditorHash) => ({
     __FP3D_LANG_HASH__: JSON.stringify(langHash),
     __FP3D_LOCATE_HASH__: JSON.stringify(locateHash),
     __FP3D_CARD_EDITOR_HASH__: JSON.stringify(cardEditorHash),
+    // the overview of the open screens compares their versions with this one
+    __FP3D_VERSION__: JSON.stringify(version),
   },
 });
 // the time travel (Pro) only loads when it starts; its texts come from the main bundle
@@ -54,7 +57,6 @@ const importConfig = { ...common, entryPoints: ["src/import/app.ts"], outfile: "
 // The main bundle loads the 3D bundle with a hash of its content in the URL, so a new 3D bundle is
 // never taken from the browser cache (the integration version only changes after a restart).
 // the frontend knows its own version, to notice a backend that still runs an older one
-const version = JSON.parse(readFileSync("../custom_components/neonplan3d/manifest.json", "utf8")).version;
 const mainConfig = (viewerHash, editorHash, cardEditorHash, timeTravelHash, funHash, voiceHash, locateHash) => ({
   ...common,
   entryPoints: ["src/main.ts"],
