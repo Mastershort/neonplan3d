@@ -1258,7 +1258,7 @@ template: kueche_fire
 ```
 
 - **Ändern:** Änderst du die Vorlage im Editor, übernimmt jedes Tablet mit dieser Vorlage das nach einem Moment von selbst, ohne Neuladen.
-- **Ausnahmen:** Was zusätzlich im YAML der Karte steht, gilt vor der Vorlage (etwa eine eigene `height`). **Formular trotzdem zeigen** im Kartendialog öffnet dafür das ganze Formular.
+- **Nur die Vorlage zählt:** Eine Karte mit Vorlage zeigt genau die Vorlage. Was von früher noch im YAML der Karte steht, gilt nicht mehr; der Kartendialog zeigt es an und räumt es mit **Aufräumen** weg. Soll ein Tablet anders aussehen, gib ihm eine eigene Vorlage (**Duplizieren**).
 - **Sofort oder mit Knopf:** Unter **Änderungen** wählst du pro Vorlage **Sofort auf die Tablets** (Standard) oder **Erst mit Knopf übertragen**. Dann zeigt nur die Vorschau deine Änderungen; die Tablets behalten den alten Stand, bis du **Auf Tablets übertragen** drückst. **Verwerfen** nimmt die Änderungen zurück.
 - **Wo hängt das Tablet?** Das Feld oben in der Vorlage legt den Raum für „hier“ fest („Mach hier das Licht an“), unabhängig davon, welche Etage oder welchen Start-Raum die Karte zeigt.
 - **Umbenennen:** Die ID im YAML folgt dem neuen Namen. Tablets, die noch mit der alten ID eingerichtet sind, finden die Vorlage weiter.
@@ -1272,7 +1272,7 @@ In YAML sieht eine Karte so aus. Alle Zeilen außer der ersten sind optional:
 
 ```yaml
 type: custom:neonplan3d-card
-template: kueche_fire   # eine Karten-Vorlage aus dem Editor (die Zeilen hier gelten vor ihr)
+template: kueche_fire   # eine Karten-Vorlage aus dem Editor (dann gilt nur sie, die übrigen Zeilen nicht)
 floor: floor_ab12cd34   # eine Etage zeigen (ID aus dem Editor)
 room: room_ab12cd34     # in diesem Raum starten (ID steht im Raumformular des Editors), z. B. ein Display fürs Kinderzimmer
 height: 420             # Höhe in Pixeln
