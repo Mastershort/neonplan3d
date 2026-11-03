@@ -4,7 +4,7 @@
 import { css, html, LitElement, nothing } from "lit";
 import { fetchBuilding } from "./api.ts";
 import { labOn, UNRELEASED } from "./features.ts";
-import { CARD_CONTROLS, cardTemplate, type CardConfig, type CardControl } from "./card-config.ts";
+import { CARD_CONTROLS, CARD_OWN, cardTemplate, type CardConfig, type CardControl } from "./card-config.ts";
 import { languageReady, loadLanguage, translate, type I18nKey } from "./i18n.ts";
 import type { Building } from "./model.ts";
 import type { HomeAssistant } from "./types.ts";
@@ -144,7 +144,12 @@ export class Floorplan3dCardEditor extends LitElement {
       ${id && this.ownOptions().length
         ? html`<div class="own">
             ${this.t("card_template_own", { list: this.ownOptions().join(", ") })}
-            <button class="more" @click=${() => this.emit({ type: this._config.type, template: id })}>${this.t("card_template_own_clear")}</button>
+            <button
+              class="more"
+              @click=${() => this.emit({ type: this._config.type, template: id, ...Object.fromEntries(CARD_OWN.filter((k) => this._config[k] !== undefined).map((k) => [k, this._config[k]])) })}
+            >
+              ${this.t("card_template_own_clear")}
+            </button>
           </div>`
         : nothing}
       <div class="links">
@@ -155,7 +160,7 @@ export class Floorplan3dCardEditor extends LitElement {
 
   /** Options written on this card besides its template: they win over the template's. */
   private ownOptions(): string[] {
-    return Object.keys(this._config).filter((k) => k !== "type" && k !== "template");
+    return Object.keys(this._config).filter((k) => k !== "type" && k !== "template" && !(CARD_OWN as readonly string[]).includes(k));
   }
 
   /**
@@ -164,7 +169,9 @@ export class Floorplan3dCardEditor extends LitElement {
    */
   private pickTemplate(id: string | undefined): void {
     this._showForm = false;
-    this.emit(id ? { type: this._config.type, template: id } : { type: this._config.type });
+    // the card's size stays: it belongs to the dashboard, not to the template
+    const size = Object.fromEntries(CARD_OWN.filter((k) => this._config[k] !== undefined).map((k) => [k, this._config[k]]));
+    this.emit(id ? { type: this._config.type, template: id, ...size } : { type: this._config.type, ...size });
   }
 
   private emit(next: CardConfig): void {

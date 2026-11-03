@@ -9,11 +9,11 @@ const plan = (): Building => ({
 });
 const card = (c: Partial<CardConfig> = {}): CardConfig => ({ type: "custom:neonplan3d-card", ...c });
 
-test("card templates: a card naming a template shows exactly the template, whatever else is left on the card", () => {
+test("card templates: a card naming a template shows the template, with only its size of its own", () => {
   const c = effectiveConfig(card({ template: "kueche_fire", height: 800, plain: true, screen: "Flur" }), plan());
   assert.equal(c.floor, "eg");
   assert.equal(c.room_bar, true);
-  assert.equal(c.height, 600, "the template's height, not the old card's");
+  assert.equal(c.height, 800, "the card's size is its own (it belongs to the dashboard)");
   assert.equal(c.plain, undefined, "an old card's floor plan only does not hide the furniture");
   assert.equal(c.type, "custom:neonplan3d-card");
   assert.equal(c.screen, "Küche Fire-Tablet", "the template's name is the screen name");
@@ -64,4 +64,12 @@ test("card templates: with \"send with a button\" the tablets keep the old optio
   setLive(tpl, true);
   assert.equal(tpl.config.clock, "br");
   assert.equal(tpl.live, undefined);
+});
+
+test("card templates: an old card's fill and full-screen button stay, its floor plan only does not", () => {
+  const c = effectiveConfig(card({ template: "kueche_fire", fill: true, fullscreen_button: true, plain: true, time_travel: true }), plan());
+  assert.equal(c.fill, true);
+  assert.equal(c.fullscreen_button, true);
+  assert.equal(c.plain, undefined);
+  assert.equal(c.time_travel, undefined, "everything else comes from the template");
 });

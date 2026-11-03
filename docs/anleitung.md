@@ -1258,7 +1258,7 @@ template: kueche_fire
 ```
 
 - **Ändern:** Änderst du die Vorlage im Editor, übernimmt jedes Tablet mit dieser Vorlage das nach einem Moment von selbst, ohne Neuladen.
-- **Nur die Vorlage zählt:** Eine Karte mit Vorlage zeigt genau die Vorlage. Was von früher noch im YAML der Karte steht, gilt nicht mehr; der Kartendialog zeigt es an und räumt es mit **Aufräumen** weg. Soll ein Tablet anders aussehen, gib ihm eine eigene Vorlage (**Duplizieren**).
+- **Die Vorlage zählt, die Größe bleibt bei der Karte:** Eine Karte mit Vorlage zeigt die Vorlage. Nur ihre Größe (**Bildschirm füllen**, **Höhe**, **Vollbild-Knopf**) nimmt sie aus ihrem eigenen YAML, denn die gehört zum Dashboard. Alles andere, was von früher noch im YAML der Karte steht, gilt nicht mehr; der Kartendialog zeigt es an und räumt es mit **Aufräumen** weg. Soll ein Tablet anders aussehen, gib ihm eine eigene Vorlage (**Duplizieren**).
 - **Sofort oder mit Knopf:** Unter **Änderungen** wählst du pro Vorlage **Sofort auf die Tablets** (Standard) oder **Erst mit Knopf übertragen**. Dann zeigt nur die Vorschau deine Änderungen; die Tablets behalten den alten Stand, bis du **Auf Tablets übertragen** drückst. **Verwerfen** nimmt die Änderungen zurück.
 - **Wo hängt das Tablet?** Das Feld oben in der Vorlage legt den Raum für „hier“ fest („Mach hier das Licht an“), unabhängig davon, welche Etage oder welchen Start-Raum die Karte zeigt.
 - **Umbenennen:** Die ID im YAML folgt dem neuen Namen. Tablets, die noch mit der alten ID eingerichtet sind, finden die Vorlage weiter.

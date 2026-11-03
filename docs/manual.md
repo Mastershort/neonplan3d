@@ -1258,7 +1258,7 @@ template: kitchen_fire
 ```
 
 - **Changing it:** when you change the template in the editor, every tablet with this template follows after a moment by itself, without a reload.
-- **Only the template counts:** a card with a template shows exactly the template. Whatever is still in the card's YAML from before no longer applies; the card dialog lists it and **Tidy up** removes it. For a tablet that should look different, give it a template of its own (**Duplicate**).
+- **The template counts, the size stays with the card:** a card with a template shows the template. Only its size (**Fill the screen**, **Height**, **Full-screen button**) comes from its own YAML, as it belongs to the dashboard. Whatever else is still in the card's YAML from before no longer applies; the card dialog lists it and **Tidy up** removes it. For a tablet that should look different, give it a template of its own (**Duplicate**).
 - **Straight away or with a button:** under **Changes** each template is either **Straight to the tablets** (the default) or **Send with a button**. Then only the preview shows your changes; the tablets keep the old state until you press **Send to the tablets**. **Discard** drops the changes.
 - **Where does the tablet hang?** The field at the top of the template sets the room for "here" ("Turn on the lights here"), whatever floor or start room the card shows.
 - **Renaming:** the id in the YAML follows the new name. Tablets still set up with the old id keep finding the template.
