@@ -1192,6 +1192,14 @@ The fun packs are set in the editor under **⚙ Settings → 🎈 Fun packs** (n
 
 **Halloween:** 13 decorations in the furniture library under **Fun pack: Halloween** – a jack-o'-lantern, a small pumpkin, a pumpkin trio, a cobweb (for the corner under the ceiling), a bat garland, two gravestones, a skeleton, a witch's cauldron, a candelabra, orange string lights, a ghost figure and a witch's broom. Pumpkin, cauldron and candles glow when you link a light. A little **ghost** floats through the house now and then – right through the walls, more often at night. **Let the ghost float** under **🎈 Fun packs** switches it off; in the dashboard card the option **Show the Halloween ghost** (YAML `ghost: false`) leaves it out of that card. The ghost, too, is only drawn while it is on its way.
 
+**Winter & Christmas** (new): 11 decorations in the furniture library under **Fun pack: Winter & Christmas** – a Christmas tree with fairy lights (for the plug), a small Christmas tree, an **Advent wreath** that lights its candles by date (one on the first Sunday of Advent, all four on the fourth), a glowing window star, a candle arch, a light-up reindeer for the garden, a snowman, a pile of presents, warm white and colourful string lights and a poinsettia. What glows glows with a linked light or plug. With **Only show while …** (see [4.8](#48-furniture)) the decorations come back every December by themselves, e.g. while a calendar or a "Christmas time" helper is on. Under **⚙ Settings → 🎈 Fun packs**:
+
+- **Fairy lights along the eaves:** bulbs along the roof's edge. **Shine with** links them to your real outdoor lights; without a choice they shine **automatically in the evening from the first Sunday of Advent to 6 January**. Pick **Colourful instead of warm white** and **Gables and ridge too** (the whole roof in light) as you like.
+- **Snow:** when the weather entity reports snow, snow lies on the roof and the lawn. It stays while it freezes and melts within a few hours above zero.
+- **Firework:** on New Year's Eve a neon firework rises over the house at midnight (23:59 to 0:10).
+
+All of it runs on old wall tablets too: the fairy lights and the snow cost next to nothing, the firework is only drawn during those eleven minutes.
+
 ---
 
 ### 7.5 Modules
