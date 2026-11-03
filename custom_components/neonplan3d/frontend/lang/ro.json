@@ -2220,6 +2220,8 @@
  "card_template_publish": "Trimite pe tablete",
  "card_template_discard": "Renunță",
  "card_template_published": "Trimis: tabletele arată acum starea nouă.",
+ "card_template_preview_big": "Mare",
+ "card_template_preview_small": "Mică",
  "card_template_use": "Cum îl folosești: adaugă cardul NeonPlan pe tabletă și alege șablonul sus, sau în YAML:",
  "card_template_copy": "Copiază",
  "card_template_copied": "Copiat.",

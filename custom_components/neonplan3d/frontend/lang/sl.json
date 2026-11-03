@@ -2220,6 +2220,8 @@
  "card_template_publish": "Pošlji na tablice",
  "card_template_discard": "Zavrzi",
  "card_template_published": "Poslano: tablice zdaj kažejo novo stanje.",
+ "card_template_preview_big": "Velik",
+ "card_template_preview_small": "Majhen",
  "card_template_use": "Kako jo uporabiš: na tablici dodaj kartico NeonPlan in zgoraj izberi predlogo, ali v YAML:",
  "card_template_copy": "Kopiraj",
  "card_template_copied": "Kopirano.",

@@ -2220,6 +2220,8 @@
  "card_template_publish": "发送到平板",
  "card_template_discard": "放弃",
  "card_template_published": "已发送：平板现在显示新状态。",
+ "card_template_preview_big": "放大",
+ "card_template_preview_small": "缩小",
  "card_template_use": "使用方法：在平板上添加 NeonPlan 卡片并在顶部选择模板，或在 YAML 中：",
  "card_template_copy": "复制",
  "card_template_copied": "已复制。",

@@ -60,6 +60,7 @@ export class Fp3dCardTemplates extends LitElement {
     _scale: { state: true },
     _screen: { state: true },
     _open: { state: true },
+    _big: { state: true },
     initial: { attribute: false },
   };
 
@@ -83,6 +84,8 @@ export class Fp3dCardTemplates extends LitElement {
   private declare _screen: ScreenSize;
   /** The NeonPlan views open now (polled while this is open; null until the first answer or for an older backend). */
   private declare _open: OpenScreen[] | null;
+  /** The preview over the dialog's whole width, the form below it. */
+  private declare _big: boolean;
   private openTimer: ReturnType<typeof setInterval> | undefined;
   /** The template to open first (a link from the dashboard's card dialog names it). */
   declare initial: string | null;
@@ -106,6 +109,7 @@ export class Fp3dCardTemplates extends LitElement {
     this._scale = 0.5;
     this._screen = readScreen();
     this._open = null;
+    this._big = false;
     this.initial = null;
   }
 
@@ -503,7 +507,7 @@ export class Fp3dCardTemplates extends LitElement {
             : nothing}
         </div>
       </div>
-      <div class="fp3d-tpl-split ${this._preview ? "" : "fp3d-tpl-nopreview"}">
+      <div class="fp3d-tpl-split ${this._preview ? "" : "fp3d-tpl-nopreview"} ${this._preview && this._big ? "fp3d-tpl-big" : ""}">
         <div class="fp3d-tpl-preview">
           <div class="fp3d-tpl-row">
             <b>${this.t("card_template_preview")}</b>
@@ -511,6 +515,9 @@ export class Fp3dCardTemplates extends LitElement {
               ? html`<select class="fp3d-tpl-size" aria-label=${this.t("card_template_screen")} @change=${(e: Event) => this.setScreen((e.target as HTMLSelectElement).value as ScreenSize)}>
                   ${(Object.keys(SCREENS) as ScreenSize[]).map((k) => html`<option value=${k} ?selected=${k === this._screen}>${this.t(SCREENS[k].label)}</option>`)}
                 </select>`
+              : nothing}
+            ${this._preview
+              ? html`<button class="fp3d-btn" aria-pressed=${this._big} @click=${() => (this._big = !this._big)}>${this._big ? "⤡" : "⤢"} ${this.t(this._big ? "card_template_preview_small" : "card_template_preview_big")}</button>`
               : nothing}
             <button class="fp3d-btn" @click=${() => this.togglePreview()}>${this.t(this._preview ? "card_template_preview_off" : "card_template_preview_on")}</button>
           </div>
@@ -584,12 +591,19 @@ export class Fp3dCardTemplates extends LitElement {
       /* the preview on the left (it stays in sight while the form scrolls), the form on the right */
       .fp3d-tpl-split {
         display: grid;
-        grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+        grid-template-columns: minmax(0, 1.6fr) minmax(340px, 1fr);
         gap: 16px;
         align-items: start;
       }
       .fp3d-tpl-split.fp3d-tpl-nopreview {
         grid-template-columns: auto minmax(0, 1fr);
+      }
+      /* large: the preview over the whole width, the form below it */
+      .fp3d-tpl-split.fp3d-tpl-big {
+        grid-template-columns: 1fr;
+      }
+      .fp3d-tpl-big .fp3d-tpl-preview {
+        position: static;
       }
       .fp3d-tpl-preview {
         position: sticky;

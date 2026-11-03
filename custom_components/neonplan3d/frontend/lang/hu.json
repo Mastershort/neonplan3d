@@ -2220,6 +2220,8 @@
  "card_template_publish": "Küldés a tabletekre",
  "card_template_discard": "Elvetés",
  "card_template_published": "Elküldve: a tabletek most az új állapotot mutatják.",
+ "card_template_preview_big": "Nagy",
+ "card_template_preview_small": "Kicsi",
  "card_template_use": "Használat: add hozzá a NeonPlan-kártyát a tableten, és fent válaszd ki a sablont, vagy YAML-ben:",
  "card_template_copy": "Másolás",
  "card_template_copied": "Másolva.",

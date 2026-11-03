@@ -2220,6 +2220,8 @@
  "card_template_publish": "Lähetä tableteille",
  "card_template_discard": "Hylkää",
  "card_template_published": "Lähetetty: tabletit näyttävät nyt uuden tilan.",
+ "card_template_preview_big": "Suuri",
+ "card_template_preview_small": "Pieni",
  "card_template_use": "Käyttö: lisää NeonPlan-kortti tabletille ja valitse malli ylhäältä, tai YAML:ssa:",
  "card_template_copy": "Kopioi",
  "card_template_copied": "Kopioitu.",

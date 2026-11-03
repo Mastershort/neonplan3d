@@ -2220,6 +2220,8 @@
  "card_template_publish": "Send til tabletterne",
  "card_template_discard": "Kassér",
  "card_template_published": "Sendt: tabletterne viser nu den nye tilstand.",
+ "card_template_preview_big": "Stor",
+ "card_template_preview_small": "Lille",
  "card_template_use": "Sådan bruger du den: tilføj NeonPlan-kortet på tabletten og vælg skabelonen øverst, eller i YAML:",
  "card_template_copy": "Kopiér",
  "card_template_copied": "Kopieret.",

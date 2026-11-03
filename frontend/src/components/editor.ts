@@ -15415,7 +15415,7 @@ export class Fp3dEditor extends LitElement {
         color: var(--fp3d-soft);
       }
       .fp3d-dialog.fp3d-dialog-wide {
-        width: min(1180px, 100%);
+        width: min(1560px, 100%);
       }
       .fp3d-narrow .fp3d-dialog {
         width: 100%;
