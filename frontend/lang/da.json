@@ -36,6 +36,8 @@
  "floor_name": "Navn",
  "elevation": "Højde over jorden (m)",
  "floor_shift": "Flyt etagen (m)",
+ "floor_shift_x": "X → mod højre",
+ "floor_shift_z": "Z ↓ nedad",
  "floor_shift_apply": "Flyt",
  "floor_shift_hint": "Flytter alle rum, møbler, enheder, udendørsområder, fritstående vægge og baggrundsbilledet på denne etage med X og Z. Tagflader og kabler bliver.",
  "height": "Lofthøjde (m)",

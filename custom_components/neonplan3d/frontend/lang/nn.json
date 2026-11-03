@@ -36,6 +36,8 @@
  "floor_name": "Namn",
  "elevation": "Høgd over bakken (m)",
  "floor_shift": "Flytt etasjen (m)",
+ "floor_shift_x": "X → mot høgre",
+ "floor_shift_z": "Z ↓ nedover",
  "floor_shift_apply": "Flytt",
  "floor_shift_hint": "Flyttar alle rom, møblar, einingar, uteområde, frittståande veggar og bakgrunnsbiletet i denne etasjen med X og Z. Takdelar og kablar blir liggjande.",
  "height": "Takhøgd (m)",

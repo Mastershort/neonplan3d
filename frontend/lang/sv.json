@@ -36,6 +36,8 @@
  "floor_name": "Namn",
  "elevation": "Höjd över mark (m)",
  "floor_shift": "Flytta våningen (m)",
+ "floor_shift_x": "X → åt höger",
+ "floor_shift_z": "Z ↓ nedåt",
  "floor_shift_apply": "Flytta",
  "floor_shift_hint": "Flyttar alla rum, möbler, enheter, utomhusytor, fristående väggar och bakgrundsbilden på den här våningen med X och Z. Takpartier och kablar ligger kvar.",
  "height": "Takhöjd (m)",

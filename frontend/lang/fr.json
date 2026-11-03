@@ -36,6 +36,8 @@
  "floor_name": "Nom",
  "elevation": "Altitude (m)",
  "floor_shift": "Décaler l'étage (m)",
+ "floor_shift_x": "X → vers la droite",
+ "floor_shift_z": "Z ↓ vers le bas",
  "floor_shift_apply": "Décaler",
  "floor_shift_hint": "Déplace toutes les pièces, meubles, appareils, zones extérieures, murs libres et l'image de fond de cet étage de X et Z. Les pans de toit et les câbles restent.",
  "height": "Hauteur sous plafond (m)",

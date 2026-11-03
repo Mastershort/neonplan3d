@@ -10671,8 +10671,15 @@ export class Fp3dEditor extends LitElement {
               ${admin
                 ? html`<div class="fp3d-field fp3d-wide fp3d-shift" title=${this.t("floor_shift_hint")}>
                     <span>${this.t("floor_shift")}</span>
-                    <input type="number" step="0.05" .value=${String(this._shiftX)} aria-label="X" @change=${(e: Event) => (this._shiftX = Number((e.target as HTMLInputElement).value) || 0)} />
-                    <input type="number" step="0.05" .value=${String(this._shiftZ)} aria-label="Z" @change=${(e: Event) => (this._shiftZ = Number((e.target as HTMLInputElement).value) || 0)} />
+                    <!-- which way each number moves the floor (#894): the plan's x to the right, z downwards -->
+                    <label class="fp3d-shift-axis"
+                      >${this.t("floor_shift_x")}
+                      <input type="number" step="0.05" .value=${String(this._shiftX)} @change=${(e: Event) => (this._shiftX = Number((e.target as HTMLInputElement).value) || 0)}
+                    /></label>
+                    <label class="fp3d-shift-axis"
+                      >${this.t("floor_shift_z")}
+                      <input type="number" step="0.05" .value=${String(this._shiftZ)} @change=${(e: Event) => (this._shiftZ = Number((e.target as HTMLInputElement).value) || 0)}
+                    /></label>
                     <button class="fp3d-btn" ?disabled=${!this._shiftX && !this._shiftZ} @click=${() => this.shiftFloor(this._shiftX, this._shiftZ)}>${this.t("floor_shift_apply")}</button>
                     <button class="fp3d-btn" title=${this.t("floor_turn_hint")} @click=${() => this.turnFloor()}>${this.t("floor_turn")}</button>
                     <button class="fp3d-btn" title=${this.t("floor_start_view_hint")} @click=${() => this.rememberFloorView()}>${this.t("floor_start_view")}</button>
@@ -15401,6 +15408,12 @@ export class Fp3dEditor extends LitElement {
         padding: 0;
       }
       /* card templates: the preview next to the form */
+      .fp3d-shift-axis {
+        display: inline-grid;
+        gap: 2px;
+        font-size: 11px;
+        color: var(--fp3d-soft);
+      }
       .fp3d-dialog.fp3d-dialog-wide {
         width: min(1180px, 100%);
       }

@@ -36,6 +36,8 @@
  "floor_name": "Ime",
  "elevation": "Višina (m)",
  "floor_shift": "Premakni nadstropje (m)",
+ "floor_shift_x": "X → v desno",
+ "floor_shift_z": "Z ↓ navzdol",
  "floor_shift_apply": "Premakni",
  "floor_shift_hint": "Premakne vse prostore, pohištvo, naprave, zunanje površine, proste stene in sliko ozadja tega nadstropja za X in Z. Deli strehe in kabli ostanejo.",
  "height": "Višina stropa (m)",

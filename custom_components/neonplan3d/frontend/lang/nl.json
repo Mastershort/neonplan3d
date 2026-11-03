@@ -36,6 +36,8 @@
  "floor_name": "Naam",
  "elevation": "Hoogte boven de grond (m)",
  "floor_shift": "Verdieping verschuiven (m)",
+ "floor_shift_x": "X → naar rechts",
+ "floor_shift_z": "Z ↓ naar beneden",
  "floor_shift_apply": "Verschuiven",
  "floor_shift_hint": "Verschuift alle kamers, meubels, apparaten, buitenruimtes, vrije muren en de achtergrondafbeelding van deze verdieping met X en Z. Dakvlakken en kabels blijven liggen.",
  "height": "Plafondhoogte (m)",

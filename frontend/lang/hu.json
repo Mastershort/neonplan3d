@@ -36,6 +36,8 @@
  "floor_name": "Név",
  "elevation": "Szintmagasság (m)",
  "floor_shift": "Szint eltolása (m)",
+ "floor_shift_x": "X → jobbra",
+ "floor_shift_z": "Z ↓ lefelé",
  "floor_shift_apply": "Eltolás",
  "floor_shift_hint": "A szint minden helyiségét, bútorát, eszközét, kültéri területét, szabad falát és háttérképét X és Z értékkel eltolja. A tetőfelületek és kábelek maradnak.",
  "height": "Belmagasság (m)",

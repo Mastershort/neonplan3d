@@ -36,6 +36,8 @@
  "floor_name": "Název",
  "elevation": "Výška nad zemí (m)",
  "floor_shift": "Posunout podlaží (m)",
+ "floor_shift_x": "X → doprava",
+ "floor_shift_z": "Z ↓ dolů",
  "floor_shift_apply": "Posunout",
  "floor_shift_hint": "Posune všechny místnosti, nábytek, zařízení, venkovní plochy, volné stěny a obrázek na pozadí tohoto podlaží o X a Z. Části střechy a kabely zůstanou.",
  "height": "Výška stropu (m)",

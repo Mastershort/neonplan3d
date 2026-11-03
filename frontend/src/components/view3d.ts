@@ -206,6 +206,12 @@ function roofWindowState(hass: HomeAssistant, w: RoofWindow): { open: number; ti
 }
 
 
+/** The plan as the 3D view draws it: everything but the card templates, which only the dashboard cards read. */
+function planKey(b: Building): string {
+  const { card_templates: _templates, ...house } = b;
+  return JSON.stringify(house);
+}
+
 /** Announcements this page already said (a card and the panel both listen). */
 const heardAnnouncements = new Set<string>();
 /** Calls to load again already followed (a card and the panel on one page reload once). */
@@ -1035,7 +1041,11 @@ export class Fp3dView3d extends LitElement {
       // a feature pack may have arrived with them (Energie Pro): the cables and modules follow
       this.syncDevices(true);
     }
-    if (changed.has("building") && this.building) {
+    // a plan that changed only in its card templates (edited for the wall tablets) is the same house: nothing is built again
+    const drawn = changed.has("building") && this.building ? planKey(this.building) : this.drawnPlan;
+    const sameHouse = changed.has("building") && drawn === this.drawnPlan;
+    this.drawnPlan = drawn;
+    if (changed.has("building") && this.building && !sameHouse) {
       // a new start view (just remembered in the editor) shows right away in the house view
       const start = JSON.stringify(this.startViewOf());
       const startChanged = this.shownStartView !== undefined && this.shownStartView !== start;
@@ -1456,7 +1466,8 @@ export class Fp3dView3d extends LitElement {
         const members = Array.isArray(a.group_members) ? (a.group_members as string[]).filter((m) => m !== id) : [];
         sound.push({ id, floorId: floor.id, x, z, level: playing ? 0.3 + 0.7 * vol : 0, playing, members });
         const title = label || translate(hass, "holo_media_playing");
-        const anchor = { p: [x, floor.elevation + top + 0.12, z] as [number, number, number], n: [0, 1, 0] as [number, number, number], floorId: floor.id, size: holoSize * 0.7, roof: false, views: "all" as const };
+        // with its room: an opened room shows the speaker playing in it, not only the floor (#911)
+        const anchor = { p: [x, floor.elevation + top + 0.12, z] as [number, number, number], n: [0, 1, 0] as [number, number, number], floorId: floor.id, size: holoSize * 0.7, roof: false, views: "all" as const, room: roomAt(floor, x, z) };
         const card: HoloCard = {
           kind: "media",
           name,
@@ -4995,6 +5006,8 @@ export class Fp3dView3d extends LitElement {
 
   /** Opens a module's sheet for a room (from its panel). */
   private plainOf: { from: Building; to: Building } | null = null;
+  /** The plan as last drawn, without its card templates (see planKey). */
+  private drawnPlan = "";
   private condOf: { from: Building; sig: string; to: Building } | null = null;
   /** Which pieces with a condition ("only show while …") the 3D view shows now. */
   private shownSig = "";
