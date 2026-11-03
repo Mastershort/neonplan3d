@@ -5,16 +5,17 @@ import { confirmEntities } from "./devices.ts";
 import { countView } from "./diagnostics.ts";
 import { css, html, LitElement, nothing, type PropertyValues } from "lit";
 import { BuildingController } from "./building-controller.ts";
+import "./components/room-bar.ts";
 import "./components/room-panel.ts";
 import "./components/view3d.ts";
 import { languageReady, loadLanguage, translate, type I18nKey } from "./i18n.ts";
 import { controls, tokens } from "./styles.ts";
 import type { HomeAssistant } from "./types.ts";
-import type { CardConfig, CardControl } from "./card-config.ts";
+import { cardTemplate, effectiveConfig, type CardConfig, type CardControl } from "./card-config.ts";
 import { nightActive } from "./kiosk.ts";
 import { loadCardEditor } from "./load-card-editor.ts";
 import type { WallMode } from "./viewer/viewer3d.ts";
-import { hasFeature, type Feature } from "./features.ts";
+import { hasFeature, released, type Feature } from "./features.ts";
 import { TimeTravel } from "./load-timetravel.ts";
 import type { HistorySpec } from "./timetravel/types.ts";
 
@@ -27,6 +28,19 @@ function savedWalls(): WallMode | null {
   } catch {
     return null;
   }
+}
+
+/**
+ * Whether the card sits in a sections dashboard's grid (hui-grid-section), across the shadow roots: only there is its
+ * cell sized by rows. Anywhere else (a masonry column, a stack) a taller box is someone else's layout.
+ */
+function inSectionsGrid(el: Element): boolean {
+  let n: Element | null = el;
+  for (let i = 0; n && i < 40; i++) {
+    if (n.localName === "hui-grid-section") return true;
+    n = n.parentElement ?? ((n.getRootNode() as ShadowRoot).host ?? null);
+  }
+  return false;
 }
 
 export class Floorplan3dCard extends LitElement {
@@ -46,10 +60,15 @@ export class Floorplan3dCard extends LitElement {
     _clean: { state: true },
     _night: { state: true },
     _orbit: { state: true },
+    _stretch: { state: true },
   };
 
   declare hass: HomeAssistant;
+  /** The options the card works with: its template's from the plan with its own YAML on top (see effectiveConfig). */
   private declare _config: CardConfig;
+  /** The card's own YAML, and the template it last applied (as text: a plan pushed again with it unchanged is no change). */
+  private yaml: CardConfig | null = null;
+  private appliedTemplate = "";
   private declare _roomId: string | null;
   /** The configured start room was applied once the building arrived. */
   private roomApplied = false;
@@ -72,6 +91,9 @@ export class Floorplan3dCard extends LitElement {
   /** Kiosk: the night dimming is active; the screensaver turn runs (after an idle return). */
   private declare _night: boolean;
   private declare _orbit: boolean;
+  /** The dashboard gives the card more room than its height (a sections grid cell: rows of 56 px plus their gaps). */
+  private declare _stretch: boolean;
+  private cellObserver: ResizeObserver | null = null;
   private idleTimer: ReturnType<typeof setTimeout> | undefined;
   private nightTimer: ReturnType<typeof setInterval> | undefined;
 
@@ -94,6 +116,7 @@ export class Floorplan3dCard extends LitElement {
     this._clean = false;
     this._night = false;
     this._orbit = false;
+    this._stretch = false;
   }
 
   /** Any touch ends the screensaver and restarts the idle clock. */
@@ -184,15 +207,25 @@ export class Floorplan3dCard extends LitElement {
     }
   };
 
+  /** A preview (the editor's card templates): not counted as a card in use. */
+  preview = false;
+
   connectedCallback(): void {
     super.connectedCallback();
-    countView("card");
+    if (!this.preview) countView("card");
     document.addEventListener("fullscreenchange", this.onFullscreen);
     window.addEventListener("resize", this.onViewport);
     window.visualViewport?.addEventListener("resize", this.onViewport);
     requestAnimationFrame(this.onViewport);
     // the dashboard may still be laying out: measure once more a moment later
     setTimeout(this.onViewport, 600);
+    // in a sections dashboard the card sits in a grid cell taller than its height: the house fills the cell (#926)
+    this.cellObserver ??= new ResizeObserver(() => {
+      const want = this._config?.height ?? 420;
+      const stretch = !this._config?.fill && this.clientHeight > want + 4 && inSectionsGrid(this);
+      if (stretch !== this._stretch) this._stretch = stretch;
+    });
+    this.cellObserver.observe(this);
     this.armIdle();
     // a time range for the night needs a look at the clock now and then
     this.nightTimer = setInterval(() => (this._night = nightActive(this._config?.night, this.hass)), 60000);
@@ -203,6 +236,8 @@ export class Floorplan3dCard extends LitElement {
     document.removeEventListener("fullscreenchange", this.onFullscreen);
     window.removeEventListener("resize", this.onViewport);
     window.visualViewport?.removeEventListener("resize", this.onViewport);
+    this.cellObserver?.disconnect();
+    this.cellObserver = null;
     this.tt.stop();
 clearTimeout(this.cleanTimer);
         clearTimeout(this.idleTimer);
@@ -256,16 +291,33 @@ clearTimeout(this.cleanTimer);
 
   setConfig(config: CardConfig): void {
     if (config.height !== undefined && !(config.height > 100)) throw new Error("height must be a number of pixels above 100");
+    this.yaml = config;
+    this.appliedTemplate = this.templateKey();
+    this.applyConfig(effectiveConfig(config, this.data.building));
+  }
+
+  /** The named template as it is in the plan now ("" without one). */
+  private templateKey(): string {
+    const tpl = cardTemplate(this.data.building, this.yaml?.template);
+    return tpl ? JSON.stringify([tpl.name, tpl.config]) : "";
+  }
+
+  /** New options: from the dashboard, or a template changed in the editor – the card starts over with them. */
+  private applyConfig(config: CardConfig, previous?: CardConfig): void {
+    // a template changed in the editor: the card keeps where it is and starts over only in what changed (a clock
+    // switched on does not send the tablet back to its start view)
+    const differs = (k: keyof CardConfig) => !previous || JSON.stringify(previous[k]) !== JSON.stringify(config[k]);
     this._config = config;
-    this._floorId = undefined;
-    this._walls = savedWalls();
-    this._heat = null;
-    this._explode = null;
+    if (differs("floor")) this._floorId = undefined;
+    if (differs("room")) this.roomApplied = false;
+    if (differs("walls")) this._walls = savedWalls();
+    if (differs("heatmap")) this._heat = null;
+    if (differs("explode")) this._explode = null;
     this._orbit = false;
     this._night = nightActive(config.night, this.hass);
-    this._clean = config.controls_hidden === true;
-    this.armClean();
-    this.armIdle();
+    if (differs("controls_hidden")) this._clean = config.controls_hidden === true;
+    if (differs("controls_hide_after") || differs("controls_hidden")) this.armClean();
+    if (differs("idle_return") || differs("idle_orbit")) this.armIdle();
   }
 
   getCardSize(): number {
@@ -277,6 +329,14 @@ clearTimeout(this.cleanTimer);
   }
 
   protected willUpdate(changed: PropertyValues): void {
+    // the plan came (or came again): a template edited in the editor reaches the tablet without a reload
+    if (this.yaml?.template) {
+      const key = this.templateKey();
+      if (key !== this.appliedTemplate) {
+        this.appliedTemplate = key;
+        this.applyConfig(effectiveConfig(this.yaml, this.data.building), this._config);
+      }
+    }
     if (changed.has("hass") && this.hass) {
       this.data.setHass(this.hass);
       this.tt.session?.setLive(this.hass);
@@ -339,10 +399,15 @@ clearTimeout(this.cleanTimer);
         ? this._top !== null
           ? `${Math.max(240, this._vh - this._top - 2)}px`
           : "calc(100vh - var(--header-height, 56px) - 2px)"
-        : `${height}px`;
+        : this._stretch
+          ? "100%"
+          : `${height}px`;
     // the bar of switches at the bottom (the back button belongs to it)
     const bar = !!b && !this._clean && (canGoBack || ((!!c?.controls || !!c?.time_travel) && !(this._roomId && c.room_panel !== false)));
     const tt = this.tt.active;
+    // the room bar (room_bar: true): above the switches, it stays when the switches are hidden; not while
+    // travelling in time or with a room panel open
+    const roomBar = !!b && !!c?.room_bar && released("room_bar") && !tt && !(this._roomId && c.room_panel !== false);
     const eye = c?.controls_hidden !== undefined || (c?.controls_hide_after ?? 0) > 0;
     const t = (k: Parameters<typeof translate>[1]) => translate(this.hass, k);
     const accent = /^#[0-9a-f]{6}$/i.test(c?.accent ?? "") ? c!.accent : null;
@@ -391,6 +456,8 @@ clearTimeout(this.cleanTimer);
               .director=${!!c?.director}
               .voice=${!!c?.voice}
               .screen=${c?.screen?.trim() || null}
+              .template=${c?.template?.trim() || null}
+              .viewKind=${this.preview ? "preview" : "card"}
               .voiceArea=${c?.voice_area?.trim() || null}
               @open-extensions=${() => this.openDashboard("/neonplan3d?tab=extensions")}
               .scenes=${c?.scenes !== false}
@@ -430,6 +497,26 @@ clearTimeout(this.cleanTimer);
               @back=${() => this.back()}
             ></fp3d-view3d>`
           : html`<p class="fp3d-card-msg">${this.data.error ?? (b ? translate(this.hass, "no_building") : translate(this.hass, "loading"))}</p>`}
+        ${b && c?.template && !cardTemplate(b, c.template) ? html`<div class="fp3d-card-tpl-missing">${translate(this.hass, "card_template_missing", { name: c.template })}</div>` : nothing}
+        ${roomBar
+          ? html`<fp3d-room-bar
+              class="fp3d-card-room-bar"
+              style="bottom:${bar ? 54 : 8}px"
+              .hass=${this.hass}
+              .building=${b}
+              .floorId=${floorId}
+              .roomId=${this._roomId}
+              ?favorites=${c?.room_bar_favorites === true}
+              @room-pick=${(e: CustomEvent<{ floorId: string; roomId: string }>) => {
+                // straight into the room; on another floor only where the card may switch floors
+                if (e.detail.floorId !== this.currentFloor()) {
+                  if (!this.canSwitch) return;
+                  this._floorId = e.detail.floorId;
+                }
+                this._roomId = e.detail.roomId === this._roomId ? null : e.detail.roomId;
+              }}
+            ></fp3d-room-bar>`
+          : nothing}
         ${this._roomId && b && this._config?.room_panel !== false
           ? html`<fp3d-room-panel
               @camera-look=${(e: CustomEvent<{ entity: string }>) => this.view3d()?.lookThrough(e.detail.entity)}
@@ -567,6 +654,10 @@ clearTimeout(this.cleanTimer);
           height: 100dvh !important;
         }
       }
+      /* a block, so the dashboard's grid cell gives it its height (and the card can measure it, #926) */
+      :host {
+        display: block;
+      }
       ha-card {
         overflow: hidden;
         background: var(--fp3d-bg);
@@ -598,11 +689,31 @@ clearTimeout(this.cleanTimer);
       fp3d-view3d {
         flex: 1;
       }
+      .fp3d-card-tpl-missing {
+        position: absolute;
+        top: 10px;
+        left: 50%;
+        transform: translateX(-50%);
+        max-width: calc(100% - 40px);
+        padding: 6px 12px;
+        border-radius: 10px;
+        background: var(--fp3d-chrome-solid, rgba(10, 16, 30, 0.92));
+        border: 1px solid rgba(255, 170, 60, 0.6);
+        color: var(--fp3d-text, #fff);
+        font-size: 13px;
+        z-index: 5;
+      }
       .fp3d-card-msg {
         margin: auto;
         color: var(--fp3d-muted);
         padding: 16px;
         text-align: center;
+      }
+      /* beside the view's own buttons (search, eye) at the bottom left: nothing moves for the room bar */
+      .fp3d-card-room-bar {
+        position: absolute;
+        left: 148px;
+        right: 10px;
       }
       .fp3d-card-panel {
         position: absolute;

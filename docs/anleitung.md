@@ -194,6 +194,7 @@ Alles, was zum ganzen Plan gehört und nicht zu einer Etage, einem Raum oder ein
 | **⛰ Gelände** | siehe [4.21](#421-keller-und-gelände) |
 | **💾 Sicherung** | Export, Import, Wiederherstellen, siehe Kapitel 9 |
 | **🧩 Module** | die eingespielten Module (Code aus dem Shop, etwa „Das Haus antwortet“) und **Modul einspielen …** für die .fp3dpack-Datei |
+| **🖥 Karten-Vorlagen** | fertige Dashboard-Karten für die Wandtablets, siehe [8.1](#81-karten-vorlagen) |
 
 Die **Dachform** (kein Dach, Flachdach, Satteldach, First, Neigung, Überstand) steht beim Dach-Werkzeug, siehe [4.19](#419-dach). Die **Startansicht** merkst du dir in der 3D-Ansicht: Haus drehen und zoomen, dann in den Ansicht-Einstellungen (Zahnrad oben rechts) **📌** antippen; **📌✕** setzt sie zurück. 3D-Ansicht, Karte und Kiosk öffnen das Haus dann so, und eine geöffnete Etage wird von derselben Seite gezeigt.
 
@@ -280,6 +281,7 @@ Die **Arbeitsplatte** (Küche) ist eine freie Platte ohne Unterbau, für Lücken
 - Der **Griff vor dem Möbel** dreht es in 15°-Schritten, die **Ecken** ändern die Größe. Pack-Möbel ab den Packs von Oktober 2026 behalten dabei, was fest ist: Beine, Armlehnen, Platten und Griffe bleiben so dick wie sie sind, Sitzfläche und Korpus wachsen – ein auf 3 m gezogenes Sofa hat weiter 20 cm breite Armlehnen, ein höheres eine höhere Lehne.
 - Rechts stellst du Breite, Tiefe, Höhe, Drehung und **Höhe über Boden** ein. **Spiegeln** vertauscht links und rechts – das L-Sofa andersherum, der Schrank mit der Tür auf der anderen Seite; der Punkt steht auch im Rechtsklick-Menü und in der Möbelleiste der 3D-Ansicht. Mit der Höhe über Boden hängst du einen Netzwerkschrank oder ein Regal an die Wand oder stellst einen Trockner auf die Waschmaschine. Sie zählt immer vom Boden: Ein Oberschrank steht von sich aus auf 1,45 m, ein Wand-Fernseher mittig auf 1,3 m; du kannst beide höher oder tiefer setzen. **Höhe automatisch** setzt sie zurück.
 - **Zustand von:** Jedes Möbel kann eine Entität zeigen, die an, belegt oder zu Hause meldet – dann leuchtet seine Oberseite: das Bett mit Belegungsmatte, der Sessel, die Sauna. Eine zweite Entität beleuchtet die andere Hälfte (links/rechts, beim Hochbett unten/oben); stellst du die erste auf *keine*, rückt die zweite an ihre Stelle. Lampen, Energiegeräte und Bildschirme haben ihre eigenen Felder dafür.
+- **Nur zeigen, wenn …** (neu): Das Stück steht in 3D nur, solange eine Entität in einem Zustand ist – der Weihnachtsbaum, solange `input_boolean.weihnachten` an ist, die Gartendeko nur, wenn ein Saison-Sensor „summer“ meldet. Mehrere Zustände trennst du mit Komma, `<20` oder `>80` vergleicht eine Zahl, ein `!` davor dreht es um; leer heißt „on“. Ausgeblendet verschwinden auch sein Licht und sein Symbol. Im Editor bleibt das Stück immer sichtbar, solange es in 3D fehlt, ist es im Plan blass. So stellst du Deko einmal hin und schaltest sie jedes Jahr per Schalter oder Automation ein.
 - **Wandansicht:** **Wandansicht** oben in der Werkzeugleiste und dann in einen Raum klicken (nah an einer Wand öffnet sich genau diese Wand) – oder **▦ Wände dieses Raums von vorne ansehen** im Raumformular, **▦ Wandansicht** im Möbelformular und im Rechtsklick-Menü, **▦** bei jeder Wand unter *Wandhöhen* – zeigt die Wand von vorne – mit Türen und Fenstern und allem, was an ihr steht oder hängt, als echte Ansicht der Möbel von vorne: Schränke, Regale, Oberschränke, Fernseher, Wandleuchten. Ein Möbel ziehst du dort entlang der Wand und, wenn es hängt, in der Höhe; dabei zeigen Maßlinien den Abstand zu den Wandenden und zum Boden, und Kanten rasten an Wandenden, Türen, Fenstern und anderen Möbeln ein (**Alt** zieht frei). Pfeiltasten schieben um 1 cm, mit **Umschalt** um 10 cm; unten stehen **Abstand von links** und **Höhe über Boden** zum Eintippen. Die Pfeile **‹** und **›** links und rechts (ohne gewähltes Möbel auch **←** und **→**) drehen dich zur Wand, die links bzw. rechts anschließt – so gehst du einmal rundherum durch den Raum. Ein Doppelklick öffnet das Möbel im Grundriss. Oben rechts wechselst du zwischen **3D im Raum** und **Wand von vorne**: In 3D stehst du in der Raummitte auf Augenhöhe und schaust auf die Wand – mit allem im Raum, auch dem Tisch vor der Eckbank. Ein Möbel antippen wählt es aus, Ziehen verschiebt es auf dem Boden, der runde Griff **↕** über dem gewählten Möbel hebt oder senkt es (mit Höhenanzeige), Mausrad oder zwei Finger gehen näher heran oder weiter weg, die mittlere oder rechte Maustaste (am Tablet zwei Finger) schaut sich um – die linke Maustaste bleibt so den Möbeln vorbehalten; unten stehen **Abstand von links**, **Abstand zur Wand** und **Höhe über Boden** zum Eintippen, dazu **↺ 45°** / **↻ 45°** und die **Drehung** in Grad – an der Wand gedreht rückt das Möbel von selbst in den Raum. Ein fixiertes Möbel zeigt unten **🔒 Lösen**: erst lösen, dann lässt es sich ziehen. **Wand von vorne** ist die flache Ansicht zum zentimetergenauen Ausrichten an der Wand. Dort zoomst du mit dem Mausrad (dorthin, wo die Maus steht), am Tablet mit zwei Fingern oder mit **＋** / **−** unten rechts; **⤢** zeigt wieder die ganze Wand, vergrößert schieben die Pfeile daneben den Ausschnitt. Mit **Energie Pro** setzt eine Leiste links Stromzähler, Wechselrichter, Stromspeicher und Wallbox direkt an die gezeigte Wand.
 
 ![Wandansicht: 3D im Raum und Wand von vorne](images/wall-view.jpg)
@@ -774,6 +776,10 @@ data:
 
 **Raum dieses Geräts – „hier“** (neu in 2.1). Hängt ein Tablet fest in einem Raum, wählst du unter **⚙ Einstellungen → 🎙 Sprachsteuerung → Raum dieses Geräts** den Raum (gilt für dieses Gerät, ab Werk leer). Dann reichen Sätze ohne Raumnamen: „Licht an“, „Mach hier das Licht aus“ oder „Rollladen runter“ schalten nur in diesem Raum. Nennst du einen Raum („Licht in der Küche an“), gilt der genannte. Zur Auswahl stehen die Räume (und Außenbereiche) mit Home-Assistant-Bereich, denn Assist schaltet nach Bereichen: NeonPlan gibt den Satz so an Assist, als hätte ihn ein Gerät in diesem Bereich gehört. Auf einem **Dashboard** stellst du das an der Karte ein: Dashboard bearbeiten → NeonPlan-Karte → **Funktionen** → **Raum für „hier“**, oder im YAML `voice_area: kueche` (die Bereichs-ID aus Home Assistant). Die Karte gilt auf jedem Gerät, das dieses Dashboard zeigt; ohne Auswahl gilt der Raum, der auf dem Gerät eingestellt ist. Ein Sprach-Satellit wie der Voice PE braucht diese Einstellung nicht, er kennt seinen Bereich selbst.
 
+**„da“ – der angetippte Raum.** Hast du in der 3D-Ansicht einen Raum geöffnet, meint „da“ diesen Raum: Auf dem Küchentablet ins Wohnzimmer getippt, dann „Mach da das Licht aus“ oder „Fernseher da aus“. „hier“ bleibt der Raum des Tablets.
+
+**Saugen und „Alles aus“ pro Raum.** Im Editor hat jeder Raum das Feld **Reinigung (Saugroboter)**: das Skript oder den Knopf, der deinen Roboter in diesen Raum schickt (die Raumreinigung deiner Roboter-Integration, z. B. ein Skript mit den Raum-Segmenten). Dann zeigt das Raumfenster **🧹 Saugen**, und per Sprache gehen „Saug hier“, „Saug die Küche“ oder „Saug da“. **⏻ Alles aus** im Raumfenster und per Sprache („Alles aus“, „Mach da alles aus“, „Alles aus in der Küche“) schaltet die Lichter und Ventilatoren des Raums aus, den Fernseher ab und hält laufende Lautsprecher an. Schaltsteckdosen nur, wenn im Plan eine Lampe daran hängt, damit nie der Kühlschrank ausgeht.
+
 **Testen:** Im Abschnitt **🎙️ Sprachsteuerung** startet **🎙️ Mikrofon testen** eine Probe. Sie prüft der Reihe nach https, Mikrofon, Pegel und Assist. Sie zeigt auch, welchen Raum ein gesprochener Satz öffnen würde, und schaltet dabei nichts. Steht irgendwo ein ✖, steht daneben, was zu tun ist.
 
 **Gut zu wissen:**
@@ -1171,9 +1177,9 @@ Unten auf der Seite fasst ein **Balken** deine installierten Packs zusammen (Mö
 **Fun-Packs** sind kostenlose Extras zum Spaß – für jeden mit einem Kundenkonto bei mastershort.de. Ein Kauf ist nicht nötig:
 
 - **Mit Shop-Verbindung** liegen sie schon in deinem Konto. Unter **Erweiterungen** stehen sie bei deinen Packs mit **Installieren**; Home Assistant meldet neue Fun-Packs außerdem einmal unter Benachrichtigungen.
-- **Ohne Konto** legst du dir kostenlos eins an: **🎁 Kostenloses Kundenkonto anlegen** unter **🎈 Fun-Packs** (oder im Hinweis in der 3D-Ansicht), E-Mail bestätigen, den Lizenzschlüssel aus der Mail unter **Shop-Verbindung** einfügen. Danach erscheinen die Fun-Packs zum Installieren – und künftig auch neue Packs direkt in der App.
+- **Ohne Konto** legst du dir kostenlos eins an: **🎁 Kostenloses Kundenkonto anlegen** im Editor unter **⚙ Einstellungen → 🎈 Fun-Packs** (oder im Hinweis in der 3D-Ansicht), E-Mail bestätigen, den Lizenzschlüssel aus der Mail unter **Shop-Verbindung** einfügen. Danach erscheinen die Fun-Packs unter **Erweiterungen** zum Installieren – und künftig auch neue Packs direkt in der App.
 
-Unter **🎈 Fun-Packs** schaltest du sie danach ein und aus.
+Eingestellt werden die Fun-Packs im Editor unter **⚙ Einstellungen → 🎈 Fun-Packs** (neu; vorher unter Erweiterungen). Dort schaltest du sie ein und aus und legst z. B. die Haustiere an; unter Erweiterungen führt ein Knopf **Zu den Fun-Pack-Einstellungen** direkt dorthin.
 
 **Haustiere:** Katze, Kaninchen oder Hund – als Dackel, Mops, Terrier, Labrador oder Schäferhund – leben in deinem 3D-Haus. **+ Haustier hinzufügen** legt ein Tier an: Art, Rasse (bei Hunden), Name, Fell und die Etage, auf der es startet. **Haustiere zeigen** schaltet alle auf einmal ein und aus; in der Dashboard-Karte blendet die Option **Haustiere zeigen** (YAML `pets: false`) sie für diese Karte aus, etwa am Wandtablet.
 
@@ -1185,6 +1191,14 @@ Unter **🎈 Fun-Packs** schaltest du sie danach ein und aus.
 - Gezeichnet wird nur, solange sich ein Tier bewegt – ruhend kosten sie nichts, auch nicht auf alten Wandtablets.
 
 **Halloween:** 13 Deko-Möbel in der Möbel-Bibliothek unter **Fun-Pack: Halloween** – Kürbis mit Gesicht, kleiner Kürbis, Kürbis-Trio, Spinnennetz (für die Ecke unter der Decke), Fledermaus-Girlande, zwei Grabsteine, Skelett, Hexenkessel, Kerzenständer, orange Lichterkette, Gespenst-Figur und Hexenbesen. Kürbis, Kessel und Kerzen leuchten, wenn du ein Licht verknüpfst. Dazu schwebt ab und zu ein kleiner **Geist** durchs Haus – mitten durch die Wände, nachts öfter. **Geist schweben lassen** unter **🎈 Fun-Packs** schaltet ihn ab; in der Dashboard-Karte blendet die Option **Halloween-Geist zeigen** (YAML `ghost: false`) ihn für diese Karte aus. Auch der Geist wird nur gezeichnet, solange er unterwegs ist.
+
+**Winter & Weihnachten** (neu): 11 Deko-Möbel in der Möbel-Bibliothek unter **Fun-Pack: Winter & Weihnachten** – Weihnachtsbaum mit Lichterkette (für die Steckdose), kleiner Tannenbaum, **Adventskranz**, der seine Kerzen nach Datum anzündet (am 1. Advent eine, am 4. Advent alle vier), leuchtender Fensterstern, Schwibbogen, Leucht-Rentier für den Garten, Schneemann, Geschenke-Stapel, Lichterketten warmweiß und bunt sowie ein Weihnachtsstern. Was leuchtet, leuchtet mit einem verknüpften Licht oder einer Steckdose. Mit **Nur zeigen, wenn …** (siehe [4.8](#48-möbel)) kommt die Deko jeden Dezember von selbst wieder, etwa solange ein Kalender oder ein Helfer „Weihnachtszeit“ an ist. Unter **⚙ Einstellungen → 🎈 Fun-Packs**:
+
+- **Lichterkette an der Dachkante:** Lämpchen entlang der Traufe. **Leuchtet mit** verknüpft sie mit deiner echten Außenbeleuchtung; ohne Auswahl leuchtet sie **automatisch abends ab dem 1. Advent bis 6. Januar**. **Bunt statt warmweiß** und **Auch an Giebeln und First** (das ganze Dach in Licht) wählst du dazu.
+- **Schnee:** Meldet die Wetter-Entität Schnee, liegt Schnee auf Dach und Rasen. Bei Frost bleibt er liegen, bei Plusgraden taut er in einigen Stunden weg.
+- **Feuerwerk:** An Silvester steigt um Mitternacht (23:59 bis 0:10 Uhr) ein Neon-Feuerwerk über dem Haus auf.
+
+Alles läuft auch auf alten Wandtablets: Lichterkette und Schnee kosten kaum etwas, das Feuerwerk wird nur in den elf Minuten gezeichnet.
 
 ---
 
@@ -1232,10 +1246,33 @@ Die Karte `custom:neonplan3d-card` bringt die 3D-Ansicht in jedes Dashboard. Sie
 
 ![Karte mit Szenen](images/card-scenes.jpg)
 
+### 8.1 Karten-Vorlagen
+
+Statt jede Karte auf jedem Tablet einzeln einzustellen, baust du sie einmal im Editor: **⚙ Einstellungen → 🖥 Karten-Vorlagen → + Neue Vorlage**. Gib ihr einen Namen (etwa „Küche Fire-Tablet“) und stell darunter alles ein, mit demselben Formular wie im Kartendialog von Home Assistant. **Duplizieren** macht eine Kopie als Ausgangspunkt für das nächste Tablet.
+
+**Auf dem Tablet:** Karte hinzufügen, nach „NeonPlan“ suchen und ganz oben unter **Vorlage** die Vorlage wählen, fertig. Das Formular darunter fällt weg. Im YAML stehen nur zwei Zeilen:
+
+```yaml
+type: custom:neonplan3d-card
+template: kueche_fire
+```
+
+- **Ändern:** Änderst du die Vorlage im Editor, übernimmt jedes Tablet mit dieser Vorlage das nach einem Moment von selbst, ohne Neuladen.
+- **Die Vorlage zählt, die Größe bleibt bei der Karte:** Eine Karte mit Vorlage zeigt die Vorlage. Nur ihre Größe (**Bildschirm füllen**, **Höhe**, **Vollbild-Knopf**) nimmt sie aus ihrem eigenen YAML, denn die gehört zum Dashboard. Alles andere, was von früher noch im YAML der Karte steht, gilt nicht mehr; der Kartendialog zeigt es an und räumt es mit **Aufräumen** weg. Soll ein Tablet anders aussehen, gib ihm eine eigene Vorlage (**Duplizieren**).
+- **Sofort oder mit Knopf:** Unter **Änderungen** wählst du pro Vorlage **Sofort auf die Tablets** (Standard) oder **Erst mit Knopf übertragen**. Dann zeigt nur die Vorschau deine Änderungen; die Tablets behalten den alten Stand, bis du **Auf Tablets übertragen** drückst. **Verwerfen** nimmt die Änderungen zurück.
+- **Wo hängt das Tablet?** Das Feld oben in der Vorlage legt den Raum für „hier“ fest („Mach hier das Licht an“), unabhängig davon, welche Etage oder welchen Start-Raum die Karte zeigt.
+- **Umbenennen:** Die ID im YAML folgt dem neuen Namen. Tablets, die noch mit der alten ID eingerichtet sind, finden die Vorlage weiter.
+- **Bildschirmname:** Der Name der Vorlage ist zugleich der Bildschirmname der Karte (für Durchsagen und „hier“ in der Sprachsteuerung), solange die Vorlage keinen eigenen hat.
+- **Neu laden:** **Bildschirme mit dieser Vorlage neu laden** und **Alle Bildschirme neu laden** lassen die offenen Tablets ihre Seite neu laden, etwa nach einem NeonPlan-Update (neuer Code kommt nur so an). In Automationen gibt es dafür die Aktion `neonplan3d.reload_screens` (ohne `templates` alle Bildschirme).
+- **Gelöscht:** Fehlt die Vorlage im Plan, zeigt die Karte einen Hinweis und läuft mit ihren eigenen Einstellungen weiter.
+
+### 8.2 Alle Optionen in YAML
+
 In YAML sieht eine Karte so aus. Alle Zeilen außer der ersten sind optional:
 
 ```yaml
 type: custom:neonplan3d-card
+template: kueche_fire   # eine Karten-Vorlage aus dem Editor (dann gilt nur sie, die übrigen Zeilen nicht)
 floor: floor_ab12cd34   # eine Etage zeigen (ID aus dem Editor)
 room: room_ab12cd34     # in diesem Raum starten (ID steht im Raumformular des Editors), z. B. ein Display fürs Kinderzimmer
 height: 420             # Höhe in Pixeln

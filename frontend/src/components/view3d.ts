@@ -5,6 +5,7 @@ import { linesField } from "./lines-field.ts";
 import { carState, type CarState, heatSensorOn, roomClimateValue,
   appColor,
   areaEntities,
+  coverCalls,
   entityName,
   furnitureEntities,
   isActive,
@@ -105,6 +106,8 @@ import { HEAT_SCALES, heatColor, heatGradient, roomValues, type HeatMode } from 
 import { furnitureName } from "../furniture-names.ts";
 import { fetchImage, saveBuilding } from "../api.ts";
 import { formatNumber, translate, type I18nKey } from "../i18n.ts";
+import { furnitureShown, showIfSignature } from "../show-if.ts";
+import { fireworkNow, lawnSnow, roofLightsOn, snowLevel, winterOf } from "../winter.ts";
 import { getPacks, isPackCooktop, isPackHeater, isPackType, isRobotVacuum, mountBase, packItem, packRobotCentre, packMotion, packName, packsVersion } from "../packs.ts";
 import { parkedVehicle, PRESENT_STATES, parkedVehicles, vehicleFurniture } from "../parking.ts";
 import { TRAIL_ICON, TRAIL_WINDOW_MS, trailEvents, trailPoints, trailSources, trailTime, type HistoryRow } from "../trail.ts";
@@ -140,7 +143,10 @@ import { wallLayout } from "../camera-wall.ts";
 import { watchedEntities } from "../watched.ts";
 import { backdropCss } from "../backdrop.ts";
 import { loadVoice, micProbeAsked, micProbeDone, voiceArea, voicePipeline } from "../load-voice.ts";
-import { answerAsk, subscribeAsk, type Ask, type ScreenAnnouncement } from "../api.ts";
+import { callCount, cleaningCall, everythingOff, roomOfArea } from "../room-actions.ts";
+import { deviceLabel } from "../screen-info.ts";
+import { FRONTEND_VERSION } from "../building-controller.ts";
+import { answerAsk, subscribeAsk, type Ask, type ScreenAnnouncement, type ScreenReload } from "../api.ts";
 import { pipePlanner } from "../pipe-planner.ts";
 import type { ClockPos } from "../card-config.ts";
 import { Director, HOLD_DEFAULT, directorAny, doorbellCamera, doorbellEntities, doorbellRang, triggerFired, type DirectorSettings, type Shot } from "../director.ts";
@@ -200,8 +206,16 @@ function roofWindowState(hass: HomeAssistant, w: RoofWindow): { open: number; ti
 }
 
 
+/** The plan as the 3D view draws it: everything but the card templates, which only the dashboard cards read. */
+function planKey(b: Building): string {
+  const { card_templates: _templates, ...house } = b;
+  return JSON.stringify(house);
+}
+
 /** Announcements this page already said (a card and the panel both listen). */
 const heardAnnouncements = new Set<string>();
+/** Calls to load again already followed (a card and the panel on one page reload once). */
+const reloadsAsked = new Set<string>();
 
 /** A soft two-tone gong before an announcement; silent where the browser does not let the page play sound yet. */
 async function chime(): Promise<void> {
@@ -316,6 +330,8 @@ export class Fp3dView3d extends LitElement {
     hideRoof: { attribute: false },
     voice: { attribute: false },
     screen: { attribute: false },
+    template: { attribute: false },
+    viewKind: { attribute: false },
     voiceArea: { attribute: false },
     _voice: { state: true },
     _announce: { state: true },
@@ -514,6 +530,10 @@ export class Fp3dView3d extends LitElement {
   declare voice: boolean;
   /** This view's screen name: a sentence from Assist that names a screen is only for the view with that name. */
   declare screen: string | null;
+  /** The card template this view shows (a dashboard card's option `template`): "reload screens" for it reaches it. */
+  declare template: string | null;
+  /** Where this view runs, for the overview of the open screens: the panel, a dashboard card, a template's preview. */
+  declare viewKind: "panel" | "card" | "preview";
   /** The Home Assistant area of this view's tablet (card option `voice_area`); null: the device's setting. */
   declare voiceArea: string | null;
   private declare _voice: { phase: "wait" | "listen" | "done" | "error"; text: string } | null;
@@ -647,6 +667,8 @@ export class Fp3dView3d extends LitElement {
   private fridgeTimer: ReturnType<typeof setTimeout> | undefined;
   /** Tablet level: measured values alone are shown at most every SENSOR_SYNC_MS (the pending sync, the last one). */
   private sensorTimer: ReturnType<typeof setTimeout> | undefined;
+  /** Winter: a look once a minute (night falls, the snow melts, midnight on New Year's Eve). */
+  private winterTimer: ReturnType<typeof setInterval> | undefined;
   /** A module asked to be drawn again (its own state changed: a target just set, a simulation ticking). */
   private moduleTimer: ReturnType<typeof setTimeout> | undefined;
   private lastSync = 0;
@@ -745,6 +767,8 @@ export class Fp3dView3d extends LitElement {
     this.hideRoof = false;
     this.voice = false;
     this.screen = null;
+    this.template = null;
+    this.viewKind = "panel";
     this.voiceArea = null;
     this._voice = null;
     this._micProbe = micProbeAsked();
@@ -793,6 +817,8 @@ export class Fp3dView3d extends LitElement {
       hass,
       (ask) => void this.onAsk(ask),
       (a) => void this.onAnnounce(a),
+      (r) => this.onReload(r),
+      { kind: this.viewKind, screen: this.screen, template: this.template, device: deviceLabel(), version: FRONTEND_VERSION },
     ).catch(() => {
       // a replay or an older backend: nothing to listen to
       this.unsubAsk = null;
@@ -821,6 +847,7 @@ export class Fp3dView3d extends LitElement {
 
   disconnectedCallback(): void {
     super.disconnectedCallback();
+    this.watchWinter(false);
     document.removeEventListener("visibilitychange", this.onVisible);
     this.stopWalk();
     this.pets?.dispose();
@@ -990,7 +1017,11 @@ export class Fp3dView3d extends LitElement {
 
   protected updated(changed: PropertyValues): void {
     if (changed.has("hass") && this.live?.el) this.live.el.hass = this.hass;
-    if (changed.has("hass")) this.watchAsk();
+    // a view that now shows another screen name or template tells the overview again
+    if ((changed.has("screen") || changed.has("template") || changed.has("viewKind")) && this.unsubAsk && this.hasUpdated) {
+      this.unwatchAsk();
+      this.watchAsk();
+    } else if (changed.has("hass")) this.watchAsk();
     // the star menu closes when a room or another floor is chosen (#220)
     if (this._central && ((changed.has("roomId") && changed.get("roomId") !== undefined) || (changed.has("floorId") && changed.get("floorId") !== undefined))) this._central = false;
     const v = this.viewer;
@@ -1010,7 +1041,11 @@ export class Fp3dView3d extends LitElement {
       // a feature pack may have arrived with them (Energie Pro): the cables and modules follow
       this.syncDevices(true);
     }
-    if (changed.has("building") && this.building) {
+    // a plan that changed only in its card templates (edited for the wall tablets) is the same house: nothing is built again
+    const drawn = changed.has("building") && this.building ? planKey(this.building) : this.drawnPlan;
+    const sameHouse = changed.has("building") && drawn === this.drawnPlan;
+    this.drawnPlan = drawn;
+    if (changed.has("building") && this.building && !sameHouse) {
       // a new start view (just remembered in the editor) shows right away in the house view
       const start = JSON.stringify(this.startViewOf());
       const startChanged = this.shownStartView !== undefined && this.shownStartView !== start;
@@ -1019,6 +1054,11 @@ export class Fp3dView3d extends LitElement {
       v.setBuilding(this.shownBuilding()!);
       if (startChanged && this.floorId === null) v.resetView();
     } else if (changed.has("plain") && changed.get("plain") !== undefined && this.building) v.setBuilding(this.shownBuilding()!);
+    // a piece's condition came true or false: the furniture is drawn again (only then, not on every state change)
+    else if (changed.has("hass") && this.building && showIfSignature(this.hass, this.building) !== this.shownSig) {
+      v.setBuilding(this.shownBuilding()!);
+      this.syncDevices(true);
+    }
     if (changed.has("building") || changed.has("packs") || changed.has("petsOn")) void this.syncPets();
     if (changed.has("building") || changed.has("packs") || changed.has("ghostOn")) void this.syncGhost();
     if (changed.has("startView") && changed.get("startView") !== undefined) {
@@ -1072,6 +1112,15 @@ export class Fp3dView3d extends LitElement {
     if (changed.has("building")) this.findIndex = null;
   }
 
+  /** Winter: what comes with the time of day and the year is looked at once a minute while the pack is there. */
+  private watchWinter(on: boolean): void {
+    if (on && !this.winterTimer) this.winterTimer = setInterval(() => this.syncDevices(false, true), 60_000);
+    else if (!on && this.winterTimer) {
+      clearInterval(this.winterTimer);
+      this.winterTimer = undefined;
+    }
+  }
+
   /**
    * Send device markers, door/window states, energy cables, people and floor label texts to the viewer
    * when a watched entity changed (or the building). Openings are matched with entities again when
@@ -1079,7 +1128,8 @@ export class Fp3dView3d extends LitElement {
    */
   private syncDevices(force: boolean, timed = false): void {
     const v = this.viewer;
-    const b = this.building;
+    // pieces hidden by their condition have no light or pin either
+    const b = this.conditioned();
     if (!v || !b || !this.hass) return;
     const hass = this.hass;
     if (force || !this.openingLinks || this.linkedRegistry !== hass.entities) {
@@ -1097,6 +1147,11 @@ export class Fp3dView3d extends LitElement {
         weatherEntityId: this.weatherEntityId,
       });
       if (anyModule()) this.watched = [...new Set([...this.watched, ...moduleWatched(this.sceneHost(hass, b))])];
+      // winter: the fairy lights' own switch and the weather that brings the snow
+      if (hasFeature("fun_winter")) {
+        const extra = [winterOf(b).roof_entity, weatherEntity(hass, this.weatherEntityId ?? b.settings.weather_entity), "sun.sun"].filter((id): id is string => !!id);
+        this.watched = [...new Set([...this.watched, ...extra])];
+      }
       force = true;
     }
     let changed = force || timed;
@@ -1411,7 +1466,8 @@ export class Fp3dView3d extends LitElement {
         const members = Array.isArray(a.group_members) ? (a.group_members as string[]).filter((m) => m !== id) : [];
         sound.push({ id, floorId: floor.id, x, z, level: playing ? 0.3 + 0.7 * vol : 0, playing, members });
         const title = label || translate(hass, "holo_media_playing");
-        const anchor = { p: [x, floor.elevation + top + 0.12, z] as [number, number, number], n: [0, 1, 0] as [number, number, number], floorId: floor.id, size: holoSize * 0.7, roof: false, views: "all" as const };
+        // with its room: an opened room shows the speaker playing in it, not only the floor (#911)
+        const anchor = { p: [x, floor.elevation + top + 0.12, z] as [number, number, number], n: [0, 1, 0] as [number, number, number], floorId: floor.id, size: holoSize * 0.7, roof: false, views: "all" as const, room: roomAt(floor, x, z) };
         const card: HoloCard = {
           kind: "media",
           name,
@@ -1548,9 +1604,19 @@ export class Fp3dView3d extends LitElement {
     const pool = this.poolPipes(b);
     // a module's lines (pipes, a loop in the ground) flow in the same layer; its surfaces lie over floors and lawns
     const lines = this.scene.filter((p): p is Extract<ScenePiece, { kind: "line" }> => p.kind === "line");
+    // fun pack "Winter & Christmas": fairy lights along the eaves, snow on roof and lawn, the New Year's firework
+    const winter = hasFeature("fun_winter") && !this.replay;
+    v.setRoofLights(winter && roofLightsOn(hass, b) ? (winterOf(b).roof_color ? "color" : "warm") : "off", winterOf(b).roof_outline !== false);
+    const snow = winter ? snowLevel(hass, b, weatherEntity(hass, this.weatherEntityId ?? b.settings.weather_entity)) : 0;
+    v.setRoofSnow(snow);
+    v.setFirework(winter && fireworkNow(b));
+    this.watchWinter(winter);
     v.setFlows(this.dimmed ? energyFlows : [...energyFlows, ...pool.flows, ...lineFlows(lines)]);
     v.setPipes(pool.tubes);
-    v.setPatches(this.scene.filter((p): p is Extract<ScenePiece, { kind: "patch" }> => p.kind === "patch").map((p) => ({ floorId: p.floorId, points: p.points, y: p.y, color: p.color, opacity: this.dimmed ? p.opacity * 0.4 : p.opacity, ...(p.glow ? { glow: true } : {}) })));
+    v.setPatches([
+      ...this.scene.filter((p): p is Extract<ScenePiece, { kind: "patch" }> => p.kind === "patch").map((p) => ({ floorId: p.floorId, points: p.points, y: p.y, color: p.color, opacity: this.dimmed ? p.opacity * 0.4 : p.opacity, ...(p.glow ? { glow: true } : {}) })),
+      ...lawnSnow(b, snow),
+    ]);
     const roomSensors = SHOW_PRESENCE ? personsInRooms(hass, b) : [];
     const persons = released("locate") && personsShown(b) ? [...roomSensors, ...locatedPersons(hass, b, new Set(roomSensors.map((p) => p.id)))] : roomSensors;
     v.setPersonLook(personLook(b) === "pin" ? "pin" : "figure");
@@ -2979,6 +3045,7 @@ export class Fp3dView3d extends LitElement {
     // a module's band of light round an item, or its layers (a tank warm above, cool below): on any item, over its own glow
     for (const g of glows.values()) {
       if (g.top) screens.set(g.furnitureId, { color: g.color, level: g.level, faces: [{ part: "strata", color: g.color, top: g.top, level: g.level }] });
+      else if (g.plate) screens.set(g.furnitureId, { color: g.color, level: g.level, faces: [{ part: "plate", color: g.color, level: g.level }] });
       else if (g.band) screens.set(g.furnitureId, { color: g.color, level: g.level, faces: [{ part: "band", color: g.color, level: g.level }] });
     }
     this.watchCameras(this.cameraScreens > 0 || !!this._through || this.cameraWall || this.projecting);
@@ -4170,6 +4237,11 @@ export class Fp3dView3d extends LitElement {
         return;
       }
       this._armed = null;
+      // covers each the way it can: slat-only blinds by their tilt (#920)
+      if (domain === "cover" && (service === "open_cover" || service === "close_cover")) {
+        for (const c of coverCalls(hass, ids, service === "open_cover" ? "open" : "close")) void hass.callService("cover", c.service, c.data);
+        return;
+      }
       void hass.callService(domain, service, { entity_id: ids });
     };
     const button = (key: string, label: I18nKey, domain: string, service: string, ids: string[]) =>
@@ -4380,6 +4452,62 @@ export class Fp3dView3d extends LitElement {
     }
   }
 
+  /**
+   * The editor's "Reload screens" (or the service): the views of these templates, or every view, load the page again –
+   * a few seconds apart, so a house full of tablets does not ask Home Assistant all at once. A card and the panel on
+   * one page load it once.
+   */
+  private onReload(r: ScreenReload): void {
+    if (r.templates.length && !(this.template && r.templates.includes(this.template))) return;
+    if (reloadsAsked.has(r.id)) return;
+    reloadsAsked.add(r.id);
+    // the editor on this page sent it: the admin's own page stays
+    if (Date.now() - ((window as { fp3dReloadSent?: number }).fp3dReloadSent ?? 0) < 15000) return;
+    // say so, or someone at the tablet taps around while it waits
+    this._announce = translate(this.hass, "screen_reloading");
+    setTimeout(() => location.reload(), 500 + Math.random() * 4000);
+  }
+
+  /** The room open in the view (tapped into), with its floor. */
+  private openRoom(b: Building): { floor: Floor; room: NonNullable<ReturnType<typeof zonesOf>[number]> } | null {
+    if (!this.roomId) return null;
+    for (const floor of b.floors) {
+      const room = zonesOf(floor).find((r) => r.id === this.roomId);
+      if (room) return { floor, room };
+    }
+    return null;
+  }
+
+  /**
+   * A room action by voice: the room named, "there" (open in the view), "here" (where the tablet hangs), or without
+   * either the tablet's room, else the open one. What to say back.
+   */
+  private async roomAction(hass: HomeAssistant, b: Building, intent: { action: "clean" | "off"; room: { floorId: string; roomId: string } | "here" | "there" | null }): Promise<string> {
+    const here = () => roomOfArea(b.floors, this.voiceArea ?? voiceArea());
+    const named = (id: { floorId: string; roomId: string }) => {
+      const floor = b.floors.find((f) => f.id === id.floorId);
+      const room = floor && zonesOf(floor).find((r) => r.id === id.roomId);
+      return floor && room ? { floor, room } : null;
+    };
+    const target =
+      intent.room === "there" ? this.openRoom(b) : intent.room === "here" ? here() : intent.room ? named(intent.room) : (here() ?? this.openRoom(b));
+    if (!target) return translate(hass, intent.room === "there" ? "voice_noroom_open" : "voice_noroom");
+    const name = target.room.name;
+    const run = async (calls: { domain: string; service: string; data: Record<string, unknown> }[]) => {
+      await Promise.all(calls.map((c) => hass.callService(c.domain, c.service, c.data)));
+    };
+    if (intent.action === "clean") {
+      const call = cleaningCall(hass, target.room);
+      if (!call) return translate(hass, "voice_clean_none", { room: name });
+      await run([call]);
+      return translate(hass, "voice_clean_started", { room: name });
+    }
+    const calls = everythingOff(hass, target.floor, target.room);
+    if (!calls.length) return translate(hass, "voice_off_nothing", { room: name });
+    await run(calls);
+    return translate(hass, "voice_off_done", { room: name, n: callCount(calls) });
+  }
+
   /** One spoken sentence: a place to show ("Zeig das Wohnzimmer") is shown, anything else goes to Assist. */
   private async onMic(): Promise<void> {
     const hass = this.hass;
@@ -4408,7 +4536,16 @@ export class Fp3dView3d extends LitElement {
       }
       if ((await this.handleSentence(hass, b, v, text, true)) !== null) return;
       say("wait", `“${text}” …`);
-      const answer = await v.converse(hass, text, this.voiceArea ?? voiceArea());
+      // "there" is the room open in the view ("Mach da das Licht aus" after tapping into the living room); "here" and
+      // a sentence without a room are the tablet's
+      let area = this.voiceArea ?? voiceArea();
+      let said = text;
+      const open = this.openRoom(b);
+      if (open?.room.area_id && v.saysThere(text, hass.language)) {
+        area = open.room.area_id;
+        said = v.withoutThere(text, hass.language);
+      }
+      const answer = await v.converse(hass, said, area);
       say("done", answer ? `“${text}” – ${answer}` : `“${text}”`);
     } catch (err) {
       const e = err as { name?: string; message?: string };
@@ -4432,6 +4569,14 @@ export class Fp3dView3d extends LitElement {
   private async handleSentence(hass: HomeAssistant, b: Building, v: Awaited<ReturnType<typeof loadVoice>>, text: string, speak: boolean): Promise<string | null> {
     const say = (phase: "wait" | "listen" | "done" | "error", t: string) => this.sayVoice(phase, t);
     const { devices, items } = this.spokenDevices(hass, b, v.SYNONYMS);
+    // "Saug die Küche", "Saug hier", "Mach da alles aus": the robot vacuum or everything off for a room
+    const intent = this.replay ? null : v.roomIntent(text, b, hass.language, (r) => (r.area_id ? hass.areas?.[r.area_id]?.name : null));
+    if (intent) {
+      const answer = await this.roomAction(hass, b, intent);
+      say("done", `“${text}” – ${answer}`);
+      if (speak) void v.speak(hass, answer, voicePipeline());
+      return answer;
+    }
     {
       const place = v.showTarget(text, b, devices, (r) => (r.area_id ? hass.areas?.[r.area_id]?.name : null));
       if (place) {
@@ -4861,13 +5006,33 @@ export class Fp3dView3d extends LitElement {
 
   /** Opens a module's sheet for a room (from its panel). */
   private plainOf: { from: Building; to: Building } | null = null;
+  /** The plan as last drawn, without its card templates (see planKey). */
+  private drawnPlan = "";
+  private condOf: { from: Building; sig: string; to: Building } | null = null;
+  /** Which pieces with a condition ("only show while …") the 3D view shows now. */
+  private shownSig = "";
 
   /**
    * The building the 3D view draws: as it is, or in the plain view without furniture – stairs, stairwells and
    * pack stairs stay (they cut the floors); lamps go with the rest, the device pins stay.
    */
-  private shownBuilding(): Building | null {
+  /**
+   * The building without the pieces whose condition is false now ("only show while …", decoration for a season): they
+   * leave the 3D view with their light and their pin. The editor always shows them.
+   */
+  private conditioned(): Building | null {
     const b = this.building;
+    const sig = showIfSignature(this.hass, b);
+    this.shownSig = sig;
+    if (!b || !sig) return b;
+    if (this.condOf?.from === b && this.condOf.sig === sig) return this.condOf.to;
+    const to = { ...b, floors: b.floors.map((f) => ({ ...f, furniture: f.furniture.filter((x) => furnitureShown(this.hass, x)) })) };
+    this.condOf = { from: b, sig, to };
+    return to;
+  }
+
+  private shownBuilding(): Building | null {
+    const b = this.conditioned();
     if (!b || !this.plain) return b;
     if (this.plainOf?.from === b) return this.plainOf.to;
     const keep = (f: Furniture) => STAIR_TYPES.has(f.type) || f.type === "stairwell" || !!packItem(f.type)?.hole;

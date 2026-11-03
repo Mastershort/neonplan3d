@@ -2,13 +2,14 @@
 // scenes and scripts). Shown next to the 3D view when a room is selected.
 
 import { css, html, LitElement, nothing, type TemplateResult } from "lit";
-import { areaEntities, coverTiltButtons, entityName, groupByDevice, isUnavailable, kindOf, roomClimateSensors, roomClimateValue, roomPanelEntities, fromCelsius, tempUnit, type DeviceKind } from "../devices.ts";
+import { areaEntities, coverCalls, coverTiltButtons, entityName, groupByDevice, isUnavailable, kindOf, roomClimateSensors, roomClimateValue, roomPanelEntities, fromCelsius, tempUnit, type DeviceKind } from "../devices.ts";
 import { formatNumber, translate, type I18nKey } from "../i18n.ts";
 import { hasFeature, released } from "../features.ts";
 import { locatedPersons, personsShown } from "../presence.ts";
 import { iconPath } from "../icons.ts";
 import { openMoreInfo, stateText } from "../markers.ts";
 import type { Building, Floor, Room } from "../model.ts";
+import { callCount, cleaningCall, everythingOff } from "../room-actions.ts";
 import { roofWindowsOver } from "../solar.ts";
 import { controls, tokens } from "../styles.ts";
 import type { HassEntity, HomeAssistant } from "../types.ts";
@@ -108,6 +109,21 @@ export class Fp3dRoomPanel extends LitElement {
     void this.hass.callService(domain, service, data);
   }
 
+  /** One tap for the whole room: the robot vacuum sent there, everything switched off (with how many). */
+  private renderRoomActions(room: Room) {
+    if (this.readOnly) return nothing;
+    const clean = cleaningCall(this.hass, room);
+    const off = this.floor ? everythingOff(this.hass, this.floor, room) : [];
+    if (!clean && !off.length) return nothing;
+    const run = (calls: { domain: string; service: string; data: Record<string, unknown> }[]) => calls.forEach((c) => this.call(c.domain, c.service, c.data));
+    return html`<div class="fp3d-rp-sheets">
+      ${clean ? html`<button class="fp3d-rp-sheet" @click=${() => run([clean])}><span aria-hidden="true">🧹</span>${this.t("panel_clean")}</button>` : nothing}
+      ${off.length
+        ? html`<button class="fp3d-rp-sheet" @click=${() => run(off)}><span aria-hidden="true">⏻</span>${this.t("panel_everything_off", { n: callCount(off) })}</button>`
+        : nothing}
+    </div>`;
+  }
+
   private get areaName(): string | undefined {
     return this.room?.area_id ? this.hass.areas?.[this.room.area_id]?.name : undefined;
   }
@@ -194,6 +210,7 @@ export class Fp3dRoomPanel extends LitElement {
           <h2>${room.name}</h2>
           ${facts.length ? html`<p class="fp3d-rp-facts">${facts.join(" · ")}</p>` : nothing}
           ${this.renderHere(room)}
+          ${this.renderRoomActions(room)}
           ${this.readOnly ? html`<p class="fp3d-rp-facts fp3d-rp-ro-note">⏪ ${this.t("tt_readonly")}</p>` : nothing}
           ${this.sheets?.length && !this.readOnly
             ? html`<div class="fp3d-rp-sheets">
@@ -235,9 +252,9 @@ export class Fp3dRoomPanel extends LitElement {
               "panel_covers",
               covers.map((st) => this.coverRow(st)),
               covers.length > 1
-                ? html`<button class="fp3d-btn fp3d-rp-small" @click=${() => this.call("cover", "open_cover", { entity_id: covers.filter((c) => !isUnavailable(c)).map((c) => c.entity_id) })}>
+                ? html`<button class="fp3d-btn fp3d-rp-small" @click=${() => this.covers(covers, "open")}>
                       ${this.t("panel_all_open")}</button
-                    ><button class="fp3d-btn fp3d-rp-small" @click=${() => this.call("cover", "close_cover", { entity_id: covers.filter((c) => !isUnavailable(c)).map((c) => c.entity_id) })}>
+                    ><button class="fp3d-btn fp3d-rp-small" @click=${() => this.covers(covers, "close")}>
                       ${this.t("panel_all_close")}
                     </button>`
                 : nothing,
@@ -357,6 +374,12 @@ export class Fp3dRoomPanel extends LitElement {
     </div>`;
   }
 
+  /** Open, close or stop covers the way each can: slat-only blinds by their tilt (#920). */
+  private covers(list: HassEntity[], what: "open" | "close" | "stop"): void {
+    const ids = list.filter((c) => !isUnavailable(c)).map((c) => c.entity_id);
+    for (const c of coverCalls(this.hass, ids, what)) this.call("cover", c.service, c.data);
+  }
+
   private coverRow(st: HassEntity) {
     const a = st.attributes;
     const features = (a.supported_features as number | undefined) ?? 0;
@@ -367,11 +390,11 @@ export class Fp3dRoomPanel extends LitElement {
       ${this.nameButton(id)}
       <span class="fp3d-rp-state">${this.stateOf(st)}</span>
       <div class="fp3d-rp-buttons">
-        <button class="fp3d-btn fp3d-rp-small" ?disabled=${na} @click=${() => this.askFor(id) && this.call("cover", "open_cover", { entity_id: id })}>${this.t("cover_open")}</button>
-        ${features & COVER_STOP
-          ? html`<button class="fp3d-btn fp3d-rp-small" ?disabled=${na} @click=${() => this.call("cover", "stop_cover", { entity_id: id })}>${this.t("cover_stop")}</button>`
+        <button class="fp3d-btn fp3d-rp-small" ?disabled=${na} @click=${() => this.askFor(id) && this.covers([st], "open")}>${this.t("cover_open")}</button>
+        ${features & COVER_STOP || (features & 64 && !(features & 3))
+          ? html`<button class="fp3d-btn fp3d-rp-small" ?disabled=${na} @click=${() => this.covers([st], "stop")}>${this.t("cover_stop")}</button>`
           : nothing}
-        <button class="fp3d-btn fp3d-rp-small" ?disabled=${na} @click=${() => this.askFor(id) && this.call("cover", "close_cover", { entity_id: id })}>${this.t("cover_close")}</button>
+        <button class="fp3d-btn fp3d-rp-small" ?disabled=${na} @click=${() => this.askFor(id) && this.covers([st], "close")}>${this.t("cover_close")}</button>
       </div>
       ${features & COVER_SET_POSITION && typeof a.current_position === "number"
         ? html`<label class="fp3d-rp-slider"

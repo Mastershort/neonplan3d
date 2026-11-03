@@ -25,13 +25,14 @@ from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.util import dt as dt_util
 import voluptuous as vol
 
-from .const import DOMAIN, SIGNAL_ANNOUNCE
+from .const import DOMAIN, SIGNAL_ANNOUNCE, SIGNAL_RELOAD
 from .locate.scanners import device_area_id
 from .packs import module_sha
 
 _LOGGER = logging.getLogger(__name__)
 
 SERVICE_ANNOUNCE = "announce"
+SERVICE_RELOAD = "reload_screens"
 MODULE_ID = "mastershort.announce"
 # Home Assistant's MEDIA_ANNOUNCE feature of a media player (Sonos and others lower their music for the words)
 MEDIA_ANNOUNCE = 1048576
@@ -338,8 +339,13 @@ async def async_announce(hass: HomeAssistant, call: ServiceCall) -> ServiceRespo
     return response
 
 
+RELOAD_SCHEMA = vol.Schema(
+    {vol.Optional("templates", default=[]): vol.All(cv.ensure_list, [vol.All(cv.string, vol.Length(max=60))])}
+)
+
+
 def async_setup_announce(hass: HomeAssistant) -> None:
-    """Registers the service (it answers only while the module is installed)."""
+    """Registers the services (announcements answer only while the module is installed)."""
 
     async def handle(call: ServiceCall) -> ServiceResponse:
         return await async_announce(hass, call)
@@ -348,7 +354,15 @@ def async_setup_announce(hass: HomeAssistant) -> None:
         DOMAIN, SERVICE_ANNOUNCE, handle, schema=ANNOUNCE_SCHEMA, supports_response=SupportsResponse.OPTIONAL
     )
 
+    async def reload(call: ServiceCall) -> None:
+        # the wall tablets showing these card templates (none named: every open view) load the page again, so a new
+        # NeonPlan version reaches them without a ladder
+        async_dispatcher_send(hass, SIGNAL_RELOAD, {"id": uuid.uuid4().hex[:12], "templates": call.data["templates"]})
+
+    hass.services.async_register(DOMAIN, SERVICE_RELOAD, reload, schema=RELOAD_SCHEMA)
+
 
 def async_unload_announce(hass: HomeAssistant) -> None:
-    """The service goes with the integration."""
+    """The services go with the integration."""
     hass.services.async_remove(DOMAIN, SERVICE_ANNOUNCE)
+    hass.services.async_remove(DOMAIN, SERVICE_RELOAD)

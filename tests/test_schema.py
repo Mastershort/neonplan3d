@@ -385,3 +385,20 @@ def test_fence_gates() -> None:
     with pytest.raises(vol.Invalid):
         OUTDOOR_SCHEMA({**fence, "gates": [{**gate, "width": 0.1}]})
     assert "gates" not in OUTDOOR_SCHEMA(fence)
+
+
+def test_card_templates_keep_the_card_options() -> None:
+    from custom_components.neonplan3d.schema import BUILDING_SCHEMA, empty_building
+
+    b = empty_building()
+    config = {"floor": "eg", "room_bar": True}
+    b["card_templates"] = [{"id": "kueche_fire", "name": "Küche Fire-Tablet", "config": config}]
+    assert BUILDING_SCHEMA(b)["card_templates"][0]["config"] == config
+    assert "card_templates" not in BUILDING_SCHEMA(empty_building())
+    with pytest.raises(vol.Invalid):
+        BUILDING_SCHEMA({**b, "card_templates": [{"id": "", "name": "x"}]})
+
+
+def test_room_keeps_its_cleaning() -> None:
+    assert ROOM_SCHEMA({**ROOM, "cleaning": "script.saug_bad"})["cleaning"] == "script.saug_bad"
+    assert "cleaning" not in ROOM_SCHEMA(ROOM)

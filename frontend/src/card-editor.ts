@@ -4,8 +4,9 @@
 import { css, html, LitElement, nothing } from "lit";
 import { fetchBuilding } from "./api.ts";
 import { labOn, UNRELEASED } from "./features.ts";
-import { CARD_CONTROLS, type CardConfig, type CardControl } from "./card-config.ts";
+import { CARD_CONTROLS, CARD_OWN, cardTemplate, type CardConfig, type CardControl } from "./card-config.ts";
 import { languageReady, loadLanguage, translate, type I18nKey } from "./i18n.ts";
+import type { Building } from "./model.ts";
 import type { HomeAssistant } from "./types.ts";
 
 /** Defaults of the card: options at their default are left out of the config. */
@@ -16,6 +17,8 @@ const DEFAULTS: Partial<CardConfig> = {
   roof_fade: true,
   roof: true,
   plain: false,
+  room_bar: false,
+  room_bar_favorites: false,
   camera_wall: false,
   quality: "auto",
   stats: false,
@@ -62,17 +65,32 @@ export class Floorplan3dCardEditor extends LitElement {
     hass: { attribute: false },
     _config: { state: true },
     _floors: { state: true },
+    _templates: { state: true },
+    _showForm: { state: true },
+    building: { attribute: false },
+    embedded: { type: Boolean },
   };
 
   declare hass: HomeAssistant | undefined;
+  /** Inside NeonPlan's editor (a card template): the plan being edited, and no template choice of its own. */
+  declare building: Building | null;
+  declare embedded: boolean;
   private declare _config: CardConfig;
   private declare _floors: { id: string; name: string; rooms: { id: string; name: string }[] }[];
+  /** The plan's card templates, to pick one. */
+  private declare _templates: { id: string; name: string }[];
+  /** With a template: the form shown anyway, its options then win over the template's. */
+  private declare _showForm: boolean;
   private loading = false;
 
   constructor() {
     super();
     this._config = { type: "custom:neonplan3d-card" };
     this._floors = [];
+    this._templates = [];
+    this._showForm = false;
+    this.building = null;
+    this.embedded = false;
   }
 
   setConfig(config: CardConfig): void {
@@ -82,14 +100,88 @@ export class Floorplan3dCardEditor extends LitElement {
   protected willUpdate(): void {
     // a language beyond German and English: its texts are fetched first, then everything renders
     if (this.hass && !languageReady(this.hass.language)) void loadLanguage(this.hass.language).then(() => this.requestUpdate());
-    // the floors of the plan, for the floor choice
-    if (this.hass && !this.loading && !this._floors.length) {
+    // the floors of the plan, for the floor choice (in NeonPlan's editor: the plan being edited)
+    if (this.building) this.takePlan(this.building);
+    else if (this.hass && !this.loading && !this._floors.length) {
       this.loading = true;
       fetchBuilding(this.hass).then(
-        (res) => (this._floors = res.building.floors.map((f) => ({ id: f.id, name: f.name, rooms: [...f.rooms, ...(f.outdoor ?? []).filter((a) => a.area_id && a.name)].map((r) => ({ id: r.id, name: r.name ?? r.id })) }))),
+        (res) => this.takePlan(res.building),
         () => undefined,
       );
     }
+  }
+
+  private plan: Building | null = null;
+
+  private takePlan(b: Building): void {
+    if (b === this.plan) return;
+    this.plan = b;
+    this._floors = b.floors.map((f) => ({ id: f.id, name: f.name, rooms: [...f.rooms, ...(f.outdoor ?? []).filter((a) => a.area_id && a.name)].map((r) => ({ id: r.id, name: r.name ?? r.id })) }));
+    this._templates = (b.card_templates ?? []).map((t) => ({ id: t.id, name: t.name }));
+  }
+
+  /** Which card template the card shows (made in NeonPlan's editor under Settings → Card templates). */
+  private renderTemplate() {
+    const id = this._config.template;
+    // a card set up with an earlier id of a renamed template shows that template
+    const tpl = cardTemplate(this.plan, id);
+    const chosen = tpl?.id ?? id;
+    // to NeonPlan's editor (a new tab: this dialog and its unsaved card stay), admins only
+    const link = this.hass?.user?.is_admin
+      ? html`<a class="more" href=${`/neonplan3d?settings=cards${tpl ? `&template=${encodeURIComponent(tpl.id)}` : ""}`} target="_blank" rel="noopener"
+          >${this.t(tpl ? "card_template_open" : "card_template_make")} ↗</a
+        >`
+      : nothing;
+    return html`<h3>${this.t("card_template")}</h3>
+      <label class="field wide">
+        <select @change=${(e: Event) => this.pickTemplate((e.target as HTMLSelectElement).value || undefined)}>
+          <option value="" ?selected=${!id}>${this.t("card_template_none")}</option>
+          ${this._templates.map((x) => html`<option value=${x.id} ?selected=${x.id === chosen}>${x.name}</option>`)}
+          ${id && !tpl ? html`<option value=${id} selected>${id}</option>` : nothing}
+        </select>
+      </label>
+      <p class="hint">${this.t(id ? "card_template_on" : "card_template_hint")}</p>
+      ${id && this.ownOptions().length
+        ? html`<div class="own">
+            ${this.t("card_template_own", { list: this.ownOptions().join(", ") })}
+            <button
+              class="more"
+              @click=${() => this.emit({ type: this._config.type, template: id, ...Object.fromEntries(CARD_OWN.filter((k) => this._config[k] !== undefined).map((k) => [k, this._config[k]])) })}
+            >
+              ${this.t("card_template_own_clear")}
+            </button>
+          </div>`
+        : nothing}
+      <div class="links">
+        ${link}
+
+      </div>`;
+  }
+
+  /** Options written on this card besides its template: they win over the template's. */
+  private ownOptions(): string[] {
+    return Object.keys(this._config).filter((k) => k !== "type" && k !== "template" && !(CARD_OWN as readonly string[]).includes(k));
+  }
+
+  /**
+   * A template chosen: the card becomes the two lines (its earlier options would else keep winning over the template,
+   * unseen behind the folded form); back to none, it keeps nothing of the template.
+   */
+  private pickTemplate(id: string | undefined): void {
+    this._showForm = false;
+    // the card's size stays: it belongs to the dashboard, not to the template
+    const size = Object.fromEntries(CARD_OWN.filter((k) => this._config[k] !== undefined).map((k) => [k, this._config[k]]));
+    this.emit(id ? { type: this._config.type, template: id, ...size } : { type: this._config.type, ...size });
+  }
+
+  private emit(next: CardConfig): void {
+    this._config = next;
+    this.dispatchEvent(new CustomEvent("config-changed", { detail: { config: next }, bubbles: true, composed: true }));
+  }
+
+  /** The options of the card's template (none inside NeonPlan's editor, where the form is the template). */
+  private get templateOptions(): Partial<CardConfig> {
+    return this.embedded ? {} : (cardTemplate(this.plan, this._config.template)?.config ?? {});
   }
 
   private t(key: I18nKey, vars?: Record<string, string | number>): string {
@@ -97,13 +189,19 @@ export class Floorplan3dCardEditor extends LitElement {
   }
 
   private get value(): Required<Omit<CardConfig, "floor" | "room" | "flows" | "holograms">> & Pick<CardConfig, "floor" | "room" | "flows" | "holograms"> {
-    return { ...(DEFAULTS as Required<CardConfig>), ...this._config };
+    // with a template the form shows what the card does: the template's options, the card's own on top
+    return { ...(DEFAULTS as Required<CardConfig>), ...this.templateOptions, ...this._config };
   }
 
-  /** Change one option; options back at their default disappear from the YAML. */
+  /**
+   * Change one option; options back at what they would be anyway disappear from the YAML – the default, or with a
+   * template the template's value (so a card can also set an option back to its default against its template).
+   */
   private set<K extends keyof CardConfig>(key: K, value: CardConfig[K] | undefined): void {
     const next: CardConfig = { ...this._config };
-    if (value === undefined || value === "" || DEFAULTS[key] === value) delete next[key];
+    const tpl = this.templateOptions;
+    const base = key in tpl ? tpl[key] : DEFAULTS[key];
+    if (value === undefined || value === "" || base === value) delete next[key];
     else next[key] = value;
     this._config = next;
     this.dispatchEvent(new CustomEvent("config-changed", { detail: { config: next }, bubbles: true, composed: true }));
@@ -119,7 +217,7 @@ export class Floorplan3dCardEditor extends LitElement {
   }
 
   private toggle(
-    key: "explode" | "roof_fade" | "roof" | "camera_wall" | "energy" | "room_panel" | "stats" | "fullscreen_button" | "room_names" | "alerts" | "alert_jump" | "director" | "voice" | "scenes" | "idle_orbit" | "motion_trail" | "time_travel" | "household_card" | "weather" | "angle_lock" | "keep_view" | "walk" | "plain",
+    key: "explode" | "roof_fade" | "roof" | "camera_wall" | "energy" | "room_panel" | "stats" | "fullscreen_button" | "room_names" | "alerts" | "alert_jump" | "director" | "voice" | "scenes" | "idle_orbit" | "motion_trail" | "time_travel" | "household_card" | "weather" | "angle_lock" | "keep_view" | "walk" | "plain" | "room_bar" | "room_bar_favorites",
     label: I18nKey,
     hint?: I18nKey,
   ) {
@@ -349,7 +447,9 @@ export class Floorplan3dCardEditor extends LitElement {
     const v = this.value;
     const flows = v.flows === undefined ? "switch" : v.flows ? "on" : "off";
     const holos = v.holograms === undefined ? "switch" : v.holograms ? "on" : "off";
+    if (!this.embedded && v.template) return this.renderTemplate();
     return html`
+      ${this.embedded ? nothing : this.renderTemplate()}
       <h3>${this.t("card_section_view")}</h3>
       <div class="grid">
         <label class="field wide"
@@ -431,7 +531,9 @@ export class Floorplan3dCardEditor extends LitElement {
       ${this.renderThumbsToggle()} ${this.toggle("room_names", "card_room_names")}
       ${this.toggle("energy", "card_energy")} ${this.toggle("room_panel", "card_room_panel", "card_room_panel_hint")}
       ${this.toggle("fullscreen_button", "card_fullscreen_button", "card_fullscreen_button_hint")}
-      ${this.toggle("explode", "card_explode")} ${this.toggle("roof", "card_roof", "card_roof_hint")} ${this.toggle("roof_fade", "card_roof_fade", "card_roof_fade_hint")} ${this.toggle("plain", "card_plain", "plain_hint")} ${this.toggle("stats", "card_stats", "card_stats_hint")}
+      ${this.toggle("explode", "card_explode")} ${this.toggle("roof", "card_roof", "card_roof_hint")} ${this.toggle("roof_fade", "card_roof_fade", "card_roof_fade_hint")} ${this.toggle("plain", "card_plain", "plain_hint")}
+      ${!UNRELEASED.includes("room_bar") || labOn() ? this.toggle("room_bar", "card_room_bar", "room_bar_hint") : nothing}
+      ${this.value.room_bar && (!UNRELEASED.includes("room_bar") || labOn()) ? this.toggle("room_bar_favorites", "card_room_bar_favorites", "card_room_bar_favorites_hint") : nothing} ${this.toggle("stats", "card_stats", "card_stats_hint")}
       ${this.renderFeatures()}
       ${this.renderKiosk()}
     `;
@@ -452,6 +554,33 @@ export class Floorplan3dCardEditor extends LitElement {
     }
     h3:first-child {
       margin-top: 0;
+    }
+    .own {
+      margin: 8px 0 0;
+      padding: 8px 10px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 170, 60, 0.6);
+      font-size: 13px;
+    }
+    .links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    a.more {
+      display: inline-block;
+      text-decoration: none;
+    }
+    .more {
+      margin: 8px 0 0;
+      padding: 8px 12px;
+      border: 1px solid var(--divider-color, rgba(127, 127, 127, 0.4));
+      border-radius: 8px;
+      background: transparent;
+      color: var(--primary-color);
+      font: inherit;
+      font-size: 13px;
+      cursor: pointer;
     }
     .grid {
       display: grid;
@@ -483,6 +612,41 @@ export class Floorplan3dCardEditor extends LitElement {
       color: var(--primary-text-color);
       font: inherit;
       font-size: 14px;
+    }
+    select:hover,
+    input[type="number"]:hover,
+    input[type="text"]:hover {
+      border-color: var(--primary-color);
+    }
+    select:focus,
+    input[type="number"]:focus,
+    input[type="text"]:focus {
+      outline: none;
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary-color) 30%, transparent);
+    }
+    /* the open list of a choice in the same colours as the field (else the browser's grey) */
+    option,
+    optgroup {
+      background: var(--card-background-color, #fff);
+      color: var(--primary-text-color);
+    }
+    /* inside NeonPlan's editor (card templates): neon headings, switches as rows that light up when on */
+    :host([embedded]) h3 {
+      color: var(--primary-color);
+    }
+    :host([embedded]) .toggle {
+      padding: 8px 10px;
+      margin: 2px 0;
+      border-radius: 10px;
+      border: 1px solid transparent;
+    }
+    :host([embedded]) .toggle:hover {
+      background: var(--fp3d-field-hover, rgba(127, 127, 127, 0.08));
+    }
+    :host([embedded]) .toggle:has(input:checked) {
+      border-color: color-mix(in srgb, var(--primary-color) 45%, transparent);
+      background: color-mix(in srgb, var(--primary-color) 8%, transparent);
     }
     .toggle {
       display: flex;

@@ -64,6 +64,8 @@ ROOM_SCHEMA = vol.Schema(
         # further names the voice answers to
         vol.Optional("aliases"): vol.All([vol.All(str, vol.Length(min=1, max=60))], vol.Length(max=12)),
         vol.Required("area_id"): vol.Any(None, vol.All(str, vol.Length(max=255))),
+        # the script or button that sends the robot vacuum to clean this room
+        vol.Optional("cleaning"): vol.Any(None, vol.All(str, vol.Length(max=255))),
         vol.Required("points"): vol.All([_POINT], vol.Length(min=3, max=MAX_POINTS)),
         vol.Required("floor_material"): vol.All(str, vol.Length(max=32)),
         # the camera this room opens with when it is tapped (None = framed from above)
@@ -362,6 +364,16 @@ FURNITURE_SCHEMA = vol.Schema(
         vol.Optional("group", default=None): vol.Any(None, vol.All(str, vol.Length(max=64))),
         # fixed against moving by accident
         vol.Optional("locked", default=None): vol.Any(None, bool),
+        # shown in 3D only while an entity is in a state (decoration for a season)
+        vol.Optional("show_if", default=None): vol.Any(
+            None,
+            vol.Schema(
+                {
+                    vol.Required("entity"): vol.All(str, vol.Length(max=255)),
+                    vol.Optional("state", default=None): vol.Any(None, vol.All(str, vol.Length(max=120))),
+                }
+            ),
+        ),
         # a module's own data for this item
         vol.Optional("mods"): _MODULE_DATA,
     },
@@ -907,6 +919,20 @@ SETTINGS_SCHEMA = vol.Schema(
         vol.Optional("halloween", default=None): vol.Any(
             None, vol.Schema({vol.Optional("ghost", default=True): bool}, extra=vol.ALLOW_EXTRA)
         ),
+        # fun pack "Winter & Christmas": fairy lights along the eaves, snow, the New Year's firework
+        vol.Optional("winter", default=None): vol.Any(
+            None,
+            vol.Schema(
+                {
+                    vol.Optional("roof_lights", default=True): bool,
+                    vol.Optional("roof_entity", default=None): vol.Any(None, vol.All(str, vol.Length(max=255))),
+                    vol.Optional("roof_color", default=False): bool,
+                    vol.Optional("snow", default=True): bool,
+                    vol.Optional("firework", default=True): bool,
+                },
+                extra=vol.ALLOW_EXTRA,
+            ),
+        ),
         # the ground around the house: its height and the earth around cellars
         vol.Optional("terrain", default=None): vol.Any(
             None,
@@ -1006,6 +1032,17 @@ PRESENCE_SCHEMA = vol.Schema(
     extra=vol.ALLOW_EXTRA,
 )
 
+# A card template (see the editor's settings "Card templates"): a dashboard card on a wall tablet names it and takes
+# its options from here, so a change in the editor reaches every tablet. The options are the card's (checked there).
+CARD_TEMPLATE_SCHEMA = vol.Schema(
+    {
+        vol.Required("id"): vol.All(str, vol.Length(min=1, max=60)),
+        vol.Required("name"): vol.All(str, vol.Length(max=80)),
+        vol.Optional("config", default=dict): vol.Schema({}, extra=vol.ALLOW_EXTRA),
+    },
+    extra=vol.ALLOW_EXTRA,
+)
+
 BUILDING_SCHEMA = vol.Schema(
     {
         vol.Required("version"): 1,
@@ -1013,6 +1050,7 @@ BUILDING_SCHEMA = vol.Schema(
         vol.Required("settings"): SETTINGS_SCHEMA,
         vol.Optional("energy", default=lambda: dict(ENERGY_DEFAULTS)): ENERGY_SCHEMA,
         vol.Optional("presence", default=list): vol.All([PRESENCE_SCHEMA], vol.Length(max=50)),
+        vol.Optional("card_templates"): vol.All([CARD_TEMPLATE_SCHEMA], vol.Length(max=30)),
     },
     extra=vol.ALLOW_EXTRA,
 )

@@ -33,6 +33,20 @@ test("the roof's underside follows the section's profile, minus the slab", () =>
   assert.equal(roofUnderAt({ settings: { roof: { ...building.settings.roof, sections: [{ ...section, open: true }] } } }, 4, 3), null);
 });
 
+test("an overhang set by hand covers what stands under it: walls there end under the roof (#921)", () => {
+  const tan40 = Math.tan((40 * Math.PI) / 180);
+  // side b (z > 6.24) with 1.5 m by hand, the gable end u1 (x > 8.24) with 1 m; the others automatic
+  const wide = { settings: { roof: { ...building.settings.roof, sections: [{ ...section, overhang_sides: [null, 1.5, null, 1] }] } } };
+  // 1 m out on side b the eave has come down by tan(40°)
+  assert.ok(Math.abs(roofUnderAt(wide, 4, 7.24)! - (3.7 - tan40 - ROOF_THICK)) < 1e-9);
+  // beyond the gable end, under its 1 m: the profile across goes on
+  assert.ok(roofUnderAt(wide, 8.9, 3) !== null);
+  // past the overhang, and on the automatic sides: no roof, as before
+  assert.equal(roofUnderAt(wide, 4, 7.9), null);
+  assert.equal(roofUnderAt(wide, 4, -0.5), null);
+  assert.equal(roofUnderAt(building, 4, 7.24), null, "without a hand-set side nothing changes");
+});
+
 test("an attic floor's walls end under the slope: knee walls at the eaves, gables up to the ridge", () => {
   const floor: Floor = { ...newFloor("og", "OG", 2.75), height: 2.5, rooms: [rect("a", 0, 0, 8, 6)] };
   const under = (x: number, z: number) => {

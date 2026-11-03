@@ -280,3 +280,41 @@ async def test_a_sentence_said_in_a_room_goes_to_assist_with_a_device_of_that_ro
     assert res["result"]["response"]["speech"]["plain"]["speech"] == "Licht ist an"
     assert converse.await_args.args[1] == "Licht an"
     assert converse.await_args.kwargs == {"language": "de", "device_id": lamp.id}
+
+
+async def test_reload_screens_reaches_the_views_that_ask_for_it(hass: HomeAssistant, hass_ws_client) -> None:
+    """Card templates: the service lets the open views that ask for it load their page again."""
+    await _setup(hass)
+    new = await hass_ws_client(hass)
+    await new.send_json({"id": 1, "type": "neonplan3d/voice/subscribe", "announce": True, "reload": True})
+    assert (await new.receive_json())["success"]
+
+    await hass.services.async_call(DOMAIN, "reload_screens", {"templates": "kueche_fire"}, blocking=True)
+    event = (await new.receive_json())["event"]
+    assert event["reload"]["templates"] == ["kueche_fire"] and event["reload"]["id"]
+
+
+async def test_open_screens_are_listed_and_leave_with_their_view(hass: HomeAssistant, hass_ws_client) -> None:
+    """Card templates: the views say what they show; the overview lists them and can reload one."""
+    await _setup(hass)
+    tablet = await hass_ws_client(hass)
+    view = {"kind": "card", "screen": "Küche", "template": "kueche", "device": "Fire HD 10", "version": "2.3.0"}
+    await tablet.send_json({"id": 1, "type": "neonplan3d/voice/subscribe", "reload": True, "view": view})
+    assert (await tablet.receive_json())["success"]
+    preview = await hass_ws_client(hass)
+    await preview.send_json({"id": 1, "type": "neonplan3d/voice/subscribe", "view": {"kind": "preview"}})
+    assert (await preview.receive_json())["success"]
+
+    admin = await hass_ws_client(hass)
+    await admin.send_json({"id": 1, "type": "neonplan3d/screens/list"})
+    screens = (await admin.receive_json())["result"]["screens"]
+    assert [(x["template"], x["device"], x["reloadable"]) for x in screens] == [("kueche", "Fire HD 10", True)]
+
+    await admin.send_json({"id": 2, "type": "neonplan3d/screens/reload", "screen_id": screens[0]["id"]})
+    assert (await admin.receive_json())["result"] == {"sent": True}
+    assert (await tablet.receive_json())["event"]["reload"]["templates"] == []
+
+    await tablet.send_json({"id": 2, "type": "unsubscribe_events", "subscription": 1})
+    await tablet.receive_json()
+    await admin.send_json({"id": 3, "type": "neonplan3d/screens/list"})
+    assert (await admin.receive_json())["result"]["screens"] == []

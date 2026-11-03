@@ -4,6 +4,28 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 [releases page](https://github.com/Mastershort/neonplan3d/releases). Ideas and votes:
 [Discussions → Ideas](https://github.com/Mastershort/neonplan3d/discussions/categories/ideas).
 
+## 2.3.0
+
+### New
+
+- **Dashboard cards built in the editor – card templates:** ⚙ Settings → 🖥 Card templates sets up a dashboard card once, with a live preview on the screen it is for (a 10″ or 7″ Fire tablet, a tablet upright, a phone). On the wall tablet you only pick the template in the card dialog (`template: kitchen_tablet`); every change in the editor reaches every tablet with that template within a second, without a reload. "Where does the tablet hang?" sets its room for "here", the template's name is its screen name and the card dialog links back to the editor. A card with a template shows the template with only its size of its own (fill, height, full-screen button); other options left on it from before no longer apply (the dialog tidies them up).
+- **Reload the screens:** "Reload screens with this template", "Reload all screens" and the action `neonplan3d.reload_screens` let the open wall tablets load their page again – after an update, without a ladder. The tablets say "Reloading …" and come back a few seconds apart.
+- **Open screens:** the card templates list every device NeonPlan is open on – the device ("Fire HD 10 · Fully Kiosk"), what it shows, since when, its version (an old one is marked) – each with a reload of its own.
+- **Vacuum and everything off per room:** a room's form takes the script or button that sends the robot vacuum there; its panel then has 🧹 Vacuum, and ⏻ Everything off switches off its lights, fans and TV and pauses playing speakers (switched sockets only where a lamp hangs on them). By voice: "vacuum here", "vacuum the kitchen", "everything off there".
+- **"there" in voice control:** with a room tapped open, "turn off the lights there" or "TV there on" mean that room; "here" stays the tablet's own.
+- **Fun pack Winter & Christmas (free):** 11 decorations – a Christmas tree on its plug, an Advent wreath that lights its candles by date, a window star, a candle arch, a light-up reindeer and more – plus fairy lights along the eaves (or the whole roof), snow on the roof and lawn while it snows, and a neon firework at New Year's midnight.
+- **"Only show while …" for every piece of furniture:** a piece stands in 3D only while an entity is in a state – decoration for a season, switched by a helper or an automation.
+- **Fun packs in the editor's settings:** ⚙ Settings → 🎈 Fun packs holds the settings of every fun pack; the extensions page points there.
+
+### Fixed
+
+- **Walls under an overhang set by hand (#921):** the walls now end under the roof on sides with their own overhang. Thanks to @1970lexi!
+- **Blinds that only tilt (#920):** slat-only covers open and close by their tilt from the room panel and the central menu. Thanks to @jsdray!
+- **Small items could not be moved (#908):** their corner handles left no room to grab them; the handles now sit outside small pieces. Thanks to @vincegre!
+- **Camera wedge (#901):** it turns red on motion alone, not only after a lamp on the floor changed. Thanks to @apalm8!
+- **Window light outside (#893):** the light falling out of a window lies on the ground under it instead of disappearing when zooming in. Thanks to @1970lexi!
+- **Modules may light an item's top plate (#917):** for Wärme Pro's status glow. Thanks to @grzegorz914!
+
 ## 2.2.0
 
 ### New

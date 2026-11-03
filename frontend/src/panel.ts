@@ -5,6 +5,7 @@ import { css, html, LitElement, nothing, type PropertyValues } from "lit";
 import { BuildingController } from "./building-controller.ts";
 import { countView } from "./diagnostics.ts";
 import { loadEditor } from "./load-editor.ts";
+import "./components/room-bar.ts";
 import "./components/room-panel.ts";
 import "./components/view3d.ts";
 import { languageReady, loadLanguage, translate, type I18nKey } from "./i18n.ts";
@@ -19,7 +20,7 @@ import { furnitureName } from "./furniture-names.ts";
 import { confirmEntities, defaultHeight, entityName, kindOf } from "./devices.ts";
 import { canLift, zonesOf, type LampMount } from "./model.ts";
 import { mountBase, packsVersion } from "./packs.ts";
-import { hasFeature, labOn, registerUrl, UNRELEASED } from "./features.ts";
+import { hasFeature, labOn, registerUrl, released, UNRELEASED } from "./features.ts";
 import { mountLocateLab } from "./locate-lab.ts";
 import { directorOnHere } from "./director.ts";
 import { loadVoice, micProbeDone, screenName, voiceOnHere } from "./load-voice.ts";
@@ -74,6 +75,7 @@ export class Floorplan3dPanel extends LitElement {
     _explode: { state: true },
     _keepRoof: { state: true },
     _plain: { state: true },
+    _roomBar: { state: true },
     _quality: { state: true },
     _stats: { state: true },
     _markers: { state: true },
@@ -130,6 +132,8 @@ export class Floorplan3dPanel extends LitElement {
   private declare _keepRoof: boolean;
   /** The plain floor plan without furniture, remembered on this device. */
   private declare _plain: boolean;
+  /** The room bar at the bottom: off, the rooms, or the favourites and the rooms – remembered on this device. */
+  private declare _roomBar: "off" | "rooms" | "all";
   private declare _quality: Quality;
   /** Performance display (per device; also switched on by ?fp3d_stats in the URL). */
   private declare _stats: boolean;
@@ -198,6 +202,8 @@ export class Floorplan3dPanel extends LitElement {
     this._explode = prefs.get("explode") !== "0";
     this._keepRoof = prefs.get("roof") === "1";
     this._plain = prefs.get("plain") === "1";
+    const bar = prefs.get("roombar");
+    this._roomBar = bar === "rooms" || bar === "all" ? bar : "off";
     const quality = prefs.get("quality");
     this._quality = quality === "low" || quality === "high" ? quality : "auto";
     this._stats = prefs.get("stats") === "1" || new URLSearchParams(location.search).has("fp3d_stats");
@@ -281,6 +287,11 @@ export class Floorplan3dPanel extends LitElement {
   private setWallMode(mode: WallMode): void {
     this._wallMode = mode;
     prefs.set("walls", mode);
+  }
+
+  private setRoomBar(v: "off" | "rooms" | "all"): void {
+    this._roomBar = v;
+    prefs.set("roombar", v);
   }
 
   private setPlain(on: boolean): void {
@@ -497,6 +508,21 @@ export class Floorplan3dPanel extends LitElement {
     this.data.edit({ ...b, settings: { ...b.settings, start_view: view ?? null } });
   }
 
+  /**
+   * To the editor with a topic of ⚙ Settings open: the extensions page's fun packs button, the dashboard card dialog's
+   * link to a card template (the editor may still be loading).
+   */
+  private openFunSettings(topic: "fun" | "cards" = "fun", template: string | null = null): void {
+    this.setMode("editor");
+    let tries = 0;
+    const open = () => {
+      const ed = this.renderRoot.querySelector("fp3d-editor") as (HTMLElement & { openSettings?(topic: "fun" | "cards", template?: string | null): void }) | null;
+      if (ed?.openSettings) ed.openSettings(topic, template);
+      else if (tries++ < 60) setTimeout(open, 100);
+    };
+    void this.updateComplete.then(open);
+  }
+
   private view3d() {
     return this.renderRoot.querySelector("fp3d-view3d") as (HTMLElement & { resetView(): void; lookThrough(entityId: string): void; historyEntities(): HistorySpec; proHint(f: Feature): void; currentView(): StartView | null; roomSheets(roomId: string): { id: string; icon: string; title: string }[]; openRoomSheet(roomId: string, id: string): void }) | null;
   }
@@ -524,6 +550,11 @@ export class Floorplan3dPanel extends LitElement {
     if (!this.locateLab && this.hass?.user?.is_admin && this.data.building && labOn()) {
       this.locateLab = mountLocateLab(() => ({ hass: this.hass, building: this.data.building }));
     }
+    if (this.pendingTemplate !== null && this.hass?.user && this.data.building) {
+      const template = this.pendingTemplate;
+      this.pendingTemplate = null;
+      if (this.hass.user.is_admin) this.openFunSettings("cards", template || null);
+    }
     // a link with ?tt=07:42 or ?tt=-3h opens the time travel there, once the plan and the packs are loaded
     if (this.ttLinked || !this.data.building || !packsVersion() || this._mode !== "view" || !this.view3d()) return;
     this.ttLinked = true;
@@ -548,8 +579,14 @@ export class Floorplan3dPanel extends LitElement {
     super.connectedCallback();
     window.addEventListener("keydown", this.onKey);
     // the card's Pro hint links here ("?tab=extensions")
-    if (new URLSearchParams(location.search).get("tab") === "extensions") this._mode = "extensions";
+    const query = new URLSearchParams(location.search);
+    if (query.get("tab") === "extensions") this._mode = "extensions";
+    // the card dialog's "edit in NeonPlan": the template opens in the editor's settings (admins only, once hass is there)
+    if (query.get("settings") === "cards") this.pendingTemplate = query.get("template") ?? "";
   }
+
+  /** A card template to open once the panel knows the user (from a link, see connectedCallback). */
+  private pendingTemplate: string | null = null;
 
   /** Once per page: are there shop offers the admin has not seen yet? (Only with a shop key.) */
   private checkOffers(): void {
@@ -876,6 +913,7 @@ export class Floorplan3dPanel extends LitElement {
       .packs=${this.data.packs}
       .building=${this.data.building}
       @building-edit=${(e: CustomEvent<Building>) => this.data.edit(e.detail)}
+      @open-fun-settings=${() => this.openFunSettings()}
       @packs-changed=${() => void this.data.reloadPacks()}
       @offers-seen=${() => (this._newOffers = 0)}
       @packs-ready=${(e: CustomEvent<number>) => (this._readyPacks = e.detail)}
@@ -930,8 +968,14 @@ export class Floorplan3dPanel extends LitElement {
     const floor = b.floors.find((f) => f.id === this._floorId);
     const roomFloors = floor ? [floor] : b.floors;
     const tt = this.tt.active;
+    // the room bar: not while travelling in time (its bar sits there); it stays when the eye tidies the rest away
+    // (not released yet: only with the lab switch)
+    const barMode = released("room_bar") ? this._roomBar : "off";
+    const roomBar = barMode !== "off" && !tt;
+    // with the room bar the rooms live at the bottom: the top keeps only the floors (nothing at all with one floor)
+    const roomChips = barMode === "off";
     return html`
-      ${this._clean ? nothing : html`<nav class="fp3d-nav ${this._navWrap ? "fp3d-nav-wrap" : ""}" @wheel=${this.onNavWheel}>
+      ${this._clean || (!roomChips && b.floors.length < 2) ? nothing : html`<nav class="fp3d-nav ${this._navWrap ? "fp3d-nav-wrap" : ""}" @wheel=${this.onNavWheel}>
         ${b.floors.length > 1
           ? html`<button class="fp3d-chip" aria-pressed=${this._floorId === null} @click=${() => {
                 this._floorId = null;
@@ -951,9 +995,9 @@ export class Floorplan3dPanel extends LitElement {
                   ${f.name}
                 </button>`,
               )}
-              <span class="fp3d-sep"></span>`
+              ${roomChips ? html`<span class="fp3d-sep"></span>` : nothing}`
           : nothing}
-        ${roomFloors.flatMap((f) => [
+        ${(roomChips ? roomFloors : []).flatMap((f) => [
           // in the house view the rooms of every floor follow a small floor label; a room without a name has
           // no button (an empty chip would only take space, #370)
           roomFloors.length > 1 && zonesOf(f).some((r) => r.name.trim()) ? html`<span class="fp3d-nav-floor">${f.name}</span>` : nothing,
@@ -987,7 +1031,7 @@ export class Floorplan3dPanel extends LitElement {
           ${this._navWrap ? "\u2194" : "\u2261"}
         </button>
       </nav>`}
-      <div class="fp3d-stage-wrap ${this._roomId ? "fp3d-room-open" : ""} ${this._controlsRight ? "fp3d-side-right" : ""} ${tt ? "fp3d-tt" : ""}">
+      <div class="fp3d-stage-wrap ${this._roomId ? "fp3d-room-open" : ""} ${this._controlsRight ? "fp3d-side-right" : ""} ${tt ? "fp3d-tt" : ""} ${roomBar ? "fp3d-has-bar" : ""}">
         <fp3d-view3d
           class="fp3d-body"
           .pivotMark=${this._pinHover}
@@ -1058,6 +1102,21 @@ export class Floorplan3dPanel extends LitElement {
               @close=${() => (this._roomId = null)}
             ></fp3d-room-panel>`
           : nothing}
+        ${roomBar
+          ? html`<fp3d-room-bar
+              class="fp3d-room-bar"
+              .hass=${this.hass}
+              .building=${b}
+              .floorId=${b.floors.length > 1 ? this._floorId : (b.floors[0]?.id ?? null)}
+              .roomId=${this._roomId}
+              ?favorites=${barMode === "all"}
+              @room-pick=${(e: CustomEvent<{ floorId: string; roomId: string }>) => {
+                // straight into the room, also from the house view or another floor
+                if (b.floors.length > 1) this._floorId = e.detail.floorId;
+                this._roomId = e.detail.roomId === this._roomId ? null : e.detail.roomId;
+              }}
+            ></fp3d-room-bar>`
+          : nothing}
         ${this.tt.session ? html`<fp3d-time-bar .session=${this.tt.session}></fp3d-time-bar>` : nothing}
         ${this._clean ? nothing : html`<div class="fp3d-overlay">
           <div class="fp3d-show-wrap">
@@ -1073,6 +1132,13 @@ export class Floorplan3dPanel extends LitElement {
             <button aria-pressed=${!this._plain} @click=${() => this.setPlain(false)}>${this.t("plain_off")}</button>
             <button aria-pressed=${this._plain} @click=${() => this.setPlain(true)}>${this.t("plain_on")}</button>
           </div>
+          ${released("room_bar")
+            ? html`<div class="fp3d-seg" title=${this.t("room_bar_hint")}>
+                <button aria-pressed=${this._roomBar === "off"} @click=${() => this.setRoomBar("off")}>${this.t("room_bar_none")}</button>
+                <button aria-pressed=${this._roomBar === "rooms"} @click=${() => this.setRoomBar("rooms")}>${this.t("room_bar_rooms")}</button>
+                <button aria-pressed=${this._roomBar === "all"} @click=${() => this.setRoomBar("all")}>${this.t("room_bar_all")}</button>
+              </div>`
+            : nothing}
           ${b.floors.length > 1 && !this._floorId
             ? html`<div class="fp3d-seg">
                 <button aria-pressed=${this._explode} @click=${() => this.setExplode(true)}>${this.t("floors_apart")}</button>
@@ -1556,8 +1622,30 @@ export class Floorplan3dPanel extends LitElement {
         background: #ffb020;
         color: #1a1200;
       }
+      /* the room bar: above the switches, beside the view's own buttons (search, eye, microphone) – nothing moves for it;
+         beside an open room panel */
+      .fp3d-room-bar {
+        position: absolute;
+        left: 148px;
+        right: 12px;
+        bottom: 56px;
+      }
+      .fp3d-side-right .fp3d-room-bar {
+        left: 12px;
+        right: 148px;
+      }
+      /* the eye tidied the switches away: the room bar sits at the bottom */
+      .fp3d-clean .fp3d-room-bar {
+        bottom: 12px;
+      }
+      .fp3d-room-open .fp3d-room-bar {
+        right: calc(14px + min(360px, calc(100% - 28px)) + 10px);
+      }
       /* phones and portrait tablets: panel as a sheet at the bottom, the switches step aside */
       @container fp3d ((max-width: 700px) or ((orientation: portrait) and (max-width: 1000px))) {
+        .fp3d-room-open .fp3d-room-bar {
+          display: none;
+        }
         .fp3d-room-panel {
           top: auto;
           left: 8px;

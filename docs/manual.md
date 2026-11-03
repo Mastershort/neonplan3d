@@ -194,6 +194,7 @@ Everything that belongs to the whole plan rather than to a floor, a room or an i
 | **⛰ Ground** | see [4.21](#421-cellar-and-ground) |
 | **💾 Backup** | export, import, restore, see chapter 9 |
 | **🧩 Modules** | the modules installed (code from the shop, e.g. "The house answers") and **Import a module …** for the .fp3dpack file |
+| **🖥 Card templates** | ready-made dashboard cards for the wall tablets, see [8.1](#81-card-templates) |
 
 The **roof shape** (none, flat, gable, ridge, pitch, overhang) sits with the roof tool, see [4.19](#419-roof). The **start view** is remembered in the 3D view: turn and zoom the house, then tap **📌** in the view settings (gear at the top right); **📌✕** resets it. The 3D view, the card and the kiosk then open the house like that, and an opened floor is shown from the same side.
 
@@ -284,6 +285,7 @@ The **Worktop** (Kitchen) is a free top without a base, for gaps in the kitchen 
 ![Wall view: 3D in the room and wall from the front](images/wall-view.jpg)
 
 - **State from:** any piece of furniture can show an entity that reports on, occupied or home – its top then glows: the bed with an occupancy mat, the armchair, the sauna. A second entity lights the other half (left/right, bottom/top for a bunk bed); set the first one to *none* and the second moves up into its place. Lamps, energy devices and screens have fields of their own for this.
+- **Only show while …** (new): the piece stands in 3D only while an entity is in a state – the Christmas tree while `input_boolean.christmas` is on, the garden decoration only while a season sensor says "summer". Separate several states with commas, `<20` or `>80` compares a number, a `!` in front turns it round; empty means "on". Hidden, its light and its marker go too. The editor always shows the piece; while it is missing in 3D it is faint in the plan. So you place decoration once and switch it on every year with a switch or an automation.
 - **Duplicate** and **Delete** are there too.
 
 ![A selected item](images/editor-furniture.jpg)
@@ -774,6 +776,10 @@ data:
 
 **Room of this device – "here"** (new in 2.1). When a tablet hangs in one room, choose it under **⚙ Settings → 🎙 Voice control → Room of this device** (for this device, empty by default). Then sentences without a room name are enough: "Lights on", "Turn off the lights here" or "Close the blinds" switch only in that room. When you name a room ("Turn on the kitchen lights"), that room counts. You can choose the rooms (and outdoor areas) that have a Home Assistant area, because Assist switches by area: NeonPlan hands the sentence to Assist as if a device in that area had heard it. On a **dashboard** you set it on the card: edit the dashboard → NeonPlan card → **Features** → **Room for "here"**, or in YAML `voice_area: kitchen` (the area id from Home Assistant). The card applies on every device that shows this dashboard; without a choice, the room set on the device counts. A voice satellite like the Voice PE does not need this setting, it knows its area itself.
 
+**"there" – the room you tapped.** With a room open in the 3D view, "there" means that room: on the kitchen tablet tap into the living room, then "turn off the lights there" or "TV there off". "here" stays the tablet's room.
+
+**Vacuum and "everything off" per room.** In the editor every room has the field **Cleaning (robot vacuum)**: the script or button that sends your robot to this room (the room cleaning of your robot's integration, e.g. a script with the room segments). The room panel then shows **🧹 Vacuum**, and by voice "vacuum here", "vacuum the kitchen" or "vacuum there" work. **⏻ Everything off** in the room panel and by voice ("everything off", "turn everything off there", "everything off in the kitchen") switches off the room's lights and fans, turns off the TV and pauses playing speakers. Plain switched sockets only when a lamp hangs on them in the plan, so the fridge never goes off.
+
 **Testing:** in the **🎙️ Voice control** section, **🎙️ Test the microphone** starts a probe. It checks https, the microphone, the level and Assist one after the other. It also shows which room a spoken sentence would open, and switches nothing while doing so. Wherever there is a ✖, the fix stands next to it.
 
 **Good to know:**
@@ -1171,9 +1177,9 @@ At the bottom of the page a **bar** sums up your installed packs (furniture pack
 **Fun packs** are free extras just for fun – for everyone with a customer account at mastershort.de. No purchase is needed:
 
 - **With a shop connection** they are already in your account. Under **Extensions** they are among your packs with **Install**; Home Assistant also announces new fun packs once under Notifications.
-- **Without an account** you create one for free: **🎁 Create a free customer account** under **🎈 Fun packs** (or in the notice in the 3D view), confirm your e-mail, paste the licence key from the mail under **Shop connection**. Then the fun packs show up to install – and from then on new packs too, right in the app.
+- **Without an account** you create one for free: **🎁 Create a free customer account** in the editor under **⚙ Settings → 🎈 Fun packs** (or in the notice in the 3D view), confirm your e-mail, paste the licence key from the mail under **Shop connection**. Then the fun packs show up under **Extensions** to install – and from then on new packs too, right in the app.
 
-Switch them on and off under **🎈 Fun packs** afterwards.
+The fun packs are set in the editor under **⚙ Settings → 🎈 Fun packs** (new; they used to be under Extensions). There you switch them on and off and set up the pets, for instance; under Extensions a button **Open the fun pack settings** leads straight there.
 
 **Pets:** a cat, a rabbit or a dog – as a dachshund, pug, terrier, labrador or shepherd – lives in your 3D house. **+ Add a pet** sets one up: kind, breed (for dogs), name, fur and the floor it starts on. **Show the pets** switches all of them on and off; in the dashboard card the option **Show the pets** (YAML `pets: false`) leaves them out of that card, e.g. on the wall tablet.
 
@@ -1185,6 +1191,14 @@ Switch them on and off under **🎈 Fun packs** afterwards.
 - They are only drawn while one moves – resting, they cost nothing, even on old wall tablets.
 
 **Halloween:** 13 decorations in the furniture library under **Fun pack: Halloween** – a jack-o'-lantern, a small pumpkin, a pumpkin trio, a cobweb (for the corner under the ceiling), a bat garland, two gravestones, a skeleton, a witch's cauldron, a candelabra, orange string lights, a ghost figure and a witch's broom. Pumpkin, cauldron and candles glow when you link a light. A little **ghost** floats through the house now and then – right through the walls, more often at night. **Let the ghost float** under **🎈 Fun packs** switches it off; in the dashboard card the option **Show the Halloween ghost** (YAML `ghost: false`) leaves it out of that card. The ghost, too, is only drawn while it is on its way.
+
+**Winter & Christmas** (new): 11 decorations in the furniture library under **Fun pack: Winter & Christmas** – a Christmas tree with fairy lights (for the plug), a small Christmas tree, an **Advent wreath** that lights its candles by date (one on the first Sunday of Advent, all four on the fourth), a glowing window star, a candle arch, a light-up reindeer for the garden, a snowman, a pile of presents, warm white and colourful string lights and a poinsettia. What glows glows with a linked light or plug. With **Only show while …** (see [4.8](#48-furniture)) the decorations come back every December by themselves, e.g. while a calendar or a "Christmas time" helper is on. Under **⚙ Settings → 🎈 Fun packs**:
+
+- **Fairy lights along the eaves:** bulbs along the roof's edge. **Shine with** links them to your real outdoor lights; without a choice they shine **automatically in the evening from the first Sunday of Advent to 6 January**. Pick **Colourful instead of warm white** and **Gables and ridge too** (the whole roof in light) as you like.
+- **Snow:** when the weather entity reports snow, snow lies on the roof and the lawn. It stays while it freezes and melts within a few hours above zero.
+- **Firework:** on New Year's Eve a neon firework rises over the house at midnight (23:59 to 0:10).
+
+All of it runs on old wall tablets too: the fairy lights and the snow cost next to nothing, the firework is only drawn during those eleven minutes.
 
 ---
 
@@ -1232,10 +1246,33 @@ The card `custom:neonplan3d-card` brings the 3D view into any dashboard. It load
 
 ![A card with scenes](images/card-scenes.jpg)
 
+### 8.1 Card templates
+
+Instead of setting up every card on every tablet, you build it once in the editor: **⚙ Settings → 🖥 Card templates → + New template**. Give it a name (e.g. "Kitchen Fire tablet") and set everything below, with the same form as in Home Assistant's card dialog. **Duplicate** makes a copy to start the next tablet from.
+
+**On the tablet:** add a card, search for "NeonPlan" and pick the template under **Template** at the very top, done. The form below goes away. The YAML has two lines only:
+
+```yaml
+type: custom:neonplan3d-card
+template: kitchen_fire
+```
+
+- **Changing it:** when you change the template in the editor, every tablet with this template follows after a moment by itself, without a reload.
+- **The template counts, the size stays with the card:** a card with a template shows the template. Only its size (**Fill the screen**, **Height**, **Full-screen button**) comes from its own YAML, as it belongs to the dashboard. Whatever else is still in the card's YAML from before no longer applies; the card dialog lists it and **Tidy up** removes it. For a tablet that should look different, give it a template of its own (**Duplicate**).
+- **Straight away or with a button:** under **Changes** each template is either **Straight to the tablets** (the default) or **Send with a button**. Then only the preview shows your changes; the tablets keep the old state until you press **Send to the tablets**. **Discard** drops the changes.
+- **Where does the tablet hang?** The field at the top of the template sets the room for "here" ("Turn on the lights here"), whatever floor or start room the card shows.
+- **Renaming:** the id in the YAML follows the new name. Tablets still set up with the old id keep finding the template.
+- **Screen name:** the template's name is also the card's screen name (for announcements and "here" in voice control), as long as the template has none of its own.
+- **Reload:** **Reload screens with this template** and **Reload all screens** make the open tablets load their page again, e.g. after a NeonPlan update (new code only arrives that way). Automations have the action `neonplan3d.reload_screens` for it (without `templates`: every screen).
+- **Deleted:** when the template is missing from the plan, the card shows a note and carries on with its own settings.
+
+### 8.2 All options in YAML
+
 In YAML a card looks like this. Every line except the first is optional:
 
 ```yaml
 type: custom:neonplan3d-card
+template: kitchen_fire  # a card template from the editor (then only it counts, not the other lines)
 floor: floor_ab12cd34   # show one floor (id from the editor)
 room: room_ab12cd34     # start in this room (the id is in the editor's room form), e.g. a display for the kids' room
 height: 420             # height in pixels
