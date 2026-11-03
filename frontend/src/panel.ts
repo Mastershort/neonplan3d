@@ -20,7 +20,7 @@ import { furnitureName } from "./furniture-names.ts";
 import { confirmEntities, defaultHeight, entityName, kindOf } from "./devices.ts";
 import { canLift, zonesOf, type LampMount } from "./model.ts";
 import { mountBase, packsVersion } from "./packs.ts";
-import { hasFeature, labOn, registerUrl, UNRELEASED } from "./features.ts";
+import { hasFeature, labOn, registerUrl, released, UNRELEASED } from "./features.ts";
 import { mountLocateLab } from "./locate-lab.ts";
 import { directorOnHere } from "./director.ts";
 import { loadVoice, micProbeDone, screenName, voiceOnHere } from "./load-voice.ts";
@@ -969,9 +969,11 @@ export class Floorplan3dPanel extends LitElement {
     const roomFloors = floor ? [floor] : b.floors;
     const tt = this.tt.active;
     // the room bar: not while travelling in time (its bar sits there); it stays when the eye tidies the rest away
-    const roomBar = this._roomBar !== "off" && !tt;
+    // (not released yet: only with the lab switch)
+    const barMode = released("room_bar") ? this._roomBar : "off";
+    const roomBar = barMode !== "off" && !tt;
     // with the room bar the rooms live at the bottom: the top keeps only the floors (nothing at all with one floor)
-    const roomChips = this._roomBar === "off";
+    const roomChips = barMode === "off";
     return html`
       ${this._clean || (!roomChips && b.floors.length < 2) ? nothing : html`<nav class="fp3d-nav ${this._navWrap ? "fp3d-nav-wrap" : ""}" @wheel=${this.onNavWheel}>
         ${b.floors.length > 1
@@ -1107,7 +1109,7 @@ export class Floorplan3dPanel extends LitElement {
               .building=${b}
               .floorId=${b.floors.length > 1 ? this._floorId : (b.floors[0]?.id ?? null)}
               .roomId=${this._roomId}
-              ?favorites=${this._roomBar === "all"}
+              ?favorites=${barMode === "all"}
               @room-pick=${(e: CustomEvent<{ floorId: string; roomId: string }>) => {
                 // straight into the room, also from the house view or another floor
                 if (b.floors.length > 1) this._floorId = e.detail.floorId;
@@ -1130,11 +1132,13 @@ export class Floorplan3dPanel extends LitElement {
             <button aria-pressed=${!this._plain} @click=${() => this.setPlain(false)}>${this.t("plain_off")}</button>
             <button aria-pressed=${this._plain} @click=${() => this.setPlain(true)}>${this.t("plain_on")}</button>
           </div>
-          <div class="fp3d-seg" title=${this.t("room_bar_hint")}>
-            <button aria-pressed=${this._roomBar === "off"} @click=${() => this.setRoomBar("off")}>${this.t("room_bar_none")}</button>
-            <button aria-pressed=${this._roomBar === "rooms"} @click=${() => this.setRoomBar("rooms")}>${this.t("room_bar_rooms")}</button>
-            <button aria-pressed=${this._roomBar === "all"} @click=${() => this.setRoomBar("all")}>${this.t("room_bar_all")}</button>
-          </div>
+          ${released("room_bar")
+            ? html`<div class="fp3d-seg" title=${this.t("room_bar_hint")}>
+                <button aria-pressed=${this._roomBar === "off"} @click=${() => this.setRoomBar("off")}>${this.t("room_bar_none")}</button>
+                <button aria-pressed=${this._roomBar === "rooms"} @click=${() => this.setRoomBar("rooms")}>${this.t("room_bar_rooms")}</button>
+                <button aria-pressed=${this._roomBar === "all"} @click=${() => this.setRoomBar("all")}>${this.t("room_bar_all")}</button>
+              </div>`
+            : nothing}
           ${b.floors.length > 1 && !this._floorId
             ? html`<div class="fp3d-seg">
                 <button aria-pressed=${this._explode} @click=${() => this.setExplode(true)}>${this.t("floors_apart")}</button>

@@ -154,6 +154,19 @@
         },
         async callWS(msg) {
           switch (msg.type) {
+            // the card templates' overview of the open screens (invented devices)
+            case "neonplan3d/screens/list": {
+              const t = Date.now() / 1000;
+              return {
+                screens: [
+                  { id: "s1", kind: "card", template: "kueche_fire", screen: null, device: "Fire HD 10 · Fully Kiosk", version: "2.3.0", user: "Tablet", since: t - 9 * 3600, reloadable: true },
+                  { id: "s2", kind: "card", template: "flur", screen: null, device: "Fire 7 · Fully Kiosk", version: "2.2.0", user: "Tablet", since: t - 30 * 3600, reloadable: true },
+                  { id: "s3", kind: "panel", template: null, screen: null, device: "Windows · Chrome", version: "2.3.0", user: "Demo", since: t - 600, reloadable: true },
+                ],
+              };
+            }
+            case "neonplan3d/screens/reload":
+              return { sent: true };
             case "neonplan3d/building/get": {
               // the online demo has no private packs: their items would stand as grey boxes, so leave them out
               const packs = await previewPacks();

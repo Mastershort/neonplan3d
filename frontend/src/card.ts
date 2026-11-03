@@ -15,7 +15,7 @@ import { cardTemplate, effectiveConfig, type CardConfig, type CardControl } from
 import { nightActive } from "./kiosk.ts";
 import { loadCardEditor } from "./load-card-editor.ts";
 import type { WallMode } from "./viewer/viewer3d.ts";
-import { hasFeature, type Feature } from "./features.ts";
+import { hasFeature, released, type Feature } from "./features.ts";
 import { TimeTravel } from "./load-timetravel.ts";
 import type { HistorySpec } from "./timetravel/types.ts";
 
@@ -375,7 +375,7 @@ clearTimeout(this.cleanTimer);
     const tt = this.tt.active;
     // the room bar (room_bar: true): above the switches, it stays when the switches are hidden; not while
     // travelling in time or with a room panel open
-    const roomBar = !!b && !!c?.room_bar && !tt && !(this._roomId && c.room_panel !== false);
+    const roomBar = !!b && !!c?.room_bar && released("room_bar") && !tt && !(this._roomId && c.room_panel !== false);
     const eye = c?.controls_hidden !== undefined || (c?.controls_hide_after ?? 0) > 0;
     const t = (k: Parameters<typeof translate>[1]) => translate(this.hass, k);
     const accent = /^#[0-9a-f]{6}$/i.test(c?.accent ?? "") ? c!.accent : null;
@@ -425,6 +425,7 @@ clearTimeout(this.cleanTimer);
               .voice=${!!c?.voice}
               .screen=${c?.screen?.trim() || null}
               .template=${c?.template?.trim() || null}
+              .viewKind=${this.preview ? "preview" : "card"}
               .voiceArea=${c?.voice_area?.trim() || null}
               @open-extensions=${() => this.openDashboard("/neonplan3d?tab=extensions")}
               .scenes=${c?.scenes !== false}

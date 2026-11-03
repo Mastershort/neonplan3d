@@ -144,6 +144,8 @@ import { watchedEntities } from "../watched.ts";
 import { backdropCss } from "../backdrop.ts";
 import { loadVoice, micProbeAsked, micProbeDone, voiceArea, voicePipeline } from "../load-voice.ts";
 import { callCount, cleaningCall, everythingOff, roomOfArea } from "../room-actions.ts";
+import { deviceLabel } from "../screen-info.ts";
+import { FRONTEND_VERSION } from "../building-controller.ts";
 import { answerAsk, subscribeAsk, type Ask, type ScreenAnnouncement, type ScreenReload } from "../api.ts";
 import { pipePlanner } from "../pipe-planner.ts";
 import type { ClockPos } from "../card-config.ts";
@@ -323,6 +325,7 @@ export class Fp3dView3d extends LitElement {
     voice: { attribute: false },
     screen: { attribute: false },
     template: { attribute: false },
+    viewKind: { attribute: false },
     voiceArea: { attribute: false },
     _voice: { state: true },
     _announce: { state: true },
@@ -523,6 +526,8 @@ export class Fp3dView3d extends LitElement {
   declare screen: string | null;
   /** The card template this view shows (a dashboard card's option `template`): "reload screens" for it reaches it. */
   declare template: string | null;
+  /** Where this view runs, for the overview of the open screens: the panel, a dashboard card, a template's preview. */
+  declare viewKind: "panel" | "card" | "preview";
   /** The Home Assistant area of this view's tablet (card option `voice_area`); null: the device's setting. */
   declare voiceArea: string | null;
   private declare _voice: { phase: "wait" | "listen" | "done" | "error"; text: string } | null;
@@ -757,6 +762,7 @@ export class Fp3dView3d extends LitElement {
     this.voice = false;
     this.screen = null;
     this.template = null;
+    this.viewKind = "panel";
     this.voiceArea = null;
     this._voice = null;
     this._micProbe = micProbeAsked();
@@ -806,6 +812,7 @@ export class Fp3dView3d extends LitElement {
       (ask) => void this.onAsk(ask),
       (a) => void this.onAnnounce(a),
       (r) => this.onReload(r),
+      { kind: this.viewKind, screen: this.screen, template: this.template, device: deviceLabel(), version: FRONTEND_VERSION },
     ).catch(() => {
       // a replay or an older backend: nothing to listen to
       this.unsubAsk = null;
@@ -1004,7 +1011,11 @@ export class Fp3dView3d extends LitElement {
 
   protected updated(changed: PropertyValues): void {
     if (changed.has("hass") && this.live?.el) this.live.el.hass = this.hass;
-    if (changed.has("hass")) this.watchAsk();
+    // a view that now shows another screen name or template tells the overview again
+    if ((changed.has("screen") || changed.has("template") || changed.has("viewKind")) && this.unsubAsk && this.hasUpdated) {
+      this.unwatchAsk();
+      this.watchAsk();
+    } else if (changed.has("hass")) this.watchAsk();
     // the star menu closes when a room or another floor is chosen (#220)
     if (this._central && ((changed.has("roomId") && changed.get("roomId") !== undefined) || (changed.has("floorId") && changed.get("floorId") !== undefined))) this._central = false;
     const v = this.viewer;

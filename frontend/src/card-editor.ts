@@ -499,8 +499,9 @@ export class Floorplan3dCardEditor extends LitElement {
       ${this.renderThumbsToggle()} ${this.toggle("room_names", "card_room_names")}
       ${this.toggle("energy", "card_energy")} ${this.toggle("room_panel", "card_room_panel", "card_room_panel_hint")}
       ${this.toggle("fullscreen_button", "card_fullscreen_button", "card_fullscreen_button_hint")}
-      ${this.toggle("explode", "card_explode")} ${this.toggle("roof", "card_roof", "card_roof_hint")} ${this.toggle("roof_fade", "card_roof_fade", "card_roof_fade_hint")} ${this.toggle("plain", "card_plain", "plain_hint")} ${this.toggle("room_bar", "card_room_bar", "room_bar_hint")}
-      ${this.value.room_bar ? this.toggle("room_bar_favorites", "card_room_bar_favorites", "card_room_bar_favorites_hint") : nothing} ${this.toggle("stats", "card_stats", "card_stats_hint")}
+      ${this.toggle("explode", "card_explode")} ${this.toggle("roof", "card_roof", "card_roof_hint")} ${this.toggle("roof_fade", "card_roof_fade", "card_roof_fade_hint")} ${this.toggle("plain", "card_plain", "plain_hint")}
+      ${!UNRELEASED.includes("room_bar") || labOn() ? this.toggle("room_bar", "card_room_bar", "room_bar_hint") : nothing}
+      ${this.value.room_bar && (!UNRELEASED.includes("room_bar") || labOn()) ? this.toggle("room_bar_favorites", "card_room_bar_favorites", "card_room_bar_favorites_hint") : nothing} ${this.toggle("stats", "card_stats", "card_stats_hint")}
       ${this.renderFeatures()}
       ${this.renderKiosk()}
     `;

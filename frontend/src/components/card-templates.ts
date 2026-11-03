@@ -2,7 +2,8 @@
 // card's own visual editor); a wall tablet only picks it (`template: kueche_fire`) and follows every change made here,
 // as the plan reaches every open card. "Reload screens" lets the tablets load their page again (after an update).
 import { css, html, LitElement, nothing, type PropertyValues } from "lit";
-import { reloadScreens } from "../api.ts";
+import { listScreens, reloadScreen, reloadScreens, type OpenScreen } from "../api.ts";
+import { FRONTEND_VERSION } from "../building-controller.ts";
 import { renameTemplate, templateId, type CardConfig } from "../card-config.ts";
 import { translate, type I18nKey } from "../i18n.ts";
 import { loadCardEditor } from "../load-card-editor.ts";
@@ -58,6 +59,7 @@ export class Fp3dCardTemplates extends LitElement {
     _reloading: { state: true },
     _scale: { state: true },
     _screen: { state: true },
+    _open: { state: true },
     initial: { attribute: false },
   };
 
@@ -79,6 +81,9 @@ export class Fp3dCardTemplates extends LitElement {
   private declare _scale: number;
   /** Which screen the preview stands for. */
   private declare _screen: ScreenSize;
+  /** The NeonPlan views open now (polled while this is open; null until the first answer or for an older backend). */
+  private declare _open: OpenScreen[] | null;
+  private openTimer: ReturnType<typeof setInterval> | undefined;
   /** The template to open first (a link from the dashboard's card dialog names it). */
   declare initial: string | null;
   private stageObserver: ResizeObserver | null = null;
@@ -100,11 +105,14 @@ export class Fp3dCardTemplates extends LitElement {
     this._reloading = false;
     this._scale = 0.5;
     this._screen = readScreen();
+    this._open = null;
     this.initial = null;
   }
 
   disconnectedCallback(): void {
     super.disconnectedCallback();
+    clearInterval(this.openTimer);
+    this.openTimer = undefined;
     this.stageObserver?.disconnect();
     this.stageObserver = null;
   }
@@ -161,6 +169,24 @@ export class Fp3dCardTemplates extends LitElement {
     } catch {
       // no storage: on for the next time
     }
+  }
+
+  /** The open screens, again every few seconds while the dialog is open (a tablet that reloads comes back). */
+  private watchOpen(): void {
+    if (this.openTimer || !this.hass || !this.admin) return;
+    const fetch = () => {
+      if (!this.hass) return;
+      listScreens(this.hass).then(
+        (list) => (this._open = list),
+        () => {
+          // an older backend: no overview
+          clearInterval(this.openTimer);
+          this._open = null;
+        },
+      );
+    };
+    fetch();
+    this.openTimer = setInterval(fetch, 5000);
   }
 
   connectedCallback(): void {
@@ -268,6 +294,7 @@ export class Fp3dCardTemplates extends LitElement {
   /** The card editor shows the open template; again when it changed from outside (undo, another browser). */
   protected updated(changed: PropertyValues): void {
     super.updated(changed);
+    if (changed.has("hass") || changed.has("admin")) this.watchOpen();
     const tpl = this.current;
     const el = this.renderRoot.querySelector("neonplan3d-card-editor") as (HTMLElement & { setConfig?: (c: CardConfig) => void }) | null;
     // the preview's column is measured (the stage itself is only as wide as the shrunk screen)
@@ -329,7 +356,53 @@ export class Fp3dCardTemplates extends LitElement {
           </div>`
         : nothing}
       ${this._note ? html`<p class="fp3d-tpl-note" role="status">${this._note}</p>` : nothing}
+      ${admin ? this.renderOpen(tpl) : nothing}
     </div>`;
+  }
+
+  /** Where NeonPlan is open now: each device with what it shows, since when, its version, and a reload of its own. */
+  private renderOpen(selected: CardTemplate | undefined) {
+    const list = this._open;
+    if (!list) return nothing;
+    const lang = this.hass?.language ?? "de";
+    const byId = (id: string | null | undefined) => (id ? this.templates.find((x) => x.id === id || x.aliases?.includes(id)) : undefined);
+    const time = (s: number) => {
+      const d = new Date(s * 1000);
+      const today = d.toDateString() === new Date().toDateString();
+      return today ? d.toLocaleTimeString(lang, { hour: "2-digit", minute: "2-digit" }) : d.toLocaleDateString(lang, { day: "numeric", month: "short" });
+    };
+    return html`<section class="fp3d-tpl-open">
+      <b>${this.t("screens_title")} (${list.length})</b>
+      <span class="fp3d-sub">${this.t("screens_hint")}</span>
+      ${list.length
+        ? html`<ul>
+            ${list.map((s) => {
+              const tpl = byId(s.template);
+              const shows = s.kind === "panel" ? this.t("screens_panel") : tpl ? tpl.name : s.template ? s.template : this.t("screens_card_own");
+              const old = !!s.version && s.version !== FRONTEND_VERSION;
+              const mine = !!tpl && tpl === selected;
+              return html`<li class=${mine ? "fp3d-tpl-mine" : ""}>
+                <span class="fp3d-tpl-dev">${s.kind === "panel" ? "🖥" : "📱"} <b>${s.device || this.t("screens_unknown_device")}</b>${s.user ? html` · ${s.user}` : nothing}</span>
+                <span>${shows}${s.screen && s.screen !== tpl?.name ? html` · „${s.screen}“` : nothing}</span>
+                <span class="fp3d-sub">${this.t("screens_since", { time: time(s.since) })}${s.version ? ` · v${s.version}` : ""}</span>
+                <span class="fp3d-tpl-old">${old ? this.t("screens_old") : ""}</span>
+                ${s.reloadable
+                  ? html`<button
+                      class="fp3d-btn"
+                      @click=${() => {
+                        if (!this.hass) return;
+                        (window as { fp3dReloadSent?: number }).fp3dReloadSent = 0;
+                        void reloadScreen(this.hass, s.id).then(() => this.note(this.t("card_template_reloaded")));
+                      }}
+                    >
+                      ⟳ ${this.t("screens_reload")}
+                    </button>`
+                  : html`<span></span>`}
+              </li>`;
+            })}
+          </ul>`
+        : html`<span class="fp3d-sub">${this.t("screens_none")}</span>`}
+    </section>`;
   }
 
   private renderTemplate(tpl: CardTemplate, admin: boolean) {
@@ -553,6 +626,46 @@ export class Fp3dCardTemplates extends LitElement {
         --primary-color: var(--fp3d-accent);
         --fp3d-field-hover: rgba(55, 224, 255, 0.08);
         color-scheme: dark;
+      }
+      .fp3d-tpl-open {
+        display: grid;
+        gap: 6px;
+        padding-top: 10px;
+        border-top: 1px solid var(--fp3d-line);
+      }
+      .fp3d-tpl-open ul {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: grid;
+        gap: 6px;
+      }
+      .fp3d-tpl-open li {
+        display: grid;
+        grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) auto auto auto;
+        gap: 10px;
+        align-items: center;
+        padding: 8px 10px;
+        border-radius: 10px;
+        border: 1px solid var(--fp3d-line);
+        font-size: 13px;
+      }
+      .fp3d-tpl-open li.fp3d-tpl-mine {
+        border-color: var(--fp3d-accent);
+      }
+      .fp3d-tpl-dev {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .fp3d-tpl-old {
+        color: #ffcf8a;
+        font-size: 12px;
+      }
+      @media (max-width: 700px) {
+        .fp3d-tpl-open li {
+          grid-template-columns: 1fr auto;
+        }
       }
       .fp3d-tpl-note {
         margin: 0;

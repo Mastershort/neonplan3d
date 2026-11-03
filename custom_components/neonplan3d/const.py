@@ -40,4 +40,6 @@ SIGNAL_ANNOUNCE = f"{DOMAIN}_announce"
 SIGNAL_RELOAD = f"{DOMAIN}_reload"
 # the voice settings (which sentences Assist hands to NeonPlan), kept in .storage
 DATA_VOICE = f"{DOMAIN}_voice"
+# the NeonPlan views open now (screens.py): what each shows, for the card templates' overview
+DATA_SCREENS = f"{DOMAIN}_screens"
 STORAGE_KEY_VOICE = f"{DOMAIN}.voice"
