@@ -149,7 +149,7 @@ export class Floorplan3dCardEditor extends LitElement {
         : nothing}
       <div class="links">
         ${link}
-        ${id && !this._showForm ? html`<button class="more" @click=${() => (this._showForm = true)}>${this.t("card_template_form")}</button>` : nothing}
+
       </div>`;
   }
 
@@ -440,7 +440,7 @@ export class Floorplan3dCardEditor extends LitElement {
     const v = this.value;
     const flows = v.flows === undefined ? "switch" : v.flows ? "on" : "off";
     const holos = v.holograms === undefined ? "switch" : v.holograms ? "on" : "off";
-    if (!this.embedded && v.template && !this._showForm) return this.renderTemplate();
+    if (!this.embedded && v.template) return this.renderTemplate();
     return html`
       ${this.embedded ? nothing : this.renderTemplate()}
       <h3>${this.t("card_section_view")}</h3>

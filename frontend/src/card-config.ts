@@ -139,15 +139,15 @@ export function cardTemplate(b: Building | null | undefined, id: string | undefi
 }
 
 /**
- * The options a card works with: its template's (from the plan), then the ones in its own YAML on top. A template's
- * name is the card's screen name unless it has one of its own (announcements, "here" in voice control). A card
- * without a template, or with one the plan does not have, keeps its YAML as it is.
+ * The options a card works with: a card that names a template shows exactly the template (options left on the card
+ * from before are not used – they would else keep winning unseen, as `plain: true` from an old card did). The
+ * template's name is the card's screen name unless the template has one of its own (announcements, "here" in voice
+ * control). A card without a template, or with one the plan does not have, keeps its YAML as it is.
  */
 export function effectiveConfig(yaml: CardConfig, b: Building | null | undefined): CardConfig {
   const tpl = cardTemplate(b, yaml.template);
   if (!tpl) return yaml;
-  const { type, template, ...own } = yaml;
-  return { ...tpl.config, screen: tpl.config.screen || tpl.name, ...own, type, template } as CardConfig;
+  return { ...tpl.config, screen: tpl.config.screen || tpl.name, type: yaml.type, template: yaml.template } as CardConfig;
 }
 
 /**

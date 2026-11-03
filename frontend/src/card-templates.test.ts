@@ -9,14 +9,14 @@ const plan = (): Building => ({
 });
 const card = (c: Partial<CardConfig> = {}): CardConfig => ({ type: "custom:neonplan3d-card", ...c });
 
-test("card templates: a card naming a template takes its options; its own YAML wins", () => {
-  const c = effectiveConfig(card({ template: "kueche_fire", height: 800 }), plan());
+test("card templates: a card naming a template shows exactly the template, whatever else is left on the card", () => {
+  const c = effectiveConfig(card({ template: "kueche_fire", height: 800, plain: true, screen: "Flur" }), plan());
   assert.equal(c.floor, "eg");
   assert.equal(c.room_bar, true);
-  assert.equal(c.height, 800, "the card's own height");
+  assert.equal(c.height, 600, "the template's height, not the old card's");
+  assert.equal(c.plain, undefined, "an old card's floor plan only does not hide the furniture");
   assert.equal(c.type, "custom:neonplan3d-card");
   assert.equal(c.screen, "Küche Fire-Tablet", "the template's name is the screen name");
-  assert.equal(effectiveConfig(card({ template: "kueche_fire", screen: "Flur" }), plan()).screen, "Flur");
 });
 
 test("card templates: without a template, or with one the plan lacks, the YAML stays as it is", () => {

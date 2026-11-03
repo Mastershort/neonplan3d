@@ -1258,7 +1258,7 @@ template: kitchen_fire
 ```
 
 - **Changing it:** when you change the template in the editor, every tablet with this template follows after a moment by itself, without a reload.
-- **Exceptions:** whatever is in the card's own YAML as well wins over the template (e.g. its own `height`). **Show the form anyway** in the card dialog opens the whole form for that.
+- **Only the template counts:** a card with a template shows exactly the template. Whatever is still in the card's YAML from before no longer applies; the card dialog lists it and **Tidy up** removes it. For a tablet that should look different, give it a template of its own (**Duplicate**).
 - **Straight away or with a button:** under **Changes** each template is either **Straight to the tablets** (the default) or **Send with a button**. Then only the preview shows your changes; the tablets keep the old state until you press **Send to the tablets**. **Discard** drops the changes.
 - **Where does the tablet hang?** The field at the top of the template sets the room for "here" ("Turn on the lights here"), whatever floor or start room the card shows.
 - **Renaming:** the id in the YAML follows the new name. Tablets still set up with the old id keep finding the template.
@@ -1272,7 +1272,7 @@ In YAML a card looks like this. Every line except the first is optional:
 
 ```yaml
 type: custom:neonplan3d-card
-template: kitchen_fire  # a card template from the editor (the lines here win over it)
+template: kitchen_fire  # a card template from the editor (then only it counts, not the other lines)
 floor: floor_ab12cd34   # show one floor (id from the editor)
 room: room_ab12cd34     # start in this room (the id is in the editor's room form), e.g. a display for the kids' room
 height: 420             # height in pixels
