@@ -2211,6 +2211,8 @@
  "screens_old": "stara wersja – przeładuj",
  "screens_reload": "Przeładuj",
  "screens_unknown_device": "Nieznane urządzenie",
+ "card_template_own": "Ta karta ma własne ustawienia, które mają pierwszeństwo przed szablonem: {list}.",
+ "card_template_own_clear": "Usuń własne ustawienia (tylko szablon)",
  "card_template_use": "Jak go użyć: dodaj kartę NeonPlan na tablecie i wybierz szablon u góry albo w YAML:",
  "card_template_copy": "Kopiuj",
  "card_template_copied": "Skopiowano.",

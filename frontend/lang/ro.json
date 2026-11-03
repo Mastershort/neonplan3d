@@ -2211,6 +2211,8 @@
  "screens_old": "versiune veche – reîncarcă",
  "screens_reload": "Reîncarcă",
  "screens_unknown_device": "Dispozitiv necunoscut",
+ "card_template_own": "Acest card are setări proprii care au prioritate față de șablon: {list}.",
+ "card_template_own_clear": "Elimină setările proprii (doar șablonul)",
  "card_template_use": "Cum îl folosești: adaugă cardul NeonPlan pe tabletă și alege șablonul sus, sau în YAML:",
  "card_template_copy": "Copiază",
  "card_template_copied": "Copiat.",

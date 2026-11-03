@@ -2211,6 +2211,8 @@
  "screens_old": "versión antigua – recargar",
  "screens_reload": "Recargar",
  "screens_unknown_device": "Dispositivo desconocido",
+ "card_template_own": "Esta tarjeta tiene ajustes propios que mandan sobre la plantilla: {list}.",
+ "card_template_own_clear": "Quitar sus ajustes propios (solo la plantilla)",
  "card_template_use": "Cómo usarla: añade la tarjeta NeonPlan en la tablet y elige la plantilla arriba, o en YAML:",
  "card_template_copy": "Copiar",
  "card_template_copied": "Copiado.",

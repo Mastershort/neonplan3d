@@ -134,17 +134,42 @@ export class Floorplan3dCardEditor extends LitElement {
       : nothing;
     return html`<h3>${this.t("card_template")}</h3>
       <label class="field wide">
-        <select @change=${(e: Event) => this.set("template", (e.target as HTMLSelectElement).value || undefined)}>
+        <select @change=${(e: Event) => this.pickTemplate((e.target as HTMLSelectElement).value || undefined)}>
           <option value="" ?selected=${!id}>${this.t("card_template_none")}</option>
           ${this._templates.map((x) => html`<option value=${x.id} ?selected=${x.id === chosen}>${x.name}</option>`)}
           ${id && !tpl ? html`<option value=${id} selected>${id}</option>` : nothing}
         </select>
       </label>
       <p class="hint">${this.t(id ? "card_template_on" : "card_template_hint")}</p>
+      ${id && this.ownOptions().length
+        ? html`<div class="own">
+            ${this.t("card_template_own", { list: this.ownOptions().join(", ") })}
+            <button class="more" @click=${() => this.emit({ type: this._config.type, template: id })}>${this.t("card_template_own_clear")}</button>
+          </div>`
+        : nothing}
       <div class="links">
         ${link}
         ${id && !this._showForm ? html`<button class="more" @click=${() => (this._showForm = true)}>${this.t("card_template_form")}</button>` : nothing}
       </div>`;
+  }
+
+  /** Options written on this card besides its template: they win over the template's. */
+  private ownOptions(): string[] {
+    return Object.keys(this._config).filter((k) => k !== "type" && k !== "template");
+  }
+
+  /**
+   * A template chosen: the card becomes the two lines (its earlier options would else keep winning over the template,
+   * unseen behind the folded form); back to none, it keeps nothing of the template.
+   */
+  private pickTemplate(id: string | undefined): void {
+    this._showForm = false;
+    this.emit(id ? { type: this._config.type, template: id } : { type: this._config.type });
+  }
+
+  private emit(next: CardConfig): void {
+    this._config = next;
+    this.dispatchEvent(new CustomEvent("config-changed", { detail: { config: next }, bubbles: true, composed: true }));
   }
 
   /** The options of the card's template (none inside NeonPlan's editor, where the form is the template). */
@@ -522,6 +547,13 @@ export class Floorplan3dCardEditor extends LitElement {
     }
     h3:first-child {
       margin-top: 0;
+    }
+    .own {
+      margin: 8px 0 0;
+      padding: 8px 10px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 170, 60, 0.6);
+      font-size: 13px;
     }
     .links {
       display: flex;

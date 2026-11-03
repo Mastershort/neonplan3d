@@ -2211,6 +2211,8 @@
  "screens_old": "gammel versjon – last inn på nytt",
  "screens_reload": "Last inn på nytt",
  "screens_unknown_device": "Ukjent enhet",
+ "card_template_own": "Dette kortet har egne innstillinger som gjelder foran malen: {list}.",
+ "card_template_own_clear": "Fjern egne innstillinger (bare malen)",
  "card_template_use": "Slik bruker du den: legg til NeonPlan-kortet på nettbrettet og velg malen øverst, eller i YAML:",
  "card_template_copy": "Kopier",
  "card_template_copied": "Kopiert.",

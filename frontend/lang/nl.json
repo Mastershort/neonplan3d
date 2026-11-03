@@ -2211,6 +2211,8 @@
  "screens_old": "oude versie – herladen",
  "screens_reload": "Herladen",
  "screens_unknown_device": "Onbekend apparaat",
+ "card_template_own": "Deze kaart heeft eigen instellingen die voor het sjabloon gaan: {list}.",
+ "card_template_own_clear": "Eigen instellingen verwijderen (alleen het sjabloon)",
  "card_template_use": "Zo gebruik je het: voeg op de tablet de NeonPlan-kaart toe en kies bovenaan het sjabloon, of in YAML:",
  "card_template_copy": "Kopiëren",
  "card_template_copied": "Gekopieerd.",
