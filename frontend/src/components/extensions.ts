@@ -353,7 +353,8 @@ export class Extensions extends LitElement {
                       }}
                     ></fp3d-entity-picker
                   ></label>
-                  ${check(!!w.roof_color, "winter_roof_color", (v) => ({ roof_color: v }))}`
+                  ${check(!!w.roof_color, "winter_roof_color", (v) => ({ roof_color: v }))}
+                  ${check(w.roof_outline !== false, "winter_roof_outline", (v) => ({ roof_outline: v }))}`
               : nothing}
             ${check(w.snow !== false, "winter_snow", (v) => ({ snow: v }))} ${check(w.firework !== false, "winter_firework", (v) => ({ firework: v }))}`
         : nothing}

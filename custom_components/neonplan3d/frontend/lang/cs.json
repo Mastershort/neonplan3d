@@ -817,6 +817,7 @@
  "winter_roof_entity": "Svítí s",
  "winter_roof_auto": "Automaticky: večer od 1. adventní neděle do 6. ledna",
  "winter_roof_color": "Barevně místo teple bílé",
+ "winter_roof_outline": "Také na štítech a hřebeni (celá střecha)",
  "winter_snow": "Sníh na střeše a trávníku, dokud sněží (při oblevě roztaje)",
  "winter_firework": "Ohňostroj nad domem o silvestrovské půlnoci",
  "fun_name_halloween": "Halloween",

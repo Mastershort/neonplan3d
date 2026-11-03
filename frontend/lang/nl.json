@@ -817,6 +817,7 @@
  "winter_roof_entity": "Brandt met",
  "winter_roof_auto": "Automatisch: 's avonds vanaf de 1e adventszondag tot 6 januari",
  "winter_roof_color": "Kleurig in plaats van warmwit",
+ "winter_roof_outline": "Ook langs gevels en nok (het hele dak)",
  "winter_snow": "Sneeuw op dak en gazon zolang het sneeuwt (smelt bij dooi)",
  "winter_firework": "Vuurwerk boven het huis om middernacht op oudejaarsavond",
  "fun_name_halloween": "Halloween",

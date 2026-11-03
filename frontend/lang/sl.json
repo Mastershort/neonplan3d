@@ -817,6 +817,7 @@
  "winter_roof_entity": "Svetijo z",
  "winter_roof_auto": "Samodejno: zvečer od 1. adventne nedelje do 6. januarja",
  "winter_roof_color": "Pisane namesto toplo bele",
+ "winter_roof_outline": "Tudi na zatrepih in slemenu (cela streha)",
  "winter_snow": "Sneg na strehi in trati, dokler sneži (ob odjugi se stopi)",
  "winter_firework": "Ognjemet nad hišo opolnoči na silvestrovo",
  "fun_name_halloween": "Noč čarovnic",

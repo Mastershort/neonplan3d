@@ -817,6 +817,7 @@
  "winter_roof_entity": "随以下设备亮起",
  "winter_roof_auto": "自动：从降临节第一个主日到 1 月 6 日的夜晚",
  "winter_roof_color": "彩色代替暖白",
+ "winter_roof_outline": "也沿山墙和屋脊（整个屋顶）",
  "winter_snow": "下雪时屋顶和草坪上有积雪（回暖时融化）",
  "winter_firework": "除夕午夜房子上空的烟花",
  "fun_name_halloween": "万圣节",

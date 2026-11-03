@@ -1576,7 +1576,7 @@ export class Fp3dView3d extends LitElement {
     const lines = this.scene.filter((p): p is Extract<ScenePiece, { kind: "line" }> => p.kind === "line");
     // fun pack "Winter & Christmas": fairy lights along the eaves, snow on roof and lawn, the New Year's firework
     const winter = hasFeature("fun_winter") && !this.replay;
-    v.setRoofLights(winter && roofLightsOn(hass, b) ? (winterOf(b).roof_color ? "color" : "warm") : "off");
+    v.setRoofLights(winter && roofLightsOn(hass, b) ? (winterOf(b).roof_color ? "color" : "warm") : "off", winterOf(b).roof_outline !== false);
     const snow = winter ? snowLevel(hass, b, weatherEntity(hass, this.weatherEntityId ?? b.settings.weather_entity)) : 0;
     v.setRoofSnow(snow);
     v.setFirework(winter && fireworkNow(b));

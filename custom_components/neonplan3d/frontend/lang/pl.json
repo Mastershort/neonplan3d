@@ -817,6 +817,7 @@
  "winter_roof_entity": "Świecą razem z",
  "winter_roof_auto": "Automatycznie: wieczorem od 1. niedzieli Adwentu do 6 stycznia",
  "winter_roof_color": "Kolorowe zamiast ciepłej bieli",
+ "winter_roof_outline": "Także na szczytach i kalenicy (cały dach)",
  "winter_snow": "Śnieg na dachu i trawniku, dopóki pada (topnieje w odwilż)",
  "winter_firework": "Fajerwerki nad domem o północy w sylwestra",
  "fun_name_halloween": "Halloween",

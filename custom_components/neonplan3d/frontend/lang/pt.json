@@ -817,6 +817,7 @@
  "winter_roof_entity": "Acendem com",
  "winter_roof_auto": "Automático: à noite do 1.º domingo do Advento a 6 de janeiro",
  "winter_roof_color": "Coloridas em vez de branco quente",
+ "winter_roof_outline": "Também nas empenas e na cumeeira (todo o telhado)",
  "winter_snow": "Neve no telhado e no relvado enquanto neva (derrete com o degelo)",
  "winter_firework": "Fogo de artifício sobre a casa à meia-noite da passagem de ano",
  "fun_name_halloween": "Halloween",
