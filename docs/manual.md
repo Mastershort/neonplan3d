@@ -569,7 +569,6 @@ The switches for walls, floors, roof, heat map and the Pro displays are in the *
 |---|---|
 | **Tall walls** / **Cut** | Walls at full height, the front ones as tinted glass, or all walls cut at hip height – tall furniture (wardrobe, stairs, tall units) is cut with them, so it hides nothing behind it. Each device remembers the choice |
 | **With furniture** / **Floor plan only** | Floor plan only (since 2.2): walls, doors, windows and stairs without furniture – devices and their markers stay. Each device remembers the choice |
-| **No room bar** / **Room bar** / **+ favourites** | Room bar (new): a card per room along the bottom with its temperature, humidity, an open window, music playing and a **light switch** (with any light on it switches them all off, else all on); a card glows when something is on or open there. A tap on the card flies into the room and opens its panel. The top then keeps only the floors, the rooms are at the bottom; the eye (hide everything) leaves the bar in place. With **+ favourites** your favourites (scenes, scripts, switches from ⚙ Settings → Favourites) come first in the bar. ▾ folds it away. Each device remembers the choice; off by default |
 | **Apart** / **Stacked** | In the house view: floors pulled apart or on top of each other |
 | **Roof stays** | In the house view: the roof stays while zooming in instead of lifting and fading (in the editor's roof and energy tools it always stays) |
 | **Dimmed** / **Stacked** / **Alone** | With an open floor: what happens to the floors below |
@@ -1233,7 +1232,7 @@ The card `custom:neonplan3d-card` brings the 3D view into any dashboard. It load
 | Section | Options |
 |---|---|
 | **View** | One floor or the whole house, start room, fixed size or full screen, height, look, walls, quality, floors below |
-| **Show** | Markers, heatmap (also "values"), floor plan only (no furniture), room bar at the bottom (with or without favourites), switches in the card, 3D lock, keep view, walk, controls left or right, floor pictures, room names, room panel, full-screen button, clock (corner of your choice, `clock: tl/tr/bl/br`), floors apart, performance display |
+| **Show** | Markers, heatmap (also "values"), floor plan only (no furniture), switches in the card, 3D lock, keep view, walk, controls left or right, floor pictures, room names, room panel, full-screen button, clock (corner of your choice, `clock: tl/tr/bl/br`), floors apart, performance display |
 | **Features** | Warnings, jump to a warning, voice control with screen name and room for "here", scene buttons, motion trail, camera wall, time travel with range and speed, weather with weather entity |
 | **Wall tablet (kiosk)** | Back to the start view, night dimming, camera turn as screensaver |
 
@@ -1312,8 +1311,6 @@ time_travel_range: 24h  # time travel starts with: 24h or 7d (the week; also at 
 roof: true              # false: show the house without its roof
 roof_fade: true         # false: the roof stays on the house while zooming in
 plain: false            # true: floor plan only – walls, doors, windows and stairs without furniture
-room_bar: false         # true: room bar at the bottom – a tile per room (temperature, lights, open windows, what plays)
-room_bar_favorites: false # true: the favourites at the front of the room bar
 start_view: { theta: 0.8, phi: 1.0, radius: 20 }   # a start view of this card's own; the line is shown in the editor under Start view (leave out = the plan's)
 idle_return: 0          # seconds without a touch until the start view
 night: "off"            # off | sun | "22:00-06:00"

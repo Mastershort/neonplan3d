@@ -30,6 +30,7 @@ from .locate.recorder import ws_locate_rec
 from .locate.ws import COMMANDS as LOCATE_COMMANDS
 from .packs import MAX_PACK_SIZE, PackError, module_sha, parts_of, verify_pack
 from .schema import BUILDING_SCHEMA, IMAGE_DATA
+from .screens import KINDS, screens_of
 from .storage import FloorplanData, complete
 from .timetravel import ws_timetravel_history
 from .voice import SENTENCE_MODES, AskBroker, VoiceSettings, async_converse_here
@@ -69,6 +70,8 @@ def async_register_commands(hass: HomeAssistant) -> None:
         ws_diagnostics_delete,
         ws_diagnostics_client,
         ws_voice_subscribe,
+        ws_screens_list,
+        ws_screens_reload,
         ws_voice_answer,
         ws_voice_settings,
         ws_voice_settings_set,
@@ -563,6 +566,14 @@ def ws_diagnostics_client(hass: HomeAssistant, connection: websocket_api.ActiveC
         vol.Required("type"): "neonplan3d/voice/subscribe",
         vol.Optional("announce", default=False): bool,
         vol.Optional("reload", default=False): bool,
+        # what the view shows, for the card templates' overview of the open screens
+        vol.Optional("view"): {
+            vol.Optional("kind", default="panel"): vol.In(KINDS),
+            vol.Optional("screen"): vol.Any(None, vol.All(str, vol.Length(max=60))),
+            vol.Optional("template"): vol.Any(None, vol.All(str, vol.Length(max=60))),
+            vol.Optional("device"): vol.Any(None, vol.All(str, vol.Length(max=80))),
+            vol.Optional("version"): vol.Any(None, vol.All(str, vol.Length(max=24))),
+        },
     }
 )
 @callback
@@ -589,13 +600,39 @@ def ws_voice_subscribe(hass: HomeAssistant, connection: websocket_api.ActiveConn
         # asked for by name: an older frontend would take the call for a sentence
         unsubs.append(async_dispatcher_connect(hass, SIGNAL_RELOAD, forward_reload))
 
+    screen_key: str | None = None
+    if "view" in msg:
+        user = connection.user
+        info = {**msg["view"], "user": user.name if user else None}
+        screen_key = screens_of(hass).add(info, forward_reload if msg["reload"] else None)
+
     @callback
     def unsubscribe() -> None:
         for unsub in unsubs:
             unsub()
+        if screen_key:
+            screens_of(hass).remove(screen_key)
 
     connection.subscriptions[msg["id"]] = unsubscribe
     connection.send_result(msg["id"])
+
+
+@websocket_api.websocket_command({vol.Required("type"): "neonplan3d/screens/list"})
+@websocket_api.require_admin
+@callback
+def ws_screens_list(hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]) -> None:
+    """The NeonPlan views open now: panels and dashboard cards, what they show, since when (card templates)."""
+    connection.send_result(msg["id"], {"screens": screens_of(hass).listed()})
+
+
+@websocket_api.websocket_command(
+    {vol.Required("type"): "neonplan3d/screens/reload", vol.Required("screen_id"): vol.All(str, vol.Length(max=24))}
+)
+@websocket_api.require_admin
+@callback
+def ws_screens_reload(hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]) -> None:
+    """One open view loads its page again (its row in the overview)."""
+    connection.send_result(msg["id"], {"sent": screens_of(hass).reload(msg["screen_id"])})
 
 
 @websocket_api.websocket_command(
