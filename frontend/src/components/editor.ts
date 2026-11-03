@@ -5827,7 +5827,7 @@ export class Fp3dEditor extends LitElement {
                             ? html`<fp3d-card-templates .hass=${this.hass} .building=${this._doc} ?admin=${this.isAdmin} .edit=${(fn: (b: Building) => void) => this.change((d) => fn(d))}></fp3d-card-templates>`
                             : this.renderModuleSettings();
     return html`<div class="fp3d-dialog-veil" @click=${(e: Event) => e.target === e.currentTarget && close()}>
-      <div class="fp3d-dialog" role="dialog" aria-label=${titles[topic]} tabindex="-1" @keydown=${(e: KeyboardEvent) => e.key === "Escape" && close()}>
+      <div class="fp3d-dialog ${topic === "cards" ? "fp3d-dialog-wide" : ""}" role="dialog" aria-label=${titles[topic]} tabindex="-1" @keydown=${(e: KeyboardEvent) => e.key === "Escape" && close()}>
         <div class="fp3d-dialog-head">
           <h3>${titles[topic]}</h3>
           <button class="fp3d-btn" aria-label=${this.t("close")} @click=${close}>✕</button>
@@ -15387,6 +15387,10 @@ export class Fp3dEditor extends LitElement {
       }
       .fp3d-narrow .fp3d-dialog-veil {
         padding: 0;
+      }
+      /* card templates: the preview next to the form */
+      .fp3d-dialog.fp3d-dialog-wide {
+        width: min(1180px, 100%);
       }
       .fp3d-narrow .fp3d-dialog {
         width: 100%;

@@ -189,9 +189,12 @@ export class Floorplan3dCard extends LitElement {
     }
   };
 
+  /** A preview (the editor's card templates): not counted as a card in use. */
+  preview = false;
+
   connectedCallback(): void {
     super.connectedCallback();
-    countView("card");
+    if (!this.preview) countView("card");
     document.addEventListener("fullscreenchange", this.onFullscreen);
     window.addEventListener("resize", this.onViewport);
     window.visualViewport?.addEventListener("resize", this.onViewport);

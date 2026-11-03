@@ -543,6 +543,40 @@ export class Floorplan3dCardEditor extends LitElement {
       font: inherit;
       font-size: 14px;
     }
+    select:hover,
+    input[type="number"]:hover,
+    input[type="text"]:hover {
+      border-color: var(--primary-color);
+    }
+    select:focus,
+    input[type="number"]:focus,
+    input[type="text"]:focus {
+      outline: none;
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary-color) 30%, transparent);
+    }
+    /* the open list of a choice in the same colours as the field (else the browser's grey) */
+    option {
+      background: var(--card-background-color, #fff);
+      color: var(--primary-text-color);
+    }
+    /* inside NeonPlan's editor (card templates): neon headings, switches as rows that light up when on */
+    :host([embedded]) h3 {
+      color: var(--primary-color);
+    }
+    :host([embedded]) .toggle {
+      padding: 8px 10px;
+      margin: 2px 0;
+      border-radius: 10px;
+      border: 1px solid transparent;
+    }
+    :host([embedded]) .toggle:hover {
+      background: var(--fp3d-field-hover, rgba(127, 127, 127, 0.08));
+    }
+    :host([embedded]) .toggle:has(input:checked) {
+      border-color: color-mix(in srgb, var(--primary-color) 45%, transparent);
+      background: color-mix(in srgb, var(--primary-color) 8%, transparent);
+    }
     .toggle {
       display: flex;
       align-items: flex-start;
