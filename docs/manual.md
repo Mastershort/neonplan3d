@@ -1173,9 +1173,9 @@ At the bottom of the page a **bar** sums up your installed packs (furniture pack
 **Fun packs** are free extras just for fun – for everyone with a customer account at mastershort.de. No purchase is needed:
 
 - **With a shop connection** they are already in your account. Under **Extensions** they are among your packs with **Install**; Home Assistant also announces new fun packs once under Notifications.
-- **Without an account** you create one for free: **🎁 Create a free customer account** under **🎈 Fun packs** (or in the notice in the 3D view), confirm your e-mail, paste the licence key from the mail under **Shop connection**. Then the fun packs show up to install – and from then on new packs too, right in the app.
+- **Without an account** you create one for free: **🎁 Create a free customer account** in the editor under **⚙ Settings → 🎈 Fun packs** (or in the notice in the 3D view), confirm your e-mail, paste the licence key from the mail under **Shop connection**. Then the fun packs show up under **Extensions** to install – and from then on new packs too, right in the app.
 
-Switch them on and off under **🎈 Fun packs** afterwards.
+The fun packs are set in the editor under **⚙ Settings → 🎈 Fun packs** (new; they used to be under Extensions). There you switch them on and off and set up the pets, for instance; under Extensions a button **Open the fun pack settings** leads straight there.
 
 **Pets:** a cat, a rabbit or a dog – as a dachshund, pug, terrier, labrador or shepherd – lives in your 3D house. **+ Add a pet** sets one up: kind, breed (for dogs), name, fur and the floor it starts on. **Show the pets** switches all of them on and off; in the dashboard card the option **Show the pets** (YAML `pets: false`) leaves them out of that card, e.g. on the wall tablet.
 

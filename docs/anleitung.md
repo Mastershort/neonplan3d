@@ -1173,9 +1173,9 @@ Unten auf der Seite fasst ein **Balken** deine installierten Packs zusammen (Mö
 **Fun-Packs** sind kostenlose Extras zum Spaß – für jeden mit einem Kundenkonto bei mastershort.de. Ein Kauf ist nicht nötig:
 
 - **Mit Shop-Verbindung** liegen sie schon in deinem Konto. Unter **Erweiterungen** stehen sie bei deinen Packs mit **Installieren**; Home Assistant meldet neue Fun-Packs außerdem einmal unter Benachrichtigungen.
-- **Ohne Konto** legst du dir kostenlos eins an: **🎁 Kostenloses Kundenkonto anlegen** unter **🎈 Fun-Packs** (oder im Hinweis in der 3D-Ansicht), E-Mail bestätigen, den Lizenzschlüssel aus der Mail unter **Shop-Verbindung** einfügen. Danach erscheinen die Fun-Packs zum Installieren – und künftig auch neue Packs direkt in der App.
+- **Ohne Konto** legst du dir kostenlos eins an: **🎁 Kostenloses Kundenkonto anlegen** im Editor unter **⚙ Einstellungen → 🎈 Fun-Packs** (oder im Hinweis in der 3D-Ansicht), E-Mail bestätigen, den Lizenzschlüssel aus der Mail unter **Shop-Verbindung** einfügen. Danach erscheinen die Fun-Packs unter **Erweiterungen** zum Installieren – und künftig auch neue Packs direkt in der App.
 
-Unter **🎈 Fun-Packs** schaltest du sie danach ein und aus.
+Eingestellt werden die Fun-Packs im Editor unter **⚙ Einstellungen → 🎈 Fun-Packs** (neu; vorher unter Erweiterungen). Dort schaltest du sie ein und aus und legst z. B. die Haustiere an; unter Erweiterungen führt ein Knopf **Zu den Fun-Pack-Einstellungen** direkt dorthin.
 
 **Haustiere:** Katze, Kaninchen oder Hund – als Dackel, Mops, Terrier, Labrador oder Schäferhund – leben in deinem 3D-Haus. **+ Haustier hinzufügen** legt ein Tier an: Art, Rasse (bei Hunden), Name, Fell und die Etage, auf der es startet. **Haustiere zeigen** schaltet alle auf einmal ein und aus; in der Dashboard-Karte blendet die Option **Haustiere zeigen** (YAML `pets: false`) sie für diese Karte aus, etwa am Wandtablet.
 

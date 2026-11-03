@@ -508,6 +508,18 @@ export class Floorplan3dPanel extends LitElement {
     this.data.edit({ ...b, settings: { ...b.settings, start_view: view ?? null } });
   }
 
+  /** The extensions page's button: to the editor, with ⚙ Settings → Fun packs open (the editor may still be loading). */
+  private openFunSettings(): void {
+    this.setMode("editor");
+    let tries = 0;
+    const open = () => {
+      const ed = this.renderRoot.querySelector("fp3d-editor") as (HTMLElement & { openSettings?(topic: "fun"): void }) | null;
+      if (ed?.openSettings) ed.openSettings("fun");
+      else if (tries++ < 40) setTimeout(open, 100);
+    };
+    void this.updateComplete.then(open);
+  }
+
   private view3d() {
     return this.renderRoot.querySelector("fp3d-view3d") as (HTMLElement & { resetView(): void; lookThrough(entityId: string): void; historyEntities(): HistorySpec; proHint(f: Feature): void; currentView(): StartView | null; roomSheets(roomId: string): { id: string; icon: string; title: string }[]; openRoomSheet(roomId: string, id: string): void }) | null;
   }
@@ -887,6 +899,7 @@ export class Floorplan3dPanel extends LitElement {
       .packs=${this.data.packs}
       .building=${this.data.building}
       @building-edit=${(e: CustomEvent<Building>) => this.data.edit(e.detail)}
+      @open-fun-settings=${() => this.openFunSettings()}
       @packs-changed=${() => void this.data.reloadPacks()}
       @offers-seen=${() => (this._newOffers = 0)}
       @packs-ready=${(e: CustomEvent<number>) => (this._readyPacks = e.detail)}
