@@ -10,6 +10,7 @@ import "./components/plan-picker.ts";
 import { alertText, type Alert } from "./alerts.ts";
 import { planLabel } from "./components/plan-picker.ts";
 import { planSummary } from "./plan-summary.ts";
+import { composeSite, siteOwner } from "./site.ts";
 import "./components/room-bar.ts";
 import "./components/room-panel.ts";
 import "./components/view3d.ts";
@@ -30,7 +31,7 @@ import { mountLocateLab } from "./locate-lab.ts";
 import { directorOnHere } from "./director.ts";
 import { loadVoice, micProbeDone, screenName, voiceOnHere } from "./load-voice.ts";
 import type { ClockPos } from "./card-config.ts";
-import { fetchBuilding, getLicense, subscribeAnyPlan, unseenOffers, unseenUpdates } from "./api.ts";
+import { fetchBuilding, getLicense, MAIN_PLAN, subscribeAnyPlan, unseenOffers, unseenUpdates } from "./api.ts";
 import { markPrintSeen, printDot, printSeen } from "./print.ts";
 import { TimeTravel } from "./load-timetravel.ts";
 import type { HistorySpec } from "./timetravel/types.ts";
@@ -77,6 +78,7 @@ export class Floorplan3dPanel extends LitElement {
     _floorId: { state: true },
     _roomId: { state: true },
     _overview: { state: true },
+    _site: { state: true },
     _others: { state: true },
     _wallMode: { state: true },
     _explode: { state: true },
@@ -136,6 +138,9 @@ export class Floorplan3dPanel extends LitElement {
   private declare _roomId: string | null;
   /** "All floor plans" is open. */
   private declare _overview: boolean;
+  /** The property: every building standing on it in one 3D view (read only). */
+  private declare _site: boolean;
+  private siteOf: { key: unknown[]; to: Building } | null = null;
   /** The other floor plans, read only: for the overview and their warnings while this one is shown. */
   private declare _others: Map<string, Building>;
   private othersFor = "";
@@ -215,6 +220,7 @@ export class Floorplan3dPanel extends LitElement {
     this._floorId = null;
     this._roomId = null;
     this._overview = false;
+    this._site = new URLSearchParams(location.search).get("plan") === "site";
     this._others = new Map();
     // the floor plan: from a link (?plan=), else the one last shown on this device
     void this.data.switchPlan(new URLSearchParams(location.search).get("plan") ?? prefs.get("plan"));
@@ -295,6 +301,16 @@ export class Floorplan3dPanel extends LitElement {
 
   private onRoomTap(e: CustomEvent<{ floorId: string; roomId: string | null }>): void {
     const { floorId, roomId } = e.detail;
+    // the property: a tap on a building's room flies into its plan, there into the room
+    if (this._site) {
+      if (!roomId) return;
+      const owner = siteOwner(roomId, MAIN_PLAN);
+      this.pendingRoom = { plan: owner.plan, floorId: null, roomId: owner.id };
+      this._site = false;
+      if (owner.plan === this.data.planId) this.requestUpdate();
+      else this.pickPlan(owner.plan);
+      return;
+    }
     // in the house view (or on another floor) a tap first opens the whole floor; rooms come next
     if ((this.data.building?.floors.length ?? 0) > 1 && floorId && this._floorId !== floorId) {
       this._floorId = floorId;
@@ -544,6 +560,29 @@ export class Floorplan3dPanel extends LitElement {
     void this.updateComplete.then(open);
   }
 
+  /** The property as one building: the main plan with the plans placed beside it (null until all are loaded). */
+  private siteBuilding(): Building | null {
+    const all = this.planBuildings();
+    const main = all.get(MAIN_PLAN);
+    if (!main) return null;
+    const others = this.data.plans.filter((p) => p.id !== MAIN_PLAN && p.site?.on).map((p) => ({ id: p.id, site: p.site, building: all.get(p.id) }));
+    if (others.some((o) => !o.building)) return null;
+    const key = [main, ...others.flatMap((o) => [o.building, o.site?.x, o.site?.y, o.site?.rot])];
+    if (this.siteOf && this.siteOf.key.length === key.length && this.siteOf.key.every((k, i) => k === key[i])) return this.siteOf.to;
+    const to = composeSite(main, others as { id: string; site: typeof others[number]["site"]; building: Building }[]);
+    this.siteOf = { key, to };
+    return to;
+  }
+
+  /** To the property view: the buildings together, from above. */
+  private showSite(): void {
+    if (this.tt.active) this.tt.stop();
+    this._site = true;
+    this._floorId = null;
+    this._roomId = null;
+    this._mode = "view";
+  }
+
   /** Every plan's building: the one shown from the controller, the others as watched. */
   private planBuildings(): Map<string, Building> {
     const all = new Map(this._others);
@@ -593,6 +632,11 @@ export class Floorplan3dPanel extends LitElement {
 
   /** Show another floor plan: its edits are saved first, the view starts in its house view. */
   private pickPlan(plan: string): void {
+    if (this._site) {
+      this._site = false;
+      this._floorId = null;
+      this._roomId = null;
+    }
     if (plan === this.data.planId) return;
     if (this.tt.active) this.tt.stop();
     prefs.set("plan", plan);
@@ -635,7 +679,7 @@ export class Floorplan3dPanel extends LitElement {
     const pending = this.pendingRoom;
     if (pending && this.data.planId === pending.plan && this.data.building) {
       this.pendingRoom = null;
-      this._floorId = pending.floorId;
+      this._floorId = pending.floorId ?? this.data.building.floors.find((f) => zonesOf(f).some((r) => r.id === pending.roomId))?.id ?? null;
       this._roomId = pending.roomId;
     }
     // lab: the locating recorder box for admins (feasibility test, not a feature yet)
@@ -735,6 +779,9 @@ export class Floorplan3dPanel extends LitElement {
                 @plan-new=${() => this.openFunSettings("plans")}
                 @plan-manage=${() => this.openFunSettings("plans")}
                 @plan-overview=${() => (this._overview = true)}
+                @plan-site=${() => this.showSite()}
+                .site=${this._site}
+                .hasSite=${this.data.plans.some((p) => p.site?.on)}
               ></fp3d-plan-picker>`
             : nothing}
           ${this._overview
@@ -940,7 +987,7 @@ export class Floorplan3dPanel extends LitElement {
             ? this.renderEditor(b)
             : this._mode === "extensions" && this.isAdmin
               ? this.renderExtensions()
-              : this.renderView(b)
+              : this.renderView(this._site ? (this.siteBuilding() ?? b) : b)
           : nothing}
         ${this.renderGift()}
       </div>
@@ -1173,7 +1220,9 @@ export class Floorplan3dPanel extends LitElement {
           .hass=${this.tt.hass(this.hass)}
           .replay=${this.tt.session?.replay ?? null}
           .building=${b}
-          .planId=${this.data.planId}
+          .planId=${this._site ? null : this.data.planId}
+          .noSave=${this._site}
+          .hideRoof=${this._site}
           .packs=${this.data.packs}
           .floorStack=${this._floorStack}
           .roomLabels=${this._roomNames}

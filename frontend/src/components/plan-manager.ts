@@ -8,6 +8,7 @@ import { controls, tokens } from "../styles.ts";
 import { parseExport } from "../transfer.ts";
 import type { HomeAssistant } from "../types.ts";
 import { planIcon, planLabel } from "./plan-picker.ts";
+import "./site-editor.ts";
 
 /** Icons to choose from: buildings people have on a property, and places further away. */
 export const PLAN_ICONS = ["🏠", "🏡", "🏘️", "🏢", "🏬", "🏨", "🏚️", "🛖", "🏕️", "🏖️", "⛰️", "🌳", "🚗", "🔧", "🐴", "🐔", "🏭", "⛪"];
@@ -200,6 +201,11 @@ export class Fp3dPlanManager extends LitElement {
           : html`<button class="fp3d-btn fp3d-primary" ?disabled=${this._busy} @click=${() => void this.create()}>${this.t("plan_create")}</button>`}
       </div>
       ${this._error ? html`<p class="fp3d-pm-error">${this._error}</p>` : nothing}
+
+      ${this.plans.length > 1
+        ? html`<h4>${this.t("plan_site")}</h4>
+            <fp3d-site-editor .hass=${this.hass} .plans=${this.plans}></fp3d-site-editor>`
+        : nothing}
 
       ${this.plans.length > 1
         ? html`<h4>${this.t("plan_locate")}</h4>

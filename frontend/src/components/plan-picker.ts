@@ -23,6 +23,8 @@ export class Fp3dPlanPicker extends LitElement {
     admin: { type: Boolean },
     /** Warnings per plan (a water alarm in the garden house shows at its name). */
     alerts: { attribute: false },
+    site: { type: Boolean },
+    hasSite: { type: Boolean },
     _open: { state: true },
   };
 
@@ -31,6 +33,9 @@ export class Fp3dPlanPicker extends LitElement {
   declare current: string;
   declare admin: boolean;
   declare alerts: ReadonlyMap<string, number> | null;
+  /** The property view is shown; some plan stands on the property (the entry is offered). */
+  declare site: boolean;
+  declare hasSite: boolean;
   declare _open: boolean;
 
   constructor() {
@@ -39,6 +44,8 @@ export class Fp3dPlanPicker extends LitElement {
     this.current = MAIN_PLAN;
     this.admin = false;
     this.alerts = null;
+    this.site = false;
+    this.hasSite = false;
     this._open = false;
   }
 
@@ -76,21 +83,26 @@ export class Fp3dPlanPicker extends LitElement {
         title=${this.t("plan_pick")}
         @click=${() => (this._open = !this._open)}
       >
-        <span class="fp3d-pp-icon">${planIcon(cur)}</span>
-        <span class="fp3d-pp-name">${planLabel(this.hass, this.plans, this.current)}</span>
+        <span class="fp3d-pp-icon">${this.site ? "🏘" : planIcon(cur)}</span>
+        <span class="fp3d-pp-name">${this.site ? this.t("plan_site") : planLabel(this.hass, this.plans, this.current)}</span>
         ${elsewhere ? html`<span class="fp3d-pp-alert" title=${this.t("plan_alerts_elsewhere", { n: elsewhere })}>${elsewhere}</span>` : nothing}
         <span class="fp3d-pp-caret">▾</span>
       </button>
       ${this._open
         ? html`<div class="fp3d-pp-menu" role="listbox">
             ${this.plans.map(
-              (p) => html`<button role="option" aria-selected=${p.id === this.current} @click=${() => this.fire("plan-pick", { plan: p.id })}>
+              (p) => html`<button role="option" aria-selected=${!this.site && p.id === this.current} @click=${() => this.fire("plan-pick", { plan: p.id })}>
                 <span class="fp3d-pp-icon">${planIcon(p)}</span>
                 <span class="fp3d-pp-name">${planLabel(this.hass, this.plans, p.id)}</span>
                 ${this.alerts?.get(p.id) ? html`<span class="fp3d-pp-alert">${this.alerts.get(p.id)}</span>` : nothing}
                 <span class="fp3d-pp-size">${this.t(p.rooms === 1 ? "floor_rooms_one" : "floor_rooms", { n: p.rooms })}</span>
               </button>`,
             )}
+            ${this.hasSite
+              ? html`<button role="option" aria-selected=${this.site} @click=${() => this.fire("plan-site")}>
+                  <span class="fp3d-pp-icon">🏘</span><span class="fp3d-pp-name">${this.t("plan_site")}</span>
+                </button>`
+              : nothing}
             ${this.plans.length > 1
               ? html`<button class="fp3d-pp-extra" @click=${() => this.fire("plan-overview")}>▦ ${this.t("plan_all")}</button>`
               : nothing}

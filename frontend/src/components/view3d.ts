@@ -253,6 +253,7 @@ export class Fp3dView3d extends LitElement {
     building: { attribute: false },
     planId: { attribute: false },
     rooms: { attribute: false },
+    noSave: { attribute: false },
     floorId: { attribute: false },
     roomId: { attribute: false },
     wallMode: { attribute: false },
@@ -362,6 +363,8 @@ export class Fp3dView3d extends LitElement {
   declare planId: string | null;
   /** Only these rooms (and outdoor areas) are drawn, with their furniture and devices: a card for one room. */
   declare rooms: string[] | null;
+  /** The building shown is put together (the property of several plans): nothing is saved from here. */
+  declare noSave: boolean;
   /** Time travel: the replayed moment (hass is then the past, read-only); null = live. */
   declare replay: ReplayInfo | null;
   /** Time travel: a tapped device's state at the replayed moment, next to the finger. */
@@ -697,6 +700,7 @@ export class Fp3dView3d extends LitElement {
     this.building = null;
     this.planId = null;
     this.rooms = null;
+    this.noSave = false;
     this.replay = null;
     this._info = null;
     this.floorId = null;
@@ -4910,10 +4914,10 @@ export class Fp3dView3d extends LitElement {
         return hit?.kind === "device" && hit.id ? (spoken().find((d) => d.id === hit.id) ?? null) : null;
       },
       dimmed: () => this.dimmed,
-      canEdit: () => !!this.hass?.user?.is_admin && !this.ro,
+      canEdit: () => !!this.hass?.user?.is_admin && !this.ro && !this.noSave,
       updateBuilding: (mutate) => {
         const cur = this.building;
-        if (!cur || !this.hass || this.ro || !this.hass.user?.is_admin) return;
+        if (!cur || !this.hass || this.ro || this.noSave || !this.hass.user?.is_admin) return;
         const next = structuredClone(cur);
         mutate(next);
         this.building = next;
@@ -5156,7 +5160,7 @@ export class Fp3dView3d extends LitElement {
   /** Changes the plan's settings from the ⚙ menu and saves them (administrators only). */
   private setPlanSettings(patch: Partial<Building["settings"]>): void {
     const cur = this.building;
-    if (!cur || !this.hass?.user?.is_admin || this.ro) return;
+    if (!cur || !this.hass?.user?.is_admin || this.ro || this.noSave) return;
     const next = structuredClone(cur);
     Object.assign(next.settings, patch);
     this.building = next;
@@ -5173,7 +5177,7 @@ export class Fp3dView3d extends LitElement {
     const b = this.building;
     if (!hass || !b || !this._settingsOpen) return nothing;
     const t = (k: I18nKey) => translate(hass, k);
-    const admin = !!hass.user?.is_admin && !this.ro;
+    const admin = !!hass.user?.is_admin && !this.ro && !this.noSave;
     const st = b.settings;
     const check = (key: I18nKey, on: boolean, patch: (v: boolean) => Partial<Building["settings"]>, hint?: I18nKey) =>
       html`<label class="fp3d-set-check" title=${hint ? t(hint) : ""}
