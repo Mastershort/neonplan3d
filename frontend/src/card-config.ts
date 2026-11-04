@@ -15,6 +15,11 @@ export interface CardConfig {
   floor?: string;
   /** Start in this room (its id from the editor): a display for one room, e.g. for the kids. */
   room?: string;
+  /** Show only these rooms (and outdoor areas, by id): the others, their furniture and devices are left out. One room
+   * opens with its panel beside the 3D view. */
+  rooms?: string[];
+  /** With `rooms`: the tablet stays in them (taps, jumps and floors outside do nothing); false lets one leave. */
+  rooms_lock?: boolean;
   /** A start view of this card's own (theta, phi, radius and target as the editor shows them); default: the plan's. */
   start_view?: StartView;
   height?: number;

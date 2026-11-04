@@ -95,7 +95,7 @@ function copyFonts() {
   }
 }
 
-// main 800 KB, editor 1040 KB and card editor 312 KB on 2026-11-04 for several floor plans (3.0): the plan picker, the controller
+// main 800 KB, editor 1040 KB and card editor 318 KB on 2026-11-04 for several floor plans (3.0) and cards for some rooms (the map to tap them on): the plan picker, the controller
 // switching plans, the editor's ⚙ → Floor plans (new, copy, from a file, names, icons, order, the bin) and their texts
 // editor 1012 KB on 2026-11-03 for the overview of the open screens and its texts
 // card editor 306 KB on 2026-11-03 for the template's values in its form and the link to NeonPlan's editor
@@ -165,7 +165,7 @@ function copyFonts() {
 // editor 976 KB on 2026-11-03: the winter pack on the extensions page (Advent candles by date) with its texts
 // main 758 KB, editor 974 KB, card editor 288 KB on 2026-11-02: "only show while …" for furniture and its texts
 // main 756 KB, editor 970 KB, card editor 286 KB on 2026-11-02: the room bar (a card per room with a light switch, the favourites before them) with its texts
-const BUDGET = { "neonplan3d.js": 800 * 1024, "neonplan3d-fun.js": 40 * 1024, "neonplan3d-voice.js": 60 * 1024, "neonplan3d-locate.js": 160 * 1024, "neonplan3d-timetravel.js": 120 * 1024, "neonplan3d-3d.js": 850 * 1024, "neonplan3d-editor.js": 1040 * 1024, "neonplan3d-card-editor.js": 312 * 1024 };
+const BUDGET = { "neonplan3d.js": 800 * 1024, "neonplan3d-fun.js": 40 * 1024, "neonplan3d-voice.js": 60 * 1024, "neonplan3d-locate.js": 160 * 1024, "neonplan3d-timetravel.js": 120 * 1024, "neonplan3d-3d.js": 850 * 1024, "neonplan3d-editor.js": 1040 * 1024, "neonplan3d-card-editor.js": 318 * 1024 };
 
 copyFonts();
 if (watch) {

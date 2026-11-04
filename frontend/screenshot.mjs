@@ -390,6 +390,10 @@ const shots = [
   // several floor plans (3.0): the picker in the header, the garden house shown, ⚙ → Floor plans in the editor
   { name: "plans-picker", query: "?plans", width: 1280, height: 800, viewScript: "const p = v.getRootNode().host; p.renderRoot.querySelector('fp3d-plan-picker')._open = true;", wait: 1200 },
   { name: "plans-garden", query: "?plans", width: 1280, height: 800, viewScript: "v.getRootNode().host.pickPlan('pgarten');", afterWait: 2500 },
+  // a card for some rooms: the kids' room alone (its panel beside), two rooms of the upper floor
+  { name: "card-room-one", query: "?card&rooms=kind", width: 1400, height: 900, wait: 2500 },
+  { name: "card-rooms-two", query: "?card&rooms=kind,arbeit&nopanel", width: 1400, height: 900, wait: 2500 },
+  { name: "card-editor-rooms", query: "?card&rooms=kind,arbeit", width: 1400, height: 1400, wait: 2500 },
   { name: "plans-manager", query: "?plans", width: 1280, height: 900, editor: true, editorScript: "e.openSettings('plans');", wait: 1200 },
   // the room bar (idea from HA-Floorplanner): favourites and a tile per room, in the house, on a floor, with a room open, on a tablet
   // fun pack "Winter & Christmas": fairy lights along the eaves (on a light), snow on roof and lawn while it snows, the firework

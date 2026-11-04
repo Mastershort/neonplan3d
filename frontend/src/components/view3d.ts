@@ -105,6 +105,7 @@ import { STAGE, type Theme } from "../themes.ts";
 import { HEAT_SCALES, heatColor, heatGradient, roomValues, type HeatMode } from "../heatmap.ts";
 import { furnitureName } from "../furniture-names.ts";
 import { fetchImage, MAIN_PLAN, saveBuilding } from "../api.ts";
+import { roomsOnly, shownRoomIds } from "../rooms-filter.ts";
 import { formatNumber, translate, type I18nKey } from "../i18n.ts";
 import { furnitureShown, showIfSignature } from "../show-if.ts";
 import { fireworkNow, lawnSnow, roofLightsOn, snowLevel, winterOf } from "../winter.ts";
@@ -251,6 +252,7 @@ export class Fp3dView3d extends LitElement {
     hass: { attribute: false },
     building: { attribute: false },
     planId: { attribute: false },
+    rooms: { attribute: false },
     floorId: { attribute: false },
     roomId: { attribute: false },
     wallMode: { attribute: false },
@@ -358,6 +360,8 @@ export class Fp3dView3d extends LitElement {
   declare building: Building | null;
   /** The floor plan shown (its saves from the ⚙ menu and modules go there; null: the main plan). */
   declare planId: string | null;
+  /** Only these rooms (and outdoor areas) are drawn, with their furniture and devices: a card for one room. */
+  declare rooms: string[] | null;
   /** Time travel: the replayed moment (hass is then the past, read-only); null = live. */
   declare replay: ReplayInfo | null;
   /** Time travel: a tapped device's state at the replayed moment, next to the finger. */
@@ -692,6 +696,7 @@ export class Fp3dView3d extends LitElement {
     super();
     this.building = null;
     this.planId = null;
+    this.rooms = null;
     this.replay = null;
     this._info = null;
     this.floorId = null;
@@ -1057,7 +1062,13 @@ export class Fp3dView3d extends LitElement {
       v.setStartView(this.startViewOf());
       v.setBuilding(this.shownBuilding()!);
       if (startChanged && this.floorId === null) v.resetView();
-    } else if (changed.has("plain") && changed.get("plain") !== undefined && this.building) v.setBuilding(this.shownBuilding()!);
+    } else if (((changed.has("plain") && changed.get("plain") !== undefined) || (changed.has("rooms") && changed.get("rooms") !== undefined)) && this.building) {
+      v.setBuilding(this.shownBuilding()!);
+      if (changed.has("rooms")) {
+        this.syncDevices(true);
+        v.resetView();
+      }
+    }
     // a piece's condition came true or false: the furniture is drawn again (only then, not on every state change)
     else if (changed.has("hass") && this.building && showIfSignature(this.hass, this.building) !== this.shownSig) {
       v.setBuilding(this.shownBuilding()!);
@@ -4118,6 +4129,8 @@ export class Fp3dView3d extends LitElement {
   private renderWalk() {
     if (!this.walkable || this.ro || !this.building || !this.hass) return nothing;
     const t = (k: I18nKey) => translate(this.hass, k);
+    // a room's panel sits where the button would be (top right): the walk starts again once it is closed
+    if (!this._walk && this.panelOpen) return nothing;
     if (!this._walk)
       return html`<button class="fp3d-walk-btn" title=${t("walk_start")} aria-label=${t("walk_start")} @click=${() => void this.startWalk()}>
         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="13" cy="4.5" r="1.8" /><path d="m9 20 2.5-6 2.5 2.5V21M7.5 11l3-3.5 3.5 1.5 2 3.5M11.5 14l1-5" /></svg>
@@ -5030,10 +5043,14 @@ export class Fp3dView3d extends LitElement {
     const b = this.building;
     const sig = showIfSignature(this.hass, b);
     this.shownSig = sig;
-    if (!b || !sig) return b;
-    if (this.condOf?.from === b && this.condOf.sig === sig) return this.condOf.to;
-    const to = { ...b, floors: b.floors.map((f) => ({ ...f, furniture: f.furniture.filter((x) => furnitureShown(this.hass, x)) })) };
-    this.condOf = { from: b, sig, to };
+    // a card for some rooms: only they are drawn (the building itself stays whole – settings saved from here keep it)
+    const rooms = shownRoomIds(b, this.rooms);
+    const key = `${sig}|${rooms.join(",")}`;
+    if (!b || (!sig && !rooms.length)) return b;
+    if (this.condOf?.from === b && this.condOf.sig === key) return this.condOf.to;
+    let to: Building = sig ? { ...b, floors: b.floors.map((f) => ({ ...f, furniture: f.furniture.filter((x) => furnitureShown(this.hass, x)) })) } : b;
+    if (rooms.length) to = roomsOnly(to, rooms);
+    this.condOf = { from: b, sig: key, to };
     return to;
   }
 

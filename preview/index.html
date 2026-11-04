@@ -470,6 +470,9 @@
           ...(params.has("kiosk") ? { idle_return: 1, idle_orbit: true } : {}),
           ...(params.has("tt") ? { time_travel: true } : {}),
           ...(params.has("fill") ? { fill: true } : {}),
+          // ?rooms=kind,arbeit: a card for some rooms only (the kids' tablet); ?plan=pgarten with ?plans
+          ...(params.get("rooms") ? { rooms: params.get("rooms").split(","), floor: undefined, floor_thumbs: undefined } : {}),
+          ...(params.get("plan") ? { plan: params.get("plan"), floor: undefined } : {}),
         };
         // ?tpl: the card only names a card template made in the editor (the room bar and the upper floor come from it)
         if (params.has("tpl")) {

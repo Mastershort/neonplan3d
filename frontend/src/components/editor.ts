@@ -152,6 +152,7 @@ import "./entity-picker.ts";
 import type { HassArea, HassFloor, HomeAssistant } from "../types.ts";
 import { fetchBackup, restoreBackup, type BackupFile } from "../api.ts";
 import { MAIN_PLAN, type PlanEntry } from "../api.ts";
+import { templateId } from "../card-config.ts";
 import { planLabel } from "./plan-picker.ts";
 import { deleteDiagnostics, getDiagnostics, setDiagnostics, type DiagnosticsStatus } from "../api.ts";
 import { load3d } from "../load3d.ts";
@@ -3153,6 +3154,19 @@ export class Fp3dEditor extends LitElement {
     this.setDoc(next);
     this._floorId = next.floors[0]?.id ?? null;
     this._roomId = null;
+  }
+
+  /** A card template that shows only this room (the kids' tablet): made and opened in ⚙ → Card templates. */
+  private roomCard(room: Room): void {
+    const list = this._doc.card_templates ?? [];
+    const own = list.find((t) => t.config.rooms?.length === 1 && t.config.rooms[0] === room.id);
+    if (!own) {
+      const id = templateId(room.name || this.t("room_card"), list.flatMap((t) => [t.id, ...(t.aliases ?? [])]));
+      this.change((d) => {
+        d.card_templates = [...(d.card_templates ?? []), { id, name: room.name || id, config: { rooms: [room.id], quality: "low" } }];
+      });
+      this.openSettings("cards", id);
+    } else this.openSettings("cards", own.id);
   }
 
   private deleteRoom(): void {
@@ -10924,6 +10938,7 @@ export class Fp3dEditor extends LitElement {
             <button class="fp3d-btn fp3d-primary" @click=${() => (this._packages = !this._packages)}>${this.t("pkg_open")}</button>
             <button class="fp3d-btn" @click=${() => this.openSpotForm(room)}>${this.t("spots_place")}</button>
             <button class="fp3d-btn" @click=${() => this.duplicateRoom()}>${this.t("duplicate")}</button>
+            <button class="fp3d-btn" title=${this.t("room_card_hint")} @click=${() => this.roomCard(room)}>🖥 ${this.t("room_card")}</button>
             <button class="fp3d-btn fp3d-danger" @click=${() => this.deleteRoom()}>${this.t("delete")}</button>
           </div>`
         : nothing}
