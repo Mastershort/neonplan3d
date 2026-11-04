@@ -3,7 +3,8 @@
 // Floors at the same height are drawn as one (the garden house's ground floor beside the house's). Read only: a tap
 // on a room maps back to its plan and room.
 import type { PlanSite } from "./api.ts";
-import type { Building, Floor, Vec2 } from "./model.ts";
+import type { Building, Floor, RoofSection, Vec2 } from "./model.ts";
+import { roofSectionsFromRooms, turnSectionAbout } from "./roof-sections.ts";
 
 /** The separator between a plan's id and the id of one of its pieces in the property view. */
 export const SITE_SEP = ":";
@@ -57,6 +58,31 @@ export function placeFloor(f: Floor, plan: string, site: PlanSite): Floor {
   };
 }
 
+/** A building's roof as sections (an automatic roof is turned into the sections it is made of; none: no roof). */
+export function roofSectionsOf(b: Building, prefix = ""): RoofSection[] {
+  const roof = b.settings.roof;
+  if (!roof || roof.type === "none") return [];
+  if (roof.type === undefined || roof.type === "custom") return roof.sections ?? [];
+  const made = roofSectionsFromRooms(b, (i) => `${prefix}roof_${i + 1}`);
+  return roof.type === "flat" ? made.map((x) => ({ ...x, shape: "flat" as const })) : made;
+}
+
+/** A roof section of another plan moved and turned with its building, its id prefixed. */
+export function placeSection(sec: RoofSection, plan: string, site: PlanSite): RoofSection {
+  const turned = site.rot ? turnSectionAbout(sec, site.rot, [0, 0]) : sec;
+  const mv = (p: Vec2): Vec2 => [p[0] + site.x, p[1] + site.y];
+  return {
+    ...turned,
+    id: `${plan}${SITE_SEP}${sec.id}`,
+    x0: turned.x0 + site.x,
+    x1: turned.x1 + site.x,
+    z0: turned.z0 + site.y,
+    z1: turned.z1 + site.y,
+    pivot: turned.pivot ? mv(turned.pivot) : turned.pivot,
+    points: turned.points ? turned.points.map(mv) : turned.points,
+  };
+}
+
 /**
  * The property as one building: the main plan as it is, every plan standing on it (`site.on`) placed beside it.
  * A floor of another plan joins the main plan's floor at its height, else it is a floor of its own.
@@ -81,6 +107,13 @@ export function composeSite(main: Building, others: readonly SitePlan[]): Buildi
     }
   }
   floors.sort((a, b) => a.elevation - b.elevation);
+  // every building keeps its own roof: all of them become sections of one roof (an automatic roof would span the
+  // whole property). The main roof's solar fields on its single roof move to its first section.
+  const own = roofSectionsOf(main);
+  const single = main.settings.roof.type !== "custom" && main.settings.roof.type !== undefined;
+  const solar = (main.settings.roof.solar ?? []).map((f) => (single && own[0] && f.face.startsWith("main:") ? { ...f, face: `${own[0].id}:${f.face.slice(5)}` } : f));
+  const sections = [...own, ...others.filter((p) => p.site?.on).flatMap((p) => roofSectionsOf(p.building).map((x) => placeSection(x, p.id, p.site!)))];
+  const roof = { ...main.settings.roof, type: "custom" as const, sections, solar };
   // the property has no house start view (it would frame the main house only) and no card templates of its own
-  return { ...main, floors, card_templates: [], settings: { ...main.settings, start_view: null } };
+  return { ...main, floors, card_templates: [], settings: { ...main.settings, start_view: null, roof } };
 }

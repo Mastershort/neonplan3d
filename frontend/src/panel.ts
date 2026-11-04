@@ -730,7 +730,7 @@ export class Floorplan3dPanel extends LitElement {
         ${this._clean && this._mode === "view" ? nothing : html`<header class="fp3d-header">
           <ha-menu-button .hass=${this.hass} .narrow=${this.narrow}></ha-menu-button>
           <h1>NeonPlan 3D</h1>
-          ${this.data.plans.length > 1
+          ${this.data.plans.length > 1 || (this.isAdmin && this.data.plans.length > 0)
             ? html`<fp3d-plan-picker
                 .hass=${this.hass}
                 .plans=${this.data.plans}
@@ -1184,7 +1184,6 @@ export class Floorplan3dPanel extends LitElement {
           .building=${b}
           .planId=${this._site ? null : this.data.planId}
           .noSave=${this._site}
-          .hideRoof=${this._site}
           .packs=${this.data.packs}
           .floorStack=${this._floorStack}
           .roomLabels=${this._roomNames}

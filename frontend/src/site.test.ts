@@ -67,3 +67,23 @@ test("a tapped room of the property view belongs to its plan", () => {
   assert.deepEqual(siteOwner("pgarten:werk", "main"), { plan: "pgarten", id: "werk" });
   assert.deepEqual(siteOwner("wohnen", "main"), { plan: "main", id: "wohnen" });
 });
+
+test("every building keeps its own roof: both become sections, the garden house's turned and moved with it", () => {
+  const h = house();
+  h.settings.roof = { ...h.settings.roof, type: "gable", pitch: 35, overhang: 0.4 };
+  const g = garden();
+  g.settings.roof = { ...g.settings.roof, type: "gable", pitch: 30, overhang: 0.3 };
+  const b = composeSite(h, [{ id: "pgarten", building: g, site: { on: true, x: 12, y: 8, rot: 90 } }]);
+  const secs = b.settings.roof.sections ?? [];
+  assert.equal(b.settings.roof.type, "custom");
+  assert.ok(secs.some((x) => !x.id.startsWith("pgarten:")), "the house's own roof");
+  const own = secs.filter((x) => x.id.startsWith("pgarten:"));
+  assert.ok(own.length >= 1, "the garden house's roof");
+  // turned by 90° about its origin and moved: its pivot lies at the garden house's place
+  assert.equal(own[0].rotation, 90);
+  assert.ok(own[0].pivot![0] > 9 && own[0].pivot![0] < 12.5, String(own[0].pivot));
+  // a plan without a roof brings none
+  g.settings.roof = { ...g.settings.roof, type: "none" };
+  const none = composeSite(h, [{ id: "pgarten", building: g, site: { on: true, x: 12, y: 8, rot: 90 } }]);
+  assert.ok((none.settings.roof.sections ?? []).every((x) => !x.id.startsWith("pgarten:")));
+});
