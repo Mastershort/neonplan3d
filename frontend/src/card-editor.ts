@@ -162,7 +162,7 @@ export class Floorplan3dCardEditor extends LitElement {
     const chosen = tpl?.id ?? id;
     // to NeonPlan's editor (a new tab: this dialog and its unsaved card stay), admins only
     const link = this.hass?.user?.is_admin
-      ? html`<a class="more" href=${`/neonplan3d?settings=cards${tpl ? `&template=${encodeURIComponent(tpl.id)}` : ""}`} target="_blank" rel="noopener"
+      ? html`<a class="more" href=${`/neonplan3d?settings=cards${this.planOfCard !== MAIN_PLAN ? `&plan=${encodeURIComponent(this.planOfCard)}` : ""}${tpl ? `&template=${encodeURIComponent(tpl.id)}` : ""}`} target="_blank" rel="noopener"
           >${this.t(tpl ? "card_template_open" : "card_template_make")} ↗</a
         >`
       : nothing;
@@ -341,7 +341,7 @@ export class Floorplan3dCardEditor extends LitElement {
                 const on = chosen.has(r.id);
                 return svg`<g class=${`room ${on ? "on" : ""} ${r.outdoor ? "out" : ""}`} @click=${() => toggle(r.id)}>
                   <polygon points=${r.points.map((p) => p.join(",")).join(" ")}></polygon>
-                  <text x=${cx} y=${cz}>${r.name}</text>
+                  <text x=${cx} y=${cz} font-size=${Math.max(box[2], box[3]) / 32}>${r.name}</text>
                 </g>`;
               })}
           </svg>`
@@ -729,7 +729,6 @@ export class Floorplan3dCardEditor extends LitElement {
     }
     .map text {
       fill: var(--primary-text-color);
-      font-size: 0.42px;
       text-anchor: middle;
       dominant-baseline: middle;
       pointer-events: none;

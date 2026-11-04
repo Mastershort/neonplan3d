@@ -390,6 +390,7 @@ const shots = [
   // several floor plans (3.0): the picker in the header, the garden house shown, ⚙ → Floor plans in the editor
   { name: "plans-picker", query: "?plans", width: 1280, height: 800, viewScript: "const p = v.getRootNode().host; p.renderRoot.querySelector('fp3d-plan-picker')._open = true;", wait: 1200 },
   { name: "plans-picker-editor", query: "?plans", width: 1280, height: 800, editor: true, editorScript: "const p = e.getRootNode().host; setTimeout(() => (p.renderRoot.querySelector('fp3d-plan-picker')._open = true), 600);", wait: 1500 },
+  { name: "plans-template-preview", query: "?plans", width: 1400, height: 900, editor: true, editorScript: "const p = e.getRootNode().host; p.pickPlan('pgarten'); setTimeout(() => { const ed = p.renderRoot.querySelector('fp3d-editor'); ed.openSettings('cards'); setTimeout(() => ed.renderRoot.querySelector('fp3d-card-templates').add(), 900); }, 3000);", afterWait: 7000 },
   { name: "plans-garden", query: "?plans", width: 1280, height: 800, viewScript: "v.getRootNode().host.pickPlan('pgarten');", afterWait: 2500 },
   // a card for some rooms: the kids' room alone (its panel beside), two rooms of the upper floor
   { name: "card-room-one", query: "?card&rooms=kind", width: 1400, height: 900, wait: 2500 },
