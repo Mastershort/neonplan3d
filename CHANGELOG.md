@@ -4,6 +4,12 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 [releases page](https://github.com/Mastershort/neonplan3d/releases). Ideas and votes:
 [Discussions → Ideas](https://github.com/Mastershort/neonplan3d/discussions/categories/ideas).
 
+## Unreleased
+
+### Fixed
+
+- **Blinds inside the room:** an outer wall stored in several pieces could end up turned round, and a window's outside blind on it was drawn inside the room. Thanks to T-Eberle, who found it.
+
 ## 2.3.0
 
 ### New
