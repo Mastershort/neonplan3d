@@ -16,7 +16,7 @@
     <neonplan3d-panel></neonplan3d-panel>
     <script type="module">
       // Mock of the Home Assistant frontend object with invented demo data.
-      import { DEMO_AREAS, DEMO_BUILDING, DEMO_FLOORS, DEMO_PACK, DEMO_ENTITIES, DEMO_STATES, DEMO_PICTURES } from "./demo-data.js";
+      import { DEMO_AREAS, DEMO_BUILDING, DEMO_FLOORS, DEMO_PACK, DEMO_ENTITIES, DEMO_STATES, DEMO_PICTURES, DEMO_PLANS } from "./demo-data.js";
       import { demoHistory } from "./demo-history.js";
 
       const params = new URLSearchParams(location.search);
@@ -55,10 +55,29 @@
       };
       let building = params.has("empty") ? { version: 1, floors: [], settings: { wall_exterior: 0.24, wall_interior: 0.12, grid: 0.05 } } : DEMO_BUILDING;
       let revision = 1;
+      // ?plans: further floor plans (the garden house, a holiday flat); the main plan is `building` above
+      const plans = params.has("plans") ? structuredClone(DEMO_PLANS).map((pl) => ({ ...pl, revision: 1, created: Date.now() / 1000 })) : [];
+      const planTrash = [];
+      let mainEntry = { id: "main", name: params.has("plans") ? "Haus" : null, icon: null, site: null, created: null };
+      let locatePlan = "main";
+      const sizeOf = (b) => ({ floors: b.floors.length, rooms: b.floors.reduce((n, f) => n + f.rooms.length, 0), furniture: b.floors.reduce((n, f) => n + f.furniture.length, 0) });
+      const planList = () => ({
+        plans: [{ ...mainEntry, revision, ...sizeOf(building) }, ...plans.map(({ building: b, ...e }) => ({ ...e, ...sizeOf(b) }))],
+        trash: planTrash.map(({ building: b, ...e }) => ({ ...e, ...sizeOf(b) })),
+        locate_plan: locatePlan,
+      });
+      const planOf = (id) => plans.find((pl) => pl.id === id);
+      const notifyPlans = () => {
+        for (const [cb, m] of listeners) if (m?.type === "neonplan3d/plans/subscribe") cb(planList());
+      };
+      const notifyBuilding = (plan, rev) => {
+        for (const [cb, m] of listeners) if (m?.type !== "neonplan3d/plans/subscribe" && ((m?.plan ?? "main") === plan || m?.plan === "*")) cb({ revision: rev, plan });
+      };
       // off like on a fresh installation; the screenshots switch it on through the editor
       const diag = { enabled: false };
       const images = { ...DEMO_PICTURES };
-      const listeners = new Set();
+      // subscriptions and what they asked for (a plan's changes reach only its own)
+      const listeners = new Map();
       // invented restore points
       const history = [{ id: "s0", revision: 0, saved_at: Date.now() / 1000 - 3600, building: structuredClone(building) }];
 
@@ -98,8 +117,8 @@
         config: { latitude: 52.52, longitude: 13.405 },
         states: structuredClone(DEMO_STATES),
         connection: {
-          async subscribeMessage(cb) {
-            listeners.add(cb);
+          async subscribeMessage(cb, msg) {
+            listeners.set(cb, msg);
             return async () => listeners.delete(cb);
           },
         },
@@ -168,6 +187,11 @@
             case "neonplan3d/screens/reload":
               return { sent: true };
             case "neonplan3d/building/get": {
+              if (msg.plan && msg.plan !== "main") {
+                const pl = planOf(msg.plan);
+                if (!pl) throw { code: "not_found", message: "Floor plan not found" };
+                return { building: structuredClone(pl.building), revision: pl.revision, plan: pl.id };
+              }
               // the online demo has no private packs: their items would stand as grey boxes, so leave them out
               const packs = await previewPacks();
               const known = new Set(packs.flatMap((p) => p.items.map((it) => `pack:${p.id}:${it.id}`)));
@@ -178,10 +202,57 @@
             case "neonplan3d/building/save":
               // ?savefail simulates a backend that still runs an older version
               if (params.has("savefail")) throw { code: "invalid_format", message: "extra keys not allowed @ data['building']['floors'][0]['furniture'][0]['entity']" };
+              if (msg.plan && msg.plan !== "main") {
+                const pl = planOf(msg.plan);
+                pl.building = structuredClone(msg.building);
+                pl.revision += 1;
+                notifyBuilding(pl.id, pl.revision);
+                return { revision: pl.revision };
+              }
               building = structuredClone(msg.building);
               revision += 1;
-              for (const cb of listeners) cb({ revision });
+              notifyBuilding("main", revision);
               return { revision };
+            case "neonplan3d/plans/list":
+              return planList();
+            case "neonplan3d/plans/create": {
+              const id = `p${Math.random().toString(36).slice(2, 10)}`;
+              const from = msg.copy_of ? (msg.copy_of === "main" ? building : planOf(msg.copy_of).building) : msg.building;
+              plans.push({ id, name: msg.name, icon: msg.icon ?? null, site: null, created: Date.now() / 1000, revision: 1, building: structuredClone(from ?? { version: 1, floors: [], settings: { wall_exterior: 0.24, wall_interior: 0.12, grid: 0.05 } }) });
+              notifyPlans();
+              return { plan: id };
+            }
+            case "neonplan3d/plans/update": {
+              const entry = msg.plan === "main" ? mainEntry : planOf(msg.plan);
+              for (const k of ["name", "icon", "site"]) if (k in msg) entry[k] = msg[k];
+              notifyPlans();
+              return null;
+            }
+            case "neonplan3d/plans/order": {
+              const rank = new Map(msg.plans.map((id, i) => [id, i]));
+              plans.sort((a, b) => (rank.get(a.id) ?? 99) - (rank.get(b.id) ?? 99));
+              notifyPlans();
+              return null;
+            }
+            case "neonplan3d/plans/delete": {
+              const i = plans.findIndex((pl) => pl.id === msg.plan);
+              planTrash.push({ ...plans[i], deleted_at: Date.now() / 1000 });
+              plans.splice(i, 1);
+              notifyPlans();
+              return null;
+            }
+            case "neonplan3d/plans/restore": {
+              const i = planTrash.findIndex((pl) => pl.id === msg.plan);
+              const { deleted_at, ...pl } = planTrash[i];
+              plans.push(pl);
+              planTrash.splice(i, 1);
+              notifyPlans();
+              return null;
+            }
+            case "neonplan3d/plans/locate":
+              locatePlan = msg.plan;
+              notifyPlans();
+              return null;
             // the opt-in reports (only shown with the lab switch): a made-up status and preview
             case "neonplan3d/diagnostics/client":
               return { enabled: diag.enabled };
@@ -213,7 +284,7 @@
               const snap = history.find((h) => h.id === msg.snapshot_id);
               building = structuredClone(snap.building);
               revision += 1;
-              for (const cb of listeners) cb({ revision });
+              notifyBuilding("main", revision);
               return { revision };
             }
             case "neonplan3d/image/get":
@@ -399,6 +470,9 @@
           ...(params.has("kiosk") ? { idle_return: 1, idle_orbit: true } : {}),
           ...(params.has("tt") ? { time_travel: true } : {}),
           ...(params.has("fill") ? { fill: true } : {}),
+          // ?rooms=kind,arbeit: a card for some rooms only (the kids' tablet); ?plan=pgarten with ?plans
+          ...(params.get("rooms") ? { rooms: params.get("rooms").split(","), floor: undefined, floor_thumbs: undefined } : {}),
+          ...(params.get("plan") ? { plan: params.get("plan"), floor: undefined } : {}),
         };
         // ?tpl: the card only names a card template made in the editor (the room bar and the upper floor come from it)
         if (params.has("tpl")) {

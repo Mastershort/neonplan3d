@@ -50,6 +50,7 @@ export class Fp3dCardTemplates extends LitElement {
   static properties = {
     hass: { attribute: false },
     building: { attribute: false },
+    plan: { attribute: false },
     admin: { type: Boolean },
     edit: { attribute: false },
     _selected: { state: true },
@@ -66,6 +67,13 @@ export class Fp3dCardTemplates extends LitElement {
 
   declare hass: HomeAssistant | undefined;
   declare building: Building | null;
+  /** The floor plan the templates belong to (null or "main": the first one). */
+  declare plan: string | null;
+
+  /** A template of another floor plan: its card names the plan too (its templates are looked up there). */
+  private get planLine(): boolean {
+    return !!this.plan && this.plan !== "main";
+  }
   declare admin: boolean;
   /** Changes the plan (the editor's own change, so it can be undone and is saved). */
   declare edit: ((fn: (b: Building) => void) => void) | null;
@@ -98,6 +106,7 @@ export class Fp3dCardTemplates extends LitElement {
 
   constructor() {
     super();
+    this.plan = null;
     this.building = null;
     this.admin = false;
     this.edit = null;
@@ -147,11 +156,13 @@ export class Fp3dCardTemplates extends LitElement {
     }
     // the preview shows what is being edited (with "send later" the changes not sent yet)
     const cfg = workingConfig(tpl);
-    const key = JSON.stringify(cfg);
+    // the template's floor plan: the preview shows that plan, not the first one
+    const plan = this.planLine ? { plan: this.plan! } : {};
+    const key = JSON.stringify([cfg, plan]);
     if (key !== this.previewKey) {
       this.previewKey = key;
       try {
-        this.previewCard.setConfig({ ...cfg, type: CARD_TYPE, height: this.previewHeight(tpl), fill: false, fullscreen_button: false });
+        this.previewCard.setConfig({ ...cfg, ...plan, type: CARD_TYPE, height: this.previewHeight(tpl), fill: false, fullscreen_button: false });
       } catch {
         // an option the card refuses: the form shows it, the preview keeps the last good one
       }
@@ -444,7 +455,7 @@ export class Fp3dCardTemplates extends LitElement {
   }
 
   private renderTemplate(tpl: CardTemplate, admin: boolean) {
-    const yaml = `type: ${CARD_TYPE}\ntemplate: ${tpl.id}`;
+    const yaml = `type: ${CARD_TYPE}\n${this.planLine ? `plan: ${this.plan}\n` : ""}template: ${tpl.id}`;
     return html`<div class="fp3d-tpl-card">
       <div class="fp3d-tpl-head">
         <label class="fp3d-field fp3d-tpl-name"

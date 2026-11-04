@@ -1,8 +1,8 @@
 // Visual editor of the dashboard card: Home Assistant shows it in the card dialog, so nobody has to
 // write YAML. It follows Home Assistant's colours (the dialog is light or dark with the user's theme).
 
-import { css, html, LitElement, nothing } from "lit";
-import { fetchBuilding } from "./api.ts";
+import { css, html, LitElement, nothing, svg } from "lit";
+import { fetchBuilding, listPlans, MAIN_PLAN, type PlanEntry } from "./api.ts";
 import { labOn, UNRELEASED } from "./features.ts";
 import { CARD_CONTROLS, CARD_OWN, cardTemplate, type CardConfig, type CardControl } from "./card-config.ts";
 import { languageReady, loadLanguage, translate, type I18nKey } from "./i18n.ts";
@@ -66,6 +66,8 @@ export class Floorplan3dCardEditor extends LitElement {
     _config: { state: true },
     _floors: { state: true },
     _templates: { state: true },
+    _plans: { state: true },
+    _mapFloor: { state: true },
     _showForm: { state: true },
     building: { attribute: false },
     embedded: { type: Boolean },
@@ -76,7 +78,14 @@ export class Floorplan3dCardEditor extends LitElement {
   declare building: Building | null;
   declare embedded: boolean;
   private declare _config: CardConfig;
-  private declare _floors: { id: string; name: string; rooms: { id: string; name: string }[] }[];
+  private declare _floors: { id: string; name: string; rooms: { id: string; name: string; points: [number, number][]; outdoor: boolean }[] }[];
+  /** The floor plans (more than one: the card picks its plan first). */
+  private declare _plans: PlanEntry[];
+  /** The floor the room map shows. */
+  private declare _mapFloor: string | null;
+  /** The plan whose building was fetched last. */
+  private fetchedPlan: string | null = null;
+  private plansAsked = false;
   /** The plan's card templates, to pick one. */
   private declare _templates: { id: string; name: string }[];
   /** With a template: the form shown anyway, its options then win over the template's. */
@@ -88,6 +97,8 @@ export class Floorplan3dCardEditor extends LitElement {
     this._config = { type: "custom:neonplan3d-card" };
     this._floors = [];
     this._templates = [];
+    this._plans = [];
+    this._mapFloor = null;
     this._showForm = false;
     this.building = null;
     this.embedded = false;
@@ -102,21 +113,44 @@ export class Floorplan3dCardEditor extends LitElement {
     if (this.hass && !languageReady(this.hass.language)) void loadLanguage(this.hass.language).then(() => this.requestUpdate());
     // the floors of the plan, for the floor choice (in NeonPlan's editor: the plan being edited)
     if (this.building) this.takePlan(this.building);
-    else if (this.hass && !this.loading && !this._floors.length) {
+    else if (this.hass && !this.loading && (!this._floors.length || this.fetchedPlan !== this.planOfCard)) {
+      // the card's plan: its floors, rooms and templates (another plan chosen: fetched again)
+      const plan = this.planOfCard;
       this.loading = true;
-      fetchBuilding(this.hass).then(
-        (res) => this.takePlan(res.building),
-        () => undefined,
+      this.fetchedPlan = plan;
+      fetchBuilding(this.hass, plan).then(
+        (res) => {
+          this.loading = false;
+          this.takePlan(res.building);
+        },
+        () => (this.loading = false),
       );
+    }
+    if (this.hass && !this.building && !this.plansAsked) {
+      this.plansAsked = true;
+      void listPlans(this.hass).then((list) => (this._plans = list.plans));
     }
   }
 
   private plan: Building | null = null;
 
+  /** The plan whose rooms and templates the card offers (the property: the main plan's). */
+  private get planOfCard(): string {
+    const p = this._config?.plan;
+    return p && p !== "site" ? p : MAIN_PLAN;
+  }
+
   private takePlan(b: Building): void {
     if (b === this.plan) return;
     this.plan = b;
-    this._floors = b.floors.map((f) => ({ id: f.id, name: f.name, rooms: [...f.rooms, ...(f.outdoor ?? []).filter((a) => a.area_id && a.name)].map((r) => ({ id: r.id, name: r.name ?? r.id })) }));
+    this._floors = b.floors.map((f) => ({
+      id: f.id,
+      name: f.name,
+      rooms: [
+        ...f.rooms.map((r) => ({ id: r.id, name: r.name ?? r.id, points: r.points, outdoor: false })),
+        ...(f.outdoor ?? []).filter((a) => a.area_id && a.name).map((a) => ({ id: a.id, name: a.name ?? a.id, points: a.points, outdoor: true })),
+      ],
+    }));
     this._templates = (b.card_templates ?? []).map((t) => ({ id: t.id, name: t.name }));
   }
 
@@ -128,7 +162,7 @@ export class Floorplan3dCardEditor extends LitElement {
     const chosen = tpl?.id ?? id;
     // to NeonPlan's editor (a new tab: this dialog and its unsaved card stay), admins only
     const link = this.hass?.user?.is_admin
-      ? html`<a class="more" href=${`/neonplan3d?settings=cards${tpl ? `&template=${encodeURIComponent(tpl.id)}` : ""}`} target="_blank" rel="noopener"
+      ? html`<a class="more" href=${`/neonplan3d?settings=cards${this.planOfCard !== MAIN_PLAN ? `&plan=${encodeURIComponent(this.planOfCard)}` : ""}${tpl ? `&template=${encodeURIComponent(tpl.id)}` : ""}`} target="_blank" rel="noopener"
           >${this.t(tpl ? "card_template_open" : "card_template_make")} ↗</a
         >`
       : nothing;
@@ -241,6 +275,93 @@ export class Floorplan3dCardEditor extends LitElement {
         ${v.room && !rooms.some((r) => r.id === v.room) ? html`<option value=${v.room} selected>${v.room}</option>` : nothing}
       </select>
     </label>`;
+  }
+
+  /** Which floor plan the card shows (only with several; its templates and rooms are the ones offered). */
+  private renderPlan() {
+    if (this._plans.length < 2) return nothing;
+    const cur = this._config.plan ?? MAIN_PLAN;
+    const name = (p: PlanEntry) => p.name || (p.id === MAIN_PLAN ? this.t("plan_main") : p.id);
+    return html`<label class="field wide"
+      >${this.t("card_plan")}
+      <select
+        @change=${(e: Event) => {
+          const v = (e.target as HTMLSelectElement).value;
+          // another plan has other rooms and templates: those of the old one go
+          const next: CardConfig = { ...this._config };
+          delete next.rooms;
+          delete next.room;
+          delete next.floor;
+          delete next.template;
+          if (v === MAIN_PLAN) delete next.plan;
+          else next.plan = v;
+          this._config = next;
+          this._floors = [];
+          this.dispatchEvent(new CustomEvent("config-changed", { detail: { config: next }, bubbles: true, composed: true }));
+        }}
+      >
+        ${this._plans.map((p) => html`<option value=${p.id} ?selected=${p.id === cur}>${p.icon || "🏠"} ${name(p)}</option>`)}
+        ${this._plans.some((p) => p.site?.on) ? html`<option value="site" ?selected=${cur === "site"}>🏘 ${this.t("plan_site")}</option>` : nothing}
+      </select>
+    </label>`;
+  }
+
+  /**
+   * Only these rooms: tap them on the little map of the floor (or tick them below). The card then shows just them –
+   * a display for the kids' room, a holiday flat, a guest room – and stays there unless "may leave" is ticked.
+   */
+  private renderRooms() {
+    const v = this.value;
+    const chosen = new Set(this._config.rooms ?? []);
+    const toggle = (id: string) => {
+      const next = chosen.has(id) ? [...chosen].filter((x) => x !== id) : [...chosen, id];
+      this.set("rooms", next.length ? next : undefined);
+    };
+    const floor = this._floors.find((f) => f.id === this._mapFloor) ?? this._floors.find((f) => f.rooms.some((r) => chosen.has(r.id))) ?? this._floors[0];
+    const pts = floor?.rooms.flatMap((r) => r.points) ?? [];
+    const xs = pts.map((p) => p[0]);
+    const zs = pts.map((p) => p[1]);
+    const pad = 0.6;
+    const box = pts.length ? [Math.min(...xs) - pad, Math.min(...zs) - pad, Math.max(...xs) - Math.min(...xs) + 2 * pad, Math.max(...zs) - Math.min(...zs) + 2 * pad] : [0, 0, 1, 1];
+    const centre = (p: [number, number][]) => [p.reduce((a, q) => a + q[0], 0) / p.length, p.reduce((a, q) => a + q[1], 0) / p.length];
+    return html`<div class="field wide rooms">
+      <span>${this.t("card_rooms")}</span>
+      <small>${this.t("card_rooms_hint")}</small>
+      ${this._floors.length > 1
+        ? html`<div class="tabs">
+            ${this._floors.map((f) => html`<button type="button" aria-pressed=${f.id === floor?.id} @click=${() => (this._mapFloor = f.id)}>${f.name}</button>`)}
+          </div>`
+        : nothing}
+      ${floor
+        ? html`<svg class="map" viewBox=${box.join(" ")} role="group" aria-label=${this.t("card_rooms")}>
+            ${floor.rooms
+              .filter((r) => r.points.length >= 3)
+              .map((r) => {
+                const [cx, cz] = centre(r.points);
+                const on = chosen.has(r.id);
+                return svg`<g class=${`room ${on ? "on" : ""} ${r.outdoor ? "out" : ""}`} @click=${() => toggle(r.id)}>
+                  <polygon points=${r.points.map((p) => p.join(",")).join(" ")}></polygon>
+                  <text x=${cx} y=${cz} font-size=${Math.max(box[2], box[3]) / 32}>${r.name}</text>
+                </g>`;
+              })}
+          </svg>`
+        : nothing}
+      <div class="checks">
+        ${this._floors.flatMap((f) =>
+          f.rooms.map(
+            (r) => html`<label class="check"
+              ><input type="checkbox" .checked=${chosen.has(r.id)} @change=${() => toggle(r.id)} />${this._floors.length > 1 ? `${f.name} · ` : ""}${r.name}</label
+            >`,
+          ),
+        )}
+      </div>
+      ${chosen.size
+        ? html`<label class="toggle">
+            <input type="checkbox" .checked=${v.rooms_lock === false} @change=${(e: Event) => this.set("rooms_lock", (e.target as HTMLInputElement).checked ? false : undefined)} />
+            <span>${this.t("card_rooms_leave")}<small>${this.t("card_rooms_leave_hint")}</small></span>
+          </label>`
+        : nothing}
+    </div>`;
   }
 
   /** Time travel: how far back it starts and how fast it plays. */
@@ -447,9 +568,9 @@ export class Floorplan3dCardEditor extends LitElement {
     const v = this.value;
     const flows = v.flows === undefined ? "switch" : v.flows ? "on" : "off";
     const holos = v.holograms === undefined ? "switch" : v.holograms ? "on" : "off";
-    if (!this.embedded && v.template) return this.renderTemplate();
+    if (!this.embedded && v.template) return html`${this.renderPlan()}${this.renderTemplate()}`;
     return html`
-      ${this.embedded ? nothing : this.renderTemplate()}
+      ${this.embedded ? nothing : html`${this.renderPlan()}${this.renderTemplate()}`}
       <h3>${this.t("card_section_view")}</h3>
       <div class="grid">
         <label class="field wide"
@@ -461,6 +582,7 @@ export class Floorplan3dCardEditor extends LitElement {
           </select>
         </label>
         ${this.renderStartRoom()}
+        ${this.renderRooms()}
         <label class="field"
           >${this.t("card_size")}
           <select @change=${(e: Event) => this.set("fill", (e.target as HTMLSelectElement).value === "fill")}>
@@ -554,6 +676,73 @@ export class Floorplan3dCardEditor extends LitElement {
     }
     h3:first-child {
       margin-top: 0;
+    }
+    /* only these rooms: the little map of a floor to tap them on, and the same as a list */
+    .rooms {
+      display: grid;
+      gap: 6px;
+    }
+    .rooms small {
+      color: var(--secondary-text-color);
+      font-size: 12px;
+    }
+    .tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+    .tabs button {
+      padding: 4px 10px;
+      border: 1px solid var(--divider-color, rgba(127, 127, 127, 0.4));
+      border-radius: 14px;
+      background: transparent;
+      color: var(--primary-text-color);
+      font: inherit;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    .tabs button[aria-pressed="true"] {
+      border-color: var(--primary-color);
+      color: var(--primary-color);
+    }
+    .map {
+      width: 100%;
+      max-height: 260px;
+      background: rgba(127, 127, 127, 0.08);
+      border-radius: 8px;
+    }
+    .map .room {
+      cursor: pointer;
+    }
+    .map polygon {
+      fill: rgba(127, 127, 127, 0.18);
+      stroke: var(--secondary-text-color);
+      stroke-width: 0.05;
+    }
+    .map .out polygon {
+      stroke-dasharray: 0.2 0.12;
+    }
+    .map .on polygon {
+      fill: var(--primary-color);
+      fill-opacity: 0.45;
+      stroke: var(--primary-color);
+    }
+    .map text {
+      fill: var(--primary-text-color);
+      text-anchor: middle;
+      dominant-baseline: middle;
+      pointer-events: none;
+    }
+    .checks {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px 14px;
+      font-size: 13px;
+    }
+    .check {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
     }
     .own {
       margin: 8px 0 0;

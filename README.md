@@ -2,7 +2,7 @@
 
 [![Spenden mit PayPal](https://img.shields.io/badge/PayPal-Spenden-00457C?logo=paypal&logoColor=white)](https://www.paypal.com/donate/?hosted_button_id=Z3G2VWKSK5VJL)
 
-**by Mastershort** – draw your home right inside Home Assistant and live in it as a neon 3D house: lights glow in their colours, blinds and curtains move, doors and windows open, cameras watch, the TV shows what is playing, energy flows through the walls – and you can simply **talk to it**. No external tools, no cloud, made for wall tablets – old Fire tablets included.
+**The original 3D floor plan for Home Assistant, by Mastershort.** Draw your home right inside Home Assistant and live in it as a neon 3D house: lights glow in their colours, blinds and curtains move, doors and windows open, cameras watch, the TV shows what is playing, energy flows through the walls – and you can simply **talk to it**. Since 3.0 it holds **your whole property**: the house, the garage, the garden house and the holiday flat, each on its own plan, all of them together in 3D – and a card for every single room. No external tools, no cloud, made for wall tablets – old Fire tablets included.
 
 ▶️ **[Try the online demo](https://neonplan3d.mastershort.de/)** – in your browser, with invented demo data: turn the house, switch lights, open the editor. Nothing to install.
 
@@ -18,6 +18,19 @@
 
 ---
 
+## New in 3.0 – the biggest update ever: several houses and flats, single rooms on your dashboard, your whole property in 3D
+
+[![The property in 3D: the house with its solar roof and garden, the garden house standing beside it](https://raw.githubusercontent.com/Mastershort/neonplan3d/main/docs/images/plans-site.jpg)](https://raw.githubusercontent.com/Mastershort/neonplan3d/main/docs/images/plans-site.jpg)
+
+- 🏘️ **Several floor plans in one installation** – the house, the garage, the garden house, a granny flat, the holiday flat by the sea. Each has its own floors, rooms, devices and restore points; a picker at the top switches between them, and your existing plan simply stays the first one.
+- 🗺️ **The property in 3D** – place the other buildings beside the house once (drag and turn them in the editor) and see everything together: lights, devices and warnings of every building. Tap a room of the garden house and you are in it.
+- 🧸 **Single rooms on your dashboard** – right next to your other cards (Mushroom, tiles, your own dashboards). Tap the rooms on a small map in the card dialog and the card shows only them: the kids' tablet shows the kids' room, the guest tablet the guest room – with its devices beside it, "here" in voice control meaning that room, and the tablet staying there. Fewer rooms to draw means it runs even more smoothly on old tablets.
+- ⚠️ **Warnings from everywhere** – water in the garden house while the house is open? It shows at the top, one tap takes you there. **All floor plans** shows every building at a glance: lights on, windows open, warmth, warnings.
+
+| A card for one room | All floor plans at a glance |
+|---|---|
+| [![A dashboard card that shows only the kids' room, its lights beside it](https://raw.githubusercontent.com/Mastershort/neonplan3d/main/docs/images/card-room-one.jpg)](https://raw.githubusercontent.com/Mastershort/neonplan3d/main/docs/images/card-room-one.jpg) | [![A tile per floor plan with lights, open windows, temperature and a water warning in the garden house](https://raw.githubusercontent.com/Mastershort/neonplan3d/main/docs/images/plans-overview.jpg)](https://raw.githubusercontent.com/Mastershort/neonplan3d/main/docs/images/plans-overview.jpg) |
+
 ## Your house in three steps – no CAD, no Blender
 
 Everything happens in the editor inside Home Assistant, with the 3D house growing next to the plan while you draw.
@@ -31,10 +44,11 @@ Not drawing at all? The [import page](https://neonplan3d.mastershort.de/import/)
 
 ## Build once, show it everywhere
 
-NeonPlan has two places: the **editor** in the sidebar panel is where you build and set up your house – once. To show it, put the **dashboard card** `custom:neonplan3d-card` on any dashboard or wall tablet: edit a dashboard → **Add card** → search "NeonPlan". Every card has its own options (floor, room, look, kiosk, voice) in its visual editor, so the kitchen tablet, the hall tablet and your phone can each show the house their way. The panel's 3D view works as a full view too.
+NeonPlan has two places: the **editor** in the sidebar panel is where you build and set up your house – once. To show it, put the **dashboard card** `custom:neonplan3d-card` on any dashboard or wall tablet: edit a dashboard → **Add card** → search "NeonPlan". Every card has its own options (floor plan, floor, rooms, look, kiosk, voice) in its visual editor, so the kitchen tablet, the hall tablet, the kids' tablet and your phone can each show the house their way. Even simpler: build a **card template** in the editor and just pick it on the tablet – change it later in the editor, and every tablet showing it follows. The panel's 3D view works as a full view too.
 
 ## Highlights
 
+- 🏘️ **Your whole property** – several floor plans, all buildings together in 3D, a card for every room (new in 3.0).
 - ✏️ **Drawn in minutes, right in Home Assistant** – the plan editor with the 3D view beside it, a furniture library with pictures, free sizes, a wall view for exact placing. No external tool.
 - 📍 **Who is where – without Bermuda** – NeonPlan locates people, phones and key tags room by room from the Shelly plugs and ESPHome proxies you already have: learn each room in 90 seconds, see everyone as a glowing figure, get a sensor per device, ask "Where is my iPhone?". Free.
 - 🎙️ **Talk to your house** – tap the microphone or ask Assist: "Show the living room", "What's open?", "Good night". A tablet knows the room it hangs in, so "Lights on" or "Close the blinds" there means that room. Assist satellites and automations ask the house too (service `neonplan3d.ask`); the answer module "The house answers" is in beta for supporters.
@@ -67,15 +81,16 @@ Three looks, an accent colour of your choice, and **Auto** – day while the sun
 | ![Sun path](https://raw.githubusercontent.com/Mastershort/neonplan3d/main/docs/images/view-sun-path.jpg) | **Sun and night** – a glowing arc around the house shows the sun's way today with the times of sunrise and sunset, the house's shadow lies on the ground and wanders with the sun, a compass ring shows N E S W. At night lit rooms throw their light out of the windows onto the lawn, in their light colour. |
 | ![Warnings](https://raw.githubusercontent.com/Mastershort/neonplan3d/main/docs/images/view-alert-banner.jpg) | **Made for the wall** – warnings for smoke, gas, CO, water, alarm, a window open in the rain and power outages pulse in their room; kiosk mode with idle return, night dimming and a slow orbit; favourites and scene buttons. |
 | ![Heatmap](https://raw.githubusercontent.com/Mastershort/neonplan3d/main/docs/images/view-heat.jpg) | **Values and heatmap** – temperature, humidity and CO₂ per room, sunlight through the windows from `sun.sun`, the weather around the house. |
-| ![Card](https://raw.githubusercontent.com/Mastershort/neonplan3d/main/docs/images/card-og-dim.jpg) | **Dashboard card** – `custom:neonplan3d-card` with a visual editor, loaded automatically. |
+| ![The property](https://raw.githubusercontent.com/Mastershort/neonplan3d/main/docs/images/plans-site.jpg) | **Several floor plans and the property** – the house, the garage, the garden house, the holiday flat, each a plan of its own with a picker to switch; buildings placed beside each other show together in 3D. A bin keeps deleted plans for 30 days. |
+| ![Card](https://raw.githubusercontent.com/Mastershort/neonplan3d/main/docs/images/card-og-dim.jpg) | **Dashboard card** – `custom:neonplan3d-card` with a visual editor, loaded automatically; **card templates** made in the editor, and **cards for single rooms** that show only them. |
 
 **Coming from another program?** The [import page](https://neonplan3d.mastershort.de/import/) turns Sweet Home 3D, iPhone LiDAR scans (RoomPlan), CAD (DXF), Blender/SketchUp models (glTF, OBJ, STL), Floorplanner and Valetudo robot maps into a NeonPlan plan – in your browser. Or let an AI write it with [this template](https://github.com/Mastershort/neonplan3d/blob/main/docs/ai-import.md) ([format](https://github.com/Mastershort/neonplan3d/blob/main/docs/plan-format.md)).
 
-Also included: parking spots with vehicles that appear while a car is home, waste bins and mailboxes, smart locks on doors, doors with their own opening angle, roof parts turned at any angle for wings and extensions, a clock in the view, search, restore points, a full backup of plan, pictures and packs, and 19 languages.
+Also included: parking spots with vehicles that appear while a car is home, waste bins and mailboxes, smart locks on doors, doors with their own opening angle, roof parts turned at any angle for wings and extensions, a clock in the view, search, restore points, a full backup of every plan with its pictures and packs, and 19 languages.
 
 ## Free, packs and Pro add-ons
 
-The integration and everything above are **free and open source (MIT)**. Safety (smoke, water, alarm, rain warning, power outage) is always free. Everything you need day to day stays free; paid extras cover special things only some homes have – a heat pump in detail, an electric car, energy flowing through the cables. Optional extras are sold once – no subscription – at [mastershort.de](https://mastershort.de/en/neonplan3d/?lang=en) and install from the **Extensions** tab:
+The integration and everything above – several floor plans, the property and cards for single rooms included – are **free and open source (MIT)**. Safety (smoke, water, alarm, rain warning, power outage) is always free. Everything you need day to day stays free; paid extras cover special things only some homes have – a heat pump in detail, an electric car, energy flowing through the cables. Optional extras are sold once – no subscription – at [mastershort.de](https://mastershort.de/en/neonplan3d/?lang=en) and install from the **Extensions** tab:
 
 - **Furniture packs** – living room, kitchen, bedroom, bath, kids, office & gaming, garden & terrace, garage & workshop, fitness, smart home & tech, cinema & hi-fi, utility, architecture, stairs & railings, vehicles; free fun packs (pets, Halloween) with a customer account.
 - **Pro add-ons**
@@ -124,6 +139,9 @@ All options can be set in the card's visual editor. The most used ones in YAML:
 
 ```yaml
 type: custom:neonplan3d-card
+template: kitchen_fire  # a card template made in the editor (then only it counts)
+plan: pab12cd34ef       # another floor plan (id under ⚙ → Floor plans); site = the property
+rooms: [room_ab12cd34]  # show only these rooms – the kids' tablet; rooms_lock: false lets it leave them
 floor: floor_ab12cd34   # show a single floor (id from the editor); room: opens a room
 height: 420             # height in pixels, or fill: true for the whole screen
 quality: auto           # auto | low | high – "auto" picks the tablet level on weak devices

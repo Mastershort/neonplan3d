@@ -5,6 +5,9 @@ The Announcements module (a shop module, runs in the browser) speaks when someon
 with the module's settings from the plan: the speaker chosen for a room, else one placed in the room on the plan,
 else one of the room's area, else the house's default speaker; the room's quiet time; the text-to-speech entity.
 The service works only while the Announcements module is installed and approved.
+
+With several floor plans a room is looked for in all of them (or in the one named by `plan`); an announcement
+without rooms goes to the plans that stand on the property (the main plan and those placed beside it).
 """
 
 from __future__ import annotations
@@ -25,7 +28,7 @@ from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.util import dt as dt_util
 import voluptuous as vol
 
-from .const import DOMAIN, SIGNAL_ANNOUNCE, SIGNAL_RELOAD
+from .const import DOMAIN, MAIN_PLAN, SIGNAL_ANNOUNCE, SIGNAL_RELOAD
 from .locate.scanners import device_area_id
 from .packs import module_sha
 
@@ -42,6 +45,8 @@ ANNOUNCE_SCHEMA = vol.Schema(
         vol.Required("message"): vol.All(cv.string, vol.Length(min=1, max=300)),
         vol.Optional("rooms", default=[]): vol.All(cv.ensure_list, [vol.All(cv.string, vol.Length(max=80))]),
         vol.Optional("floor"): vol.All(cv.string, vol.Length(max=80)),
+        # one floor plan only (its name or id)
+        vol.Optional("plan"): vol.All(cv.string, vol.Length(max=80)),
         vol.Optional("ignore_quiet", default=False): cv.boolean,
         # the open NeonPlan screens speak and show it too: every one, or only those with these screen names
         vol.Optional("on_screens", default=False): cv.boolean,
@@ -106,6 +111,23 @@ def target_rooms(
             missing.append(name)
         out.extend(h for h in hits if h not in out)
     return out, missing
+
+
+def plans_for(data: Any, name: str | None, everywhere: bool) -> list[tuple[str, dict[str, Any]]]:
+    """The plans (id, building) an announcement looks in: the one named, else all; one meant for everywhere goes to
+    the plans on the property only (a holiday flat far away is left out)."""
+    out = []
+    for entry in data.index:
+        plan = data.plans.get(entry["id"])
+        if plan is None:
+            continue
+        if name and not _same(name, entry.get("name"), entry["id"]):
+            continue
+        on_site = entry["id"] == MAIN_PLAN or bool((entry.get("site") or {}).get("on"))
+        if not name and everywhere and not on_site:
+            continue
+        out.append((entry["id"], plan.building))
+    return out
 
 
 def is_quiet(room: dict[str, Any], now: datetime) -> bool:
@@ -290,7 +312,6 @@ async def async_announce(hass: HomeAssistant, call: ServiceCall) -> ServiceRespo
         raise ServiceValidationError(
             "The Announcements module is not installed (or waits for an admin's approval in NeonPlan → Extensions)"
         )
-    building = data.building
     screens = call.data["screens"]
     to_screens = call.data["on_screens"] or bool(screens)
     if to_screens:
@@ -302,28 +323,45 @@ async def async_announce(hass: HomeAssistant, call: ServiceCall) -> ServiceRespo
             # only the screens asked for: no room's speaker
             return {"speakers": [], "quiet": [], "no_speaker": [], "failed": [], "screens": True}
     area_names = {a.id: a.name for a in ar.async_get(hass).async_list_areas()}
-    rooms, missing = target_rooms(building, call.data["rooms"], call.data.get("floor"), area_names)
+    asked = call.data["rooms"]
+    plans = plans_for(data, call.data.get("plan"), not asked and not call.data.get("floor"))
+    if not plans:
+        raise ServiceValidationError(f"No floor plan called {call.data.get('plan')}")
+    # every plan is searched; a name is missing only when no plan has it
+    rooms: list[Room] = []
+    building_of: dict[int, dict[str, Any]] = {}
+    missing: set[str] | None = None
+    for _plan_id, building in plans:
+        found, lost = target_rooms(building, asked, call.data.get("floor"), area_names)
+        for hit in found:
+            rooms.append(hit)
+            building_of[id(hit[1])] = building
+        missing = set(lost) if missing is None else missing & set(lost)
     if missing:
-        raise ServiceValidationError(f"No room or floor called {', '.join(missing)} in the plan")
+        raise ServiceValidationError(f"No room or floor called {', '.join(sorted(missing))} in the plan")
     now = dt_util.now()
     # one room asked for by name speaks even in its quiet time, like a tap on that room
     keep_quiet = not call.data["ignore_quiet"] and len(rooms) != 1
     quiet = [r for _, r in rooms if keep_quiet and is_quiet(r, now)]
-    speakers = Speakers(hass, building)
+    speakers = {pid: Speakers(hass, building) for pid, building in plans}
+    speakers_of = {id(building): speakers[pid] for pid, building in plans}
     players: dict[str, str] = {}
+    by_player: dict[str, Speakers] = {}
     silent: list[str] = []
     for floor, room in rooms:
         if room in quiet:
             continue
-        player = speakers.for_room(floor, room)
+        plan_speakers = speakers_of[id(building_of[id(room)])]
+        player = plan_speakers.for_room(floor, room)
         if player is None:
             silent.append(room.get("name", ""))
         else:
             players.setdefault(player, room.get("name", ""))
+            by_player.setdefault(player, plan_speakers)
     failed: dict[str, str] = {}
     for player in players:
         try:
-            await speakers.say(player, call.data["message"])
+            await by_player[player].say(player, call.data["message"])
         except HomeAssistantError as err:
             _LOGGER.warning("Announcement on %s failed: %s", player, err)
             failed[player] = str(err)
@@ -340,7 +378,11 @@ async def async_announce(hass: HomeAssistant, call: ServiceCall) -> ServiceRespo
 
 
 RELOAD_SCHEMA = vol.Schema(
-    {vol.Optional("templates", default=[]): vol.All(cv.ensure_list, [vol.All(cv.string, vol.Length(max=60))])}
+    {
+        vol.Optional("templates", default=[]): vol.All(cv.ensure_list, [vol.All(cv.string, vol.Length(max=60))]),
+        # only the views of this floor plan (its id); templates belong to their plan
+        vol.Optional("plan"): vol.All(cv.string, vol.Length(max=32)),
+    }
 )
 
 
@@ -357,7 +399,11 @@ def async_setup_announce(hass: HomeAssistant) -> None:
     async def reload(call: ServiceCall) -> None:
         # the wall tablets showing these card templates (none named: every open view) load the page again, so a new
         # NeonPlan version reaches them without a ladder
-        async_dispatcher_send(hass, SIGNAL_RELOAD, {"id": uuid.uuid4().hex[:12], "templates": call.data["templates"]})
+        async_dispatcher_send(
+            hass,
+            SIGNAL_RELOAD,
+            {"id": uuid.uuid4().hex[:12], "templates": call.data["templates"], "plan": call.data.get("plan")},
+        )
 
     hass.services.async_register(DOMAIN, SERVICE_RELOAD, reload, schema=RELOAD_SCHEMA)
 

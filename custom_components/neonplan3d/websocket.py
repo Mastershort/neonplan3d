@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Awaitable, Callable
+import contextlib
 import json
 import time
 from typing import Any
@@ -20,22 +21,40 @@ from .const import (
     DATA_DIAGNOSTICS,
     DATA_VOICE,
     DOMAIN,
+    MAIN_PLAN,
     SIGNAL_ANNOUNCE,
     SIGNAL_ASK,
     SIGNAL_BUILDING_UPDATED,
+    SIGNAL_PLANS_UPDATED,
     SIGNAL_RELOAD,
 )
 from .diagnostics_report import DiagnosticsError, DiagnosticsReporter
 from .locate.recorder import ws_locate_rec
 from .locate.ws import COMMANDS as LOCATE_COMMANDS
 from .packs import MAX_PACK_SIZE, PackError, module_sha, parts_of, verify_pack
-from .schema import BUILDING_SCHEMA, IMAGE_DATA
+from .schema import BUILDING_SCHEMA, IMAGE_DATA, empty_building
 from .screens import KINDS, screens_of
-from .storage import FloorplanData, complete
+from .storage import FloorplanData, PlanData, complete
 from .timetravel import ws_timetravel_history
 from .voice import SENTENCE_MODES, AskBroker, VoiceSettings, async_converse_here
 
 _IMAGE_ID = vol.All(str, vol.Length(min=1, max=64), vol.Match(r"^[A-Za-z0-9_\-.]+$"))
+# a floor plan; every command without one means the main plan (as older frontends send them)
+_PLAN_ID = vol.All(str, vol.Match(r"^[a-z0-9_]{1,32}$"))
+_PLAN = vol.Optional("plan", default=MAIN_PLAN)
+_PLAN_NAME = vol.All(str, vol.Length(min=1, max=60))
+_PLAN_ICON = vol.Any(None, vol.All(str, vol.Length(max=16)))
+_SITE = vol.Any(
+    None,
+    vol.Schema(
+        {
+            vol.Required("on"): bool,
+            vol.Required("x"): vol.Coerce(float),
+            vol.Required("y"): vol.Coerce(float),
+            vol.Required("rot"): vol.Coerce(float),
+        }
+    ),
+)
 
 
 @callback
@@ -51,6 +70,14 @@ def async_register_commands(hass: HomeAssistant) -> None:
         ws_history_list,
         ws_history_snapshot,
         ws_history_restore,
+        ws_plans_list,
+        ws_plans_subscribe,
+        ws_plans_create,
+        ws_plans_update,
+        ws_plans_order,
+        ws_plans_delete,
+        ws_plans_restore,
+        ws_plans_locate,
         ws_packs_list,
         ws_packs_import,
         ws_packs_remove,
@@ -90,7 +117,16 @@ def _data(hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: 
     return data
 
 
-@websocket_api.websocket_command({vol.Required("type"): "neonplan3d/building/get"})
+def _plan(hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict) -> PlanData | None:
+    if (data := _data(hass, connection, msg)) is None:
+        return None
+    plan = data.plan(msg["plan"])
+    if plan is None:
+        connection.send_error(msg["id"], "not_found", "Floor plan not found")
+    return plan
+
+
+@websocket_api.websocket_command({vol.Required("type"): "neonplan3d/building/get", _PLAN: _PLAN_ID})
 @websocket_api.async_response
 async def ws_get_building(hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]) -> None:
     """Return the building, its revision and the running integration version.
@@ -98,11 +134,12 @@ async def ws_get_building(hass: HomeAssistant, connection: websocket_api.ActiveC
     The frontend compares the version with its own: after an update the new frontend files are served
     at once, but the backend (and its validation) only changes with a restart.
     """
-    if (data := _data(hass, connection, msg)) is None:
+    if (plan := _plan(hass, connection, msg)) is None:
         return
     integration = await async_get_integration(hass, DOMAIN)
     connection.send_result(
-        msg["id"], {"building": data.building, "revision": data.revision, "version": str(integration.version)}
+        msg["id"],
+        {"building": plan.building, "revision": plan.revision, "plan": plan.id, "version": str(integration.version)},
     )
 
 
@@ -110,6 +147,7 @@ async def ws_get_building(hass: HomeAssistant, connection: websocket_api.ActiveC
     {
         vol.Required("type"): "neonplan3d/building/save",
         vol.Required("building"): BUILDING_SCHEMA,
+        _PLAN: _PLAN_ID,
     }
 )
 @websocket_api.require_admin
@@ -118,20 +156,26 @@ async def ws_save_building(
     hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]
 ) -> None:
     """Replace the building."""
-    if (data := _data(hass, connection, msg)) is None:
+    if (plan := _plan(hass, connection, msg)) is None:
         return
-    revision = await data.async_save_building(msg["building"])
+    revision = await plan.async_save_building(msg["building"])
     connection.send_result(msg["id"], {"revision": revision})
 
 
-@websocket_api.websocket_command({vol.Required("type"): "neonplan3d/building/subscribe"})
+@websocket_api.websocket_command(
+    {
+        vol.Required("type"): "neonplan3d/building/subscribe",
+        vol.Optional("plan", default=MAIN_PLAN): vol.Any("*", _PLAN_ID),
+    }
+)
 @callback
 def ws_subscribe_building(hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]) -> None:
-    """Send the new revision whenever the building changes."""
+    """Send the new revision whenever the plan changes ("*": any plan, with its id)."""
 
     @callback
-    def forward(revision: int) -> None:
-        connection.send_message(websocket_api.event_message(msg["id"], {"revision": revision}))
+    def forward(revision: int, plan_id: str = MAIN_PLAN) -> None:
+        if msg["plan"] in ("*", plan_id):
+            connection.send_message(websocket_api.event_message(msg["id"], {"revision": revision, "plan": plan_id}))
 
     connection.subscriptions[msg["id"]] = async_dispatcher_connect(hass, SIGNAL_BUILDING_UPDATED, forward)
     connection.send_result(msg["id"])
@@ -167,42 +211,44 @@ async def ws_set_image(hass: HomeAssistant, connection: websocket_api.ActiveConn
     connection.send_result(msg["id"])
 
 
-@websocket_api.websocket_command({vol.Required("type"): "neonplan3d/image/delete", vol.Required("image_id"): _IMAGE_ID})
+@websocket_api.websocket_command(
+    {vol.Required("type"): "neonplan3d/image/delete", vol.Required("image_id"): _IMAGE_ID, _PLAN: _PLAN_ID}
+)
 @websocket_api.require_admin
 @websocket_api.async_response
 async def ws_delete_image(hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]) -> None:
     """Remove a background image."""
     if (data := _data(hass, connection, msg)) is None:
         return
-    await data.async_delete_image(msg["image_id"])
+    await data.async_delete_image(msg["image_id"], msg["plan"])
     connection.send_result(msg["id"])
 
 
-@websocket_api.websocket_command({vol.Required("type"): "neonplan3d/history/list"})
+@websocket_api.websocket_command({vol.Required("type"): "neonplan3d/history/list", _PLAN: _PLAN_ID})
 @websocket_api.require_admin
 @callback
 def ws_history_list(hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]) -> None:
     """List the restore points (newest first)."""
-    if (data := _data(hass, connection, msg)) is None:
+    if (plan := _plan(hass, connection, msg)) is None:
         return
-    connection.send_result(msg["id"], {"snapshots": data.history()})
+    connection.send_result(msg["id"], {"snapshots": plan.history()})
 
 
-@websocket_api.websocket_command({vol.Required("type"): "neonplan3d/history/snapshot"})
+@websocket_api.websocket_command({vol.Required("type"): "neonplan3d/history/snapshot", _PLAN: _PLAN_ID})
 @websocket_api.require_admin
 @websocket_api.async_response
 async def ws_history_snapshot(
     hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]
 ) -> None:
     """Keep the current building as a restore point (e.g. before an import)."""
-    if (data := _data(hass, connection, msg)) is None:
+    if (plan := _plan(hass, connection, msg)) is None:
         return
-    await data.async_snapshot()
+    await plan.async_snapshot()
     connection.send_result(msg["id"])
 
 
 @websocket_api.websocket_command(
-    {vol.Required("type"): "neonplan3d/history/restore", vol.Required("snapshot_id"): _IMAGE_ID}
+    {vol.Required("type"): "neonplan3d/history/restore", vol.Required("snapshot_id"): _IMAGE_ID, _PLAN: _PLAN_ID}
 )
 @websocket_api.require_admin
 @websocket_api.async_response
@@ -210,15 +256,147 @@ async def ws_history_restore(
     hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]
 ) -> None:
     """Go back to a restore point; the current state becomes a restore point itself."""
-    if (data := _data(hass, connection, msg)) is None:
+    if (plan := _plan(hass, connection, msg)) is None:
         return
-    building = data.snapshot(msg["snapshot_id"])
+    building = plan.snapshot(msg["snapshot_id"])
     if building is None:
         connection.send_error(msg["id"], "not_found", "Restore point not found")
         return
-    await data.async_snapshot()
-    revision = await data.async_save_building(complete(building))
+    await plan.async_snapshot()
+    revision = await plan.async_save_building(complete(building))
     connection.send_result(msg["id"], {"revision": revision})
+
+
+# ---------------------------------------------------------------------------- floor plans
+
+
+@websocket_api.websocket_command({vol.Required("type"): "neonplan3d/plans/list"})
+@callback
+def ws_plans_list(hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]) -> None:
+    """The floor plans in their order, the bin and the plan Live Presence works on."""
+    if (data := _data(hass, connection, msg)) is None:
+        return
+    connection.send_result(msg["id"], data.plan_list())
+
+
+@websocket_api.websocket_command({vol.Required("type"): "neonplan3d/plans/subscribe"})
+@callback
+def ws_plans_subscribe(hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]) -> None:
+    """Send the list again whenever a plan is added, renamed, moved or deleted."""
+    if (data := _data(hass, connection, msg)) is None:
+        return
+
+    @callback
+    def forward() -> None:
+        connection.send_message(websocket_api.event_message(msg["id"], data.plan_list()))
+
+    connection.subscriptions[msg["id"]] = async_dispatcher_connect(hass, SIGNAL_PLANS_UPDATED, forward)
+    connection.send_result(msg["id"])
+
+
+@websocket_api.websocket_command(
+    {
+        vol.Required("type"): "neonplan3d/plans/create",
+        vol.Required("name"): _PLAN_NAME,
+        vol.Optional("icon"): _PLAN_ICON,
+        # empty, a copy of another plan, or a plan from a file
+        vol.Optional("copy_of"): _PLAN_ID,
+        vol.Optional("building"): BUILDING_SCHEMA,
+    }
+)
+@websocket_api.require_admin
+@websocket_api.async_response
+async def ws_plans_create(hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]) -> None:
+    """Add a floor plan; returns its id."""
+    if (data := _data(hass, connection, msg)) is None:
+        return
+    building = msg.get("building") or BUILDING_SCHEMA(empty_building())
+    if "copy_of" in msg:
+        source = data.plan(msg["copy_of"])
+        if source is None:
+            connection.send_error(msg["id"], "not_found", "Floor plan not found")
+            return
+        building = source.building
+    try:
+        plan_id = await data.async_create_plan(msg["name"], building, msg.get("icon"))
+    except ValueError as err:
+        connection.send_error(msg["id"], str(err), "Too many floor plans")
+        return
+    connection.send_result(msg["id"], {"plan": plan_id})
+
+
+@websocket_api.websocket_command(
+    {
+        vol.Required("type"): "neonplan3d/plans/update",
+        vol.Required("plan"): _PLAN_ID,
+        vol.Optional("name"): vol.Any(None, _PLAN_NAME),
+        vol.Optional("icon"): _PLAN_ICON,
+        vol.Optional("site"): _SITE,
+    }
+)
+@websocket_api.require_admin
+@websocket_api.async_response
+async def ws_plans_update(hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]) -> None:
+    """Rename a plan, change its icon or its place on the property."""
+    if (data := _data(hass, connection, msg)) is None:
+        return
+    changes = {k: msg[k] for k in ("name", "icon", "site") if k in msg}
+    if not await data.async_update_plan(msg["plan"], changes):
+        connection.send_error(msg["id"], "not_found", "Floor plan not found")
+        return
+    connection.send_result(msg["id"])
+
+
+@websocket_api.websocket_command({vol.Required("type"): "neonplan3d/plans/order", vol.Required("plans"): [_PLAN_ID]})
+@websocket_api.require_admin
+@websocket_api.async_response
+async def ws_plans_order(hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]) -> None:
+    """Put the plans in a new order."""
+    if (data := _data(hass, connection, msg)) is None:
+        return
+    await data.async_order_plans(msg["plans"])
+    connection.send_result(msg["id"])
+
+
+@websocket_api.websocket_command({vol.Required("type"): "neonplan3d/plans/delete", vol.Required("plan"): _PLAN_ID})
+@websocket_api.require_admin
+@websocket_api.async_response
+async def ws_plans_delete(hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]) -> None:
+    """Move a plan into the bin (the main plan stays)."""
+    if (data := _data(hass, connection, msg)) is None:
+        return
+    if not await data.async_delete_plan(msg["plan"]):
+        connection.send_error(msg["id"], "not_found", "Floor plan not found or not deletable")
+        return
+    connection.send_result(msg["id"])
+
+
+@websocket_api.websocket_command({vol.Required("type"): "neonplan3d/plans/restore", vol.Required("plan"): _PLAN_ID})
+@websocket_api.require_admin
+@websocket_api.async_response
+async def ws_plans_restore(
+    hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]
+) -> None:
+    """Take a plan back out of the bin."""
+    if (data := _data(hass, connection, msg)) is None:
+        return
+    if not await data.async_restore_plan(msg["plan"]):
+        connection.send_error(msg["id"], "not_found", "Floor plan not in the bin")
+        return
+    connection.send_result(msg["id"])
+
+
+@websocket_api.websocket_command({vol.Required("type"): "neonplan3d/plans/locate", vol.Required("plan"): _PLAN_ID})
+@websocket_api.require_admin
+@websocket_api.async_response
+async def ws_plans_locate(hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]) -> None:
+    """Choose the plan Live Presence works on."""
+    if (data := _data(hass, connection, msg)) is None:
+        return
+    if not await data.async_set_locate_plan(msg["plan"]):
+        connection.send_error(msg["id"], "not_found", "Floor plan not found")
+        return
+    connection.send_result(msg["id"])
 
 
 @websocket_api.websocket_command({vol.Required("type"): "neonplan3d/packs/list"})
@@ -410,11 +588,24 @@ BACKUP_FORMAT = "neonplan3d-backup"
 @websocket_api.require_admin
 @callback
 def ws_backup_export(hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]) -> None:
-    """The plan and the packs for a backup file (the frontend adds the images one by one)."""
+    """The plans and the packs for a backup file (the frontend adds the images one by one).
+
+    Version 2: `building` is still the main plan (a version-1 reader restores just that), `main` its entry in the
+    list of plans, `plans` every further plan with its building."""
     if (data := _data(hass, connection, msg)) is None:
         return
+    main = next(e for e in data.index if e["id"] == MAIN_PLAN)
+    others = [{**e, "building": data.plans[e["id"]].building} for e in data.index if e["id"] != MAIN_PLAN]
     connection.send_result(
-        msg["id"], {"format": BACKUP_FORMAT, "version": 1, "building": data.building, "packs": data.packs}
+        msg["id"],
+        {
+            "format": BACKUP_FORMAT,
+            "version": 2,
+            "building": data.building,
+            "main": {k: main.get(k) for k in ("name", "icon", "site")},
+            "plans": others,
+            "packs": data.packs,
+        },
     )
 
 
@@ -423,6 +614,8 @@ def ws_backup_export(hass: HomeAssistant, connection: websocket_api.ActiveConnec
         vol.Required("type"): "neonplan3d/backup/import",
         vol.Required("building"): dict,
         vol.Optional("packs", default=[]): [dict],
+        vol.Optional("main"): dict,
+        vol.Optional("plans"): [dict],
     }
 )
 @websocket_api.require_admin
@@ -432,11 +625,19 @@ async def ws_backup_import(
 ) -> None:
     """Replace the plan and the packs from a backup. Packs are checked again: only ones whose
     signature verifies (and that are not bound to another installation) come back; the rest are
-    reported as skipped. The state before becomes a restore point."""
+    reported as skipped. The state before becomes a restore point.
+
+    A backup with further plans (version 2) brings them back too: the plans there are now go into the bin first
+    (nothing is lost), then the backup's plans are added. A version-1 backup touches only the main plan."""
     if (data := _data(hass, connection, msg)) is None:
         return
     try:
         building = BUILDING_SCHEMA(msg["building"])
+        others = [
+            {**e, "building": BUILDING_SCHEMA(e.get("building") or {})}
+            for e in msg.get("plans", [])
+            if isinstance(e.get("building"), dict)
+        ]
     except vol.Invalid as err:
         connection.send_error(msg["id"], "invalid_format", str(err))
         return
@@ -458,6 +659,18 @@ async def ws_backup_import(
             continue
         packs.append({**clean, "source": source, "signature": parts_of(text)[1], "imported_at": time.time()})
     revision = await data.async_restore(complete(building), packs)
+    if "plans" in msg:
+        main = msg.get("main") or {}
+        await data.async_update_plan(MAIN_PLAN, {k: main.get(k) for k in ("name", "icon", "site") if k in main})
+        for plan_id in [e["id"] for e in data.index if e["id"] != MAIN_PLAN]:
+            await data.async_delete_plan(plan_id)
+        for entry in others:
+            name = str(entry.get("name") or "?")[:60]
+            icon = entry.get("icon") if isinstance(entry.get("icon"), str) else None
+            plan_id = await data.async_create_plan(name, complete(entry["building"]), icon)
+            if isinstance(entry.get("site"), dict):
+                with contextlib.suppress(vol.Invalid):
+                    await data.async_update_plan(plan_id, {"site": _SITE(entry["site"])})
     connection.send_result(
         msg["id"],
         {

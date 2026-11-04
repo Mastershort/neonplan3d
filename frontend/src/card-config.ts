@@ -10,9 +10,16 @@ export interface CardConfig {
   type: string;
   /** A card template made in the editor (its id): its options apply, the ones written here win over them. */
   template?: string;
+  /** The floor plan shown (its id; default the main plan). Its card templates are the ones `template` names. */
+  plan?: string;
   floor?: string;
   /** Start in this room (its id from the editor): a display for one room, e.g. for the kids. */
   room?: string;
+  /** Show only these rooms (and outdoor areas, by id): the others, their furniture and devices are left out. One room
+   * opens with its panel beside the 3D view. */
+  rooms?: string[];
+  /** With `rooms`: the tablet stays in them (taps, jumps and floors outside do nothing); false lets one leave. */
+  rooms_lock?: boolean;
   /** A start view of this card's own (theta, phi, radius and target as the editor shows them); default: the plan's. */
   start_view?: StartView;
   height?: number;
@@ -138,8 +145,9 @@ export function cardTemplate(b: Building | null | undefined, id: string | undefi
   return key ? (list?.find((t) => t.id === key) ?? list?.find((t) => t.aliases?.includes(key))) : undefined;
 }
 
-/** What belongs to the dashboard the card sits on, not to its template: its size (a card on a tablet's whole screen). */
-export const CARD_OWN: readonly (keyof CardConfig)[] = ["fill", "height", "fullscreen_button"];
+/** What belongs to the dashboard the card sits on, not to its template: its size (a card on a tablet's whole screen),
+ * and the floor plan whose template it is. */
+export const CARD_OWN: readonly (keyof CardConfig)[] = ["fill", "height", "fullscreen_button", "plan"];
 
 /**
  * The options a card works with: a card that names a template shows the template – only its size comes from the

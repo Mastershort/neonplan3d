@@ -5,6 +5,13 @@ import { css, html, LitElement, nothing, type PropertyValues } from "lit";
 import { BuildingController } from "./building-controller.ts";
 import { countView } from "./diagnostics.ts";
 import { loadEditor } from "./load-editor.ts";
+import "./components/plan-overview.ts";
+import "./components/plan-picker.ts";
+import { alertText, type Alert } from "./alerts.ts";
+import { planLabel } from "./components/plan-picker.ts";
+import { planSummary } from "./plan-summary.ts";
+import { siteOwner } from "./site.ts";
+import { OtherPlans } from "./plan-watch.ts";
 import "./components/room-bar.ts";
 import "./components/room-panel.ts";
 import "./components/view3d.ts";
@@ -25,7 +32,7 @@ import { mountLocateLab } from "./locate-lab.ts";
 import { directorOnHere } from "./director.ts";
 import { loadVoice, micProbeDone, screenName, voiceOnHere } from "./load-voice.ts";
 import type { ClockPos } from "./card-config.ts";
-import { getLicense, unseenOffers, unseenUpdates } from "./api.ts";
+import { getLicense, MAIN_PLAN, unseenOffers, unseenUpdates } from "./api.ts";
 import { markPrintSeen, printDot, printSeen } from "./print.ts";
 import { TimeTravel } from "./load-timetravel.ts";
 import type { HistorySpec } from "./timetravel/types.ts";
@@ -71,6 +78,8 @@ export class Floorplan3dPanel extends LitElement {
     _editorReady: { state: true },
     _floorId: { state: true },
     _roomId: { state: true },
+    _overview: { state: true },
+    _site: { state: true },
     _wallMode: { state: true },
     _explode: { state: true },
     _keepRoof: { state: true },
@@ -127,6 +136,16 @@ export class Floorplan3dPanel extends LitElement {
   private declare _editorReady: boolean;
   private declare _floorId: string | null;
   private declare _roomId: string | null;
+  /** "All floor plans" is open. */
+  private declare _overview: boolean;
+  /** The property: every building standing on it in one 3D view (read only). */
+  private declare _site: boolean;
+  /** The other floor plans, read only: for the overview, their warnings and the property. */
+  private readonly watch = new OtherPlans(this);
+  /** The warnings of the other plans, worked out at most every two seconds (old tablets). */
+  private otherAlerts: { at: number; list: { plan: string; alert: Alert }[] } = { at: 0, list: [] };
+  /** A room to open once a plan switched to has loaded (a warning's "show"). */
+  private pendingRoom: { plan: string; floorId: string | null; roomId: string | null } | null = null;
   private declare _wallMode: WallMode;
   private declare _explode: boolean;
   private declare _keepRoof: boolean;
@@ -197,6 +216,10 @@ export class Floorplan3dPanel extends LitElement {
     this._editorReady = !!customElements.get("fp3d-editor");
     this._floorId = null;
     this._roomId = null;
+    this._overview = false;
+    this._site = new URLSearchParams(location.search).get("plan") === "site";
+    // the floor plan: from a link (?plan=), else the one last shown on this device
+    void this.data.switchPlan(new URLSearchParams(location.search).get("plan") ?? prefs.get("plan"));
     // the wall view stays as it was last set on this device (#309)
     this._wallMode = prefs.get("walls") === "cut" ? "cut" : "auto";
     this._explode = prefs.get("explode") !== "0";
@@ -274,6 +297,16 @@ export class Floorplan3dPanel extends LitElement {
 
   private onRoomTap(e: CustomEvent<{ floorId: string; roomId: string | null }>): void {
     const { floorId, roomId } = e.detail;
+    // the property: a tap on a building's room flies into its plan, there into the room
+    if (this._site) {
+      if (!roomId) return;
+      const owner = siteOwner(roomId, MAIN_PLAN);
+      this.pendingRoom = { plan: owner.plan, floorId: null, roomId: owner.id };
+      this._site = false;
+      if (owner.plan === this.data.planId) this.requestUpdate();
+      else this.pickPlan(owner.plan);
+      return;
+    }
     // in the house view (or on another floor) a tap first opens the whole floor; rooms come next
     if ((this.data.building?.floors.length ?? 0) > 1 && floorId && this._floorId !== floorId) {
       this._floorId = floorId;
@@ -512,15 +545,72 @@ export class Floorplan3dPanel extends LitElement {
    * To the editor with a topic of ⚙ Settings open: the extensions page's fun packs button, the dashboard card dialog's
    * link to a card template (the editor may still be loading).
    */
-  private openFunSettings(topic: "fun" | "cards" = "fun", template: string | null = null): void {
+  private openFunSettings(topic: "fun" | "cards" | "plans" = "fun", template: string | null = null): void {
     this.setMode("editor");
     let tries = 0;
     const open = () => {
-      const ed = this.renderRoot.querySelector("fp3d-editor") as (HTMLElement & { openSettings?(topic: "fun" | "cards", template?: string | null): void }) | null;
+      const ed = this.renderRoot.querySelector("fp3d-editor") as (HTMLElement & { openSettings?(topic: "fun" | "cards" | "plans", template?: string | null): void }) | null;
       if (ed?.openSettings) ed.openSettings(topic, template);
       else if (tries++ < 60) setTimeout(open, 100);
     };
     void this.updateComplete.then(open);
+  }
+
+  /** The property as one building (null until every plan on it is loaded). */
+  private siteBuilding(): Building | null {
+    return this.watch.site(this.data);
+  }
+
+  /** To the property view: the buildings together, from above. */
+  private showSite(): void {
+    if (this.tt.active) this.tt.stop();
+    this._site = true;
+    this._floorId = null;
+    this._roomId = null;
+    this._mode = "view";
+  }
+
+  /** Every plan's building: the one shown from the controller, the others as watched. */
+  private planBuildings(): Map<string, Building> {
+    return this.watch.all(this.data);
+  }
+
+  /** The warnings of the plans not shown (recomputed at most every two seconds). */
+  private alertsElsewhere(): { plan: string; alert: Alert }[] {
+    if (!this.hass || this.data.plans.length < 2) return [];
+    const now = Date.now();
+    if (now - this.otherAlerts.at < 2000) return this.otherAlerts.list;
+    const list: { plan: string; alert: Alert }[] = [];
+    for (const [plan, b] of this.watch.others) if (plan !== this.data.planId) for (const alert of planSummary(this.hass, b).alerts) list.push({ plan, alert });
+    this.otherAlerts = { at: now, list };
+    return list;
+  }
+
+  private alertCounts(): Map<string, number> {
+    const counts = new Map<string, number>();
+    for (const { plan } of this.alertsElsewhere()) counts.set(plan, (counts.get(plan) ?? 0) + 1);
+    return counts;
+  }
+
+  /** Show another floor plan: its edits are saved first, the view starts in its house view. */
+  private pickPlan(plan: string): void {
+    if (this._site) {
+      this._site = false;
+      this._floorId = null;
+      this._roomId = null;
+    }
+    if (plan === this.data.planId) return;
+    if (this.tt.active) this.tt.stop();
+    prefs.set("plan", plan);
+    this._floorId = null;
+    this._roomId = null;
+    void this.data.switchPlan(plan);
+  }
+
+  /** A warning of another plan: to that plan, into the room concerned. */
+  private showElsewhere(plan: string, alert: Alert): void {
+    this.pendingRoom = { plan, floorId: alert.floorId, roomId: alert.roomId };
+    this.pickPlan(plan);
   }
 
   private view3d() {
@@ -546,6 +636,14 @@ export class Floorplan3dPanel extends LitElement {
   }
 
   protected updated(): void {
+    if (this.data.plans.length > 1) this.watch.watch(this.hass, this.data);
+    // a warning's plan has loaded: into its room
+    const pending = this.pendingRoom;
+    if (pending && this.data.planId === pending.plan && this.data.building) {
+      this.pendingRoom = null;
+      this._floorId = pending.floorId ?? this.data.building.floors.find((f) => zonesOf(f).some((r) => r.id === pending.roomId))?.id ?? null;
+      this._roomId = pending.roomId;
+    }
     // lab: the locating recorder box for admins (feasibility test, not a feature yet)
     if (!this.locateLab && this.hass?.user?.is_admin && this.data.building && labOn()) {
       this.locateLab = mountLocateLab(() => ({ hass: this.hass, building: this.data.building }));
@@ -632,6 +730,35 @@ export class Floorplan3dPanel extends LitElement {
         ${this._clean && this._mode === "view" ? nothing : html`<header class="fp3d-header">
           <ha-menu-button .hass=${this.hass} .narrow=${this.narrow}></ha-menu-button>
           <h1>NeonPlan 3D</h1>
+          ${this.data.plans.length > 1 || (this.isAdmin && this.data.plans.length > 0)
+            ? html`<fp3d-plan-picker
+                .hass=${this.hass}
+                .plans=${this.data.plans}
+                .current=${this.data.planId}
+                ?admin=${this.isAdmin}
+                @plan-pick=${(e: CustomEvent<{ plan: string }>) => this.pickPlan(e.detail.plan)}
+                .alerts=${this.alertCounts()}
+                @plan-new=${() => this.openFunSettings("plans")}
+                @plan-manage=${() => this.openFunSettings("plans")}
+                @plan-overview=${() => (this._overview = true)}
+                @plan-site=${() => this.showSite()}
+                .site=${this._site}
+                .hasSite=${this.data.plans.some((p) => p.site?.on)}
+              ></fp3d-plan-picker>`
+            : nothing}
+          ${this._overview
+            ? html`<fp3d-plan-overview
+                .hass=${this.hass}
+                .plans=${this.data.plans}
+                .buildings=${this.planBuildings()}
+                .current=${this.data.planId}
+                @plan-pick=${(e: CustomEvent<{ plan: string }>) => {
+                  this._overview = false;
+                  this.pickPlan(e.detail.plan);
+                }}
+                @close=${() => (this._overview = false)}
+              ></fp3d-plan-overview>`
+            : nothing}
           ${this.isAdmin
             ? html`<div class="fp3d-seg" role="tablist">
                 <button role="tab" aria-pressed=${this._mode === "view"} @click=${() => this.setMode("view")}>${this.t("view")}</button>
@@ -822,7 +949,7 @@ export class Floorplan3dPanel extends LitElement {
             ? this.renderEditor(b)
             : this._mode === "extensions" && this.isAdmin
               ? this.renderExtensions()
-              : this.renderView(b)
+              : this.renderView(this._site ? (this.siteBuilding() ?? b) : b)
           : nothing}
         ${this.renderGift()}
       </div>
@@ -871,6 +998,17 @@ export class Floorplan3dPanel extends LitElement {
   private renderNotices() {
     const d = this.data;
     const notices = [];
+    // water in the garden house while the house is shown: the warning comes here, with a way there
+    for (const { plan, alert } of this.alertsElsewhere()) {
+      const b = this.watch.others.get(plan);
+      if (!b) continue;
+      notices.push(
+        html`<div class="fp3d-notice fp3d-notice-error">
+          <span>⚠ ${this.t("plan_alert", { plan: planLabel(this.hass, d.plans, plan), text: alertText(this.hass, b, alert) })}</span>
+          <button class="fp3d-btn" @click=${() => this.showElsewhere(plan, alert)}>${this.t("plan_alert_go")}</button>
+        </div>`,
+      );
+    }
     if (d.needsRestart) {
       // an old bundle in the browser or the companion app: a reload helps, a restart does not
       if (d.versionGap === "frontend")
@@ -932,6 +1070,12 @@ export class Floorplan3dPanel extends LitElement {
       class="fp3d-body"
       .hass=${this.hass}
       .building=${b}
+      .planId=${this.data.planId}
+      .plans=${this.data.plans}
+      .trash=${this.data.trash}
+      .locatePlan=${this.data.locatePlan}
+      @plan-pick=${(e: CustomEvent<{ plan: string }>) => this.pickPlan(e.detail.plan)}
+      @plans-changed=${() => void this.data.reloadPlans()}
       .narrow=${this.narrow}
       .packs=${this.data.packs}
       @packs-changed=${() => void this.data.reloadPacks()}
@@ -1038,6 +1182,8 @@ export class Floorplan3dPanel extends LitElement {
           .hass=${this.tt.hass(this.hass)}
           .replay=${this.tt.session?.replay ?? null}
           .building=${b}
+          .planId=${this._site ? null : this.data.planId}
+          .noSave=${this._site}
           .packs=${this.data.packs}
           .floorStack=${this._floorStack}
           .roomLabels=${this._roomNames}
@@ -1345,6 +1491,9 @@ export class Floorplan3dPanel extends LitElement {
         border-bottom: 1px solid var(--fp3d-line);
         background: var(--fp3d-chrome-solid);
         flex-wrap: wrap;
+        /* the header's menus (the floor plan picker) open over the editor's tool bar and the 3D view below */
+        position: relative;
+        z-index: 30;
       }
       ha-menu-button {
         color: var(--fp3d-text);

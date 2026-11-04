@@ -45,6 +45,10 @@
           "name": "Floor",
           "description": "Only the rooms of this floor (its name in the plan)."
         },
+        "plan": {
+          "name": "Floor plan",
+          "description": "Only this floor plan (its name). Without it every plan is searched; an announcement without rooms goes to the plans on the property."
+        },
         "ignore_quiet": {
           "name": "Ignore quiet time",
           "description": "Speak in rooms that have their quiet time now, too. A single room asked for by name always speaks."
@@ -66,6 +70,10 @@
         "templates": {
           "name": "Card templates",
           "description": "The ids of the card templates (as the editor shows them under Settings → Card templates). Empty: every open view."
+        },
+        "plan": {
+          "name": "Floor plan",
+          "description": "Only the views of this floor plan (its id, \"main\" for the first one)."
         }
       }
     }

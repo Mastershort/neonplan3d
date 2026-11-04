@@ -539,6 +539,23 @@ Under **Furniture → Home technology** (in the wall view under 🔌 **Switches*
 
 **Water heater:** a standing tank or a slim tank on the wall (at 1.1 m). Link the water_heater entity, a thermostat or the heating element's switch, plus optionally a sensor with the **water temperature** and a power sensor. It glows warm while it heats (thermostat heating, switch on or power above the threshold), faintly while it is ready, and shows the water temperature. The **heat pump (indoor unit)**, gas boiler, buffer tank and water heater from the packs take a water_heater entity as well; their pin shows the mode and the water temperature.
 
+### 4.25 Several floor plans and the property (new in 3.0)
+
+![Choosing a floor plan](images/plans-picker.jpg)
+
+One installation can hold several floor plans: the house, the garage, the garden house, a granny flat or the holiday flat by the sea. Each floor plan has its own floors, rooms, furniture, devices, card templates and restore points. Your plan so far stays as it is – it is the first floor plan.
+
+- **Create:** ⚙ Settings → 🏘 **Floor plans** → **New floor plan**: type a name, choose where it comes from (**Empty**, **Copy of …** or **From a file** – an export, also one from the import page) and **Create**. The new floor plan opens in the editor at once.
+- **Switch:** the picker with every floor plan sits at the top next to "NeonPlan 3D"; admins also create one there with **＋ New floor plan**. Other users see the picker once there are two. Each device remembers which one was open last. A link with `?plan=<id>` opens a particular one.
+- **Manage:** in the same list you rename a plan, choose an icon (🏠 🏡 🏢 🏖️ …), sort with ↑ ↓ and open it with **Open**. 🗑 moves a floor plan to the **bin**: it can be restored for 30 days, only then is it deleted. The first floor plan cannot be deleted. Each floor plan shows its id for the dashboard card.
+- **All floor plans:** in the picker, **▦ All floor plans** shows a tile per floor plan with the lights that are on, open windows and doors, the temperature and warnings. A tap opens it.
+- **Warnings from everywhere:** if the water sensor in the garden house goes off while the house is open, "Garden house: Workshop · Water …" shows at the top with **Show**, which jumps straight into the room. The picker's button shows the number of warnings.
+- **The property:** under ⚙ → 🏘 Floor plans → **Property** you place the other buildings beside the house: tick one, drag it to its place in the view from above (0.5 m grid), turn it in 15° steps with ↺ ↻ or by **90°**. Unticked, a floor plan is somewhere else, like the holiday flat. **🏘 Property** in the picker then shows every building together in 3D, with lights, devices and warnings. A tap on a room of another building opens its floor plan in that room. The property view is for looking and switching; each floor plan is edited on its own. Every building brings its own roof.
+- **Live Presence** works with one floor plan. Which one, you choose at the bottom of the list.
+- **Announcements** find rooms in every floor plan. Without a room they go to the floor plans on the property; with **Floor plan** (`plan:`) to one only.
+
+![The property in 3D](images/plans-site.jpg)
+
 ---
 
 ## 5. The 3D view
@@ -1239,7 +1256,7 @@ The card `custom:neonplan3d-card` brings the 3D view into any dashboard. It load
 
 | Section | Options |
 |---|---|
-| **View** | One floor or the whole house, start room, fixed size or full screen, height, look, walls, quality, floors below |
+| **View** | Floor plan (also the property), one floor or the whole house, start room, only these rooms, fixed size or full screen, height, look, walls, quality, floors below |
 | **Show** | Markers, heatmap (also "values"), floor plan only (no furniture), switches in the card, 3D lock, keep view, walk, controls left or right, floor pictures, room names, room panel, full-screen button, clock (corner of your choice, `clock: tl/tr/bl/br`), floors apart, performance display |
 | **Features** | Warnings, jump to a warning, voice control with screen name and room for "here", scene buttons, motion trail, camera wall, time travel with range and speed, weather with weather entity |
 | **Wall tablet (kiosk)** | Back to the start view, night dimming, camera turn as screensaver |
@@ -1273,8 +1290,11 @@ In YAML a card looks like this. Every line except the first is optional:
 ```yaml
 type: custom:neonplan3d-card
 template: kitchen_fire  # a card template from the editor (then only it counts, not the other lines)
+plan: pab12cd34ef      # another floor plan (id under ⚙ → Floor plans; left out = the first); site = the property
 floor: floor_ab12cd34   # show one floor (id from the editor)
 room: room_ab12cd34     # start in this room (the id is in the editor's room form), e.g. a display for the kids' room
+rooms: [room_ab12cd34] # show only these rooms (see 8.3)
+rooms_lock: true       # false: other rooms may be opened
 height: 420             # height in pixels
 fill: false             # fill the screen below the header
 walls: auto             # auto | cut
@@ -1326,6 +1346,19 @@ night: "off"            # off | sun | "22:00-06:00"
 idle_orbit: false
 ```
 
+### 8.3 Cards for single rooms (new in 3.0)
+
+![A card for the kids' room only](images/card-room-one.jpg)
+
+In the card dialog under **Only these rooms**, tap rooms on the small view from above (or tick them below). The card then shows only them, with their furniture, devices, doors and windows; the other rooms, floors and the roof are left out. That is ideal for the tablet in the kids' room, a granny flat or the guest room. On old tablets it runs even more smoothly, because only these rooms are drawn.
+
+- **One room** opens with its devices beside it right away. "Here" in voice control then means that room.
+- **The tablet stays in these rooms:** taps, search and jumps do not lead out. **Other rooms may be opened** lifts that.
+- **Shortcut in the editor:** select a room → **🖥 Card for this room** makes a card template with only this room and opens it. On the tablet you then just pick the template.
+- **Several floor plans:** at the top of the card dialog you choose the card's **Floor plan**, also **🏘 Property** with every building together.
+
+![Only these rooms in the card dialog](images/card-editor-rooms.jpg)
+
 ---
 
 ## 9. NeonPlan 3D on a wall tablet
@@ -1356,11 +1389,11 @@ NeonPlan 3D is built for wall tablets such as the Amazon Fire:
 
 Under **Backup** in the editor:
 
-- **Restore points** are kept at most every 10 minutes while you edit, the last 20 stay. **Restore** brings back a state, the current one is kept as a restore point itself.
+- **Restore points** are kept at most every 10 minutes while you edit, the last 20 stay – with several floor plans, each its own. **Restore** brings back a state, the current one is kept as a restore point itself.
 - **Export** saves the plan as a file, **Import …** loads such a file.
 - **Share as template** exports without areas, devices, sensors and pictures. Good for passing a floor plan on.
 - **🖨 Print in 3D** (since 2.2, for Supporter-Pass holders): downloads the plan like **Export** and opens [NeonPlan Print](https://print.mastershort.de/) – upload the file there and get your house as 3D-print files: floors you lift off, the roof as a lid, a base plate with your name. Unlock it with your supporter code (under **Extensions**, where **Open NeonPlan Print** copies it for you). Free during the beta until 30 November 2026, for private, non-commercial use with your own homes. A small "New" dot on **Extensions** points supporters to it once.
-- **Full backup:** **Back up everything (plan, pictures, packs)** saves one file with the plan, every background and screen picture and the installed packs. **Restore a full backup …** brings it back into the same or another installation. Every pack is checked again. Packs signed for another installation are fetched there again through the shop connection. The licence key is not in the file.
+- **Full backup:** **Back up everything (plan, pictures, packs)** saves one file with every floor plan, every background and screen picture and the installed packs. **Restore a full backup …** brings it back into the same or another installation. Every pack is checked again. Packs signed for another installation are fetched there again through the shop connection. The licence key is not in the file.
 
 Home Assistant's own backup includes NeonPlan 3D completely as well.
 

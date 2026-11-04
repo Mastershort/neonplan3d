@@ -211,7 +211,11 @@ async def ws_timetravel_history(
     instance = get_instance(hass)
     # only the trackers of the plan's cars (Auto Pro), never a person's own, even when linked as a car's
     private = private_trackers(hass)
-    configured = car_trackers(hass, data.building) if has_feature(data.packs, "auto_pro") else set()
+    configured: set[str] = set()
+    if has_feature(data.packs, "auto_pro"):
+        # the cars of every floor plan (a garage of its own is a plan of its own)
+        for plan in data.plans.values():
+            configured |= car_trackers(hass, plan.building)
     cars = [e for e in msg["car_trackers"] if e in configured and e not in private]
     # places and the devices people carry stay out, whatever the frontend asks for
     hidden = private_entities(hass, [*msg["entity_ids"], *msg["statistic_ids"]])

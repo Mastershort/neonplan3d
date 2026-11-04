@@ -228,3 +228,21 @@ async def test_screens_get_the_announcement(hass: HomeAssistant, hass_ws_client)
     assert event["message"] == "Es hat geklingelt!" and event["screens"] == ["Flur"]
     # only the screens asked for: no room's speaker
     assert speak == [] and result["screens"] is True
+
+
+async def test_a_room_of_another_floor_plan(hass: HomeAssistant) -> None:
+    await _ready(hass, [APPROVED])
+    data = hass.data[DOMAIN]
+    garage = copy.deepcopy(_house())
+    garage["floors"][0]["rooms"][0]["name"] = "Werkstatt"
+    await data.async_create_plan("Garage", garage)
+    speak = async_mock_service(hass, "tts", "speak")
+    await hass.services.async_call(
+        DOMAIN, "announce", {"message": "Feierabend!", "rooms": ["Werkstatt"]}, blocking=True
+    )
+    assert [c.data["media_player_entity_id"] for c in speak] == ["media_player.living_echo"]
+    # limited to the main plan, the workshop is not there
+    with pytest.raises(ServiceValidationError):
+        await hass.services.async_call(
+            DOMAIN, "announce", {"message": "Hallo", "rooms": ["Werkstatt"], "plan": "main"}, blocking=True
+        )
