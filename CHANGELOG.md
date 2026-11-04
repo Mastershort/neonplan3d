@@ -4,6 +4,16 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 [releases page](https://github.com/Mastershort/neonplan3d/releases). Ideas and votes:
 [Discussions → Ideas](https://github.com/Mastershort/neonplan3d/discussions/categories/ideas).
 
+## 3.0.0
+
+### New
+
+- **Several floor plans in one installation:** the house, the garage, the garden house, a holiday flat – each with its own floors, rooms, devices, card templates and restore points. A picker at the top switches; ⚙ Settings → 🏘 Floor plans creates (empty, a copy, from a file), renames, sorts and deletes them (a bin keeps them 30 days). The existing plan stays the first one, untouched.
+- **The property:** the other buildings placed beside the house (dragged and turned in ⚙ → Floor plans) show together in 3D, read only; a tap on a room flies into its plan. Also as a card (`plan: site`).
+- **Cards for single rooms:** `rooms:` (tapped on a map in the card dialog) shows only those rooms with their furniture, devices, doors and windows; one room opens with its panel, "here" means that room, the tablet stays there (`rooms_lock: false` lets it leave). "Card for this room" in the editor makes the template.
+- **All floor plans at a glance** and **warnings from another plan** in the one shown, with a way into the room.
+- Announcements look for rooms in every floor plan (`plan:` for one); the full backup carries every plan; Live Presence works on the plan chosen.
+
 ## 2.3.1
 
 ### Fixed

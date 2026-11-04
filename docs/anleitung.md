@@ -539,6 +539,23 @@ Unter **Möbel → Haustechnik** (in der Wandansicht unter 🔌 **Schalter**) st
 
 **Warmwasserspeicher:** ein Standspeicher oder ein flacher Speicher an der Wand (auf 1,1 m). Verknüpft wird die water_heater-Entität, ein Thermostat oder der Schalter des Heizstabs, dazu optional ein Sensor mit der **Wassertemperatur** und ein Leistungssensor. Er glüht warm, solange er heizt (Thermostat „heizt“, Schalter an oder Leistung über der Schwelle), schwach, solange er bereit ist, und zeigt die Wassertemperatur. Die **Wärmepumpe (innen)**, Therme, Pufferspeicher und Warmwasserspeicher aus den Packs nehmen ebenfalls eine water_heater-Entität; ihr Pin zeigt Betriebsart und Wassertemperatur.
 
+### 4.25 Mehrere Grundrisse und das Grundstück (neu in 3.0)
+
+![Grundriss wählen](images/plans-picker.jpg)
+
+Eine Installation kann mehrere Grundrisse haben: das Haus, die Garage, das Gartenhaus, eine Einliegerwohnung oder die Ferienwohnung am Meer. Jeder Grundriss hat eigene Etagen, Räume, Möbel, Geräte, Karten-Vorlagen und Wiederherstellungspunkte. Dein bisheriger Plan bleibt, wie er ist – er ist der erste Grundriss.
+
+- **Anlegen:** ⚙ Einstellungen → 🏘 **Grundrisse** → **Neuer Grundriss**: Namen eintippen, wählen woraus (**Leer**, **Kopie von …** oder **Aus einer Datei** – ein Export, auch einer von der Import-Seite) und **Anlegen**. Der neue Grundriss öffnet sich sofort im Editor.
+- **Wechseln:** Sobald es zwei gibt, steht oben neben „NeonPlan 3D“ die Auswahl mit allen Grundrissen. Jedes Gerät merkt sich, welcher zuletzt offen war. Ein Link mit `?plan=<ID>` öffnet direkt einen bestimmten.
+- **Verwalten:** In derselben Liste änderst du den Namen, wählst ein Symbol (🏠 🏡 🏢 🏖️ …), sortierst mit ↑ ↓ und öffnest mit **Öffnen**. 🗑 legt einen Grundriss in den **Papierkorb**: Er bleibt 30 Tage wiederherstellbar, erst dann wird er gelöscht. Der erste Grundriss lässt sich nicht löschen. Neben jedem Grundriss steht seine ID für die Dashboard-Karte.
+- **Alle Grundrisse:** In der Auswahl zeigt **▦ Alle Grundrisse** eine Kachel pro Grundriss mit den Lichtern, die an sind, offenen Fenstern und Türen, der Temperatur und Warnungen. Ein Tipp öffnet ihn.
+- **Warnungen von überall:** Meldet der Wassermelder im Gartenhaus etwas, während das Haus offen ist, erscheint oben „Gartenhaus: Werkstatt · Wasser …“ mit **Ansehen**. Das springt direkt in den Raum. Am Knopf der Auswahl steht die Zahl der Warnungen.
+- **Das Grundstück:** Unter ⚙ → 🏘 Grundrisse → **Grundstück** stellst du die anderen Gebäude neben das Haus: Haken setzen, in der Draufsicht an ihren Platz ziehen (Raster 0,5 m), mit ↺ ↻ in 15°-Schritten oder mit **90°** drehen. Ohne Haken steht ein Grundriss woanders, etwa die Ferienwohnung. Dann zeigt **🏘 Grundstück** in der Auswahl alle Gebäude zusammen in 3D, mit Licht, Geräten und Warnungen. Ein Tipp auf einen Raum eines Nebengebäudes öffnet dessen Grundriss in diesem Raum. Die Grundstücks-Ansicht ist zum Ansehen und Bedienen da; bearbeitet wird jeder Grundriss für sich. Dächer zeigt sie noch nicht.
+- **Live Presence** arbeitet mit einem Grundriss. Welchem, wählst du unten in der Liste.
+- **Durchsagen** finden Räume in allen Grundrissen. Ohne Raum gehen sie an die Grundrisse auf dem Grundstück, mit **Grundriss** (`plan:`) nur an einen.
+
+![Das Grundstück in 3D](images/plans-site.jpg)
+
 ---
 
 ## 5. Die 3D-Ansicht
@@ -1239,7 +1256,7 @@ Die Karte `custom:neonplan3d-card` bringt die 3D-Ansicht in jedes Dashboard. Sie
 
 | Abschnitt | Optionen |
 |---|---|
-| **Ansicht** | Etage oder ganzes Haus, Start-Raum, Größe fest oder bildschirmfüllend, Höhe, Look, Wände, Qualität, Etagen darunter |
+| **Ansicht** | Grundriss (auch das Grundstück), Etage oder ganzes Haus, Start-Raum, nur diese Räume, Größe fest oder bildschirmfüllend, Höhe, Look, Wände, Qualität, Etagen darunter |
 | **Anzeigen** | Symbole, Heatmap (auch „Werte“), Nur Grundriss (ohne Möbel), Schalter in der Karte, 3D-Sperre, Ansicht halten, Rundgang, Bedienleiste links oder rechts, Etagen-Miniaturen, Raumnamen, Raumfenster, Vollbild-Knopf, Uhr (Ecke wählbar, `clock: tl/tr/bl/br`), Etagen auseinander, Leistungsanzeige |
 | **Funktionen** | Warnungen, Sprung zur Warnung, Sprachsteuerung mit Bildschirmname und Raum für „hier“, Szenen-Knöpfe, Bewegungsspur, Kamera-Wand, Zeitreise mit Zeitraum und Tempo, Wetter mit Wetter-Entität |
 | **Wandtablet (Kiosk)** | Rückkehr zur Startansicht, Nachtdimmung, Kamerafahrt als Bildschirmschoner |
@@ -1273,8 +1290,11 @@ In YAML sieht eine Karte so aus. Alle Zeilen außer der ersten sind optional:
 ```yaml
 type: custom:neonplan3d-card
 template: kueche_fire   # eine Karten-Vorlage aus dem Editor (dann gilt nur sie, die übrigen Zeilen nicht)
+plan: pab12cd34ef      # ein anderer Grundriss (ID unter ⚙ → Grundrisse; weglassen = der erste); site = das Grundstück
 floor: floor_ab12cd34   # eine Etage zeigen (ID aus dem Editor)
 room: room_ab12cd34     # in diesem Raum starten (ID steht im Raumformular des Editors), z. B. ein Display fürs Kinderzimmer
+rooms: [room_ab12cd34] # nur diese Räume zeigen (siehe 8.3)
+rooms_lock: true       # false: andere Räume dürfen geöffnet werden
 height: 420             # Höhe in Pixeln
 fill: false             # den Bildschirm unter der Kopfzeile füllen
 walls: auto             # auto | cut
@@ -1326,6 +1346,19 @@ night: "off"            # off | sun | "22:00-06:00"
 idle_orbit: false
 ```
 
+### 8.3 Karten für einzelne Räume (neu in 3.0)
+
+![Eine Karte nur fürs Kinderzimmer](images/card-room-one.jpg)
+
+Im Kartendialog unter **Nur diese Räume** tippst du Räume auf der kleinen Draufsicht an (oder kreuzt sie darunter an). Die Karte zeigt dann nur sie, mit ihren Möbeln, Geräten, Türen und Fenstern; die anderen Räume, Etagen und das Dach fallen weg. Das ist ideal fürs Tablet im Kinderzimmer, in der Einliegerwohnung oder im Gästezimmer. Auf alten Tablets läuft es sogar noch flüssiger, weil nur diese Räume gezeichnet werden.
+
+- **Ein Raum** öffnet sich gleich mit seinen Geräten daneben. „Hier“ in der Sprachsteuerung meint dann diesen Raum.
+- **Das Tablet bleibt in diesen Räumen:** Tippen, Suchen und Sprünge führen nicht hinaus. **Andere Räume dürfen geöffnet werden** hebt das auf.
+- **Schnellweg im Editor:** Raum auswählen → **🖥 Karte für diesen Raum** legt eine Karten-Vorlage nur mit diesem Raum an und öffnet sie. Auf dem Tablet wählst du dann nur noch die Vorlage.
+- **Mehrere Grundrisse:** Oben im Kartendialog wählst du den **Grundriss** der Karte, auch **🏘 Grundstück** mit allen Gebäuden zusammen.
+
+![Nur diese Räume im Kartendialog](images/card-editor-rooms.jpg)
+
 ---
 
 ## 9. NeonPlan 3D auf dem Wandtablet
@@ -1356,11 +1389,11 @@ NeonPlan 3D ist für Wandtablets wie das Amazon Fire gebaut:
 
 Unter **Sicherung** im Editor:
 
-- **Wiederherstellungspunkte** entstehen beim Bearbeiten höchstens alle 10 Minuten, die letzten 20 bleiben. **Wiederherstellen** holt einen Stand zurück, der aktuelle bleibt dabei selbst als Punkt erhalten.
+- **Wiederherstellungspunkte** entstehen beim Bearbeiten höchstens alle 10 Minuten, die letzten 20 bleiben – bei mehreren Grundrissen für jeden eigene. **Wiederherstellen** holt einen Stand zurück, der aktuelle bleibt dabei selbst als Punkt erhalten.
 - **Exportieren** speichert den Plan als Datei, **Importieren …** lädt eine solche Datei.
 - **Als Vorlage teilen** exportiert ohne Bereiche, Geräte, Sensoren und Bilder. Das ist gut, um einen Grundriss weiterzugeben.
 - **🖨 In 3D drucken** (seit 2.2, für Inhaber des Supporter-Passes): lädt den Plan wie **Exportieren** herunter und öffnet [NeonPlan Print](https://print.mastershort.de/) – dort lädst du die Datei hoch und bekommst dein Haus als 3D-Druck-Dateien: Etagen zum Abheben, Dach als Deckel, Bodenplatte mit eurem Namen. Freigeschaltet wird mit deinem Supporter-Code (unter **Erweiterungen**, wo **Zu NeonPlan Print** ihn für dich kopiert). In der Beta bis 30. November 2026 kostenlos, nur privat und nicht kommerziell für deine eigenen Häuser. Ein kleiner Punkt „Neu“ an **Erweiterungen** weist Supporter einmal darauf hin.
-- **Komplett-Backup:** **Alles sichern (Plan, Bilder, Packs)** speichert eine Datei mit dem Plan, allen Hintergrund- und Bildschirmbildern und den installierten Packs. **Komplett-Backup wiederherstellen …** spielt sie in dieselbe oder eine andere Installation zurück. Jedes Pack wird dabei erneut geprüft. Packs, die für eine andere Installation signiert sind, holst du dort über die Shop-Verbindung neu. Der Lizenzschlüssel ist nicht in der Datei.
+- **Komplett-Backup:** **Alles sichern (Plan, Bilder, Packs)** speichert eine Datei mit allen Grundrissen, allen Hintergrund- und Bildschirmbildern und den installierten Packs. **Komplett-Backup wiederherstellen …** spielt sie in dieselbe oder eine andere Installation zurück. Jedes Pack wird dabei erneut geprüft. Packs, die für eine andere Installation signiert sind, holst du dort über die Shop-Verbindung neu. Der Lizenzschlüssel ist nicht in der Datei.
 
 Das normale Backup von Home Assistant sichert NeonPlan 3D ebenfalls vollständig mit.
 

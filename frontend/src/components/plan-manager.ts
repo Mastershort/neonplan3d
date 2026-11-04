@@ -139,7 +139,7 @@ export class Fp3dPlanManager extends LitElement {
                 void this.run(() => updatePlan(this.hass, p.id, { name: name || (p.id === MAIN_PLAN ? null : label(p.id)) }));
               }}
             />
-            <span class="fp3d-pm-size">${this.t("plan_size", { floors: p.floors, rooms: p.rooms })}</span>
+            <span class="fp3d-pm-size">${this.t("plan_size", { floors: p.floors, rooms: p.rooms })}${p.id === MAIN_PLAN ? "" : html` · <code title=${this.t("plan_id_hint")}>${p.id}</code>`}</span>
             <span class="fp3d-pm-actions">
               <button class="fp3d-btn" title=${this.t("plan_up")} ?disabled=${i === 0 || this._busy} @click=${() => this.move(p.id, -1)}>↑</button>
               <button class="fp3d-btn" title=${this.t("plan_down")} ?disabled=${i === this.plans.length - 1 || this._busy} @click=${() => this.move(p.id, 1)}>↓</button>
