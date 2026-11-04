@@ -4639,9 +4639,10 @@ export class FloorplanViewer {
     if (hit && "entity" in hit) this.options.onDeviceHold?.(hit.entity, x, y);
   }
 
-  /** A mostly vertical drag on a lamp or blind becomes a swipe (unless furnishing). */
+  /** A mostly vertical drag on a lamp or blind becomes a swipe (unless furnishing, or outside the opened room when
+   * devices switch only there: a drag over the floor would move a blind by accident, #896). */
   private swipeStart(x: number, y: number, dx: number, dy: number): boolean {
-    if (this.furnish || Math.abs(dy) < Math.abs(dx) * 1.2) return false;
+    if (this.furnish || this.tapOpens || Math.abs(dy) < Math.abs(dx) * 1.2) return false;
     const hit = this.pick(x, y);
     if (!hit || !("entity" in hit)) return false;
     if (this.options.onDeviceSwipe?.(hit.entity, "start", 0, x, y) !== true) return false;

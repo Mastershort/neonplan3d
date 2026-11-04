@@ -9,6 +9,7 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 ### Fixed
 
 - **Blinds inside the room:** an outer wall stored in several pieces could end up turned round, and a window's outside blind on it was drawn inside the room. Thanks to T-Eberle, who found it.
+- **"Switch devices only in the opened room":** a swipe over a blind or lamp outside the opened room no longer moves it either – only taps were held back before (#896).
 
 ## 2.3.0
 
