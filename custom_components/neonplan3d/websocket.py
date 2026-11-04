@@ -340,7 +340,7 @@ async def ws_plans_update(hass: HomeAssistant, connection: websocket_api.ActiveC
     """Rename a plan, change its icon or its place on the property."""
     if (data := _data(hass, connection, msg)) is None:
         return
-    changes = {k: msg[k] for k in ("name", "icon", "site") if k in msg}
+    changes: dict[str, Any] = {k: msg[k] for k in ("name", "icon", "site") if k in msg}
     if not await data.async_update_plan(msg["plan"], changes):
         connection.send_error(msg["id"], "not_found", "Floor plan not found")
         return

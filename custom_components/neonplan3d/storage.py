@@ -277,7 +277,8 @@ class FloorplanData:
             self._trashed[entry["id"]] = plan
             kept.append(entry)
         self.trash = kept
-        self.locate_plan = index.get("locate_plan") if index.get("locate_plan") in self.plans else MAIN_PLAN
+        wanted = index.get("locate_plan")
+        self.locate_plan = wanted if isinstance(wanted, str) and wanted in self.plans else MAIN_PLAN
         if len(kept) != len(index.get("trash", [])):
             await self._save_index()
 
