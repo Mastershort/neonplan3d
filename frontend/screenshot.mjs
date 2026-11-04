@@ -198,6 +198,8 @@ const shots = [
   { name: "rel-room-actions-de", query: "", width: 1280, height: 800, editor: true, editorScript: "e._doc.floors[0].rooms.find((r) => r.id === 'wohnen').cleaning = 'script.gute_nacht'; e.setDoc(structuredClone(e._doc));", then3d: "Wohnzimmer" },
   { name: "editor-show-if", query: "", width: 1280, height: 1000, editor: true, editorScript: "const f = e._doc.floors[0].furniture.find((m) => m.id === 'm2'); f.show_if = { entity: 'input_boolean.gaeste', state: 'on' }; e.setDoc(structuredClone(e._doc)); e._furnitureId = 'm2';" },
   { name: "editor-split-3d", query: "", width: 1400, height: 900, editor: true, editorScript: "e._split = true; e._furnitureId = 'm2';" },
+  { name: "editor-split-3d-en", query: "?lang=en", width: 1440, height: 900, editor: true, editorScript: "setTimeout(() => (e._diagInvite = false), 400); e._split = true; e._furnitureId = 'm2';", afterWait: 1500 },
+  { name: "editor-split-3d-de", query: "", width: 1440, height: 900, editor: true, editorScript: "setTimeout(() => (e._diagInvite = false), 400); e._split = true; e._furnitureId = 'm2';", afterWait: 1500 },
   { name: "editor-free-wall", query: "", width: 1280, height: 800, editor: true, editorState: { _floorId: "og", _tool: "select" } },
   { name: "editor-room-wall-heights", query: "", width: 1280, height: 1000, editor: true, editorState: { _floorId: "og", _tool: "select", _roomId: "kind", _edgeHi: 1 }, scrollSide: true },
   { name: "view-free-wall", query: "", width: 1280, height: 800, click: "Obergeschoss", then: "Gästezimmer" },
