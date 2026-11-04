@@ -6,6 +6,8 @@ import { confirmEntities } from "./devices.ts";
 import { countView } from "./diagnostics.ts";
 import { css, html, LitElement, nothing, type PropertyValues } from "lit";
 import { BuildingController } from "./building-controller.ts";
+import { MAIN_PLAN } from "./api.ts";
+import { OtherPlans } from "./plan-watch.ts";
 import "./components/room-bar.ts";
 import "./components/room-panel.ts";
 import "./components/view3d.ts";
@@ -99,6 +101,8 @@ export class Floorplan3dCard extends LitElement {
   private nightTimer: ReturnType<typeof setInterval> | undefined;
 
   private readonly data = new BuildingController(this);
+  /** The other plans, for the property (`plan: site`). */
+  private readonly watch = new OtherPlans(this);
   /** The `plan` of the YAML the controller was told (a new YAML with the same plan does not reload it). */
   private yamlPlan: string | undefined | null = null;
   /** Time travel (Pro, card option time_travel): the last 24 hours replayed, read-only. */
@@ -301,7 +305,8 @@ clearTimeout(this.cleanTimer);
       this.roomApplied = false;
       this._floorId = undefined;
       this._roomId = null;
-      void this.data.switchPlan(config.plan ?? null);
+      // the property (`plan: site`) is the main plan with the buildings beside it
+      void this.data.switchPlan(config.plan === "site" ? MAIN_PLAN : (config.plan ?? null));
     }
     this.appliedTemplate = this.templateKey();
     this.applyConfig(effectiveConfig(config, this.data.building));
@@ -426,9 +431,18 @@ clearTimeout(this.cleanTimer);
     else if (this.canSwitch) this._floorId = null;
   }
 
+  /** `plan: site`: the property, every building on it together (read only). */
+  private get isSite(): boolean {
+    return this._config?.plan === "site";
+  }
+
+  protected updated(): void {
+    if (this.isSite && this.data.plans.length > 1) this.watch.watch(this.hass, this.data);
+  }
+
   protected render() {
     if (this.hass && !languageReady(this.hass.language)) return nothing;
-    const b = this.data.building;
+    const b = this.isSite ? (this.watch.site(this.data) ?? this.data.building) : this.data.building;
     const height = this._config?.height ?? 420;
     const c = this._config;
     // the configured room opens once, when the building is there; the kiosk return brings it back
@@ -478,7 +492,8 @@ clearTimeout(this.cleanTimer);
               .hass=${this.tt.hass(this.hass)}
               .replay=${this.tt.session?.replay ?? null}
               .building=${b}
-              .planId=${this.data.planId}
+              .planId=${this.isSite ? null : this.data.planId}
+              .noSave=${this.isSite}
               .rooms=${rooms.length ? rooms : null}
               .packs=${this.data.packs}
               .floorId=${floorId}
@@ -487,7 +502,7 @@ clearTimeout(this.cleanTimer);
               .explode=${explode}
               .keepRoof=${c?.roof_fade === false}
               .plain=${c?.plain === true}
-              .hideRoof=${c?.roof === false || rooms.length > 0}
+              .hideRoof=${c?.roof === false || rooms.length > 0 || this.isSite}
               .quality=${this._config?.quality ?? "auto"}
               ?showStats=${this._config?.stats ?? false}
               .markerMode=${this._config?.markers ?? "important"}

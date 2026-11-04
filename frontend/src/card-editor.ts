@@ -113,9 +113,9 @@ export class Floorplan3dCardEditor extends LitElement {
     if (this.hass && !languageReady(this.hass.language)) void loadLanguage(this.hass.language).then(() => this.requestUpdate());
     // the floors of the plan, for the floor choice (in NeonPlan's editor: the plan being edited)
     if (this.building) this.takePlan(this.building);
-    else if (this.hass && !this.loading && (!this._floors.length || this.fetchedPlan !== (this._config?.plan ?? MAIN_PLAN))) {
+    else if (this.hass && !this.loading && (!this._floors.length || this.fetchedPlan !== this.planOfCard)) {
       // the card's plan: its floors, rooms and templates (another plan chosen: fetched again)
-      const plan = this._config?.plan ?? MAIN_PLAN;
+      const plan = this.planOfCard;
       this.loading = true;
       this.fetchedPlan = plan;
       fetchBuilding(this.hass, plan).then(
@@ -133,6 +133,12 @@ export class Floorplan3dCardEditor extends LitElement {
   }
 
   private plan: Building | null = null;
+
+  /** The plan whose rooms and templates the card offers (the property: the main plan's). */
+  private get planOfCard(): string {
+    const p = this._config?.plan;
+    return p && p !== "site" ? p : MAIN_PLAN;
+  }
 
   private takePlan(b: Building): void {
     if (b === this.plan) return;
@@ -295,6 +301,7 @@ export class Floorplan3dCardEditor extends LitElement {
         }}
       >
         ${this._plans.map((p) => html`<option value=${p.id} ?selected=${p.id === cur}>${p.icon || "🏠"} ${name(p)}</option>`)}
+        ${this._plans.some((p) => p.site?.on) ? html`<option value="site" ?selected=${cur === "site"}>🏘 ${this.t("plan_site")}</option>` : nothing}
       </select>
     </label>`;
   }

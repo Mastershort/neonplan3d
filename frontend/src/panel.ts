@@ -10,7 +10,8 @@ import "./components/plan-picker.ts";
 import { alertText, type Alert } from "./alerts.ts";
 import { planLabel } from "./components/plan-picker.ts";
 import { planSummary } from "./plan-summary.ts";
-import { composeSite, siteOwner } from "./site.ts";
+import { siteOwner } from "./site.ts";
+import { OtherPlans } from "./plan-watch.ts";
 import "./components/room-bar.ts";
 import "./components/room-panel.ts";
 import "./components/view3d.ts";
@@ -24,14 +25,14 @@ import { THEMES, type Theme } from "./themes.ts";
 import { keepInRoom, snapToWall } from "./geometry/snap.ts";
 import { furnitureName } from "./furniture-names.ts";
 import { confirmEntities, defaultHeight, entityName, kindOf } from "./devices.ts";
-import { canLift, normalizeBuilding, zonesOf, type LampMount } from "./model.ts";
+import { canLift, zonesOf, type LampMount } from "./model.ts";
 import { mountBase, packsVersion } from "./packs.ts";
 import { hasFeature, labOn, registerUrl, released, UNRELEASED } from "./features.ts";
 import { mountLocateLab } from "./locate-lab.ts";
 import { directorOnHere } from "./director.ts";
 import { loadVoice, micProbeDone, screenName, voiceOnHere } from "./load-voice.ts";
 import type { ClockPos } from "./card-config.ts";
-import { fetchBuilding, getLicense, MAIN_PLAN, subscribeAnyPlan, unseenOffers, unseenUpdates } from "./api.ts";
+import { getLicense, MAIN_PLAN, unseenOffers, unseenUpdates } from "./api.ts";
 import { markPrintSeen, printDot, printSeen } from "./print.ts";
 import { TimeTravel } from "./load-timetravel.ts";
 import type { HistorySpec } from "./timetravel/types.ts";
@@ -79,7 +80,6 @@ export class Floorplan3dPanel extends LitElement {
     _roomId: { state: true },
     _overview: { state: true },
     _site: { state: true },
-    _others: { state: true },
     _wallMode: { state: true },
     _explode: { state: true },
     _keepRoof: { state: true },
@@ -140,11 +140,8 @@ export class Floorplan3dPanel extends LitElement {
   private declare _overview: boolean;
   /** The property: every building standing on it in one 3D view (read only). */
   private declare _site: boolean;
-  private siteOf: { key: unknown[]; to: Building } | null = null;
-  /** The other floor plans, read only: for the overview and their warnings while this one is shown. */
-  private declare _others: Map<string, Building>;
-  private othersFor = "";
-  private unsubOthers: (() => Promise<void>) | null = null;
+  /** The other floor plans, read only: for the overview, their warnings and the property. */
+  private readonly watch = new OtherPlans(this);
   /** The warnings of the other plans, worked out at most every two seconds (old tablets). */
   private otherAlerts: { at: number; list: { plan: string; alert: Alert }[] } = { at: 0, list: [] };
   /** A room to open once a plan switched to has loaded (a warning's "show"). */
@@ -221,7 +218,6 @@ export class Floorplan3dPanel extends LitElement {
     this._roomId = null;
     this._overview = false;
     this._site = new URLSearchParams(location.search).get("plan") === "site";
-    this._others = new Map();
     // the floor plan: from a link (?plan=), else the one last shown on this device
     void this.data.switchPlan(new URLSearchParams(location.search).get("plan") ?? prefs.get("plan"));
     // the wall view stays as it was last set on this device (#309)
@@ -560,18 +556,9 @@ export class Floorplan3dPanel extends LitElement {
     void this.updateComplete.then(open);
   }
 
-  /** The property as one building: the main plan with the plans placed beside it (null until all are loaded). */
+  /** The property as one building (null until every plan on it is loaded). */
   private siteBuilding(): Building | null {
-    const all = this.planBuildings();
-    const main = all.get(MAIN_PLAN);
-    if (!main) return null;
-    const others = this.data.plans.filter((p) => p.id !== MAIN_PLAN && p.site?.on).map((p) => ({ id: p.id, site: p.site, building: all.get(p.id) }));
-    if (others.some((o) => !o.building)) return null;
-    const key = [main, ...others.flatMap((o) => [o.building, o.site?.x, o.site?.y, o.site?.rot])];
-    if (this.siteOf && this.siteOf.key.length === key.length && this.siteOf.key.every((k, i) => k === key[i])) return this.siteOf.to;
-    const to = composeSite(main, others as { id: string; site: typeof others[number]["site"]; building: Building }[]);
-    this.siteOf = { key, to };
-    return to;
+    return this.watch.site(this.data);
   }
 
   /** To the property view: the buildings together, from above. */
@@ -585,32 +572,7 @@ export class Floorplan3dPanel extends LitElement {
 
   /** Every plan's building: the one shown from the controller, the others as watched. */
   private planBuildings(): Map<string, Building> {
-    const all = new Map(this._others);
-    if (this.data.building) all.set(this.data.planId, this.data.building);
-    return all;
-  }
-
-  /** Keep the other plans at hand (read only) while there are several: their warnings show here too. */
-  private watchOthers(): void {
-    const hass = this.hass;
-    const ids = this.data.plans.map((p) => p.id).filter((id) => id !== this.data.planId);
-    const key = ids.join(",");
-    if (!hass || key === this.othersFor) return;
-    this.othersFor = key;
-    const load = (id: string) =>
-      fetchBuilding(hass, id).then(
-        (res) => {
-          if (!this.data.plans.some((p) => p.id === id) || id === this.data.planId) return;
-          this._others = new Map(this._others).set(id, normalizeBuilding(res.building));
-        },
-        () => undefined,
-      );
-    this._others = new Map([...this._others].filter(([id]) => ids.includes(id)));
-    for (const id of ids) void load(id);
-    if (ids.length && !this.unsubOthers)
-      void subscribeAnyPlan(hass, (plan) => {
-        if (plan !== this.data.planId && this.data.plans.some((p) => p.id === plan)) void load(plan);
-      }).then((un) => (this.unsubOthers = un), () => undefined);
+    return this.watch.all(this.data);
   }
 
   /** The warnings of the plans not shown (recomputed at most every two seconds). */
@@ -619,7 +581,7 @@ export class Floorplan3dPanel extends LitElement {
     const now = Date.now();
     if (now - this.otherAlerts.at < 2000) return this.otherAlerts.list;
     const list: { plan: string; alert: Alert }[] = [];
-    for (const [plan, b] of this._others) if (plan !== this.data.planId) for (const alert of planSummary(this.hass, b).alerts) list.push({ plan, alert });
+    for (const [plan, b] of this.watch.others) if (plan !== this.data.planId) for (const alert of planSummary(this.hass, b).alerts) list.push({ plan, alert });
     this.otherAlerts = { at: now, list };
     return list;
   }
@@ -674,7 +636,7 @@ export class Floorplan3dPanel extends LitElement {
   }
 
   protected updated(): void {
-    if (this.data.plans.length > 1) this.watchOthers();
+    if (this.data.plans.length > 1) this.watch.watch(this.hass, this.data);
     // a warning's plan has loaded: into its room
     const pending = this.pendingRoom;
     if (pending && this.data.planId === pending.plan && this.data.building) {
@@ -1038,7 +1000,7 @@ export class Floorplan3dPanel extends LitElement {
     const notices = [];
     // water in the garden house while the house is shown: the warning comes here, with a way there
     for (const { plan, alert } of this.alertsElsewhere()) {
-      const b = this._others.get(plan);
+      const b = this.watch.others.get(plan);
       if (!b) continue;
       notices.push(
         html`<div class="fp3d-notice fp3d-notice-error">
