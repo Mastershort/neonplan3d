@@ -45,6 +45,10 @@
           "name": "Etage",
           "description": "Nur die Räume dieser Etage (ihr Name im Plan)."
         },
+        "plan": {
+          "name": "Grundriss",
+          "description": "Nur dieser Grundriss (sein Name). Ohne ihn wird in allen Grundrissen gesucht; eine Durchsage ohne Räume geht an die Grundrisse auf dem Grundstück."
+        },
         "ignore_quiet": {
           "name": "Ruhezeit übergehen",
           "description": "Auch in Räumen sprechen, die gerade Ruhezeit haben. Ein einzelner, namentlich genannter Raum spricht immer."
@@ -66,6 +70,10 @@
         "templates": {
           "name": "Karten-Vorlagen",
           "description": "Die IDs der Karten-Vorlagen (wie der Editor sie unter Einstellungen → Karten-Vorlagen zeigt). Leer: jede offene Ansicht."
+        },
+        "plan": {
+          "name": "Grundriss",
+          "description": "Nur die Ansichten dieses Grundrisses (seine ID, \"main\" für den ersten)."
         }
       }
     }

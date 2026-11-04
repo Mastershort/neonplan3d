@@ -589,3 +589,29 @@ export const DEMO_PACK = {
     },
   ],
 };
+
+// Further floor plans for ?plans – invented as well: a garden house beside the house, a holiday flat far away.
+const smallPlan = (floors) => ({ version: 1, settings: { wall_exterior: 0.2, wall_interior: 0.1, grid: 0.05 }, floors });
+export const DEMO_PLANS = [
+  {
+    id: "pgarten",
+    name: "Gartenhaus",
+    icon: "🏡",
+    site: { on: true, x: 18, y: 10, rot: 0 },
+    building: smallPlan([
+      {
+        ...floor("gh", "Gartenhaus", 0, [rect("werk", "Werkstatt", "garten", 0, 0, 4, 3, "concrete"), rect("lounge", "Lounge", null, 4, 0, 7, 3)]),
+        placements: [place("light.garten", 2, 1.5), place("sensor.garten_temperatur", 5.5, 1.5)],
+      },
+    ]),
+  },
+  {
+    id: "pferien",
+    name: "Ferienwohnung",
+    icon: "🏖️",
+    site: null,
+    building: smallPlan([
+      floor("fw", "Wohnung", 0, [rect("fw_wohnen", "Wohnen", null, 0, 0, 5, 4), rect("fw_schlafen", "Schlafen", null, 5, 0, 8, 4, "carpet"), rect("fw_bad", "Bad", null, 5, 4, 8, 6, "tiles")]),
+    ]),
+  },
+];

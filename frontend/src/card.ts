@@ -98,6 +98,8 @@ export class Floorplan3dCard extends LitElement {
   private nightTimer: ReturnType<typeof setInterval> | undefined;
 
   private readonly data = new BuildingController(this);
+  /** The `plan` of the YAML the controller was told (a new YAML with the same plan does not reload it). */
+  private yamlPlan: string | undefined | null = null;
   /** Time travel (Pro, card option time_travel): the last 24 hours replayed, read-only. */
   private readonly tt = new TimeTravel(this);
 
@@ -292,6 +294,14 @@ clearTimeout(this.cleanTimer);
   setConfig(config: CardConfig): void {
     if (config.height !== undefined && !(config.height > 100)) throw new Error("height must be a number of pixels above 100");
     this.yaml = config;
+    // the floor plan comes first: the template is looked up in it
+    if (config.plan !== this.yamlPlan) {
+      this.yamlPlan = config.plan;
+      this.roomApplied = false;
+      this._floorId = undefined;
+      this._roomId = null;
+      void this.data.switchPlan(config.plan ?? null);
+    }
     this.appliedTemplate = this.templateKey();
     this.applyConfig(effectiveConfig(config, this.data.building));
   }
@@ -418,6 +428,7 @@ clearTimeout(this.cleanTimer);
               .hass=${this.tt.hass(this.hass)}
               .replay=${this.tt.session?.replay ?? null}
               .building=${b}
+              .planId=${this.data.planId}
               .packs=${this.data.packs}
               .floorId=${floorId}
               .roomId=${this._roomId}

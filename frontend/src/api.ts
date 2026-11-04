@@ -4,19 +4,109 @@ import type { Building } from "./model.ts";
 import type { FurniturePack } from "./packs.ts";
 import type { HomeAssistant } from "./types.ts";
 
-export async function fetchBuilding(hass: HomeAssistant): Promise<{ building: Building; revision: number; version?: string }> {
-  return hass.callWS({ type: "neonplan3d/building/get" });
+/** The first floor plan, the one every installation had before there were several. */
+export const MAIN_PLAN = "main";
+
+// the main plan is asked for without naming it: right after an update the new frontend talks to the old backend
+// until Home Assistant restarts, and that one does not know the field
+const planOf = (plan: string | undefined) => (plan && plan !== MAIN_PLAN ? { plan } : {});
+
+export async function fetchBuilding(
+  hass: HomeAssistant,
+  plan?: string,
+): Promise<{ building: Building; revision: number; version?: string; plan?: string }> {
+  return hass.callWS({ type: "neonplan3d/building/get", ...planOf(plan) });
 }
 
-export async function saveBuilding(hass: HomeAssistant, building: Building): Promise<number> {
-  const res = await hass.callWS<{ revision: number }>({ type: "neonplan3d/building/save", building });
+export async function saveBuilding(hass: HomeAssistant, building: Building, plan?: string): Promise<number> {
+  const res = await hass.callWS<{ revision: number }>({ type: "neonplan3d/building/save", building, ...planOf(plan) });
   return res.revision;
 }
 
-export function subscribeBuilding(hass: HomeAssistant, callback: (revision: number) => void): Promise<() => Promise<void>> {
+export function subscribeBuilding(hass: HomeAssistant, callback: (revision: number) => void, plan?: string): Promise<() => Promise<void>> {
   return hass.connection.subscribeMessage<{ revision: number }>((msg) => callback(msg.revision), {
     type: "neonplan3d/building/subscribe",
+    ...planOf(plan),
   });
+}
+
+/** Where a plan stands on the property: beside the main plan, x/y metres away, turned by rot degrees. */
+export interface PlanSite {
+  on: boolean;
+  x: number;
+  y: number;
+  rot: number;
+}
+
+/** A floor plan in the list (no building): its name (null: the main plan's own word), icon and size. */
+export interface PlanEntry {
+  id: string;
+  name: string | null;
+  icon: string | null;
+  site: PlanSite | null;
+  created: number | null;
+  revision: number;
+  floors: number;
+  rooms: number;
+  furniture: number;
+  /** Unix seconds, in the bin only. */
+  deleted_at?: number;
+}
+
+export interface PlanList {
+  plans: PlanEntry[];
+  trash: PlanEntry[];
+  locate_plan: string;
+}
+
+/** The floor plans; an older backend (before a restart after the update) knows only its one plan. */
+export async function listPlans(hass: HomeAssistant): Promise<PlanList> {
+  try {
+    return await hass.callWS<PlanList>({ type: "neonplan3d/plans/list" });
+  } catch {
+    return { plans: [], trash: [], locate_plan: MAIN_PLAN };
+  }
+}
+
+export function subscribePlans(hass: HomeAssistant, callback: (list: PlanList) => void): Promise<() => Promise<void>> {
+  return hass.connection.subscribeMessage<PlanList>(callback, { type: "neonplan3d/plans/subscribe" });
+}
+
+/** A new plan: empty, a copy of another one, or one from a file. Returns its id. */
+export async function createPlan(
+  hass: HomeAssistant,
+  name: string,
+  from: { copyOf?: string; building?: Building; icon?: string | null } = {},
+): Promise<string> {
+  const res = await hass.callWS<{ plan: string }>({
+    type: "neonplan3d/plans/create",
+    name,
+    ...(from.icon ? { icon: from.icon } : {}),
+    ...(from.copyOf ? { copy_of: from.copyOf } : {}),
+    ...(from.building ? { building: from.building } : {}),
+  });
+  return res.plan;
+}
+
+export async function updatePlan(hass: HomeAssistant, plan: string, changes: { name?: string | null; icon?: string | null; site?: PlanSite | null }): Promise<void> {
+  await hass.callWS({ type: "neonplan3d/plans/update", plan, ...changes });
+}
+
+export async function orderPlans(hass: HomeAssistant, plans: string[]): Promise<void> {
+  await hass.callWS({ type: "neonplan3d/plans/order", plans });
+}
+
+/** Into the bin (30 days); restorePlan takes it back out. */
+export async function deletePlan(hass: HomeAssistant, plan: string): Promise<void> {
+  await hass.callWS({ type: "neonplan3d/plans/delete", plan });
+}
+
+export async function restorePlan(hass: HomeAssistant, plan: string): Promise<void> {
+  await hass.callWS({ type: "neonplan3d/plans/restore", plan });
+}
+
+export async function setLocatePlan(hass: HomeAssistant, plan: string): Promise<void> {
+  await hass.callWS({ type: "neonplan3d/plans/locate", plan });
 }
 
 /** A sentence Assist or the service `neonplan3d.ask` hands to the open views. */
@@ -46,6 +136,8 @@ export interface ScreenReload {
   id: string;
   /** Only the views of these card templates (empty: every open view). */
   templates: string[];
+  /** Only the views of this floor plan (templates belong to their plan). */
+  plan?: string | null;
 }
 
 /** What a view shows, for the card templates' overview of the open screens. */
@@ -55,6 +147,8 @@ export interface ViewInfo {
   template?: string | null;
   device?: string | null;
   version?: string | null;
+  /** The floor plan it shows (left out for the main plan). */
+  plan?: string | null;
 }
 
 /** An open NeonPlan view as the overview lists it. */
@@ -124,17 +218,17 @@ export interface Snapshot {
   furniture: number;
 }
 
-export async function listHistory(hass: HomeAssistant): Promise<Snapshot[]> {
-  const res = await hass.callWS<{ snapshots: Snapshot[] }>({ type: "neonplan3d/history/list" });
+export async function listHistory(hass: HomeAssistant, plan?: string): Promise<Snapshot[]> {
+  const res = await hass.callWS<{ snapshots: Snapshot[] }>({ type: "neonplan3d/history/list", ...planOf(plan) });
   return res.snapshots;
 }
 
-export async function takeSnapshot(hass: HomeAssistant): Promise<void> {
-  await hass.callWS({ type: "neonplan3d/history/snapshot" });
+export async function takeSnapshot(hass: HomeAssistant, plan?: string): Promise<void> {
+  await hass.callWS({ type: "neonplan3d/history/snapshot", ...planOf(plan) });
 }
 
-export async function restoreSnapshot(hass: HomeAssistant, snapshotId: string): Promise<number> {
-  const res = await hass.callWS<{ revision: number }>({ type: "neonplan3d/history/restore", snapshot_id: snapshotId });
+export async function restoreSnapshot(hass: HomeAssistant, snapshotId: string, plan?: string): Promise<number> {
+  const res = await hass.callWS<{ revision: number }>({ type: "neonplan3d/history/restore", snapshot_id: snapshotId, ...planOf(plan) });
   return res.revision;
 }
 
@@ -312,24 +406,27 @@ export function refreshLicense(hass: HomeAssistant): Promise<LicenseStatus> {
 /** A full backup file: the plan, the packs with their signatures and every stored picture. */
 export interface BackupFile {
   format: "neonplan3d-backup";
-  version: 1;
+  /** 2: with every floor plan (`building` stays the main plan, so a version-1 reader still restores that). */
+  version: 1 | 2;
   exported_at?: string;
   building: Building;
   packs?: FurniturePack[];
   images?: Record<string, string>;
+  main?: { name: string | null; icon: string | null; site: PlanSite | null };
+  plans?: (Omit<PlanEntry, "revision" | "floors" | "rooms" | "furniture"> & { building: Building })[];
 }
 
-export function fetchBackup(hass: HomeAssistant): Promise<Pick<BackupFile, "format" | "version" | "building" | "packs">> {
+export function fetchBackup(hass: HomeAssistant): Promise<Pick<BackupFile, "format" | "version" | "building" | "packs" | "main" | "plans">> {
   return hass.callWS({ type: "neonplan3d/backup/export" });
 }
 
-/** Replace plan and packs from a backup (pictures follow one by one); packs that fail their check are skipped. */
+/** Replace plans and packs from a backup (pictures follow one by one); packs that fail their check are skipped. */
 export function restoreBackup(
   hass: HomeAssistant,
-  building: Building,
-  packs: FurniturePack[],
+  backup: Pick<BackupFile, "building" | "packs" | "main" | "plans">,
 ): Promise<{ revision: number; building: Building; packs: number; skipped: { id: string; reason: string }[] }> {
-  return hass.callWS({ type: "neonplan3d/backup/import", building, packs });
+  const { building, packs = [], main, plans } = backup;
+  return hass.callWS({ type: "neonplan3d/backup/import", building, packs, ...(plans ? { plans, ...(main ? { main } : {}) } : {}) });
 }
 
 /** Fetch a bought pack from the shop, signed for this installation (also updates it). */

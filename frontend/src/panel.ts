@@ -5,6 +5,7 @@ import { css, html, LitElement, nothing, type PropertyValues } from "lit";
 import { BuildingController } from "./building-controller.ts";
 import { countView } from "./diagnostics.ts";
 import { loadEditor } from "./load-editor.ts";
+import "./components/plan-picker.ts";
 import "./components/room-bar.ts";
 import "./components/room-panel.ts";
 import "./components/view3d.ts";
@@ -197,6 +198,8 @@ export class Floorplan3dPanel extends LitElement {
     this._editorReady = !!customElements.get("fp3d-editor");
     this._floorId = null;
     this._roomId = null;
+    // the floor plan: from a link (?plan=), else the one last shown on this device
+    void this.data.switchPlan(new URLSearchParams(location.search).get("plan") ?? prefs.get("plan"));
     // the wall view stays as it was last set on this device (#309)
     this._wallMode = prefs.get("walls") === "cut" ? "cut" : "auto";
     this._explode = prefs.get("explode") !== "0";
@@ -512,15 +515,25 @@ export class Floorplan3dPanel extends LitElement {
    * To the editor with a topic of ⚙ Settings open: the extensions page's fun packs button, the dashboard card dialog's
    * link to a card template (the editor may still be loading).
    */
-  private openFunSettings(topic: "fun" | "cards" = "fun", template: string | null = null): void {
+  private openFunSettings(topic: "fun" | "cards" | "plans" = "fun", template: string | null = null): void {
     this.setMode("editor");
     let tries = 0;
     const open = () => {
-      const ed = this.renderRoot.querySelector("fp3d-editor") as (HTMLElement & { openSettings?(topic: "fun" | "cards", template?: string | null): void }) | null;
+      const ed = this.renderRoot.querySelector("fp3d-editor") as (HTMLElement & { openSettings?(topic: "fun" | "cards" | "plans", template?: string | null): void }) | null;
       if (ed?.openSettings) ed.openSettings(topic, template);
       else if (tries++ < 60) setTimeout(open, 100);
     };
     void this.updateComplete.then(open);
+  }
+
+  /** Show another floor plan: its edits are saved first, the view starts in its house view. */
+  private pickPlan(plan: string): void {
+    if (plan === this.data.planId) return;
+    if (this.tt.active) this.tt.stop();
+    prefs.set("plan", plan);
+    this._floorId = null;
+    this._roomId = null;
+    void this.data.switchPlan(plan);
   }
 
   private view3d() {
@@ -632,6 +645,17 @@ export class Floorplan3dPanel extends LitElement {
         ${this._clean && this._mode === "view" ? nothing : html`<header class="fp3d-header">
           <ha-menu-button .hass=${this.hass} .narrow=${this.narrow}></ha-menu-button>
           <h1>NeonPlan 3D</h1>
+          ${this.data.plans.length > 1
+            ? html`<fp3d-plan-picker
+                .hass=${this.hass}
+                .plans=${this.data.plans}
+                .current=${this.data.planId}
+                ?admin=${this.isAdmin}
+                @plan-pick=${(e: CustomEvent<{ plan: string }>) => this.pickPlan(e.detail.plan)}
+                @plan-new=${() => this.openFunSettings("plans")}
+                @plan-manage=${() => this.openFunSettings("plans")}
+              ></fp3d-plan-picker>`
+            : nothing}
           ${this.isAdmin
             ? html`<div class="fp3d-seg" role="tablist">
                 <button role="tab" aria-pressed=${this._mode === "view"} @click=${() => this.setMode("view")}>${this.t("view")}</button>
@@ -932,6 +956,12 @@ export class Floorplan3dPanel extends LitElement {
       class="fp3d-body"
       .hass=${this.hass}
       .building=${b}
+      .planId=${this.data.planId}
+      .plans=${this.data.plans}
+      .trash=${this.data.trash}
+      .locatePlan=${this.data.locatePlan}
+      @plan-pick=${(e: CustomEvent<{ plan: string }>) => this.pickPlan(e.detail.plan)}
+      @plans-changed=${() => void this.data.reloadPlans()}
       .narrow=${this.narrow}
       .packs=${this.data.packs}
       @packs-changed=${() => void this.data.reloadPacks()}
@@ -1038,6 +1068,7 @@ export class Floorplan3dPanel extends LitElement {
           .hass=${this.tt.hass(this.hass)}
           .replay=${this.tt.session?.replay ?? null}
           .building=${b}
+          .planId=${this.data.planId}
           .packs=${this.data.packs}
           .floorStack=${this._floorStack}
           .roomLabels=${this._roomNames}

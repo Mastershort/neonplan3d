@@ -104,7 +104,7 @@ const GRID_OFF_ICON = '<svg viewBox="0 0 24 24" width="18" height="18" fill="non
 import { STAGE, type Theme } from "../themes.ts";
 import { HEAT_SCALES, heatColor, heatGradient, roomValues, type HeatMode } from "../heatmap.ts";
 import { furnitureName } from "../furniture-names.ts";
-import { fetchImage, saveBuilding } from "../api.ts";
+import { fetchImage, MAIN_PLAN, saveBuilding } from "../api.ts";
 import { formatNumber, translate, type I18nKey } from "../i18n.ts";
 import { furnitureShown, showIfSignature } from "../show-if.ts";
 import { fireworkNow, lawnSnow, roofLightsOn, snowLevel, winterOf } from "../winter.ts";
@@ -250,6 +250,7 @@ export class Fp3dView3d extends LitElement {
   static properties = {
     hass: { attribute: false },
     building: { attribute: false },
+    planId: { attribute: false },
     floorId: { attribute: false },
     roomId: { attribute: false },
     wallMode: { attribute: false },
@@ -355,6 +356,8 @@ export class Fp3dView3d extends LitElement {
 
   declare hass: HomeAssistant;
   declare building: Building | null;
+  /** The floor plan shown (its saves from the ⚙ menu and modules go there; null: the main plan). */
+  declare planId: string | null;
   /** Time travel: the replayed moment (hass is then the past, read-only); null = live. */
   declare replay: ReplayInfo | null;
   /** Time travel: a tapped device's state at the replayed moment, next to the finger. */
@@ -688,6 +691,7 @@ export class Fp3dView3d extends LitElement {
   constructor() {
     super();
     this.building = null;
+    this.planId = null;
     this.replay = null;
     this._info = null;
     this.floorId = null;
@@ -818,7 +822,7 @@ export class Fp3dView3d extends LitElement {
       (ask) => void this.onAsk(ask),
       (a) => void this.onAnnounce(a),
       (r) => this.onReload(r),
-      { kind: this.viewKind, screen: this.screen, template: this.template, device: deviceLabel(), version: FRONTEND_VERSION },
+      { kind: this.viewKind, screen: this.screen, template: this.template, device: deviceLabel(), version: FRONTEND_VERSION, ...(this.planId && this.planId !== MAIN_PLAN ? { plan: this.planId } : {}) },
     ).catch(() => {
       // a replay or an older backend: nothing to listen to
       this.unsubAsk = null;
@@ -1018,7 +1022,7 @@ export class Fp3dView3d extends LitElement {
   protected updated(changed: PropertyValues): void {
     if (changed.has("hass") && this.live?.el) this.live.el.hass = this.hass;
     // a view that now shows another screen name or template tells the overview again
-    if ((changed.has("screen") || changed.has("template") || changed.has("viewKind")) && this.unsubAsk && this.hasUpdated) {
+    if ((changed.has("screen") || changed.has("template") || changed.has("viewKind") || changed.has("planId")) && this.unsubAsk && this.hasUpdated) {
       this.unwatchAsk();
       this.watchAsk();
     } else if (changed.has("hass")) this.watchAsk();
@@ -4458,6 +4462,8 @@ export class Fp3dView3d extends LitElement {
    * one page load it once.
    */
   private onReload(r: ScreenReload): void {
+    // templates belong to their floor plan: a reload for another plan's templates is not meant here
+    if (r.plan && r.plan !== (this.planId ?? MAIN_PLAN)) return;
     if (r.templates.length && !(this.template && r.templates.includes(this.template))) return;
     if (reloadsAsked.has(r.id)) return;
     reloadsAsked.add(r.id);
@@ -4898,7 +4904,7 @@ export class Fp3dView3d extends LitElement {
         const next = structuredClone(cur);
         mutate(next);
         this.building = next;
-        saveBuilding(this.hass, next).catch((err) => this.serviceFailed("neonplan3d/building/save", err));
+        saveBuilding(this.hass, next, this.planId ?? undefined).catch((err) => this.serviceFailed("neonplan3d/building/save", err));
       },
       callService: (domain, service, data) => (this.hass ? this.hass.callService(domain, service, data) : Promise.resolve()),
       newId: (prefix) => uid(prefix),
@@ -5137,7 +5143,7 @@ export class Fp3dView3d extends LitElement {
     const next = structuredClone(cur);
     Object.assign(next.settings, patch);
     this.building = next;
-    saveBuilding(this.hass, next).catch((err) => this.serviceFailed("neonplan3d/building/save", err));
+    saveBuilding(this.hass, next, this.planId ?? undefined).catch((err) => this.serviceFailed("neonplan3d/building/save", err));
   }
 
   /**

@@ -387,6 +387,10 @@ const shots = [
   { name: "editor-fence-gates", query: "", width: 1280, height: 1000, editor: true, editorState: { _floorId: "eg", _tool: "select", _outdoorId: "a9" }, scrollSide: true },
   // the plain floor plan: walls, doors, windows and stairs without furniture
   { name: "view-plain", query: "", width: 1280, height: 800, click: "Anzeige", then: "Nur Grundriss", thenAlso: ["Erdgeschoss"] },
+  // several floor plans (3.0): the picker in the header, the garden house shown, ⚙ → Floor plans in the editor
+  { name: "plans-picker", query: "?plans", width: 1280, height: 800, viewScript: "const p = v.getRootNode().host; p.renderRoot.querySelector('fp3d-plan-picker')._open = true;", wait: 1200 },
+  { name: "plans-garden", query: "?plans", width: 1280, height: 800, viewScript: "v.getRootNode().host.pickPlan('pgarten');", afterWait: 2500 },
+  { name: "plans-manager", query: "?plans", width: 1280, height: 900, editor: true, editorScript: "e.openSettings('plans');", wait: 1200 },
   // the room bar (idea from HA-Floorplanner): favourites and a tile per room, in the house, on a floor, with a room open, on a tablet
   // fun pack "Winter & Christmas": fairy lights along the eaves (on a light), snow on roof and lawn while it snows, the firework
   { name: "view-winter", query: "", width: 1280, height: 800, viewScript: "v.building.settings.winter = { roof_entity: 'light.wohnzimmer_decke', roof_color: true }; v.hass.states['light.wohnzimmer_decke'] = { ...v.hass.states['light.wohnzimmer_decke'], state: 'on' }; v.hass.states['weather.zuhause'] = { ...v.hass.states['weather.zuhause'], state: 'snowy', attributes: { ...v.hass.states['weather.zuhause'].attributes, temperature: -2 } }; v.syncDevices(true);", afterWait: 1500 },

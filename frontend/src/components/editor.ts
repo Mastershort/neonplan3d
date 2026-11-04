@@ -151,6 +151,8 @@ import { controls, tokens } from "../styles.ts";
 import "./entity-picker.ts";
 import type { HassArea, HassFloor, HomeAssistant } from "../types.ts";
 import { fetchBackup, restoreBackup, type BackupFile } from "../api.ts";
+import { MAIN_PLAN, type PlanEntry } from "../api.ts";
+import { planLabel } from "./plan-picker.ts";
 import { deleteDiagnostics, getDiagnostics, setDiagnostics, type DiagnosticsStatus } from "../api.ts";
 import { load3d } from "../load3d.ts";
 import "./library.ts";
@@ -220,7 +222,7 @@ const turnBy = (a: number, d: number): number => {
 };
 
 /** Topics of the ⚙ settings menu (everything that belongs to the whole plan). */
-type SettingsTopic = "house" | "weather" | "director" | "voice" | "locate" | "favorites" | "backdrop" | "terrain" | "backup" | "modules" | "fun" | "cards" | "diagnostics";
+type SettingsTopic = "plans" | "house" | "weather" | "director" | "voice" | "locate" | "favorites" | "backdrop" | "terrain" | "backup" | "modules" | "fun" | "cards" | "diagnostics";
 
 /** Wall view side bar: what stands or hangs at a wall, by kind. */
 const WALL_CATS: Record<string, string[]> = {
@@ -368,6 +370,10 @@ export class Fp3dEditor extends LitElement {
     _shiftZ: { state: true },
     hass: { attribute: false },
     building: { attribute: false },
+    planId: { attribute: false },
+    plans: { attribute: false },
+    trash: { attribute: false },
+    locatePlan: { attribute: false },
     narrow: { type: Boolean },
     packs: { attribute: false },
     _preview: { state: true },
@@ -466,6 +472,12 @@ export class Fp3dEditor extends LitElement {
 
   declare hass: HomeAssistant;
   declare building: Building;
+  /** The floor plan edited, the list of plans and the bin (from the panel's controller). */
+  declare planId: string;
+  declare plans: PlanEntry[];
+  declare trash: PlanEntry[];
+  /** The plan Live Presence works on (its assistant runs only there). */
+  declare locatePlan: string;
   declare narrow: boolean;
   /** Imported furniture packs (from the panel's controller). */
   declare packs: FurniturePack[] | undefined;
@@ -888,6 +900,17 @@ export class Fp3dEditor extends LitElement {
     if (changed.has("_tool") && this.houseTool && !this._split && !this.narrow) this._split = true;
     // entering or leaving the roof tool: the 3D half frames the whole house (or the floor) again
     if (changed.has("_tool") && (this.houseTool || changed.get("_tool") === "roof" || changed.get("_tool") === "energy")) this.reframe3d = true;
+    // another floor plan: its own undo, its first floor, nothing selected
+    if (changed.has("planId") && changed.get("planId") !== undefined) {
+      this.past = [];
+      this.future = [];
+      this._canUndo = false;
+      this._canRedo = false;
+      this._floorId = null;
+      this._roomId = null;
+      this._history = null;
+      this.fitted = false;
+    }
     if (changed.has("building") && this.building !== this._doc) {
       this._doc = this.building;
       this._doc3d = this.building;
@@ -5724,6 +5747,7 @@ export class Fp3dEditor extends LitElement {
     const admin = this.isAdmin;
     const open = this._settingsMenu;
     const all: { key: SettingsTopic; icon: string; label: string; admin: boolean }[] = [
+      { key: "plans", icon: "🏘", label: this.t("plans_title"), admin: true },
       { key: "house", icon: "🏠", label: this.t("settings_house"), admin: true },
       { key: "weather", icon: "🌦", label: this.t("settings_weather"), admin: true },
       { key: "director", icon: "🎬", label: this.t("card_director"), admin: true },
@@ -5759,6 +5783,11 @@ export class Fp3dEditor extends LitElement {
                       this._settingsMenu = false;
                       // locating has its own assistant (a bundle of its own), not a dialog
                       if (t.key === "locate") {
+                        // Live Presence works on one plan: its rooms, doors and scanners
+                        if ((this.locatePlan ?? MAIN_PLAN) !== (this.planId ?? MAIN_PLAN)) {
+                          alert(this.t("plan_locate_other", { name: planLabel(this.hass, this.plans ?? [], this.locatePlan ?? MAIN_PLAN) }));
+                          return;
+                        }
                         if (this.hass) void loadLocate().then((m) => m.openLocateSetup(this.hass!, this._doc, () => this.hass, (look) => this.setSettings({ person_look: look === "figure" ? null : look })));
                         return;
                       }
@@ -5778,7 +5807,7 @@ export class Fp3dEditor extends LitElement {
   }
 
   /** Opens a topic of ⚙ Settings as its dialog (the extensions page sends people to the fun packs). */
-  openSettings(topic: "fun" | "cards", template: string | null = null): void {
+  openSettings(topic: "fun" | "cards" | "plans", template: string | null = null): void {
     this._settingsDialog = topic;
     this.openTemplate = template;
   }
@@ -5792,6 +5821,7 @@ export class Fp3dEditor extends LitElement {
     if (!topic) return nothing;
     const close = () => (this._settingsDialog = null);
     const titles: Record<SettingsTopic, string> = {
+      plans: this.t("plans_title"),
       house: this.t("settings_house"),
       weather: this.t("settings_weather"),
       director: this.t("card_director"),
@@ -5807,7 +5837,16 @@ export class Fp3dEditor extends LitElement {
       diagnostics: this.t("diag_title"),
     };
     const body =
-      topic === "house"
+      topic === "plans"
+        ? html`<fp3d-plan-manager
+            .hass=${this.hass}
+            .plans=${this.plans ?? []}
+            .trash=${this.trash ?? []}
+            .current=${this.planId ?? MAIN_PLAN}
+            .locatePlan=${this.locatePlan ?? MAIN_PLAN}
+            @plan-pick=${() => close()}
+          ></fp3d-plan-manager>`
+        : topic === "house"
         ? this.renderHouseSettings()
         : topic === "weather"
           ? this.renderWeatherSettings()
@@ -13382,7 +13421,7 @@ export class Fp3dEditor extends LitElement {
   private async loadHistory(): Promise<void> {
     if (!this.hass) return;
     try {
-      this._history = await listHistory(this.hass);
+      this._history = await listHistory(this.hass, this.planId);
     } catch {
       this._history = [];
     }
@@ -13390,7 +13429,7 @@ export class Fp3dEditor extends LitElement {
 
   private async restoreFromHistory(snap: Snapshot): Promise<void> {
     if (!this.hass || !confirm(this.t("backup_restore_confirm", { time: this.snapshotTime(snap) }))) return;
-    await restoreSnapshot(this.hass, snap.id);
+    await restoreSnapshot(this.hass, snap.id, this.planId);
     this._notice = this.t("backup_restored");
     await this.loadHistory();
   }
@@ -13402,7 +13441,9 @@ export class Fp3dEditor extends LitElement {
     try {
       const base = await fetchBackup(this.hass);
       const images: Record<string, string> = {};
-      for (const id of storedImageIds(base.building)) {
+      // the pictures of every floor plan
+      const ids = new Set([base.building, ...(base.plans ?? []).map((pl) => pl.building)].flatMap((b) => [...storedImageIds(b)]));
+      for (const id of ids) {
         try {
           images[id] = await fetchImage(this.hass, id);
         } catch {
@@ -13437,7 +13478,7 @@ export class Fp3dEditor extends LitElement {
     if (!confirm(this.t("backup_full_confirm"))) return;
     this._backupBusy = true;
     try {
-      const res = await restoreBackup(this.hass, data.building, data.packs ?? []);
+      const res = await restoreBackup(this.hass, data);
       let pictures = 0;
       for (const [id, picture] of Object.entries(data.images ?? {})) {
         try {
@@ -13484,7 +13525,7 @@ export class Fp3dEditor extends LitElement {
     }
     if (!confirm(this.t("backup_import_confirm"))) return;
     // the current plan stays available as a restore point
-    await takeSnapshot(this.hass).catch(() => undefined);
+    await takeSnapshot(this.hass, this.planId).catch(() => undefined);
     this.setDoc(building);
     this._floorId = building.floors[0]?.id ?? null;
     this.selectItem("room", null);
@@ -16785,6 +16826,7 @@ if (!customElements.get("fp3d-editor")) customElements.define("fp3d-editor", Fp3
 import "./extensions.ts";
 import "./fun-packs.ts";
 import "./card-templates.ts";
+import "./plan-manager.ts";
 
 /** Distance of a plan point from a segment. */
 function distToSegment(p: Vec2, a: Vec2, b: Vec2): number {
