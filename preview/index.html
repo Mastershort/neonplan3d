@@ -56,9 +56,11 @@
       let building = params.has("empty") ? { version: 1, floors: [], settings: { wall_exterior: 0.24, wall_interior: 0.12, grid: 0.05 } } : DEMO_BUILDING;
       let revision = 1;
       // ?plans: further floor plans (the garden house, a holiday flat); the main plan is `building` above
-      const plans = params.has("plans") ? structuredClone(DEMO_PLANS).map((pl) => ({ ...pl, revision: 1, created: Date.now() / 1000 })) : [];
+      const EN_PLAN = { Gartenhaus: "Garden house", Ferienwohnung: "Holiday flat" };
+      const english = params.get("lang") === "en";
+      const plans = params.has("plans") ? structuredClone(DEMO_PLANS).map((pl) => ({ ...pl, name: english ? (EN_PLAN[pl.name] ?? pl.name) : pl.name, revision: 1, created: Date.now() / 1000 })) : [];
       const planTrash = [];
-      let mainEntry = { id: "main", name: params.has("plans") ? "Haus" : null, icon: null, site: null, created: null };
+      let mainEntry = { id: "main", name: params.has("plans") ? (english ? "House" : "Haus") : null, icon: null, site: null, created: null };
       let locatePlan = "main";
       const sizeOf = (b) => ({ floors: b.floors.length, rooms: b.floors.reduce((n, f) => n + f.rooms.length, 0), furniture: b.floors.reduce((n, f) => n + f.furniture.length, 0) });
       const planList = () => ({
