@@ -18,13 +18,13 @@
 
 ---
 
-## New in 3.0: your whole property, every room on its own tablet
+## New in 3.0 – the biggest update ever: several houses and flats, single rooms on your dashboard, your whole property in 3D
 
 [![The property in 3D: the house with its solar roof and garden, the garden house standing beside it](https://raw.githubusercontent.com/Mastershort/neonplan3d/main/docs/images/plans-site.jpg)](https://raw.githubusercontent.com/Mastershort/neonplan3d/main/docs/images/plans-site.jpg)
 
 - 🏘️ **Several floor plans in one installation** – the house, the garage, the garden house, a granny flat, the holiday flat by the sea. Each has its own floors, rooms, devices and restore points; a picker at the top switches between them, and your existing plan simply stays the first one.
 - 🗺️ **The property in 3D** – place the other buildings beside the house once (drag and turn them in the editor) and see everything together: lights, devices and warnings of every building. Tap a room of the garden house and you are in it.
-- 🧸 **A card for every room** – tap the rooms on a small map in the card dialog and the card shows only them: the kids' tablet shows the kids' room, the guest tablet the guest room – with its devices beside it, "here" in voice control meaning that room, and the tablet staying there. Fewer rooms to draw means it runs even more smoothly on old tablets.
+- 🧸 **Single rooms on your dashboard** – right next to your other cards (Mushroom, tiles, your own dashboards). Tap the rooms on a small map in the card dialog and the card shows only them: the kids' tablet shows the kids' room, the guest tablet the guest room – with its devices beside it, "here" in voice control meaning that room, and the tablet staying there. Fewer rooms to draw means it runs even more smoothly on old tablets.
 - ⚠️ **Warnings from everywhere** – water in the garden house while the house is open? It shows at the top, one tap takes you there. **All floor plans** shows every building at a glance: lights on, windows open, warmth, warnings.
 
 | A card for one room | All floor plans at a glance |
