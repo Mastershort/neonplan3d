@@ -4811,6 +4811,9 @@ background:#0b1120f2;color:#e6f7ff;border:1px solid #37e0ff66;border-radius:12px
         border-bottom: 1px solid var(--fp3d-line);
         background: var(--fp3d-chrome-solid);
         flex-wrap: wrap;
+        /* the header's menus (the floor plan picker) open over the editor's tool bar and the 3D view below */
+        position: relative;
+        z-index: 30;
       }
       ha-menu-button {
         color: var(--fp3d-text);

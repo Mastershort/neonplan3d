@@ -389,6 +389,7 @@ const shots = [
   { name: "view-plain", query: "", width: 1280, height: 800, click: "Anzeige", then: "Nur Grundriss", thenAlso: ["Erdgeschoss"] },
   // several floor plans (3.0): the picker in the header, the garden house shown, ⚙ → Floor plans in the editor
   { name: "plans-picker", query: "?plans", width: 1280, height: 800, viewScript: "const p = v.getRootNode().host; p.renderRoot.querySelector('fp3d-plan-picker')._open = true;", wait: 1200 },
+  { name: "plans-picker-editor", query: "?plans", width: 1280, height: 800, editor: true, editorScript: "const p = e.getRootNode().host; setTimeout(() => (p.renderRoot.querySelector('fp3d-plan-picker')._open = true), 600);", wait: 1500 },
   { name: "plans-garden", query: "?plans", width: 1280, height: 800, viewScript: "v.getRootNode().host.pickPlan('pgarten');", afterWait: 2500 },
   // a card for some rooms: the kids' room alone (its panel beside), two rooms of the upper floor
   { name: "card-room-one", query: "?card&rooms=kind", width: 1400, height: 900, wait: 2500 },
