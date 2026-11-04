@@ -71,7 +71,7 @@
         for (const [cb, m] of listeners) if (m?.type === "neonplan3d/plans/subscribe") cb(planList());
       };
       const notifyBuilding = (plan, rev) => {
-        for (const [cb, m] of listeners) if (m?.type !== "neonplan3d/plans/subscribe" && (m?.plan ?? "main") === plan) cb({ revision: rev, plan });
+        for (const [cb, m] of listeners) if (m?.type !== "neonplan3d/plans/subscribe" && ((m?.plan ?? "main") === plan || m?.plan === "*")) cb({ revision: rev, plan });
       };
       // off like on a fresh installation; the screenshots switch it on through the editor
       const diag = { enabled: false };

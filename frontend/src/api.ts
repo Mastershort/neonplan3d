@@ -30,6 +30,14 @@ export function subscribeBuilding(hass: HomeAssistant, callback: (revision: numb
   });
 }
 
+/** Every plan's saves (their id and revision), for the views that keep the other plans at hand. */
+export function subscribeAnyPlan(hass: HomeAssistant, callback: (plan: string, revision: number) => void): Promise<() => Promise<void>> {
+  return hass.connection.subscribeMessage<{ revision: number; plan?: string }>((msg) => callback(msg.plan ?? MAIN_PLAN, msg.revision), {
+    type: "neonplan3d/building/subscribe",
+    plan: "*",
+  });
+}
+
 /** Where a plan stands on the property: beside the main plan, x/y metres away, turned by rot degrees. */
 export interface PlanSite {
   on: boolean;
