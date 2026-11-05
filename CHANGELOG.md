@@ -7,6 +7,7 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 ## Unreleased
 
 ### Fixed
+- Several radiators on one thermostat each show their pin with the temperature and keep their own icon (only the last one showed before) (#932, thanks skywalker and EduK85).
 
 - **LED strip sizes named clearly:** a strip's form now says **Length** and **Thickness** instead of width and height – a strip set to 3 cm wide and 2.4 m high was 3 cm long and 2.4 m thick, its light sat in the middle of that block (Discord, David F).
 - **Values without room names:** with the room names switched off, **Values** now still shows each room's temperature, humidity and CO₂ – without the name (wish from Discord, RH and David F).

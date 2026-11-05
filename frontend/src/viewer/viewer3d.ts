@@ -20,6 +20,7 @@ import { CameraProjections, PROJECTION_LAYER, type ProjectionSurface, type Proje
 import { packGlowCentre, pushAwning, pushCameraModel, pushPackGlow, pushPackRobot, pushPackLamp, pushPackMotion, screenRect, screenPictureSize, pushFridgeDoors, setLightLook, hasFixedColors } from "./furniture.ts";
 import { pushPipeTube, type PipeTube } from "./pipes.ts";
 import { pushGate } from "./outdoor.ts";
+import { pinKey } from "./pin-key.ts";
 // the walk through the house at eye height (lives with the viewer it drives)
 export { FloorMap, WalkCamera, type WalkState } from "./walk.ts";
 
@@ -699,6 +700,7 @@ export class FloorplanViewer {
   /** Furnishing: the selected device, the pin a pointer just went down on, and a device being dragged. */
   private selectedDevice: string | null = null;
   private pendingDevice: string | null = null;
+  private pendingFurniture: string | null = null;
   private deviceGrab: { id: string; floorId: string; offset: [number, number]; x: number; z: number; moved: boolean } | null = null;
   private grab: {
     floorId: string;
@@ -997,11 +999,12 @@ export class FloorplanViewer {
     this.deviceFloor = new Map(devices.map((d) => [d.id, d.floorId]));
     const seen = new Set<string>();
     for (const d of devices) {
-      seen.add(d.id);
-      let pin = this.devicePins.get(d.id);
+      const key = pinKey(d);
+      seen.add(key);
+      let pin = this.devicePins.get(key);
       if (!pin) {
-        pin = { el: this.makeDevicePin(d.id), icon: "", text: "", watt: "", label: "", active: false, unavailable: false, glow: "", caption: "" };
-        this.devicePins.set(d.id, pin);
+        pin = { el: this.makeDevicePin(d.id, d.furnitureId), icon: "", text: "", watt: "", label: "", active: false, unavailable: false, glow: "", caption: "" };
+        this.devicePins.set(key, pin);
         this.labels.append(pin.el);
       }
       // every write below invalidates style or layout: only fields that changed are written
@@ -2259,7 +2262,7 @@ export class FloorplanViewer {
     for (const el of [...this.labels.children]) if (!(el as HTMLElement).dataset.entity) el.remove();
   }
 
-  private makeDevicePin(entityId: string): HTMLButtonElement {
+  private makeDevicePin(entityId: string, furnitureId?: string): HTMLButtonElement {
     const pin = document.createElement("button");
     pin.className = "fp3d-dev";
     pin.dataset.entity = entityId;
@@ -2278,6 +2281,8 @@ export class FloorplanViewer {
       if (this.furnish) {
         // the controls see this pointer too (no stopPropagation) and call grab(): the device is dragged
         this.pendingDevice = entityId;
+        // two radiators on one thermostat: the pin pressed moves its own item (#932)
+        this.pendingFurniture = furnitureId ?? null;
         return;
       }
       e.stopPropagation();
@@ -4416,11 +4421,13 @@ export class FloorplanViewer {
     if (!this.furnish) return false;
     // a device whose pin was pressed; the pin of a furniture item (the washer's watts) moves the item
     const pending = this.pendingDevice;
+    const pendingOwner = this.pendingFurniture;
     this.pendingDevice = null;
+    this.pendingFurniture = null;
     // a tool that only moves some furniture (energy devices): everything else stays where it is
     const only = this.furnishTypes;
     if (only) {
-      const owner = pending ? this.devices.find((m) => m.id === pending)?.furnitureId : undefined;
+      const owner = pending ? (pendingOwner ?? this.devices.find((m) => m.id === pending)?.furnitureId) : undefined;
       const hit = owner ? null : this.furnitureAt(x, y);
       const id = owner ?? hit?.id;
       const fv = id ? this.floors.find((v) => v.floor.furniture.some((m) => m.id === id)) : undefined;
@@ -4428,7 +4435,7 @@ export class FloorplanViewer {
       return !!(fv && id && type && only.has(type)) && this.grabItem(fv, id, x, y);
     }
     if (pending) {
-      const owner = this.devices.find((m) => m.id === pending)?.furnitureId;
+      const owner = pendingOwner ?? this.devices.find((m) => m.id === pending)?.furnitureId;
       const fv = owner ? this.floors.find((v) => v.floor.furniture.some((m) => m.id === owner)) : undefined;
       if (!owner || !fv) return this.grabDevice(pending, x, y);
       return this.grabItem(fv, owner, x, y);
@@ -4522,7 +4529,7 @@ export class FloorplanViewer {
       this.options.onFurnitureSelect?.(null);
     }
     this.selectedDevice = id;
-    for (const [entity, pin] of this.devicePins) pin.el.classList.toggle("fp3d-dev-sel", entity === id);
+    for (const pin of this.devicePins.values()) pin.el.classList.toggle("fp3d-dev-sel", pin.el.dataset.entity === id);
   }
 
   private dragFurniture(x: number, y: number): void {
@@ -5383,7 +5390,7 @@ export class FloorplanViewer {
       this.place(pin, off ? null : `translate(${((v.x + 1) / 2) * w}px, ${((1 - v.y) / 2) * h}px) translate(-50%, -50%)`);
     }
     for (const d of this.devices) {
-      const pin = this.devicePins.get(d.id)?.el;
+      const pin = this.devicePins.get(pinKey(d))?.el;
       if (!pin) continue;
       const fv = this.floorMap.get(d.floorId);
       // device markers belong to the floor and room views; the house view only shows floor labels –
