@@ -1861,7 +1861,12 @@ export class FloorplanViewer {
 
   /** The room name, with a line of values below it when there is one. */
   private fillRoomPin(pin: HTMLElement, name: string, info: string | undefined): void {
-    pin.textContent = name || "–";
+    pin.textContent = "";
+    // the name in a span of its own: with the room names switched off the values still show, without the name
+    const label = document.createElement("span");
+    label.className = "fp3d-pin-name";
+    label.textContent = name || "–";
+    pin.append(label);
     if (info) {
       const small = document.createElement("small");
       small.textContent = info;

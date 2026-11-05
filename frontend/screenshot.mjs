@@ -488,6 +488,7 @@ const shots = [
   { name: "card-kiosk-orbit", query: "?card&kiosk", width: 1400, height: 900, wait: 2600 },
   { name: "view-floor-stack-panel", query: "", width: 1280, height: 800, click: "Obergeschoss", then: "Einzeln" },
   { name: "view-room-names-off", query: "", width: 1280, height: 800, click: "Erdgeschoss", then: "Raumnamen" },
+  { name: "view-values-no-names", query: "", width: 1280, height: 800, click: "Erdgeschoss", viewScript: "const p = v.getRootNode().host; p._roomNames = false; p._heat = 'values';", wait: 1500 },
   { name: "empty", query: "?empty", width: 1280, height: 800 },
   { name: "site-demo", query: "?site&lang=en", width: 1280, height: 800 },
   { name: "site-demo-phone", query: "?site&lang=de", width: 390, height: 844 },

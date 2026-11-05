@@ -6399,7 +6399,9 @@ export class Fp3dView3d extends LitElement {
       .fp3d-person[hidden] {
         display: none;
       }
-      .fp3d-no-room-names .fp3d-pin {
+      /* room names off: the pins go, but the "values" stay (without the name) */
+      .fp3d-no-room-names .fp3d-pin:not(.fp3d-pin-info),
+      .fp3d-no-room-names .fp3d-pin-info .fp3d-pin-name {
         display: none !important;
       }
       /* tablet level: blur over the canvas and glowing shadows are expensive on weak GPUs */

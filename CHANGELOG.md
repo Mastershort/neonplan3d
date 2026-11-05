@@ -8,6 +8,7 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 
 ### Fixed
 
+- **Values without room names:** with the room names switched off, **Values** now still shows each room's temperature, humidity and CO₂ – without the name (wish from Discord, RH and David F).
 - **Window light at night under a terrace:** where a terrace or a path is drawn on a lawn, the light falling out of a window lay at the lawn's height and the terrace covered it – seen from close up it went missing piece by piece. It now lies on the surface on top (#893, thanks @1970lexi).
 
 ## 3.0.0
