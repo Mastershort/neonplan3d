@@ -1042,7 +1042,7 @@ What a player should bring: the state `playing`/`paused`, `media_title` and `med
 
 Car Pro brings the car into the plan the way its integration reports it (Tesla, VW We Connect, BMW, Hyundai/Kia, Renault, Smart, Polestar, Audi, Skoda, Cupra, Ford …). It needs a **parking spot** with a vehicle (4.10) and the car's integration in Home Assistant.
 
-> **Important:** the parking spot is there for everyone, the **vehicle** on it comes from the furniture pack **Vehicles** (cheaper in the bundle with Car Pro, included in the Supporter Pass). Without a vehicle, Car Pro shows nothing.
+> **A compact car is included:** Car Pro brings a compact car that you choose under **Vehicle** in the parking spot's form – so Car Pro works without another pack. 14 more vehicles (SUV, estate, van, motorhome …) come in the furniture pack **Vehicles**. Without a vehicle on the spot, Car Pro shows nothing.
 
 Car Pro lives on the **parking spot**, not on the vehicle furniture. If your car stands in the plan as plain furniture, **Turn into a parking spot** in its form makes it a parking spot with this vehicle.
 

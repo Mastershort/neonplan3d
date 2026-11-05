@@ -1042,7 +1042,7 @@ Was ein Player mitbringen sollte: den Zustand `playing`/`paused`, `media_title` 
 
 Auto Pro holt das Auto in den Plan, so wie es seine Integration meldet (Tesla, VW We Connect, BMW, Hyundai/Kia, Renault, Smart, Polestar, Audi, Skoda, Cupra, Ford …). Voraussetzung ist ein **Stellplatz** mit Fahrzeug (4.10) und die Integration des Autos in Home Assistant.
 
-> **Wichtig:** Der Stellplatz ist für alle da, das **Fahrzeug** darauf kommt aus dem Möbel-Pack **Fahrzeuge** (im Bundle mit Auto Pro günstiger, im Supporter-Pass enthalten). Ohne Fahrzeug zeigt Auto Pro nichts an.
+> **Ein Kleinwagen ist dabei:** Auto Pro bringt einen Kleinwagen mit, den du im Stellplatz-Formular unter **Fahrzeug** wählst – Auto Pro läuft also ohne weiteres Pack. 14 weitere Fahrzeuge (SUV, Kombi, Transporter, Wohnmobil …) gibt es im Möbel-Pack **Fahrzeuge**. Ohne Fahrzeug auf dem Stellplatz zeigt Auto Pro nichts an.
 
 Auto Pro hängt am **Stellplatz**, nicht am Fahrzeug-Möbel. Steht dein Auto als einfaches Möbel im Plan, macht **In Stellplatz umwandeln** in dessen Formular daraus einen Stellplatz mit diesem Fahrzeug.
 
