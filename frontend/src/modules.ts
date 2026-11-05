@@ -166,6 +166,8 @@ export interface ModuleHost {
   listen?(onListening?: () => void): Promise<string | null>;
   /** A short note at the bottom of the view ("Durchsage an Kinderzimmer gesendet"). */
   notify?(text: string): void;
+  /** Flies the view to each stop in turn, like a voice answer's tour (a tap ends it); `say` is spoken when `speak` is set. */
+  tour?(stops: NonNullable<VoiceAnswer["tour"]>, speak?: boolean): void;
   /** The rooms someone is in right now: located people, and presence or motion sensors of the room's area. */
   occupied?(): { floorId: string; roomId: string }[];
   /** The media players of the plan (placed as a device or linked to a piece of furniture), each with its room. */

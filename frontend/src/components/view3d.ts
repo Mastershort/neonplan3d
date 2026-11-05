@@ -4974,6 +4974,11 @@ export class Fp3dView3d extends LitElement {
         }
       },
       notify: (text) => this.showNote(text),
+      tour: (stops, speak) => {
+        const items = this.spokenDevices(hass, b, synonyms).items;
+        const talk = speak ? (t: string) => loadVoice().then((v) => v.speak(hass, t, voicePipeline())) : null;
+        void this.runTour(stops, b, items, talk);
+      },
       occupied: () => this.occupiedRooms(hass, b),
       speakers: () => this.planSpeakers(hass, b),
     };
