@@ -141,6 +141,8 @@ OPENING_SCHEMA = vol.Schema(
         vol.Optional("leaves", default=1): vol.In([1, 2]),
         # doors: swing into the room ("in") or to the other side ("out")
         vol.Optional("swing", default="in"): vol.In(["in", "out"]),
+        # windows: hung at the top, the bottom opens outwards
+        vol.Optional("top_hung", default=False): bool,
         # look: None = automatic (front door in an exterior wall, room door inside; plain window)
         vol.Optional("style", default=None): vol.Any(None, vol.In(_OPENING_STYLES)),
         # front doors with sidelights: one on the hinge side, and the widths (None = automatic)
@@ -278,7 +280,7 @@ FURNITURE_SCHEMA = vol.Schema(
         # ask before switching the linked entity
         vol.Optional("confirm", default=False): bool,
         # its marker in 3D: None = automatic, always, without watts, or hidden
-        vol.Optional("marker", default=None): vol.Any(None, vol.In(["always", "no_power", "never"])),
+        vol.Optional("marker", default=None): vol.Any(None, vol.In(["always", "active", "no_power", "never"])),
         # an own symbol for the marker: a Material Design icon name without "mdi:"
         vol.Optional("icon", default=None): vol.Any(None, vol.All(str, vol.Length(max=64))),
         # parking spots: the vehicle shown (a pack item type) while the entity reports a car, its size
@@ -399,7 +401,7 @@ PLACEMENT_SCHEMA = vol.Schema(
         # ask before switching this device from the 3D view, the quick menu or the room panel
         vol.Optional("confirm", default=False): bool,
         # its marker in 3D: None = automatic, always, without watts, or hidden
-        vol.Optional("marker", default=None): vol.Any(None, vol.In(["always", "no_power", "never"])),
+        vol.Optional("marker", default=None): vol.Any(None, vol.In(["always", "active", "no_power", "never"])),
         # an own symbol for the marker: a Material Design icon name without "mdi:"
         vol.Optional("icon", default=None): vol.Any(None, vol.All(str, vol.Length(max=64))),
         # an own name in the plan, without renaming the entity; show_name puts it under the marker
@@ -416,6 +418,7 @@ PLACEMENT_SCHEMA = vol.Schema(
         vol.Optional("cone", default=None): vol.Any(None, bool),
         # detection pins over the camera (None = shown); off leaves only the wedge turning red
         vol.Optional("detect_pins", default=None): vol.Any(None, bool),
+        vol.Optional("detect_popup", default=False): bool,
         # fixed against moving by accident
         vol.Optional("locked", default=None): vol.Any(None, bool),
     },

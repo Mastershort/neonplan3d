@@ -2282,5 +2282,14 @@
  "print_dot_hint": "Novo para supporters: NeonPlan Print",
  "print_editor": "🖨 Imprimir em 3D",
  "print_editor_hint": "Carrega lá o ficheiro.",
- "print_pass_line": "🖨 inclui NeonPlan Print (beta): a tua casa em impressão 3D"
+ "print_pass_line": "🖨 inclui NeonPlan Print (beta): a tua casa em impressão 3D",
+ "marker_show_active": "Só quando ativo",
+ "floor_copy": "Duplicar piso",
+ "floor_copy_name": "{name} (cópia)",
+ "floor_copy_hint": "Coloca o piso mais uma vez no topo da casa: divisões, paredes, janelas, portas e móveis, sem ligações ao Home Assistant.",
+ "top_hung": "Projetante (abre para fora em baixo)",
+ "top_hung_hint": "A janela está presa em cima e abre para fora em baixo – aberta e entreaberta parecem iguais.",
+ "camera_detect_popup": "Mostrar a imagem numa nova deteção",
+ "camera_detect_popup_hint": "Camera Cockpit: when the camera detects something new (person, car, motion), its picture shows for 20 seconds at the bottom right – a tap looks through the camera.",
+ "camera_popup_open": "Ver pela câmara"
 }

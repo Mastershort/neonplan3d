@@ -2282,5 +2282,14 @@
  "print_dot_hint": "Novo za podpornike: NeonPlan Print",
  "print_editor": "🖨 Natisni v 3D",
  "print_editor_hint": "Tam naloži datoteko.",
- "print_pass_line": "🖨 vključno z NeonPlan Print (beta): tvoja hiša kot 3D-tisk"
+ "print_pass_line": "🖨 vključno z NeonPlan Print (beta): tvoja hiša kot 3D-tisk",
+ "marker_show_active": "Samo ko je aktivno",
+ "floor_copy": "Podvoji nadstropje",
+ "floor_copy_name": "{name} (kopija)",
+ "floor_copy_hint": "Postavi nadstropje še enkrat na vrh hiše: prostori, stene, okna, vrata in pohištvo, brez povezav s Home Assistantom.",
+ "top_hung": "Zgoraj obešeno (spodaj se odpre navzven)",
+ "top_hung_hint": "Okno visi zgoraj in se spodaj odpre navzven – odprto in priprto izgledata enako.",
+ "camera_detect_popup": "Ob novem zaznavanju pokaži sliko",
+ "camera_detect_popup_hint": "Camera Cockpit: when the camera detects something new (person, car, motion), its picture shows for 20 seconds at the bottom right – a tap looks through the camera.",
+ "camera_popup_open": "Poglej skozi kamero"
 }

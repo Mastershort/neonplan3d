@@ -2282,5 +2282,14 @@
  "print_dot_hint": "Nou pentru susținători: NeonPlan Print",
  "print_editor": "🖨 Printează în 3D",
  "print_editor_hint": "Încarcă fișierul acolo.",
- "print_pass_line": "🖨 include NeonPlan Print (beta): casa ta ca print 3D"
+ "print_pass_line": "🖨 include NeonPlan Print (beta): casa ta ca print 3D",
+ "marker_show_active": "Doar când e activ",
+ "floor_copy": "Duplică etajul",
+ "floor_copy_name": "{name} (copie)",
+ "floor_copy_hint": "Pune etajul încă o dată deasupra casei: camere, pereți, ferestre, uși și mobilă, fără legături cu Home Assistant.",
+ "top_hung": "Rabatabil spre exterior (balamale sus)",
+ "top_hung_hint": "Fereastra atârnă sus și se deschide jos spre exterior – deschisă și rabatată arată la fel.",
+ "camera_detect_popup": "Arată imaginea la o detecție nouă",
+ "camera_detect_popup_hint": "Camera Cockpit: when the camera detects something new (person, car, motion), its picture shows for 20 seconds at the bottom right – a tap looks through the camera.",
+ "camera_popup_open": "Privește prin cameră"
 }

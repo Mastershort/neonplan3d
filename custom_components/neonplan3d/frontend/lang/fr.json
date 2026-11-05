@@ -2282,5 +2282,14 @@
  "print_dot_hint": "Nouveau pour les supporters : NeonPlan Print",
  "print_editor": "🖨 Imprimer en 3D",
  "print_editor_hint": "Importe le fichier là-bas.",
- "print_pass_line": "🖨 NeonPlan Print inclus (bêta) : ta maison en impression 3D"
+ "print_pass_line": "🖨 NeonPlan Print inclus (bêta) : ta maison en impression 3D",
+ "marker_show_active": "Seulement si actif",
+ "floor_copy": "Dupliquer l'étage",
+ "floor_copy_name": "{name} (copie)",
+ "floor_copy_hint": "Pose l'étage une fois de plus en haut de la maison : pièces, murs, fenêtres, portes et meubles, sans liens vers Home Assistant.",
+ "top_hung": "À projection (s'ouvre vers l'extérieur en bas)",
+ "top_hung_hint": "La fenêtre pend en haut et s'ouvre vers l'extérieur en bas – ouverte et entrouverte se ressemblent.",
+ "camera_detect_popup": "Afficher l'image lors d'une nouvelle détection",
+ "camera_detect_popup_hint": "Camera Cockpit: when the camera detects something new (person, car, motion), its picture shows for 20 seconds at the bottom right – a tap looks through the camera.",
+ "camera_popup_open": "Regarder par la caméra"
 }

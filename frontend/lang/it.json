@@ -2282,5 +2282,14 @@
  "print_dot_hint": "Novità per i supporter: NeonPlan Print",
  "print_editor": "🖨 Stampa in 3D",
  "print_editor_hint": "Carica lì il file.",
- "print_pass_line": "🖨 include NeonPlan Print (beta): la tua casa in stampa 3D"
+ "print_pass_line": "🖨 include NeonPlan Print (beta): la tua casa in stampa 3D",
+ "marker_show_active": "Solo se attivo",
+ "floor_copy": "Duplica piano",
+ "floor_copy_name": "{name} (copia)",
+ "floor_copy_hint": "Mette il piano ancora una volta in cima alla casa: stanze, pareti, finestre, porte e mobili, senza collegamenti a Home Assistant.",
+ "top_hung": "A sporgere (si apre verso l'esterno in basso)",
+ "top_hung_hint": "La finestra è incernierata in alto e si apre verso l'esterno in basso; aperta e a ribalta sembrano uguali.",
+ "camera_detect_popup": "Mostra l'immagine a ogni nuovo rilevamento",
+ "camera_detect_popup_hint": "Camera Cockpit: when the camera detects something new (person, car, motion), its picture shows for 20 seconds at the bottom right – a tap looks through the camera.",
+ "camera_popup_open": "Guarda attraverso la telecamera"
 }

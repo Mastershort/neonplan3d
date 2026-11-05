@@ -5,7 +5,7 @@ import { linesField } from "./lines-field.ts";
 import { unsafeHTML } from "lit/directives/unsafe-html.js";
 import { ref } from "lit/directives/ref.js";
 import { fetchImage, getLicense, importPack, listHistory, restoreSnapshot, storeImage, takeSnapshot, type Snapshot, getVoiceSettings, setVoiceSentences, type SentenceMode } from "../api.ts";
-import { download, exportFile, parseExport } from "../transfer.ts";
+import { copyFloor, download, exportFile, parseExport } from "../transfer.ts";
 import { carEntities, type CarEntities, areaEntities, autoPlace, hiddenInHa, CLIMATE_CLASSES, defaultHeight, entityName, entityAreaId, furnitureEntities, groupByDevice, hasScreen, isMediaFurniture, isPlaceable, isRoomClimateSensor, kindOf, openingEntities, otherAreaEntities, pictureRuleMatches, roomClimateSensors, roomPanelEntities, unassignedEntities, windowPosition, type ClimateKey } from "../devices.ts";
 import { furnitureSymbol } from "./furniture2d.ts";
 import { clipConvex, netRoomArea } from "../geometry/area.ts";
@@ -3144,6 +3144,20 @@ export class Fp3dEditor extends LitElement {
     const next = structuredClone(this._doc);
     [next.floors[i], next.floors[j]] = [next.floors[j], next.floors[i]];
     this.setDoc(next);
+  }
+
+  /** The floor once more on top of the house (#443), without its links to Home Assistant. */
+  private duplicateFloor(): void {
+    const floor = this.floor;
+    if (!floor) return;
+    const copy = copyFloor(this._doc, floor.id, uid, this.t("floor_copy_name", { name: floor.name }), floorElevation(this._doc.floors, null));
+    if (!copy) return;
+    const next = structuredClone(this._doc);
+    next.floors.push(copy);
+    this.setDoc(next);
+    this._floorId = copy.id;
+    this._roomId = null;
+    this.fit();
   }
 
   private deleteFloor(): void {
@@ -10766,6 +10780,7 @@ export class Fp3dEditor extends LitElement {
                 ? html`<div class="fp3d-actions fp3d-wide">
                     <button class="fp3d-btn" title=${this.t("floor_order_hint")} @click=${() => this.moveFloor(1)}>${this.t("move_up")}</button>
                     <button class="fp3d-btn" title=${this.t("floor_order_hint")} @click=${() => this.moveFloor(-1)}>${this.t("move_down")}</button>
+                    <button class="fp3d-btn" title=${this.t("floor_copy_hint")} @click=${() => this.duplicateFloor()}>${this.t("floor_copy")}</button>
                     <button class="fp3d-btn fp3d-danger" @click=${() => this.deleteFloor()}>${this.t("delete_floor")}</button>
                   </div>
                   <div class="fp3d-actions fp3d-wide">
@@ -11250,6 +11265,12 @@ export class Fp3dEditor extends LitElement {
         ${this.len(this.t("width"), o.width, (v) => this.updateOpening({ width: Math.max(0.3, v) }), 0.01, 0.3)}
         ${this.len(this.t("opening_position"), o.offset, (v) => this.updateOpening({ offset: Math.max(0, v) }), 0.01, 0)}
         ${window ? this.len(this.t("sill"), o.sill, (v) => this.updateOpening({ sill: Math.max(0, v) }), 0.01, 0) : nothing}
+        ${window
+          ? html`<label class="fp3d-check fp3d-wide" title=${this.t("top_hung_hint")}
+              ><input type="checkbox" .checked=${!!o.top_hung} ?disabled=${!admin} @change=${(ev: Event) => this.updateOpening({ top_hung: (ev.target as HTMLInputElement).checked })} />
+              ${this.t("top_hung")}</label
+            >`
+          : nothing}
         ${this.len(this.t("opening_height"), o.height, (v) => this.updateOpening({ height: Math.max(0.3, v) }), 0.01, 0.3)}
         ${window && this.isAdmin
           ? html`<div class="fp3d-actions fp3d-wide">
@@ -13003,6 +13024,10 @@ export class Fp3dEditor extends LitElement {
             <label class="fp3d-check fp3d-wide" title=${this.t("camera_detect_pins_hint")}
               ><input type="checkbox" .checked=${pl.detect_pins !== false} ?disabled=${!admin} @change=${(ev: Event) => this.updateDevice({ detect_pins: (ev.target as HTMLInputElement).checked ? null : false })} />
               ${this.t("camera_detect_pins")}</label
+            >
+            <label class="fp3d-check fp3d-wide" title=${this.t("camera_detect_popup_hint")}
+              ><input type="checkbox" .checked=${!!pl.detect_popup} ?disabled=${!admin} @change=${(ev: Event) => this.updateDevice({ detect_popup: (ev.target as HTMLInputElement).checked })} />
+              ${this.t("camera_detect_popup")}</label
             >
             <p class="fp3d-sub fp3d-wide">${this.t("camera_aim_hint")}</p>
             ${this.renderCameraDetections(pl.entity_id)}`

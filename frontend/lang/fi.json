@@ -2282,5 +2282,14 @@
  "print_dot_hint": "Uutta tukijoille: NeonPlan Print",
  "print_editor": "🖨 Tulosta 3D:nä",
  "print_editor_hint": "Lataa tiedosto sinne.",
- "print_pass_line": "🖨 sisältää NeonPlan Printin (beta): talosi 3D-tulosteena"
+ "print_pass_line": "🖨 sisältää NeonPlan Printin (beta): talosi 3D-tulosteena",
+ "marker_show_active": "Vain kun aktiivinen",
+ "floor_copy": "Monista kerros",
+ "floor_copy_name": "{name} (kopio)",
+ "floor_copy_hint": "Lisää kerroksen vielä kerran talon päälle: huoneet, seinät, ikkunat, ovet ja huonekalut ilman Home Assistant -linkkejä.",
+ "top_hung": "Yläsaranoitu (aukeaa alhaalta ulospäin)",
+ "top_hung_hint": "Ikkuna roikkuu yläreunasta ja aukeaa alhaalta ulospäin – auki ja raollaan näyttävät samalta.",
+ "camera_detect_popup": "Näytä kuva uudesta havainnosta",
+ "camera_detect_popup_hint": "Camera Cockpit: when the camera detects something new (person, car, motion), its picture shows for 20 seconds at the bottom right – a tap looks through the camera.",
+ "camera_popup_open": "Katso kameran läpi"
 }

@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { Opening } from "../model.ts";
 import type { OpeningInfo } from "./build.ts";
-import { sillBoards, stackedOnOpening } from "./openings.ts";
+import { buildOpeningParts, sillBoards, stackedOnOpening } from "./openings.ts";
 
 /** A window (or door) on the wall along x from (sx, sz), as the floor builder describes it. */
 function info(id: string, sx: number, width: number, sill: number, top: number, extra: Partial<Opening> & { axis?: [number, number]; exterior?: boolean; sz?: number } = {}): OpeningInfo {
@@ -77,4 +77,18 @@ test("a board chosen by hand shows on a window down to the floor; a glass wall h
   assert.deepEqual(sillBoards(glass, [glass]), { inside: false, outside: false });
   const glassBoard = info("gb", 1, 2.4, 0.9, 2.4, { style: "glass_wall", sill_board: "inside" });
   assert.deepEqual(sillBoards(glassBoard, [glassBoard]), { inside: true, outside: false });
+});
+
+test("a top-hung window opens its bottom outwards (#327)", () => {
+  const minN = (top: boolean) => {
+    const w = info("w", 1, 1.2, 0.9, 2.2, { top_hung: top });
+    const parts = buildOpeningParts([w], new Map([["w", { open: 1, tilt: 0, cover: null }]]), 99);
+    const pos = parts.glass.getAttribute("position").array as ArrayLike<number>;
+    // the room lies towards +z (toRoom [0, 1]): outwards is -z
+    let min = Infinity;
+    for (let i = 2; i < pos.length; i += 3) min = Math.min(min, pos[i]);
+    return min;
+  };
+  assert.ok(minN(true) < -0.3, `top-hung glass reaches outside (${minN(true)})`);
+  assert.ok(minN(false) > -0.2, "a turning window opens into the room");
 });

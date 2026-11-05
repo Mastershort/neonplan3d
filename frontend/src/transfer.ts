@@ -1,7 +1,7 @@
 // Export and import of the building as a JSON file. Without entities, a plan can be shared with others:
 // areas, lights, sensors and every other link to this Home Assistant are removed.
 
-import { normalizeBuilding, type Building } from "./model.ts";
+import { normalizeBuilding, type Building, type Floor } from "./model.ts";
 
 export const EXPORT_FORMAT = "neonplan3d";
 
@@ -88,4 +88,33 @@ export function download(name: string, text: string): void {
   a.download = name;
   a.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+/**
+ * A copy of a floor to put on top of the house (#443: three storeys drawn alike): rooms, walls, windows, doors and
+ * furniture with new ids, but without links to this home – the lights and sensors up there are other ones.
+ */
+export function copyFloor(b: Building, floorId: string, id: (prefix: string) => string, name: string, elevation: number): Floor | null {
+  const src = b.floors.find((f) => f.id === floorId);
+  if (!src) return null;
+  const floor = withoutEntities({ ...b, floors: [src] }).floors[0];
+  // every id inside the floor gets a new one, and every reference to it follows (an opening on a room's wall)
+  const ids = new Map<string, string>();
+  const collect = (v: unknown): void => {
+    if (Array.isArray(v)) v.forEach(collect);
+    else if (v && typeof v === "object") {
+      const o = v as Record<string, unknown>;
+      if (typeof o.id === "string" && (o as unknown) !== floor && !ids.has(o.id)) ids.set(o.id, id(o.id.replace(/_[^_]*$/, "") || "item"));
+      Object.values(o).forEach(collect);
+    }
+  };
+  collect(floor);
+  const swap = (v: unknown): unknown => {
+    if (typeof v === "string") return ids.get(v) ?? v;
+    if (Array.isArray(v)) return v.map(swap);
+    if (v && typeof v === "object") return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, swap(x)]));
+    return v;
+  };
+  const out = swap(floor) as Floor;
+  return { ...out, id: id("floor"), name, elevation, ha_floor: null, start_view: null };
 }

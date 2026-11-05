@@ -97,6 +97,8 @@ export interface Opening {
   leaves: 1 | 2;
   /** Doors swing into their room ("in") or to the other side ("out"). */
   swing: "in" | "out";
+  /** Windows: hung at the top, the bottom opening outwards (#327, common in Scandinavia); open and tilted look alike. */
+  top_hung?: boolean;
   /** Look of the door or window (null = automatic: a front door in an exterior wall, else a room door). */
   style?: OpeningStyle | null;
   /** One sidelight: on the hinge side instead of opposite the hinge. */
@@ -334,7 +336,7 @@ export type LampMount = "ceiling" | "floor" | "table" | "wall";
 export type ModuleData = Record<string, Record<string, unknown>>;
 
 /** How a device's marker shows in 3D (null = automatic by the marker mode). */
-export const MARKER_SHOWS = ["always", "no_power", "never"] as const;
+export const MARKER_SHOWS = ["always", "active", "no_power", "never"] as const;
 export type MarkerShow = (typeof MARKER_SHOWS)[number];
 
 export interface Placement {
@@ -376,6 +378,8 @@ export interface Placement {
   cone?: boolean | null;
   /** Cameras: detection pins (person, car, animal) over the camera (null = yes); false leaves only the wedge turning red (#267). */
   detect_pins?: boolean | null;
+  /** Cameras (Kamera-Cockpit): a new detection opens the camera's picture as a small pop-up for a while (#442, off by default). */
+  detect_popup?: boolean;
   /** Cameras: the detection sensors that count, chosen by hand (any device's); null = those of the camera's device (#815). */
   detect_sensors?: string[] | null;
 }

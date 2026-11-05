@@ -2282,5 +2282,14 @@
  "print_dot_hint": "Nytt for supportere: NeonPlan Print",
  "print_editor": "🖨 Skriv ut i 3D",
  "print_editor_hint": "Last opp filen der.",
- "print_pass_line": "🖨 inkludert NeonPlan Print (beta): huset ditt som 3D-utskrift"
+ "print_pass_line": "🖨 inkludert NeonPlan Print (beta): huset ditt som 3D-utskrift",
+ "marker_show_active": "Bare når aktiv",
+ "floor_copy": "Dupliser etasje",
+ "floor_copy_name": "{name} (kopi)",
+ "floor_copy_hint": "Legger etasjen en gang til øverst på huset: rom, vegger, vinduer, dører og møbler, uten koblinger til Home Assistant.",
+ "top_hung": "Overhengslet (åpner utover nederst)",
+ "top_hung_hint": "Vinduet henger i overkant og åpner utover nederst – åpent og på gløtt ser likt ut.",
+ "camera_detect_popup": "Vis bildet ved ny deteksjon",
+ "camera_detect_popup_hint": "Camera Cockpit: when the camera detects something new (person, car, motion), its picture shows for 20 seconds at the bottom right – a tap looks through the camera.",
+ "camera_popup_open": "Se gjennom kameraet"
 }

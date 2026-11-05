@@ -48,6 +48,8 @@ const HANDLE = 0x5b7cff;
 const HANDLE_TOP = 0x8aa2ff;
 const GLASS = shade(0x37e0ff, 0.08);
 const TILT_ANGLE = 0.2;
+/** How far a top-hung window opens outwards (about 26°). */
+const TOP_HUNG_ANGLE = 0.45;
 
 type Tf = (x: number, n: number, y: number) => number[];
 
@@ -348,10 +350,19 @@ export function buildOpeningParts(infos: readonly OpeningInfo[], states: Readonl
         const sx1 = sash.x1;
         const sashW = sx1 - sx0;
         // a terrace door may open outwards (swing "out"); tilting stays inwards
-        const theta = sash.open * OPEN_ANGLE * (info.opening.swing === "out" ? -1 : 1);
-        const phi = sash.tilt * TILT_ANGLE;
+        const topHung = !!info.opening.top_hung;
+        const theta = topHung ? 0 : sash.open * OPEN_ANGLE * (info.opening.swing === "out" ? -1 : 1);
+        const phi = topHung ? 0 : sash.tilt * TILT_ANGLE;
+        // a top-hung window (#327) turns about its top edge, the bottom outwards – opened or tilted alike
+        const psi = topHung ? Math.max(sash.open, sash.tilt) * TOP_HUNG_ANGLE : 0;
         // sash coordinates: u from the hinge across the sash, n, y
         const sashTf: Tf = (u, n, y) => {
+          if (psi) {
+            const dn = n - n0;
+            const dt = y - sy1;
+            const x = sash.atStart ? sx0 + u : sx1 - u;
+            return tf(x, n0 + dn * Math.cos(psi) + dt * Math.sin(psi), sy1 - dn * Math.sin(psi) + dt * Math.cos(psi));
+          }
           const dy = y - sy0;
           let nn = n + dy * Math.sin(phi);
           const yy = sy0 + dy * Math.cos(phi);
@@ -361,7 +372,7 @@ export function buildOpeningParts(infos: readonly OpeningInfo[], states: Readonl
           return tf(x, nn, yy);
         };
         // a sash that has swung into the room belongs to no wall: keep it visible
-        const sashBucket = Math.abs(theta) > 0.05 ? ALWAYS : bucket;
+        const sashBucket = Math.abs(theta) > 0.05 || psi > 0.05 ? ALWAYS : bucket;
         splitBox(frames, sashTf, 0, sw, n0, n1, sy0, sy1, sashC, sashTop, cut, sashBucket);
         splitBox(frames, sashTf, sashW - sw, sashW, n0, n1, sy0, sy1, sashC, sashTop, cut, sashBucket);
         splitBox(frames, sashTf, sw, sashW - sw, n0, n1, sy0, sy0 + sw, sashC, sashTop, cut, sashBucket);

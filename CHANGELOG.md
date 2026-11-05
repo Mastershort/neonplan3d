@@ -6,6 +6,13 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 
 ## Unreleased
 
+### Added
+- Pins can show **only while active** (on, open, detected) – per device under "Marker in 3D" (#337, thanks for the idea).
+- **Duplicate floor** in the floor settings: rooms, walls, windows, doors and furniture once more on top of the house, without the links to Home Assistant (#443).
+- **Top-hung windows** that open outwards at the bottom, common in Scandinavia (#327).
+- Kamera-Cockpit: a camera can **pop up its picture** for 20 seconds when it detects something new; a tap looks through it (#442).
+- Durchsagen and Das Haus antwortet are out of the beta.
+
 ### Fixed
 - Several radiators on one thermostat each show their pin with the temperature and keep their own icon (only the last one showed before) (#932, thanks skywalker and EduK85).
 
