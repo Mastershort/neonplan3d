@@ -929,6 +929,17 @@ export function outdoorGround(floor: Floor, x: number, z: number): number {
   return a ? outdoorTopAt(floor, a, x, z) : groundLevel(floor);
 }
 
+/**
+ * The surface seen from above at a point outside the rooms: an area cut out of another wins, else the highest of the
+ * areas lying there – a terrace drawn on a lawn is on top. The window light at night lies on it, not under it (#893).
+ */
+export function outdoorSurface(floor: Floor, x: number, z: number): number {
+  const inside = (floor.outdoor ?? []).filter((o) => !outdoorStanding(o.type) && o.type !== "pool" && pointInPolygon([x, z], o.points));
+  const cut = [...inside].reverse().find((o) => o.cut);
+  if (cut) return outdoorTopAt(floor, cut, x, z);
+  return inside.length ? Math.max(...inside.map((a) => outdoorTopAt(floor, a, x, z))) : groundLevel(floor);
+}
+
 /** Auto Pro: which entities tell the car's state; null = automatic (an entity of the car's Home Assistant device). */
 export interface CarLinks {
   /** Any entity of the car's device: the others are found beside it. */

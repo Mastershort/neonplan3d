@@ -8,7 +8,7 @@
 import { AdditiveBlending, RingGeometry, Fog, CircleGeometry, Box3, CanvasTexture, ClampToEdgeWrapping, Color, BackSide, DoubleSide, FrontSide, Group, LineBasicMaterial, LineSegments, Mesh, MeshBasicMaterial, MultiplyBlending, OrthographicCamera, PerspectiveCamera, Points, PointsMaterial, PlaneGeometry, Raycaster, RepeatWrapping, Scene, SRGBColorSpace, TextureLoader, type Texture, Float32BufferAttribute, Uint32BufferAttribute, DynamicDrawUsage, BufferGeometry as Geometry, Vector2, Vector3, WebGLRenderer, WebGLRenderTarget, type Material, BufferGeometry } from "three";
 import type { Building, Floor, Furniture, Room, StartView } from "../model.ts";
 import { recolorLamps, SHADE_SENTINEL, shadeFactors } from "./lamp-colors.ts";
-import { centroid, GANG_TYPES, gateSpans, outdoorZones, pointInPolygon, openingStyle, setTerrain, WALL_LAMP_Y, zonesOf } from "../model.ts";
+import { centroid, GANG_TYPES, gateSpans, outdoorSurface, outdoorZones, pointInPolygon, openingStyle, setTerrain, WALL_LAMP_Y, zonesOf } from "../model.ts";
 import { placeWallPlate } from "../geometry/walls.ts";
 import { buildEarth } from "./earth.ts";
 import { clampIntoRoom } from "../geometry/snap.ts";
@@ -1760,12 +1760,15 @@ export class FloorplanViewer {
         // from the wall's outer face outwards, wider and fainter the further out (a tall window throws it further)
         const out: [number, number] = [-info.toRoom[0], -info.toRoom[1]];
         const reach = Math.min(3.5, 0.8 + 1.1 * info.top);
+        // the surface on top where areas overlap (a terrace on the lawn): the light lies on it, not under it (#893)
+        const rooms = fv.floor.rooms.filter((r) => r.points.length >= 3);
+        const surfaceAt = (x: number, z: number) => (!rooms.length || rooms.some((r) => pointInPolygon([x, z], r.points)) ? 0 : outdoorSurface(fv.floor, x, z));
         // the patch lies on the ground just in front of the window and ends where that ground does: a window onto
         // a balcony lights the balcony, not the driveway below it past its edge (#822)
         const groundAt = (s: number, d: number, spread: number) => {
           const t = d / reach;
           const sx = -spread * t + s * (info.width + 2 * spread * t);
-          return groundUnder(fv.floor, { x: info.start[0] + info.axis[0] * sx + out[0] * (info.faceOut + d), z: info.start[1] + info.axis[1] * sx + out[1] * (info.faceOut + d) });
+          return surfaceAt(info.start[0] + info.axis[0] * sx + out[0] * (info.faceOut + d), info.start[1] + info.axis[1] * sx + out[1] * (info.faceOut + d));
         };
         const foot = groundAt(0.5, 0.05, 0);
         const len = spillLength((s, d) => groundAt(s, d, 0.35 * reach), foot, reach);
@@ -1778,7 +1781,7 @@ export class FloorplanViewer {
           const sx = -spread * t + s * (info.width + 2 * spread * t);
           const x = info.start[0] + info.axis[0] * sx + out[0] * (info.faceOut + d);
           const z = info.start[1] + info.axis[1] * sx + out[1] * (info.faceOut + d);
-          return [x, Math.max(foot, groundUnder(fv.floor, { x, z })) + 0.014, z];
+          return [x, Math.max(foot, surfaceAt(x, z)) + 0.014, z];
         };
         // fading outwards and soft at both sides, in rows short enough to follow a step in the ground
         const rows = Math.max(4, Math.ceil(len / 0.3));

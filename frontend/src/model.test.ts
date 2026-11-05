@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { emptyBuilding, lockAlong, gangEntities, gangPlateWidth, gangsOf, floorElevation, newFloor, outdoorZones, zonesOf, openingPreset, openingStyle, normalizeBuilding, outdoorDrop, outdoorGround, furnitureCorner, resizeFurniture, roomTiles, sidelightLayout, spotGrid, surfaceHeight, syncCameraLooks, type Furniture } from "./model.ts";
+import { emptyBuilding, lockAlong, gangEntities, gangPlateWidth, gangsOf, floorElevation, newFloor, outdoorZones, zonesOf, openingPreset, openingStyle, normalizeBuilding, outdoorDrop, outdoorGround, outdoorSurface, furnitureCorner, resizeFurniture, roomTiles, sidelightLayout, spotGrid, surfaceHeight, syncCameraLooks, type Furniture } from "./model.ts";
 
 test("a sidelight sits opposite the hinge, on the hinge side when asked, and keeps the leaf at least half a metre", () => {
   const none = {};
@@ -108,6 +108,21 @@ test("outdoor lamps stand on the ground, or on a terrace", () => {
   assert.equal(outdoorGround(floor, 10, 10), -0.2);
   assert.ok(Math.abs(outdoorGround(floor, 2, 1) - (-0.2 + 0.12)) < 1e-9);
   assert.equal(outdoorGround({ ...newFloor("og", "OG", 2.75), outdoor: [] }, 1, 1), 0);
+});
+
+test("the surface on top where areas overlap: a terrace drawn on a lawn, a path cut out of it (#893)", () => {
+  const floor = newFloor("eg", "EG", 0);
+  floor.outdoor = [
+    { id: "l", type: "lawn", points: [[-10, -10], [10, -10], [10, 10], [-10, 10]] },
+    { id: "t", type: "terrace", points: [[0, 0], [4, 0], [4, 3], [0, 3]] },
+  ];
+  // the lawn is drawn first: the old lookup answers with it, the window light lay under the terrace
+  assert.ok(Math.abs(outdoorGround(floor, 2, 1) - (-0.2 + 0.012)) < 1e-9);
+  assert.ok(Math.abs(outdoorSurface(floor, 2, 1) - (-0.2 + 0.12)) < 1e-9);
+  assert.ok(Math.abs(outdoorSurface(floor, 8, 8) - (-0.2 + 0.012)) < 1e-9);
+  // an area cut out of the one beneath wins, even when lower
+  floor.outdoor.push({ id: "p", type: "path", cut: true, points: [[1, 1], [2, 1], [2, 2], [1, 2]] } as never);
+  assert.ok(Math.abs(outdoorSurface(floor, 1.5, 1.5) - (-0.2 + 0.02)) < 1e-9);
 });
 
 test("resizing drags one corner while the opposite corner stays", () => {
