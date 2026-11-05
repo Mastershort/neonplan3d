@@ -78,6 +78,7 @@ export class Floorplan3dPanel extends LitElement {
     _editorReady: { state: true },
     _floorId: { state: true },
     _roomId: { state: true },
+    _walking: { state: true },
     _overview: { state: true },
     _site: { state: true },
     _wallMode: { state: true },
@@ -136,6 +137,8 @@ export class Floorplan3dPanel extends LitElement {
   private declare _editorReady: boolean;
   private declare _floorId: string | null;
   private declare _roomId: string | null;
+  /** One walks through the house: the room panel steps aside. */
+  private declare _walking: boolean;
   /** "All floor plans" is open. */
   private declare _overview: boolean;
   /** The property: every building standing on it in one 3D view (read only). */
@@ -216,6 +219,7 @@ export class Floorplan3dPanel extends LitElement {
     this._editorReady = !!customElements.get("fp3d-editor");
     this._floorId = null;
     this._roomId = null;
+    this._walking = false;
     this._overview = false;
     this._site = new URLSearchParams(location.search).get("plan") === "site";
     // the floor plan: from a link (?plan=), else the one last shown on this device
@@ -614,7 +618,7 @@ export class Floorplan3dPanel extends LitElement {
   }
 
   private view3d() {
-    return this.renderRoot.querySelector("fp3d-view3d") as (HTMLElement & { resetView(): void; lookThrough(entityId: string): void; historyEntities(): HistorySpec; proHint(f: Feature): void; currentView(): StartView | null; roomSheets(roomId: string): { id: string; icon: string; title: string }[]; openRoomSheet(roomId: string, id: string): void }) | null;
+    return this.renderRoot.querySelector("fp3d-view3d") as (HTMLElement & { resetView(): void; lookThrough(entityId: string): void; historyEntities(): HistorySpec; proHint(f: Feature): void; currentView(): StartView | null; roomSheets(roomId: string): { id: string; icon: string; title: string }[]; openRoomSheet(roomId: string, id: string): void; walkHere(): void }) | null;
   }
 
   /** Time travel on or off; without the Pro add-on its hint shows. `at`: a start moment from a link. */
@@ -1178,6 +1182,7 @@ export class Floorplan3dPanel extends LitElement {
       <div class="fp3d-stage-wrap ${this._roomId ? "fp3d-room-open" : ""} ${this._controlsRight ? "fp3d-side-right" : ""} ${tt ? "fp3d-tt" : ""} ${roomBar ? "fp3d-has-bar" : ""}">
         <fp3d-view3d
           class="fp3d-body"
+          @walk-change=${(e: CustomEvent<{ walking: boolean }>) => (this._walking = e.detail.walking)}
           .pivotMark=${this._pinHover}
           .hass=${this.tt.hass(this.hass)}
           .replay=${this.tt.session?.replay ?? null}
@@ -1233,8 +1238,10 @@ export class Floorplan3dPanel extends LitElement {
           }}
           @back=${() => this.back()}
         ></fp3d-view3d>
-        ${this._roomId
+        ${this._roomId && !this._walking
           ? html`<fp3d-room-panel
+              ?walk=${true}
+              @walk-here=${() => this.view3d()?.walkHere()}
               class="fp3d-room-panel"
               @camera-look=${(e: CustomEvent<{ entity: string }>) => this.view3d()?.lookThrough(e.detail.entity)}
               .hass=${this.tt.hass(this.hass)}

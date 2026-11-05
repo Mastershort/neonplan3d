@@ -5,7 +5,7 @@
 // flight into it). Each floor is a group with its own materials so its height and opacity can be
 // animated independently.
 
-import { AdditiveBlending, RingGeometry, Fog, CircleGeometry, Box3, CanvasTexture, ClampToEdgeWrapping, Color, BackSide, DoubleSide, FrontSide, Group, LineBasicMaterial, LineSegments, Mesh, MeshBasicMaterial, MultiplyBlending, OrthographicCamera, PerspectiveCamera, Points, PointsMaterial, PlaneGeometry, Raycaster, RepeatWrapping, Scene, SRGBColorSpace, TextureLoader, type Texture, Float32BufferAttribute, Uint32BufferAttribute, DynamicDrawUsage, BufferGeometry as Geometry, Vector2, Vector3, WebGLRenderer, WebGLRenderTarget, type Material, BufferGeometry } from "three";
+import { AdditiveBlending, CustomBlending, OneFactor, SrcAlphaFactor, ZeroFactor, RingGeometry, Fog, CircleGeometry, Box3, CanvasTexture, ClampToEdgeWrapping, Color, BackSide, DoubleSide, FrontSide, Group, LineBasicMaterial, LineSegments, Mesh, MeshBasicMaterial, MultiplyBlending, OrthographicCamera, PerspectiveCamera, Points, PointsMaterial, PlaneGeometry, Raycaster, RepeatWrapping, Scene, SRGBColorSpace, TextureLoader, type Texture, Float32BufferAttribute, Uint32BufferAttribute, DynamicDrawUsage, BufferGeometry as Geometry, Vector2, Vector3, WebGLRenderer, WebGLRenderTarget, type Material, BufferGeometry } from "three";
 import type { Building, Floor, Furniture, Room, StartView } from "../model.ts";
 import { recolorLamps, SHADE_SENTINEL, shadeFactors } from "./lamp-colors.ts";
 import { centroid, GANG_TYPES, gateSpans, outdoorSurface, outdoorZones, pointInPolygon, openingStyle, setTerrain, WALL_LAMP_Y, zonesOf } from "../model.ts";
@@ -47,7 +47,7 @@ import { ALWAYS, DEG, GeoBuffer, LineBuffer, pushPrism, triangulate } from "./ge
 import { buildLightSurface, lightColors, roomIndexAt, spillLength, type LightKind, type LightSource, type LightSurface, zoneOf } from "./lighting.ts";
 import { buildOpeningParts, CLOSED, type OpeningState } from "./openings.ts";
 import { circlePath, cleaningPath, stepRobot, type RobotInfo, type RobotMotion } from "./robot.ts";
-import { decorDelay, lowEndDevice, petDelay } from "./pace.ts";
+import { decorDelay, lowEndDevice, petDelay, SLOW_KEY, SLOW_SAMPLES, SLOW_WARMUP_MS, slowFrames } from "./pace.ts";
 
 export type { RobotInfo } from "./robot.ts";
 
@@ -523,7 +523,18 @@ const ACTIVE_FLOOR = new Color(0x1a2a4d);
 
 export function isLowEnd(): boolean {
   const nav = navigator as Navigator & { deviceMemory?: number };
-  return lowEndDevice(navigator.userAgent, nav.deviceMemory, navigator.hardwareConcurrency);
+  return lowEndDevice(navigator.userAgent, nav.deviceMemory, navigator.hardwareConcurrency) || measuredSlow();
+}
+
+/** This browser turned the view too slowly once on "Auto" (#952); also kept here when storage is blocked. */
+let slowHere = false;
+function measuredSlow(): boolean {
+  if (slowHere) return true;
+  try {
+    return localStorage.getItem(SLOW_KEY) === "1";
+  } catch {
+    return false;
+  }
 }
 
 export class FloorplanViewer {
@@ -605,6 +616,8 @@ export class FloorplanViewer {
   private explode: boolean;
   private frame = 0;
   private lastFrame = 0;
+  /** "Auto" on the full level: frame times while the view is turned, until it is decided (#952). */
+  private slowWatch: { quality: Quality; since: number; last: number; ms: number[] } | null = null;
   private disposed = false;
   private readonly resizeObserver: ResizeObserver;
   private fpsFrames = 0;
@@ -2179,6 +2192,7 @@ export class FloorplanViewer {
   private makeRenderer(quality: Quality): WebGLRenderer {
     const low = quality === "low" || (quality === "auto" && isLowEnd());
     this.lowQuality = low;
+    this.slowWatch = quality === "auto" && !low ? { quality, since: performance.now(), last: 0, ms: [] } : null;
     this.applyWeather();
     this.highQuality = quality === "high";
     const renderer = new WebGLRenderer({ antialias: !low, alpha: true, powerPreference: low ? "low-power" : "default" });
@@ -2586,7 +2600,9 @@ export class FloorplanViewer {
         blending: AdditiveBlending,
         depthWrite: false,
       }),
-      cones: new MeshBasicMaterial({ vertexColors: true, transparent: true, blending: AdditiveBlending, depthWrite: false, side: DoubleSide }),
+      // adds its colour but never covers: over the empty, see-through background a wedge fading to black stays
+      // see-through instead of drawing a black half-circle (the Day look, #955)
+      cones: new MeshBasicMaterial({ vertexColors: true, transparent: true, blending: CustomBlending, blendSrc: SrcAlphaFactor, blendDst: OneFactor, blendSrcAlpha: ZeroFactor, blendDstAlpha: OneFactor, depthWrite: false, side: DoubleSide }),
       screens: new MeshBasicMaterial({ vertexColors: true, transparent: true, blending: AdditiveBlending, depthWrite: false, side: DoubleSide }),
       earth: themed(new MeshBasicMaterial({ vertexColors: true }), this.themeUniform),
       earthWell: themed(new MeshBasicMaterial({ vertexColors: true, side: DoubleSide }), this.themeUniform),
@@ -5116,6 +5132,7 @@ export class FloorplanViewer {
     }
     // everything that keeps drawing (also the energy flow, effects, robots) shows in the frame rate
     this.reportStats(now, busy);
+    this.watchSlow(now, cameraMoving || this.controls.busy);
     if (moving) this.invalidate();
     // tablet level: something new began to move (music, a robot, the energy flow …) – it shows for a while
     const decorNow = this.flowActive || this.solarActive || this.soundActive || this.poolActive || robotsMoving || fansTurning || this.effectFloors.size > 0;
@@ -5415,6 +5432,31 @@ export class FloorplanViewer {
       }
       this.place(pin, `translate(${((v.x + 1) / 2) * w}px, ${((1 - v.y) / 2) * h}px) translate(-50%, -50%)`);
     }
+  }
+
+  /** "Auto": a device that turns the view at under 20 frames a second gets the tablet level, and keeps it (#952). */
+  private watchSlow(now: number, turning: boolean): void {
+    const w = this.slowWatch;
+    if (!w) return;
+    if (!turning || now - w.since < SLOW_WARMUP_MS) {
+      w.last = 0;
+      return;
+    }
+    // a pause (a long task, the tab in the background) is not a frame
+    if (w.last && now - w.last < 1000) w.ms.push(now - w.last);
+    w.last = now;
+    if (!slowFrames(w.ms)) {
+      if (w.ms.length >= 2 * SLOW_SAMPLES) this.slowWatch = null;
+      return;
+    }
+    this.slowWatch = null;
+    slowHere = true;
+    try {
+      localStorage.setItem(SLOW_KEY, "1");
+    } catch {
+      // nothing remembered: it is measured again next time
+    }
+    setTimeout(() => !this.disposed && this.setQuality(w.quality), 0);
   }
 
   private reportStats(now: number, busy: string[]): void {

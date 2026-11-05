@@ -259,3 +259,85 @@ test("a lamp that only changes colour is lit the same as on a fresh surface (col
   const one = lightColors(s, [lamp(1.5, 1.5, [0, 1, 0])]);
   assert.deepEqual([...one], [...lightColors(surfaceOf(floor), [lamp(1.5, 1.5, [0, 1, 0])])]);
 });
+
+/** Area and x range of the lit outdoor floor (facing up, outside zone). */
+function outdoorFloor(s: ReturnType<typeof surfaceOf>, outside: number) {
+  let area = 0;
+  let minX = Infinity;
+  let maxX = -Infinity;
+  const ys: number[] = [];
+  for (let v = 0; v < s.room.length; v += 3) {
+    if (s.room[v] !== outside || s.normal[v * 3 + 1] !== 1) continue;
+    const [ax, az, bx, bz, cx, cz] = [s.pos[v * 3], s.pos[v * 3 + 2], s.pos[v * 3 + 3], s.pos[v * 3 + 5], s.pos[v * 3 + 6], s.pos[v * 3 + 8]];
+    area += Math.abs((bx - ax) * (cz - az) - (cx - ax) * (bz - az)) / 2;
+    for (const k of [0, 1, 2]) {
+      minX = Math.min(minX, s.pos[(v + k) * 3]);
+      maxX = Math.max(maxX, s.pos[(v + k) * 3]);
+      ys.push(s.pos[(v + k) * 3 + 1]);
+    }
+  }
+  return { area, minX, maxX, ys };
+}
+
+test("outdoor light cells end at a terrace's edge off the grid – no overhang, no dark strip (#957)", () => {
+  const floor: Floor = {
+    ...newFloor("f", "F", 0),
+    rooms: [],
+    outdoor: [{ id: "t", type: "terrace", points: [[9.858, 7], [15.058, 7], [15.058, 12], [9.858, 12]] }],
+  };
+  const s = surfaceOf(floor);
+  const f = outdoorFloor(s, 0);
+  assert.ok(Math.abs(f.area - 5.2 * 5) < 1e-6, `area ${f.area}`);
+  assert.ok(f.minX > 9.858 - 1e-6 && f.maxX < 15.058 + 1e-6, `x ${f.minX} … ${f.maxX}`);
+});
+
+test("a slab over its beams: the light lies on the slab, whatever is listed after it (#957)", () => {
+  const floor: Floor = {
+    ...newFloor("f", "F", 0),
+    rooms: [],
+    outdoor: [
+      { id: "slab", type: "terrace", points: [[0.1, 0.1], [4.1, 0.1], [4.1, 3.1], [0.1, 3.1]] },
+      { id: "beam", type: "path", points: [[0.1, 1.4], [4.1, 1.4], [4.1, 1.8], [0.1, 1.8]] },
+    ],
+  };
+  const s = surfaceOf(floor);
+  const f = outdoorFloor(s, 0);
+  // one surface, no spot lit twice: the area is the slab's, every vertex at the slab's top
+  assert.ok(Math.abs(f.area - 12) < 1e-6, `area ${f.area}`);
+  const top = outdoorFloor(surfaceOf({ ...floor, outdoor: floor.outdoor!.slice(0, 1) }), 0).ys[0];
+  assert.ok(f.ys.every((y) => Math.abs(y - top) < 1e-6), `heights ${Math.min(...f.ys)} … ${Math.max(...f.ys)}, slab ${top}`);
+});
+
+test("a path cut into a lawn and a lawn beside a terrace share their cells without gaps or overlaps (#957)", () => {
+  const floor: Floor = {
+    ...newFloor("f", "F", 0),
+    rooms: [],
+    outdoor: [
+      { id: "lawn", type: "lawn", points: [[0, 0], [6.13, 0], [6.13, 4.07], [0, 4.07]] },
+      { id: "path", type: "path", cut: true, points: [[2.04, 0], [2.91, 0], [2.91, 4.07], [2.04, 4.07]] },
+      { id: "terr", type: "terrace", points: [[6.13, 0], [8.4, 0], [7.9, 4.07], [6.13, 4.07]] },
+    ],
+  };
+  const s = surfaceOf(floor);
+  const f = outdoorFloor(s, 0);
+  const want = 6.13 * 4.07 + ((2.27 + 1.77) / 2) * 4.07;
+  assert.ok(Math.abs(f.area - want) < 1e-5, `area ${f.area}, want ${want}`);
+});
+
+test("a lamp behind a wall of its room sends no light through the door into the next room (#954)", () => {
+  // an L: the lamp stands in its foot, the door leads out of the top of its arm – the corner hides it
+  const l: Room = { id: "l", name: "l", area_id: null, points: [[0, 0], [6, 0], [6, 2], [2, 2], [2, 5], [0, 5]], floor_material: "wood" };
+  const floor: Floor = { ...newFloor("f", "F", 0), rooms: [l, rect("b", 0, 5, 2, 7)] };
+  floor.openings = [{ id: "d", room_id: "l", edge: 4, offset: 0.55, width: 0.9, type: "door", sill: 0, height: 2.05, hinge: "left", leaves: 1, swing: "in", cover: null, contact: null, contact2: null, tilt: null }];
+  const s = surfaceOf(floor);
+  const litIn = (room: number, c: Float32Array) => {
+    let m = 0;
+    for (let v = 0; v < s.room.length; v++) if (s.room[v] === room) m = Math.max(m, c[v * 3]);
+    return m;
+  };
+  const hidden = lightColors(s, [lamp(5.5, 1, [1, 1, 1], 0, { kind: "omni", y: 1.2 })], 0.7, [1]);
+  assert.equal(litIn(1, hidden), 0);
+  // a lamp in the arm, in sight of the door, still lights the room behind it
+  const seen = lightColors(s, [lamp(1, 3.5, [1, 1, 1], 0, { kind: "omni", y: 1.2 })], 0.7, [1]);
+  assert.ok(litIn(1, seen) > 0.05, `${litIn(1, seen)}`);
+});

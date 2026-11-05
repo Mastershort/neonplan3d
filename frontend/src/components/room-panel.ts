@@ -52,6 +52,7 @@ export class Fp3dRoomPanel extends LitElement {
     confirmEntities: { attribute: false },
     sheets: { attribute: false },
     readOnly: { type: Boolean },
+    walk: { type: Boolean },
     _showAll: { state: true },
     _tick: { state: true },
   };
@@ -66,6 +67,8 @@ export class Fp3dRoomPanel extends LitElement {
   declare confirmEntities: Set<string> | null;
   /** Time travel: the panel shows the past and switches nothing. */
   declare readOnly: boolean;
+  /** Offer the walk starting in this room (#950): a tap fires "walk-here". */
+  declare walk: boolean;
   /** What modules offer in this room (📢 an announcement …): a button each, a tap fires "sheet-open" with its id. */
   declare sheets: { id: string; icon: string; title: string }[] | null;
   /** Show the other devices of the area as well (their main entities). */
@@ -222,6 +225,11 @@ export class Fp3dRoomPanel extends LitElement {
               </div>`
             : nothing}
         </div>
+        ${this.walk && !this.readOnly && room.points.length >= 3
+          ? html`<button class="fp3d-rp-close fp3d-rp-walk" title=${this.t("walk_start")} aria-label=${this.t("walk_start")} @click=${() => this.fire("walk-here")}>
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="13" cy="4.5" r="1.8" /><path d="m9 20 2.5-6 2.5 2.5V21M7.5 11l3-3.5 3.5 1.5 2 3.5M11.5 14l1-5" /></svg>
+            </button>`
+          : nothing}
         <button class="fp3d-rp-close" aria-label=${this.t("close")} @click=${() => this.fire("close")}>
           <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>
         </button>
@@ -661,6 +669,10 @@ export class Fp3dRoomPanel extends LitElement {
         background: rgba(255, 255, 255, 0.06);
         color: var(--fp3d-text);
         cursor: pointer;
+      }
+      .fp3d-rp-walk {
+        margin-right: 6px;
+        color: #37e0ff;
       }
       .fp3d-rp-body {
         overflow-y: auto;

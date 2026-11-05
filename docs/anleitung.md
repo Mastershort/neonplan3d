@@ -605,7 +605,7 @@ Oben rechts stehen:
 
 | Schalter | Wirkung |
 |---|---|
-| **Auto** / **Tablet** / **Hoch** | Qualitätsstufe. Tablet lässt Muster, Schatten und Halos weg und wird auf Fire-Tablets automatisch gewählt. Hoch zeigt zusätzlich Lichtkegel unter Spots |
+| **Auto** / **Tablet** / **Hoch** | Qualitätsstufe. Tablet lässt Muster, Schatten und Halos weg und wird auf Fire-Tablets und langsamen Geräten automatisch gewählt. Hoch zeigt zusätzlich Lichtkegel unter Spots |
 | **Uhr** | Datum und Uhrzeit in einer Ecke der Ansicht (↖ ↗ ↙ ↘) oder aus – pro Gerät; in der Karte `clock: tr`. 12 oder 24 Stunden wie im Home-Assistant-Profil unter **Zeitformat** eingestellt |
 | **Neon** / **Blueprint** / **Tag** / **Auto** | Der Look; **Auto** zeigt Tag, solange die Sonne über dem Horizont steht (`sun.sun`), und Neon nach Sonnenuntergang – fürs Wandtablet. In der Karte `theme: auto`. Das Farbfeld daneben setzt eine **eigene Akzentfarbe**: Im Neon-Look nehmen Linien und Leuchtkanten sie an, die Knöpfe und Pins in jedem Look; ↺ bringt das Cyan zurück |
 | **Keine** / **Im Raum** / **Wichtige** / **Alle** | Welche Gerätesymbole erscheinen. Wichtige zeigt nur Geräte ohne eigenes 3D-Modell und Werte wie Watt oder die laufende App. **Im Raum** zeigt in der Haus- und Etagenansicht keine Symbole und in einem geöffneten Raum nur dessen eigene – praktisch bei vielen Steckdosen und Sensoren |
@@ -666,7 +666,7 @@ Bietet ein Modul etwas fürs ganze Haus an (📢 **Durchsage**), steht es ebenfa
 
 Die Lupe unten links öffnet **„Wo ist …?“**. Tippe einen Gerätenamen oder Raum. Ein Treffer fliegt die Kamera dorthin, das Gerät blinkt.
 
-**Rundgang:** Der Knopf **🚶 Rundgang** oben rechts startet einen **Rundgang durchs Haus**: Du stehst auf Augenhöhe im gewählten Raum (sonst im größten der gezeigten Etage) und gehst hindurch. **Ziehen** schaut dich um, ein **Tipp auf den Boden** läuft dorthin – auch durch Türen in andere Räume –, **W A S D** oder die **Pfeiltasten** laufen, auf dem Tablet der **Knüppel** unten rechts. Wände halten dich auf, Türen lassen dich durch. Das Haus lebt dabei weiter: Lichter, Fernseher, Sonnenflecken, Glaskarten. Oben steht der Raum, in dem du gerade bist; **✕ Beenden** oder **Esc** führt zurück. In der Karte blendet `walk: false` den Knopf aus. Beim Rundgang zeigen sich nur die Glaskarten des Raums, in dem du stehst.
+**Rundgang:** Der Knopf **🚶 Rundgang** oben rechts startet einen **Rundgang durchs Haus**: Du stehst auf Augenhöhe im gewählten Raum (sonst im größten der gezeigten Etage) und gehst hindurch. **Ziehen** schaut dich um, ein **Tipp auf den Boden** läuft dorthin – auch durch Türen in andere Räume –, **W A S D** oder die **Pfeiltasten** laufen, auf dem Tablet der **Knüppel** unten rechts. Wände halten dich auf, Türen lassen dich durch. Das Haus lebt dabei weiter: Lichter, Fernseher, Sonnenflecken, Glaskarten. Oben steht der Raum, in dem du gerade bist; **✕ Beenden** oder **Esc** führt zurück. Ist ein Raum offen, startet der Knopf **🚶** in seinem Raumfenster (neben ✕) den Rundgang direkt in diesem Raum; das Raumfenster tritt so lange zur Seite. In der Karte blendet `walk: false` den Knopf aus. Beim Rundgang zeigen sich nur die Glaskarten des Raums, in dem du stehst.
 
 ![Rundgang: Wohnzimmer und Küche auf Augenhöhe](images/walk.jpg)
 
@@ -1369,7 +1369,7 @@ Im Kartendialog unter **Nur diese Räume** tippst du Räume auf der kleinen Drau
 NeonPlan 3D ist für Wandtablets wie das Amazon Fire gebaut:
 
 - **Kein Rechnen im Leerlauf.** Ändert sich nichts, zeichnet die Ansicht kein einziges Bild. Die FPS-Anzeige zeigt dann „Ruhe (0 B/s)“.
-- **Qualitätsstufe Tablet:** Auf Fire-Tablets wählt „Auto“ sie von selbst. Muster, Schatten, Halos und Partikel fallen weg. Bewegte Deko (Energiefluss, Solarfelder, Klangringe, Poolwasser, Saugroboter, Farbeffekte, Haustiere) läuft mit etwa 5 Bildern pro Sekunde und bleibt 30 Sekunden nach der letzten Berührung stehen; Antippen oder etwas, das neu losläuft, weckt sie wieder. Reine Messwerte (Watt, Temperatur) erscheinen höchstens alle 2 Sekunden, Schalter, Türen und Alarme sofort.
+- **Qualitätsstufe Tablet:** Auf Fire-Tablets wählt „Auto“ sie von selbst, ebenso auf jedem Gerät, das die Ansicht beim Drehen mit weniger als 20 Bildern pro Sekunde zeigt – das merkt sich der Browser dann. Muster, Schatten, Halos und Partikel fallen weg. Bewegte Deko (Energiefluss, Solarfelder, Klangringe, Poolwasser, Saugroboter, Farbeffekte, Haustiere) läuft mit etwa 5 Bildern pro Sekunde und bleibt 30 Sekunden nach der letzten Berührung stehen; Antippen oder etwas, das neu losläuft, weckt sie wieder. Reine Messwerte (Watt, Temperatur) erscheinen höchstens alle 2 Sekunden, Schalter, Türen und Alarme sofort.
 - **Kiosk-Optionen der Karte:** Nach einigen Minuten ohne Berührung kehrt die Karte zur Startansicht zurück. Nachts dimmt sie nach Sonnenstand oder Uhrzeit. Als Bildschirmschoner dreht sich das Haus langsam.
 - **Warnungen** springen auf Wunsch von selbst in den betroffenen Raum.
 - Hochkant erscheint das Raumfenster unten.

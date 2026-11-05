@@ -51,6 +51,7 @@ export class Floorplan3dCard extends LitElement {
     hass: { attribute: false },
     _config: { state: true },
     _roomId: { state: true },
+    _walking: { state: true },
     _floorId: { state: true },
     _walls: { state: true },
     _heat: { state: true },
@@ -73,6 +74,8 @@ export class Floorplan3dCard extends LitElement {
   private yaml: CardConfig | null = null;
   private appliedTemplate = "";
   private declare _roomId: string | null;
+  /** One walks through the house: the room panel steps aside. */
+  private declare _walking: boolean;
   /** The configured start room was applied once the building arrived. */
   private roomApplied = false;
   /** Floor chosen in the card (null: the house; undefined: none chosen, the configured floor applies). */
@@ -111,6 +114,7 @@ export class Floorplan3dCard extends LitElement {
   constructor() {
     super();
     this._roomId = null;
+    this._walking = false;
     this._floorId = undefined;
     this._walls = savedWalls();
     this._heat = null;
@@ -149,7 +153,7 @@ export class Floorplan3dCard extends LitElement {
   }
 
   private view3d() {
-    return this.shadowRoot?.querySelector("fp3d-view3d") as (HTMLElement & { resetView(): void; lookThrough(entityId: string): void; historyEntities(): HistorySpec; proHint(f: Feature): void; roomSheets(roomId: string): { id: string; icon: string; title: string }[]; openRoomSheet(roomId: string, id: string): void }) | null;
+    return this.shadowRoot?.querySelector("fp3d-view3d") as (HTMLElement & { resetView(): void; lookThrough(entityId: string): void; historyEntities(): HistorySpec; proHint(f: Feature): void; roomSheets(roomId: string): { id: string; icon: string; title: string }[]; openRoomSheet(roomId: string, id: string): void; walkHere(): void }) | null;
   }
 
   /** Time travel on or off; without the Pro add-on its hint shows. */
@@ -510,6 +514,7 @@ clearTimeout(this.cleanTimer);
               .markerNames=${this._config?.marker_names === true}
               .central=${this._config?.central !== false}
               .walkable=${this._config?.walk !== false}
+              @walk-change=${(e: CustomEvent<{ walking: boolean }>) => (this._walking = e.detail.walking)}
               .petsOn=${this._config?.pets !== false}
               .ghostOn=${this._config?.ghost !== false}
               .buttons=${this._config?.buttons?.map((b, i) => ({ id: `card_${i}`, ...b })) ?? null}
@@ -598,8 +603,10 @@ clearTimeout(this.cleanTimer);
               }}
             ></fp3d-room-bar>`
           : nothing}
-        ${this._roomId && b && this._config?.room_panel !== false
+        ${this._roomId && b && this._config?.room_panel !== false && !this._walking
           ? html`<fp3d-room-panel
+              ?walk=${this._config?.walk !== false}
+              @walk-here=${() => this.view3d()?.walkHere()}
               @camera-look=${(e: CustomEvent<{ entity: string }>) => this.view3d()?.lookThrough(e.detail.entity)}
               class="fp3d-card-panel"
               .hass=${this.tt.hass(this.hass)}

@@ -42,6 +42,8 @@ export interface LightSurface {
   doors: { id: string; a: number; b: number; x: number; y: number; z: number }[];
   /** Walls as light blockers: centre line, height, the rooms on both sides and their openings. */
   blockers: Blocker[];
+  /** Index of the outside zone (rooms.length). */
+  outside?: number;
 }
 
 /** A wall that stops light within the rooms it borders (openings let it through). */
@@ -135,10 +137,11 @@ export function buildLightSurface(
     }
   });
 
-  // outside: one zone (index rooms.length) for all outdoor areas and the outer faces of the walls. All areas
-  // share one grid and every cell belongs to the topmost area over its centre (the one listed last, so a bed
-  // cut into the lawn owns its cells): neighbouring or overlapping areas no longer lie on top of each other
-  // and light their seams twice, and a sloped area's cells follow its slope instead of floating flat (#341)
+  // outside: one zone (index rooms.length) for all outdoor areas and the outer faces of the walls. All areas share
+  // one grid, and every spot of a cell belongs to the area on top there: a pool, an area cut into another, else the
+  // one with the higher surface (the slab over its beams), else the one listed last. Each cell is cut to the areas
+  // it lies on, so the light ends at a surface's edge – no lit overhang past it, no dark strip along it (#957) – and
+  // neighbouring or overlapping areas never light a spot twice (#341). A sloped area's cells follow its slope.
   const outside = floor.rooms.length;
   const flat = (floor.outdoor ?? []).filter((a) => a.points.length >= 3 && !outdoorStanding(a.type));
   if (flat.length) {
@@ -149,18 +152,56 @@ export function buildLightSurface(
     const nx = Math.max(1, Math.ceil((Math.max(...xs) - x0) / cell));
     const nz = Math.max(1, Math.ceil((Math.max(...zs) - z0) / cell));
     const yAt = (a: (typeof flat)[number], x: number, z: number) => outdoorSurface(floor, a) - groundDrop(floor, a, x, z) + LIFT;
+    const order = flat
+      .map((a, i) => ({ a, i, top: outdoorSurface(floor, a), box: boxOf(a.points), convex: isConvexRing(a.points) }))
+      .sort((p, q) => +(q.a.type === "pool") - +(p.a.type === "pool") || +!!q.a.cut - +!!p.a.cut || q.top - p.top || q.i - p.i)
+      .map((o) => ({ ...o, parts: o.convex ? [o.a.points] : triangulate([...o.a.points]).map((t) => t.map((k) => o.a.points[k])) }));
+    const tri = (a: (typeof flat)[number], part: Vec2[]) => {
+      for (const [i0, i1, i2] of triangulate(part)) {
+        let p0 = part[i0];
+        let p2 = part[i2];
+        const p1 = part[i1];
+        if ((p1[1] - p0[1]) * (p2[0] - p0[0]) - (p1[0] - p0[0]) * (p2[1] - p0[1]) < 0) [p0, p2] = [p2, p0];
+        const v2: [number, number, number] = [p2[0], yAt(a, p2[0], p2[1]), p2[1]];
+        quad([p0[0], yAt(a, p0[0], p0[1]), p0[1]], [p1[0], yAt(a, p1[0], p1[1]), p1[1]], v2, v2, [0, 1, 0], outside, -1);
+      }
+    };
     for (let i = 0; i < nx; i++) {
       for (let j = 0; j < nz; j++) {
         const px = x0 + i * cell;
         const pz = z0 + j * cell;
-        let a: (typeof flat)[number] | undefined;
-        const c: Vec2 = [px + cell / 2, pz + cell / 2];
-        // a pool owns its cells whatever is listed after it (it is cut out of the lawn around it)
-        a = flat.find((o) => o.type === "pool" && pointInPolygon(c, o.points));
-        for (let k = flat.length - 1; k >= 0 && !a; k--) if (pointInPolygon(c, flat[k].points)) a = flat[k];
-        if (!a) continue;
-        const v = (x: number, z: number): [number, number, number] => [x, yAt(a, x, z), z];
-        quad(v(px, pz), v(px, pz + cell), v(px + cell, pz + cell), v(px + cell, pz), [0, 1, 0], outside, -1);
+        const full: Vec2[] = [
+          [px, pz],
+          [px + cell, pz],
+          [px + cell, pz + cell],
+          [px, pz + cell],
+        ];
+        // what of the cell is still free (convex pieces), handed down from the area on top to the ones below
+        let free: Vec2[][] = [full];
+        for (const o of order) {
+          if (!free.length) break;
+          if (o.box[0] >= px + cell || o.box[2] <= px || o.box[1] >= pz + cell || o.box[3] <= pz) continue;
+          const next: Vec2[][] = [];
+          for (const piece of free) {
+            const part = clipConvex(o.a.points, piece);
+            const area = part.length >= 3 ? Math.abs(shoelace(part)) : 0;
+            if (area < 1e-4) {
+              next.push(piece);
+              continue;
+            }
+            if (piece === full && area > cell * cell - 1e-6) {
+              const v = (x: number, z: number): [number, number, number] => [x, yAt(o.a, x, z), z];
+              quad(v(px, pz), v(px, pz + cell), v(px + cell, pz + cell), v(px + cell, pz), [0, 1, 0], outside, -1);
+              continue;
+            }
+            tri(o.a, part);
+            // the rest of the piece goes on to the areas below
+            let rest: Vec2[][] = [piece];
+            for (const conv of o.parts) rest = rest.flatMap((r) => minusConvex(r, conv));
+            next.push(...rest.filter((r) => r.length >= 3 && Math.abs(shoelace(r)) > 1e-4));
+          }
+          free = next;
+        }
       }
     }
   }
@@ -250,7 +291,7 @@ export function buildLightSurface(
     if (a < 0 || b < 0) continue;
     doors.push({ id: o.opening.id, a, b, x: o.start[0] + o.axis[0] * (o.width / 2), y: Math.min(1.1, o.top * 0.55), z: o.start[1] + o.axis[1] * (o.width / 2) });
   }
-  return { pos: new Float32Array(pos), normal: new Float32Array(normal), room: Int16Array.from(room), fold: new Float32Array(fold), doors, blockers };
+  return { pos: new Float32Array(pos), normal: new Float32Array(normal), room: Int16Array.from(room), fold: new Float32Array(fold), doors, blockers, outside };
 }
 
 function onWall(w: Wall, o: OpeningInfo): boolean {
@@ -344,8 +385,13 @@ export function lightColors(surface: LightSurface, sources: LightSource[], stren
       [door.b, door.a],
     ]) {
       const c: [number, number, number] = [0, 0, 0];
+      // only walls of the room the light comes from can stand between a lamp and its doorway
+      const walls = surface.blockers.filter((w) => w.ra === from || w.rb === from);
       for (const s of sources) {
         if (s.room !== from) continue;
+        // a lamp behind a wall of its own room (round the corner of an L, behind a pillar) sends nothing through the
+        // door: its light would pass through the walls into the next room or out onto the terrace (#954)
+        if (walls.length && shadowed(s, walls, door.x, door.y, door.z)) continue;
         // the doorway takes the light as if it faced the lamp
         const tx = s.x - door.x;
         const ty = s.y - door.y;
@@ -424,7 +470,9 @@ function weightsOf(surface: LightSurface, cache: LightCache, s: LightSource): { 
   const known = cache.weights.get(key);
   if (known) return known;
   const verts = cache.roomVerts.get(s.room) ?? new Uint32Array(0);
-  const walls = surface.blockers.filter((w) => w.ra === s.room || w.rb === s.room);
+  // the outside zone: every wall may stand between (an outdoor lamp never shines through the house, #954)
+  const outside = surface.outside ?? -2;
+  const walls = surface.blockers.filter((w) => s.room === outside || w.ra === s.room || w.rb === s.room);
   const { pos, normal } = surface;
   const k = new Float32Array(verts.length);
   for (let n = 0; n < verts.length; n++) {
@@ -507,4 +555,58 @@ function centroid(p: readonly Vec2[]): Vec2 {
     z += pz;
   }
   return [x / p.length, z / p.length];
+}
+
+/** Bounds of a ring: [minX, minZ, maxX, maxZ]. */
+function boxOf(p: readonly Vec2[]): [number, number, number, number] {
+  const xs = p.map((q) => q[0]);
+  const zs = p.map((q) => q[1]);
+  return [Math.min(...xs), Math.min(...zs), Math.max(...xs), Math.max(...zs)];
+}
+
+function isConvexRing(p: readonly Vec2[]): boolean {
+  let sign = 0;
+  for (let i = 0; i < p.length; i++) {
+    const a = p[i];
+    const b = p[(i + 1) % p.length];
+    const c = p[(i + 2) % p.length];
+    const cross = (b[0] - a[0]) * (c[1] - b[1]) - (b[1] - a[1]) * (c[0] - b[0]);
+    if (Math.abs(cross) < 1e-9) continue;
+    if (sign && Math.sign(cross) !== sign) return false;
+    sign = Math.sign(cross);
+  }
+  return true;
+}
+
+/** The part of a convex polygon on one side of the line a → b (keep 1: the left side, -1: the right). */
+function halfPlane(poly: readonly Vec2[], a: Vec2, b: Vec2, keep: 1 | -1): Vec2[] {
+  const side = (p: Vec2) => keep * ((b[0] - a[0]) * (p[1] - a[1]) - (b[1] - a[1]) * (p[0] - a[0]));
+  const out: Vec2[] = [];
+  for (let j = 0; j < poly.length; j++) {
+    const p = poly[j];
+    const q = poly[(j + 1) % poly.length];
+    const sp = side(p);
+    const sq = side(q);
+    if (sp >= 0) out.push(p);
+    if (sp >= 0 !== sq >= 0) {
+      const t = sp / (sp - sq);
+      out.push([p[0] + (q[0] - p[0]) * t, p[1] + (q[1] - p[1]) * t]);
+    }
+  }
+  return out;
+}
+
+/** A convex polygon minus a convex one, as convex pieces (what lies beyond each edge in turn). */
+export function minusConvex(poly: readonly Vec2[], conv: readonly Vec2[]): Vec2[][] {
+  const inside: 1 | -1 = shoelace(conv) > 0 ? 1 : -1;
+  const out: Vec2[][] = [];
+  let rest: Vec2[] = [...poly];
+  for (let i = 0; i < conv.length && rest.length >= 3; i++) {
+    const a = conv[i];
+    const b = conv[(i + 1) % conv.length];
+    const beyond = halfPlane(rest, a, b, inside === 1 ? -1 : 1);
+    if (beyond.length >= 3 && Math.abs(shoelace(beyond)) > 1e-7) out.push(beyond);
+    rest = halfPlane(rest, a, b, inside);
+  }
+  return out;
 }

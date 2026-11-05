@@ -252,7 +252,8 @@ export class Fp3dView3d extends LitElement {
     hass: { attribute: false },
     building: { attribute: false },
     planId: { attribute: false },
-    rooms: { attribute: false },
+    // compared by content: the card hands a new array on every render, and a "change" would reset the view (#956)
+    rooms: { attribute: false, hasChanged: (a: string[] | null, b: string[] | null) => (a ?? []).join(",") !== (b ?? []).join(",") },
     noSave: { attribute: false },
     floorId: { attribute: false },
     roomId: { attribute: false },
@@ -4081,17 +4082,24 @@ export class Fp3dView3d extends LitElement {
    * biggest) and walks – dragging looks around, a tap on the floor walks there through the doors, keys or the
    * stick move; walls stop you. The house lives on around you: lights, screens, sunlight.
    */
+  /** The walk from the room open in the panel (its 🚶 button, #950). */
+  walkHere(): void {
+    void this.startWalk();
+  }
+
   private async startWalk(): Promise<void> {
     countView("walk");
     const b = this.building;
     const v = this.viewer;
     if (!b || !v || this._walk) return;
+    const roomId = this.roomId;
     const withRooms = b.floors.filter((f) => f.rooms.some((r) => r.points.length >= 3));
-    const byRoom = this.roomId ? withRooms.find((f) => f.rooms.some((r) => r.id === this.roomId)) : undefined;
+    const byRoom = roomId ? withRooms.find((f) => f.rooms.some((r) => r.id === roomId)) : undefined;
     const floor = byRoom ?? withRooms.find((f) => f.id === this.floorId) ?? [...withRooms].sort((x, y) => Math.abs(x.elevation) - Math.abs(y.elevation))[0];
     if (!floor) return;
     const mod = await load3d();
     this._walk = { room: null, hint: true };
+    this.walkChanged(true);
     await this.updateComplete;
     const surface = this.renderRoot.querySelector<HTMLElement>(".fp3d-walk-surface");
     if (!surface) return;
@@ -4099,7 +4107,7 @@ export class Fp3dView3d extends LitElement {
     v.setFloor(floor.id, false);
     v.setWallMode("auto");
     const map = new mod.FloorMap(b, floor);
-    const room = this.roomId ? floor.rooms.find((r) => r.id === this.roomId) : undefined;
+    const room = roomId ? floor.rooms.find((r) => r.id === roomId) : undefined;
     let start;
     if (room) {
       const c = map.freeNear(centroid(room.points));
@@ -4123,6 +4131,11 @@ export class Fp3dView3d extends LitElement {
     }, 9000);
   }
 
+  /** The host hides its room panel while one walks (the room stays chosen, so the view does not fly away). */
+  private walkChanged(walking: boolean): void {
+    this.dispatchEvent(new CustomEvent("walk-change", { detail: { walking }, bubbles: true, composed: true }));
+  }
+
   private stopWalk(): void {
     if (!this.walker && !this._walk) return;
     this.walker?.dispose();
@@ -4131,6 +4144,7 @@ export class Fp3dView3d extends LitElement {
     this.walkKeys = null;
     this._walk = false;
     this.walkRoomPts = null;
+    this.walkChanged(false);
     const v = this.viewer;
     if (v) {
       v.setWallMode(this.wallMode);

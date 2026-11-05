@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { DECOR_REST_MS, LOW_DECOR_MS, SENSOR_SYNC_MS, decorDelay, lowEndDevice, lowSyncDelay } from "./pace.ts";
+import { SLOW_FRAME_MS, SLOW_SAMPLES, slowFrames } from "./pace.ts";
 
 const FIRE_SILK = "Mozilla/5.0 (Linux; Android 9; KFTRWI) AppleWebKit/537.36 (KHTML, like Gecko) Silk/118.3.1 like Chrome/118.0.5993.111 Safari/537.36";
 const FIRE_FULLY = "Mozilla/5.0 (Linux; Android 9; KFTRWI Build/PS7327; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/118.0.5993.111 Safari/537.36";
@@ -45,4 +46,15 @@ test("pets keep walking on the tablet level: about 15 frames a second, 4 while t
   assert.equal(petDelay(false, 0), 0);
   assert.equal(petDelay(true, 0), PET_LOW_MS);
   assert.equal(petDelay(true, 10 * DECOR_REST_MS), PET_REST_MS);
+});
+
+test("Auto: frame times while turning decide a slow device (#952)", () => {
+  const n = SLOW_SAMPLES;
+  // too few frames: not decided yet
+  assert.equal(slowFrames(Array(n - 1).fill(80)), false);
+  // 13 frames a second, as on the RK3399 mirror
+  assert.equal(slowFrames(Array(n).fill(77)), true);
+  // a smooth device with a few long frames (shaders, a sync) stays on the full level
+  assert.equal(slowFrames([...Array(n - 20).fill(17), ...Array(20).fill(200)]), false);
+  assert.equal(slowFrames(Array(n).fill(SLOW_FRAME_MS)), false);
 });
