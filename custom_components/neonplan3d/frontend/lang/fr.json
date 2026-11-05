@@ -2291,5 +2291,8 @@
  "top_hung_hint": "La fenêtre pend en haut et s'ouvre vers l'extérieur en bas – ouverte et entrouverte se ressemblent.",
  "camera_detect_popup": "Afficher l'image lors d'une nouvelle détection",
  "camera_detect_popup_hint": "Camera Cockpit: when the camera detects something new (person, car, motion), its picture shows for 20 seconds at the bottom right – a tap looks through the camera.",
- "camera_popup_open": "Regarder par la caméra"
+ "camera_popup_open": "Regarder par la caméra",
+ "style_slide": "Coulissant (un vantail glisse devant le fixe)",
+ "preset_terrace_slide": "Porte levante-coulissante",
+ "preset_window_slide": "Fenêtre coulissante"
 }

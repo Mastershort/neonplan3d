@@ -2291,5 +2291,8 @@
  "top_hung_hint": "Okno wisi u góry i otwiera się dołem na zewnątrz – otwarte i uchylone wyglądają tak samo.",
  "camera_detect_popup": "Pokaż obraz przy nowym wykryciu",
  "camera_detect_popup_hint": "Camera Cockpit: when the camera detects something new (person, car, motion), its picture shows for 20 seconds at the bottom right – a tap looks through the camera.",
- "camera_popup_open": "Patrz przez kamerę"
+ "camera_popup_open": "Patrz przez kamerę",
+ "style_slide": "Przesuwne (skrzydło przesuwa się przed stałym)",
+ "preset_terrace_slide": "Drzwi podnoszono-przesuwne",
+ "preset_window_slide": "Okno przesuwne"
 }

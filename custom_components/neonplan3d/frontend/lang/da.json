@@ -2291,5 +2291,8 @@
  "top_hung_hint": "Vinduet hænger foroven og åbner udad forneden – åbent og på klem ser ens ud.",
  "camera_detect_popup": "Vis billedet ved ny registrering",
  "camera_detect_popup_hint": "Camera Cockpit: when the camera detects something new (person, car, motion), its picture shows for 20 seconds at the bottom right – a tap looks through the camera.",
- "camera_popup_open": "Se gennem kameraet"
+ "camera_popup_open": "Se gennem kameraet",
+ "style_slide": "Skyde (en rude glider foran den faste)",
+ "preset_terrace_slide": "Løfte-skydedør",
+ "preset_window_slide": "Skydevindue"
 }

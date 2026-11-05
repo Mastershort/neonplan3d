@@ -2291,5 +2291,8 @@
  "top_hung_hint": "Het raam hangt bovenaan en opent onderaan naar buiten – open en op een kier zien er hetzelfde uit.",
  "camera_detect_popup": "Beeld tonen bij een nieuwe detectie",
  "camera_detect_popup_hint": "Camera Cockpit: when the camera detects something new (person, car, motion), its picture shows for 20 seconds at the bottom right – a tap looks through the camera.",
- "camera_popup_open": "Door de camera kijken"
+ "camera_popup_open": "Door de camera kijken",
+ "style_slide": "Schuif (één ruit schuift voor de vaste)",
+ "preset_terrace_slide": "Hefschuifpui",
+ "preset_window_slide": "Schuifraam"
 }

@@ -2291,5 +2291,8 @@
  "top_hung_hint": "Ikkuna roikkuu yläreunasta ja aukeaa alhaalta ulospäin – auki ja raollaan näyttävät samalta.",
  "camera_detect_popup": "Näytä kuva uudesta havainnosta",
  "camera_detect_popup_hint": "Camera Cockpit: when the camera detects something new (person, car, motion), its picture shows for 20 seconds at the bottom right – a tap looks through the camera.",
- "camera_popup_open": "Katso kameran läpi"
+ "camera_popup_open": "Katso kameran läpi",
+ "style_slide": "Liuku (lasi liukuu kiinteän eteen)",
+ "preset_terrace_slide": "Nosto-liukuovi",
+ "preset_window_slide": "Liukuikkuna"
 }

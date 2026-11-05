@@ -2291,5 +2291,8 @@
  "top_hung_hint": "Okno visí hore a dole sa otvára von – otvorené a vyklopené vyzerá rovnako.",
  "camera_detect_popup": "Pri novej detekcii krátko ukázať obraz",
  "camera_detect_popup_hint": "Camera Cockpit: when the camera detects something new (person, car, motion), its picture shows for 20 seconds at the bottom right – a tap looks through the camera.",
- "camera_popup_open": "Pozerať sa kamerou"
+ "camera_popup_open": "Pozerať sa kamerou",
+ "style_slide": "Posuvné (krídlo zájde pred pevné)",
+ "preset_terrace_slide": "Zdvižné posuvné dvere",
+ "preset_window_slide": "Posuvné okno"
 }

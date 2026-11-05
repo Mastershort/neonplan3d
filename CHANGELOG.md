@@ -10,6 +10,7 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 - Pins can show **only while active** (on, open, detected) – per device under "Marker in 3D" (#337, thanks for the idea).
 - **Duplicate floor** in the floor settings: rooms, walls, windows, doors and furniture once more on top of the house, without the links to Home Assistant (#443).
 - **Top-hung windows** that open outwards at the bottom, common in Scandinavia (#327).
+- **Lift-and-slide doors and sliding windows** (new presets, window style "Sliding"): one pane stands, the other slides in front of it as far as its contact says (#397, #361 and their many duplicates).
 - Kamera-Cockpit: a camera can **pop up its picture** for 20 seconds when it detects something new; a tap looks through it (#442).
 - Durchsagen and Das Haus antwortet are out of the beta.
 

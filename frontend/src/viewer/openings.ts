@@ -297,6 +297,44 @@ export function buildOpeningParts(infos: readonly OpeningInfo[], states: Readonl
       if (closed > 0.01) panel(blinds, tf, 0.02, W - 0.02, plane, bottom, T, panelC, cut, bucket, 0.5);
       const up = (1 - closed) * T;
       if (up > 0.01) flatPanel(blinds, tf, 0.02, W - 0.02, plane, plane + up, T + 0.03, panelC, bucket, 0.5);
+    } else if (openingStyle(info.opening, info.exterior) === "slide") {
+      // lift-and-slide door or sliding window (#397, #361): the pane on the hinge side stands, the other runs on the
+      // inner track in front of it as far as it is open
+      const fw = 0.06;
+      const fd = 0.05;
+      splitBox(frames, tf, 0, fw, mid - fd, mid + fd, S, T, frameC, frameTop, cut, bucket);
+      splitBox(frames, tf, W - fw, W, mid - fd, mid + fd, S, T, frameC, frameTop, cut, bucket);
+      splitBox(frames, tf, fw, W - fw, mid - fd, mid + fd, S, S + (S > 0.05 ? fw : 0.03), frameC, frameTop, cut, bucket);
+      splitBox(frames, tf, fw, W - fw, mid - fd, mid + fd, T - fw, T, frameC, frameTop, cut, bucket);
+      boardsOf(info, infos, frames, tf, mid, fd, frameTop, cut, bucket);
+      const sy0 = S + (S > 0.05 ? fw : 0.03);
+      const sy1 = T - fw;
+      const halfW = (W - 2 * fw) / 2 + 0.03;
+      const open = Math.min(1, Math.max(st.open, st.tilt * 0.12));
+      const alert = markClosed ? !!st.sensed && open < 0.02 : open > 0.02;
+      const sashC = alert ? shade(OPEN_WARM, 0.75) : new Color(SASH);
+      const sashTop = alert ? shade(OPEN_WARM, 0.95) : frameTop;
+      const sw = 0.06;
+      const pane = (x0: number, n0: number, shift: number, c: Color, top: Color, glassC: Color) => {
+        const ptf: Tf = (x, n, y) => tf(x + shift, n, y);
+        const x1 = x0 + halfW;
+        const b = shift ? ALWAYS : bucket;
+        splitBox(frames, ptf, x0, x0 + sw, n0, n0 + 0.04, sy0, sy1, c, top, cut, b);
+        splitBox(frames, ptf, x1 - sw, x1, n0, n0 + 0.04, sy0, sy1, c, top, cut, b);
+        splitBox(frames, ptf, x0 + sw, x1 - sw, n0, n0 + 0.04, sy0, sy0 + sw, c, top, cut, b);
+        splitBox(frames, ptf, x0 + sw, x1 - sw, n0, n0 + 0.04, sy1 - sw, sy1, c, top, cut, b);
+        panel(glass, ptf, x0 + sw, x1 - sw, n0 + 0.02, sy0 + sw, sy1 - sw, glassC, cut, b);
+      };
+      const fixedAt = info.hingeAtStart ? fw : W - fw - halfW;
+      const movingAt = info.hingeAtStart ? W - fw - halfW : fw;
+      const run = open * (halfW - 0.08) * (info.hingeAtStart ? -1 : 1);
+      // the fixed pane on the outer track, the sliding one on the inner track (towards the room)
+      pane(fixedAt, mid - fd + 0.005, 0, new Color(SASH), frameTop, GLASS);
+      pane(movingAt, mid + 0.005, run, sashC, sashTop, alert ? shade(OPEN_WARM, 0.16) : GLASS);
+      // a pull handle on the sliding pane's free edge
+      const hx = info.hingeAtStart ? movingAt + 0.025 : movingAt + halfW - 0.035;
+      const hy = Math.min(1.05, (S + T) / 2);
+      splitBox(frames, (x, n, y) => tf(x + run, n, y), hx, hx + 0.012, mid + 0.045, mid + 0.07, hy - 0.15, hy + 0.15, new Color(HANDLE), new Color(HANDLE_TOP), cut, ALWAYS);
     } else if (openingStyle(info.opening, info.exterior) === "glass_wall") {
       // an indoor glass wall: a slim frame, mullions about every 0.9 m, glass from the floor up, no sashes
       const fw = 0.04;

@@ -2291,5 +2291,8 @@
  "top_hung_hint": "Fereastra atârnă sus și se deschide jos spre exterior – deschisă și rabatată arată la fel.",
  "camera_detect_popup": "Arată imaginea la o detecție nouă",
  "camera_detect_popup_hint": "Camera Cockpit: when the camera detects something new (person, car, motion), its picture shows for 20 seconds at the bottom right – a tap looks through the camera.",
- "camera_popup_open": "Privește prin cameră"
+ "camera_popup_open": "Privește prin cameră",
+ "style_slide": "Glisant (o foaie alunecă în fața celei fixe)",
+ "preset_terrace_slide": "Ușă glisantă cu ridicare",
+ "preset_window_slide": "Fereastră glisantă"
 }

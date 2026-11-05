@@ -2291,5 +2291,8 @@
  "top_hung_hint": "La finestra è incernierata in alto e si apre verso l'esterno in basso; aperta e a ribalta sembrano uguali.",
  "camera_detect_popup": "Mostra l'immagine a ogni nuovo rilevamento",
  "camera_detect_popup_hint": "Camera Cockpit: when the camera detects something new (person, car, motion), its picture shows for 20 seconds at the bottom right – a tap looks through the camera.",
- "camera_popup_open": "Guarda attraverso la telecamera"
+ "camera_popup_open": "Guarda attraverso la telecamera",
+ "style_slide": "Scorrevole (un'anta scorre davanti a quella fissa)",
+ "preset_terrace_slide": "Alzante scorrevole",
+ "preset_window_slide": "Finestra scorrevole"
 }

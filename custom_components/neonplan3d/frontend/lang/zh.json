@@ -2291,5 +2291,8 @@
  "top_hung_hint": "窗户在上端铰接，下端向外打开——打开和倾斜看起来一样。",
  "camera_detect_popup": "新检测时弹出画面",
  "camera_detect_popup_hint": "Camera Cockpit: when the camera detects something new (person, car, motion), its picture shows for 20 seconds at the bottom right – a tap looks through the camera.",
- "camera_popup_open": "通过摄像头查看"
+ "camera_popup_open": "通过摄像头查看",
+ "style_slide": "推拉（一扇滑到固定扇前面）",
+ "preset_terrace_slide": "提升推拉门",
+ "preset_window_slide": "推拉窗"
 }
