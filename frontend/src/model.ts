@@ -97,6 +97,8 @@ export interface Opening {
   leaves: 1 | 2;
   /** Doors swing into their room ("in") or to the other side ("out"). */
   swing: "in" | "out";
+  /** Windows: hung at the top, the bottom opening outwards (#327, common in Scandinavia); open and tilted look alike. */
+  top_hung?: boolean;
   /** Look of the door or window (null = automatic: a front door in an exterior wall, else a room door). */
   style?: OpeningStyle | null;
   /** One sidelight: on the hinge side instead of opposite the hinge. */
@@ -334,7 +336,7 @@ export type LampMount = "ceiling" | "floor" | "table" | "wall";
 export type ModuleData = Record<string, Record<string, unknown>>;
 
 /** How a device's marker shows in 3D (null = automatic by the marker mode). */
-export const MARKER_SHOWS = ["always", "no_power", "never"] as const;
+export const MARKER_SHOWS = ["always", "active", "no_power", "never"] as const;
 export type MarkerShow = (typeof MARKER_SHOWS)[number];
 
 export interface Placement {
@@ -376,6 +378,8 @@ export interface Placement {
   cone?: boolean | null;
   /** Cameras: detection pins (person, car, animal) over the camera (null = yes); false leaves only the wedge turning red (#267). */
   detect_pins?: boolean | null;
+  /** Cameras (Kamera-Cockpit): a new detection opens the camera's picture as a small pop-up for a while (#442, off by default). */
+  detect_popup?: boolean;
   /** Cameras: the detection sensors that count, chosen by hand (any device's); null = those of the camera's device (#815). */
   detect_sensors?: string[] | null;
 }
@@ -927,6 +931,17 @@ export function outdoorGround(floor: Floor, x: number, z: number): number {
   // an area cut out of the one beneath it wins over that one
   const a = [...inside].reverse().find((o) => o.cut) ?? inside[0];
   return a ? outdoorTopAt(floor, a, x, z) : groundLevel(floor);
+}
+
+/**
+ * The surface seen from above at a point outside the rooms: an area cut out of another wins, else the highest of the
+ * areas lying there – a terrace drawn on a lawn is on top. The window light at night lies on it, not under it (#893).
+ */
+export function outdoorSurface(floor: Floor, x: number, z: number): number {
+  const inside = (floor.outdoor ?? []).filter((o) => !outdoorStanding(o.type) && o.type !== "pool" && pointInPolygon([x, z], o.points));
+  const cut = [...inside].reverse().find((o) => o.cut);
+  if (cut) return outdoorTopAt(floor, cut, x, z);
+  return inside.length ? Math.max(...inside.map((a) => outdoorTopAt(floor, a, x, z))) : groundLevel(floor);
 }
 
 /** Auto Pro: which entities tell the car's state; null = automatic (an entity of the car's Home Assistant device). */
@@ -1811,7 +1826,8 @@ export const OPENING_DEFAULTS = {
 /** Door looks: room doors, front doors (with glass, one or two sidelights), a glass door, a sliding door. */
 export const DOOR_STYLES = ["interior", "front", "front_glass", "sidelight", "sidelights", "glass", "sliding", "passage"] as const;
 /** "glass_wall": fixed floor-to-ceiling glazing without sashes, slim mullions (an indoor glass wall, #163). */
-export const WINDOW_STYLES = ["standard", "bars", "glass_wall"] as const;
+/** "slide": a lift-and-slide door or sliding window – one pane fixed, the other slides in front of it (#397, #361). */
+export const WINDOW_STYLES = ["standard", "bars", "glass_wall", "slide"] as const;
 export type OpeningStyle = (typeof DOOR_STYLES)[number] | (typeof WINDOW_STYLES)[number];
 
 /** The style an opening is drawn with: its own, or the automatic one for its wall. */
@@ -1880,6 +1896,8 @@ export const OPENING_PRESETS = {
   terrace_double: { type: "window", leaves: 2, width: 1.8, sill: 0, height: 2.1 },
   garage: { type: "garage", leaves: 1, width: 2.5, sill: 0, height: 2.1 },
   glass_wall: { type: "window", leaves: 1, width: 2.0, sill: 0, height: 2.4, style: "glass_wall" },
+  terrace_slide: { type: "window", leaves: 1, width: 2.4, sill: 0, height: 2.15, style: "slide" },
+  window_slide: { type: "window", leaves: 1, width: 1.6, sill: 0.9, height: 1.3, style: "slide" },
 } as const satisfies Record<string, { type: OpeningType; leaves: 1 | 2; width: number; sill: number; height: number; style?: OpeningStyle }>;
 
 export type OpeningPreset = keyof typeof OPENING_PRESETS;
@@ -1888,6 +1906,7 @@ export type OpeningPreset = keyof typeof OPENING_PRESETS;
 export function openingPreset(o: Pick<Opening, "type" | "leaves" | "sill" | "style">): OpeningPreset {
   if (o.type === "garage") return "garage";
   if (o.type === "window" && o.style === "glass_wall") return "glass_wall";
+  if (o.type === "window" && o.style === "slide") return o.sill < 0.1 ? "terrace_slide" : "window_slide";
   const two = o.leaves === 2;
   if (o.type === "door") {
     if (!two && o.style && isFrontDoor(o.style)) return "front";

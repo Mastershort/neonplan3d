@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { Opening } from "../model.ts";
 import type { OpeningInfo } from "./build.ts";
-import { sillBoards, stackedOnOpening } from "./openings.ts";
+import { buildOpeningParts, sillBoards, stackedOnOpening } from "./openings.ts";
 
 /** A window (or door) on the wall along x from (sx, sz), as the floor builder describes it. */
 function info(id: string, sx: number, width: number, sill: number, top: number, extra: Partial<Opening> & { axis?: [number, number]; exterior?: boolean; sz?: number } = {}): OpeningInfo {
@@ -77,4 +77,41 @@ test("a board chosen by hand shows on a window down to the floor; a glass wall h
   assert.deepEqual(sillBoards(glass, [glass]), { inside: false, outside: false });
   const glassBoard = info("gb", 1, 2.4, 0.9, 2.4, { style: "glass_wall", sill_board: "inside" });
   assert.deepEqual(sillBoards(glassBoard, [glassBoard]), { inside: true, outside: false });
+});
+
+test("a top-hung window opens its bottom outwards (#327)", () => {
+  const minN = (top: boolean) => {
+    const w = info("w", 1, 1.2, 0.9, 2.2, { top_hung: top });
+    const parts = buildOpeningParts([w], new Map([["w", { open: 1, tilt: 0, cover: null }]]), 99);
+    const pos = parts.glass.getAttribute("position").array as ArrayLike<number>;
+    // the room lies towards +z (toRoom [0, 1]): outwards is -z
+    let min = Infinity;
+    for (let i = 2; i < pos.length; i += 3) min = Math.min(min, pos[i]);
+    return min;
+  };
+  assert.ok(minN(true) < -0.3, `top-hung glass reaches outside (${minN(true)})`);
+  assert.ok(minN(false) > -0.2, "a turning window opens into the room");
+});
+
+test("a lift-and-slide door slides its pane along the wall, the fixed one stays (#397)", () => {
+  const span = (open: number) => {
+    const w = info("s", 1, 2.4, 0, 2.15, { style: "slide" });
+    const parts = buildOpeningParts([w], new Map([["s", { open, tilt: 0, cover: null }]]), 99);
+    const pos = parts.glass.getAttribute("position").array as ArrayLike<number>;
+    let minX = Infinity;
+    let maxX = -Infinity;
+    let minZ = Infinity;
+    for (let i = 0; i < pos.length; i += 3) {
+      minX = Math.min(minX, pos[i]);
+      maxX = Math.max(maxX, pos[i]);
+      minZ = Math.min(minZ, pos[i + 2]);
+    }
+    return { minX, maxX, minZ };
+  };
+  const shut = span(0);
+  const open = span(1);
+  // closed both panes fill the opening; open, both lie on the hinge half
+  assert.ok(shut.maxX > 3.2, `closed reaches the far end (${shut.maxX})`);
+  assert.ok(open.maxX < 2.4, `open the pane moved over the fixed one (${open.maxX})`);
+  assert.ok(open.minZ > -0.2, "it does not swing out of the wall");
 });

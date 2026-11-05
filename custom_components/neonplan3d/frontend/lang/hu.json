@@ -2282,5 +2282,17 @@
  "print_dot_hint": "Új a támogatóknak: NeonPlan Print",
  "print_editor": "🖨 Nyomtatás 3D-ben",
  "print_editor_hint": "Töltsd fel ott a fájlt.",
- "print_pass_line": "🖨 benne van a NeonPlan Print (béta): a házad 3D-nyomtatásban"
+ "print_pass_line": "🖨 benne van a NeonPlan Print (béta): a házad 3D-nyomtatásban",
+ "marker_show_active": "Csak ha aktív",
+ "floor_copy": "Szint másolása",
+ "floor_copy_name": "{name} (másolat)",
+ "floor_copy_hint": "A szintet még egyszer a ház tetejére teszi: szobák, falak, ablakok, ajtók és bútorok, Home Assistant-kapcsolatok nélkül.",
+ "top_hung": "Felül függesztett (alul kifelé nyílik)",
+ "top_hung_hint": "Az ablak felül függ, alul kifelé nyílik – a nyitott és a bukó állás egyformán néz ki.",
+ "camera_detect_popup": "Új észlelésnél mutassa a képet",
+ "camera_detect_popup_hint": "Camera Cockpit: when the camera detects something new (person, car, motion), its picture shows for 20 seconds at the bottom right – a tap looks through the camera.",
+ "camera_popup_open": "Nézz a kamerán át",
+ "style_slide": "Toló (az egyik szárny a fix elé csúszik)",
+ "preset_terrace_slide": "Emelő-toló ajtó",
+ "preset_window_slide": "Tolóablak"
 }

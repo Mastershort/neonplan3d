@@ -2282,5 +2282,17 @@
  "print_dot_hint": "Nieuw voor supporters: NeonPlan Print",
  "print_editor": "🖨 In 3D printen",
  "print_editor_hint": "Upload het bestand daar.",
- "print_pass_line": "🖨 inclusief NeonPlan Print (bèta): je huis als 3D-print"
+ "print_pass_line": "🖨 inclusief NeonPlan Print (bèta): je huis als 3D-print",
+ "marker_show_active": "Alleen als actief",
+ "floor_copy": "Verdieping dupliceren",
+ "floor_copy_name": "{name} (kopie)",
+ "floor_copy_hint": "Zet de verdieping nog een keer boven op het huis: kamers, muren, ramen, deuren en meubels, zonder koppelingen met Home Assistant.",
+ "top_hung": "Uitzetraam (bovenaan scharnierend, opent onder naar buiten)",
+ "top_hung_hint": "Het raam hangt bovenaan en opent onderaan naar buiten – open en op een kier zien er hetzelfde uit.",
+ "camera_detect_popup": "Beeld tonen bij een nieuwe detectie",
+ "camera_detect_popup_hint": "Camera Cockpit: when the camera detects something new (person, car, motion), its picture shows for 20 seconds at the bottom right – a tap looks through the camera.",
+ "camera_popup_open": "Door de camera kijken",
+ "style_slide": "Schuif (één ruit schuift voor de vaste)",
+ "preset_terrace_slide": "Hefschuifpui",
+ "preset_window_slide": "Schuifraam"
 }

@@ -2282,5 +2282,17 @@
  "print_dot_hint": "Nuevo para supporters: NeonPlan Print",
  "print_editor": "🖨 Imprimir en 3D",
  "print_editor_hint": "Sube el archivo allí.",
- "print_pass_line": "🖨 incluye NeonPlan Print (beta): tu casa en impresión 3D"
+ "print_pass_line": "🖨 incluye NeonPlan Print (beta): tu casa en impresión 3D",
+ "marker_show_active": "Solo si está activo",
+ "floor_copy": "Duplicar planta",
+ "floor_copy_name": "{name} (copia)",
+ "floor_copy_hint": "Pone la planta otra vez encima de la casa: habitaciones, paredes, ventanas, puertas y muebles, sin enlaces a Home Assistant.",
+ "top_hung": "Proyectante (se abre hacia fuera por abajo)",
+ "top_hung_hint": "La ventana cuelga arriba y se abre hacia fuera por abajo; abierta y entreabierta se ven igual.",
+ "camera_detect_popup": "Mostrar la imagen al detectar algo nuevo",
+ "camera_detect_popup_hint": "Camera Cockpit: when the camera detects something new (person, car, motion), its picture shows for 20 seconds at the bottom right – a tap looks through the camera.",
+ "camera_popup_open": "Mirar a través de la cámara",
+ "style_slide": "Corredera (una hoja se desliza delante de la fija)",
+ "preset_terrace_slide": "Puerta elevadora corredera",
+ "preset_window_slide": "Ventana corredera"
 }

@@ -252,7 +252,8 @@ export class Fp3dView3d extends LitElement {
     hass: { attribute: false },
     building: { attribute: false },
     planId: { attribute: false },
-    rooms: { attribute: false },
+    // compared by content: the card hands a new array on every render, and a "change" would reset the view (#956)
+    rooms: { attribute: false, hasChanged: (a: string[] | null, b: string[] | null) => (a ?? []).join(",") !== (b ?? []).join(",") },
     noSave: { attribute: false },
     floorId: { attribute: false },
     roomId: { attribute: false },
@@ -302,6 +303,7 @@ export class Fp3dView3d extends LitElement {
     _swipe: { state: true },
     _menu: { state: true },
     _through: { state: true },
+    _camPop: { state: true },
     _blend: { state: true },
     _wallBig: { state: true },
     _find: { state: true },
@@ -496,6 +498,10 @@ export class Fp3dView3d extends LitElement {
   /** Quick menu at a device (long press). */
   private declare _menu: { entity: string; x: number; y: number; car?: CarState; doorLock?: boolean } | null;
   /** Looking through a camera: its live picture lies over the 3D view; `back` is the view to return to. */
+  /** Kamera-Cockpit: the camera whose new detection shows as a pop-up (#442), until when. */
+  private declare _camPop: { entity: string; text: string; until: number; src: string | null } | null;
+  /** Detections already shown as a pop-up (sensor and the moment it went on). */
+  private popSeen = new Set<string>();
   private declare _through: { entity: string; back: ReturnType<FloorplanViewer["getView"]> } | null;
   /** Camera wall: the camera shown big (null: all tiles). */
   private declare _wallBig: string | null;
@@ -1826,7 +1832,9 @@ export class Fp3dView3d extends LitElement {
     const out: (DeviceMarker & { pin: boolean })[] = [];
     // cameras whose detection pins are switched off: only their wedge turns red (#267)
     const quiet = new Set(this.building?.floors.flatMap((f) => f.placements.filter((p) => p.detect_pins === false).map((p) => p.entity_id)) ?? []);
+    const popups = new Set(this.building?.floors.flatMap((f) => f.placements.filter((p) => p.detect_popup).map((p) => p.entity_id)) ?? []);
     for (const cam of markers) {
+      if (popups.has(cam.id) && cam.model?.startsWith("camera")) this.popOnDetection(hass, cam.id);
       if (!cam.model?.startsWith("camera") || quiet.has(cam.id)) continue;
       // a detection stays as a pin for two minutes after the sensor dropped back (Reolink and the like hold it
       // only for seconds), with the time it was seen
@@ -3705,6 +3713,8 @@ export class Fp3dView3d extends LitElement {
     if (this.furnish && !m.fromFurniture) return true;
     // the device's own setting wins over the marker mode (except "none", which hides every marker)
     if (m.show === "never" || this.markerMode === "none") return false;
+    // "only while active" (#337): the pin of a door contact or a plug shows while it is open or on, whatever the mode
+    if (m.show === "active") return m.active;
     if (m.show === "always" || this.markerMode === "all") return true;
     // only in rooms: none in the house and floor views, in an open room every symbol of that room (D477)
     if (this.markerMode === "room") return this.inOpenRoom(m);
@@ -4072,17 +4082,24 @@ export class Fp3dView3d extends LitElement {
    * biggest) and walks – dragging looks around, a tap on the floor walks there through the doors, keys or the
    * stick move; walls stop you. The house lives on around you: lights, screens, sunlight.
    */
+  /** The walk from the room open in the panel (its 🚶 button, #950). */
+  walkHere(): void {
+    void this.startWalk();
+  }
+
   private async startWalk(): Promise<void> {
     countView("walk");
     const b = this.building;
     const v = this.viewer;
     if (!b || !v || this._walk) return;
+    const roomId = this.roomId;
     const withRooms = b.floors.filter((f) => f.rooms.some((r) => r.points.length >= 3));
-    const byRoom = this.roomId ? withRooms.find((f) => f.rooms.some((r) => r.id === this.roomId)) : undefined;
+    const byRoom = roomId ? withRooms.find((f) => f.rooms.some((r) => r.id === roomId)) : undefined;
     const floor = byRoom ?? withRooms.find((f) => f.id === this.floorId) ?? [...withRooms].sort((x, y) => Math.abs(x.elevation) - Math.abs(y.elevation))[0];
     if (!floor) return;
     const mod = await load3d();
     this._walk = { room: null, hint: true };
+    this.walkChanged(true);
     await this.updateComplete;
     const surface = this.renderRoot.querySelector<HTMLElement>(".fp3d-walk-surface");
     if (!surface) return;
@@ -4090,7 +4107,7 @@ export class Fp3dView3d extends LitElement {
     v.setFloor(floor.id, false);
     v.setWallMode("auto");
     const map = new mod.FloorMap(b, floor);
-    const room = this.roomId ? floor.rooms.find((r) => r.id === this.roomId) : undefined;
+    const room = roomId ? floor.rooms.find((r) => r.id === roomId) : undefined;
     let start;
     if (room) {
       const c = map.freeNear(centroid(room.points));
@@ -4114,6 +4131,11 @@ export class Fp3dView3d extends LitElement {
     }, 9000);
   }
 
+  /** The host hides its room panel while one walks (the room stays chosen, so the view does not fly away). */
+  private walkChanged(walking: boolean): void {
+    this.dispatchEvent(new CustomEvent("walk-change", { detail: { walking }, bubbles: true, composed: true }));
+  }
+
   private stopWalk(): void {
     if (!this.walker && !this._walk) return;
     this.walker?.dispose();
@@ -4122,6 +4144,7 @@ export class Fp3dView3d extends LitElement {
     this.walkKeys = null;
     this._walk = false;
     this.walkRoomPts = null;
+    this.walkChanged(false);
     const v = this.viewer;
     if (v) {
       v.setWallMode(this.wallMode);
@@ -4965,6 +4988,11 @@ export class Fp3dView3d extends LitElement {
         }
       },
       notify: (text) => this.showNote(text),
+      tour: (stops, speak) => {
+        const items = this.spokenDevices(hass, b, synonyms).items;
+        const talk = speak ? (t: string) => loadVoice().then((v) => v.speak(hass, t, voicePipeline())) : null;
+        void this.runTour(stops, b, items, talk);
+      },
       occupied: () => this.occupiedRooms(hass, b),
       speakers: () => this.planSpeakers(hass, b),
     };
@@ -5480,6 +5508,41 @@ export class Fp3dView3d extends LitElement {
     return this.live.el;
   }
 
+  /** A detection of the camera that just went on opens its picture as a pop-up for 20 s (#442), once per detection. */
+  private popOnDetection(hass: HomeAssistant, camera: string): void {
+    const now = this.now();
+    for (const id of cameraMotionSensors(hass, camera)) {
+      const st = hass.states[id];
+      if (st?.state !== "on" || !st.last_changed) continue;
+      const at = Date.parse(st.last_changed);
+      const key = `${id}@${st.last_changed}`;
+      // only what is new: an old detection seen when the page opens does not pop up
+      if (this.popSeen.has(key) || now - at > 30_000) continue;
+      this.popSeen.add(key);
+      if (this.popSeen.size > 200) this.popSeen = new Set([...this.popSeen].slice(-50));
+      const cam = hass.states[camera];
+      const picture = cam?.attributes.entity_picture as string | undefined;
+      const src = picture && !isUnavailable(cam) ? (picture.startsWith("data:") ? picture : `${picture}${picture.includes("?") ? "&" : "?"}fp3d=${Date.now()}`) : null;
+      this._camPop = { entity: camera, text: `${translate(hass, `detect_${detectionKind(hass, id)}` as I18nKey)} · ${entityName(hass, camera)}`, until: now + 20_000, src };
+      clearTimeout(this.camPopTimer);
+      this.camPopTimer = setTimeout(() => (this._camPop = null), 20_000);
+      return;
+    }
+  }
+
+  private camPopTimer: ReturnType<typeof setTimeout> | undefined;
+
+  private renderCamPop() {
+    const p = this._camPop;
+    if (!p || !this.hass || this._through) return nothing;
+    return html`<div class="fp3d-campop" role="status">
+      <button class="fp3d-campop-img" title=${translate(this.hass, "camera_popup_open")} @click=${() => ((this._camPop = null), this.lookThrough(p.entity))}>
+        ${p.src ? html`<img src=${p.src} alt="" />` : nothing}
+      </button>
+      <div class="fp3d-campop-bar"><span>${p.text}</span><button class="fp3d-chip" aria-label=${translate(this.hass, "close")} @click=${() => (this._camPop = null)}>✕</button></div>
+    </div>`;
+  }
+
   private renderThrough() {
     const t = this._through;
     if (!t || !this.hass) return nothing;
@@ -5854,7 +5917,7 @@ export class Fp3dView3d extends LitElement {
       style=${style}
     >
       ${this._error ? html`<p class="fp3d-error">${this._error}</p>` : nothing} ${this.clean ? nothing : this.renderEnergy()} ${this.renderHologram()} ${this.clean ? nothing : this.renderLegend()}
-      ${this.renderClock()} ${this.renderAlerts()} ${this.clean || this._walk ? nothing : html`${this.renderHousehold()} ${this.renderThumbs()} ${this.renderScenes()} ${this.renderFind()} ${this.renderCentral()}`} ${this.clean ? nothing : this.renderWalk()} ${this.renderSwipe()} ${this.renderInfo()} ${this.renderBinInfo()} ${this.renderGangMenu()} ${this.renderThrough()} ${this.renderCameraWall()} ${this.renderSheet()} ${this.renderSettings()} ${this.renderNote()}
+      ${this.renderClock()} ${this.renderAlerts()} ${this.clean || this._walk ? nothing : html`${this.renderHousehold()} ${this.renderThumbs()} ${this.renderScenes()} ${this.renderFind()} ${this.renderCentral()}`} ${this.clean ? nothing : this.renderWalk()} ${this.renderSwipe()} ${this.renderInfo()} ${this.renderBinInfo()} ${this.renderGangMenu()} ${this.renderThrough()} ${this.renderCamPop()} ${this.renderCameraWall()} ${this.renderSheet()} ${this.renderSettings()} ${this.renderNote()}
       ${this.clean ? nothing : this.renderProHint()} ${this.renderMenu()} ${this.renderEye()}
       ${this.renderMic()}
       ${this._announce ? html`<div class="fp3d-announce" role="status" @click=${() => (this._announce = null)}>📢 ${this._announce}</div>` : nothing}
@@ -6399,7 +6462,9 @@ export class Fp3dView3d extends LitElement {
       .fp3d-person[hidden] {
         display: none;
       }
-      .fp3d-no-room-names .fp3d-pin {
+      /* room names off: the pins go, but the "values" stay (without the name) */
+      .fp3d-no-room-names .fp3d-pin:not(.fp3d-pin-info),
+      .fp3d-no-room-names .fp3d-pin-info .fp3d-pin-name {
         display: none !important;
       }
       /* tablet level: blur over the canvas and glowing shadows are expensive on weak GPUs */
@@ -7170,6 +7235,43 @@ export class Fp3dView3d extends LitElement {
         box-shadow: var(--fp3d-shadow);
         z-index: 9;
         pointer-events: none;
+      }
+      /* a camera's new detection as a small picture (#442) */
+      .fp3d-campop {
+        position: absolute;
+        right: 12px;
+        bottom: calc(var(--fp3d-bottom-inset, 0px) + 64px);
+        z-index: 5;
+        width: min(360px, 70vw);
+        border-radius: 14px;
+        overflow: hidden;
+        background: rgba(8, 16, 34, 0.9);
+        border: 1px solid rgba(255, 120, 120, 0.6);
+        box-shadow: 0 0 26px rgba(255, 80, 80, 0.35);
+      }
+      .fp3d-campop-img {
+        display: block;
+        width: 100%;
+        aspect-ratio: 16 / 9;
+        padding: 0;
+        border: 0;
+        background: #000;
+        cursor: pointer;
+      }
+      .fp3d-campop-img img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+      }
+      .fp3d-campop-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        padding: 6px 10px;
+        font-size: 13px;
+        color: #ffd6d6;
       }
       .fp3d-through {
         position: absolute;

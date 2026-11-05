@@ -5,7 +5,7 @@ import { linesField } from "./lines-field.ts";
 import { unsafeHTML } from "lit/directives/unsafe-html.js";
 import { ref } from "lit/directives/ref.js";
 import { fetchImage, getLicense, importPack, listHistory, restoreSnapshot, storeImage, takeSnapshot, type Snapshot, getVoiceSettings, setVoiceSentences, type SentenceMode } from "../api.ts";
-import { download, exportFile, parseExport } from "../transfer.ts";
+import { copyFloor, download, exportFile, parseExport } from "../transfer.ts";
 import { carEntities, type CarEntities, areaEntities, autoPlace, hiddenInHa, CLIMATE_CLASSES, defaultHeight, entityName, entityAreaId, furnitureEntities, groupByDevice, hasScreen, isMediaFurniture, isPlaceable, isRoomClimateSensor, kindOf, openingEntities, otherAreaEntities, pictureRuleMatches, roomClimateSensors, roomPanelEntities, unassignedEntities, windowPosition, type ClimateKey } from "../devices.ts";
 import { furnitureSymbol } from "./furniture2d.ts";
 import { clipConvex, netRoomArea } from "../geometry/area.ts";
@@ -3144,6 +3144,20 @@ export class Fp3dEditor extends LitElement {
     const next = structuredClone(this._doc);
     [next.floors[i], next.floors[j]] = [next.floors[j], next.floors[i]];
     this.setDoc(next);
+  }
+
+  /** The floor once more on top of the house (#443), without its links to Home Assistant. */
+  private duplicateFloor(): void {
+    const floor = this.floor;
+    if (!floor) return;
+    const copy = copyFloor(this._doc, floor.id, uid, this.t("floor_copy_name", { name: floor.name }), floorElevation(this._doc.floors, null));
+    if (!copy) return;
+    const next = structuredClone(this._doc);
+    next.floors.push(copy);
+    this.setDoc(next);
+    this._floorId = copy.id;
+    this._roomId = null;
+    this.fit();
   }
 
   private deleteFloor(): void {
@@ -10343,6 +10357,17 @@ export class Fp3dEditor extends LitElement {
         const midP: Vec2 = [(p0[0] + p1[0]) / 2, (p0[1] + p1[1]) / 2];
         const m0 = q(midP, across[0]);
         const m1 = q(midP, -across[1]);
+        if (style === "slide") {
+          // a sliding pane: the fixed half on the outer line, the sliding half on the inner one, overlapping in the middle
+          const hingeAtP0 = (o.hinge === "left") === sgn > 0;
+          const t = (k: number): Vec2 => [p0[0] + (p1[0] - p0[0]) * k, p0[1] + (p1[1] - p0[1]) * k];
+          const [f0, f1, s0, s1] = hingeAtP0 ? [t(0), t(0.55), t(0.45), t(1)] : [t(0.45), t(1), t(0), t(0.55)];
+          const lf0 = q(f0, mid - 0.04);
+          const lf1 = q(f1, mid - 0.04);
+          const ls0 = q(s0, mid + 0.04);
+          const ls1 = q(s1, mid + 0.04);
+          symbol = svg`<line x1=${lf0[0]} y1=${lf0[1]} x2=${lf1[0]} y2=${lf1[1]} /><line x1=${ls0[0]} y1=${ls0[1]} x2=${ls1[0]} y2=${ls1[1]} />`;
+        } else
         symbol = svg`<line x1=${a0[0]} y1=${a0[1]} x2=${a1[0]} y2=${a1[1]} /><line x1=${b0[0]} y1=${b0[1]} x2=${b1[0]} y2=${b1[1]} />${
           o.leaves === 2 ? svg`<line x1=${m0[0]} y1=${m0[1]} x2=${m1[0]} y2=${m1[1]} />` : nothing
         }`;
@@ -10766,6 +10791,7 @@ export class Fp3dEditor extends LitElement {
                 ? html`<div class="fp3d-actions fp3d-wide">
                     <button class="fp3d-btn" title=${this.t("floor_order_hint")} @click=${() => this.moveFloor(1)}>${this.t("move_up")}</button>
                     <button class="fp3d-btn" title=${this.t("floor_order_hint")} @click=${() => this.moveFloor(-1)}>${this.t("move_down")}</button>
+                    <button class="fp3d-btn" title=${this.t("floor_copy_hint")} @click=${() => this.duplicateFloor()}>${this.t("floor_copy")}</button>
                     <button class="fp3d-btn fp3d-danger" @click=${() => this.deleteFloor()}>${this.t("delete_floor")}</button>
                   </div>
                   <div class="fp3d-actions fp3d-wide">
@@ -11250,6 +11276,12 @@ export class Fp3dEditor extends LitElement {
         ${this.len(this.t("width"), o.width, (v) => this.updateOpening({ width: Math.max(0.3, v) }), 0.01, 0.3)}
         ${this.len(this.t("opening_position"), o.offset, (v) => this.updateOpening({ offset: Math.max(0, v) }), 0.01, 0)}
         ${window ? this.len(this.t("sill"), o.sill, (v) => this.updateOpening({ sill: Math.max(0, v) }), 0.01, 0) : nothing}
+        ${window
+          ? html`<label class="fp3d-check fp3d-wide" title=${this.t("top_hung_hint")}
+              ><input type="checkbox" .checked=${!!o.top_hung} ?disabled=${!admin} @change=${(ev: Event) => this.updateOpening({ top_hung: (ev.target as HTMLInputElement).checked })} />
+              ${this.t("top_hung")}</label
+            >`
+          : nothing}
         ${this.len(this.t("opening_height"), o.height, (v) => this.updateOpening({ height: Math.max(0.3, v) }), 0.01, 0.3)}
         ${window && this.isAdmin
           ? html`<div class="fp3d-actions fp3d-wide">
@@ -11458,9 +11490,9 @@ export class Fp3dEditor extends LitElement {
           </select></label
         >
         ${this.len(this.t("x"), f.x, (v) => this.updateFurniture({ x: v }))} ${this.len(this.t("z"), f.z, (v) => this.updateFurniture({ z: v }))}
-        ${this.len(this.t("width"), f.w, (v) => this.updateFurniture({ w: Math.max(0.01, v) }), 0.01, 0.01)}
+        ${this.len(this.t(f.type === "led_strip" ? "strip_length" : "width"), f.w, (v) => this.updateFurniture({ w: Math.max(0.01, v) }), 0.01, 0.01)}
         ${this.len(this.t("depth"), f.d, (v) => this.updateFurniture({ d: Math.max(0.01, v) }), 0.01, 0.01)}
-        ${this.len(this.t("height_m"), f.h, (v) => this.updateFurniture({ h: Math.max(0.005, v) }), 0.01, 0)}
+        ${this.len(this.t(f.type === "led_strip" ? "strip_thickness" : "height_m"), f.h, (v) => this.updateFurniture({ h: Math.max(0.005, v) }), 0.01, 0)}
         ${this.num(this.t("rotation"), f.rotation, (v) => this.updateFurniture({ rotation: ((v % 360) + 360) % 360 }), 1)}
         ${isLamp(f.type)
           ? nothing
@@ -13003,6 +13035,10 @@ export class Fp3dEditor extends LitElement {
             <label class="fp3d-check fp3d-wide" title=${this.t("camera_detect_pins_hint")}
               ><input type="checkbox" .checked=${pl.detect_pins !== false} ?disabled=${!admin} @change=${(ev: Event) => this.updateDevice({ detect_pins: (ev.target as HTMLInputElement).checked ? null : false })} />
               ${this.t("camera_detect_pins")}</label
+            >
+            <label class="fp3d-check fp3d-wide" title=${this.t("camera_detect_popup_hint")}
+              ><input type="checkbox" .checked=${!!pl.detect_popup} ?disabled=${!admin} @change=${(ev: Event) => this.updateDevice({ detect_popup: (ev.target as HTMLInputElement).checked })} />
+              ${this.t("camera_detect_popup")}</label
             >
             <p class="fp3d-sub fp3d-wide">${this.t("camera_aim_hint")}</p>
             ${this.renderCameraDetections(pl.entity_id)}`

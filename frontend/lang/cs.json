@@ -2282,5 +2282,17 @@
  "print_dot_hint": "Novinka pro supportery: NeonPlan Print",
  "print_editor": "🖨 Tisknout ve 3D",
  "print_editor_hint": "Nahraj tam soubor.",
- "print_pass_line": "🖨 včetně NeonPlan Print (beta): tvůj dům jako 3D tisk"
+ "print_pass_line": "🖨 včetně NeonPlan Print (beta): tvůj dům jako 3D tisk",
+ "marker_show_active": "Jen když je aktivní",
+ "floor_copy": "Duplikovat podlaží",
+ "floor_copy_name": "{name} (kopie)",
+ "floor_copy_hint": "Položí podlaží ještě jednou navrch domu: místnosti, stěny, okna, dveře a nábytek, bez propojení s Home Assistantem.",
+ "top_hung": "Výklopné ven (závěs nahoře)",
+ "top_hung_hint": "Okno visí nahoře a dole se otevírá ven – otevřené a vyklopené vypadá stejně.",
+ "camera_detect_popup": "Při nové detekci krátce ukázat obraz",
+ "camera_detect_popup_hint": "Camera Cockpit: when the camera detects something new (person, car, motion), its picture shows for 20 seconds at the bottom right – a tap looks through the camera.",
+ "camera_popup_open": "Dívat se kamerou",
+ "style_slide": "Posuvné (křídlo zajede před pevné)",
+ "preset_terrace_slide": "Zvedací posuvné dveře",
+ "preset_window_slide": "Posuvné okno"
 }

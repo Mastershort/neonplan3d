@@ -4,6 +4,28 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 [releases page](https://github.com/Mastershort/neonplan3d/releases). Ideas and votes:
 [Discussions → Ideas](https://github.com/Mastershort/neonplan3d/discussions/categories/ideas).
 
+## 3.0.1
+
+### Added
+- Pins can show **only while active** (on, open, detected) – per device under "Marker in 3D" (#337, thanks for the idea).
+- **Duplicate floor** in the floor settings: rooms, walls, windows, doors and furniture once more on top of the house, without the links to Home Assistant (#443).
+- **Top-hung windows** that open outwards at the bottom, common in Scandinavia (#327).
+- **Lift-and-slide doors and sliding windows** (new presets, window style "Sliding"): one pane stands, the other slides in front of it as far as its contact says (#397, #361 and their many duplicates).
+- Kamera-Cockpit: a camera can **pop up its picture** for 20 seconds when it detects something new; a tap looks through it (#442).
+- Durchsagen and Das Haus antwortet are out of the beta.
+- **Walk from a room:** a room's panel has a 🚶 button that starts the walk right in that room – with the panel open, the walk button at the top right is hidden (#950, thanks PetrMa).
+
+### Fixed
+- Several radiators on one thermostat each show their pin with the temperature and keep their own icon (only the last one showed before) (#932, thanks skywalker and EduK85).
+- **LED strip sizes named clearly:** a strip's form now says **Length** and **Thickness** instead of width and height – a strip set to 3 cm wide and 2.4 m high was 3 cm long and 2.4 m thick, its light sat in the middle of that block (Discord, David F).
+- **Values without room names:** with the room names switched off, **Values** now still shows each room's temperature, humidity and CO₂ – without the name (wish from Discord, RH and David F).
+- **Window light at night under a terrace:** where a terrace or a path is drawn on a lawn, the light falling out of a window lay at the lawn's height and the terrace covered it – seen from close up it went missing piece by piece. It now lies on the surface on top (#893, thanks @1970lexi).
+- **Cards for some rooms can be turned again:** a card with `rooms:` flew back to its start view at every state change (the rooms looked new each time). Thanks to bpaludo for the exact analysis (#956).
+- **Light no longer passes through walls into the next room:** a lamp hidden behind a wall of its own room (round the corner, behind a pillar) still sent its light through a door into the next room or out onto the terrace (#954, thanks rolandarends). Outdoor lamps are stopped by every wall of the house as well.
+- **Outdoor light ends exactly at a surface's edge:** the light cells on terraces, paths and lawns are now cut to the area's outline – no lit strip past a terrace, no dark strip along its edge – and where areas lie on top of each other the higher surface takes the light (a slab over its beams) (#957, thanks grzegorz914).
+- **Camera fields of view without a black edge:** in the Day look a camera's wedge reaching past the house drew a black half-circle over the background; it now fades out to transparent in every look (#955, thanks rolandarends).
+- **Auto finds slow wall tablets by their frame rate too:** when the view turns at under 20 frames a second, "Auto" switches to the tablet level and keeps it on that device – before, only few cores, little memory or a Fire tablet did that (#952, thanks zanzei26).
+
 ## 3.0.0
 
 ### New
