@@ -111,7 +111,7 @@ export class SunFx {
     const dark = new Mesh(flat(tris), new MeshBasicMaterial({ color: 0xffffff, side: DoubleSide }));
     const clearPts: number[] = [];
     for (const poly of holes) for (const t of triangulate(poly)) for (const k of t) clearPts.push(poly[k][0], poly[k][1]);
-    const clear = new Mesh(flat(clearPts), new MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0, blending: NoBlending, side: DoubleSide }));
+    const clear = new Mesh(flat(clearPts), new MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0, blending: NoBlending, side: DoubleSide, forceSinglePass: true }));
     clear.renderOrder = 1;
     scene.add(dark, clear);
     const camera = new OrthographicCamera(x0, x1, -z0, -z1, 0.1, 10);

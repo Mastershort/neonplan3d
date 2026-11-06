@@ -4,6 +4,14 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 [releases page](https://github.com/Mastershort/neonplan3d/releases). Ideas and votes:
 [Discussions → Ideas](https://github.com/Mastershort/neonplan3d/discussions/categories/ideas).
 
+## 3.0.2
+
+### Fixed
+- **Light out of the windows follows the lamp's real brightness:** a lamp dimmed to 1 % still threw its full colour out of the floor-deep windows onto the terrace (its room keeps a faint glow so a dimmed lamp stays visible, the window light no longer does) (#954, thanks rolandarends).
+- **Motion, door and presence sensors show no watts:** a binary sensor's pin took the power meter of its device (a wired presence sensor, a hub) and said "3 W" at a motion sensor; it no longer does, also in the room view (#337, thanks frops83).
+- **Fewer passes on wall tablets:** see-through surfaces drawn from both sides (glass, light cones, water, screens) are drawn in one pass instead of two – about a tenth of the frame time on a slow mirror, no visible change (#952, thanks zanzei26 for the profile).
+- **Waste bins with dates written as 17-11-2026:** a sensor whose state holds a day-first date with dashes (Afvalbeheer and others) showed "2026 days" until pickup; such dates are read now, and the integration's own `Days_until` attribute is used when it is there (#962, thanks vermeerschn).
+
 ## 3.0.1
 
 ### Added

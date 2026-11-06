@@ -195,6 +195,18 @@ test("a sensor's free text: the days, not another number in it (D576)", () => {
   assert.equal(sensorDays(st("Tonne 120 l, 5")), 5);
 });
 
+test("a day-first date with dashes and Afvalbeheer's Days_until (#962)", () => {
+  const now = new Date(2026, 10, 6, 9, 0);
+  const st = (state: string, attributes: Record<string, unknown> = {}) => ({ entity_id: "sensor.afval", state, attributes });
+  assert.equal(sensorDays(st("17-11-2026"), now), 11);
+  assert.equal(sensorDays(st("Maandag, 09-11-2026"), now), 3);
+  assert.equal(sensorDays(st("Donderdag, 12-11-2026"), now), 6);
+  // a range of days is no date
+  assert.equal(sensorDays(st("in 2-4 days"), now), 4);
+  assert.equal(sensorDays(st("Maandag, 09-11-2026", { Days_until: 3 }), now), 3);
+  assert.equal(sensorDays(st("whatever", { Days_until: "5" }), now), 5);
+});
+
 test("a sensor's date in its text: Waste Collection Schedule's formats (1.20.1 took the year for the days)", () => {
   const now = new Date(2026, 9, 19, 9, 0);
   const st = (state: string) => ({ entity_id: "sensor.bio", state, attributes: {} });

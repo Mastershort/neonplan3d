@@ -56,6 +56,9 @@ test("a placed device reports power through a sensor of the same device", () => 
   const hass = hassForHouse();
   assert.equal(powerSensorFor(hass, "switch.tv"), "sensor.tv_power");
   assert.equal(powerSensorFor(hass, "sensor.fridge_power"), "sensor.fridge_power");
+  // a motion sensor on the same device never carries that meter (#337)
+  hass.entities!["binary_sensor.tv_motion"] = { entity_id: "binary_sensor.tv_motion", device_id: "d1" } as never;
+  assert.equal(powerSensorFor(hass, "binary_sensor.tv_motion"), null);
   const consumers = findConsumers(hass, house());
   assert.deepEqual(
     consumers.map((c) => [c.id, c.power]),
