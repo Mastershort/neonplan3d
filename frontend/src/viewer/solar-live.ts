@@ -75,7 +75,7 @@ export function writeSolarLevels(live: SolarLive, levels: ReadonlyMap<string, nu
 
 /** The overlay material: cell lines and the sweeping band, driven by the shared flow clock (seconds). */
 export function solarLiveMaterial(time: { value: number }): MeshBasicMaterial {
-  const m = new MeshBasicMaterial({ transparent: true, blending: AdditiveBlending, depthWrite: false, side: DoubleSide });
+  const m = new MeshBasicMaterial({ transparent: true, blending: AdditiveBlending, depthWrite: false, side: DoubleSide, forceSinglePass: true });
   m.onBeforeCompile = (shader) => {
     shader.uniforms.uFlowTime = time;
     shader.vertexShader = shader.vertexShader
