@@ -4,6 +4,11 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 [releases page](https://github.com/Mastershort/neonplan3d/releases). Ideas and votes:
 [Discussions → Ideas](https://github.com/Mastershort/neonplan3d/discussions/categories/ideas).
 
+## Unreleased
+
+### Fixed
+- **Waste bins with dates written as 17-11-2026:** a sensor whose state holds a day-first date with dashes (Afvalbeheer and others) showed "2026 days" until pickup; such dates are read now, and the integration's own `Days_until` attribute is used when it is there (#962, thanks vermeerschn).
+
 ## 3.0.1
 
 ### Added
