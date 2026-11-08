@@ -4,6 +4,18 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 [releases page](https://github.com/Mastershort/neonplan3d/releases). Ideas and votes:
 [Discussions → Ideas](https://github.com/Mastershort/neonplan3d/discussions/categories/ideas).
 
+## 3.0.3
+
+### Added
+- **Fixed colour in 3D** for a lamp: it always glows in the chosen colour, whatever its light reports; on/off and brightness still follow the light. The older option now says what it does: "Glow only while the light shows this colour" (#977, thanks chRyX-giT).
+
+### Fixed
+- **Keep view** also holds the camera between the house view and a floor, not only from floor to floor (#968, thanks RkcCorian).
+- **Time travel on outdoor areas:** a balcony or terrace with an area of its own kept its live values while scrubbing; its sensors replay now (#974, thanks AlBertyBundy).
+- **Household Pro for pack appliances:** the kitchen pack's built-in dishwasher and oven (and any pack washer, dryer, dishwasher or oven) get the time-left and door-sensor fields, the "Done!" pin and the glow while they run (#973, thanks grzegorz914).
+- **Roof windows in a room card:** a card without the top floor drew the roof's windows in the air over the floor shown; such a card shows no roof at all now, like the floor view (#967, thanks RkcCorian).
+- **Fewer passes on wall tablets, part two:** the floor shadows, the light on floors and walls and two fun-pack surfaces are drawn in one pass as well (#952, thanks zanzei26 for measuring).
+
 ## 3.0.2
 
 ### Fixed

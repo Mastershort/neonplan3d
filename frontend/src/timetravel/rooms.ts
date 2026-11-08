@@ -2,7 +2,7 @@
 // names in the events sheet. Rooms come from Home Assistant's areas, the devices placed in the plan, linked
 // furniture and the windows' sensors.
 
-import { pointInPolygon, type Building } from "../model.ts";
+import { pointInPolygon, zonesOf, type Building } from "../model.ts";
 import { entityAreaId } from "../devices.ts";
 import type { HomeAssistant } from "../types.ts";
 import type { HistorySpec } from "./types.ts";
@@ -38,7 +38,8 @@ export function roomEntities(hass: HomeAssistant, building: Building, spec: Pick
   const openings = new Map(spec.openings);
   const furniture = new Map(spec.furniture);
   for (const floor of building.floors) {
-    for (const room of floor.rooms) {
+    // the rooms and the outdoor areas with an area of their own (a balcony with its sensor, #974)
+    for (const room of zonesOf(floor)) {
       if (room.points.length < 3) continue;
       const ids = new Set<string>(room.area_id ? (byArea.get(room.area_id) ?? []) : []);
       for (const p of floor.placements) if (pointInPolygon([p.x, p.z], room.points)) ids.add(p.entity_id);

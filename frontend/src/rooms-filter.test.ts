@@ -73,6 +73,17 @@ test("the wall shared with a hidden room keeps the inner wall's thickness", () =
   assert.equal(both[0].wall_thickness, undefined);
 });
 
+test("a card without the top floor shows no roof: it would come down onto the next floor, roof windows in the air (#967)", () => {
+  const b = house();
+  b.settings = { ...b.settings, roof: { ...b.settings.roof, type: "gable" } };
+  assert.equal(roomsOnly(b, ["kids"]).settings.roof.type, "none");
+  assert.equal(roomsOnly(b, ["attic"]).settings.roof.type, "gable");
+  assert.equal(roomsOnly(b, ["kids", "attic"]).settings.roof.type, "gable");
+  // a house without a roof stays as it is
+  b.settings = { ...b.settings, roof: { ...b.settings.roof, type: "none" } };
+  assert.equal(roomsOnly(b, ["kids"]).settings, b.settings);
+});
+
 test("rooms the plan no longer has are left out of a card's list", () => {
   assert.deepEqual(shownRoomIds(house(), ["kids", "gone"]), ["kids"]);
   assert.deepEqual(shownRoomIds(house(), []), []);

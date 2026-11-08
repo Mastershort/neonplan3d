@@ -480,6 +480,24 @@ export function householdEntities(f: Furniture): EntityRef[] {
 
 // ---------------------------------------------------------------- Haushalt Pro, part 2: plants, appliances, upkeep, fridge
 
+/** An appliance that runs a programme: it tells its time left and "Done!" until its door opens. */
+export type ApplianceKind = "washer" | "dryer" | "dishwasher" | "oven";
+
+/**
+ * What programme appliance an item is: the built-in washer, dryer and dishwasher, and the pack items that are one
+ * (the kitchen pack's built-in dishwasher and oven, #973), by their id; null for anything else.
+ */
+export function applianceOf(type: string): ApplianceKind | null {
+  if (type === "washer" || type === "dryer" || type === "dishwasher") return type;
+  const id = packItem(type)?.id;
+  if (!id) return null;
+  if (/dishwasher|geschirr/.test(id)) return "dishwasher";
+  if (/dryer|trockner/.test(id)) return "dryer";
+  if (/washer|washing|waschmaschine/.test(id)) return "washer";
+  if (/oven|cooker|backofen/.test(id)) return "oven";
+  return null;
+}
+
 /** The number of an entity's state, when it is one. */
 const num = (st: HassEntity | undefined): number | null => {
   const n = st ? Number(st.state) : NaN;

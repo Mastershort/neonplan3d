@@ -31,6 +31,7 @@ import { carState, type CarState, heatSensorOn, roomClimateValue,
   climateModeGlow,
   cooktopLevel,
   onlyColor,
+  fixedGlowColor,
   fanSpeed,
   apOnline,
   isPulseDrive,
@@ -38,7 +39,7 @@ import { carState, type CarState, heatSensorOn, roomClimateValue,
 } from "../devices.ts";
 import { alertColor, alertEntities, alertSources, alertText, findAlerts, isOutage, type Alert, type AlertSources } from "../alerts.ts";
 import { iconPath, iconSvg, mdiIcon } from "../icons.ts";
-import { applianceIdle, binColors, binDue, binNext, binOut, binOutToggleable, binTagsShown, doorsOf, fetchPickups, FinishedMemory, fridgeOpenTooLong, groupTags, hassCountry, isFinishedState, mailboxPost, nextFridgeCheck, plantThirsty, remainingMinutes, remainingText, servicesDue, setHouseholdCountry, wasteCalendars, isPackPlant, type HouseholdItem, type HouseholdTag, type Pickup } from "../household.ts";
+import { applianceIdle, applianceOf, type ApplianceKind, binColors, binDue, binNext, binOut, binOutToggleable, binTagsShown, doorsOf, fetchPickups, FinishedMemory, fridgeOpenTooLong, groupTags, hassCountry, isFinishedState, mailboxPost, nextFridgeCheck, plantThirsty, remainingMinutes, remainingText, servicesDue, setHouseholdCountry, wasteCalendars, isPackPlant, type HouseholdItem, type HouseholdTag, type Pickup } from "../household.ts";
 import { deviceSensors, energySummary, fetchSolarRows, fetchTodayChange, fieldLevels, fieldPowers, findConsumers, flowColor, flowSegments, gridPoint, powerSensorFor, readPower, solarCurvePath, solarDayFromStats, type Consumer, type EnergySummary, type StatRow } from "../energy.ts";
 import { fieldFace, fieldSize, roofFaces, roofWindowRoom } from "../solar.ts";
 import { type CustomButton, type EntityRef, DEFAULT_HOLOGRAM, lockAlong, type PoolPipe, type RoofWindow, type SolarField, uid } from "../model.ts";
@@ -2871,7 +2872,8 @@ export class Fp3dView3d extends LitElement {
         const autoPro = f.type === "parking" && hasFeature("auto_pro") && !!f.car;
         const car = autoPro ? carState(hass, f) : null;
         // Haushalt Pro: a washer with only its time left still gets its pin
-        const appliance = f.type === "washer" || f.type === "dryer" || f.type === "dishwasher";
+        const applianceKind = applianceOf(f.type);
+        const appliance = !!applianceKind;
         const extraRef = f.type === "home_battery" ? f.soc : f.type === "wallbox" ? f.status : f.type === "parking" && car ? (f.car?.device ?? car.entities.soc) : household && appliance ? (f.remaining ?? null) : null;
         const extra = extraRef && extraRef !== "none" ? extraRef : null;
         // a sensor whose value stands at the symbol (a boiler's water temperature, D619): a pin even without a link
@@ -2916,7 +2918,7 @@ export class Fp3dView3d extends LitElement {
           const name = f.name || (link.entity ? entityName(hass, link.entity) : furnitureName(hass, f.type));
           if (busy) {
             // running by its time left alone: it glows like one that draws power
-            if (!running) screens.set(f.id, runGlow(f.type));
+            if (!running) screens.set(f.id, runGlow(applianceKind!));
             // a time left only while it runs: its plug or status off, or standby power, make it a leftover on the
             // display sensor (after a power cut)
             if (min !== null && !applianceIdle(st, link.power ? power : null, runW)) {
@@ -2959,8 +2961,8 @@ export class Fp3dView3d extends LitElement {
         } else if (f.type === "ac_unit" && st && kindOf(st.entity_id) === "climate") {
           const glow = climateModeGlow(st);
           if (glow) screens.set(f.id, glow);
-        } else if ((f.type === "washer" || f.type === "dryer" || f.type === "dishwasher") && running) {
-          screens.set(f.id, runGlow(f.type));
+        } else if (applianceKind && running) {
+          screens.set(f.id, runGlow(applianceKind));
         } else if (f.type === "stove" || isPackCooktop(f.type)) {
           // the burners glow while it cooks (or draws power), faintly while it is ready
           const level = cooktopLevel(st, running);
@@ -3670,7 +3672,7 @@ export class Fp3dView3d extends LitElement {
       text: st ? stateText(hass, st) : "",
       active: st ? isActive(st) : false,
       unavailable: st ? isUnavailable(st) : false,
-      glow: st ? scaleGlow(onlyColor(lightGlow(st, f.color_entity && f.color_entity !== "none" ? hass.states[f.color_entity] : undefined), f.only_color), f.glow_scale) : null,
+      glow: st ? scaleGlow(fixedGlowColor(onlyColor(lightGlow(st, f.color_entity && f.color_entity !== "none" ? hass.states[f.color_entity] : undefined), f.only_color), f.glow_color), f.glow_scale) : null,
       lamp: model,
       rotation: f.rotation,
       mirror: !!f.mirror,
@@ -8264,10 +8266,10 @@ function formatPower(hass: HomeAssistant | undefined, w: number): string {
 }
 
 /** Marker height above furniture: in front of a screen, above wall units, else just above the top. */
-/** A running washer or dryer: a ring of light round its round door (#516); a dishwasher: its front. */
-function runGlow(type: string): ScreenState {
+/** A running washer or dryer: a ring of light round its round door (#516); a dishwasher or oven: its front. */
+function runGlow(kind: ApplianceKind): ScreenState {
   const color: [number, number, number] = [0.3, 0.85, 1];
-  return type === "washer" || type === "dryer" ? { color, level: 0.8, faces: [{ part: "drum", color, level: 0.8 }] } : { color, level: 0.8 };
+  return kind === "washer" || kind === "dryer" ? { color, level: 0.8, faces: [{ part: "drum", color, level: 0.8 }] } : { color, level: 0.8 };
 }
 
 /** Furniture nobody asks to see by voice (the floor itself, holes, helpers). */

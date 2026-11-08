@@ -514,6 +514,16 @@ export function onlyColor<T extends { color: [number, number, number] }>(glow: T
   return Math.min(diff, 360 - diff) <= 30 ? glow : null;
 }
 
+/**
+ * A lamp drawn in a fixed colour (#977): the light still says on/off and how bright, the colour is the chosen one –
+ * a warm white fixture whose entity reports colours, or a lamp that should simply look a certain way in the plan.
+ */
+export function fixedGlowColor<T extends { color: [number, number, number] }>(glow: T | null, hex: string | null | undefined): T | null {
+  if (!glow || !hex || !/^#[0-9a-f]{6}$/i.test(hex)) return glow;
+  const color = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255) as [number, number, number];
+  return { ...glow, color };
+}
+
 /** Colour (0..1 channels) and level (0..1) of a light that is on; null when off. */
 export function lightGlow(st: HassEntity | undefined, colorFrom?: HassEntity | undefined): { color: [number, number, number]; level: number } | null {
   if (!st || st.state !== "on") return null;
