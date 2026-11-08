@@ -1,8 +1,24 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { applianceIdle, binColors, binDue, binGlows, binNext, binOut, binOutToggleable, binTagsShown, FinishedMemory, fridgeOpenTooLong, groupTags, householdEntities, isFinishedState, mailboxBase, mailboxPost, nextFridgeCheck, pickupsOf, plantThirsty, remainingMinutes, remainingText, sensorDays, serviceDue, servicesDue, wasteCalendars, wasteColors, wasteMatches, type HouseholdTag } from "./household.ts";
+import { applianceIdle, applianceOf, binColors, binDue, binGlows, binNext, binOut, binOutToggleable, binTagsShown, FinishedMemory, fridgeOpenTooLong, groupTags, householdEntities, isFinishedState, mailboxBase, mailboxPost, nextFridgeCheck, pickupsOf, plantThirsty, remainingMinutes, remainingText, sensorDays, serviceDue, servicesDue, wasteCalendars, wasteColors, wasteMatches, type HouseholdTag } from "./household.ts";
 import type { Furniture } from "./model.ts";
 import type { HassEntity, HomeAssistant } from "./types.ts";
+import { setPacks, type FurniturePack } from "./packs.ts";
+
+test("programme appliances: the built-in ones and the kitchen pack's built-in dishwasher and oven (#973)", () => {
+  assert.equal(applianceOf("washer"), "washer");
+  assert.equal(applianceOf("dishwasher"), "dishwasher");
+  assert.equal(applianceOf("fridge"), null);
+  const item = (id: string) => ({ id, name: { en: id }, size: [0.6, 0.6, 0.8] as [number, number, number], electric: true, parts: [] });
+  const pack: FurniturePack = { id: "k.pack", name: "K", publisher: "K", licensee: null, items: [item("dishwasher_integrated_60"), item("oven_builtin_compact"), item("washbasin_60"), item("microwave_builtin")] };
+  setPacks([pack]);
+  assert.equal(applianceOf("pack:k.pack:dishwasher_integrated_60"), "dishwasher");
+  assert.equal(applianceOf("pack:k.pack:oven_builtin_compact"), "oven");
+  assert.equal(applianceOf("pack:k.pack:washbasin_60"), null);
+  assert.equal(applianceOf("pack:k.pack:microwave_builtin"), null);
+  assert.equal(applianceOf("pack:k.pack:unknown"), null);
+  setPacks([]);
+});
 
 const st = (entity_id: string, state: string, attributes: Record<string, unknown> = {}, last_changed?: string): HassEntity => ({ entity_id, state, attributes, last_changed }) as HassEntity;
 const hassOf = (...states: HassEntity[]): HomeAssistant => ({ states: Object.fromEntries(states.map((s) => [s.entity_id, s])) }) as unknown as HomeAssistant;
@@ -193,6 +209,18 @@ test("a sensor's free text: the days, not another number in it (D576)", () => {
   assert.equal(sensorDays(st("in 3 days")), 3);
   assert.equal(sensorDays(st("Bio: 11 dagen")), 11);
   assert.equal(sensorDays(st("Tonne 120 l, 5")), 5);
+});
+
+test("a day-first date with dashes and Afvalbeheer's Days_until (#962)", () => {
+  const now = new Date(2026, 10, 6, 9, 0);
+  const st = (state: string, attributes: Record<string, unknown> = {}) => ({ entity_id: "sensor.afval", state, attributes });
+  assert.equal(sensorDays(st("17-11-2026"), now), 11);
+  assert.equal(sensorDays(st("Maandag, 09-11-2026"), now), 3);
+  assert.equal(sensorDays(st("Donderdag, 12-11-2026"), now), 6);
+  // a range of days is no date
+  assert.equal(sensorDays(st("in 2-4 days"), now), 4);
+  assert.equal(sensorDays(st("Maandag, 09-11-2026", { Days_until: 3 }), now), 3);
+  assert.equal(sensorDays(st("whatever", { Days_until: "5" }), now), 5);
 });
 
 test("a sensor's date in its text: Waste Collection Schedule's formats (1.20.1 took the year for the days)", () => {

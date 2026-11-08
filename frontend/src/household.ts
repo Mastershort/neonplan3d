@@ -378,7 +378,6 @@ export function binTagsShown(bins: readonly { id: string; days: number }[], o: B
   return new Set(bins.filter((b) => (ahead === null || b.days <= ahead) && (!o.nextOnly || b.days === first)).map((b) => b.id));
 }
 
-/** Days until the pickup a sensor tells: a number, a date or a timestamp, or Waste Collection Schedule's `daysTo`. */
 /**
  * A date written inside a sensor's text, as Waste Collection Schedule's own formats show it: "on Mon, 26.10.2026",
  * "Biotonne 26.10.", "2026-10-26 (Mo)", "26/10/2026" (day first unless that cannot be). A date without a year that
@@ -386,7 +385,10 @@ export function binTagsShown(bins: readonly { id: string; days: number }[], o: B
  */
 export function dateInText(text: string, now = new Date()): Date | null {
   const iso = /(\d{4})-(\d{1,2})-(\d{1,2})/.exec(text);
-  const dmy = /(?:^|[^\d])(\d{1,2})([./])(\d{1,2})\2(\d{4}|\d{2})?(?![\d])/.exec(text);
+  // a dash only with a four-digit year ("17-11-2026", Afvalbeheer, #962), so "in 2-4 days" stays no date
+  const dmy =
+    /(?:^|[^\d])(\d{1,2})([./])(\d{1,2})\2(\d{4}|\d{2})?(?![\d])/.exec(text) ??
+    /(?:^|[^\d])(\d{1,2})(-)(\d{1,2})-(\d{4})(?![\d])/.exec(text);
   let y: number;
   let m: number;
   let d: number;
@@ -407,9 +409,19 @@ export function dateInText(text: string, now = new Date()): Date | null {
   return day.getMonth() === m - 1 ? day : null;
 }
 
+/**
+ * Days until the pickup a sensor tells: a number, a date or a timestamp, Waste Collection Schedule's `daysTo` or
+ * Afvalbeheer's `Days_until`.
+ */
 export function sensorDays(st: HassEntity, now = new Date()): number | null {
   const a = st.attributes as Record<string, unknown>;
   if (typeof a.daysTo === "number") return a.daysTo;
+  // Afvalbeheer's own count (#962)
+  for (const k of ["Days_until", "days_until"]) {
+    const v = a[k];
+    if (typeof v === "number" && Number.isFinite(v)) return Math.round(v);
+    if (typeof v === "string" && /^-?\d+$/.test(v.trim())) return Number(v.trim());
+  }
   const s = String(st.state).trim();
   if (/^-?\d+(\.\d+)?$/.test(s)) return Math.round(Number(s));
   // a timestamp is read as a moment (its local day); any other text for a date written in it – the browser's own
@@ -467,6 +479,24 @@ export function householdEntities(f: Furniture): EntityRef[] {
 }
 
 // ---------------------------------------------------------------- Haushalt Pro, part 2: plants, appliances, upkeep, fridge
+
+/** An appliance that runs a programme: it tells its time left and "Done!" until its door opens. */
+export type ApplianceKind = "washer" | "dryer" | "dishwasher" | "oven";
+
+/**
+ * What programme appliance an item is: the built-in washer, dryer and dishwasher, and the pack items that are one
+ * (the kitchen pack's built-in dishwasher and oven, #973), by their id; null for anything else.
+ */
+export function applianceOf(type: string): ApplianceKind | null {
+  if (type === "washer" || type === "dryer" || type === "dishwasher") return type;
+  const id = packItem(type)?.id;
+  if (!id) return null;
+  if (/dishwasher|geschirr/.test(id)) return "dishwasher";
+  if (/dryer|trockner/.test(id)) return "dryer";
+  if (/washer|washing|waschmaschine/.test(id)) return "washer";
+  if (/oven|cooker|backofen/.test(id)) return "oven";
+  return null;
+}
 
 /** The number of an entity's state, when it is one. */
 const num = (st: HassEntity | undefined): number | null => {

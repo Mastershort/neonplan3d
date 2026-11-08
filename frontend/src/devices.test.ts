@@ -13,7 +13,7 @@ test("a lamp switched by a relay takes colour and brightness from its colour ent
   // the bulb unavailable: the relay's own (plain) glow
   assert.deepEqual(lightGlow(relay as never, { ...bulb, state: "unavailable" } as never)!.color, [1, 0.71, 0.28]);
 });
-import { coverTiltButtons, isPulseDrive, isRelevant, apOnline, fanSpeed, climateModeGlow, cooktopLevel, onlyColor, appColor, carLocked, areaEntities, otherAreaEntities, roomClimateSensors, roomClimateValue, unassignedEntities, autoPlace, entityName, fridgeDoors, furnitureEntities, groupByDevice, isActive, kindOf, lightGlow, openingEntities, openingState, powerSensorsOf, primaryEntities, roomPanelEntities, windowPosition, confirmEntities, robotRoom, robotRoomSensor, roomKey, vacuumCleaning } from "./devices.ts";
+import { coverTiltButtons, isPulseDrive, isRelevant, apOnline, fanSpeed, climateModeGlow, cooktopLevel, onlyColor, fixedGlowColor, appColor, carLocked, areaEntities, otherAreaEntities, roomClimateSensors, roomClimateValue, unassignedEntities, autoPlace, entityName, fridgeDoors, furnitureEntities, groupByDevice, isActive, kindOf, lightGlow, openingEntities, openingState, powerSensorsOf, primaryEntities, roomPanelEntities, windowPosition, confirmEntities, robotRoom, robotRoomSensor, roomKey, vacuumCleaning } from "./devices.ts";
 import type { Floor, Opening, Room } from "./model.ts";
 import { centroid, newFloor, pointInPolygon } from "./model.ts";
 import type { HomeAssistant } from "./types.ts";
@@ -796,6 +796,11 @@ test("a lamp with one colour only glows for that colour (customer mail: yellow =
   const g = (color: [number, number, number]) => ({ color, level: 1 });
   assert.ok(onlyColor(g([1, 0.85, 0]), "#ffd400"));
   assert.equal(onlyColor(g([1, 0, 0]), "#ffd400"), null);
+  // a fixed colour (#977): the colour is the chosen one, the level stays; off stays off; a bad value changes nothing
+  const fixed = fixedGlowColor({ color: [1, 0, 0] as [number, number, number], level: 0.6 }, "#00ff80");
+  assert.deepEqual(fixed, { color: [0, 1, 128 / 255], level: 0.6 });
+  assert.equal(fixedGlowColor(null, "#00ff80"), null);
+  assert.deepEqual(fixedGlowColor({ color: [1, 0, 0] as [number, number, number], level: 1 }, "red"), { color: [1, 0, 0], level: 1 });
   assert.equal(onlyColor(g([0, 0.3, 1]), "#ffd400"), null);
   assert.equal(onlyColor(g([1, 0.95, 0.9]), "#ffd400"), null);
   assert.ok(onlyColor(g([1, 0, 0]), null));

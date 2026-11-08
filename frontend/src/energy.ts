@@ -216,6 +216,9 @@ function isPowerSensor(hass: HomeAssistant, id: string): boolean {
  */
 export function powerSensorFor(hass: HomeAssistant, entityId: string): string | null {
   if (isPowerSensor(hass, entityId)) return entityId;
+  // a motion, door or presence sensor uses no power worth a pin: the meter of its device (a wired presence sensor,
+  // a hub) belongs to something else, and the pin said "3 W" at a motion sensor (#337)
+  if (entityId.startsWith("binary_sensor.")) return null;
   const device = hass.entities?.[entityId]?.device_id;
   if (!device) return null;
   const hub = isHubDevice(hass, device);

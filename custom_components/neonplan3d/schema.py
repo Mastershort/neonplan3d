@@ -253,6 +253,8 @@ FURNITURE_SCHEMA = vol.Schema(
         vol.Optional("glow_scale", default=None): vol.Any(
             None, vol.All(vol.Coerce(float), vol.Range(min=0.1, max=1.5))
         ),
+        # lamps: always drawn in this colour ("#rrggbb"), whatever the light reports (None = the light's colour)
+        vol.Optional("glow_color", default=None): vol.Any(None, vol.Match(r"^#[0-9a-fA-F]{6}$")),
         # linked entities (e.g. the TV's media player, a power sensor): None = automatic, "none" = no entity
         vol.Optional("entity", default=None): vol.Any(None, vol.All(str, vol.Length(max=255))),
         vol.Optional("power", default=None): vol.Any(None, vol.All(str, vol.Length(max=255))),

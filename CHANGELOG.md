@@ -4,6 +4,26 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 [releases page](https://github.com/Mastershort/neonplan3d/releases). Ideas and votes:
 [Discussions → Ideas](https://github.com/Mastershort/neonplan3d/discussions/categories/ideas).
 
+## 3.0.3
+
+### Added
+- **Fixed colour in 3D** for a lamp: it always glows in the chosen colour, whatever its light reports; on/off and brightness still follow the light. The older option now says what it does: "Glow only while the light shows this colour" (#977, thanks chRyX-giT).
+
+### Fixed
+- **Keep view** also holds the camera between the house view and a floor, not only from floor to floor (#968, thanks RkcCorian).
+- **Time travel on outdoor areas:** a balcony or terrace with an area of its own kept its live values while scrubbing; its sensors replay now (#974, thanks AlBertyBundy).
+- **Household Pro for pack appliances:** the kitchen pack's built-in dishwasher and oven (and any pack washer, dryer, dishwasher or oven) get the time-left and door-sensor fields, the "Done!" pin and the glow while they run (#973, thanks grzegorz914).
+- **Roof windows in a room card:** a card without the top floor drew the roof's windows in the air over the floor shown; such a card shows no roof at all now, like the floor view (#967, thanks RkcCorian).
+- **Fewer passes on wall tablets, part two:** the floor shadows, the light on floors and walls and two fun-pack surfaces are drawn in one pass as well (#952, thanks zanzei26 for measuring).
+
+## 3.0.2
+
+### Fixed
+- **Light out of the windows follows the lamp's real brightness:** a lamp dimmed to 1 % still threw its full colour out of the floor-deep windows onto the terrace (its room keeps a faint glow so a dimmed lamp stays visible, the window light no longer does) (#954, thanks rolandarends).
+- **Motion, door and presence sensors show no watts:** a binary sensor's pin took the power meter of its device (a wired presence sensor, a hub) and said "3 W" at a motion sensor; it no longer does, also in the room view (#337, thanks frops83).
+- **Fewer passes on wall tablets:** see-through surfaces drawn from both sides (glass, light cones, water, screens) are drawn in one pass instead of two – about a tenth of the frame time on a slow mirror, no visible change (#952, thanks zanzei26 for the profile).
+- **Waste bins with dates written as 17-11-2026:** a sensor whose state holds a day-first date with dashes (Afvalbeheer and others) showed "2026 days" until pickup; such dates are read now, and the integration's own `Days_until` attribute is used when it is there (#962, thanks vermeerschn).
+
 ## 3.0.1
 
 ### Added

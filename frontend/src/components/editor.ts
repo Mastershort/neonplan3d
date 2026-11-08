@@ -23,7 +23,7 @@ import { hasFeature, labOn, manualUrl, released, shopUrl, UNRELEASED } from "../
 import { loadLocate } from "../load-locate.ts";
 import { isBeta, supporterUrl } from "../beta.ts";
 import { openPrint } from "../print.ts";
-import { BIN_SHAPES, BIN_SIZE, binColors, binShape, householdCountry, isPackPlant, MAILBOX_SHAPES, MAILBOX_SIZE, mailboxShape, WASTE_KINDS, wasteColors } from "../household.ts";
+import { applianceOf, BIN_SHAPES, BIN_SIZE, binColors, binShape, householdCountry, isPackPlant, MAILBOX_SHAPES, MAILBOX_SIZE, mailboxShape, WASTE_KINDS, wasteColors } from "../household.ts";
 import { cameraMotionSensors, cameraOwnSensors, detectionKind, setCameraSensors } from "../markers.ts";
 import { backdropImage } from "../backdrop.ts";
 import { screenName, setScreenName, setVoiceArea, setVoiceHere, setVoicePipeline, voiceArea, voiceOnHere, voicePipeline } from "../load-voice.ts";
@@ -12244,7 +12244,7 @@ export class Fp3dEditor extends LitElement {
    */
   private renderHouseholdExtras(f: Furniture) {
     const plant = f.type === "plant" || isPackPlant(f.type);
-    const appliance = f.type === "washer" || f.type === "dryer" || f.type === "dishwasher";
+    const appliance = !!applianceOf(f.type);
     const fridge = f.type === "fridge" || f.type === "fridge_smart";
     const electric = isElectric(f.type);
     if (!plant && !electric) return nothing;
@@ -12493,6 +12493,18 @@ export class Fp3dEditor extends LitElement {
               <p class="fp3d-sub fp3d-wide">${this.t("furn_color_entity_hint")}</p>`
           : nothing}
         ${lamp ? this.glowScaleField(f.glow_scale, (v) => this.updateFurniture({ glow_scale: v })) : nothing}
+        ${lamp
+          ? html`<label class="fp3d-check fp3d-wide" title=${this.t("furn_glow_color_hint")}
+                ><input type="checkbox" .checked=${!!f.glow_color} ?disabled=${!this.isAdmin} @change=${(ev: Event) => this.updateFurniture({ glow_color: (ev.target as HTMLInputElement).checked ? "#ffd9a0" : null })} />
+                ${this.t("furn_glow_color")}</label
+              >
+              ${f.glow_color
+                ? html`<label class="fp3d-field"
+                      >${this.t("furn_only_color_pick")}
+                      <input type="color" .value=${f.glow_color} ?disabled=${!this.isAdmin} @change=${(ev: Event) => this.updateFurniture({ glow_color: (ev.target as HTMLInputElement).value })} /></label>
+                    <p class="fp3d-sub fp3d-wide">${this.t("furn_glow_color_hint")}</p>`
+                : nothing}`
+          : nothing}
         ${lamp && f.entity && f.entity !== "none"
           ? html`<label class="fp3d-check fp3d-wide" title=${this.t("furn_only_color_hint")}
                 ><input type="checkbox" .checked=${!!f.only_color} ?disabled=${!this.isAdmin} @change=${(ev: Event) => this.updateFurniture({ only_color: (ev.target as HTMLInputElement).checked ? "#ffd400" : null })} />

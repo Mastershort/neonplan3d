@@ -123,7 +123,7 @@ export function buildPools(pieces: PoolPiece[], time: { value: number }): Group 
       if (part.length >= 3) {
         const cover = new Mesh(
           sheet(part, p.y + 0.03),
-          new ShaderMaterial({ uniforms: { uAxis: { value: alongX ? [1, 0] : [0, 1] } }, vertexShader: COVER_VERT, fragmentShader: COVER_FRAG, transparent: true, side: DoubleSide }),
+          new ShaderMaterial({ uniforms: { uAxis: { value: alongX ? [1, 0] : [0, 1] } }, vertexShader: COVER_VERT, fragmentShader: COVER_FRAG, transparent: true, side: DoubleSide, forceSinglePass: true }),
         );
         cover.renderOrder = 6;
         group.add(cover);

@@ -757,8 +757,10 @@ export class FloorplanViewer {
   private houseRadius = 20;
   private startView: StartView | null = null;
   private keepView = false;
-  /** The next fit keeps the camera (a floor-to-floor switch with keepView). */
+  /** The next fit keeps the camera (a switch of floor or house view with keepView). */
   private keepNext = false;
+  /** A plan has been framed once (before that, keepView has nothing to keep). */
+  private fitted = false;
   private fpsStart = 0;
   private gpuName: string | null | undefined;
 
@@ -928,7 +930,9 @@ export class FloorplanViewer {
 
   setFloor(floorId: string | null, animate = true): void {
     this.lastWake = performance.now();
-    this.keepNext = this.keepView && floorId !== null && this.floorId !== null && floorId !== this.floorId;
+    // also between the house view and a floor (#968): a view set by hand stays where it is; only the very first
+    // framing of a plan is fitted
+    this.keepNext = this.keepView && this.fitted && floorId !== this.floorId;
     this.floorId = floorId;
     this.roomId = null;
     this.labelsDirty = true;
@@ -1162,7 +1166,7 @@ export class FloorplanViewer {
         for (let i = 0; i < 3; i++) {
           const ring = new Mesh(
             new RingGeometry(0.92, 1, 48),
-            new MeshBasicMaterial({ color: 0x37e0ff, transparent: true, opacity: 0, blending: AdditiveBlending, depthWrite: false, side: DoubleSide }),
+            new MeshBasicMaterial({ color: 0x37e0ff, transparent: true, opacity: 0, blending: AdditiveBlending, depthWrite: false, side: DoubleSide, forceSinglePass: true }),
           );
           ring.rotation.x = -Math.PI / 2;
           ring.position.set(src.x, y + i * 0.002, src.z);
@@ -1357,10 +1361,10 @@ export class FloorplanViewer {
       geo.setAttribute("position", new Float32BufferAttribute(p, 3));
       return geo;
     };
-    const core = new Mesh(build(0), new MeshBasicMaterial({ color, transparent: true, opacity: 0.9, depthWrite: false, side: DoubleSide }));
+    const core = new Mesh(build(0), new MeshBasicMaterial({ color, transparent: true, opacity: 0.9, depthWrite: false, side: DoubleSide, forceSinglePass: true }));
     const glow = new Mesh(
       build(0.05),
-      new MeshBasicMaterial({ color, transparent: true, opacity: 0.22, blending: AdditiveBlending, depthWrite: false, side: DoubleSide }),
+      new MeshBasicMaterial({ color, transparent: true, opacity: 0.22, blending: AdditiveBlending, depthWrite: false, side: DoubleSide, forceSinglePass: true }),
     );
     core.renderOrder = 6;
     glow.renderOrder = 5;
@@ -1743,15 +1747,19 @@ export class FloorplanViewer {
     const night = b?.settings.window_glow === false || this.options.safeFx ? 0 : this.nightFactor();
     const gf = b && night > 0 ? groundFloor(b) : null;
     const ground = !!gf && Math.abs(fv.floor.elevation - gf.elevation) < 0.5;
-    // the light per light zone: colour weighted by brightness
+    // the light per light zone: colour weighted by brightness. A lamp's level keeps a floor of 0.2 so a dimmed
+    // lamp still shows in its room; what falls out of the windows follows the real brightness – a lamp at 1 %
+    // lit the whole terrace in its colour (#954)
+    const cast = (level: number) => Math.pow(Math.max(0, (level - 0.2) / 0.8), 2);
     const zoneLight = new Map<number, [number, number, number, number]>();
     if (ground) {
       for (const l of sources) {
         const z = zoneLight.get(l.room) ?? [0, 0, 0, 0];
-        z[0] += l.color[0] * l.level;
-        z[1] += l.color[1] * l.level;
-        z[2] += l.color[2] * l.level;
-        z[3] += l.level;
+        const k = cast(l.level);
+        z[0] += l.color[0] * k;
+        z[1] += l.color[1] * k;
+        z[2] += l.color[2] * k;
+        z[3] += k;
         zoneLight.set(l.room, z);
       }
     }
@@ -2555,6 +2563,7 @@ export class FloorplanViewer {
         transparent: true,
         depthWrite: false,
         side: DoubleSide,
+        forceSinglePass: true,
         polygonOffset: true,
         polygonOffsetFactor: -1,
       }),
@@ -2571,6 +2580,7 @@ export class FloorplanViewer {
           blending: AdditiveBlending,
           depthWrite: false,
           side: DoubleSide,
+          forceSinglePass: true,
           polygonOffset: true,
           polygonOffsetFactor: -3,
         }),
@@ -2579,16 +2589,16 @@ export class FloorplanViewer {
       ),
       frames: themed(makeFoldable(new MeshBasicMaterial({ vertexColors: true, side: DoubleSide }), mask), this.themeUniform),
       glass: makeFoldable(
-        new MeshBasicMaterial({ vertexColors: true, transparent: true, blending: AdditiveBlending, depthWrite: false, side: DoubleSide }),
+        new MeshBasicMaterial({ vertexColors: true, transparent: true, blending: AdditiveBlending, depthWrite: false, side: DoubleSide, forceSinglePass: true }),
         mask,
       ),
       blinds: themed(makeFoldable(new MeshBasicMaterial({ map: this.blindTexture, vertexColors: true, side: DoubleSide }), mask), this.themeUniform),
-      water: themed(new MeshBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.5, depthWrite: false, side: DoubleSide }), this.themeUniform),
+      water: themed(new MeshBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.5, depthWrite: false, side: DoubleSide, forceSinglePass: true }), this.themeUniform),
       flow: flowMaterial(this.flowTime),
       pipeLine: pipeLineMaterial(this.flowTime),
       // a module's surfaces: colour and opacity per vertex, over the floor without hiding what stands on it
-      patch: new MeshBasicMaterial({ vertexColors: true, transparent: true, depthWrite: false, side: DoubleSide, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }),
-      patchGlow: new MeshBasicMaterial({ vertexColors: true, transparent: true, blending: AdditiveBlending, depthWrite: false, side: DoubleSide, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }),
+      patch: new MeshBasicMaterial({ vertexColors: true, transparent: true, depthWrite: false, side: DoubleSide, forceSinglePass: true, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }),
+      patchGlow: new MeshBasicMaterial({ vertexColors: true, transparent: true, blending: AdditiveBlending, depthWrite: false, side: DoubleSide, forceSinglePass: true, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }),
       solarLive: solarLiveMaterial(this.flowTime),
       lamps: themed(new MeshBasicMaterial({ vertexColors: true }), this.themeUniform),
       halos: new PointsMaterial({
@@ -2602,8 +2612,8 @@ export class FloorplanViewer {
       }),
       // adds its colour but never covers: over the empty, see-through background a wedge fading to black stays
       // see-through instead of drawing a black half-circle (the Day look, #955)
-      cones: new MeshBasicMaterial({ vertexColors: true, transparent: true, blending: CustomBlending, blendSrc: SrcAlphaFactor, blendDst: OneFactor, blendSrcAlpha: ZeroFactor, blendDstAlpha: OneFactor, depthWrite: false, side: DoubleSide }),
-      screens: new MeshBasicMaterial({ vertexColors: true, transparent: true, blending: AdditiveBlending, depthWrite: false, side: DoubleSide }),
+      cones: new MeshBasicMaterial({ vertexColors: true, transparent: true, blending: CustomBlending, blendSrc: SrcAlphaFactor, blendDst: OneFactor, blendSrcAlpha: ZeroFactor, blendDstAlpha: OneFactor, depthWrite: false, side: DoubleSide, forceSinglePass: true }),
+      screens: new MeshBasicMaterial({ vertexColors: true, transparent: true, blending: AdditiveBlending, depthWrite: false, side: DoubleSide, forceSinglePass: true }),
       earth: themed(new MeshBasicMaterial({ vertexColors: true }), this.themeUniform),
       earthWell: themed(new MeshBasicMaterial({ vertexColors: true, side: DoubleSide }), this.themeUniform),
       earthLines: themed(new LineBasicMaterial({ vertexColors: true, transparent: true, depthWrite: false }), this.themeUniform, true),
@@ -2906,15 +2916,15 @@ export class FloorplanViewer {
     const live = solarLiveMaterial(this.flowTime);
     const lives: SolarLive[] = [];
     const group = new Group();
-    const solid = themed(new MeshBasicMaterial({ vertexColors: true, transparent: true, side: DoubleSide }), this.themeUniform);
+    const solid = themed(new MeshBasicMaterial({ vertexColors: true, transparent: true, side: DoubleSide, forceSinglePass: true }), this.themeUniform);
     const lines = themed(new LineBasicMaterial({ vertexColors: true, transparent: true, blending: lineBlending(this.theme), depthWrite: false }), this.themeUniform, true);
     // canopies: faint see-through panels that do not hide what is below
-    const glass = themed(new MeshBasicMaterial({ vertexColors: true, transparent: true, side: DoubleSide, depthWrite: false }), this.themeUniform);
+    const glass = themed(new MeshBasicMaterial({ vertexColors: true, transparent: true, side: DoubleSide, forceSinglePass: true, depthWrite: false }), this.themeUniform);
     const wins = new Group();
     const winSolid = themed(new MeshBasicMaterial({ vertexColors: true, side: DoubleSide }), this.themeUniform);
     // the glass of the windows over a room: see-through like the windows in the walls (#598)
-    const winGlass = themed(new MeshBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.35, side: DoubleSide, depthWrite: false }), this.themeUniform);
-    const roofWinGlass = themed(new MeshBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.35, side: DoubleSide, depthWrite: false }), this.themeUniform);
+    const winGlass = themed(new MeshBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.35, side: DoubleSide, forceSinglePass: true, depthWrite: false }), this.themeUniform);
+    const roofWinGlass = themed(new MeshBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.35, side: DoubleSide, forceSinglePass: true, depthWrite: false }), this.themeUniform);
     const winLines = themed(new LineBasicMaterial({ vertexColors: true, transparent: true, blending: lineBlending(this.theme), depthWrite: false }), this.themeUniform, true);
     const below: { floorId: string; win: Group }[] = [];
     const parts = geos.map((geo) => {
@@ -2939,7 +2949,7 @@ export class FloorplanViewer {
         const mine = [...faces.values()].filter((face) => (face.section ? geo.sections?.includes(face.section) : geo === geos[0]));
         const snow = roofSnowGeometry(mine, geo.floor.elevation + geo.base);
         if (snow) {
-          this.snowMat ??= new MeshBasicMaterial({ color: 0xf1f5ff, transparent: true, side: DoubleSide, depthWrite: false });
+          this.snowMat ??= new MeshBasicMaterial({ color: 0xf1f5ff, transparent: true, side: DoubleSide, forceSinglePass: true, depthWrite: false });
           this.snowMat.opacity = 0.85 * this.roofSnow;
           const mesh = new Mesh(snow, this.snowMat);
           mesh.renderOrder = 9;
@@ -4218,8 +4228,9 @@ export class FloorplanViewer {
     // the start view's framing (#206): the point it looks at, counted from the opened floor
     const at = useRadius ? start!.target : null;
     if (at) center.set(at.x, at.y + (own ? this.floorBase(this.floorId) : 0), at.z);
+    this.fitted = true;
     if (this.keepNext) {
-      // the same angle, distance and spot – only lifted to the opened floor
+      // the same angle, distance and spot – only lifted to the opened floor (or back to the house's level)
       this.keepNext = false;
       const cur = this.controls.view;
       this.controls.flyTo({ target: new Vector3(cur.target.x, center.y, cur.target.z), radius: cur.radius, phi: cur.phi, theta: cur.theta }, duration);
@@ -5636,7 +5647,7 @@ function flowSpeed(power: number): number {
  * tube, a soft brightening running along the core while it flows (the direction from a to b).
  */
 function pipeLineMaterial(time: { value: number }): MeshBasicMaterial {
-  const m = new MeshBasicMaterial({ vertexColors: true, transparent: true, depthWrite: false, side: DoubleSide, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
+  const m = new MeshBasicMaterial({ vertexColors: true, transparent: true, depthWrite: false, side: DoubleSide, forceSinglePass: true, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
   m.onBeforeCompile = (shader) => {
     shader.uniforms.uFlowTime = time;
     shader.vertexShader = shader.vertexShader
@@ -5663,7 +5674,7 @@ function pipeLineMaterial(time: { value: number }): MeshBasicMaterial {
 
 /** Glowing cable with stripes running along it (uv.x = metres along the cable, uv.y = across). */
 function flowMaterial(time: { value: number }): MeshBasicMaterial {
-  const m = new MeshBasicMaterial({ vertexColors: true, transparent: true, blending: AdditiveBlending, depthWrite: false, side: DoubleSide });
+  const m = new MeshBasicMaterial({ vertexColors: true, transparent: true, blending: AdditiveBlending, depthWrite: false, side: DoubleSide, forceSinglePass: true });
   m.onBeforeCompile = (shader) => {
     shader.uniforms.uFlowTime = time;
     shader.vertexShader = shader.vertexShader
