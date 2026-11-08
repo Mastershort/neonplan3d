@@ -1541,6 +1541,8 @@
  "awning_kind_pergola_hint": "Pevný rám so stĺpikmi vpredu; látka vybieha hore po jeho koľajničkách. Hĺbka = k stĺpikom, Sklon = spád strechy.",
  "awning_kind_side_hint": "Stĺpik s navinutou látkou je vľavo. Látka sa vysúva vodorovne doprava až k protiľahlému stĺpiku. Šírka = vysunutie; výška nad podlahou = výška látky.",
  "awning_hint": "Šírka označuje dĺžku markízy pozdĺž steny, hĺbka jej vysunutie pri úplnom otvorení. Zadná strana rámu prilieha k stene domu a výška nad podlahou označuje spodok kazety. Ak entita cover hlási priebežnú polohu, markíza sa v 3D postupne vysúva. Ak hlási iba otváranie a zatváranie, pohyb sa riadi nastaveným časom vysunutia.",
+ "furn_glow_color": "Pevná farba v 3D",
+ "furn_glow_color_hint": "Lampa v pláne svieti vždy touto farbou bez ohľadu na to, akú farbu hlási svetlo – zapnuté/vypnuté a jas ďalej prichádzajú zo svetla.",
  "furn_only_color": "Svietiť len v jednej farbe",
  "furn_only_color_pick": "Farba",
  "furn_only_color_hint": "Svietidlo svieti len vtedy, keď má svetlo približne túto farbu, napríklad žltú pre indikáciu vody pri umývadle. Pri ostatných farbách toho istého svetla zostane tmavé.",
