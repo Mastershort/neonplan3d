@@ -249,7 +249,7 @@ export function buildModel(lib: FunLib, pet: Pet): Model {
   g.fillText("z", 20, 52);
   g.font = "bold 54px system-ui, sans-serif";
   g.fillText("Z", 58, 46);
-  const zzz = new lib.Mesh(new lib.PlaneGeometry(0.3, 0.15), new lib.MeshBasicMaterial({ map: new lib.CanvasTexture(c), transparent: true, depthWrite: false, side: lib.DoubleSide }));
+  const zzz = new lib.Mesh(new lib.PlaneGeometry(0.3, 0.15), new lib.MeshBasicMaterial({ map: new lib.CanvasTexture(c), transparent: true, depthWrite: false, side: lib.DoubleSide, forceSinglePass: true }));
   zzz.rotation.x = -0.7;
   zzz.position.set(0, L.hi + h * 2 + 0.12, 0);
   zzz.visible = false;

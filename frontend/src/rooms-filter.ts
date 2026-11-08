@@ -103,5 +103,16 @@ export function roomsOnly(b: Building, ids: readonly string[]): Building {
       placements: f.placements.filter((p) => inside(p.x, p.z)),
     });
   }
-  return { ...b, floors };
+  // the roof sits on the top floor; without that floor it would come down onto the next one, and its roof windows
+  // hung in the air over a floor they do not belong to (#967) – a card without the top floor shows no roof
+  const top = roofFloorId(b);
+  const roof = b.settings.roof;
+  const keepRoof = !roof || roof.type === "none" || top === null || floors.some((f) => f.id === top);
+  return { ...b, floors, settings: keepRoof ? b.settings : { ...b.settings, roof: { ...roof, type: "none" } } };
+}
+
+/** The floor the roof sits on: the highest with rooms (as the roof itself picks it). */
+function roofFloorId(b: Building): string | null {
+  const withRooms = b.floors.filter((f) => f.rooms.some((r) => r.points.length >= 3));
+  return withRooms.sort((p, q) => q.elevation - p.elevation)[0]?.id ?? null;
 }

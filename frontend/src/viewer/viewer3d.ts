@@ -757,8 +757,10 @@ export class FloorplanViewer {
   private houseRadius = 20;
   private startView: StartView | null = null;
   private keepView = false;
-  /** The next fit keeps the camera (a floor-to-floor switch with keepView). */
+  /** The next fit keeps the camera (a switch of floor or house view with keepView). */
   private keepNext = false;
+  /** A plan has been framed once (before that, keepView has nothing to keep). */
+  private fitted = false;
   private fpsStart = 0;
   private gpuName: string | null | undefined;
 
@@ -928,7 +930,9 @@ export class FloorplanViewer {
 
   setFloor(floorId: string | null, animate = true): void {
     this.lastWake = performance.now();
-    this.keepNext = this.keepView && floorId !== null && this.floorId !== null && floorId !== this.floorId;
+    // also between the house view and a floor (#968): a view set by hand stays where it is; only the very first
+    // framing of a plan is fitted
+    this.keepNext = this.keepView && this.fitted && floorId !== this.floorId;
     this.floorId = floorId;
     this.roomId = null;
     this.labelsDirty = true;
@@ -2559,6 +2563,7 @@ export class FloorplanViewer {
         transparent: true,
         depthWrite: false,
         side: DoubleSide,
+        forceSinglePass: true,
         polygonOffset: true,
         polygonOffsetFactor: -1,
       }),
@@ -2575,6 +2580,7 @@ export class FloorplanViewer {
           blending: AdditiveBlending,
           depthWrite: false,
           side: DoubleSide,
+          forceSinglePass: true,
           polygonOffset: true,
           polygonOffsetFactor: -3,
         }),
@@ -4222,8 +4228,9 @@ export class FloorplanViewer {
     // the start view's framing (#206): the point it looks at, counted from the opened floor
     const at = useRadius ? start!.target : null;
     if (at) center.set(at.x, at.y + (own ? this.floorBase(this.floorId) : 0), at.z);
+    this.fitted = true;
     if (this.keepNext) {
-      // the same angle, distance and spot – only lifted to the opened floor
+      // the same angle, distance and spot – only lifted to the opened floor (or back to the house's level)
       this.keepNext = false;
       const cur = this.controls.view;
       this.controls.flyTo({ target: new Vector3(cur.target.x, center.y, cur.target.z), radius: cur.radius, phi: cur.phi, theta: cur.theta }, duration);

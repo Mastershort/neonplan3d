@@ -5,6 +5,7 @@ import { deviceAreaId } from "../devices.ts";
 import type { HomeAssistant } from "../types.ts";
 import type { HistorySpec } from "./types.ts";
 import { cameraMotionSensors } from "../markers.ts";
+import { applianceOf } from "../household.ts";
 
 /** Never replayed: people and their trackers (presence stays private), and what has no past worth showing. */
 const EXCLUDED = new Set(["person", "device_tracker", "zone", "camera", "scene", "script", "button", "input_button", "update", "event", "image", "tts", "stt", "notify", "conversation", "automation", "calendar", "todo"]);
@@ -106,7 +107,6 @@ export type Role = "door" | "garage" | "lock" | "alarm" | "smoke" | "gas" | "co"
 
 const SAFETY: Record<string, Role> = { smoke: "smoke", gas: "gas", carbon_monoxide: "co", moisture: "water" };
 const FRONT_STYLES = new Set(["front", "front_glass", "sidelight", "sidelights"]);
-const APPLIANCES = new Set(["washer", "dryer", "dishwasher"]);
 
 function inside(p: [number, number], poly: readonly [number, number][]): boolean {
   let hit = false;
@@ -148,7 +148,7 @@ export function appliancePower(hass: HomeAssistant, building: Building, spec: Hi
   const links = new Map(spec.furniture);
   for (const floor of building.floors)
     for (const f of floor.furniture) {
-      if (!APPLIANCES.has(f.type)) continue;
+      if (!applianceOf(f.type)) continue;
       const linked = links.get(f.id)?.power;
       const near = floor.placements.find((p) => hass.states[p.entity_id]?.attributes.device_class === "power" && Math.hypot(p.x - f.x, p.z - f.z) <= 1.2)?.entity_id;
       const id = linked ?? near;
