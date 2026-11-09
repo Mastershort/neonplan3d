@@ -1356,6 +1356,8 @@
  "door_shut_hint": "Drzwi bez kontaktronu stoją w 3D w połowie otwarte, żeby było widać, że to drzwi. Po zaznaczeniu są rysowane jako zamknięte – drzwi wejściowe, wiata, drzwi boczne.",
  "contact_invert": "Odwróć kontakt",
  "contact_invert_hint": "Dla czujników, które zgłaszają otwarte i zamknięte odwrotnie",
+ "slat_invert": "Odwróć lamele",
+ "slat_invert_hint": "Dla żaluzji, które zgłaszają nachylenie lamel odwrotnie (0 = poziomo/otwarte). Dotyczy widoku 3D, szybkiego menu i panelu pokoju.",
  "entity_auto": "Automatycznie ({name})",
  "entity_auto_none": "Automatycznie (nic nie znaleziono)",
  "entity_none": "Brak",

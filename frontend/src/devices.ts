@@ -119,6 +119,15 @@ export function coverCall(st: HassEntity | undefined, what: "open" | "close" | "
   return { service: "set_cover_tilt_position", data: { tilt_position: what === "open" ? 100 : 0 } };
 }
 
+/**
+ * A cover's slat tilt as NeonPlan shows and sets it (0 = closed, 100 = horizontal/open): as reported, or the other way
+ * round for an opening set to "Invert slats". The same turn maps a shown value back to the one to send.
+ */
+export function slatTilt(value: number, invert: boolean): number {
+  const v = Math.min(100, Math.max(0, value));
+  return invert ? 100 - v : v;
+}
+
 /** Several covers at once: one call per kind of cover (roller shutters by open/close, slat-only blinds by their tilt). */
 export function coverCalls(hass: HomeAssistant, ids: readonly string[], what: "open" | "close" | "stop"): { service: string; data: Record<string, unknown> }[] {
   const groups = new Map<string, { service: string; data: Record<string, unknown>; ids: string[] }>();
@@ -676,6 +685,8 @@ export interface OpeningEntities {
   lock?: string | null;
   /** The contacts report the other way round (on = closed). */
   contactInvert?: boolean;
+  /** The cover reports its slat tilt the other way round (0 = open). */
+  slatInvert?: boolean;
 }
 
 /** Pairs openings with entities in order; with `shared`, a single entity serves all openings. */
@@ -717,6 +728,7 @@ export function openingEntities(hass: HomeAssistant, floors: readonly Floor[]): 
       tiltInvert: !!o.tilt_invert,
       shut: !!o.shut,
       ...(o.contact_invert ? { contactInvert: true } : {}),
+      ...(o.slat_invert ? { slatInvert: true } : {}),
     };
   };
   for (const floor of floors) {
@@ -792,7 +804,7 @@ export function openingState(
   hass: HomeAssistant,
   e: OpeningEntities,
   type: Opening["type"] = "window",
-): { open: number; open2: number; tilt: number; tilt2: number; cover: number | null; sensed: boolean; unlocked?: boolean } {
+): { open: number; open2: number; tilt: number; tilt2: number; cover: number | null; slats?: number; sensed: boolean; unlocked?: boolean } {
   // a drive that only gives a pulse (a switch, a button) reports nothing about the door: the contact does (#677)
   if (e.cover && isPulseDrive(e.cover)) e = { ...e, cover: null, position: null };
   // the door's smart lock: unlocked (or unlatched) gives the leaf a soft glow at its edge (#682)
@@ -830,6 +842,9 @@ export function openingState(
     if (typeof pos === "number") cover = 1 - Math.min(100, Math.max(0, pos)) / 100;
     else cover = c.state === "closed" ? 1 : c.state === "opening" || c.state === "closing" ? 0.5 : 0;
   } else if (e.cover) cover = 0;
+  // the slats of a venetian blind or Raffstore: 1 = horizontal (open), 0 = closed; null when the cover reports no tilt
+  const tiltRaw = c && !isUnavailable(c) ? c.attributes.current_tilt_position : undefined;
+  const slats = cover !== null && typeof tiltRaw === "number" ? { slats: slatTilt(tiltRaw, !!e.slatInvert) / 100 } : {};
   if (type === "door") {
     const p = pos(e.contact);
     // a cover that is a gate, garage door or door is the door itself (a sliding gate on a sliding door): it moves the
@@ -839,7 +854,7 @@ export function openingState(
       return { open: leaf, open2: pos(e.contact2) === "open" ? 1 : 0, tilt: 0, tilt2: 0, cover: null, sensed: true, ...lockOpen };
     }
     // a door with a roller shutter (front door, French window, sliding door): the blind comes down over it
-    return { open: p === null ? (e.shut ? 0 : DOOR_DEFAULT_OPEN) : p === "closed" ? 0 : 1, open2: pos(e.contact2) === "open" ? 1 : 0, tilt: 0, tilt2: 0, cover, sensed: p !== null || cover !== null, ...lockOpen };
+    return { open: p === null ? (e.shut ? 0 : DOOR_DEFAULT_OPEN) : p === "closed" ? 0 : 1, open2: pos(e.contact2) === "open" ? 1 : 0, tilt: 0, tilt2: 0, cover, sensed: p !== null || cover !== null, ...slats, ...lockOpen };
   }
   if (type === "garage") {
     // a garage door without a cover shows its contact: open or closed (read like a door's, so text states and
@@ -849,7 +864,7 @@ export function openingState(
     if (cover === null) cover = p === null || p === "closed" ? 1 : 0;
     return { open: 0, open2: 0, tilt: 0, tilt2: 0, cover, sensed };
   }
-  return { open, open2, tilt: tiltFrac, tilt2: tilted2 ? 1 : 0, cover, sensed: known(e.contact) || known(e.tilt) || Number.isFinite(angleRaw), ...lockOpen };
+  return { open, open2, tilt: tiltFrac, tilt2: tilted2 ? 1 : 0, cover, sensed: known(e.contact) || known(e.tilt) || Number.isFinite(angleRaw), ...slats, ...lockOpen };
 }
 
 /**
@@ -970,6 +985,19 @@ export function confirmEntities(hass: HomeAssistant, floors: readonly Floor[]): 
       if (f.confirm) for (const g of f.gangs ?? []) if (g.entity && g.entity !== "none") out.add(g.entity);
     }
   }
+  return out;
+}
+
+/** Covers of openings set to "Invert slats": the quick menu and the room panel show and set their tilt the other way round. */
+export function slatInvertEntities(hass: HomeAssistant, floors: readonly Floor[]): Set<string> {
+  const out = new Set<string>();
+  if (!floors.some((f) => f.openings.some((o) => o.slat_invert))) return out;
+  const openings = openingEntities(hass, floors);
+  for (const floor of floors)
+    for (const o of floor.openings) {
+      const cover = o.slat_invert ? openings.get(o.id)?.cover : null;
+      if (cover && cover !== "none") out.add(cover);
+    }
   return out;
 }
 

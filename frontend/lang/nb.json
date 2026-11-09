@@ -1356,6 +1356,8 @@
  "door_shut_hint": "En dør uten kontakt står halvåpen i 3D, så den ser ut som en dør. Huker du av, tegnes den lukket – inngangsdør, carport, sidedør.",
  "contact_invert": "Snu kontakten",
  "contact_invert_hint": "For sensorer som melder åpen og lukket omvendt",
+ "slat_invert": "Snu lameller",
+ "slat_invert_hint": "For persienner som melder lamellvinkelen omvendt (0 = vannrette/åpne). Gjelder 3D, hurtigmenyen og rompanelet.",
  "entity_auto": "Automatisk ({name})",
  "entity_auto_none": "Automatisk (ingen funnet)",
  "entity_none": "Ingen",

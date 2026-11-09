@@ -16,7 +16,7 @@ import { carState, type CarState, heatSensorOn, roomClimateValue,
   openingState,
   TOGGLE_KINDS,
   type FurnitureLinks,
-  type OpeningEntities, awningStates, confirmEntities, fridgeDoors, hasScreen, pictureRuleMatches,
+  type OpeningEntities, awningStates, confirmEntities, slatInvertEntities, fridgeDoors, hasScreen, pictureRuleMatches,
   fromCelsius,
   tempUnit,
   robotRoom,
@@ -442,6 +442,8 @@ export class Fp3dView3d extends LitElement {
   private sunPathCache: SunPath | null = null;
   /** Entities that ask before a tap switches them. */
   private confirmSet = new Set<string>();
+  /** Covers whose slat tilt the quick menu shows and sets the other way round. */
+  private slatInvertSet = new Set<string>();
   /** History rows of the trail's sensors (fetched while the trail is shown, again every minute). */
   private trailRows: Record<string, HistoryRow[]> = {};
   private trailTimer: ReturnType<typeof setInterval> | undefined;
@@ -1225,6 +1227,7 @@ export class Fp3dView3d extends LitElement {
     // a placed power sensor shows its value as state text already, so only devices get a watt badge
     const byDevice = new Map(consumers.filter((c) => c.id !== c.powerEntity).map((c) => [c.id, c.power]));
     this.confirmSet = confirmEntities(hass, b.floors);
+    this.slatInvertSet = slatInvertEntities(hass, b.floors);
     const trail = this.trail ? this.trailNow(hass, b) : [];
     const detections = hasFeature("camera_cockpit") && !this.dimmed ? this.detectionPins(hass, deviceMarkers) : [];
     this.detecting = detections.length > 0;
@@ -5600,6 +5603,7 @@ export class Fp3dView3d extends LitElement {
         ?doorLock=${!!m.doorLock}
         .presets=${hasFeature("sound") ? (this.building?.settings.media_presets ?? []) : []}
         ?confirmSwitch=${this.confirmSet.has(m.entity)}
+        ?slatInvert=${this.slatInvertSet.has(m.entity)}
         ?pro=${hasFeature("camera_cockpit")}
         @close=${() => (this._menu = null)}
         @camera-look=${(e: CustomEvent<{ entity: string }>) => this.lookThrough(e.detail.entity)}

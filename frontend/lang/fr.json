@@ -1356,6 +1356,8 @@
  "door_shut_hint": "Une porte sans contact reste entrouverte en 3D pour qu'on la reconnaisse comme porte. Cochée, elle est dessinée fermée – porte d'entrée, carport, porte de service.",
  "contact_invert": "Inverser le contact",
  "contact_invert_hint": "Pour les capteurs qui signalent ouvert et fermé à l'envers",
+ "slat_invert": "Inverser les lamelles",
+ "slat_invert_hint": "Pour les stores à lamelles qui signalent l'inclinaison des lamelles à l'envers (0 = horizontales/ouvertes). Agit sur la 3D, le menu rapide et le panneau de la pièce.",
  "entity_auto": "Automatique ({name})",
  "entity_auto_none": "Automatique (rien trouvé)",
  "entity_none": "Aucun",

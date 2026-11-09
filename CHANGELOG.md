@@ -4,6 +4,12 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 [releases page](https://github.com/Mastershort/neonplan3d/releases). Ideas and votes:
 [Discussions → Ideas](https://github.com/Mastershort/neonplan3d/discussions/categories/ideas).
 
+## Unreleased
+
+### Added
+- **Raffstore slats in 3D:** a blind whose cover reports `current_tilt_position` is drawn as single slats that turn with it – horizontal at 100, closed at 0 – instead of the flat striped blind. Sun patches in the room and the window light outside follow the slats as well: the lowered part lets light through as far as the slats are open. Blinds without a tilt stay as they were (#971).
+- **Invert slats** at a window, for integrations that report the tilt the other way round (0 = open): it turns the value in 3D, the quick menu and the room panel, and the value sent, so no template cover is needed (#971).
+
 ## 3.0.3
 
 ### Added

@@ -1356,6 +1356,8 @@
  "door_shut_hint": "Una puerta sin contacto queda entreabierta en 3D para que se reconozca como puerta. Marcada, se dibuja cerrada: puerta de entrada, carport, puerta lateral.",
  "contact_invert": "Invertir contacto",
  "contact_invert_hint": "Para sensores que informan abierto y cerrado al revés",
+ "slat_invert": "Invertir lamas",
+ "slat_invert_hint": "Para persianas de lamas que informan la inclinación de las lamas al revés (0 = horizontales/abiertas). Afecta al 3D, al menú rápido y al panel de la habitación.",
  "entity_auto": "Automático ({name})",
  "entity_auto_none": "Automático (no se encontró)",
  "entity_none": "Ninguno",

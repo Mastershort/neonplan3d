@@ -1356,6 +1356,8 @@
  "door_shut_hint": "Een deur zonder contact staat in 3D half open, zodat je hem als deur herkent. Aangevinkt wordt hij gesloten getekend – voordeur, carport, zijdeur.",
  "contact_invert": "Contact omkeren",
  "contact_invert_hint": "Voor sensoren die open en dicht andersom melden",
+ "slat_invert": "Lamellen omkeren",
+ "slat_invert_hint": "Voor lamellenzonwering die de lamelstand andersom meldt (0 = horizontaal/open). Werkt in 3D, het snelmenu en het kamerpaneel.",
  "entity_auto": "Automatisch ({name})",
  "entity_auto_none": "Automatisch (niets gevonden)",
  "entity_none": "Geen",

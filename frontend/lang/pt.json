@@ -1356,6 +1356,8 @@
  "door_shut_hint": "Uma porta sem contacto fica entreaberta em 3D para se perceber que é uma porta. Se marcado, é desenhada fechada – porta de entrada, telheiro, porta lateral.",
  "contact_invert": "Inverter contacto",
  "contact_invert_hint": "Para sensores que indicam aberto e fechado ao contrário",
+ "slat_invert": "Inverter lâminas",
+ "slat_invert_hint": "Para estores de lâminas que reportam a inclinação das lâminas ao contrário (0 = horizontais/abertas). Aplica-se ao 3D, ao menu rápido e ao painel da divisão.",
  "entity_auto": "Automático ({name})",
  "entity_auto_none": "Automático (nenhum encontrado)",
  "entity_none": "Nenhum",

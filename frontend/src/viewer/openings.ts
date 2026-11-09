@@ -19,6 +19,8 @@ export interface OpeningState {
   tilt2?: number;
   /** Closed fraction of the blind or garage door (0 = up, 1 = down); null = no blind. */
   cover: number | null;
+  /** Slats of a venetian blind or Raffstore: 1 = horizontal (open), 0 = closed; null/absent = a flat blind (no tilt). */
+  slats?: number | null;
   /** A sensor reports the state (contact, tilt sensor or cover); without one "closed" is a guess. */
   sensed?: boolean;
   /** The door's smart lock is unlocked: the leaf's free edge glows softly (#682). */
@@ -26,6 +28,16 @@ export interface OpeningState {
 }
 
 export const CLOSED: OpeningState = { open: 0, open2: 0, tilt: 0, tilt2: 0, cover: null };
+
+/**
+ * Share of a window's light that passes its blind (0 … 1): the part the blind leaves free, plus – on a blind that
+ * reports its slat tilt – the lowered part as far as its slats are open (horizontal slats let it all through).
+ */
+export function blindPassage(st: Pick<OpeningState, "cover" | "slats"> | undefined): number {
+  const cover = Math.min(1, Math.max(0, st?.cover ?? 0));
+  const through = Math.min(1, Math.max(0, st?.slats ?? 0));
+  return 1 - cover * (1 - through);
+}
 
 const FRAME = 0x1f3052;
 const FRAME_TOP = 0x2a4270;
@@ -50,6 +62,10 @@ const GLASS = shade(0x37e0ff, 0.08);
 const TILT_ANGLE = 0.2;
 /** How far a top-hung window opens outwards (about 26°). */
 const TOP_HUNG_ANGLE = 0.45;
+/** Slat pitch of a blind that reports its tilt: the stripe pitch of the flat blind's texture. */
+export const SLAT_PITCH = 0.045;
+/** A slat is a little wider than its pitch, so closed slats overlap and the blind reads as shut. */
+const SLAT_WIDTH = SLAT_PITCH * 1.15;
 
 type Tf = (x: number, n: number, y: number) => number[];
 
@@ -94,6 +110,29 @@ function panel(buf: GeoBuffer, tf: Tf, x0: number, x1: number, n: number, y0: nu
   else {
     part(y0, cut, ALWAYS);
     part(cut, y1, bucket);
+  }
+}
+
+/**
+ * Slats of a venetian blind or Raffstore from y1 down to y0, one per pitch, in the plane n: each turns about its long
+ * axis from horizontal (open = 1) to upright (open = 0), the outer edge down like a real closed blind. Each slat
+ * shows one stripe of the blind texture, so closed slats look like the flat blind.
+ */
+function slats(buf: GeoBuffer, tf: Tf, x0: number, x1: number, n: number, y0: number, y1: number, open: number, color: Color, cut: number, bucket: number): void {
+  const alpha = (1 - Math.min(1, Math.max(0, open))) * (Math.PI / 2);
+  const hn = (SLAT_WIDTH / 2) * Math.cos(alpha);
+  const hy = (SLAT_WIDTH / 2) * Math.sin(alpha);
+  const count = Math.max(1, Math.round((y1 - y0) / SLAT_PITCH));
+  for (let i = 0; i < count; i++) {
+    const yc = y1 - (i + 0.5) * SLAT_PITCH;
+    // the room-side edge up, the outer edge down
+    const a = tf(x0, n + hn, yc + hy);
+    const b = tf(x1, n + hn, yc + hy);
+    const c = tf(x1, n - hn, yc - hy);
+    const d = tf(x0, n - hn, yc - hy);
+    const fold = yc > cut ? bucket : ALWAYS;
+    buf.tri(a, b, c, color, color, color, [0, 0, 1, 0, 1, 1], fold);
+    buf.tri(a, c, d, color, color, color, [0, 0, 1, 1, 0, 1], fold);
   }
 }
 
@@ -427,7 +466,8 @@ export function buildOpeningParts(infos: readonly OpeningInfo[], states: Readonl
         }
       }
     }
-    // blind on the outside: box above the opening, slats down to the closed fraction
+    // blind on the outside: box above the opening, slats down to the closed fraction – turned by their tilt when the
+    // cover reports one (a Raffstore), else a flat blind
     if (st.cover !== null) {
       const out = -info.faceOut;
       const boxTop = T + 0.2;
@@ -435,7 +475,8 @@ export function buildOpeningParts(infos: readonly OpeningInfo[], states: Readonl
       const closed = Math.min(1, Math.max(0, st.cover));
       if (closed > 0.01) {
         const bottom = T - closed * (T - S);
-        panel(blinds, tf, 0, W, out - 0.07, bottom, T, new Color(0xffffff), cut, bucket, 0.045);
+        if (st.slats != null) slats(blinds, tf, 0, W, out - 0.07, bottom, T, st.slats, new Color(0xffffff), cut, bucket);
+        else panel(blinds, tf, 0, W, out - 0.07, bottom, T, new Color(0xffffff), cut, bucket, SLAT_PITCH);
       }
     }
     frameTris.push({ id: info.opening.id, start: fStart, end: frames.count });

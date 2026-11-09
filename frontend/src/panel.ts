@@ -24,7 +24,7 @@ import type { HeatMode } from "./heatmap.ts";
 import { THEMES, type Theme } from "./themes.ts";
 import { keepInRoom, snapToWall } from "./geometry/snap.ts";
 import { furnitureName } from "./furniture-names.ts";
-import { confirmEntities, defaultHeight, entityName, kindOf } from "./devices.ts";
+import { confirmEntities, defaultHeight, entityName, kindOf, slatInvertEntities } from "./devices.ts";
 import { canLift, zonesOf, type LampMount } from "./model.ts";
 import { mountBase, packsVersion } from "./packs.ts";
 import { hasFeature, labOn, registerUrl, released, UNRELEASED } from "./features.ts";
@@ -1250,6 +1250,7 @@ export class Floorplan3dPanel extends LitElement {
               .floor=${b.floors.find((f) => zonesOf(f).some((r) => r.id === this._roomId)) ?? null}
               .building=${b}
               .confirmEntities=${confirmEntities(this.hass, b.floors)}
+              .slatInvertEntities=${slatInvertEntities(this.hass, b.floors)}
               .sheets=${this._roomId ? (this.view3d()?.roomSheets(this._roomId) ?? null) : null}
               @sheet-open=${(e: CustomEvent<{ id: string }>) => this._roomId && this.view3d()?.openRoomSheet(this._roomId, e.detail.id)}
               @close=${() => (this._roomId = null)}

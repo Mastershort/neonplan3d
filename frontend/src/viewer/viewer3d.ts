@@ -45,7 +45,7 @@ import { accentOnUniform, accentUniform, parseAccent, lineBlending, themed, them
 export type { Theme } from "./theme.ts";
 import { ALWAYS, DEG, GeoBuffer, LineBuffer, pushPrism, triangulate } from "./geo.ts";
 import { buildLightSurface, lightColors, roomIndexAt, spillLength, type LightKind, type LightSource, type LightSurface, zoneOf } from "./lighting.ts";
-import { buildOpeningParts, CLOSED, type OpeningState } from "./openings.ts";
+import { blindPassage, buildOpeningParts, CLOSED, type OpeningState } from "./openings.ts";
 import { circlePath, cleaningPath, stepRobot, type RobotInfo, type RobotMotion } from "./robot.ts";
 import { decorDelay, lowEndDevice, petDelay, SLOW_KEY, SLOW_SAMPLES, SLOW_WARMUP_MS, slowFrames } from "./pace.ts";
 
@@ -1763,7 +1763,7 @@ export class FloorplanViewer {
         zoneLight.set(l.room, z);
       }
     }
-    const covers = [...fv.openings.values()].map((o) => (o.cover ?? 0).toFixed(1)).join(",");
+    const covers = [...fv.openings.values()].map((o) => `${(o.cover ?? 0).toFixed(1)}/${(o.slats ?? 0).toFixed(1)}`).join(",");
     const sig = ground && zoneLight.size ? `${night.toFixed(2)}|${[...zoneLight].map(([k, v]) => `${k}:${v.map((x) => x.toFixed(2)).join("/")}`).join(";")}|${covers}` : "";
     if (sig === fv.spillSig) return;
     fv.spillSig = sig;
@@ -1775,7 +1775,7 @@ export class FloorplanViewer {
         const light = ri < 0 ? undefined : zoneLight.get(zoneOf(fv.lightZones, ri));
         if (!light || light[3] < 0.02) continue;
         const st = fv.openings.get(info.opening.id);
-        const open = 1 - (st?.cover ?? 0);
+        const open = blindPassage(st);
         const height = info.top - info.sill;
         if (open < 0.05 || height < 0.1) continue;
         const peak = Math.max(light[0], light[1], light[2], 1e-6);
@@ -1931,8 +1931,8 @@ export class FloorplanViewer {
         let changed = false;
         for (const [id, cur] of fv.openings) {
           const to = states.get(id) ?? CLOSED;
-          const next = { ...to, open2: to.open2 ?? 0, tilt2: to.tilt2 ?? 0 };
-          if (next.open === cur.open && next.open2 === (cur.open2 ?? 0) && next.tilt === cur.tilt && next.tilt2 === (cur.tilt2 ?? 0) && next.cover === cur.cover && !!next.sensed === !!cur.sensed && !!next.unlocked === !!cur.unlocked) continue;
+          const next = { ...to, open2: to.open2 ?? 0, tilt2: to.tilt2 ?? 0, slats: to.slats ?? null };
+          if (next.open === cur.open && next.open2 === (cur.open2 ?? 0) && next.tilt === cur.tilt && next.tilt2 === (cur.tilt2 ?? 0) && next.cover === cur.cover && next.slats === (cur.slats ?? null) && !!next.sensed === !!cur.sensed && !!next.unlocked === !!cur.unlocked) continue;
           fv.openings.set(id, next);
           changed = true;
         }
@@ -3202,7 +3202,7 @@ export class FloorplanViewer {
         const target = this.openingTargets.get(id) ?? CLOSED;
         // nothing to do for an opening that rests at its target (the usual case)
         const near = (a: number | null | undefined, b: number | null | undefined) => (a ?? null) === (b ?? null) || (typeof a === "number" && typeof b === "number" && Math.abs(a - b) < 0.003);
-        if (near(target.open, cur.open) && near(target.open2 ?? 0, cur.open2 ?? 0) && near(target.tilt, cur.tilt) && near(target.tilt2 ?? 0, cur.tilt2 ?? 0) && near(target.cover, cur.cover) && !!target.sensed === !!cur.sensed && !!target.unlocked === !!cur.unlocked) continue;
+        if (near(target.open, cur.open) && near(target.open2 ?? 0, cur.open2 ?? 0) && near(target.tilt, cur.tilt) && near(target.tilt2 ?? 0, cur.tilt2 ?? 0) && near(target.cover, cur.cover) && near(target.slats, cur.slats) && !!target.sensed === !!cur.sensed && !!target.unlocked === !!cur.unlocked) continue;
         const next = { ...cur, open2: cur.open2 ?? 0, tilt2: cur.tilt2 ?? 0, sensed: target.sensed, unlocked: target.unlocked };
         let busy = false;
         for (const key of ["open", "open2", "tilt", "tilt2"] as const) {
@@ -3215,16 +3215,21 @@ export class FloorplanViewer {
             busy = true;
           }
         }
-        if (target.cover === null || cur.cover === null) next.cover = target.cover;
-        else {
-          const d = target.cover - cur.cover;
-          if (Math.abs(d) < 0.003) next.cover = target.cover;
+        // the blind's height and its slats' tilt glide; one that appears or goes (null) jumps
+        for (const key of ["cover", "slats"] as const) {
+          const to = target[key] ?? null;
+          const from = cur[key] ?? null;
+          if (to === null || from === null) next[key] = to;
           else {
-            next.cover = cur.cover + d * k;
-            busy = true;
+            const d = to - from;
+            if (Math.abs(d) < 0.003) next[key] = to;
+            else {
+              next[key] = from + d * k;
+              busy = true;
+            }
           }
         }
-        if (next.open !== cur.open || next.open2 !== (cur.open2 ?? 0) || next.tilt !== cur.tilt || next.tilt2 !== (cur.tilt2 ?? 0) || next.cover !== cur.cover || !!next.sensed !== !!cur.sensed || !!next.unlocked !== !!cur.unlocked) {
+        if (next.open !== cur.open || next.open2 !== (cur.open2 ?? 0) || next.tilt !== cur.tilt || next.tilt2 !== (cur.tilt2 ?? 0) || next.cover !== cur.cover || (next.slats ?? null) !== (cur.slats ?? null) || !!next.sensed !== !!cur.sensed || !!next.unlocked !== !!cur.unlocked) {
           fv.openings.set(id, next);
           changed = true;
         }
@@ -3351,7 +3356,7 @@ export class FloorplanViewer {
     const cloud = this.weather?.cloud ?? 0;
     // rooms joined without a wall share the sunlight too: the zones belong to the patch's signature
     const zones = lightZonesOf(fv.floor, fv.geo.openRooms);
-    const sig = sun ? `${sun.elevation.toFixed(1)},${sun.azimuth.toFixed(1)},${north},${cloud.toFixed(2)},${[...fv.openings.values()].map((o) => (o.cover ?? 0).toFixed(2)).join(",")},${zones.join(".")},${this.roofWindowsKey},${JSON.stringify(this.building?.settings.roof?.windows ?? [])}` : "";
+    const sig = sun ? `${sun.elevation.toFixed(1)},${sun.azimuth.toFixed(1)},${north},${cloud.toFixed(2)},${[...fv.openings.values()].map((o) => `${(o.cover ?? 0).toFixed(2)}/${(o.slats ?? 0).toFixed(2)}`).join(",")},${zones.join(".")},${this.roofWindowsKey},${JSON.stringify(this.building?.settings.roof?.windows ?? [])}` : "";
     if (sig === fv.sunSig) return;
     fv.sunSig = sig;
     const buf = new GeoBuffer();
@@ -3371,7 +3376,10 @@ export class FloorplanViewer {
         if (facing < 0.05) continue;
         const st = fv.openings.get(info.opening.id);
         const sill = Math.max(0, info.sill);
-        const top = info.top - (st?.cover ?? 0) * (info.top - sill);
+        // the blind takes the light from its bottom edge up – all of it, or as much as its slats are closed
+        const blindBottom = info.top - (st?.cover ?? 0) * (info.top - sill);
+        const through = Math.min(1, Math.max(0, st?.slats ?? 0));
+        const top = through > 0.01 ? info.top : blindBottom;
         if (top - sill < 0.05) continue;
         const key = [info.start, info.axis, info.width, sill, top].join();
         if (seen.has(key)) continue;
@@ -3391,7 +3399,11 @@ export class FloorplanViewer {
         const near = new Color(1 * k, 0.72 * k, 0.36 * k);
         const far = near.clone().multiplyScalar(0.5);
         const len = dist(top) - dist(sill);
-        const col = (s: number, y: number) => near.clone().lerp(far, (y - sill) / (top - sill)).multiplyScalar(sunEdge(s, info.width) * sunEdge(dist(y) - dist(sill), len));
+        const col = (s: number, y: number) =>
+          near
+            .clone()
+            .lerp(far, (y - sill) / (top - sill))
+            .multiplyScalar(sunEdge(s, info.width) * sunEdge(dist(y) - dist(sill), len) * (y > blindBottom + 1e-3 ? through : 1));
         // the patch stays inside the window's room – and the rooms joined to it without a wall, like the
         // lamps' light (#455 reported): it is laid in small cells, and only cells whose centre lies in one
         // of them are drawn (so it never crosses walls or leaves the house)

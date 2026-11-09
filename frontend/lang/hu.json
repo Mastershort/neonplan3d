@@ -1356,6 +1356,8 @@
  "door_shut_hint": "Egy érzékelő nélküli ajtó 3D-ben félig nyitva áll, hogy ajtónak látsszon. Bepipálva zárva rajzolódik – bejárati ajtó, kocsibeálló, mellékajtó.",
  "contact_invert": "Érintkező megfordítása",
  "contact_invert_hint": "Olyan szenzorokhoz, amelyek fordítva jelentik a nyitott és zárt állapotot",
+ "slat_invert": "Lamellák megfordítása",
+ "slat_invert_hint": "Olyan zsalukhoz, amelyek a lamellák dőlését fordítva jelentik (0 = vízszintes/nyitott). A 3D-re, a gyorsmenüre és a helyiségpanelre hat.",
  "entity_auto": "Automatikus ({name})",
  "entity_auto_none": "Automatikus (nincs találat)",
  "entity_none": "Nincs",

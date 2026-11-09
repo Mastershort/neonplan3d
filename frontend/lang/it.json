@@ -1356,6 +1356,8 @@
  "door_shut_hint": "Una porta senza contatto resta socchiusa in 3D per riconoscerla come porta. Spuntata, viene disegnata chiusa: porta d'ingresso, carport, porta di servizio.",
  "contact_invert": "Inverti contatto",
  "contact_invert_hint": "Per i sensori che segnalano aperto e chiuso al contrario",
+ "slat_invert": "Inverti lamelle",
+ "slat_invert_hint": "Per frangisole e veneziane che segnalano l'inclinazione delle lamelle al contrario (0 = orizzontali/aperte). Vale per il 3D, il menu rapido e il pannello della stanza.",
  "entity_auto": "Automatico ({name})",
  "entity_auto_none": "Automatico (niente trovato)",
  "entity_none": "Nessuno",

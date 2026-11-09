@@ -1356,6 +1356,8 @@
  "door_shut_hint": "Vrata brez kontakta so v 3D napol odprta, da so prepoznavna kot vrata. Če je označeno, so narisana zaprta – vhodna vrata, nadstrešek, stranska vrata.",
  "contact_invert": "Obrni kontakt",
  "contact_invert_hint": "Za senzorje, ki odprto in zaprto javljajo obratno",
+ "slat_invert": "Obrni lamele",
+ "slat_invert_hint": "Za žaluzije, ki naklon lamel sporočajo obratno (0 = vodoravno/odprto). Velja za 3D, hitri meni in ploščo prostora.",
  "entity_auto": "Samodejno ({name})",
  "entity_auto_none": "Samodejno (nič najdeno)",
  "entity_none": "Brez",

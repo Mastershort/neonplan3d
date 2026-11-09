@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { Opening } from "../model.ts";
 import type { OpeningInfo } from "./build.ts";
-import { buildOpeningParts, sillBoards, stackedOnOpening } from "./openings.ts";
+import { blindPassage, buildOpeningParts, SLAT_PITCH, sillBoards, stackedOnOpening } from "./openings.ts";
 
 /** A window (or door) on the wall along x from (sx, sz), as the floor builder describes it. */
 function info(id: string, sx: number, width: number, sill: number, top: number, extra: Partial<Opening> & { axis?: [number, number]; exterior?: boolean; sz?: number } = {}): OpeningInfo {
@@ -114,4 +114,56 @@ test("a lift-and-slide door slides its pane along the wall, the fixed one stays 
   assert.ok(shut.maxX > 3.2, `closed reaches the far end (${shut.maxX})`);
   assert.ok(open.maxX < 2.4, `open the pane moved over the fixed one (${open.maxX})`);
   assert.ok(open.minZ > -0.2, "it does not swing out of the wall");
+});
+
+/** Vertices (x, y, z) of an opening's blind triangles. */
+function blindVertices(parts: ReturnType<typeof buildOpeningParts>, id: string): number[][] {
+  const r = parts.blindTris.find((t) => t.id === id)!;
+  const pos = parts.blinds.getAttribute("position").array;
+  const out: number[][] = [];
+  for (let i = r.start * 3; i < r.end * 3; i++) out.push([pos[i * 3], pos[i * 3 + 1], pos[i * 3 + 2]]);
+  return out;
+}
+
+test("a blind that reports no tilt stays one flat panel", () => {
+  const w = info("w", 1, 1.2, 0.9, 2.2);
+  const parts = buildOpeningParts([w], new Map([["w", { open: 0, tilt: 0, cover: 1 }]]), 10);
+  const r = parts.blindTris.find((t) => t.id === "w")!;
+  assert.equal(r.end - r.start, 2);
+});
+
+test("a Raffstore is drawn as single slats down to its bottom edge, turned by their tilt (#971)", () => {
+  const w = info("w", 1, 1.2, 0.9, 2.2);
+  const build = (slats: number, cover = 1) => buildOpeningParts([w], new Map([["w", { open: 0, tilt: 0, cover, slats }]]), 10);
+  // one slat (two triangles) per pitch over the lowered height
+  const full = build(1);
+  const r = full.blindTris.find((t) => t.id === "w")!;
+  assert.equal(r.end - r.start, 2 * Math.round(1.3 / SLAT_PITCH));
+  const half = build(1, 0.5).blindTris.find((t) => t.id === "w")!;
+  assert.equal(half.end - half.start, 2 * Math.round(0.65 / SLAT_PITCH));
+  // open: every slat lies flat (its four corners at one height), reaching out of and into the wall's plane
+  const open = blindVertices(full, "w");
+  for (let i = 0; i < open.length; i += 3) assert.ok(Math.abs(open[i][1] - open[i + 1][1]) < 1e-6 && Math.abs(open[i][1] - open[i + 2][1]) < 1e-6);
+  const zs = open.map((v) => v[2]);
+  assert.ok(Math.max(...zs) - Math.min(...zs) > SLAT_PITCH);
+  // closed: every slat stands upright in the blind's plane, a little wider than its pitch so they overlap
+  const shut = blindVertices(build(0), "w");
+  const zc = shut.map((v) => v[2]);
+  assert.ok(Math.max(...zc) - Math.min(...zc) < 1e-6);
+  const first = shut.slice(0, 6).map((v) => v[1]);
+  assert.ok(Math.max(...first) - Math.min(...first) > SLAT_PITCH);
+  // half tilted: the outer edge (away from the room, lower z) hangs lower than the room-side edge
+  const mid = blindVertices(build(0.5), "w").slice(0, 3);
+  const [hi, lo] = mid[0][2] > mid[2][2] ? [mid[0], mid[2]] : [mid[2], mid[0]];
+  assert.ok(hi[1] > lo[1]);
+});
+
+test("light through a blind: the free part, plus the lowered part as far as the slats are open (#971)", () => {
+  assert.equal(blindPassage(undefined), 1);
+  assert.equal(blindPassage({ cover: null }), 1);
+  assert.equal(blindPassage({ cover: 1 }), 0);
+  assert.equal(blindPassage({ cover: 1, slats: null }), 0);
+  assert.equal(blindPassage({ cover: 1, slats: 1 }), 1);
+  assert.equal(blindPassage({ cover: 0.5, slats: 0.5 }), 0.75);
+  assert.equal(blindPassage({ cover: 0.4 }), 0.6);
 });

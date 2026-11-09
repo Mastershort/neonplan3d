@@ -13,7 +13,7 @@ test("a lamp switched by a relay takes colour and brightness from its colour ent
   // the bulb unavailable: the relay's own (plain) glow
   assert.deepEqual(lightGlow(relay as never, { ...bulb, state: "unavailable" } as never)!.color, [1, 0.71, 0.28]);
 });
-import { coverTiltButtons, isPulseDrive, isRelevant, apOnline, fanSpeed, climateModeGlow, cooktopLevel, onlyColor, fixedGlowColor, appColor, carLocked, areaEntities, otherAreaEntities, roomClimateSensors, roomClimateValue, unassignedEntities, autoPlace, entityName, fridgeDoors, furnitureEntities, groupByDevice, isActive, kindOf, lightGlow, openingEntities, openingState, powerSensorsOf, primaryEntities, roomPanelEntities, windowPosition, confirmEntities, robotRoom, robotRoomSensor, roomKey, vacuumCleaning } from "./devices.ts";
+import { coverTiltButtons, isPulseDrive, isRelevant, apOnline, fanSpeed, climateModeGlow, cooktopLevel, onlyColor, fixedGlowColor, appColor, carLocked, areaEntities, otherAreaEntities, roomClimateSensors, roomClimateValue, unassignedEntities, autoPlace, entityName, fridgeDoors, furnitureEntities, groupByDevice, isActive, kindOf, lightGlow, openingEntities, openingState, powerSensorsOf, primaryEntities, roomPanelEntities, windowPosition, confirmEntities, slatInvertEntities, slatTilt, robotRoom, robotRoomSensor, roomKey, vacuumCleaning } from "./devices.ts";
 import type { Floor, Opening, Room } from "./model.ts";
 import { centroid, newFloor, pointInPolygon } from "./model.ts";
 import type { HomeAssistant } from "./types.ts";
@@ -961,4 +961,43 @@ test("covers open, close and stop the way they can: a slat-only blind by its til
     { service: "open_cover", data: { entity_id: ["cover.a", "cover.c"] } },
     { service: "set_cover_tilt_position", data: { tilt_position: 100, entity_id: ["cover.b"] } },
   ]);
+});
+
+test("a Raffstore's slat tilt goes into the opening state, the other way round when inverted (#971)", () => {
+  const hass = hassWith();
+  hass.states["cover.raff"] = { entity_id: "cover.raff", state: "closed", attributes: { current_position: 0, current_tilt_position: 30 } };
+  const e = { cover: "cover.raff", contact: null, tilt: null };
+  assert.equal(stateOf(hass, e).cover, 1);
+  assert.equal(stateOf(hass, e).slats, 0.3);
+  assert.equal(stateOf(hass, { ...e, slatInvert: true }).slats, 0.7);
+  // a blind with slats on a French window or door too
+  assert.equal(stateOf(hass, e, "door").slats, 0.3);
+  // a roller shutter without a tilt keeps the flat blind; a garage door never has slats
+  assert.equal("slats" in stateOf(hass, { cover: "cover.rollo", contact: null, tilt: null }), false);
+  assert.equal("slats" in stateOf(hass, e, "garage"), false);
+  // an unavailable cover reports no tilt
+  hass.states["cover.raff"] = { entity_id: "cover.raff", state: "unavailable", attributes: { current_tilt_position: 30 } };
+  assert.equal("slats" in stateOf(hass, e), false);
+});
+
+test("slat tilt shows and is set the other way round only for inverted openings, within 0 … 100", () => {
+  assert.equal(slatTilt(30, false), 30);
+  assert.equal(slatTilt(30, true), 70);
+  // the same turn maps the slider's value back to the one to send
+  assert.equal(slatTilt(slatTilt(80, true), true), 80);
+  assert.equal(slatTilt(130, false), 100);
+  assert.equal(slatTilt(-5, true), 100);
+});
+
+test("a window set to 'Invert slats' puts its blind on the invert list", () => {
+  const hass = hassWith();
+  const o = (id: string, extra: Partial<Opening> = {}): Opening => ({
+    id, room_id: "r", edge: 0, offset: 1, width: 1, type: "window", sill: 0.9, height: 1.3, hinge: "left", leaves: 1, swing: "in", cover: "cover.rollo", contact: null, contact2: null, tilt: null, ...extra,
+  });
+  const floor: Floor = { ...newFloor("f", "F", 0), rooms: [{ ...room, area_id: "wohnen" }], openings: [o("w1")] };
+  assert.equal(slatInvertEntities(hass, [floor]).size, 0);
+  floor.openings = [o("w1", { slat_invert: true })];
+  assert.equal(slatInvertEntities(hass, [floor]).has("cover.rollo"), true);
+  floor.openings = [o("w1", { slat_invert: true, cover: "none" })];
+  assert.equal(slatInvertEntities(hass, [floor]).size, 0);
 });

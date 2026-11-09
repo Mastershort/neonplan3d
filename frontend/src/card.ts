@@ -2,7 +2,7 @@
 
 import { zonesOf, type Building } from "./model.ts";
 import { roomsOnly, shownRoomIds } from "./rooms-filter.ts";
-import { confirmEntities } from "./devices.ts";
+import { confirmEntities, slatInvertEntities } from "./devices.ts";
 import { countView } from "./diagnostics.ts";
 import { css, html, LitElement, nothing, type PropertyValues } from "lit";
 import { BuildingController } from "./building-controller.ts";
@@ -615,6 +615,7 @@ clearTimeout(this.cleanTimer);
               .floor=${b.floors.find((f) => zonesOf(f).some((r) => r.id === this._roomId)) ?? null}
               .building=${b}
               .confirmEntities=${confirmEntities(this.hass, b.floors)}
+              .slatInvertEntities=${slatInvertEntities(this.hass, b.floors)}
               .sheets=${this._roomId ? (this.view3d()?.roomSheets(this._roomId) ?? null) : null}
               @sheet-open=${(e: CustomEvent<{ id: string }>) => this._roomId && this.view3d()?.openRoomSheet(this._roomId, e.detail.id)}
               @close=${() => (this._roomId = null)}

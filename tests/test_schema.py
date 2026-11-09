@@ -47,6 +47,9 @@ def test_inverted_contact_and_plant_card_offsets() -> None:
     gate |= {"width": 2.5, "sill": 0, "height": 2.1}
     assert OPENING_SCHEMA(gate)["contact_invert"] is False
     assert OPENING_SCHEMA({**gate, "contact_invert": True})["contact_invert"] is True
+    # a Raffstore that reports its slat tilt the other way round (#971)
+    assert OPENING_SCHEMA(gate)["slat_invert"] is False
+    assert OPENING_SCHEMA({**gate, "slat_invert": True})["slat_invert"] is True
     # window board / sill: automatic unless the plan says otherwise (#655)
     assert OPENING_SCHEMA(gate)["sill_board"] == "auto"
     assert OPENING_SCHEMA({**gate, "sill_board": "inside"})["sill_board"] == "inside"

@@ -1356,6 +1356,8 @@
  "door_shut_hint": "Ovi ilman kosketinta on 3D:ssä puoliksi auki, jotta sen tunnistaa oveksi. Valittuna se piirretään suljettuna – ulko-ovi, autokatos, sivuovi.",
  "contact_invert": "Käännä kosketin",
  "contact_invert_hint": "Antureille, jotka ilmoittavat auki ja kiinni toisin päin",
+ "slat_invert": "Käännä säleet",
+ "slat_invert_hint": "Sälekaihtimille, jotka ilmoittavat säleiden kulman toisin päin (0 = vaakasuorassa/auki). Vaikuttaa 3D-näkymään, pikavalikkoon ja huonepaneeliin.",
  "entity_auto": "Automaattinen ({name})",
  "entity_auto_none": "Automaattinen (ei löytynyt)",
  "entity_none": "Ei mitään",

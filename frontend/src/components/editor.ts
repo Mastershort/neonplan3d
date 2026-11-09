@@ -11342,7 +11342,13 @@ export class Fp3dEditor extends LitElement {
               <label class="fp3d-check fp3d-wide" title=${this.t("cover_confirm_hint")}
                 ><input type="checkbox" ?disabled=${!admin} .checked=${!!o.confirm} @change=${(ev: Event) => this.updateOpening({ confirm: (ev.target as HTMLInputElement).checked })} />
                 ${this.t("device_confirm")}</label
-              >`
+              >
+              ${!garage && (o.slat_invert || typeof this.hass?.states[o.cover ?? autoPick("cover") ?? ""]?.attributes.current_tilt_position === "number")
+                ? html`<label class="fp3d-check fp3d-wide" title=${this.t("slat_invert_hint")}
+                    ><input type="checkbox" ?disabled=${!admin} .checked=${!!o.slat_invert} @change=${(ev: Event) => this.updateOpening({ slat_invert: (ev.target as HTMLInputElement).checked })} />
+                    ${this.t("slat_invert")}</label
+                  >`
+                : nothing}`
           : nothing}
         ${window
           ? html`${o.leaves === 2 ? html`<h4 class="fp3d-lib-head fp3d-wide">${this.t("leaf_main")}</h4>` : nothing}

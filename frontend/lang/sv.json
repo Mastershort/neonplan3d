@@ -1356,6 +1356,8 @@
  "door_shut_hint": "En dörr utan kontakt står halvöppen i 3D så att den syns som en dörr. Ikryssad ritas den stängd – ytterdörr, carport, sidodörr.",
  "contact_invert": "Vänd kontakten",
  "contact_invert_hint": "För sensorer som rapporterar öppen och stängd tvärtom",
+ "slat_invert": "Vänd lameller",
+ "slat_invert_hint": "För persienner som rapporterar lamellernas vinkel tvärtom (0 = vågräta/öppna). Gäller 3D, snabbmenyn och rumspanelen.",
  "entity_auto": "Automatiskt ({name})",
  "entity_auto_none": "Automatiskt (ingen hittades)",
  "entity_none": "Ingen",

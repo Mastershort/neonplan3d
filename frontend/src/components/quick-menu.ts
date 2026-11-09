@@ -2,7 +2,7 @@
 // up/stop/down for blinds, on/off for switches, with a slider and a way to the full details.
 
 import { css, html, LitElement, nothing } from "lit";
-import { type CarState, coverCall, coverTiltButtons, entityName, isUnavailable, kindOf } from "../devices.ts";
+import { type CarState, coverCall, coverTiltButtons, entityName, isUnavailable, kindOf, slatTilt } from "../devices.ts";
 import { hasFeature } from "../features.ts";
 import { translate, type I18nKey } from "../i18n.ts";
 import { openMoreInfo, stateText } from "../markers.ts";
@@ -46,6 +46,7 @@ export class Fp3dQuickMenu extends LitElement {
     presets: { attribute: false },
     confirmSwitch: { type: Boolean },
     doorLock: { type: Boolean },
+    slatInvert: { type: Boolean },
     pro: { type: Boolean },
     low: { type: Boolean, reflect: true },
     _tick: { state: true },
@@ -61,6 +62,8 @@ export class Fp3dQuickMenu extends LitElement {
   declare confirmSwitch: boolean;
   /** The smart lock of a door that was tapped (#682): lock or unlock, always asking first. */
   declare doorLock: boolean;
+  /** The blind's opening is set to "Invert slats": its tilt shows and is set the other way round. */
+  declare slatInvert: boolean;
   /** The camera cockpit is unlocked (otherwise the look-through button shows a lock). */
   declare pro: boolean;
   /** Tablet level: no blur behind the menu. */
@@ -181,7 +184,7 @@ export class Fp3dQuickMenu extends LitElement {
       slot("■", this.t("cover_stop"), () => this.cover(st, "stop"), moving),
     ];
     // the centre shows the blind: its closed part fills from the top (a slat-only blind: by its tilt, #920)
-    const tilt = typeof st.attributes.current_tilt_position === "number" ? (st.attributes.current_tilt_position as number) : null;
+    const tilt = typeof st.attributes.current_tilt_position === "number" ? slatTilt(st.attributes.current_tilt_position as number, !!this.slatInvert) : null;
     const closed = pos !== null ? 100 - pos : tilt !== null ? 100 - tilt : st.state === "closed" ? 100 : 0;
     return html`<div class="qm-ring">
         ${this.ring(ring)}
@@ -212,7 +215,7 @@ export class Fp3dQuickMenu extends LitElement {
   /** Slats of a venetian blind or a Raffstore: a tilt slider when the cover sets a tilt position, else open/close tilt buttons. */
   private renderTilt(st: HassEntity) {
     const features = ((st.attributes.supported_features as number) ?? 0) | 0;
-    const tilt = typeof st.attributes.current_tilt_position === "number" ? (st.attributes.current_tilt_position as number) : null;
+    const tilt = typeof st.attributes.current_tilt_position === "number" ? slatTilt(st.attributes.current_tilt_position as number, !!this.slatInvert) : null;
     if (features & COVER_SET_TILT && tilt !== null)
       return html`<label class="qm-tilt"
         ><span>${this.t("cover_tilt")} · ${tilt} %</span>
@@ -223,7 +226,7 @@ export class Fp3dQuickMenu extends LitElement {
           max="100"
           .value=${String(tilt)}
           aria-label=${this.t("cover_tilt")}
-          @change=${(e: Event) => this.call("cover", "set_cover_tilt_position", { tilt_position: Number((e.target as HTMLInputElement).value) })}
+          @change=${(e: Event) => this.call("cover", "set_cover_tilt_position", { tilt_position: slatTilt(Number((e.target as HTMLInputElement).value), !!this.slatInvert) })}
       /></label>`;
     if (coverTiltButtons(st))
       return html`<div class="qm-tilt-buttons">

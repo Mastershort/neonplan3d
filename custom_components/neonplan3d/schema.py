@@ -176,6 +176,8 @@ OPENING_SCHEMA = vol.Schema(
         vol.Optional("open_angle", default=None): vol.Any(None, vol.All(vol.Coerce(float), vol.Range(min=0, max=180))),
         # the contact sensors report the other way round (on = closed)
         vol.Optional("contact_invert", default=False): bool,
+        # the blind's cover reports its slat tilt the other way round (0 = horizontal/open)
+        vol.Optional("slat_invert", default=False): bool,
         # no rain warning for this window
         vol.Optional("rain_ignore", default=False): bool,
         # a window below the ground: its light well (False: none) and how far its rim stands above the ground

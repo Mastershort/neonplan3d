@@ -1356,6 +1356,8 @@
  "door_shut_hint": "没有接触传感器的门在 3D 中半开，以便识别为门。勾选后显示为关闭——适用于入户门、车棚、侧门。",
  "contact_invert": "反转接触状态",
  "contact_invert_hint": "适用于开/关状态报告相反的传感器",
+ "slat_invert": "反转叶片",
+ "slat_invert_hint": "适用于以相反方式报告叶片角度的百叶帘（0 = 水平/打开）。作用于 3D 视图、快捷菜单和房间面板。",
  "entity_auto": "自动（{name}）",
  "entity_auto_none": "自动（未找到）",
  "entity_none": "无",

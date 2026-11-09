@@ -134,6 +134,8 @@ export interface Opening {
   open_angle?: number | null;
   /** The contact sensors report the other way round (on = closed, #329). */
   contact_invert?: boolean;
+  /** The blind's cover reports its slat tilt the other way round (0 = horizontal/open, 100 = closed). */
+  slat_invert?: boolean;
   /** Windows: no rain warning for this one (it may stay open in the rain, under a canopy, D328). */
   rain_ignore?: boolean;
   /** Windows below the ground: false leaves out the light well (a path runs past the window, #524). */

@@ -1356,6 +1356,8 @@
  "door_shut_hint": "O ușă fără contact stă întredeschisă în 3D ca să fie recunoscută ca ușă. Bifat, este desenată închisă – ușă de intrare, carport, ușă laterală.",
  "contact_invert": "Inversează contactul",
  "contact_invert_hint": "Pentru senzorii care raportează deschis și închis invers",
+ "slat_invert": "Inversează lamelele",
+ "slat_invert_hint": "Pentru jaluzelele care raportează înclinarea lamelelor invers (0 = orizontale/deschise). Se aplică în 3D, în meniul rapid și în panoul camerei.",
  "entity_auto": "Automat ({name})",
  "entity_auto_none": "Automat (nu s-a găsit nimic)",
  "entity_none": "Niciuna",

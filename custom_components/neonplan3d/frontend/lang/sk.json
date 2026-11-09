@@ -1356,6 +1356,8 @@
  "door_shut_hint": "Dvere bez kontaktu stoja v 3D do polovice otvorené, aby bolo poznať, že sú to dvere. Zaškrtnuté sa kreslia zatvorené – vchodové dvere, carport, bočné dvere.",
  "contact_invert": "Obrátiť kontakt",
  "contact_invert_hint": "Pre senzory, ktoré hlásia otvorené a zatvorené opačne",
+ "slat_invert": "Obrátiť lamely",
+ "slat_invert_hint": "Pre žalúzie, ktoré hlásia natočenie lamiel obrátene (0 = vodorovne/otvorené). Platí pre 3D, rýchle menu a panel miestnosti.",
  "entity_auto": "Automaticky ({name})",
  "entity_auto_none": "Automaticky (nič sa nenašlo)",
  "entity_none": "Žiadne",
