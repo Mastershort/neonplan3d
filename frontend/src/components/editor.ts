@@ -159,6 +159,7 @@ import { load3d } from "../load3d.ts";
 import "./library.ts";
 import { basicTypes, buildIndex, roomKindOf, type LibraryEntry } from "../library-index.ts";
 import { packsVersion as libPacksVersion } from "../packs.ts";
+import { FRAME_KINDS, frameDomain, isFrame, type FrameKind } from "../frames.ts";
 import type { WallMode } from "../viewer/viewer3d.ts";
 import { furnitureName } from "../furniture-names.ts";
 import { furnitureShown } from "../show-if.ts";
@@ -11576,7 +11577,7 @@ export class Fp3dEditor extends LitElement {
             >
           </div>`
         : nothing}
-      ${isElectric(f.type) ? this.renderFurnitureLinks(f) : !NO_STATE_TYPES.has(f.type) ? html`<div class="fp3d-form fp3d-links">${this.renderStateLinks(f)}</div>` : nothing} ${GANG_TYPES.has(f.type) ? this.renderGangsForm(f) : nothing} ${TECH_TYPES.has(f.type) ? this.renderTechForm(f) : nothing} ${f.type === "parking" ? this.renderParkingForm(f) : nothing} ${f.type === "waste_bin" || f.type === "mailbox" ? this.renderHouseholdForm(f) : this.renderHouseholdExtras(f)}
+      ${isElectric(f.type) ? this.renderFurnitureLinks(f) : !NO_STATE_TYPES.has(f.type) ? html`<div class="fp3d-form fp3d-links">${this.renderStateLinks(f)}</div>` : nothing} ${GANG_TYPES.has(f.type) ? this.renderGangsForm(f) : nothing} ${TECH_TYPES.has(f.type) ? this.renderTechForm(f) : nothing} ${f.type === "parking" ? this.renderParkingForm(f) : nothing} ${f.type === "waste_bin" || f.type === "mailbox" ? this.renderHouseholdForm(f) : this.renderHouseholdExtras(f)} ${isFrame(f.type) ? this.renderFrameForm(f) : nothing}
       ${this.renderShowIf(f)}
       ${this.renderModuleFurnitureFields(f)}
       ${f.type.startsWith("pack:mastershort.vehicles:") && this.isAdmin
@@ -12273,6 +12274,73 @@ export class Fp3dEditor extends LitElement {
    * Haushalt Pro on other items: a plant's moisture, a washer's time left and door, a fridge's door warning, and a
    * consumable or service for every electric item. A teaser on plants, appliances and fridges while it is locked.
    */
+  /**
+   * Digital picture frames: what the face shows (calendar, camera, cover, person, photo, weather) and where it comes
+   * from. Several calendars are kept as a comma list; a photo is a URL or an uploaded picture.
+   */
+  private renderFrameForm(f: Furniture) {
+    const admin = this.isAdmin;
+    const kind = (f.frame_kind ?? null) as FrameKind | null;
+    const domain = kind ? frameDomain(kind) : null;
+    const calendars = kind === "calendar" ? (f.frame_source ?? "").split(",").map((x) => x.trim()).filter(Boolean) : [];
+    const setCalendars = (list: string[]) => this.updateFurniture({ frame_source: list.filter(Boolean).join(",") || null });
+    const options = domain ? this.entityOptions((id) => id.startsWith(`${domain}.`)) : [];
+    return html`<div class="fp3d-form fp3d-frame-form">
+      <h4 class="fp3d-wide">🖼️ ${this.t("frame_section")}</h4>
+      <label class="fp3d-field fp3d-wide"
+        >${this.t("frame_kind")}
+        <select ?disabled=${!admin} @change=${(e: Event) => {
+          const v = (e.target as HTMLSelectElement).value;
+          this.updateFurniture({ frame_kind: (v || null) as Furniture["frame_kind"], frame_source: null });
+        }}>
+          <option value="" ?selected=${!kind}>${this.t("frame_kind_none")}</option>
+          ${FRAME_KINDS.map((k) => html`<option value=${k} ?selected=${k === kind}>${this.t(`frame_kind_${k}` as I18nKey)}</option>`)}
+        </select></label
+      >
+      ${kind === "calendar"
+        ? html`${[...calendars, ""].map((id, i) =>
+            this.entitySelect(i === 0 ? this.t("frame_source_calendar") : this.t("frame_calendar_more"), id || null, undefined, options, (v) => {
+              const next = [...calendars];
+              if (v && v !== "none") next[i] = v;
+              else next.splice(i, 1);
+              setCalendars(next);
+            }),
+          )}`
+        : kind === "photo"
+          ? html`<label class="fp3d-field fp3d-wide"
+                >${this.t("frame_source_photo")}
+                <input type="text" .value=${f.frame_source && !f.frame_source.startsWith("pic_") ? f.frame_source : ""} placeholder="https://…" ?disabled=${!admin}
+                  @change=${(e: Event) => this.updateFurniture({ frame_source: (e.target as HTMLInputElement).value.trim() || null })} /></label>
+              ${admin
+                ? html`<label class="fp3d-btn fp3d-upload">${this.t("frame_photo_upload")}<input type="file" accept="image/*" hidden @change=${(e: Event) => void this.uploadFramePhoto(e)} /></label>`
+                : nothing}
+              ${f.frame_source?.startsWith("pic_") && this._images[f.frame_source] ? html`<img class="fp3d-frame-thumb" src=${this._images[f.frame_source].url} alt="" />` : nothing}`
+          : kind && domain
+            ? this.entitySelect(this.t(`frame_source_${kind}` as I18nKey), f.frame_source ?? null, undefined, options, (v) => this.updateFurniture({ frame_source: v && v !== "none" ? v : null }))
+            : nothing}
+      <p class="fp3d-sub fp3d-wide">${this.t("frame_hint")}</p>
+    </div>`;
+  }
+
+  /** Stores a photo for a frame, scaled down to what its face in 3D needs. */
+  private async uploadFramePhoto(e: Event): Promise<void> {
+    const input = e.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = "";
+    if (!file) return;
+    const bitmap = await createImageBitmap(file);
+    const k = Math.min(1, 1024 / Math.max(bitmap.width, bitmap.height));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.round(bitmap.width * k);
+    canvas.height = Math.round(bitmap.height * k);
+    canvas.getContext("2d")!.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    const data = canvas.toDataURL(file.type === "image/png" ? "image/png" : "image/jpeg", 0.85);
+    const imageId = uid("pic");
+    await storeImage(this.hass, imageId, data);
+    this._images = { ...this._images, [imageId]: { url: data, aspect: canvas.height / canvas.width } };
+    this.updateFurniture({ frame_source: imageId });
+  }
+
   private renderHouseholdExtras(f: Furniture) {
     const plant = f.type === "plant" || isPackPlant(f.type);
     const appliance = !!applianceOf(f.type);
@@ -16888,6 +16956,12 @@ export class Fp3dEditor extends LitElement {
       .fp3d-point .fp3d-btn {
         min-height: 34px;
         padding: 4px 10px;
+      }
+      .fp3d-frame-thumb {
+        max-width: 160px;
+        max-height: 110px;
+        border-radius: 8px;
+        margin: 4px 0;
       }
       .fp3d-upload {
         position: relative;

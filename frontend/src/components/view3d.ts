@@ -112,6 +112,8 @@ import { formatNumber, translate, type I18nKey } from "../i18n.ts";
 import { furnitureShown, showIfSignature } from "../show-if.ts";
 import { fireworkNow, lawnSnow, roofLightsOn, snowLevel, winterOf } from "../winter.ts";
 import { getPacks, isPackCooktop, isPackHeater, isPackType, isRobotVacuum, mountBase, packItem, packRobotCentre, packMotion, packName, packsVersion } from "../packs.ts";
+import { allFrameCalendars, calendarColor, dayLabel, fetchFrameEvents, frameCalendars, frameDays, frameEvents, frameRefreshMs, isFrame, timeLabel, weatherSymbol, type CalEvent, type FrameKind } from "../frames.ts";
+import { drawCalendarFace, drawWeatherFace } from "../frame-canvas.ts";
 import { parkedVehicle, PRESENT_STATES, parkedVehicles, vehicleFurniture } from "../parking.ts";
 import { TRAIL_ICON, TRAIL_WINDOW_MS, trailEvents, trailPoints, trailSources, trailTime, type HistoryRow } from "../trail.ts";
 import { limitEffects, weatherEntity, weatherState } from "../weather.ts";
@@ -316,6 +318,7 @@ export class Fp3dView3d extends LitElement {
     ghostOn: { attribute: false },
     _central: { state: true },
     _sheet: { state: true },
+    _framePop: { state: true },
     _settingsOpen: { state: true },
     _note: { state: true },
     _thumbsCompact: { state: true },
@@ -607,6 +610,17 @@ export class Fp3dView3d extends LitElement {
   private declare _central: boolean;
   /** A module's sheet that is open (an announcement …): from a room's panel (with its room) or from the ⭐ menu. */
   private declare _sheet: { id: string; floorId: string | null; roomId: string | null } | null;
+  /** Digital picture frames: the frame whose content is open large (a tap on it), with its auto-close timer. */
+  private declare _framePop: { furnitureId: string } | null;
+  private framePopTimer: ReturnType<typeof setTimeout> | undefined;
+  /** Digital picture frames: the calendar events by calendar, fetched every 15 minutes while a frame shows one. */
+  private frameEvents = new Map<string, CalEvent[]>();
+  private frameTimer: ReturnType<typeof setInterval> | undefined;
+  private frameCalendarKey = "";
+  /** Drawn faces (calendar, weather) by frame: redrawn only when their content changes. */
+  private framePics = new Map<string, { sig: string; url: string | null }>();
+  /** Where located people stand right now (person id -> room name), for a person's frame. */
+  private personRooms = new Map<string, string>();
   /** The ⚙ settings over the view are open. */
   private declare _settingsOpen: boolean;
   /** A short note at the bottom (a module's "sent"), with its timer. */
@@ -1657,6 +1671,10 @@ export class Fp3dView3d extends LitElement {
     v.setPersonLook(personLook(b) === "pin" ? "pin" : "figure");
     v.setPersons(persons);
     this.lastPersons = persons.map((p) => ({ floorId: p.floorId, roomId: p.roomId }));
+    this.personRooms = new Map(persons.flatMap((p) => {
+      const room = b.floors.find((fl) => fl.id === p.floorId)?.rooms.find((r) => r.id === p.roomId);
+      return room ? [[p.id, room.name] as [string, string]] : [];
+    }));
     const counts = floorCounts(hass, b, this.openingLinks!, persons);
     v.setFloorInfo(new Map([...counts].map(([id, c]) => [id, floorInfoText(hass, c)])));
     // daylight: sun through the windows and a lighter sky
@@ -2799,6 +2817,15 @@ export class Fp3dView3d extends LitElement {
         // two entities light the halves (left/right of a bed, bottom/top of a bunk bed)
         const faces = this.stateFaces(hass, f);
         if (faces.length) screens.set(f.id, { color: faces[0].color, level: faces[0].level, faces });
+        // a digital picture frame: its content on its face, a tap opens it large
+        if (isFrame(f.type)) {
+          if (hasFeature("frames")) {
+            const shown = this.frameScreen(hass, f);
+            if (shown) screens.set(f.id, shown);
+            targets.set(f.id, `frame:${f.id}`);
+          }
+          continue;
+        }
         if (isLamp(f.type)) {
           const lamp = this.lampMarker(hass, floor, f, linked?.entity ?? null);
           markers.push(lamp);
@@ -3086,6 +3113,7 @@ export class Fp3dView3d extends LitElement {
       else if (g.plate) screens.set(g.furnitureId, { color: g.color, level: g.level, faces: [{ part: "plate", color: g.color, level: g.level }] });
       else if (g.band) screens.set(g.furnitureId, { color: g.color, level: g.level, faces: [{ part: "band", color: g.color, level: g.level }] });
     }
+    this.watchFrameCalendars(hass, b);
     this.watchCameras(this.cameraScreens > 0 || !!this._through || this.cameraWall || this.projecting);
     return { markers, consumers, screens, targets };
   }
@@ -5129,6 +5157,199 @@ export class Fp3dView3d extends LitElement {
     return list.find((x) => x.id === sh.id) ?? null;
   }
 
+  // ------------------------------------------------------------------ digital picture frames
+
+  /** What a frame's face shows right now (a picture for its screen part), or null for a dark pane. */
+  private frameScreen(hass: HomeAssistant, f: Furniture): ScreenState | null {
+    const kind = (f.frame_kind ?? null) as FrameKind | null;
+    const src = f.frame_source ?? null;
+    if (!kind) return null;
+    const light = this.effectiveTheme() === "day";
+    const bg: [number, number, number] = light ? [0.92, 0.94, 1] : [0.06, 0.08, 0.14];
+    // the face's proportions: the screen part of the model, stretched as the item was resized
+    const item = packItem(f.type);
+    const part = item?.parts.find((p) => p.screen);
+    const aspect = item && part ? Math.max(0.3, (part.w * f.w) / Math.max(0.01, part.h * f.h)) : 1.4;
+    const lang = hass.language ?? "en";
+    const tick = (ms: number) => Math.floor(Date.now() / ms);
+    const face = (sig: string, draw: () => string | null): ScreenState | null => {
+      let pic = this.framePics.get(f.id);
+      if (!pic || pic.sig !== sig) {
+        pic = { sig, url: draw() };
+        this.framePics.set(f.id, pic);
+      }
+      return pic.url ? { color: bg, level: 1, picture: pic.url, plain: true } : null;
+    };
+    switch (kind) {
+      case "calendar": {
+        const calendars = frameCalendars(f);
+        if (!calendars.length) return null;
+        const days = frameDays(frameEvents(this.frameEvents, calendars), new Date(), 7);
+        const words = { today: translate(hass, "frame_today"), tomorrow: translate(hass, "frame_tomorrow"), allDay: translate(hass, "frame_allday"), nothing: translate(hass, "frame_nothing") };
+        const sig = `${light}|${aspect.toFixed(2)}|${lang}|${tick(60_000)}|${f.name ?? ""}|${days.map((d) => d.events.map((e) => `${e.calendar}:${e.start.getTime()}:${e.summary}`).join(",")).join(";")}`;
+        return face(sig, () => drawCalendarFace(days, calendars, lang, words, aspect, light, f.name || ""));
+      }
+      case "weather": {
+        const st = src ? hass.states[src] : undefined;
+        if (!st || isUnavailable(st)) return null;
+        const a = st.attributes;
+        const unit = typeof a.temperature_unit === "string" ? a.temperature_unit : "°C";
+        const temp = typeof a.temperature === "number" ? `${formatNumber(hass, a.temperature, 0)}${unit}` : "–";
+        const lines: string[] = [];
+        if (typeof a.humidity === "number") lines.push(`💧 ${Math.round(a.humidity)} %`);
+        if (typeof a.wind_speed === "number") lines.push(`💨 ${formatNumber(hass, a.wind_speed, 0)} ${typeof a.wind_speed_unit === "string" ? a.wind_speed_unit : "km/h"}`);
+        const condition = String(st.state).replace(/-/g, " ");
+        const sig = `${light}|${aspect.toFixed(2)}|${st.state}|${temp}|${lines.join("|")}`;
+        return face(sig, () => drawWeatherFace({ symbol: weatherSymbol(st.state), condition, temperature: temp, lines }, aspect, light));
+      }
+      case "camera": {
+        if (!src) return null;
+        const url = this.pictureUrl(`camera:${src}`);
+        return url ? { color: bg, level: 1, picture: url, plain: true } : null;
+      }
+      case "media": {
+        const st = src ? hass.states[src] : undefined;
+        const pic = st && !isUnavailable(st) && ["playing", "paused", "on"].includes(st.state) ? (st.attributes.entity_picture as string | undefined) : undefined;
+        return pic ? { color: bg, level: st!.state === "playing" ? 1 : 0.7, picture: pic, plain: true } : null;
+      }
+      case "person": {
+        const st = src ? hass.states[src] : undefined;
+        const pic = st ? (st.attributes.entity_picture as string | undefined) : undefined;
+        return pic ? { color: bg, level: st!.state === "home" ? 1 : 0.5, picture: pic, plain: true } : null;
+      }
+      case "photo": {
+        if (!src) return null;
+        const url = /^https?:\/\//.test(src) || src.startsWith("/") ? src : this.pictureUrl(src);
+        return url ? { color: bg, level: 1, picture: url, plain: true } : null;
+      }
+      default:
+        return null;
+    }
+  }
+
+  /** While a frame shows a calendar, its events are fetched now and every 15 minutes (and when the calendars change). */
+  private watchFrameCalendars(hass: HomeAssistant, b: Building): void {
+    const calendars = hasFeature("frames") ? allFrameCalendars(b.floors) : [];
+    const key = calendars.join(",");
+    if (key === this.frameCalendarKey) return;
+    this.frameCalendarKey = key;
+    clearInterval(this.frameTimer);
+    this.frameTimer = undefined;
+    if (!calendars.length) {
+      this.frameEvents = new Map();
+      return;
+    }
+    const fetch = async () => {
+      if (document.hidden) return;
+      const events = await fetchFrameEvents(this.hass ?? hass, calendars);
+      this.frameEvents = events;
+      this.syncDevices(true);
+    };
+    void fetch();
+    this.frameTimer = setInterval(() => void fetch(), frameRefreshMs("calendar", this._low));
+  }
+
+  private openFramePop(furnitureId: string): void {
+    clearTimeout(this.framePopTimer);
+    this._framePop = { furnitureId };
+    // on a wall tablet the pop-up closes by itself after a minute
+    this.framePopTimer = setTimeout(() => (this._framePop = null), 60_000);
+  }
+
+  private closeFramePop(): void {
+    clearTimeout(this.framePopTimer);
+    this._framePop = null;
+  }
+
+  /** A frame opened large: the calendar's week, the camera or photo at full size, the cover with controls, the person. */
+  private renderFramePop() {
+    const hass = this.hass;
+    const b = this.building;
+    const pop = this._framePop;
+    if (!hass || !b || !pop) return nothing;
+    const f = b.floors.flatMap((fl) => fl.furniture).find((x) => x.id === pop.furnitureId);
+    if (!f || !isFrame(f.type)) return nothing;
+    const kind = (f.frame_kind ?? null) as FrameKind | null;
+    const src = f.frame_source ?? null;
+    const t = (k: I18nKey, vars?: Record<string, string | number>) => translate(hass, k, vars);
+    const title = f.name || (kind ? t(`frame_kind_${kind}` as I18nKey) : t("frame_section"));
+    const lang = hass.language ?? "en";
+    const close = () => this.closeFramePop();
+    let body: unknown = html`<p class="fp3d-sub">${t("frame_no_source")}</p>`;
+    let wide = false;
+    if (kind === "calendar" && src) {
+      const calendars = frameCalendars(f);
+      const days = frameDays(frameEvents(this.frameEvents, calendars), new Date(), 7).filter((d) => d.events.length);
+      const words = { today: t("frame_today"), tomorrow: t("frame_tomorrow") };
+      body = days.length
+        ? html`<div class="fp3d-frame-days">
+            ${days.map(
+              (d) => html`<section class=${d.offset === 0 ? "fp3d-frame-today" : ""}>
+                <h4>${dayLabel(d, lang, words)}</h4>
+                ${d.events.map(
+                  (e) => html`<div class="fp3d-frame-ev" style="--cal:${calendarColor(calendars, e.calendar)}">
+                    <span class="fp3d-frame-time">${timeLabel(e, lang, t("frame_allday"))}</span>
+                    <span class="fp3d-frame-sum">${e.summary}${e.location ? html`<small> · ${e.location}</small>` : nothing}</span>
+                  </div>`,
+                )}
+              </section>`,
+            )}
+          </div>`
+        : html`<p class="fp3d-sub">${t("frame_nothing")}</p>`;
+    } else if (kind === "camera" && src) {
+      const st = hass.states[src];
+      const picture = st?.attributes.entity_picture as string | undefined;
+      const url = picture && !isUnavailable(st) ? (picture.startsWith("data:") ? picture : `${picture}${picture.includes("?") ? "&" : "?"}fp3d=${this.cameraTick}`) : null;
+      wide = true;
+      body = url ? html`<img class="fp3d-frame-big" src=${url} alt="" />` : html`<p class="fp3d-sub">${entityName(hass, src)}</p>`;
+    } else if (kind === "photo" && src) {
+      const url = /^https?:\/\//.test(src) || src.startsWith("/") ? src : (this.pictureUrls.get(src) ?? null);
+      wide = true;
+      body = url ? html`<img class="fp3d-frame-big" src=${url} alt="" />` : nothing;
+    } else if (kind === "media" && src) {
+      const st = hass.states[src];
+      const a = st?.attributes ?? {};
+      const playing = st?.state === "playing";
+      const label = [a.media_title, a.app_name, a.source].find((v): v is string => typeof v === "string" && !!v.trim());
+      const call = (service: string) => void hass.callService("media_player", service, { entity_id: src });
+      body = html`<div class="fp3d-frame-media">
+        ${typeof a.entity_picture === "string" ? html`<img class="fp3d-frame-cover" src=${a.entity_picture} alt="" />` : nothing}
+        <div class="fp3d-frame-media-text">
+          <b>${label ?? t("frame_media_idle")}</b>
+          <span>${typeof a.media_artist === "string" ? a.media_artist : typeof a.media_album_name === "string" ? a.media_album_name : entityName(hass, src)}</span>
+          <div class="fp3d-frame-ctl">
+            <button class="fp3d-chip" @click=${() => call("media_previous_track")}>⏮</button>
+            <button class="fp3d-chip" @click=${() => call(playing ? "media_pause" : "media_play")}>${playing ? "⏸" : "▶"}</button>
+            <button class="fp3d-chip" @click=${() => call("media_next_track")}>⏭</button>
+          </div>
+        </div>
+      </div>`;
+    } else if (kind === "person" && src) {
+      const st = hass.states[src];
+      const room = this.personRooms.get(src);
+      const where = st?.state === "home" ? (room ? `${t("frame_person_home")} · ${t("frame_person_in", { room })}` : t("frame_person_home")) : st?.state === "not_home" ? t("frame_person_away") : (st?.state ?? "");
+      body = html`<div class="fp3d-frame-person">
+        ${typeof st?.attributes.entity_picture === "string" ? html`<img class="fp3d-frame-cover" src=${st.attributes.entity_picture} alt="" />` : nothing}
+        <div class="fp3d-frame-media-text"><b>${entityName(hass, src)}</b><span>${where}</span></div>
+      </div>`;
+    } else if (kind === "weather" && src) {
+      const st = hass.states[src];
+      const a = st?.attributes ?? {};
+      body = html`<div class="fp3d-frame-person">
+        <div class="fp3d-frame-weather-sym">${st ? weatherSymbol(st.state) : "🌡️"}</div>
+        <div class="fp3d-frame-media-text">
+          <b>${typeof a.temperature === "number" ? `${formatNumber(hass, a.temperature, 1)}${typeof a.temperature_unit === "string" ? a.temperature_unit : "°C"}` : "–"}</b>
+          <span>${st ? String(st.state).replace(/-/g, " ") : ""}${typeof a.humidity === "number" ? ` · 💧 ${Math.round(a.humidity)} %` : ""}</span>
+        </div>
+      </div>`;
+    }
+    return html`<div class="fp3d-sheet-backdrop" @click=${close}></div>
+      <div class="fp3d-sheet fp3d-frame-pop ${wide ? "fp3d-frame-wide" : ""}" role="dialog" aria-label=${title}>
+        <header><span>🖼️ ${title}</span><button class="fp3d-sheet-x" aria-label=${t("close")} @click=${close}>✕</button></header>
+        ${body}
+      </div>`;
+  }
+
   private renderSheet() {
     const hass = this.hass;
     const b = this.building;
@@ -5686,6 +5907,7 @@ export class Fp3dView3d extends LitElement {
     // trail pins and lamps without a light are drawn, but nothing of Home Assistant stands behind them
     if (entityId.startsWith("trail:") || entityId.startsWith("lamp:")) return;
     if (entityId.startsWith("module:")) return this.openModuleCard(entityId.slice(7));
+    if (entityId.startsWith("frame:")) return this.openFramePop(entityId.slice(6));
     if (entityId.startsWith("opening:")) return this.onOpeningTap(entityId.slice(8), x, y, false);
     // a wall switch or socket: one entity is switched right away, several open the frame's menu
     if (entityId.startsWith("gangs:")) {
@@ -5936,7 +6158,7 @@ export class Fp3dView3d extends LitElement {
       style=${style}
     >
       ${this._error ? html`<p class="fp3d-error">${this._error}</p>` : nothing} ${this.clean ? nothing : this.renderEnergy()} ${this.renderHologram()} ${this.clean ? nothing : this.renderLegend()}
-      ${this.renderClock()} ${this.renderAlerts()} ${this.clean || this._walk ? nothing : html`${this.renderHousehold()} ${this.renderThumbs()} ${this.renderScenes()} ${this.renderFind()} ${this.renderCentral()}`} ${this.clean ? nothing : this.renderWalk()} ${this.renderSwipe()} ${this.renderInfo()} ${this.renderBinInfo()} ${this.renderGangMenu()} ${this.renderThrough()} ${this.renderCamPop()} ${this.renderCameraWall()} ${this.renderSheet()} ${this.renderSettings()} ${this.renderNote()}
+      ${this.renderClock()} ${this.renderAlerts()} ${this.clean || this._walk ? nothing : html`${this.renderHousehold()} ${this.renderThumbs()} ${this.renderScenes()} ${this.renderFind()} ${this.renderCentral()}`} ${this.clean ? nothing : this.renderWalk()} ${this.renderSwipe()} ${this.renderInfo()} ${this.renderBinInfo()} ${this.renderGangMenu()} ${this.renderThrough()} ${this.renderCamPop()} ${this.renderCameraWall()} ${this.renderSheet()} ${this.renderFramePop()} ${this.renderSettings()} ${this.renderNote()}
       ${this.clean ? nothing : this.renderProHint()} ${this.renderMenu()} ${this.renderEye()}
       ${this.renderMic()}
       ${this._announce ? html`<div class="fp3d-announce" role="status" @click=${() => (this._announce = null)}>📢 ${this._announce}</div>` : nothing}
@@ -7111,6 +7333,91 @@ export class Fp3dView3d extends LitElement {
         inset: 0;
         z-index: 7;
         background: rgba(4, 8, 16, 0.35);
+      }
+      .fp3d-frame-pop {
+        width: min(560px, calc(100% - 24px));
+      }
+      .fp3d-frame-pop.fp3d-frame-wide {
+        width: min(960px, calc(100% - 24px));
+      }
+      .fp3d-frame-big {
+        display: block;
+        width: 100%;
+        max-height: calc(100vh - 160px);
+        object-fit: contain;
+        border-radius: 12px;
+        background: #000;
+      }
+      .fp3d-frame-days {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      .fp3d-frame-days h4 {
+        margin: 0 0 6px;
+        font-size: 12px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--fp3d-muted, #8fa0c0);
+      }
+      .fp3d-frame-today h4 {
+        color: var(--fp3d-accent, #37e0ff);
+      }
+      .fp3d-frame-ev {
+        display: grid;
+        grid-template-columns: 96px 1fr;
+        gap: 10px;
+        align-items: baseline;
+        padding: 6px 0 6px 12px;
+        border-left: 3px solid var(--cal, #37e0ff);
+        margin-bottom: 4px;
+      }
+      .fp3d-frame-time {
+        font-variant-numeric: tabular-nums;
+        color: var(--fp3d-muted, #8fa0c0);
+        font-size: 13px;
+      }
+      .fp3d-frame-sum {
+        font-size: 15px;
+      }
+      .fp3d-frame-sum small {
+        color: var(--fp3d-muted, #8fa0c0);
+      }
+      .fp3d-frame-media,
+      .fp3d-frame-person {
+        display: flex;
+        gap: 16px;
+        align-items: center;
+      }
+      .fp3d-frame-cover {
+        width: 160px;
+        height: 160px;
+        object-fit: cover;
+        border-radius: 12px;
+        background: #000;
+        flex: none;
+      }
+      .fp3d-frame-weather-sym {
+        font-size: 72px;
+        line-height: 1;
+        flex: none;
+      }
+      .fp3d-frame-media-text {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        min-width: 0;
+      }
+      .fp3d-frame-media-text b {
+        font-size: 18px;
+      }
+      .fp3d-frame-media-text span {
+        color: var(--fp3d-muted, #8fa0c0);
+      }
+      .fp3d-frame-ctl {
+        display: flex;
+        gap: 8px;
+        margin-top: 6px;
       }
       .fp3d-sheet {
         position: absolute;

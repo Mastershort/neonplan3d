@@ -159,6 +159,8 @@ KNOWN_FEATURES = [
     "time_travel",
     "pool",
     "household",
+    # digital picture frames (a pack with furniture and the "frames" feature)
+    "frames",
     # fun packs: free extras one picks up in the shop (pets, later seasonal ones)
     "fun_pets",
     "fun_halloween",
