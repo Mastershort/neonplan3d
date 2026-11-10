@@ -5442,16 +5442,6 @@ background:#0b1120f2;color:#e6f7ff;border:1px solid #37e0ff66;border-radius:12px
         background: #ffb020;
         color: #1a1200;
       }
-      .fp3d-card-dash {
-        width: auto;
-        min-width: 38px;
-        padding: 0 12px;
-        font-size: 14px;
-        font-weight: 600;
-      }
-      .fp3d-card-dash-2 {
-        right: 56px;
-      }
       /* the view's walk button steps aside for the card's own buttons at the top right */
       fp3d-view3d {
         --fp3d-walk-right: 104px;
@@ -5469,6 +5459,18 @@ background:#0b1120f2;color:#e6f7ff;border:1px solid #37e0ff66;border-radius:12px
         box-shadow: var(--fp3d-shadow);
         font-size: 18px;
         cursor: pointer;
+      }
+      /* the dashboard button: after the rule above, so its own width wins and, beside the full screen button, it
+         steps to the left instead of covering it (D1002) */
+      .fp3d-card-full.fp3d-card-dash {
+        width: auto;
+        min-width: 38px;
+        padding: 0 12px;
+        font-size: 14px;
+        font-weight: 600;
+      }
+      .fp3d-card-full.fp3d-card-dash-2 {
+        right: 56px;
       }
       /* full screen made by the card itself (iPad, the app on iOS): over the whole page */
       ha-card.fp3d-pseudo-full {

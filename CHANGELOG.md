@@ -15,6 +15,7 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 - **Fixed colour and moods:** a light whose integration reports a mood or scene as its "effect" (Loxone) no longer turns through the colour wheel; a lamp with a fixed colour never animates, and a white-only light never runs a colour effect (#977, thanks chRyX-giT).
 - **Sun arc and compass with the floors pulled apart:** the ring now rides with the ground floor instead of staying down at the cellar (#998, thanks RkcCorian).
 - **Roof in a card with some rooms of the top floor:** a flat or gable roof kept the footprint of the shown rooms only, so its slopes and roof windows no longer matched; the card keeps the whole house's roof (#997, thanks RkcCorian).
+- **Dashboard button covered the full screen button:** a card with both a dashboard path and the full screen button drew the dashboard button on top of it (D1002, thanks karli4711).
 - **U-stair opening one tread too long:** with an even number of risers the second flight is a tread shorter than the first, but the floor above was cut over the whole footprint; the opening now ends at the top tread (#742, thanks daene85).
 
 ## 3.0.3
