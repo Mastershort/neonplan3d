@@ -1033,11 +1033,26 @@ export function coversIn(s: RoofSection, covers: readonly RoofCover[]): LocalCov
   return covers.map((c) => ({ poly: c.poly.map(([x, z, y]) => [...sectionUV(s, x, z), y] as Q), depth: c.depth }));
 }
 
-/** Whether two sections cut each other where they overlap: closed sloped ones, neither a dormer on the other. */
+/**
+ * Whether two sections cut each other where they overlap: closed sloped ones, neither a dormer on the other – unless
+ * that dormer is turned: its hole in the slope would be cut as boxes across its angle, so a turned cross gable and
+ * its roof meet like two wings instead, each keeping what shows above the other (a gable at 45° on a hip roof).
+ */
 export function sectionsCut(sections: readonly RoofSection[], p: RoofSection, q: RoofSection): boolean {
   const sloped = (s: RoofSection) => !s.open && s.shape !== "flat" && s.shape !== "parapet";
   if (p === q || !sloped(p) || !sloped(q)) return false;
-  return dormerParent(sections, p) !== q && dormerParent(sections, q) !== p;
+  return (dormerParent(sections, p) !== q || turnedDormer(sections, p)) && (dormerParent(sections, q) !== p || turnedDormer(sections, q));
+}
+
+/**
+ * A section sitting on a bigger roof at an angle to it (not square to its ridge): drawn as a wing cut by that roof,
+ * not as a dormer with a hole. A dormer turned along with its turned roof (#634) is still a dormer.
+ */
+export function turnedDormer(sections: readonly RoofSection[], d: RoofSection): boolean {
+  const parent = dormerParent(sections, d);
+  if (!parent) return false;
+  const a = (((d.rotation ?? 0) - (parent.rotation ?? 0)) % 90) + 90;
+  return Math.min(a % 90, 90 - (a % 90)) > 0.5;
 }
 
 /**

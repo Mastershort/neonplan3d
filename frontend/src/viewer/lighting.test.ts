@@ -3,7 +3,7 @@ import { test } from "node:test";
 import type { Floor, Opening, Room } from "../model.ts";
 import { newFloor } from "../model.ts";
 import { buildFloorGeometry } from "./build.ts";
-import { buildLightSurface, lightColors, type LightSource, shadowed, spillLength, zoneOf } from "./lighting.ts";
+import { buildLightSurface, lightColors, type LightSource, shadowed, spillLength, windowCast, zoneOf } from "./lighting.ts";
 
 function rect(id: string, x0: number, z0: number, x1: number, z1: number): Room {
   return { id, name: id, area_id: null, points: [[x0, z0], [x1, z0], [x1, z1], [x0, z1]], floor_material: "wood" };
@@ -246,6 +246,28 @@ test("a window's light at night ends at the edge of the balcony it looks onto, n
   assert.ok(len > 1.3 && len <= 1.5, `${len}`);
   // level ground: the full reach
   assert.equal(spillLength(() => -0.2, -0.2, 3.2), 3.2);
+});
+
+test("a lamp lights the ground through a window as a cone from the lamp: shifted away from it, below the sill's shadow (#954)", () => {
+  // a window 1.2 m wide in a wall along x (the room lies at z > 0, outside is z < 0), sill 0.9, top 2.1
+  const win = { start: [0, 0] as [number, number], axis: [1, 0] as [number, number], out: [0, -1] as [number, number], width: 1.2, sill: 0.9, top: 2.1 };
+  // a ceiling lamp 2 m inside, 1 m to the left of the window's start, on lawn 0.2 m below the floor
+  const c = windowCast({ x: -1, y: 2.4, z: 2 }, win, -0.2, 6);
+  assert.ok(c);
+  assert.equal(c.D, 2);
+  assert.equal(c.ls, -1);
+  // the sill's ray lands 2 * 1.1 / 1.5 m out; the top's ray would land 15 m out, capped
+  assert.ok(Math.abs(c.d0 - 1.4667) < 0.01, `${c.d0}`);
+  assert.equal(c.d1, 6);
+  // right at the wall the patch spans the window; further out it moves to the right, away from the lamp
+  assert.deepEqual(c.edge(0).map((v) => Math.round(v * 100) / 100), [0, 1.2]);
+  const far = c.edge(2);
+  assert.ok(Math.abs(far[0] - 1) < 0.01 && Math.abs(far[1] - 3.4) < 0.01, `${far}`);
+  // a lamp below the sill, or one outside, throws nothing onto the ground
+  assert.equal(windowCast({ x: 0.6, y: 0.5, z: 2 }, win, -0.2, 6), null);
+  assert.equal(windowCast({ x: 0.6, y: 2.4, z: -2 }, win, -0.2, 6), null);
+  // a floor lamp far inside: its rays through the sill land beyond the reach
+  assert.equal(windowCast({ x: 0.6, y: 1.2, z: 5 }, win, -0.2, 6), null);
 });
 
 test("a lamp that only changes colour is lit the same as on a fresh surface (colour effects reuse the light, #885)", () => {

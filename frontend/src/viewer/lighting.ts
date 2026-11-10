@@ -524,6 +524,49 @@ export function spillLength(groundAt: (s: number, d: number) => number, foot: nu
   return reach;
 }
 
+/** A window as a lamp sees it: its wall axis, the direction out of the room and its extent. */
+export interface WindowFrame {
+  start: Vec2;
+  axis: Vec2;
+  /** Unit normal pointing out of the room. */
+  out: Vec2;
+  width: number;
+  sill: number;
+  top: number;
+}
+
+/**
+ * The patch of ground a lamp lights through a window: the lamp's rays pass the opening and land outside,
+ * shifted away from the lamp – a lamp standing to the left lights the ground to the right of the window, and
+ * the wall beside the window shades the ground in front of it (#954). `D` is the lamp's distance from the wall
+ * axis, `ls` its position along the axis; `d0`/`d1` are where the patch begins (below the sill's shadow) and
+ * ends (the top edge's ray, or `maxOut` when the lamp sits below the top). `edge(d)` gives the patch's lateral
+ * span along the axis `d` metres out. Null when the lamp stands outside, below the sill or too far away.
+ */
+export function windowCast(lamp: { x: number; y: number; z: number }, win: WindowFrame, ground: number, maxOut: number): { d0: number; d1: number; D: number; ls: number; edge(d: number): [number, number] } | null {
+  const rx = lamp.x - win.start[0];
+  const rz = lamp.z - win.start[1];
+  const D = -(rx * win.out[0] + rz * win.out[1]);
+  const ls = rx * win.axis[0] + rz * win.axis[1];
+  if (D < 0.05 || lamp.y <= win.sill + 0.05) return null;
+  const d0 = (D * (win.sill - ground)) / (lamp.y - win.sill);
+  if (d0 >= maxOut) return null;
+  const d1 = lamp.y > win.top + 0.05 ? Math.min(maxOut, (D * (win.top - ground)) / (lamp.y - win.top)) : maxOut;
+  if (d1 - d0 < 0.1) return null;
+  // a lamp right at the window would fan its light out sideways without end: for the width it counts as a metre away
+  const Dw = Math.max(D, 1);
+  return {
+    d0,
+    d1,
+    D,
+    ls,
+    edge(d) {
+      const t = 1 + d / Dw;
+      return [ls - ls * t, ls + (win.width - ls) * t];
+    },
+  };
+}
+
 /** Index of the room a point lies in; outside every room: the outside zone (rooms.length). */
 export function roomIndexAt(floor: Floor, x: number, z: number): number {
   const i = floor.rooms.findIndex((r) => r.points.length >= 3 && pointInPolygon([x, z], r.points));

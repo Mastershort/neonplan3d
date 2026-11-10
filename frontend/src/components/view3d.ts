@@ -135,7 +135,7 @@ import { pathLength, pipePath, pointAlong, type P3 } from "../geometry/runs.ts";
 import { pipePieces, poolAreas, poolNodeAt, poolWallNormal, underBasin, PIPE_IDLE, type PipePiece } from "../pool-runs.ts";
 import type { PipeTube } from "../viewer/viewer3d.ts";
 import type { PoolPiece } from "../viewer/pool-water.ts";
-import { lowSyncDelay } from "../viewer/pace.ts";
+import { lowSyncDelay, MOVE_SYNC_MS } from "../viewer/pace.ts";
 import { floorCounts, floorInfoText, locatedPersons, personLook, personsInRooms, personsShown } from "../presence.ts";
 import { controls, tokens } from "../styles.ts";
 import type { HassEntity, HomeAssistant } from "../types.ts";
@@ -1199,6 +1199,14 @@ export class Fp3dView3d extends LitElement {
     this.seenSeek = this.replay?.seek ?? 0;
     this.seenT = this.replay?.t ?? 0;
     if (!changed) return;
+    // while the view is turned, new states wait until it rests: a sync took whole frames on a slow tablet (#952)
+    if (!force && !this.replay && v.cameraBusy()) {
+      this.sensorTimer ??= setTimeout(() => {
+        this.sensorTimer = undefined;
+        this.syncDevices(false);
+      }, MOVE_SYNC_MS);
+      return;
+    }
     // tablet level: a change of measured values alone is shown at most every 2 s (power sensors tick every second
     // and each sync redoes markers, light, cables and cards); a switch, door or alarm shows at once
     if (sensorsOnly && this._low && !this.replay) {

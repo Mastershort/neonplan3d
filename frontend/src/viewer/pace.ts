@@ -69,3 +69,9 @@ export const SENSOR_SYNC_MS = 2000;
 export function lowSyncDelay(sinceLast: number): number {
   return Math.max(0, SENSOR_SYNC_MS - sinceLast);
 }
+
+/**
+ * While a finger (or the inertia after it) turns the view, new states wait: a sync reads every pin, light and card
+ * again and took whole frames on a slow wall tablet (#952). They are shown this soon after the view came to rest.
+ */
+export const MOVE_SYNC_MS = 120;
