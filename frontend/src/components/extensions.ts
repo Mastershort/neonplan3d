@@ -22,7 +22,7 @@ import {
 } from "../api.ts";
 import { DISCORD_URL, isBeta, supporterUrl } from "../beta.ts";
 import { copyText, PRINT_URL } from "../print.ts";
-import { FEATURES, FUN, knownFeature, manualUrl, released, shopUrl, unlockedFeatures, type Feature } from "../features.ts";
+import { FEATURES, FUN, knownFeature, manualUrl, released, shopUrl, unlockedFeatures, type Feature, packLacksModule } from "../features.ts";
 import type { Building } from "../model.ts";
 import { translate, type I18nKey } from "../i18n.ts";
 import { packName, type FurniturePack } from "../packs.ts";
@@ -511,6 +511,7 @@ export class Extensions extends LitElement {
             <span class="fp3d-sub">${p.module ? this.t("pack_module", { publisher: p.publisher }) : p.features?.length ? this.t("pack_features", { publisher: p.publisher, n: p.features.length }) : this.t("pack_by", { publisher: p.publisher, n: p.items.length })}</span>
             ${p.licensee ? html`<span class="fp3d-sub">${this.t("pack_licensed", { name: p.licensee })}${p.release && p.release > 1 ? ` · v${p.release}` : ""}</span>` : nothing}
             ${(p.features ?? []).some((f) => !knownFeature(f)) ? html`<span class="fp3d-sub fp3d-pack-error">${this.t("pack_needs_update")}</span>` : nothing}
+            ${packLacksModule(p) ? html`<span class="fp3d-sub fp3d-pack-error">${this.t("pack_needs_module")}</span>` : nothing}
           </div>
           <button class="fp3d-btn fp3d-danger" @click=${() => this.deletePack(p)}>${this.t("pack_remove")}</button>
         </div>`,
@@ -552,6 +553,7 @@ export class Extensions extends LitElement {
                 <b>${packName(p, this.hass?.language ?? "de")}</b>
                 <span class="fp3d-sub">${p.module ? this.t("pack_module", { publisher: p.publisher }) : this.t((p.features ?? []).every((f) => f.startsWith("fun_")) ? "pack_fun_module" : "pack_pro_module", { publisher: p.publisher })}${p.release && p.release > 1 ? ` · v${p.release}` : ""}</span>
                 ${(p.features ?? []).some((f) => !knownFeature(f)) ? html`<span class="fp3d-sub fp3d-pack-error">${this.t("pack_needs_update")}</span>` : nothing}
+                ${packLacksModule(p) ? html`<span class="fp3d-sub fp3d-pack-error">${this.t("pack_needs_module")}</span>` : nothing}
                 ${p.licensee ? html`<span class="fp3d-sub">${this.t("pack_licensed", { name: p.licensee })}</span>` : nothing}
                 ${p.module && p.module.approved !== true
                   ? html`<span class="fp3d-sub fp3d-module-waits">${this.t("module_waits")}</span>`
