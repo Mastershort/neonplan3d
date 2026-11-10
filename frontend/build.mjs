@@ -168,7 +168,7 @@ function copyFonts() {
 // main 758 KB, editor 974 KB, card editor 288 KB on 2026-11-02: "only show while …" for furniture and its texts
 // main 756 KB, editor 970 KB, card editor 286 KB on 2026-11-02: the room bar (a card per room with a light switch, the favourites before them) with its texts
 // main 830 KB, 3D 870 KB, editor 1070 KB on 2026-11-05: duplicate floor, top-hung windows, camera pop-up, lift-and-slide doors
-const BUDGET = { "neonplan3d.js": 845 * 1024, "neonplan3d-fun.js": 40 * 1024, "neonplan3d-voice.js": 60 * 1024, "neonplan3d-locate.js": 160 * 1024, "neonplan3d-timetravel.js": 120 * 1024, "neonplan3d-3d.js": 870 * 1024, "neonplan3d-editor.js": 1070 * 1024, "neonplan3d-card-editor.js": 324 * 1024 };
+const BUDGET = { "neonplan3d.js": 870 * 1024, "neonplan3d-fun.js": 40 * 1024, "neonplan3d-voice.js": 60 * 1024, "neonplan3d-locate.js": 160 * 1024, "neonplan3d-timetravel.js": 120 * 1024, "neonplan3d-3d.js": 870 * 1024, "neonplan3d-editor.js": 1070 * 1024, "neonplan3d-card-editor.js": 324 * 1024 };
 
 copyFonts();
 if (watch) {

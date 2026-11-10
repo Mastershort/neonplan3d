@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { calendarColor, dayLabel, frameCalendars, frameDays, frameEvents, timeLabel } from "./frames.ts";
+import { calendarColor, dayLabel, dueReminders, eventPhase, forecastDays, frameCalendars, frameDays, frameEvents, isBirthday, personStatuses, rainSoon, slideIndex, timeLabel, todoOrder } from "./frames.ts";
 
 const byCal = new Map([
   [
@@ -55,4 +55,54 @@ test("labels: today and tomorrow by word, later days by weekday; times as a span
   // colours follow the frame's own order of calendars
   assert.equal(calendarColor(["calendar.waste", "calendar.family"], "calendar.family"), calendarColor(["x", "y"], "y"));
   assert.notEqual(calendarColor(["calendar.waste", "calendar.family"], "calendar.family"), calendarColor(["calendar.family"], "calendar.family"));
+});
+
+
+test("what runs now or starts soon, birthdays, the slideshow's turn and the to-do order", () => {
+  const now = new Date(2026, 10, 10, 17, 40);
+  const events = frameEvents(byCal, ["calendar.family"]);
+  const training = events.find((e) => e.summary === "Elternabend")!;
+  assert.equal(eventPhase({ ...training, start: new Date(2026, 10, 10, 17, 30), end: new Date(2026, 10, 10, 19, 0) }, now), "now");
+  assert.equal(eventPhase({ ...training, start: new Date(2026, 10, 10, 18, 0), end: null }, now), "soon");
+  assert.equal(eventPhase({ ...training, start: new Date(2026, 10, 10, 19, 0), end: null }, now), null);
+  assert.equal(isBirthday({ ...training, summary: "Omas Geburtstag" }), true);
+  assert.equal(isBirthday({ ...training, calendar: "calendar.birthdays", summary: "Paul" }), true);
+  assert.equal(isBirthday(training), false);
+  assert.equal(slideIndex(3, 30, 95_000), 0);
+  assert.equal(slideIndex(3, 30, 125_000), 1);
+  assert.equal(slideIndex(1, 30, 125_000), 0);
+  const items = todoOrder([
+    { uid: "a", summary: "Milch", status: "completed" },
+    { uid: "b", summary: "Brot", status: "needs_action" },
+    { uid: "c", summary: "Eier", status: "needs_action" },
+  ]);
+  assert.deepEqual(items.map((i) => i.uid), ["b", "c", "a"]);
+});
+
+test("forecast days from today on, a rain warning within the next hours, people at home first", () => {
+  const now = new Date(2026, 10, 10, 12, 0);
+  const daily = [
+    { datetime: "2026-11-09T12:00:00+01:00", condition: "sunny", temperature: 12, templow: 4 },
+    { datetime: "2026-11-10T12:00:00+01:00", condition: "cloudy", temperature: 9, templow: 3 },
+    { datetime: "2026-11-11T12:00:00+01:00", condition: "rainy", temperature: 8, templow: 5, precipitation_probability: 80 },
+  ];
+  const days = forecastDays(daily, now, 3);
+  assert.deepEqual(days.map((d) => [d.offset, d.condition, d.hi, d.lo]), [[0, "cloudy", 9, 3], [1, "rainy", 8, 5]]);
+  const hourly = [
+    { datetime: "2026-11-10T12:00:00+01:00", precipitation_probability: 10 },
+    { datetime: "2026-11-10T14:00:00+01:00", precipitation_probability: 70 },
+  ];
+  assert.deepEqual(rainSoon(hourly, now), { inHours: 2, probability: 70 });
+  assert.equal(rainSoon([{ datetime: "2026-11-10T20:00:00+01:00", precipitation_probability: 90 }], now), null);
+  const states = {
+    "person.a": { entity_id: "person.a", state: "not_home", attributes: { friendly_name: "Anna" } },
+    "person.b": { entity_id: "person.b", state: "home", attributes: { friendly_name: "Ben" }, last_changed: "2026-11-10T10:00:00+01:00" },
+  };
+  const people = personStatuses(states, [], new Map([["person.b", "Küche"]]));
+  assert.deepEqual(people.map((p) => [p.name, p.home, p.room]), [["Ben", true, "Küche"], ["Anna", false, null]]);
+  // reminders: 15 minutes before, once
+  const soon = { ...frameEvents(byCal, ["calendar.family"])[0], start: new Date(2026, 10, 10, 12, 15), end: null, allDay: false };
+  const due = dueReminders([soon], 15, now, new Set());
+  assert.equal(due.length, 1);
+  assert.equal(dueReminders([soon], 15, new Date(2026, 10, 10, 11, 50), new Set()).length, 0);
 });
