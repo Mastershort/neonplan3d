@@ -11,8 +11,8 @@
 //   fold = 48 + b    top face of the lower part at the cut height: visible while bucket b is cut
 
 import { Color, type BufferGeometry } from "three";
-import type { Floor, Opening, Room, SolarField, Vec2 } from "../model.ts";
-import { furnitureFootprint, GANG_TYPES, isLamp, pointInPolygon, polygonArea, STAIR_TYPES } from "../model.ts";
+import type { Floor, Furniture, Opening, Room, SolarField, Vec2 } from "../model.ts";
+import { furnitureFootprint, GANG_TYPES, isLamp, pointInPolygon, polygonArea, STAIR_TYPES, stairsULayout } from "../model.ts";
 import { freeWallRoomLeft, generateWalls, locateOpening, openingHost, placeWallPlate, slopeTop, wallContinuation, type Wall } from "../geometry/walls.ts";
 import { clipConvex, isConvex } from "../geometry/area.ts";
 import { holeInRoom, insetHole, mergeHoles } from "../geometry/holes.ts";
@@ -767,9 +767,31 @@ export function stairHoleParts(floors: readonly Floor[], floor: Floor): Vec2[][]
   if (!below) return own;
   const stairs = below.furniture
     .filter((f) => (STAIR_TYPES.has(f.type) || packItem(f.type)?.hole) && below.elevation + f.h >= floor.elevation - 0.3)
-    .map(furnitureFootprint);
+    .flatMap((f) => (f.type === "stairs_u" ? uStairHole(f) : [furnitureFootprint(f)]));
   // overlapping openings become one outline (an L-shaped stairwell made of two) – after cutting, room by room
   return [...own, ...stairs];
+}
+
+/**
+ * The opening a U-stair needs (#742): its whole footprint on the side of the first flight and the landing, but on
+ * the second flight's side only up to its top tread. With an even number of risers that flight is a tread shorter
+ * than the first, and the floor above keeps the strip in front of it instead of a hole with nothing under it.
+ */
+export function uStairHole(f: Furniture): Vec2[][] {
+  const { steps2, fw, landing, run } = stairsULayout(f.w, f.d, f.h);
+  const zTop = -f.d / 2 + landing + run * steps2;
+  if (zTop >= f.d / 2 - 1e-6) return [furnitureFootprint(f)];
+  const a = (f.rotation * Math.PI) / 180;
+  const c = Math.cos(a);
+  const s = Math.sin(a);
+  const mx = f.mirror ? -1 : 1;
+  const tf = (lx: number, lz: number): Vec2 => [f.x + mx * lx * c - lz * s, f.z + mx * lx * s + lz * c];
+  const rect = (x0: number, z0: number, x1: number, z1: number): Vec2[] => {
+    const r = [tf(x0, z0), tf(x1, z0), tf(x1, z1), tf(x0, z1)];
+    return f.mirror ? r.reverse() : r;
+  };
+  const xb0 = f.w / 2 - fw;
+  return [rect(-f.w / 2, -f.d / 2, xb0, f.d / 2), rect(xb0, -f.d / 2, f.w / 2, zTop)];
 }
 
 /** How tall a wall stands: its own height (a low wall, a counter), never above the floor height. */

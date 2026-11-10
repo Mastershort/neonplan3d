@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { BufferGeometry } from "three";
 import type { Floor, Furniture, Opening, Room, Vec2 } from "../model.ts";
-import { newFloor } from "../model.ts";
+import { newFloor, pointInPolygon, stairsULayout } from "../model.ts";
 import { generateWalls } from "../geometry/walls.ts";
 import { buildFloorGeometry, clipAlong, stairHoles, stairHoleParts, wallHeight } from "./build.ts";
 
@@ -139,6 +139,26 @@ test("a U-stair reaching the floor above cuts its opening there, like the straig
   // a U-stair that ends well below the next floor (a split level) cuts nothing
   const short = floorWith([rect("a", 0, 0, 5, 4)], [], [{ ...stair, h: 1.4 }]);
   assert.deepEqual(stairHoles([short, upper], upper), []);
+});
+
+test("a U-stair with an even number of risers: the opening ends at the top tread of the shorter second flight (#742)", () => {
+  // 2.52 m: 14 risers, 7 treads up to the landing, 6 back – the second flight stops a tread short of the front
+  const stair: Furniture = { id: "u", type: "stairs_u", x: 2, z: 1.5, rotation: 0, w: 2.1, d: 2.7, h: 2.52, variant: null };
+  const lower = floorWith([rect("a", 0, 0, 5, 4)], [], [stair]);
+  const upper = { ...floorWith([rect("b", 0, 0, 5, 4)]), id: "u", elevation: 2.52 };
+  const holes = stairHoles([lower, upper], upper);
+  assert.equal(holes.length, 1);
+  const { fw, run } = stairsULayout(2.1, 2.7, 2.52);
+  near(Math.abs(area2(holes[0])), 2.1 * 2.7 - fw * run, 1e-6);
+  // the strip kept lies at the front (z = 2.85) on the second flight's side (x > 2); mirrored it is on the other side
+  const keptInside = (x: number, z: number, mirror: boolean) => {
+    const h = stairHoles([floorWith([rect("a", 0, 0, 5, 4)], [], [{ ...stair, mirror }]), upper], upper)[0];
+    return pointInPolygon([x, z], h);
+  };
+  assert.equal(keptInside(2.8, 2.8, false), false);
+  assert.equal(keptInside(1.2, 2.8, false), true);
+  assert.equal(keptInside(1.2, 2.8, true), false);
+  assert.equal(keptInside(2.8, 2.8, true), true);
 });
 
 function area2(poly: [number, number][]): number {
