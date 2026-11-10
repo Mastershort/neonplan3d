@@ -3614,7 +3614,7 @@ ${this.planLine?`plan: ${this.plan}
       >
       ${this.num(this.t("spots_cols"),t.cols,o=>s({cols:Math.max(1,Math.min(12,Math.round(o)))}),1,1)}
       ${this.num(this.t("spots_rows"),t.rows,o=>s({rows:Math.max(1,Math.min(12,Math.round(o)))}),1,1)}
-      ${this.entitySelect(this.t("furn_entity_light"),t.entity,void 0,i,o=>s({entity:o==="none"?null:o}))}
+      ${this.entitySelect(this.t("furn_entity_light"),t.entity,void 0,i,o=>s({entity:o}))}
       <div class="fp3d-actions fp3d-wide">
         <button class="fp3d-btn fp3d-primary" ?disabled=${!n} @click=${()=>this.placeSpots(e)}>${this.t("spots_add",{n})}</button>
         <button class="fp3d-btn" @click=${()=>this._spots=null}>${this.t("cancel")}</button>
