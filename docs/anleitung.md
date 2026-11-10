@@ -1137,6 +1137,24 @@ Haushalt Pro zeigt im Haus, was im Haushalt ansteht – dort, wo es passiert. Di
 - **Kühlschrank:** Steht eine Tür länger offen als eingestellt (Standard 2 Minuten), warnt NeonPlan oben im Bild. Dazu gehört der **Smart-Kühlschrank** (Side-by-Side mit beweglichen Türen) in der Möbel-Bibliothek.
 - **Heute im Haushalt:** Eine Glaskarte oben rechts listet, was gerade ansteht – Tonnen heute und morgen, Post, fertige Geräte, durstige Pflanzen, fällige Wartung, offene Kühlschranktüren. Ein Tipp öffnet das Gerät, der Kopf klappt sie ein. In der Dashboard-Karte schaltet `household_card: false` sie ab.
 
+### 6.9 Digitale Bilderrahmen
+
+> Das Pack **Digitale Bilderrahmen** gibt es im [Shop](https://mastershort.de/neonplan3d/); mit dem [Supporter-Pass](https://mastershort.de/neonplan3d/unterstuetzer/) ist es dabei (seit 3.0.5).
+
+Bilderrahmen, die leben: Rahmen fürs Hoch- und Querformat in drei Größen, quadratisch, ein Posterrahmen, digitale Rahmen mit schmalem Rand für Wand und Sideboard und ein Standrahmen aus Holz. Jeder Rahmen hat eine lebende Fläche; der **digitale Bilderrahmen aus dem Deko-Pack** macht mit, sobald das Pack installiert ist. Was die Fläche zeigt, stellst du im Möbelformular unter **🖼️ Bilderrahmen → Zeigt** ein; **ein Tipp auf den Rahmen in 3D öffnet den Inhalt groß** in der Mitte der Ansicht (schließt per Tipp daneben, auf dem Tablet nach einer Minute von selbst).
+
+- **Kalender:** ein oder mehrere Kalender (jeder bekommt eine eigene Farbe). Die Fläche zeigt die nächsten Tage, heute zuerst; was gerade läuft, steht als „jetzt“, was gleich beginnt, als „in 20 min“ in der Akzentfarbe, Geburtstage bekommen ein 🎂. Im Pop-up stehen sieben Tage; ein Tipp auf einen Tag klappt Uhrzeiten und Beschreibung auf, **＋ Termin eintragen** schreibt einen neuen Termin in den Kalender (bei lokalen und Google-Kalendern, die schreiben dürfen). **Erinnern (Minuten vorher):** so viele Minuten vor einem Termin erscheint ein Hinweis auf den Bildschirmen, mit dem Durchsagen-Modul auch als Durchsage.
+- **Einkaufs- / To-do-Liste:** eine Liste aus Home Assistant (`todo.*`). Offene Punkte mit Kästchen, erledigte durchgestrichen; im Pop-up hakst du ab und trägst neue Punkte ein.
+- **Familienboard:** Kalender (heute und morgen), wer zuhause ist (grüne Punkte), mit Haushalt Pro die Tonnen von morgen, das Wetter oben rechts – der Küchenbildschirm in einem Rahmen.
+- **Personen:** alle Personen oder ausgewählte – zuhause oder unterwegs, mit Ortung der Raum, und seit wann.
+- **Kamera:** das Standbild, alle 5 Sekunden frisch (Tablet-Stufe: 10). **Groß aufspringen bei:** Klingel, Bewegungsmelder, Ereignis oder die Erkennung der Kamera selbst (Kamera-Cockpit) – dann springt der Rahmen 30 Sekunden groß auf, der **Türklingel-Rahmen**. Mit eingeschaltetem Live-Regisseur zeigt das Pop-up den Stream.
+- **Musik / Fernseher:** Cover und Titel des laufenden Players, im Pop-up mit Zurück, Pause und Weiter.
+- **Person:** das Bild aus Home Assistant, zuhause hell, unterwegs gedimmt.
+- **Foto:** eine URL oder hochgeladene Fotos (mehrere auf einmal). Mehrere Fotos wechseln sich ab (**Sekunden je Foto**), nachts dimmt die Fläche mit dem Kiosk.
+- **Wetter:** jetzt mit Temperatur und Symbol, dazu drei Tage Vorhersage und eine Regenwarnung aus der Stundenvorhersage („Regen in 3 h (75 %)“).
+
+Die Flächen folgen dem Look: hell im Tag-Look, dunkel in Neon und Blueprint.
+
 ## 7. Erweiterungen, Shop und Möbel-Packs
 
 ![Erweiterungen](images/extensions.jpg)
@@ -1176,6 +1194,7 @@ Die mittlere Kachelreihe zeigt die Pro-Erweiterungen. Aktive tragen ein ✓, ges
 | Schlafzimmer | Betten, Schränke, Kommoden, Nachttische |
 | Bad | Waschtische, Duschen, Wannen, WCs |
 | Kinderzimmer, Büro & Gaming, Garten & Terrasse, Garage & Werkstatt, Fitness, Smart-Home & Technik | Möbel und Geräte für den jeweiligen Bereich |
+| Digitale Bilderrahmen | Rahmen mit lebender Fläche: Kalender, Einkaufsliste, Familienboard, Personen, Kamera, Musik, Foto-Diashow, Wetter – Kapitel 6.9 |
 | Fahrzeuge | Autos, Transporter, Motorräder und mehr für Stellplätze |
 | Treppen & Geländer (16) | Gerade, L- und U-Treppen, gerade Treppen unten offen, viertelgewendelt oder mit Eckpodest, offene U-Treppe zweimal viertelgewendelt, Wendeltreppe, Raumspartreppe, Außentreppe, Podest, Geländer aus Metall, Glas und Holz |
 | Heimkino & Hi-Fi | Leinwand, Beamer, Lautsprecher, Subwoofer, AV-Receiver, Plattenspieler, Kinosessel, Smart Speaker und Smart Displays – Geräte leuchten beim Abspielen; die ausrollbare Leinwand fährt mit dem Cover ihres Motors hoch und runter (Laufzeit, Positionssensor und Richtung umkehren wie beim Vorhang) |

@@ -1137,6 +1137,24 @@ Household Pro shows what is due in the household, right where it happens. The wa
 - **Fridge:** when a door stands open longer than set (default 2 minutes), NeonPlan warns at the top of the view. The **smart fridge** (side-by-side with moving doors) in the furniture library comes with it.
 - **Today in the household:** a glass card at the top right lists what is due – bins today and tomorrow, post, finished appliances, thirsty plants, services due, open fridge doors. A tap opens the device, its header folds it. In the dashboard card `household_card: false` switches it off.
 
+### 6.9 Digital picture frames
+
+> The **Digital Picture Frames** pack is sold in the [shop](https://mastershort.de/neonplan3d/?lang=en); the [Supporter Pass](https://mastershort.de/neonplan3d/unterstuetzer/?lang=en) includes it (since 3.0.5).
+
+Picture frames that live: portrait and landscape frames in three sizes, a square one, a poster frame, slim digital frames for the wall and the sideboard and a standing wooden frame. Every frame has a living face; the **digital frame of the Deco pack** joins in once the pack is installed. What the face shows is set in the furniture form under **🖼️ Picture frame → Shows**; **a tap on the frame in 3D opens the content large** in the middle of the view (closes on a tap beside it, on a tablet by itself after a minute).
+
+- **Calendar:** one or several calendars (each gets its own colour). The face shows the next days, today first; what runs now reads "now", what starts shortly "in 20 min" in the accent colour, birthdays get a 🎂. The pop-up holds seven days; a tap on a day unfolds times and descriptions, **＋ Add an event** writes a new event into the calendar (local and Google calendars that allow writing). **Remind (minutes before):** that many minutes before an event a note shows on the screens, with the announcements module also spoken.
+- **Shopping / to-do list:** a Home Assistant list (`todo.*`). Open items with a box, done ones struck through; in the pop-up you tick them off and add new ones.
+- **Family board:** calendar (today and tomorrow), who is home (green dots), with Household Pro tomorrow's bins, the weather top right – the kitchen screen in one frame.
+- **People:** everyone or chosen persons – home or away, with Live Presence the room, and for how long.
+- **Camera:** the still, fresh every 5 seconds (tablet level: 10). **Pops up large on:** a doorbell, a motion sensor, an event or the camera's own detection (Camera Cockpit) – the frame then pops up large for 30 seconds, the **doorbell frame**. With the live director on, the pop-up shows the stream.
+- **Music / TV:** cover and title of the running player, in the pop-up with previous, pause and next.
+- **Person:** the picture from Home Assistant, bright at home, dimmed when away.
+- **Photo:** a URL or uploaded photos (several at once). Several photos take turns (**seconds per photo**); at night the face dims with the kiosk.
+- **Weather:** now with temperature and symbol, plus a three-day forecast and a rain warning from the hourly forecast ("Rain in 3 h (75 %)").
+
+The faces follow the look: pale in the Day look, dark in Neon and Blueprint.
+
 ## 7. Extensions, shop and furniture packs
 
 ![Extensions](images/extensions.jpg)
@@ -1176,6 +1194,7 @@ The middle row of tiles shows the Pro add-ons. Active ones carry a ✓, locked o
 | Bedroom | Beds, wardrobes, chests of drawers, nightstands |
 | Bathroom | Washbasins, showers, bathtubs, WCs |
 | Kids, Office & gaming, Garden & terrace, Garage & workshop, Fitness, Smart home & tech | Furniture and devices for each area |
+| Digital Picture Frames | frames with a living face: calendar, shopping list, family board, people, camera, music, photo slideshow, weather – chapter 6.9 |
 | Vehicles | Cars, vans, motorbikes and more for parking spots |
 | Stairs & railings (16) | Straight, L- and U-shaped stairs, straight stairs open below, with winders or with a corner landing at the foot, open U-stairs with two quarter turns, spiral stairs, space-saver stairs, outdoor steps, landing, railings in metal, glass and wood |
 | Home cinema & hi-fi | Screen, projector, speakers, subwoofer, AV receiver, turntable, cinema seats, smart speakers and smart displays – devices glow while playing; the roll-down screen goes up and down with its motor's cover (run time, position sensor and reverse direction as for the curtain) |
