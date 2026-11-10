@@ -112,8 +112,6 @@ import { formatNumber, translate, type I18nKey } from "../i18n.ts";
 import { furnitureShown, showIfSignature } from "../show-if.ts";
 import { fireworkNow, lawnSnow, roofLightsOn, snowLevel, winterOf } from "../winter.ts";
 import { getPacks, isPackCooktop, isPackHeater, isPackType, isRobotVacuum, mountBase, packItem, packRobotCentre, packMotion, packName, packsVersion } from "../packs.ts";
-import { allFrameCalendars, allFrameTodos, allFrameWeather, calendarColor, dayLabel, dueReminders, eventPhase, fetchFrameEvents, forecastDays, frameCalendars, frameDays, frameEvents, frameRefreshMs, frameSources, isBirthday, isFrame, minutesUntil, personStatuses, rainSoon, reminderKey, sinceLabel, slideIndex, timeLabel, todoOrder, weatherSymbol, type CalEvent, type ForecastEntry, type FrameDay, type FrameKind, type PersonStatus, type TodoItem } from "../frames.ts";
-import { drawBoardFace, drawCalendarFace, drawPersonsFace, drawTodoFace, drawWeatherFace, type BoardFace, type FaceWords, type WeatherFace } from "../frame-canvas.ts";
 import { parkedVehicle, PRESENT_STATES, parkedVehicles, vehicleFurniture } from "../parking.ts";
 import { TRAIL_ICON, TRAIL_WINDOW_MS, trailEvents, trailPoints, trailSources, trailTime, type HistoryRow } from "../trail.ts";
 import { limitEffects, weatherEntity, weatherState } from "../weather.ts";
@@ -121,7 +119,7 @@ import { SHOW_PRESENCE } from "../flags.ts";
 import { hasFeature, manualUrl, projectionOn, released, shopUrl, type Feature } from "../features.ts";
 import { searchIndex, searchItems, type SearchItem } from "../search.ts";
 import type { Shown } from "../voice/targets.ts";
-import { anyModule, moduleAlerts, moduleCards, moduleMenuSheets, modulePools, moduleRoomSheets, moduleScene, moduleSettings, modulesWithSettings, moduleVoice, moduleWatched, syncModules, type ModuleCard, type ModuleField, type ModuleHost, type ModuleSheet, type ScenePiece, type SpokenAlert, type SpokenCar, type SpokenDevice, type SpokenOpening, type VoiceAnswer } from "../modules.ts";
+import { anyModule, moduleAlerts, moduleCards, moduleMenuSheets, modulePools, moduleRoomSheets, moduleScene, moduleSettings, modulesWithSettings, moduleVoice, moduleWatched, modulePopups, syncModules, type ModuleCard, type ModuleField, type ModuleHost, type ModuleSheet, type PopupSection, type ScenePiece, type SpokenAlert, type SpokenCar, type SpokenDevice, type SpokenOpening, type VoiceAnswer } from "../modules.ts";
 import { lineFlows, majorOnly, markerEmoji, markerPath, sparkPoints } from "../module-scene.ts";
 import { generateWalls, openingHost, placeWallPlate, pointOnRoomEdge, type Wall } from "../geometry/walls.ts";
 import { signedArea } from "../model.ts";
@@ -318,9 +316,8 @@ export class Fp3dView3d extends LitElement {
     ghostOn: { attribute: false },
     _central: { state: true },
     _sheet: { state: true },
-    _framePop: { state: true },
-    _frameNew: { state: true },
-    frameOpenDays: { state: true },
+    _popup: { state: true },
+    popupValues: { state: true },
     _settingsOpen: { state: true },
     _note: { state: true },
     _thumbsCompact: { state: true },
@@ -612,40 +609,17 @@ export class Fp3dView3d extends LitElement {
   private declare _central: boolean;
   /** A module's sheet that is open (an announcement …): from a room's panel (with its room) or from the ⭐ menu. */
   private declare _sheet: { id: string; floorId: string | null; roomId: string | null } | null;
-  /** Digital picture frames: the frame whose content is open large (a tap on it), with its auto-close timer. */
-  private declare _framePop: { furnitureId: string } | null;
-  private framePopTimer: ReturnType<typeof setTimeout> | undefined;
-  /** Digital picture frames: the calendar events by calendar, fetched every 15 minutes while a frame shows one. */
-  private frameEvents = new Map<string, CalEvent[]>();
-  private frameTimer: ReturnType<typeof setInterval> | undefined;
-  private frameCalendarKey = "";
-  /** Drawn faces (calendar, weather) by frame: redrawn only when their content changes. */
-  private framePics = new Map<string, { sig: string; url: string | null }>();
-  /** To-do lists by entity, fetched when their count changes and every five minutes. */
-  private frameTodos = new Map<string, TodoItem[]>();
-  private todoTimer: ReturnType<typeof setInterval> | undefined;
-  private frameTodoKey = "";
-  /** Weather forecasts by "entity|daily" / "entity|hourly", kept by a subscription each. */
-  private frameForecasts = new Map<string, ForecastEntry[]>();
-  private forecastSubs = new Map<string, Promise<() => Promise<void>>>();
-  /** Slideshows: the faces are looked at again every shortest interval. */
-  private slideTimer: ReturnType<typeof setInterval> | undefined;
-  private slideMs = 0;
-  /** Events already reminded of (their keys), so each is announced once. */
-  private reminded = new Set<string>();
-  /** The new event being typed in a calendar pop-up. */
-  private declare _frameNew: { title: string; date: string; time: string; calendar: string } | null;
-  /** Days unfolded in the calendar pop-up (their offsets), showing times and descriptions. */
-  private declare frameOpenDays: Set<number>;
-  /** Where located people stand right now (person id -> room name), for a person's frame. */
-  private personRooms = new Map<string, string>();
+  /** A module's pop-up that is open (its id), with its auto-close timer and the values typed into its form. */
+  private declare _popup: { id: string } | null;
+  private popupTimer: ReturnType<typeof setTimeout> | undefined;
+  private declare popupValues: Record<string, string>;
   /** The ⚙ settings over the view are open. */
   private declare _settingsOpen: boolean;
   /** A short note at the bottom (a module's "sent"), with its timer. */
   private declare _note: string | null;
   private noteTimer: ReturnType<typeof setTimeout> | undefined;
   /** The people shown in the last sync (for the rooms someone is in). */
-  private lastPersons: { floorId: string; roomId: string }[] = [];
+  private lastPersons: { id: string; floorId: string; roomId: string }[] = [];
   /** A house-wide action waiting for its second tap ("sure?"), with the time it was armed. */
   private declare _armed: string | null;
   private armTimer: ReturnType<typeof setTimeout> | undefined;
@@ -789,9 +763,8 @@ export class Fp3dView3d extends LitElement {
     this._sheet = null;
     this._settingsOpen = false;
     this._note = null;
-    this._framePop = null;
-    this._frameNew = null;
-    this.frameOpenDays = new Set();
+    this._popup = null;
+    this.popupValues = {};
     try {
       this._thumbsCompact = localStorage.getItem("neonplan3d.thumbs_compact") === "1";
     } catch {
@@ -1691,11 +1664,7 @@ export class Fp3dView3d extends LitElement {
     const persons = released("locate") && personsShown(b) ? [...roomSensors, ...locatedPersons(hass, b, new Set(roomSensors.map((p) => p.id)))] : roomSensors;
     v.setPersonLook(personLook(b) === "pin" ? "pin" : "figure");
     v.setPersons(persons);
-    this.lastPersons = persons.map((p) => ({ floorId: p.floorId, roomId: p.roomId }));
-    this.personRooms = new Map(persons.flatMap((p) => {
-      const room = b.floors.find((fl) => fl.id === p.floorId)?.rooms.find((r) => r.id === p.roomId);
-      return room ? [[p.id, room.name] as [string, string]] : [];
-    }));
+    this.lastPersons = persons.map((p) => ({ id: p.id, floorId: p.floorId, roomId: p.roomId }));
     const counts = floorCounts(hass, b, this.openingLinks!, persons);
     v.setFloorInfo(new Map([...counts].map(([id, c]) => [id, floorInfoText(hass, c)])));
     // daylight: sun through the windows and a lighter sky
@@ -2838,15 +2807,6 @@ export class Fp3dView3d extends LitElement {
         // two entities light the halves (left/right of a bed, bottom/top of a bunk bed)
         const faces = this.stateFaces(hass, f);
         if (faces.length) screens.set(f.id, { color: faces[0].color, level: faces[0].level, faces });
-        // a digital picture frame: its content on its face, a tap opens it large
-        if (isFrame(f.type)) {
-          if (hasFeature("frames")) {
-            const shown = this.frameScreen(hass, f);
-            if (shown) screens.set(f.id, shown);
-            targets.set(f.id, `frame:${f.id}`);
-          }
-          continue;
-        }
         if (isLamp(f.type)) {
           const lamp = this.lampMarker(hass, floor, f, linked?.entity ?? null);
           markers.push(lamp);
@@ -3134,7 +3094,12 @@ export class Fp3dView3d extends LitElement {
       else if (g.plate) screens.set(g.furnitureId, { color: g.color, level: g.level, faces: [{ part: "plate", color: g.color, level: g.level }] });
       else if (g.band) screens.set(g.furnitureId, { color: g.color, level: g.level, faces: [{ part: "band", color: g.color, level: g.level }] });
     }
-    this.frameWatch(hass, b);
+    // a module's picture on an item's screen face (a frame, a display); a tap may open the module's pop-up
+    for (const sp of this.scene) {
+      if (sp.kind !== "screen") continue;
+      screens.set(sp.furnitureId, { color: sp.color ?? [0.06, 0.08, 0.14], level: sp.level ?? 1, picture: sp.picture, plain: true });
+      if (sp.popup) targets.set(sp.furnitureId, `popup:${sp.popup}`);
+    }
     this.watchCameras(this.cameraScreens > 0 || !!this._through || this.cameraWall || this.projecting);
     return { markers, consumers, screens, targets };
   }
@@ -4996,6 +4961,7 @@ export class Fp3dView3d extends LitElement {
     const spoken = () => (spokenList ??= this.spokenDevices(hass, b, synonyms).spoken);
     const host: ModuleHost = {
       api: 1,
+      stage: 2,
       hass: () => this.hass,
       building: () => this.building,
       language: () => hass.language || "en",
@@ -5026,6 +4992,16 @@ export class Fp3dView3d extends LitElement {
         const floor = this.building?.floors.find((f) => f.id === floorId);
         return floor ? outdoorGround(floor, x, z) : 0;
       },
+      openPopup: (id, autoCloseMs) => this.openModulePopup(id, autoCloseMs),
+      closePopup: () => this.closeModulePopup(),
+      imageUrl: (id) => this.pictureUrl(id),
+      people: () =>
+        this.lastPersons.flatMap((p) => {
+          const room = this.building?.floors.find((fl) => fl.id === p.floorId)?.rooms.find((r) => r.id === p.roomId);
+          return room ? [{ id: p.id, floorId: p.floorId, roomId: p.roomId, roomName: room.name }] : [];
+        }),
+      look: () => (this.effectiveTheme() === "day" ? "light" : "dark"),
+      lowPower: () => this._low,
       refresh: () => {
         this.requestUpdate();
         // the stage and the cards come from the module: ask it again (once, however often it asks)
@@ -5178,478 +5154,130 @@ export class Fp3dView3d extends LitElement {
     return list.find((x) => x.id === sh.id) ?? null;
   }
 
-  // ------------------------------------------------------------------ digital picture frames
+  // ------------------------------------------------------------------ a module's pop-up
 
-  /** The words the drawn faces use, in the user's language. */
-  private faceWords(hass: HomeAssistant): FaceWords {
-    const t = (k: I18nKey) => translate(hass, k);
-    return { today: t("frame_today"), tomorrow: t("frame_tomorrow"), allDay: t("frame_allday"), nothing: t("frame_nothing"), now: t("frame_now"), inMin: t("frame_in_min"), done: t("frame_done"), home: t("frame_person_home"), away: t("frame_person_away"), whoHome: t("frame_who_home"), waste: t("frame_waste"), rainSoon: t("frame_rain_soon") };
+  /** Opens a module's pop-up (a tap on a screen piece, or the module itself); it closes by itself after a while. */
+  private openModulePopup(id: string, autoClose = 60_000): void {
+    clearTimeout(this.popupTimer);
+    this._popup = { id };
+    this.popupValues = {};
+    this.popupTimer = setTimeout(() => (this._popup = null), autoClose);
   }
 
-  /** The weather of a frame or the house as the faces show it. */
-  private weatherBits(hass: HomeAssistant, id: string | null): { symbol: string; temperature: string; condition: string; lines: string[]; days: WeatherFace["days"]; warning: string | null } | null {
-    const st = id ? hass.states[id] : undefined;
-    if (!st || isUnavailable(st)) return null;
-    const a = st.attributes;
-    const unit = typeof a.temperature_unit === "string" ? a.temperature_unit : "°C";
-    const temperature = typeof a.temperature === "number" ? `${formatNumber(hass, a.temperature, 0)}${unit}` : "–";
-    const lines: string[] = [];
-    if (typeof a.humidity === "number") lines.push(`💧 ${Math.round(a.humidity)} %`);
-    if (typeof a.wind_speed === "number") lines.push(`💨 ${formatNumber(hass, a.wind_speed, 0)} ${typeof a.wind_speed_unit === "string" ? a.wind_speed_unit : "km/h"}`);
-    const lang = hass.language ?? "en";
-    const words = this.faceWords(hass);
-    const days = forecastDays(this.frameForecasts.get(`${id}|daily`), new Date(), 3).map((d) => ({
-      label: d.offset === 0 ? words.today : d.offset === 1 ? words.tomorrow : d.day.toLocaleDateString(lang, { weekday: "short" }),
-      symbol: weatherSymbol(d.condition),
-      hi: d.hi === null ? "–" : `${formatNumber(hass, d.hi, 0)}°`,
-      lo: d.lo === null ? "" : `${formatNumber(hass, d.lo, 0)}°`,
-    }));
-    const rain = rainSoon(this.frameForecasts.get(`${id}|hourly`), new Date());
-    const warning = rain ? (rain.inHours <= 0 ? translate(hass, "frame_rain_now", { p: Math.round(rain.probability) }) : translate(hass, "frame_rain_soon", { h: rain.inHours, p: Math.round(rain.probability) })) : null;
-    return { symbol: weatherSymbol(st.state), temperature, condition: String(st.state).replace(/-/g, " "), lines, days, warning };
+  private closeModulePopup(): void {
+    clearTimeout(this.popupTimer);
+    this._popup = null;
+    this.popupValues = {};
   }
 
-  /** What goes out (Haushalt Pro's due list) as short lines for the board. */
-  private wasteLines(): string[] {
-    return this._household.filter((it) => it.icon === "trash-can" || /tonne|bin|müll|abfall/i.test(it.text)).map((it) => it.text).slice(0, 3);
-  }
-
-  /** What a frame's face shows right now (a picture for its screen part), or null for a dark pane. */
-  private frameScreen(hass: HomeAssistant, f: Furniture): ScreenState | null {
-    const kind = (f.frame_kind ?? null) as FrameKind | null;
-    const src = f.frame_source ?? null;
-    if (!kind) return null;
-    const light = this.effectiveTheme() === "day";
-    const bg: [number, number, number] = light ? [0.92, 0.94, 1] : [0.06, 0.08, 0.14];
-    // at night (kiosk) the faces dim like the rest
-    const level = this.dimmed ? 0.4 : 1;
-    // the face's proportions: the screen part of the model, stretched as the item was resized
-    const item = packItem(f.type);
-    const part = item?.parts.find((p) => p.screen);
-    const aspect = item && part ? Math.max(0.3, (part.w * f.w) / Math.max(0.01, part.h * f.h)) : 1.4;
-    const lang = hass.language ?? "en";
-    const now = new Date();
-    const tick = (ms: number) => Math.floor(now.getTime() / ms);
-    const words = this.faceWords(hass);
-    const face = (sig: string, draw: () => string | null): ScreenState | null => {
-      let pic = this.framePics.get(f.id);
-      if (!pic || pic.sig !== sig) {
-        pic = { sig, url: draw() };
-        this.framePics.set(f.id, pic);
-      }
-      return pic.url ? { color: bg, level, picture: pic.url, plain: true } : null;
-    };
-    const sinceOf = (p: PersonStatus) => sinceLabel(p.since, now.getTime(), { since: translate(hass, "frame_since"), min: translate(hass, "frame_min"), h: translate(hass, "frame_h") });
-    switch (kind) {
-      case "calendar": {
-        const calendars = frameCalendars(f);
-        if (!calendars.length) return null;
-        const days = frameDays(frameEvents(this.frameEvents, calendars), now, 7);
-        const sig = `${light}|${aspect.toFixed(2)}|${lang}|${tick(60_000)}|${f.name ?? ""}|${days.map((d) => d.events.map((e) => `${e.calendar}:${e.start.getTime()}:${e.summary}`).join(",")).join(";")}`;
-        return face(sig, () => drawCalendarFace(days, calendars, lang, words, aspect, light, f.name || "", now));
-      }
-      case "todo": {
-        const list = src && src.startsWith("todo.") ? src : null;
-        if (!list) return null;
-        const items = todoOrder(this.frameTodos.get(list) ?? []);
-        const sig = `${light}|${aspect.toFixed(2)}|${f.name ?? ""}|${items.map((i) => `${i.uid}:${i.status}:${i.summary}`).join(";")}`;
-        return face(sig, () => drawTodoFace(items, words, aspect, light, f.name || entityName(hass, list)));
-      }
-      case "persons": {
-        const people = personStatuses(hass.states, frameSources(f), this.personRooms);
-        const sig = `${light}|${aspect.toFixed(2)}|${tick(60_000)}|${f.name ?? ""}|${people.map((p) => `${p.id}:${p.state}:${p.room ?? ""}:${p.since ?? ""}`).join(";")}`;
-        return face(sig, () => drawPersonsFace(people, words, sinceOf, aspect, light, f.name || words.whoHome));
-      }
-      case "board": {
-        const calendars = frameCalendars(f);
-        const days = calendars.length ? frameDays(frameEvents(this.frameEvents, calendars), now, 2) : [];
-        const people = personStatuses(hass.states, [], this.personRooms);
-        const w = this.weatherBits(hass, weatherEntity(hass, this.weatherEntityId ?? this.building?.settings.weather_entity) ?? null);
-        const board: BoardFace = { today: days[0] ?? null, tomorrow: days[1] ?? null, calendars, people, waste: hasFeature("household") ? this.wasteLines() : [], weather: w ? { symbol: w.symbol, temperature: w.temperature, condition: w.condition } : null };
-        const sig = `${light}|${aspect.toFixed(2)}|${lang}|${tick(60_000)}|${f.name ?? ""}|${days.map((d) => d.events.map((e) => `${e.calendar}:${e.start.getTime()}:${e.summary}`).join(",")).join(";")}|${people.map((p) => `${p.id}:${p.state}`).join(",")}|${board.waste.join(",")}|${w?.temperature ?? ""}|${w?.symbol ?? ""}`;
-        return face(sig, () => drawBoardFace(board, lang, words, aspect, light, f.name || "", now));
-      }
-      case "weather": {
-        const w = this.weatherBits(hass, src);
-        if (!w) return null;
-        const sig = `${light}|${aspect.toFixed(2)}|${w.symbol}|${w.temperature}|${w.lines.join("|")}|${w.days.map((d) => `${d.label}${d.symbol}${d.hi}${d.lo}`).join(",")}|${w.warning ?? ""}`;
-        return face(sig, () => drawWeatherFace(w, aspect, light));
-      }
-      case "camera": {
-        if (!src) return null;
-        const url = this.pictureUrl(`camera:${src}`);
-        return url ? { color: bg, level, picture: url, plain: true } : null;
-      }
-      case "media": {
-        const st = src ? hass.states[src] : undefined;
-        const pic = st && !isUnavailable(st) && ["playing", "paused", "on"].includes(st.state) ? (st.attributes.entity_picture as string | undefined) : undefined;
-        return pic ? { color: bg, level: st!.state === "playing" ? level : level * 0.7, picture: pic, plain: true } : null;
-      }
-      case "person": {
-        const st = src ? hass.states[src] : undefined;
-        const pic = st ? (st.attributes.entity_picture as string | undefined) : undefined;
-        return pic ? { color: bg, level: st!.state === "home" ? level : level * 0.5, picture: pic, plain: true } : null;
-      }
-      case "photo": {
-        const photos = frameSources(f);
-        if (!photos.length) return null;
-        // a slideshow: the photos take turns, in step across frames
-        const one = photos[slideIndex(photos.length, f.frame_interval ?? 30, now.getTime())];
-        const url = /^https?:\/\//.test(one) || one.startsWith("/") ? one : this.pictureUrl(one);
-        return url ? { color: bg, level, picture: url, plain: true } : null;
-      }
-      default:
-        return null;
-    }
-  }
-
-  /**
-   * Once per sync: the calendars, to-do lists and forecasts the frames need are fetched (and kept fresh), the
-   * slideshows get their timer, a doorbell frame pops up when its trigger fires, and reminders go out.
-   */
-  private frameWatch(hass: HomeAssistant, b: Building): void {
-    const on = hasFeature("frames");
-    const frames = on ? b.floors.flatMap((fl) => fl.furniture.filter((f) => isFrame(f.type) && f.frame_kind)) : [];
-    // calendars: now and every 15 minutes
-    const calendars = on ? allFrameCalendars(b.floors) : [];
-    const calKey = calendars.join(",");
-    if (calKey !== this.frameCalendarKey) {
-      this.frameCalendarKey = calKey;
-      clearInterval(this.frameTimer);
-      this.frameTimer = undefined;
-      this.frameEvents = new Map();
-      if (calendars.length) {
-        const fetch = async () => {
-          if (document.hidden) return;
-          this.frameEvents = await fetchFrameEvents(this.hass ?? hass, calendars);
-          this.syncDevices(true);
-        };
-        void fetch();
-        this.frameTimer = setInterval(() => void fetch(), frameRefreshMs("calendar", this._low));
-      }
-    }
-    // to-do lists: when the list's count changes (its state), and every 5 minutes
-    const todos = on ? allFrameTodos(b.floors) : [];
-    const todoKey = todos.map((id) => `${id}:${hass.states[id]?.state ?? ""}:${hass.states[id]?.last_updated ?? ""}`).join(",");
-    if (todoKey !== this.frameTodoKey) {
-      this.frameTodoKey = todoKey;
-      clearInterval(this.todoTimer);
-      this.todoTimer = undefined;
-      if (!todos.length) this.frameTodos = new Map();
-      else {
-        const fetch = async () => {
-          if (document.hidden) return;
-          const next = new Map(this.frameTodos);
-          await Promise.all(
-            todos.map(async (id) => {
-              try {
-                const res = await (this.hass ?? hass).callWS<{ items?: TodoItem[] }>({ type: "todo/item/list", entity_id: id });
-                next.set(id, Array.isArray(res?.items) ? res.items : []);
-              } catch {
-                /* a list that cannot be read shows nothing */
-              }
-            }),
-          );
-          this.frameTodos = next;
-          this.syncDevices(true);
-        };
-        void fetch();
-        this.todoTimer = setInterval(() => void fetch(), 5 * 60_000);
-      }
-    }
-    // forecasts: a subscription per weather entity (daily for the days, hourly for the rain warning)
-    const weather = on ? allFrameWeather(b.floors, weatherEntity(hass, this.weatherEntityId ?? b.settings.weather_entity)) : [];
-    const wanted = new Set(weather.flatMap((id) => [`${id}|daily`, `${id}|hourly`]));
-    for (const [key, unsub] of this.forecastSubs) {
-      if (wanted.has(key)) continue;
-      this.forecastSubs.delete(key);
-      this.frameForecasts.delete(key);
-      void unsub.then((u) => u()).catch(() => undefined);
-    }
-    for (const key of wanted) {
-      if (this.forecastSubs.has(key)) continue;
-      const [id, type] = key.split("|");
-      const sub = (this.hass ?? hass).connection
-        .subscribeMessage<{ forecast?: ForecastEntry[] }>(
-          (msg) => {
-            this.frameForecasts.set(key, Array.isArray(msg?.forecast) ? msg.forecast : []);
-            this.syncDevices(true);
-          },
-          { type: "weather/subscribe_forecast", forecast_type: type, entity_id: id },
-        )
-        .catch(() => async () => undefined);
-      this.forecastSubs.set(key, sub);
-    }
-    // slideshows: the shortest interval decides how often the faces are looked at again
-    const slides = frames.filter((f) => f.frame_kind === "photo" && frameSources(f).length > 1);
-    const slideMs = slides.length ? Math.max(3, Math.min(...slides.map((f) => f.frame_interval ?? 30))) * 1000 : 0;
-    if (slideMs !== this.slideMs) {
-      this.slideMs = slideMs;
-      clearInterval(this.slideTimer);
-      this.slideTimer = slideMs ? setInterval(() => !document.hidden && this.syncDevices(true), slideMs) : undefined;
-    }
-    // the doorbell frame: its trigger came on (or its camera saw something) – up it pops, for half a minute
-    const now = Date.now();
-    for (const f of frames) {
-      if (f.frame_kind !== "camera" || !f.frame_trigger || !f.frame_source) continue;
-      let fired = false;
-      if (f.frame_trigger === "detect") {
-        for (const sensor of cameraMotionSensors(hass, f.frame_source)) if (this.directing.edge(`frame:${f.id}:${sensor}`, hass.states[sensor], (a, c) => a?.state === "off" && c?.state === "on")) fired = true;
-      } else if (this.directing.edge(`frame:${f.id}`, hass.states[f.frame_trigger], (a, c) => triggerFired(a, c, now))) fired = true;
-      if (fired) this.openFramePop(f.id, 30_000);
-    }
-    // reminders: a note on the screen and, with the announcements module, a spoken word
-    if (!this.replay) {
-      const nowDate = new Date();
-      for (const f of frames) {
-        if ((f.frame_kind !== "calendar" && f.frame_kind !== "board") || !f.frame_remind) continue;
-        const events = frameEvents(this.frameEvents, frameCalendars(f));
-        for (const e of dueReminders(events, f.frame_remind, nowDate, this.reminded)) {
-          this.reminded.add(reminderKey(e));
-          const when = e.start.toLocaleTimeString(hass.language ?? undefined, { hour: "2-digit", minute: "2-digit" });
-          const text = translate(hass, "frame_reminder", { what: e.summary, when });
-          this.showNote(text);
-          const services = (hass as unknown as { services?: Record<string, Record<string, unknown>> }).services;
-          if (services?.neonplan3d?.announce) void hass.callService("neonplan3d", "announce", { message: text }).catch(() => undefined);
-        }
-      }
-      // yesterday's keys are of no use any more
-      if (this.reminded.size > 500) this.reminded.clear();
-    }
-  }
-
-  private openFramePop(furnitureId: string, autoClose = 60_000): void {
-    clearTimeout(this.framePopTimer);
-    this._framePop = { furnitureId };
-    this._frameNew = null;
-    this.frameOpenDays = new Set();
-    // on a wall tablet the pop-up closes by itself (a minute; a doorbell frame half a minute)
-    this.framePopTimer = setTimeout(() => (this._framePop = null), autoClose);
-  }
-
-  private closeFramePop(): void {
-    clearTimeout(this.framePopTimer);
-    this._framePop = null;
-    this._frameNew = null;
-  }
-
-  /** A to-do item ticked or unticked, or a new one typed in the pop-up. */
-  private async todoAction(list: string, action: { toggle: TodoItem } | { add: string }): Promise<void> {
-    const hass = this.hass;
-    if (!hass) return;
-    try {
-      if ("toggle" in action) {
-        const status = action.toggle.status === "completed" ? "needs_action" : "completed";
-        await hass.callService("todo", "update_item", { entity_id: list, item: action.toggle.uid, status });
-        this.frameTodos = new Map(this.frameTodos).set(list, (this.frameTodos.get(list) ?? []).map((i) => (i.uid === action.toggle.uid ? { ...i, status } : i)));
-      } else if (action.add.trim()) {
-        await hass.callService("todo", "add_item", { entity_id: list, item: action.add.trim() });
-        this.frameTodos = new Map(this.frameTodos).set(list, [...(this.frameTodos.get(list) ?? []), { uid: `new:${Date.now()}`, summary: action.add.trim(), status: "needs_action" }]);
-      }
-      this.frameTodoKey = "";
-      this.syncDevices(true);
-    } catch {
-      /* the list did not take it: the next fetch shows what it holds */
-    }
-  }
-
-  /** A new event typed in the calendar pop-up, written to the chosen calendar. */
-  private async createFrameEvent(f: Furniture): Promise<void> {
-    const hass = this.hass;
-    const n = this._frameNew;
-    if (!hass || !n || !n.title.trim() || !n.date) return;
-    const calendar = n.calendar || frameCalendars(f)[0];
-    if (!calendar) return;
-    const data: Record<string, string> = { entity_id: calendar, summary: n.title.trim() };
-    if (n.time) {
-      const start = new Date(`${n.date}T${n.time}:00`);
-      const end = new Date(start.getTime() + 3_600_000);
-      const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}:00`;
-      data.start_date_time = iso(start);
-      data.end_date_time = iso(end);
-    } else {
-      const d = new Date(`${n.date}T00:00:00`);
-      const next = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1);
-      data.start_date = n.date;
-      data.end_date = `${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, "0")}-${String(next.getDate()).padStart(2, "0")}`;
-    }
-    try {
-      await hass.callService("calendar", "create_event", data);
-      this._frameNew = null;
-      this.showNote(translate(hass, "frame_saved"));
-      this.frameCalendarKey = "";
-      this.syncDevices(true);
-    } catch {
-      this.showNote(translate(hass, "frame_save_failed"));
-    }
-  }
-
-  private renderFrameEventList(hass: HomeAssistant, days: FrameDay[], calendars: string[], lang: string, withNew: Furniture | null) {
-    const t = (k: I18nKey, vars?: Record<string, string | number>) => translate(hass, k, vars);
-    const words = { today: t("frame_today"), tomorrow: t("frame_tomorrow") };
-    const now = new Date();
-    const toggleDay = (key: number) => {
-      const next = new Set(this.frameOpenDays);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
-      this.frameOpenDays = next;
-    };
-    const n = this._frameNew;
-    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
-    return html`${days.length
-        ? html`<div class="fp3d-frame-days">
-            ${days.map(
-              (d) => html`<section class=${d.offset === 0 ? "fp3d-frame-today" : ""}>
-                <h4 role="button" tabindex="0" @click=${() => toggleDay(d.offset)}>${dayLabel(d, lang, words)} <small>${this.frameOpenDays.has(d.offset) ? "▾" : "▸"}</small></h4>
-                ${d.events.map((e) => {
-                  const phase = d.offset === 0 ? eventPhase(e, now) : null;
-                  const open = this.frameOpenDays.has(d.offset);
-                  return html`<div class="fp3d-frame-ev ${phase ? "fp3d-frame-live" : ""}" style="--cal:${calendarColor(calendars, e.calendar)}">
-                    <span class="fp3d-frame-time">${phase === "now" ? t("frame_now") : phase === "soon" ? t("frame_in_min", { n: minutesUntil(e, now) }) : timeLabel(e, lang, t("frame_allday"))}</span>
-                    <span class="fp3d-frame-sum"
-                      >${isBirthday(e) ? "🎂 " : ""}${e.summary}${e.location ? html`<small> · ${e.location}</small>` : nothing}
-                      ${open && (e.description || !e.allDay) ? html`<em>${[!e.allDay && e.end ? timeLabel(e, lang, "") : "", e.description].filter(Boolean).join(" · ")}</em>` : nothing}</span
-                    >
-                  </div>`;
-                })}
-              </section>`,
-            )}
-          </div>`
-        : html`<p class="fp3d-sub">${t("frame_nothing")}</p>`}
-      ${withNew && !this.ro
-        ? n
-          ? html`<form class="fp3d-frame-new" @submit=${(e: Event) => (e.preventDefault(), void this.createFrameEvent(withNew))}>
-              <input class="fp3d-frame-in" placeholder=${t("frame_event_title")} .value=${n.title} @input=${(e: Event) => (this._frameNew = { ...n, title: (e.target as HTMLInputElement).value })} />
-              <input class="fp3d-frame-in" type="date" .value=${n.date} aria-label=${t("frame_event_date")} @input=${(e: Event) => (this._frameNew = { ...n, date: (e.target as HTMLInputElement).value })} />
-              <input class="fp3d-frame-in" type="time" .value=${n.time} aria-label=${t("frame_event_time")} @input=${(e: Event) => (this._frameNew = { ...n, time: (e.target as HTMLInputElement).value })} />
-              ${calendars.length > 1
-                ? html`<select class="fp3d-frame-in" @change=${(e: Event) => (this._frameNew = { ...n, calendar: (e.target as HTMLSelectElement).value })}>
-                    ${calendars.map((c) => html`<option value=${c} ?selected=${c === (n.calendar || calendars[0])}>${entityName(hass, c)}</option>`)}
-                  </select>`
-                : nothing}
-              <div class="fp3d-frame-ctl"><button class="fp3d-btn fp3d-primary" type="submit" ?disabled=${!n.title.trim()}>${t("frame_save")}</button><button class="fp3d-btn" type="button" @click=${() => (this._frameNew = null)}>${t("cancel")}</button></div>
-            </form>`
-          : html`<button class="fp3d-btn fp3d-frame-addbtn" @click=${() => (this._frameNew = { title: "", date: today, time: "", calendar: calendars[0] ?? "" })}>＋ ${t("frame_new_event")}</button>`
-        : nothing}`;
-  }
-
-  /** A frame opened large: the calendar's week, the list, the people, the board, the camera or photo at full size, the cover with controls. */
-  private renderFramePop() {
+  /** The pop-up a module opened, drawn from its sections in the view's own look. */
+  private renderModulePopup() {
     const hass = this.hass;
     const b = this.building;
-    const pop = this._framePop;
+    const pop = this._popup;
     if (!hass || !b || !pop) return nothing;
-    const f = b.floors.flatMap((fl) => fl.furniture).find((x) => x.id === pop.furnitureId);
-    if (!f || !isFrame(f.type)) return nothing;
-    const kind = (f.frame_kind ?? null) as FrameKind | null;
-    const src = f.frame_source ?? null;
-    const t = (k: I18nKey, vars?: Record<string, string | number>) => translate(hass, k, vars);
-    const title = f.name || (kind ? t(`frame_kind_${kind}` as I18nKey).split(" (")[0] : t("frame_section"));
-    const lang = hass.language ?? "en";
-    const now = Date.now();
-    const close = () => this.closeFramePop();
-    const sinceOf = (p: PersonStatus) => sinceLabel(p.since, now, { since: t("frame_since"), min: t("frame_min"), h: t("frame_h") });
-    const peopleRows = (people: PersonStatus[]) => html`<div class="fp3d-frame-people">
-      ${people.map(
-        (p) => html`<div class="fp3d-frame-personrow ${p.home ? "fp3d-frame-home" : ""}">
-          ${p.picture ? html`<img src=${p.picture} alt="" />` : html`<span class="fp3d-frame-initial">${p.name.slice(0, 1)}</span>`}
-          <div><b>${p.name}</b><span>${[p.home ? t("frame_person_home") : p.state === "not_home" ? t("frame_person_away") : p.state, p.home && p.room ? t("frame_person_in", { room: p.room }) : "", sinceOf(p)].filter(Boolean).join(" · ")}</span></div>
-        </div>`,
-      )}
-    </div>`;
-    let body: unknown = html`<p class="fp3d-sub">${t("frame_no_source")}</p>`;
-    let wide = false;
-    if (kind === "calendar" && src) {
-      const calendars = frameCalendars(f);
-      const days = frameDays(frameEvents(this.frameEvents, calendars), new Date(), 7).filter((d) => d.events.length);
-      body = this.renderFrameEventList(hass, days, calendars, lang, f);
-    } else if (kind === "board") {
-      const calendars = frameCalendars(f);
-      const days = calendars.length ? frameDays(frameEvents(this.frameEvents, calendars), new Date(), 7).filter((d) => d.events.length) : [];
-      const people = personStatuses(hass.states, [], this.personRooms);
-      const w = this.weatherBits(hass, weatherEntity(hass, this.weatherEntityId ?? b.settings.weather_entity) ?? null);
-      const waste = hasFeature("household") ? this.wasteLines() : [];
-      body = html`${w
-          ? html`<div class="fp3d-frame-wline"><span>${w.symbol} ${w.temperature}</span><span>${w.condition}</span>${w.warning ? html`<em>☔ ${w.warning}</em>` : nothing}</div>`
-          : nothing}
-        ${people.length ? html`<h4 class="fp3d-frame-h">${t("frame_who_home")}</h4>${peopleRows(people)}` : nothing}
-        ${waste.length ? html`<h4 class="fp3d-frame-h">${t("frame_waste")}</h4><p class="fp3d-frame-waste">🗑 ${waste.join(" · ")}</p>` : nothing}
-        ${calendars.length ? html`<h4 class="fp3d-frame-h">${t("frame_week")}</h4>${this.renderFrameEventList(hass, days, calendars, lang, f)}` : nothing}`;
-    } else if (kind === "todo" && src) {
-      const items = todoOrder(this.frameTodos.get(src) ?? [], 200);
-      body = html`<div class="fp3d-frame-todo">
-        ${items.length
-          ? items.map(
-              (it) => html`<label class="fp3d-frame-todoitem ${it.status === "completed" ? "fp3d-frame-done" : ""}">
-                <input type="checkbox" .checked=${it.status === "completed"} ?disabled=${this.ro} @change=${() => void this.todoAction(src, { toggle: it })} />
-                <span>${it.summary}</span>
-              </label>`,
-            )
-          : html`<p class="fp3d-sub">${t("frame_nothing")}</p>`}
-        ${this.ro
-          ? nothing
-          : html`<form class="fp3d-frame-new" @submit=${(e: Event) => {
-              e.preventDefault();
-              const input = (e.target as HTMLFormElement).querySelector("input")!;
-              void this.todoAction(src, { add: input.value });
-              input.value = "";
-            }}>
-              <input class="fp3d-frame-in" placeholder=${t("frame_add_item")} />
-              <button class="fp3d-btn fp3d-primary" type="submit">${t("frame_add")}</button>
-            </form>`}
-      </div>`;
-    } else if (kind === "persons") {
-      body = peopleRows(personStatuses(hass.states, frameSources(f), this.personRooms));
-    } else if (kind === "camera" && src) {
-      const st = hass.states[src];
-      const picture = st?.attributes.entity_picture as string | undefined;
-      const url = picture && !isUnavailable(st) ? (picture.startsWith("data:") ? picture : `${picture}${picture.includes("?") ? "&" : "?"}fp3d=${this.cameraTick}`) : null;
-      // the live stream when it is switched on (Camera Cockpit's director), the still otherwise
-      const stream = hasFeature("camera_cockpit") && b.settings.director?.live ? this.liveFor(src) : null;
-      wide = true;
-      body = stream ? html`<div class="fp3d-frame-big fp3d-frame-live-img">${stream}</div>` : url ? html`<img class="fp3d-frame-big" src=${url} alt="" />` : html`<p class="fp3d-sub">${entityName(hass, src)}</p>`;
-    } else if (kind === "photo" && src) {
-      const photos = frameSources(f);
-      const one = photos[slideIndex(photos.length, f.frame_interval ?? 30, now)] ?? photos[0];
-      const url = /^https?:\/\//.test(one) || one.startsWith("/") ? one : (this.pictureUrls.get(one) ?? null);
-      wide = true;
-      body = url ? html`<img class="fp3d-frame-big" src=${url} alt="" />` : nothing;
-    } else if (kind === "media" && src) {
-      const st = hass.states[src];
-      const a = st?.attributes ?? {};
-      const playing = st?.state === "playing";
-      const label = [a.media_title, a.app_name, a.source].find((v): v is string => typeof v === "string" && !!v.trim());
-      const call = (service: string) => void hass.callService("media_player", service, { entity_id: src });
-      body = html`<div class="fp3d-frame-media">
-        ${typeof a.entity_picture === "string" ? html`<img class="fp3d-frame-cover" src=${a.entity_picture} alt="" />` : nothing}
-        <div class="fp3d-frame-media-text">
-          <b>${label ?? t("frame_media_idle")}</b>
-          <span>${typeof a.media_artist === "string" ? a.media_artist : typeof a.media_album_name === "string" ? a.media_album_name : entityName(hass, src)}</span>
-          <div class="fp3d-frame-ctl">
-            <button class="fp3d-chip" @click=${() => call("media_previous_track")}>⏮</button>
-            <button class="fp3d-chip" @click=${() => call(playing ? "media_pause" : "media_play")}>${playing ? "⏸" : "▶"}</button>
-            <button class="fp3d-chip" @click=${() => call("media_next_track")}>⏭</button>
-          </div>
-        </div>
-      </div>`;
-    } else if (kind === "person" && src) {
-      body = peopleRows(personStatuses(hass.states, [src], this.personRooms));
-    } else if (kind === "weather" && src) {
-      const w = this.weatherBits(hass, src);
-      body = w
-        ? html`<div class="fp3d-frame-person">
-              <div class="fp3d-frame-weather-sym">${w.symbol}</div>
-              <div class="fp3d-frame-media-text"><b>${w.temperature}</b><span>${[w.condition, ...w.lines].join(" · ")}</span>${w.warning ? html`<em>☔ ${w.warning}</em>` : nothing}</div>
+    const spec = modulePopups(this.sceneHost(hass, b)).find((p) => p.id === pop.id);
+    if (!spec) return nothing;
+    const close = () => this.closeModulePopup();
+    const t = (k: I18nKey) => translate(hass, k);
+    const section = (s: PopupSection) => {
+      switch (s.kind) {
+        case "image": {
+          const stream = s.live && hasFeature("camera_cockpit") && b.settings.director?.live ? this.liveFor(s.live) : null;
+          return stream ? html`<div class="fp3d-pop-big fp3d-pop-live">${stream}</div>` : html`<img class="fp3d-pop-big" src=${s.src} alt="" />`;
+        }
+        case "text":
+          return html`<p class=${s.muted ? "fp3d-sub" : "fp3d-pop-text"}>${s.text}</p>`;
+        case "heading":
+          return html`<h4 class="fp3d-pop-h">${s.text}</h4>`;
+        case "line":
+          return html`<div class="fp3d-pop-line"><span>${s.text}</span>${s.sub ? html`<span>${s.sub}</span>` : nothing}${s.note ? html`<em>${s.note}</em>` : nothing}</div>`;
+        case "groups":
+          return s.groups.length
+            ? html`<div class="fp3d-pop-groups">
+                ${s.groups.map(
+                  (g) => html`<section class=${g.strong ? "fp3d-pop-strong" : ""}>
+                    <h4 role=${g.onToggle ? "button" : nothing} tabindex=${g.onToggle ? 0 : nothing} @click=${() => g.onToggle?.()}>${g.title} ${g.onToggle ? html`<small>${g.open ? "▾" : "▸"}</small>` : nothing}</h4>
+                    ${g.rows.map(
+                      (r) => html`<div class="fp3d-pop-row ${r.leadStrong ? "fp3d-pop-rowlive" : ""}" style=${r.color ? `--cal:${r.color}` : ""}>
+                        <span class="fp3d-pop-lead">${r.lead}</span>
+                        <span class="fp3d-pop-sum">${r.text}${r.sub ? html`<small> · ${r.sub}</small>` : nothing}${g.open && r.detail ? html`<em>${r.detail}</em>` : nothing}</span>
+                      </div>`,
+                    )}
+                  </section>`,
+                )}
+              </div>`
+            : html`<p class="fp3d-sub">${s.empty ?? ""}</p>`;
+        case "checklist":
+          return html`<div class="fp3d-pop-todo">
+            ${s.items.length
+              ? s.items.map(
+                  (it) => html`<label class="fp3d-pop-todoitem ${it.done ? "fp3d-pop-done" : ""}">
+                    <input type="checkbox" .checked=${it.done} ?disabled=${this.ro} @change=${() => void it.onToggle()} />
+                    <span>${it.text}</span>
+                  </label>`,
+                )
+              : html`<p class="fp3d-sub">${s.empty ?? ""}</p>`}
+          </div>`;
+        case "people":
+          return html`<div class="fp3d-pop-people">
+            ${s.items.map(
+              (p) => html`<div class="fp3d-pop-personrow ${p.bright ? "fp3d-pop-bright" : ""}">
+                ${p.picture ? html`<img src=${p.picture} alt="" />` : html`<span class="fp3d-pop-initial">${p.name.slice(0, 1)}</span>`}
+                <div><b>${p.name}</b><span>${p.sub}</span></div>
+              </div>`,
+            )}
+          </div>`;
+        case "tiles":
+          return html`<div class="fp3d-pop-tiles">${s.items.map((d) => html`<div><small>${d.label}</small><span>${d.symbol}</span><b>${d.main}</b>${d.sub ? html`<small>${d.sub}</small>` : nothing}</div>`)}</div>`;
+        case "media":
+          return html`<div class="fp3d-pop-media">
+            ${s.picture ? html`<img class="fp3d-pop-cover" src=${s.picture} alt="" />` : nothing}
+            <div class="fp3d-pop-mediatext">
+              <b>${s.title}</b>
+              ${s.sub ? html`<span>${s.sub}</span>` : nothing}
+              ${s.buttons?.length ? html`<div class="fp3d-pop-ctl">${s.buttons.map((bt) => html`<button class="fp3d-chip" @click=${() => void bt.onTap()}>${bt.label}</button>`)}</div>` : nothing}
             </div>
-            ${w.days.length
-              ? html`<div class="fp3d-frame-fdays">${w.days.map((d) => html`<div><small>${d.label}</small><span>${d.symbol}</span><b>${d.hi}</b><small>${d.lo}</small></div>`)}</div>`
-              : nothing}`
-        : nothing;
-    }
+          </div>`;
+        case "form": {
+          if (this.ro) return nothing;
+          if (!s.open) return html`<button class="fp3d-btn fp3d-pop-addbtn" @click=${() => s.onOpen()}>${s.button}</button>`;
+          const value = (f: { id: string; value: string }) => this.popupValues[`${s.id}:${f.id}`] ?? f.value;
+          const setValue = (f: { id: string }, v: string) => (this.popupValues = { ...this.popupValues, [`${s.id}:${f.id}`]: v });
+          return html`<form class="fp3d-pop-form" @submit=${(e: Event) => {
+            e.preventDefault();
+            void s.onSubmit(Object.fromEntries(s.fields.map((f) => [f.id, value(f)])));
+          }}>
+            ${s.fields.map((f) =>
+              f.kind === "select"
+                ? html`<select class="fp3d-pop-in" @change=${(e: Event) => setValue(f, (e.target as HTMLSelectElement).value)}>
+                    ${(f.options ?? []).map((o) => html`<option value=${o.id} ?selected=${o.id === value(f)}>${o.label}</option>`)}
+                  </select>`
+                : html`<input class="fp3d-pop-in" type=${f.kind} placeholder=${f.placeholder ?? ""} .value=${value(f)} @input=${(e: Event) => setValue(f, (e.target as HTMLInputElement).value)} />`,
+            )}
+            <div class="fp3d-pop-ctl"><button class="fp3d-btn fp3d-primary" type="submit">${s.submit}</button><button class="fp3d-btn" type="button" @click=${() => s.onCancel()}>${t("cancel")}</button></div>
+          </form>`;
+        }
+        case "input":
+          return this.ro
+            ? nothing
+            : html`<form class="fp3d-pop-form" @submit=${(e: Event) => {
+                e.preventDefault();
+                const input = (e.target as HTMLFormElement).querySelector("input")!;
+                void s.onSubmit(input.value);
+                input.value = "";
+              }}>
+                <input class="fp3d-pop-in" placeholder=${s.placeholder} />
+                <button class="fp3d-btn fp3d-primary" type="submit">${s.button}</button>
+              </form>`;
+        default:
+          return nothing;
+      }
+    };
     return html`<div class="fp3d-sheet-backdrop" @click=${close}></div>
-      <div class="fp3d-sheet fp3d-frame-pop ${wide ? "fp3d-frame-wide" : ""}" role="dialog" aria-label=${title}>
-        <header><span>🖼️ ${title}</span><button class="fp3d-sheet-x" aria-label=${t("close")} @click=${close}>✕</button></header>
-        ${body}
+      <div class="fp3d-sheet fp3d-pop ${spec.wide ? "fp3d-pop-wide" : ""}" role="dialog" aria-label=${spec.title}>
+        <header><span>${spec.icon ? `${spec.icon} ` : ""}${spec.title}</span><button class="fp3d-sheet-x" aria-label=${t("close")} @click=${close}>✕</button></header>
+        ${spec.sections.map(section)}
       </div>`;
   }
 
@@ -6210,7 +5838,7 @@ export class Fp3dView3d extends LitElement {
     // trail pins and lamps without a light are drawn, but nothing of Home Assistant stands behind them
     if (entityId.startsWith("trail:") || entityId.startsWith("lamp:")) return;
     if (entityId.startsWith("module:")) return this.openModuleCard(entityId.slice(7));
-    if (entityId.startsWith("frame:")) return this.openFramePop(entityId.slice(6));
+    if (entityId.startsWith("popup:")) return this.openModulePopup(entityId.slice(6));
     if (entityId.startsWith("opening:")) return this.onOpeningTap(entityId.slice(8), x, y, false);
     // a wall switch or socket: one entity is switched right away, several open the frame's menu
     if (entityId.startsWith("gangs:")) {
@@ -6461,7 +6089,7 @@ export class Fp3dView3d extends LitElement {
       style=${style}
     >
       ${this._error ? html`<p class="fp3d-error">${this._error}</p>` : nothing} ${this.clean ? nothing : this.renderEnergy()} ${this.renderHologram()} ${this.clean ? nothing : this.renderLegend()}
-      ${this.renderClock()} ${this.renderAlerts()} ${this.clean || this._walk ? nothing : html`${this.renderHousehold()} ${this.renderThumbs()} ${this.renderScenes()} ${this.renderFind()} ${this.renderCentral()}`} ${this.clean ? nothing : this.renderWalk()} ${this.renderSwipe()} ${this.renderInfo()} ${this.renderBinInfo()} ${this.renderGangMenu()} ${this.renderThrough()} ${this.renderCamPop()} ${this.renderCameraWall()} ${this.renderSheet()} ${this.renderFramePop()} ${this.renderSettings()} ${this.renderNote()}
+      ${this.renderClock()} ${this.renderAlerts()} ${this.clean || this._walk ? nothing : html`${this.renderHousehold()} ${this.renderThumbs()} ${this.renderScenes()} ${this.renderFind()} ${this.renderCentral()}`} ${this.clean ? nothing : this.renderWalk()} ${this.renderSwipe()} ${this.renderInfo()} ${this.renderBinInfo()} ${this.renderGangMenu()} ${this.renderThrough()} ${this.renderCamPop()} ${this.renderCameraWall()} ${this.renderSheet()} ${this.renderModulePopup()} ${this.renderSettings()} ${this.renderNote()}
       ${this.clean ? nothing : this.renderProHint()} ${this.renderMenu()} ${this.renderEye()}
       ${this.renderMic()}
       ${this._announce ? html`<div class="fp3d-announce" role="status" @click=${() => (this._announce = null)}>📢 ${this._announce}</div>` : nothing}
@@ -7637,13 +7265,13 @@ export class Fp3dView3d extends LitElement {
         z-index: 7;
         background: rgba(4, 8, 16, 0.35);
       }
-      .fp3d-frame-pop {
+      .fp3d-pop {
         width: min(560px, calc(100% - 24px));
       }
-      .fp3d-frame-pop.fp3d-frame-wide {
+      .fp3d-pop.fp3d-pop-wide {
         width: min(960px, calc(100% - 24px));
       }
-      .fp3d-frame-big {
+      .fp3d-pop-big {
         display: block;
         width: 100%;
         max-height: calc(100vh - 160px);
@@ -7651,22 +7279,22 @@ export class Fp3dView3d extends LitElement {
         border-radius: 12px;
         background: #000;
       }
-      .fp3d-frame-days {
+      .fp3d-pop-groups {
         display: flex;
         flex-direction: column;
         gap: 12px;
       }
-      .fp3d-frame-days h4 {
+      .fp3d-pop-groups h4 {
         margin: 0 0 6px;
         font-size: 12px;
         letter-spacing: 0.08em;
         text-transform: uppercase;
         color: var(--fp3d-muted, #8fa0c0);
       }
-      .fp3d-frame-today h4 {
+      .fp3d-pop-strong h4 {
         color: var(--fp3d-accent, #37e0ff);
       }
-      .fp3d-frame-ev {
+      .fp3d-pop-row {
         display: grid;
         grid-template-columns: 96px 1fr;
         gap: 10px;
@@ -7675,24 +7303,24 @@ export class Fp3dView3d extends LitElement {
         border-left: 3px solid var(--cal, #37e0ff);
         margin-bottom: 4px;
       }
-      .fp3d-frame-time {
+      .fp3d-pop-lead {
         font-variant-numeric: tabular-nums;
         color: var(--fp3d-muted, #8fa0c0);
         font-size: 13px;
       }
-      .fp3d-frame-sum {
+      .fp3d-pop-sum {
         font-size: 15px;
       }
-      .fp3d-frame-sum small {
+      .fp3d-pop-sum small {
         color: var(--fp3d-muted, #8fa0c0);
       }
-      .fp3d-frame-media,
-      .fp3d-frame-person {
+      .fp3d-pop-media,
+      .fp3d-pop-person {
         display: flex;
         gap: 16px;
         align-items: center;
       }
-      .fp3d-frame-cover {
+      .fp3d-pop-cover {
         width: 160px;
         height: 160px;
         object-fit: cover;
@@ -7700,50 +7328,50 @@ export class Fp3dView3d extends LitElement {
         background: #000;
         flex: none;
       }
-      .fp3d-frame-weather-sym {
+      .fp3d-pop-sym {
         font-size: 72px;
         line-height: 1;
         flex: none;
       }
-      .fp3d-frame-media-text {
+      .fp3d-pop-mediatext {
         display: flex;
         flex-direction: column;
         gap: 6px;
         min-width: 0;
       }
-      .fp3d-frame-media-text b {
+      .fp3d-pop-mediatext b {
         font-size: 18px;
       }
-      .fp3d-frame-media-text span {
+      .fp3d-pop-mediatext span {
         color: var(--fp3d-muted, #8fa0c0);
       }
-      .fp3d-frame-ctl {
+      .fp3d-pop-ctl {
         display: flex;
         gap: 8px;
         margin-top: 6px;
       }
-      .fp3d-frame-live .fp3d-frame-time {
+      .fp3d-pop-rowlive .fp3d-pop-lead {
         color: var(--fp3d-accent, #37e0ff);
         font-weight: 700;
       }
-      .fp3d-frame-days h4 {
+      .fp3d-pop-groups h4 {
         cursor: pointer;
       }
-      .fp3d-frame-sum em {
+      .fp3d-pop-sum em {
         display: block;
         font-style: normal;
         font-size: 13px;
         color: var(--fp3d-muted, #8fa0c0);
         margin-top: 2px;
       }
-      .fp3d-frame-new {
+      .fp3d-pop-form {
         display: flex;
         flex-wrap: wrap;
         gap: 8px;
         align-items: center;
         margin-top: 6px;
       }
-      .fp3d-frame-in {
+      .fp3d-pop-in {
         flex: 1 1 140px;
         min-width: 0;
         padding: 8px 10px;
@@ -7753,16 +7381,16 @@ export class Fp3dView3d extends LitElement {
         color: inherit;
         font: inherit;
       }
-      .fp3d-frame-addbtn {
+      .fp3d-pop-addbtn {
         align-self: flex-start;
         margin-top: 4px;
       }
-      .fp3d-frame-todo {
+      .fp3d-pop-todo {
         display: flex;
         flex-direction: column;
         gap: 4px;
       }
-      .fp3d-frame-todoitem {
+      .fp3d-pop-todoitem {
         display: flex;
         gap: 12px;
         align-items: center;
@@ -7771,34 +7399,34 @@ export class Fp3dView3d extends LitElement {
         font-size: 16px;
         cursor: pointer;
       }
-      .fp3d-frame-todoitem:hover {
+      .fp3d-pop-todoitem:hover {
         background: rgba(255, 255, 255, 0.05);
       }
-      .fp3d-frame-todoitem input {
+      .fp3d-pop-todoitem input {
         width: 22px;
         height: 22px;
         accent-color: var(--fp3d-accent, #37e0ff);
       }
-      .fp3d-frame-done span {
+      .fp3d-pop-done span {
         text-decoration: line-through;
         color: var(--fp3d-muted, #8fa0c0);
       }
-      .fp3d-frame-people {
+      .fp3d-pop-people {
         display: flex;
         flex-direction: column;
         gap: 8px;
       }
-      .fp3d-frame-personrow {
+      .fp3d-pop-personrow {
         display: flex;
         gap: 12px;
         align-items: center;
         opacity: 0.6;
       }
-      .fp3d-frame-personrow.fp3d-frame-home {
+      .fp3d-pop-personrow.fp3d-pop-bright {
         opacity: 1;
       }
-      .fp3d-frame-personrow img,
-      .fp3d-frame-initial {
+      .fp3d-pop-personrow img,
+      .fp3d-pop-initial {
         width: 48px;
         height: 48px;
         border-radius: 50%;
@@ -7810,46 +7438,47 @@ export class Fp3dView3d extends LitElement {
         font-weight: 700;
         flex: none;
       }
-      .fp3d-frame-personrow div {
+      .fp3d-pop-personrow div {
         display: flex;
         flex-direction: column;
       }
-      .fp3d-frame-personrow span {
+      .fp3d-pop-personrow span {
         color: var(--fp3d-muted, #8fa0c0);
         font-size: 13px;
       }
-      .fp3d-frame-h {
+      .fp3d-pop-h {
         margin: 10px 0 4px;
         font-size: 12px;
         letter-spacing: 0.08em;
         text-transform: uppercase;
         color: var(--fp3d-muted, #8fa0c0);
       }
-      .fp3d-frame-wline {
+      .fp3d-pop-line {
         display: flex;
-        gap: 12px;
+        flex-wrap: wrap;
+        gap: 6px 12px;
         align-items: baseline;
         font-size: 18px;
       }
-      .fp3d-frame-wline span + span {
+      .fp3d-pop-line span + span {
         color: var(--fp3d-muted, #8fa0c0);
         font-size: 14px;
       }
-      .fp3d-frame-wline em,
-      .fp3d-frame-media-text em {
+      .fp3d-pop-line em,
+      .fp3d-pop-mediatext em {
         font-style: normal;
         color: var(--fp3d-accent, #37e0ff);
         font-size: 14px;
       }
-      .fp3d-frame-waste {
+      .fp3d-pop-waste {
         margin: 0;
       }
-      .fp3d-frame-fdays {
+      .fp3d-pop-tiles {
         display: flex;
         gap: 10px;
         margin-top: 12px;
       }
-      .fp3d-frame-fdays div {
+      .fp3d-pop-tiles div {
         flex: 1;
         display: flex;
         flex-direction: column;
@@ -7859,13 +7488,13 @@ export class Fp3dView3d extends LitElement {
         border-radius: 12px;
         background: rgba(255, 255, 255, 0.05);
       }
-      .fp3d-frame-fdays span {
+      .fp3d-pop-tiles span {
         font-size: 26px;
       }
-      .fp3d-frame-fdays small {
+      .fp3d-pop-tiles small {
         color: var(--fp3d-muted, #8fa0c0);
       }
-      .fp3d-frame-live-img {
+      .fp3d-pop-live {
         aspect-ratio: 16 / 9;
         overflow: hidden;
       }

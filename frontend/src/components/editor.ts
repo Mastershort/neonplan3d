@@ -159,7 +159,6 @@ import { load3d } from "../load3d.ts";
 import "./library.ts";
 import { basicTypes, buildIndex, roomKindOf, type LibraryEntry } from "../library-index.ts";
 import { packsVersion as libPacksVersion } from "../packs.ts";
-import { FRAME_KINDS, frameDomain, isFrame, type FrameKind } from "../frames.ts";
 import type { WallMode } from "../viewer/viewer3d.ts";
 import { furnitureName } from "../furniture-names.ts";
 import { furnitureShown } from "../show-if.ts";
@@ -10043,6 +10042,7 @@ export class Fp3dEditor extends LitElement {
     const hass = this.hass!;
     return {
       api: 1,
+      stage: 2,
       hass: () => hass,
       building: () => this._doc,
       language: () => hass.language || "en",
@@ -10143,6 +10143,22 @@ export class Fp3dEditor extends LitElement {
           return html`<button class="fp3d-btn ${f.primary ? "fp3d-primary" : ""} fp3d-wide" ?disabled=${!admin} title=${f.title ?? ""} @click=${() => f.onTap()}>${f.label}</button>`;
         case "lines":
           return linesField(f.value, !admin, { label: f.label, placeholder: f.placeholder ?? this.t("lines_new"), add: this.t("lines_add"), remove: this.t("delete") }, (v) => f.set(v), true);
+        case "images":
+          for (const id of f.value) this.wantImage(id);
+          return html`<div class="fp3d-field fp3d-wide">
+            <span>${f.label}</span>
+            ${f.value.length
+              ? html`<div class="fp3d-thumbs">
+                  ${f.value.map(
+                    (id) => html`<span class="fp3d-thumbwrap"
+                      >${this._images[id] ? html`<img class="fp3d-thumb" src=${this._images[id].url} alt="" />` : html`<span class="fp3d-thumb fp3d-thumb-empty"></span>`}
+                      ${admin ? html`<button class="fp3d-chip" title=${this.t("delete")} @click=${() => f.set(f.value.filter((x) => x !== id))}>✕</button>` : nothing}</span
+                    >`,
+                  )}
+                </div>`
+              : nothing}
+            ${admin ? html`<label class="fp3d-btn fp3d-upload">${f.add}<input type="file" accept="image/*" multiple hidden @change=${(e: Event) => void this.uploadImages(e, (ids) => f.set([...f.value, ...ids]))} /></label>` : nothing}
+          </div>`;
       }
     };
     if (!wrap) return fields.map(field);
@@ -11577,7 +11593,7 @@ export class Fp3dEditor extends LitElement {
             >
           </div>`
         : nothing}
-      ${isElectric(f.type) ? this.renderFurnitureLinks(f) : !NO_STATE_TYPES.has(f.type) ? html`<div class="fp3d-form fp3d-links">${this.renderStateLinks(f)}</div>` : nothing} ${GANG_TYPES.has(f.type) ? this.renderGangsForm(f) : nothing} ${TECH_TYPES.has(f.type) ? this.renderTechForm(f) : nothing} ${f.type === "parking" ? this.renderParkingForm(f) : nothing} ${f.type === "waste_bin" || f.type === "mailbox" ? this.renderHouseholdForm(f) : this.renderHouseholdExtras(f)} ${isFrame(f.type) ? this.renderFrameForm(f) : nothing}
+      ${isElectric(f.type) ? this.renderFurnitureLinks(f) : !NO_STATE_TYPES.has(f.type) ? html`<div class="fp3d-form fp3d-links">${this.renderStateLinks(f)}</div>` : nothing} ${GANG_TYPES.has(f.type) ? this.renderGangsForm(f) : nothing} ${TECH_TYPES.has(f.type) ? this.renderTechForm(f) : nothing} ${f.type === "parking" ? this.renderParkingForm(f) : nothing} ${f.type === "waste_bin" || f.type === "mailbox" ? this.renderHouseholdForm(f) : this.renderHouseholdExtras(f)}
       ${this.renderShowIf(f)}
       ${this.renderModuleFurnitureFields(f)}
       ${f.type.startsWith("pack:mastershort.vehicles:") && this.isAdmin
@@ -12274,93 +12290,20 @@ export class Fp3dEditor extends LitElement {
    * Haushalt Pro on other items: a plant's moisture, a washer's time left and door, a fridge's door warning, and a
    * consumable or service for every electric item. A teaser on plants, appliances and fridges while it is locked.
    */
-  /**
-   * Digital picture frames: what the face shows (calendar, list, board, people, camera, cover, person, photo,
-   * weather) and where it comes from. Several calendars, people or photos are kept as a comma list; a photo is a URL
-   * or an uploaded picture; a camera frame may pop up on a trigger; a calendar may remind.
-   */
-  private renderFrameForm(f: Furniture) {
-    const admin = this.isAdmin;
-    const kind = (f.frame_kind ?? null) as FrameKind | null;
-    const domain = kind ? frameDomain(kind) : null;
-    const list = kind === "calendar" || kind === "board" || kind === "persons" ? (f.frame_source ?? "").split(",").map((x) => x.trim()).filter(Boolean) : [];
-    const setList = (next: string[]) => this.updateFurniture({ frame_source: next.filter(Boolean).join(",") || null });
-    const options = domain ? this.entityOptions((id) => id.startsWith(`${domain}.`)) : [];
-    const photos = kind === "photo" ? (f.frame_source ?? "").split(",").map((x) => x.trim()).filter(Boolean) : [];
-    const multi = (first: I18nKey, more: I18nKey) =>
-      [...list, ""].map((id, i) =>
-        this.entitySelect(i === 0 ? this.t(first) : this.t(more), id || null, undefined, options, (v) => {
-          const next = [...list];
-          if (v && v !== "none") next[i] = v;
-          else next.splice(i, 1);
-          setList(next);
-        }),
-      );
-    const triggers = kind === "camera" ? this.entityOptions((id) => /^(binary_sensor|event|input_boolean|switch|sensor)\./.test(id)) : [];
-    return html`<div class="fp3d-form fp3d-frame-form">
-      <h4 class="fp3d-wide">🖼️ ${this.t("frame_section")}</h4>
-      <label class="fp3d-field fp3d-wide"
-        >${this.t("frame_kind")}
-        <select ?disabled=${!admin} @change=${(e: Event) => {
-          const v = (e.target as HTMLSelectElement).value;
-          this.updateFurniture({ frame_kind: (v || null) as Furniture["frame_kind"], frame_source: null, frame_trigger: null });
-        }}>
-          <option value="" ?selected=${!kind}>${this.t("frame_kind_none")}</option>
-          ${FRAME_KINDS.map((k) => html`<option value=${k} ?selected=${k === kind}>${this.t(`frame_kind_${k}` as I18nKey)}</option>`)}
-        </select></label
-      >
-      ${kind === "calendar" || kind === "board" ? multi("frame_source_calendar", "frame_calendar_more") : nothing}
-      ${kind === "persons" ? multi("frame_source_persons", "frame_person_more") : nothing}
-      ${kind === "calendar" || kind === "board"
-        ? html`${this.num(this.t("frame_remind"), f.frame_remind ?? 0, (v) => this.updateFurniture({ frame_remind: v > 0 ? Math.round(v) : null }), 5, 0)}
-            <p class="fp3d-sub fp3d-wide">${this.t("frame_remind_hint")}</p>`
-        : nothing}
-      ${kind === "photo"
-        ? html`<label class="fp3d-field fp3d-wide"
-              >${this.t("frame_source_photos")}
-              <input type="text" .value=${photos.filter((p) => !p.startsWith("pic_")).join(", ")} placeholder="https://…" ?disabled=${!admin}
-                @change=${(e: Event) => {
-                  const urls = (e.target as HTMLInputElement).value.split(",").map((x) => x.trim()).filter(Boolean);
-                  this.updateFurniture({ frame_source: [...photos.filter((p) => p.startsWith("pic_")), ...urls].join(",") || null });
-                }} /></label>
-            ${admin
-              ? html`<label class="fp3d-btn fp3d-upload">${this.t("frame_photos_upload")}<input type="file" accept="image/*" multiple hidden @change=${(e: Event) => void this.uploadFramePhotos(e, f)} /></label>`
-              : nothing}
-            ${photos.filter((p) => p.startsWith("pic_")).length
-              ? html`<div class="fp3d-frame-thumbs fp3d-wide">
-                  ${photos
-                    .filter((p) => p.startsWith("pic_"))
-                    .map(
-                      (id) => html`<span class="fp3d-frame-thumbwrap"
-                        >${this._images[id] ? html`<img class="fp3d-frame-thumb" src=${this._images[id].url} alt="" />` : html`<span class="fp3d-frame-thumb fp3d-frame-thumb-empty"></span>`}
-                        ${admin ? html`<button class="fp3d-chip" title=${this.t("delete")} @click=${() => this.updateFurniture({ frame_source: photos.filter((p) => p !== id).join(",") || null })}>✕</button>` : nothing}</span
-                      >`,
-                    )}
-                </div>`
-              : nothing}
-            ${photos.length > 1 ? this.num(this.t("frame_interval"), f.frame_interval ?? 30, (v) => this.updateFurniture({ frame_interval: Math.max(3, Math.min(3600, Math.round(v))) }), 5, 3) : nothing}
-            <p class="fp3d-sub fp3d-wide">${this.t("frame_slideshow_hint")}</p>`
-        : nothing}
-      ${kind && domain && kind !== "calendar" && kind !== "board" && kind !== "persons"
-        ? this.entitySelect(this.t(`frame_source_${kind}` as I18nKey), f.frame_source ?? null, undefined, options, (v) => this.updateFurniture({ frame_source: v && v !== "none" ? v : null }))
-        : nothing}
-      ${kind === "camera"
-        ? html`<label class="fp3d-field fp3d-wide"
-              >${this.t("frame_trigger")}
-              <select ?disabled=${!admin} @change=${(e: Event) => this.updateFurniture({ frame_trigger: (e.target as HTMLSelectElement).value || null })}>
-                <option value="" ?selected=${!f.frame_trigger}>${this.t("frame_trigger_none")}</option>
-                <option value="detect" ?selected=${f.frame_trigger === "detect"}>${this.t("frame_trigger_detect")}</option>
-                ${triggers.map((o) => html`<option value=${o.id} ?selected=${o.id === f.frame_trigger}>${o.label}</option>`)}
-              </select></label
-            >
-            <p class="fp3d-sub fp3d-wide">${this.t("frame_trigger_hint")}</p>`
-        : nothing}
-      <p class="fp3d-sub fp3d-wide">${this.t("frame_hint")}</p>
-    </div>`;
+  /** A stored picture's URL for a thumbnail, fetched once. */
+  private wantImage(id: string): void {
+    if (this._images[id] || this.wantedImages.has(id) || !this.hass) return;
+    this.wantedImages.add(id);
+    fetchImage(this.hass, id).then(
+      (url) => (this._images = { ...this._images, [id]: { url, aspect: 1 } }),
+      () => undefined,
+    );
   }
 
-  /** Stores photos for a frame (several at once), scaled down to what its face in 3D needs. */
-  private async uploadFramePhotos(e: Event, f: Furniture): Promise<void> {
+  private wantedImages = new Set<string>();
+
+  /** Stores pictures a field uploads (several at once), scaled down to what a face in 3D needs. */
+  private async uploadImages(e: Event, done: (ids: string[]) => void): Promise<void> {
     const input = e.target as HTMLInputElement;
     const files = [...(input.files ?? [])];
     input.value = "";
@@ -12381,9 +12324,7 @@ export class Fp3dEditor extends LitElement {
       ids.push(imageId);
     }
     this._images = images;
-    const current = this.furnitureItem?.id === f.id ? (this.furnitureItem.frame_source ?? "") : (f.frame_source ?? "");
-    const have = current.split(",").map((x) => x.trim()).filter(Boolean);
-    this.updateFurniture({ frame_source: [...have, ...ids].join(",") });
+    done(ids);
   }
 
   private renderHouseholdExtras(f: Furniture) {
@@ -17002,27 +16943,27 @@ export class Fp3dEditor extends LitElement {
         min-height: 34px;
         padding: 4px 10px;
       }
-      .fp3d-frame-thumbs {
+      .fp3d-thumbs {
         display: flex;
         flex-wrap: wrap;
         gap: 8px;
       }
-      .fp3d-frame-thumbwrap {
+      .fp3d-thumbwrap {
         position: relative;
         display: inline-block;
       }
-      .fp3d-frame-thumbwrap .fp3d-chip {
+      .fp3d-thumbwrap .fp3d-chip {
         position: absolute;
         top: 2px;
         right: 2px;
       }
-      .fp3d-frame-thumb-empty {
+      .fp3d-thumb-empty {
         display: inline-block;
         width: 80px;
         height: 60px;
         background: rgba(255, 255, 255, 0.08);
       }
-      .fp3d-frame-thumb {
+      .fp3d-thumb {
         max-width: 160px;
         max-height: 110px;
         border-radius: 8px;

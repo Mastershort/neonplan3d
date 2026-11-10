@@ -4,6 +4,12 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 [releases page](https://github.com/Mastershort/neonplan3d/releases). Ideas and votes:
 [Discussions → Ideas](https://github.com/Mastershort/neonplan3d/discussions/categories/ideas).
 
+## 3.0.6
+
+### Changed
+- **The frames pack brings its own module:** the living faces of the "Digital Picture Frames" pack (calendar, lists, board, people, camera, cover, person, photos, weather) and their pop-ups now come with the pack (release 2) as a signed module, like Heat Pro; NeonPlan itself only provides the stage. Settings made with 3.0.5 are read as they are. Until an administrator has approved the module under Extensions (the usual review), the frames show a dark pane.
+- **Module API:** a module may lay a picture on the screen face of a piece of furniture (`screen` piece), open a pop-up of plain sections over the view (`popups`, `host.openPopup`), and ask the editor for uploaded pictures (`images` field); the host tells a module where people stand, which look is on and whether the tablet level runs.
+
 ## 3.0.5
 
 ### Added
