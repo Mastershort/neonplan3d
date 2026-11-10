@@ -422,6 +422,7 @@ export class Fp3dEditor extends LitElement {
     _diagNote: { state: true },
     _spots: { state: true },
     _outdoorId: { state: true },
+    _outVertex: { state: true },
     _wallId: { state: true },
     _edgeHi: { state: true },
     _wallView: { state: true },
@@ -570,6 +571,8 @@ export class Fp3dEditor extends LitElement {
   private declare _diagNote: string;
   /** Open "place spots" form of the selected room. */
   private declare _outdoorId: string | null;
+  /** Selected vertex of the selected outdoor area. */
+  private declare _outVertex: number | null;
   /** Selected free-standing wall. */
   private declare _wallId: string | null;
   /** Selected room wall (id from generateWalls), to set its height. */
@@ -761,6 +764,7 @@ export class Fp3dEditor extends LitElement {
     this._diagNote = "";
     this._spots = null;
     this._outdoorId = null;
+    this._outVertex = null;
     this._wallId = null;
     this._edgeHi = null;
     this._wallView = null;
@@ -1416,6 +1420,7 @@ export class Fp3dEditor extends LitElement {
     if (!doc.floors.some((f) => f.id === this._floorId)) this._floorId = doc.floors[0]?.id ?? null;
     if (!this.floor?.rooms.some((r) => r.id === this._roomId)) this._roomId = null;
     this._vertex = null;
+    this._outVertex = null;
     this._canUndo = this.past.length > 0;
     this._canRedo = this.future.length > 0;
     this.dispatchEvent(new CustomEvent("building-changed", { detail: { building: doc }, bubbles: true, composed: true }));
@@ -1584,7 +1589,7 @@ export class Fp3dEditor extends LitElement {
     else if (d.kind === "furniture" || d.kind === "rotate" || d.kind === "resize") target = ["furniture", d.id];
     else if (d.kind === "furnset") target = ["furniture", d.ids.find((id) => this.isFixedItem("furniture", id)) ?? d.ids[0]];
     else if (d.kind === "wallmove") target = ["wall", d.id];
-    else if (d.kind === "outdoor") target = ["outdoor", d.id];
+    else if (d.kind === "outdoor" || d.kind === "outvertex" || d.kind === "outbox") target = ["outdoor", d.id];
     if (!target || !this.isFixedItem(...target)) return;
     if ("moved" in d && d.moved && "base" in d) this.restoreLive(d.base);
     this.drag = { kind: "pan", last: local };
@@ -1881,7 +1886,7 @@ export class Fp3dEditor extends LitElement {
       return;
     }
     const furnitureEl = target.closest("[data-furniture]");
-    if (furnitureEl && !target.closest("[data-vertex], [data-mid]")) {
+    if (furnitureEl && !target.closest("[data-vertex], [data-mid], [data-out-vertex], [data-out-mid]")) {
       const id = furnitureEl.getAttribute("data-furniture")!;
       const now = Date.now();
       const twice = this.lastFurnTap?.id === id && now - this.lastFurnTap.t < 400;
@@ -1970,14 +1975,50 @@ export class Fp3dEditor extends LitElement {
     }
     const outVertexEl = target.closest("[data-out-vertex]");
     if (outVertexEl && this.isAdmin) {
-      const [id, i] = outVertexEl.getAttribute("data-out-vertex")!.split(":");
-      this.drag = { kind: "outvertex", id, index: Number(i), base: this._doc, moved: false };
+      const attr = outVertexEl.getAttribute("data-out-vertex")!;
+      const i = attr.lastIndexOf(":");
+      const id = attr.slice(0, i);
+      const index = Number(attr.slice(i + 1));
+      this.selectItem("outdoor", id);
+      this._outVertex = index;
+      this.drag = { kind: "outvertex", id, index, base: this._doc, moved: false };
       return;
+    }
+    const outMidEl = target.closest("[data-out-mid]");
+    if (outMidEl && this.isAdmin) {
+      const attr = outMidEl.getAttribute("data-out-mid")!;
+      const i = attr.lastIndexOf(":");
+      const id = attr.slice(0, i);
+      const index = Number(attr.slice(i + 1));
+      const a = this.floor?.outdoor.find((x) => x.id === id);
+      if (a) {
+        const pts = a.points;
+        const p1 = pts[index];
+        const p2 = pts[(index + 1) % pts.length];
+        const mid: Vec2 = [round((p1[0] + p2[0]) / 2), round((p1[1] + p2[1]) / 2)];
+        this.change((_, floor) => {
+          const target = floor.outdoor.find((x) => x.id === id)!;
+          target.points.splice(index + 1, 0, mid);
+          const first = Math.hypot(mid[0] - p1[0], mid[1] - p1[1]);
+          for (const g of target.gates ?? []) {
+            if (g.edge > index) g.edge += 1;
+            else if (g.edge === index && g.at > first) {
+              g.edge = index + 1;
+              g.at = round(g.at - first);
+            }
+          }
+        });
+        this.selectItem("outdoor", id);
+        this._outVertex = index + 1;
+        this.drag = { kind: "outvertex", id, index: index + 1, base: this._doc, moved: true };
+        return;
+      }
     }
     const outdoorEl = target.closest("[data-outdoor]");
     if (outdoorEl && !target.closest("[data-room]") && !this.roomAt(world)) {
       // the drawn element is the topmost area; a smaller one under the point (a pool in the lawn) wins
       const id = this.outdoorAt(world) ?? outdoorEl.getAttribute("data-outdoor")!;
+      if (id !== this._outdoorId) this._outVertex = null;
       this.selectItem("outdoor", id);
       this.drag = this.isAdmin ? { kind: "outdoor", id, start: world, startScreen: local, base: this._doc, moved: false } : { kind: "pan", last: local };
       return;
@@ -2299,7 +2340,7 @@ export class Fp3dEditor extends LitElement {
         const p = this.snap(world, undefined, e.altKey);
         const src = drag.base.floors.find((f) => f.id === this._floorId)?.outdoor.find((a) => a.id === drag.id);
         if (!src) return;
-        const rect = isAxisRect(src.points);
+        const rect = isAxisRect(src.points) && !e.altKey;
         this.change(
           (_, floor) => {
             const a = floor.outdoor.find((x) => x.id === drag.id);
@@ -3014,6 +3055,32 @@ export class Fp3dEditor extends LitElement {
     if (a?.type === "pool" && pipes && !confirm(this.t("pool_delete_confirm", { n: pipes }))) return;
     this.change((_, floor) => (floor.outdoor = floor.outdoor.filter((o) => o.id !== id)));
     this._outdoorId = null;
+    this._outVertex = null;
+  }
+
+  private deleteOutdoorVertex(index: number): void {
+    const a = this.outdoorArea;
+    if (!a || a.points.length <= 3) return;
+    const n = a.points.length;
+    const prev = (index - 1 + n) % n;
+    this.change((_, floor) => {
+      const target = floor.outdoor.find((x) => x.id === a.id)!;
+      target.points.splice(index, 1);
+      if (target.gates) {
+        target.gates = target.gates
+          .filter((g) => g.edge !== index && g.edge !== prev)
+          .map((g) => (g.edge > index ? { ...g, edge: g.edge - 1 } : g));
+      }
+    });
+    this._outVertex = null;
+  }
+
+  private setOutdoorPoint(index: number, axis: 0 | 1, value: number): void {
+    const a = this.outdoorArea;
+    if (!a || !Number.isFinite(value)) return;
+    const points = a.points.map((p) => [...p] as Vec2);
+    points[index][axis] = round(value);
+    this.updateOutdoor({ points });
   }
 
   private duplicateOutdoor(): void {
@@ -3060,6 +3127,7 @@ export class Fp3dEditor extends LitElement {
       else this.duplicateRoom();
     } else if (e.key === "Delete" || (e.key === "Backspace" && (this._tool === "select" || this._tool === "furniture"))) {
       if (this._deviceId) this.deleteItem("device", this._deviceId);
+      else if (this._outdoorId && this._outVertex !== null) this.deleteOutdoorVertex(this._outVertex);
       else if (this._outdoorId) this.deleteOutdoor();
       else if (this._wallId) this.deleteFreeWall();
       else if (this._openingId) this.deleteOpening();
@@ -3098,6 +3166,8 @@ export class Fp3dEditor extends LitElement {
         return;
       }
       if (this._draft.length) this._draft = [];
+      else if (this._outVertex !== null) this._outVertex = null;
+      else if (this._vertex !== null) this._vertex = null;
       else if (this._tool !== "select") this._tool = "select";
       else this.selectItem("room", null);
       this._cursor = null;
@@ -3156,10 +3226,18 @@ export class Fp3dEditor extends LitElement {
       });
     } else if (this._outdoorId) {
       const id = this._outdoorId;
+      const vertex = this._outVertex;
       this.change((_, f) => {
         const area = f.outdoor.find((x) => x.id === id);
-        if (area) area.points = area.points.map(mv);
+        if (area) {
+          if (vertex !== null && vertex < area.points.length) {
+            area.points[vertex] = mv(area.points[vertex]);
+          } else {
+            area.points = area.points.map(mv);
+          }
+        }
       });
+      return true;
     } else if (this._roomId) {
       const id = this._roomId;
       const vertex = this._vertex;
@@ -4754,7 +4832,7 @@ export class Fp3dEditor extends LitElement {
     let hit: [FixKind, string] | null = null;
     const device = attr("data-device");
     const opening = attr("data-opening");
-    const furniture = target.closest("[data-vertex], [data-mid]") ? null : attr("data-furniture");
+    const furniture = target.closest("[data-vertex], [data-mid], [data-out-vertex], [data-out-mid]") ? null : attr("data-furniture");
     const wall = attr("data-free-wall");
     const outdoor = attr("data-outdoor") ? (this.outdoorAt(world) ?? attr("data-outdoor")) : null;
     const room = attr("data-room") ?? this.roomAt(world);
@@ -4845,6 +4923,7 @@ export class Fp3dEditor extends LitElement {
     // door "could not be selected" – its form was out of sight)
     const shown = this._openingId ? `opening:${this._openingId}` : this._furnitureId ? `furniture:${this._furnitureId}` : this._deviceId ? `device:${this._deviceId}` : this._outdoorId ? `outdoor:${this._outdoorId}` : this._wallId ? `wall:${this._wallId}` : `room:${this._roomId}`;
     if (id && `${kind}:${id}` !== shown) void this.updateComplete.then(() => this.renderRoot.querySelector(".fp3d-side")?.scrollTo(0, 0));
+    if (kind !== "outdoor" || id !== this._outdoorId) this._outVertex = null;
     this._outdoorId = kind === "outdoor" ? id : null;
     this._wallId = kind === "wall" ? id : null;
     this._edgeHi = null;
@@ -6593,10 +6672,43 @@ export class Fp3dEditor extends LitElement {
         return svg`<g class="fp3d-vertex fp3d-box-corner" data-out-box=${`${a.id}:${i}`}><circle cx=${x} cy=${y} r="16" class="fp3d-hit" /><rect x=${x - 5} y=${y - 5} width="10" height="10" /></g>`;
       })}`;
     }
-    return svg`${a.points.map((p, i) => {
+    const pts = a.points;
+    const n = pts.length;
+    const isClosed = !(a.open && (a.type === "fence" || a.type === "pergola"));
+    const edgeCount = isClosed ? n : n - 1;
+    const [cx, cy] = this.toScreen(centroid(pts));
+    const edges = pts.slice(0, edgeCount).map((p1, i) => {
+      const p2 = pts[(i + 1) % n];
+      const [ax, ay] = this.toScreen(p1);
+      const [bx, by] = this.toScreen(p2);
+      const len = Math.hypot(p2[0] - p1[0], p2[1] - p1[1]);
+      const mx = (ax + bx) / 2;
+      const my = (ay + by) / 2;
+      let nx = -(by - ay);
+      let ny = bx - ax;
+      const nl = Math.hypot(nx, ny) || 1;
+      nx /= nl;
+      ny /= nl;
+      if (nx * (mx - cx) + ny * (my - cy) < 0) {
+        nx = -nx;
+        ny = -ny;
+      }
+      const screenLen = Math.hypot(bx - ax, by - ay);
+      return svg`
+        ${screenLen > 50
+          ? Math.abs(nx) > Math.abs(ny)
+            ? svg`<text class="fp3d-dim" style="text-anchor:${nx > 0 ? "start" : "end"}" x=${mx + nx * 13} y=${my + ny * 13 + 4}>${this.m(len, 2)}</text>`
+            : svg`<text class="fp3d-dim" x=${mx + nx * 16} y=${my + ny * 16 + 4}>${this.m(len, 2)}</text>`
+          : nothing}
+        ${screenLen > 36 ? svg`<g data-out-mid=${`${a.id}:${i}`} class="fp3d-mid"><circle cx=${mx} cy=${my} r="14" class="fp3d-hit" /><circle cx=${mx} cy=${my} r="6" /><path d="M${mx - 3} ${my}h6M${mx} ${my - 3}v6" /></g>` : nothing}
+      `;
+    });
+    const vertices = pts.map((p, i) => {
       const [x, y] = this.toScreen(p);
-      return svg`<g class="fp3d-vertex" data-out-vertex=${`${a.id}:${i}`}><circle cx=${x} cy=${y} r="16" class="fp3d-hit" /><circle cx=${x} cy=${y} r="6" /></g>`;
-    })}`;
+      return svg`<g class=${i === this._outVertex ? "fp3d-vertex fp3d-vertex-sel" : "fp3d-vertex"} data-out-vertex=${`${a.id}:${i}`}><circle cx=${x} cy=${y} r="16" class="fp3d-hit" /><circle cx=${x} cy=${y} r="6" /></g>
+        <text class="fp3d-vertex-no" x=${x + 9} y=${y - 9}>${i + 1}</text>`;
+    });
+    return svg`<g>${edges}${vertices}</g>`;
   }
 
   private renderOutdoor(floor: Floor) {
@@ -6849,6 +6961,22 @@ export class Fp3dEditor extends LitElement {
           ${this.t("outdoor_cut")}</label
         >
       </div>
+      ${!a.pool_shape
+        ? html`<details class="fp3d-points" ?open=${!rect}>
+            <summary>${this.t("points")} (${a.points.length})</summary>
+            ${a.points.map(
+              (p, i) => html`<div class="fp3d-point ${i === this._outVertex ? "fp3d-point-sel" : ""}">
+                <span class="fp3d-muted">${i + 1}</span>
+                ${this.len(this.t("x"), p[0], (v) => this.setOutdoorPoint(i, 0, v))} ${this.len(this.t("z"), p[1], (v) => this.setOutdoorPoint(i, 1, v))}
+                ${admin
+                  ? html`<button class="fp3d-btn" title=${this.t("delete_point")} ?disabled=${a.points.length <= 3} @click=${() => this.deleteOutdoorVertex(i)}>
+                      ×
+                    </button>`
+                  : nothing}
+              </div>`,
+            )}
+          </details>`
+        : nothing}
       ${a.slope ? html`<p class="fp3d-sub">${this.t("outdoor_slope_hint")}</p>` : nothing}
       <p class="fp3d-sub">${this.t("outdoor_hint")}</p>
       ${this.renderOutdoorPoints(a, rect)}
@@ -9324,8 +9452,29 @@ export class Fp3dEditor extends LitElement {
       const vx = target.closest("[data-out-vertex]")?.getAttribute("data-out-vertex");
       if (vx) {
         const [id, i] = split(vx);
+        this.selectItem("outdoor", id);
+        this._outVertex = i;
         this.drag = { kind: "outvertex", id, index: i, base: this._doc, moved: false };
         return true;
+      }
+      const mid = target.closest("[data-out-mid]")?.getAttribute("data-out-mid");
+      if (mid) {
+        const [id, i] = split(mid);
+        const area = floor.outdoor.find((x) => x.id === id);
+        if (area) {
+          const pts = area.points;
+          const p1 = pts[i];
+          const p2 = pts[(i + 1) % pts.length];
+          const midPt: Vec2 = [round((p1[0] + p2[0]) / 2), round((p1[1] + p2[1]) / 2)];
+          this.change((_, f) => {
+            const target = f.outdoor.find((x) => x.id === id)!;
+            target.points.splice(i + 1, 0, midPt);
+          });
+          this.selectItem("outdoor", id);
+          this._outVertex = i + 1;
+          this.drag = { kind: "outvertex", id, index: i + 1, base: this._doc, moved: true };
+          return true;
+        }
       }
     }
     // the smallest area under the point: a pool inside a lawn is still the pool

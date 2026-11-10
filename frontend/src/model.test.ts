@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { emptyBuilding, lockAlong, gangEntities, gangPlateWidth, gangsOf, floorElevation, newFloor, outdoorZones, zonesOf, openingPreset, openingStyle, normalizeBuilding, outdoorDrop, outdoorGround, outdoorSurface, furnitureCorner, resizeFurniture, roomTiles, sidelightLayout, spotGrid, surfaceHeight, syncCameraLooks, type Furniture } from "./model.ts";
+import { emptyBuilding, lockAlong, gangEntities, gangPlateWidth, gangsOf, floorElevation, newFloor, outdoorZones, zonesOf, openingPreset, openingStyle, normalizeBuilding, outdoorDrop, outdoorGround, outdoorSurface, furnitureCorner, resizeFurniture, roomTiles, sidelightLayout, spotGrid, surfaceHeight, syncCameraLooks, type Furniture, type OutdoorArea, type Vec2 } from "./model.ts";
 
 test("a sidelight sits opposite the hinge, on the hinge side when asked, and keeps the leaf at least half a metre", () => {
   const none = {};
@@ -292,4 +292,50 @@ test("a camera's look hangs at the camera's height, not on the floor (#779)", ()
   const later = structuredClone(next);
   syncCameraLooks(later, next);
   assert.equal(later.floors[0].furniture[0].mount_y, 2.3);
+});
+
+test("outdoor areas support adding and deleting vertices, updating gates accordingly", () => {
+  const area: OutdoorArea = {
+    id: "out1",
+    type: "fence",
+    points: [[0, 0], [4, 0], [4, 4], [0, 4]],
+    gates: [
+      { id: "g0", edge: 0, at: 3, width: 1 },
+      { id: "g2", edge: 2, at: 2, width: 1 },
+    ],
+  };
+
+  // 1. Insert midpoint on edge 0: (2, 0)
+  const p1 = area.points[0];
+  const mid: Vec2 = [2, 0];
+  area.points.splice(1, 0, mid);
+  const first = Math.hypot(mid[0] - p1[0], mid[1] - p1[1]);
+  for (const g of area.gates ?? []) {
+    if (g.edge > 0) g.edge += 1;
+    else if (g.edge === 0 && g.at > first) {
+      g.edge = 1;
+      g.at = g.at - first;
+    }
+  }
+
+  assert.equal(area.points.length, 5);
+  assert.deepEqual(area.points[1], [2, 0]);
+  // Gate g0 was at edge 0, at 3 > first(2) -> shifted to edge 1 at 1
+  assert.equal(area.gates![0].edge, 1);
+  assert.equal(area.gates![0].at, 1);
+  // Gate g2 was at edge 2 -> shifted to edge 3
+  assert.equal(area.gates![1].edge, 3);
+
+  // 2. Delete vertex at index 1: restores 4 points, drops gate on merged edge 1
+  const delIndex = 1;
+  const prev = (delIndex - 1 + area.points.length) % area.points.length;
+  area.points.splice(delIndex, 1);
+  area.gates = area.gates!
+    .filter((g) => g.edge !== delIndex && g.edge !== prev)
+    .map((g) => (g.edge > delIndex ? { ...g, edge: g.edge - 1 } : g));
+
+  assert.equal(area.points.length, 4);
+  assert.equal(area.gates.length, 1);
+  assert.equal(area.gates[0].id, "g2");
+  assert.equal(area.gates[0].edge, 2);
 });
