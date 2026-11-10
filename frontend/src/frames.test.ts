@@ -1,5 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
+
+// the events below carry German offsets: the clock they are read with is German too (CI runs in UTC)
+process.env.TZ = "Europe/Berlin";
 import { calendarColor, dayLabel, dueReminders, eventPhase, forecastDays, frameCalendars, frameDays, frameEvents, isBirthday, personStatuses, rainSoon, slideIndex, timeLabel, todoOrder } from "./frames.ts";
 
 const byCal = new Map([
