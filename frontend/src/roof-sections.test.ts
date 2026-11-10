@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { emptyBuilding, newFloor, ROOF_SHAPES, type Room, type RoofSection } from "./model.ts";
-import { onSection, sectionTurn, turnPoint, turnSectionAbout, coversIn, cutHole, cutUnder, dormerHole, dormerHoles, dormerParent, floorOutline, lineOutside, sectionCovers, sectionEnds, sectionUV, wingJunction, wingSection, offsetPolygon, polygonBox, proposeDormer, ridgeHeight, roofRider, roofSectionsFromRooms, roofUnderAt, sectionFrame, sectionGeometry, sectionHeightAt, sectionOverhang, sectionPolygon, sectionProfile, wallTopUnder } from "./roof-sections.ts";
+import { onSection, sectionTurn, turnPoint, turnSectionAbout, coversIn, cutHole, cutUnder, dormerHole, dormerHoles, dormerParent, sectionsCut, turnedDormer, floorOutline, lineOutside, sectionCovers, sectionEnds, sectionUV, wingJunction, wingSection, offsetPolygon, polygonBox, proposeDormer, ridgeHeight, roofRider, roofSectionsFromRooms, roofUnderAt, sectionFrame, sectionGeometry, sectionHeightAt, sectionOverhang, sectionPolygon, sectionProfile, wallTopUnder } from "./roof-sections.ts";
 import { buildRoof } from "./viewer/roof.ts";
 
 const near = (a: number, b: number, eps = 1e-6) => assert.ok(Math.abs(a - b) < eps, `${a} != ${b}`);
@@ -457,6 +457,23 @@ test("a dormer on a turned section turns with it and still finds its parent and 
   const hole = dormerHole(parent, d)!;
   near(hole.u1 - hole.u0, 2, 1e-6);
   near(hole.v0, 0, 1e-6);
+});
+
+test("a cross gable at an angle on a bigger roof is cut by that roof like a wing, not given a dormer's hole", () => {
+  const main = section({ x1: 14, z1: 10 });
+  // a gable turned 35° standing on the main roof's slope (a bay's roof at an angle, the 45° gable from Discord)
+  const bay = section({ id: "b", x0: 3.5, z0: 6, x1: 6, z1: 11, axis: "z", eave_a: 5.5, eave_b: 5.5, base: 5.4, rotation: 35, pivot: [4.75, 8.5] });
+  assert.equal(dormerParent([main, bay], bay), main);
+  assert.equal(turnedDormer([main, bay], bay), true);
+  assert.equal(sectionsCut([main, bay], main, bay), true);
+  // square to the ridge (0° or 90°) it stays a dormer with its hole
+  const square = { ...bay, rotation: 90 };
+  assert.equal(turnedDormer([main, square], square), false);
+  assert.equal(sectionsCut([main, square], main, square), false);
+  // a dormer turned along with its turned roof is still a dormer (#634)
+  const tp = section({ x1: 14, z1: 10, rotation: 25, pivot: [7, 5] });
+  const td = proposeDormer(tp, "a", "d1");
+  assert.equal(turnedDormer([tp, td], td), false);
 });
 
 test("a turned wing is not joined at right angles: the other roof's planes cut it instead", () => {

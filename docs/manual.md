@@ -441,7 +441,7 @@ A simple house gets a flat or gable roof over the whole top floor under **Build 
 - Each section has a **shape** – gable, hip, half-hip (a gable hipped at the top), pyramid (four slopes to a point), mansard (steep below, flatter above), pent, flat and parapet (a flat roof with a wall ring) – and a **ridge direction** (↔ or ↕).
 - For gable, hip and half-hip, **End left/right** (or **top/bottom**) sets each end of the ridge on its own to a gable, a hip or a half-hip – a hip roof with an upright gable at the other end, for example. **as the shape** leaves the end as the shape has it.
 - **Eave** and **pitch** are set for both sides separately. All heights count from the ground. A side with a lower eave reaches further down, e.g. a catslide over a low extension. A pent roof rises from the first side; **Swap sides** turns it round.
-- **Turn:** if an extension or wing stands at an angle to the house, turn its section with **Turn** (or ↺ 15° / ↻ 15°), clockwise. Dormers and cross gables on it turn along, roof windows and solar fields stay on it. A turned section is moved by dragging; the corners for resizing come back at 0° (turn back, resize, turn again). Where a turned wing runs into another roof, that roof's slopes cut it off. By default every section stays at 0°.
+- **Turn:** if an extension or wing stands at an angle to the house, turn its section with **Turn** (or ↺ 15° / ↻ 15°), clockwise. Dormers and cross gables on it turn along, roof windows and solar fields stay on it. A turned section is moved by dragging; the corners for resizing come back at 0° (turn back, resize, turn again). Where a turned wing runs into another roof, that roof's slopes cut it off. Since 3.0.5 that also holds for a small turned section sitting on a bigger roof (a gable turned 45° over a pointed bay in a hip roof): it meets the roof below like a wing instead of cutting a dormer's hole into it – shape gable, **end gable** towards the bay's point, the other end simply running into the main roof. By default every section stays at 0°.
 - **Top of walls** is the height where the walls below the roof end. A new section takes it from the rooms below, whatever floor the plan shows. Gables and knee walls are built from there up under the roof, so the space under a pent roof is closed too.
 - **Sits on floor** shows which floor the section belongs to in the 3D view and puts it on another floor's wall tops – top of walls and eaves move along. This helps when a new section landed on the wrong floor, e.g. over an upper floor with a stairwell in the middle.
 - **Flat roof as a free shape:** a flat roof has the button **Take the floor's outline** – the surface takes the outline of the shown floor's rooms (L- or Z-shaped too), one surface without seams instead of several rectangles. The corners can be dragged in the plan afterwards; **Back to the rectangle** drops the shape.
@@ -686,7 +686,7 @@ With north set, sunlight from `sun.sun` falls through the windows facing the sun
 
 **Sun arc and house shadow (since 2.0.7):** a dotted arc around the house shows the sun's way today, with the times of sunrise and sunset at its ends. A glowing dot on it is the sun now, a brighter dot marks every full hour. The house's shadow lies on the ground and moves with the sun, so you can see when the terrace gets sun. The shadow shows in the **All floors** view and not on the **Tablet** level, the arc on every level. Both need the north direction and the home's location in Home Assistant; switch them off in the ⭐ central menu under **⚙ Settings** (or in the editor's settings) with **Sun arc and house shadow**. On a large plot, **Sun arc around: the whole plot** (in the same place, since 2.2.0) puts the arc and the compass ring around everything drawn – rooms, outdoor areas, fences and free walls – instead of only the house.
 
-**Windows glow outside at night (since 2.0.7):** when it is dark outside, the light of lit rooms on the ground floor falls out of the windows as a warm glow onto the lawn and terrace in front, in the room's light colour. Lowered blinds dim it. A window over a balcony lights the balcony; the glow ends at its edge. Switch it off in the ⭐ central menu under **⚙ Settings** (or in the editor's settings) with **Windows glow outside at night**.
+**Windows glow outside at night (since 2.0.7):** when it is dark outside, the light of lit rooms on the ground floor falls out of the windows as a warm glow onto the lawn and terrace in front, in the lamp's colour. Since 3.0.5 the glow is each lamp's cone through the window opening: it lies shifted away from the lamp (a lamp to the left of the window lights the ground to its right), fades with the distance from the lamp, and a lamp around the corner that cannot see the window past a wall throws nothing out. A dimmed lamp glows correspondingly less outside. Lowered blinds dim it. A window over a balcony lights the balcony; the glow ends at its edge. Switch it off in the ⭐ central menu under **⚙ Settings** (or in the editor's settings) with **Windows glow outside at night**.
 
 ### 5.8 Warnings
 
@@ -1137,6 +1137,24 @@ Household Pro shows what is due in the household, right where it happens. The wa
 - **Fridge:** when a door stands open longer than set (default 2 minutes), NeonPlan warns at the top of the view. The **smart fridge** (side-by-side with moving doors) in the furniture library comes with it.
 - **Today in the household:** a glass card at the top right lists what is due – bins today and tomorrow, post, finished appliances, thirsty plants, services due, open fridge doors. A tap opens the device, its header folds it. In the dashboard card `household_card: false` switches it off.
 
+### 6.9 Digital picture frames
+
+> The **Digital Picture Frames** pack is sold in the [shop](https://mastershort.de/neonplan3d/?lang=en); the [Supporter Pass](https://mastershort.de/neonplan3d/unterstuetzer/?lang=en) includes it (since 3.0.5).
+
+Picture frames that live: portrait and landscape frames in three sizes, a square one, a poster frame, slim digital frames for the wall and the sideboard and a standing wooden frame. Every frame has a living face; the **digital frame of the Deco pack** joins in once the pack is installed. What the face shows is set in the furniture form under **🖼️ Picture frame → Shows**; **a tap on the frame in 3D opens the content large** in the middle of the view (closes on a tap beside it, on a tablet by itself after a minute).
+
+- **Calendar:** one or several calendars (each gets its own colour). The face shows the next days, today first; what runs now reads "now", what starts shortly "in 20 min" in the accent colour, birthdays get a 🎂. The pop-up holds seven days; a tap on a day unfolds times and descriptions, **＋ Add an event** writes a new event into the calendar (local and Google calendars that allow writing). **Remind (minutes before):** that many minutes before an event a note shows on the screens, with the announcements module also spoken.
+- **Shopping / to-do list:** a Home Assistant list (`todo.*`). Open items with a box, done ones struck through; in the pop-up you tick them off and add new ones.
+- **Family board:** calendar (today and tomorrow), who is home (green dots), with Household Pro tomorrow's bins, the weather top right – the kitchen screen in one frame.
+- **People:** everyone or chosen persons – home or away, with Live Presence the room, and for how long.
+- **Camera:** the still, fresh every 5 seconds (tablet level: 10). **Pops up large on:** a doorbell, a motion sensor, an event or the camera's own detection (Camera Cockpit) – the frame then pops up large for 30 seconds, the **doorbell frame**. With the live director on, the pop-up shows the stream.
+- **Music / TV:** cover and title of the running player, in the pop-up with previous, pause and next.
+- **Person:** the picture from Home Assistant, bright at home, dimmed when away.
+- **Photo:** a URL or uploaded photos (several at once). Several photos take turns (**seconds per photo**); at night the face dims with the kiosk.
+- **Weather:** now with temperature and symbol, plus a three-day forecast and a rain warning from the hourly forecast ("Rain in 3 h (75 %)").
+
+The faces follow the look: pale in the Day look, dark in Neon and Blueprint.
+
 ## 7. Extensions, shop and furniture packs
 
 ![Extensions](images/extensions.jpg)
@@ -1176,6 +1194,7 @@ The middle row of tiles shows the Pro add-ons. Active ones carry a ✓, locked o
 | Bedroom | Beds, wardrobes, chests of drawers, nightstands |
 | Bathroom | Washbasins, showers, bathtubs, WCs |
 | Kids, Office & gaming, Garden & terrace, Garage & workshop, Fitness, Smart home & tech | Furniture and devices for each area |
+| Digital Picture Frames | frames with a living face: calendar, shopping list, family board, people, camera, music, photo slideshow, weather – chapter 6.9 |
 | Vehicles | Cars, vans, motorbikes and more for parking spots |
 | Stairs & railings (16) | Straight, L- and U-shaped stairs, straight stairs open below, with winders or with a corner landing at the foot, open U-stairs with two quarter turns, spiral stairs, space-saver stairs, outdoor steps, landing, railings in metal, glass and wood |
 | Home cinema & hi-fi | Screen, projector, speakers, subwoofer, AV receiver, turntable, cinema seats, smart speakers and smart displays – devices glow while playing; the roll-down screen goes up and down with its motor's cover (run time, position sensor and reverse direction as for the curtain) |

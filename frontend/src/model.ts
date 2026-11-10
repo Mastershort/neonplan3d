@@ -233,6 +233,19 @@ export interface Furniture {
   bin_match?: string | null;
   /** Haushalt Pro: an entity that is on while the bin is out (input_boolean, switch, binary_sensor; null = none). */
   bin_out?: EntityRef;
+  /** Digital picture frames: what the frame's face shows (null = nothing, a dark pane). */
+  frame_kind?: "calendar" | "camera" | "media" | "person" | "photo" | "weather" | "todo" | "board" | "persons" | null;
+  /**
+   * Digital picture frames: where it comes from – calendar entities (several separated by commas), a camera, a media
+   * player, a person, a weather entity, or for a photo an http(s) URL or a stored picture (see pictureUrl).
+   */
+  frame_source?: string | null;
+  /** Camera frame: an entity (doorbell, motion, event) that pops the frame up large, or "detect" for the camera's own detections. */
+  frame_trigger?: string | null;
+  /** Calendar and board: minutes before an event an announcement and a note remind of it (null = none). */
+  frame_remind?: number | null;
+  /** Photo slideshow: seconds per picture (null = 30). */
+  frame_interval?: number | null;
   /** Haushalt Pro, mailbox: the sensor of the door it is emptied through (post counts until it opens). */
   mailbox_door?: EntityRef;
   /** Haushalt Pro, plant: a plant.* entity or a soil moisture sensor; thirsty below `moisture_min`. */
