@@ -3024,6 +3024,35 @@ export class Fp3dEditor extends LitElement {
     this.selectItem("outdoor", copy.id);
   }
 
+  /** Converts an outdoor area into a walled room. */
+  private convertOutdoorToRoom(a: OutdoorArea | undefined = this.outdoorArea): void {
+    if (!a || !this.isAdmin) return;
+    const pipes = a.pool?.pipes?.length ?? 0;
+    if (a.type === "pool" && pipes && !confirm(this.t("pool_delete_confirm", { n: pipes }))) return;
+    const roomId = uid("room");
+    const name = a.name?.trim() || this.t(`out_${a.type}` as I18nKey) || this.t("new_room", { n: (this.floor?.rooms.length ?? 0) + 1 });
+    const area_id = a.area_id ?? null;
+    const points = a.points.map(([x, z]) => [x, z] as Vec2);
+    const panel = a.panel ? [...a.panel] : undefined;
+    const hidden = a.hidden ? [...a.hidden] : undefined;
+    const no_state = a.no_state ? [...a.no_state] : undefined;
+    this.change((_, floor) => {
+      floor.outdoor = (floor.outdoor ?? []).filter((o) => o.id !== a.id);
+      const room: Room = {
+        id: roomId,
+        name,
+        area_id,
+        points,
+        floor_material: "wood",
+        panel,
+        hidden,
+        no_state,
+      };
+      floor.rooms.push(room);
+    });
+    this.selectItem("room", roomId);
+  }
+
   private addRoom(points: Vec2[]): void {
     if (!this.floor) return;
     const id = uid("room");
@@ -3288,6 +3317,34 @@ export class Fp3dEditor extends LitElement {
     const id = uid("room");
     this.change((_, floor) => floor.rooms.push({ ...structuredClone(room), id, points: room.points.map(([x, z]) => [round(x + 0.5), round(z + 0.5)]) }));
     this._roomId = id;
+  }
+
+  /** Converts a room to an outdoor area (terrace by default, or the chosen type). */
+  private convertRoomToOutdoor(room: Room | undefined = this.room, type: OutdoorType = "terrace"): void {
+    if (!room || !this.isAdmin) return;
+    const outdoorId = uid("outdoor");
+    const name = room.name;
+    const area_id = room.area_id;
+    const points = room.points.map(([x, z]) => [x, z] as Vec2);
+    const panel = room.panel ? [...room.panel] : undefined;
+    const hidden = room.hidden ? [...room.hidden] : undefined;
+    const no_state = room.no_state ? [...room.no_state] : undefined;
+    this.change((_, floor) => {
+      floor.rooms = floor.rooms.filter((r) => r.id !== room.id);
+      floor.openings = floor.openings.filter((o) => o.room_id !== room.id || o.wall);
+      const outdoor: OutdoorArea = {
+        id: outdoorId,
+        type,
+        points,
+        name: name || null,
+        area_id: area_id || null,
+        panel,
+        hidden,
+        no_state,
+      };
+      floor.outdoor = [...(floor.outdoor ?? []), outdoor];
+    });
+    this.selectItem("outdoor", outdoorId);
   }
 
   // ------------------------------------------------------------------ roof sections
@@ -4805,7 +4862,14 @@ export class Fp3dEditor extends LitElement {
       ${c.kind === "furniture" || c.kind === "device"
         ? html`<button title=${this.t("fix_hint")} @click=${run(() => this.toggleFixed(c.kind, c.id))}>${fixed ? `🔓 ${this.t("unfix")}` : `🔒 ${this.t("fix")}`}</button>`
         : html`<button title=${this.t("lock_plan_hint")} @click=${run(() => this.toggleLockPlan())}>${this._doc.settings.lock_plan ? `🔓 ${this.t("plan_unlock")}` : `🔒 ${this.t("plan_lock")}`}</button>`}
-      ${c.kind === "room" ? html`<button @click=${run(() => this.duplicateRoom())}>⧉ ${this.t("duplicate")}</button>` : nothing}
+      ${c.kind === "room"
+        ? html`<button @click=${run(() => this.duplicateRoom())}>⧉ ${this.t("duplicate")}</button>
+            <button @click=${run(() => this.convertRoomToOutdoor(this.floor?.rooms.find((r) => r.id === c.id), "terrace"))}>⇋ ${this.t("convert_to_outdoor")}</button>`
+        : nothing}
+      ${c.kind === "outdoor"
+        ? html`<button @click=${run(() => this.duplicateOutdoor())}>⧉ ${this.t("duplicate")}</button>
+            <button @click=${run(() => this.convertOutdoorToRoom(this.floor?.outdoor.find((o) => o.id === c.id)))}>⇋ ${this.t("convert_to_room")}</button>`
+        : nothing}
       ${c.kind === "furniture"
         ? html`<button @click=${run(() => this.duplicateFurniture())}>⧉ ${this.t("duplicate")}</button>
             <button ?disabled=${fixed} @click=${run(() => this.rotateFurniture(90))}>↻ ${this.t("ctx_rotate")}</button>
@@ -6802,7 +6866,12 @@ export class Fp3dEditor extends LitElement {
       <div class="fp3d-form">
         <label class="fp3d-field fp3d-wide"
           >${this.t("outdoor_type")}
-          <select ?disabled=${!admin} @change=${(e: Event) => this.updateOutdoor({ type: (e.target as HTMLSelectElement).value as OutdoorType })}>
+          <select ?disabled=${!admin} @change=${(e: Event) => {
+            const v = (e.target as HTMLSelectElement).value;
+            if (v === "room") this.convertOutdoorToRoom(a);
+            else this.updateOutdoor({ type: v as OutdoorType });
+          }}>
+            <option value="room">${this.t("room")}</option>
             ${OUTDOOR_TYPES.map((t) => html`<option value=${t} ?selected=${t === a.type}>${this.t(`out_${t}` as I18nKey)}</option>`)}
           </select></label
         >
@@ -6856,6 +6925,7 @@ export class Fp3dEditor extends LitElement {
       ${admin
         ? html`<div class="fp3d-actions">
             <button class="fp3d-btn" @click=${() => this.duplicateOutdoor()}>${this.t("duplicate")}</button>
+            <button class="fp3d-btn" title=${this.t("convert_to_room_hint")} @click=${() => this.convertOutdoorToRoom(a)}>⇋ ${this.t("convert_to_room")}</button>
             <button class="fp3d-btn fp3d-danger" @click=${() => this.deleteOutdoor()}>${this.t("delete")}</button>
           </div>`
         : nothing}
@@ -11055,6 +11125,16 @@ export class Fp3dEditor extends LitElement {
       <button class="fp3d-btn fp3d-wv-open" title=${this.t("wall_view_open")} @click=${() => this.openRoomWalls(room)}>▦ ${this.t("wall_view_room")}</button>
       <div class="fp3d-form">
         <label class="fp3d-field fp3d-wide"
+          >${this.t("outdoor_type")}
+          <select ?disabled=${!admin} @change=${(e: Event) => {
+            const v = (e.target as HTMLSelectElement).value;
+            if (v !== "room") this.convertRoomToOutdoor(room, v as OutdoorType);
+          }}>
+            <option value="room" selected>${this.t("room")}</option>
+            ${OUTDOOR_TYPES.map((t) => html`<option value=${t}>${this.t(`out_${t}` as I18nKey)}</option>`)}
+          </select></label
+        >
+        <label class="fp3d-field fp3d-wide"
           >${this.t("room_name")}
           <input .value=${room.name} ?disabled=${!admin} @change=${(e: Event) => this.updateRoom({ name: (e.target as HTMLInputElement).value })}
         /></label>
@@ -11133,6 +11213,7 @@ export class Fp3dEditor extends LitElement {
             <button class="fp3d-btn fp3d-primary" @click=${() => (this._packages = !this._packages)}>${this.t("pkg_open")}</button>
             <button class="fp3d-btn" @click=${() => this.openSpotForm(room)}>${this.t("spots_place")}</button>
             <button class="fp3d-btn" @click=${() => this.duplicateRoom()}>${this.t("duplicate")}</button>
+            <button class="fp3d-btn" title=${this.t("convert_to_outdoor_hint")} @click=${() => this.convertRoomToOutdoor(room, "terrace")}>⇋ ${this.t("convert_to_outdoor")}</button>
             <button class="fp3d-btn" title=${this.t("room_card_hint")} @click=${() => this.roomCard(room)}>🖥 ${this.t("room_card")}</button>
             <button class="fp3d-btn fp3d-danger" @click=${() => this.deleteRoom()}>${this.t("delete")}</button>
           </div>`
