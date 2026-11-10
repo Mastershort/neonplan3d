@@ -9,6 +9,7 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 ### Fixed
 - **Window light at night as the lamp's cone:** the patch in front of a window is now the lamp's light through the opening – shifted away from the lamp, fainter with the distance, and nothing from a lamp around the corner that a wall hides from the window. A dining-room lamp no longer lit the terrace in front of the bedroom (#954, thanks rolandarends).
 - **Turned gable on a bigger roof:** a small roof section turned at an angle on a larger one (a 45° gable over a pointed bay in a hip roof) was treated as a dormer and cut boxes out of the slope while vanishing itself; it now meets the roof below like a wing (Discord, thanks Thomas).
+- **Spot grid: "None" for the light stayed automatic:** a grid of spots placed with the light set to "None" still picked a free light of the room (#982, thanks daene85).
 - **No state sync while the view turns:** new states wait until the finger (or the inertia) has come to rest, so a sync no longer costs frames in the middle of a swipe on a slow wall tablet (#952, thanks zanzei26).
 
 ## 3.0.4
