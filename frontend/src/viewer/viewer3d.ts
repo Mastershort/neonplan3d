@@ -735,6 +735,8 @@ export class FloorplanViewer {
   /** Rain streaks and snow flakes over the plot, the sun or moon disc in the sky. */
   private rain = new LineSegments(new Geometry(), new LineBasicMaterial({ color: 0x9fc8ff, transparent: true, opacity: 0.4, blending: AdditiveBlending, depthWrite: false }));
   private snow = new Points(new Geometry(), new PointsMaterial({ color: 0xf4f8ff, size: 0.14, transparent: true, opacity: 0.85, depthWrite: false }));
+  /** Fog: soft swathes of ground mist drifting around the house (the fog behind it alone is hard to see, #990). */
+  private mist = new Points(new Geometry(), new PointsMaterial({ color: 0xdde4f0, size: 13, transparent: true, opacity: 0.2, depthWrite: false, fog: false }));
   private skyDisc = new Mesh(new CircleGeometry(1, 28), new MeshBasicMaterial({ color: 0xffd98a, transparent: true, opacity: 0, blending: AdditiveBlending, depthWrite: false }));
   private weatherBox = { x0: -10, x1: 10, z0: -10, z1: 10, y0: 0, y1: 8 };
   private weatherTimer: ReturnType<typeof setTimeout> | undefined;
@@ -786,11 +788,14 @@ export class FloorplanViewer {
     this.scene.add(this.ground, this.root);
     this.rain.frustumCulled = false;
     this.snow.frustumCulled = false;
+    this.mist.frustumCulled = false;
     this.rain.visible = false;
     this.snow.visible = false;
+    this.mist.visible = false;
+    (this.mist.material as PointsMaterial).map = this.haloTexture;
     this.skyDisc.visible = false;
     this.skyDisc.renderOrder = -1;
-    this.scene.add(this.rain, this.snow, this.skyDisc, this.sunFx.group);
+    this.scene.add(this.rain, this.snow, this.mist, this.skyDisc, this.sunFx.group);
     this.controls = this.makeControls();
     this.resizeObserver = new ResizeObserver(() => this.resize());
     this.resizeObserver.observe(host);
@@ -1558,10 +1563,37 @@ export class FloorplanViewer {
     this.placeFog();
     const rainCount = on ? Math.round(700 * w.rain) : 0;
     const snowCount = on ? Math.round(450 * w.snow) : 0;
+    const mistCount = on && w.fog > 0 ? Math.round(18 + 30 * w.fog) : 0;
     this.seedParticles(this.rain, rainCount * 2, true);
     this.seedParticles(this.snow, snowCount, false);
+    this.seedMist(mistCount);
     this.rain.visible = rainCount > 0;
     this.snow.visible = snowCount > 0;
+    this.mist.visible = mistCount > 0;
+  }
+
+  /** Swathes of mist around the house, low over the ground, none inside the house (#990). */
+  private seedMist(count: number): void {
+    const current = this.mist.geometry.getAttribute("position") as Float32BufferAttribute | undefined;
+    if ((current?.count ?? 0) === count) return;
+    const b = this.weatherBox;
+    // the weather box has a 6 m margin around the house: the mist lies in that margin and a little beyond it
+    const [hx0, hx1, hz0, hz1] = [b.x0 + 6, b.x1 - 6, b.z0 + 6, b.z1 - 6];
+    const p = new Float32Array(count * 3);
+    for (let i = 0; i < count; i++) {
+      let x = 0;
+      let z = 0;
+      for (let tries = 0; tries < 12; tries++) {
+        x = b.x0 - 3 + Math.random() * (b.x1 - b.x0 + 6);
+        z = b.z0 - 3 + Math.random() * (b.z1 - b.z0 + 6);
+        if (x < hx0 - 1 || x > hx1 + 1 || z < hz0 - 1 || z > hz1 + 1) break;
+      }
+      p.set([x, b.y0 + 0.4 + Math.random() * 1.6, z], i * 3);
+    }
+    this.mist.geometry.dispose();
+    const g = new Geometry();
+    g.setAttribute("position", new Float32BufferAttribute(p, 3));
+    this.mist.geometry = g;
   }
 
   /** Moves the fog's start behind the house for the current camera (cheap: two numbers per frame). */
@@ -1599,7 +1631,7 @@ export class FloorplanViewer {
   /** Lets rain fall and snow drift; true while something moved. */
   private stepWeather(now: number): boolean {
     const w = this.weather;
-    if (!w || (!this.rain.visible && !this.snow.visible)) {
+    if (!w || (!this.rain.visible && !this.snow.visible && !this.mist.visible)) {
       this.weatherLast = 0;
       return false;
     }
@@ -1643,6 +1675,21 @@ export class FloorplanViewer {
         if (x > b.x1) x -= b.x1 - b.x0;
         p[i] = x;
         p[i + 1] = y;
+      }
+      a.needsUpdate = true;
+    }
+    if (this.mist.visible) {
+      // the swathes creep along with the wind and breathe a little; a swathe out of the box comes back on the other side
+      const a = this.mist.geometry.getAttribute("position") as Float32BufferAttribute;
+      const p = a.array as Float32Array;
+      const t = now / 1000;
+      const creep = 0.12 + drift * 0.12;
+      for (let i = 0; i < p.length; i += 3) {
+        let x = p[i] + creep * dt;
+        const z = p[i + 2] + Math.sin(t * 0.3 + i) * 0.05 * dt;
+        if (x > b.x1 + 3) x = b.x0 - 3;
+        p[i] = x;
+        p[i + 2] = z;
       }
       a.needsUpdate = true;
     }
@@ -1728,7 +1775,12 @@ export class FloorplanViewer {
 
   /** Where the sun's arc stands: around the middle of the house (or the whole plot, #833), on its ground. */
   private arcFrame(): SunArcFrame | null {
-    return sunArcFrame(this.building);
+    const frame = sunArcFrame(this.building);
+    if (!frame || !this.building) return frame;
+    // floors pulled apart: the ring and the arc ride with the ground floor, not with the cellar below it (#998)
+    const gf = groundFloor(this.building);
+    const fv = gf ? this.floorMap.get(gf.id) : undefined;
+    return fv?.y ? { ...frame, y: frame.y + fv.y } : frame;
   }
 
   /** How dark it is outside (0 by day, 1 from 6° below the horizon on); 0 without a sun. */
@@ -3188,6 +3240,9 @@ export class FloorplanViewer {
       moving = true;
       this.applyFloor(fv);
     }
+    // the sun's arc stands on the ground floor and glides with it (#998); its signature holds the height, so this
+    // is cheap once everything stands still
+    if (moving && this.sunFx) this.buildSunFx();
     return moving;
   }
 

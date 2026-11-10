@@ -8,7 +8,7 @@ import type { Building, Floor, RoofSection, SolarField, Vec2 } from "../model.ts
 import { polygonArea } from "../model.ts";
 import { coversIn, cutHole, cutUnder, lineOutside, meetLine, sectionCovers, sectionFloor, sectionsCut, dormerHoles, dormerParent, effectiveDormer, offsetPolygon, sectionGeometry, sectionHeightAt, sectionPolygon, sectionFrame, sectionOverhang, sectionProfile, sectionUV, wingJunction, wingSection, type LocalCover, type Q, type SectionOverhang } from "../roof-sections.ts";
 import { DEG, GeoBuffer, LineBuffer, pushPrism, shade } from "./geo.ts";
-import { fieldModules, roofFaces, roofWindowRoom, windowCorners, type RoofFace } from "../solar.ts";
+import { fieldModules, roofFaces, roofFootprint, roofWindowRoom, windowCorners, type RoofFace } from "../solar.ts";
 
 const ROOF = 0x1a2338;
 const ROOF_TOP = 0x222d48;
@@ -203,13 +203,12 @@ function buildSingleRoof(b: Building): RoofGeometry | null {
   const roof = b.settings.roof;
   const floor = roofFloor(b);
   if (!floor || !roof || roof.type === "none" || roof.type === "custom") return null;
-  const xs = floor.rooms.flatMap((r) => r.points.map((p) => p[0]));
-  const zs = floor.rooms.flatMap((r) => r.points.map((p) => p[1]));
+  const [fx0, fz0, fx1, fz1] = roofFootprint(b, floor);
   const m = b.settings.wall_exterior + roof.overhang;
-  const x0 = Math.min(...xs) - m;
-  const x1 = Math.max(...xs) + m;
-  const z0 = Math.min(...zs) - m;
-  const z1 = Math.max(...zs) + m;
+  const x0 = fx0 - m;
+  const x1 = fx1 + m;
+  const z0 = fz0 - m;
+  const z1 = fz1 + m;
   const solid = new GeoBuffer();
   const lines = new LineBuffer();
   if (roof.type === "flat") {

@@ -144,6 +144,18 @@ export function topFloor(b: Building): Floor | null {
   return withRooms.sort((p, q) => q.elevation - p.elevation)[0] ?? null;
 }
 
+/**
+ * The rooms a single (flat or gable) roof spans, [x0, z0, x1, z1]: the top floor's – or the whole house's, kept in
+ * the settings by a card that shows only some rooms, so the roof over them stays as it is (#997).
+ */
+export function roofFootprint(b: Building, floor: Floor): [number, number, number, number] {
+  const frame = b.settings.roof?.frame;
+  if (frame && frame.length === 4 && frame.every((v) => Number.isFinite(v))) return frame;
+  const xs = floor.rooms.flatMap((r) => r.points.map((p) => p[0]));
+  const zs = floor.rooms.flatMap((r) => r.points.map((p) => p[1]));
+  return [Math.min(...xs), Math.min(...zs), Math.max(...xs), Math.max(...zs)];
+}
+
 /** All roof faces modules can lie on. */
 export function roofFaces(b: Building): RoofFace[] {
   const roof = b.settings.roof;
@@ -151,13 +163,12 @@ export function roofFaces(b: Building): RoofFace[] {
   if (roof.type === "custom") return (roof.sections ?? []).flatMap((s) => sectionFaces(s, sectionOverhang(b, s, s.overhang ?? roof.overhang)));
   const floor = topFloor(b);
   if (!floor) return [];
-  const xs = floor.rooms.flatMap((r) => r.points.map((p) => p[0]));
-  const zs = floor.rooms.flatMap((r) => r.points.map((p) => p[1]));
+  const [fx0, fz0, fx1, fz1] = roofFootprint(b, floor);
   const m = b.settings.wall_exterior + roof.overhang;
-  const x0 = Math.min(...xs) - m;
-  const x1 = Math.max(...xs) + m;
-  const z0 = Math.min(...zs) - m;
-  const z1 = Math.max(...zs) + m;
+  const x0 = fx0 - m;
+  const x1 = fx1 + m;
+  const z0 = fz0 - m;
+  const z1 = fz1 + m;
   const top = floor.elevation + floor.height;
   if (roof.type === "flat") return [flatFace("main", null, x0, z0, x1, z1, top + FLAT_SLAB)];
   // gable, as built by the roof: the ridge along the longer side (or the shorter one)

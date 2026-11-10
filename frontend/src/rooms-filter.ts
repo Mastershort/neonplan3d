@@ -108,7 +108,16 @@ export function roomsOnly(b: Building, ids: readonly string[]): Building {
   const top = roofFloorId(b);
   const roof = b.settings.roof;
   const keepRoof = !roof || roof.type === "none" || top === null || floors.some((f) => f.id === top);
-  return { ...b, floors, settings: keepRoof ? b.settings : { ...b.settings, roof: { ...roof, type: "none" } } };
+  if (!keepRoof) return { ...b, floors, settings: { ...b.settings, roof: { ...roof, type: "none" } } };
+  // a flat or gable roof spans the top floor's rooms: with only some of them shown it would shrink onto those and
+  // its slopes and roof windows would no longer match – it keeps the whole house's footprint (#997)
+  const auto = roof && (roof.type === "flat" || roof.type === "gable") && top !== null;
+  const topRooms = auto ? (b.floors.find((f) => f.id === top)?.rooms ?? []).filter((r) => r.points.length >= 3) : [];
+  if (!topRooms.length) return { ...b, floors };
+  const xs = topRooms.flatMap((r) => r.points.map((p) => p[0]));
+  const zs = topRooms.flatMap((r) => r.points.map((p) => p[1]));
+  const frame: [number, number, number, number] = [Math.min(...xs), Math.min(...zs), Math.max(...xs), Math.max(...zs)];
+  return { ...b, floors, settings: { ...b.settings, roof: { ...roof!, frame } } };
 }
 
 /** The floor the roof sits on: the highest with rooms (as the roof itself picks it). */

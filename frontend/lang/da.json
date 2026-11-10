@@ -2296,5 +2296,6 @@
  "camera_popup_open": "Se gennem kameraet",
  "style_slide": "Skyde (en rude glider foran den faste)",
  "preset_terrace_slide": "Løfte-skydedør",
- "preset_window_slide": "Skydevindue"
+ "preset_window_slide": "Skydevindue",
+ "mount_below_hint": "Under 0 kun uden for rummene: trin ned til en lavereliggende terrasse eller en lysskakt."
 }

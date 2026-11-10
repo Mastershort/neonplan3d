@@ -2296,5 +2296,6 @@
  "camera_popup_open": "Poglej skozi kamero",
  "style_slide": "Drsno (krilo zdrsne pred fiksno)",
  "preset_terrace_slide": "Dvižno-drsna vrata",
- "preset_window_slide": "Drsno okno"
+ "preset_window_slide": "Drsno okno",
+ "mount_below_hint": "Pod 0 samo zunaj prostorov: stopnice navzdol do poglobljene terase ali svetlobnega jaška."
 }

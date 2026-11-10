@@ -2296,5 +2296,6 @@
  "camera_popup_open": "Guarda attraverso la telecamera",
  "style_slide": "Scorrevole (un'anta scorre davanti a quella fissa)",
  "preset_terrace_slide": "Alzante scorrevole",
- "preset_window_slide": "Finestra scorrevole"
+ "preset_window_slide": "Finestra scorrevole",
+ "mount_below_hint": "Sotto 0 solo fuori dalle stanze: gradini che scendono a una terrazza ribassata o a un pozzo di luce."
 }

@@ -543,6 +543,17 @@ export function lightGlow(st: HassEntity | undefined, colorFrom?: HassEntity | u
   return { color, level };
 }
 
+/**
+ * Whether a light can show colours at all. An "effect" on a white-only light is a mood or a scene (Loxone's
+ * LightController names the mood there, #977), not a colour loop – nothing to animate. A light that does not say
+ * its colour modes is taken as able.
+ */
+export function colorCapable(st: HassEntity): boolean {
+  const modes = st.attributes.supported_color_modes;
+  if (!Array.isArray(modes) || !modes.length) return true;
+  return modes.some((m) => ["hs", "rgb", "rgbw", "rgbww", "xy"].includes(String(m)));
+}
+
 /** Rough black-body colour for 2000–6500 K, tuned to stay warm and readable on the dark floor. */
 export function kelvinToRgb(k: number): [number, number, number] {
   const t = Math.min(1, Math.max(0, (k - 2200) / (6500 - 2200)));

@@ -2296,5 +2296,6 @@
  "camera_popup_open": "Patrz przez kamerę",
  "style_slide": "Przesuwne (skrzydło przesuwa się przed stałym)",
  "preset_terrace_slide": "Drzwi podnoszono-przesuwne",
- "preset_window_slide": "Okno przesuwne"
+ "preset_window_slide": "Okno przesuwne",
+ "mount_below_hint": "Poniżej 0 tylko poza pomieszczeniami: stopnie w dół na obniżony taras lub do studzienki świetlnej."
 }

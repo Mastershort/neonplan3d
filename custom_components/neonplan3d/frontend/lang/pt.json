@@ -2296,5 +2296,6 @@
  "camera_popup_open": "Ver pela câmara",
  "style_slide": "De correr (uma folha desliza à frente da fixa)",
  "preset_terrace_slide": "Porta elevatória de correr",
- "preset_window_slide": "Janela de correr"
+ "preset_window_slide": "Janela de correr",
+ "mount_below_hint": "Abaixo de 0 só fora das divisões: degraus a descer para um terraço rebaixado ou um poço de luz."
 }

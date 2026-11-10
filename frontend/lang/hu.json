@@ -2296,5 +2296,6 @@
  "camera_popup_open": "Nézz a kamerán át",
  "style_slide": "Toló (az egyik szárny a fix elé csúszik)",
  "preset_terrace_slide": "Emelő-toló ajtó",
- "preset_window_slide": "Tolóablak"
+ "preset_window_slide": "Tolóablak",
+ "mount_below_hint": "0 alatt csak a szobákon kívül: lépcsőfokok egy mélyebben fekvő teraszhoz vagy egy fényaknához."
 }

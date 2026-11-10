@@ -453,6 +453,7 @@ const shots = [
   { name: "view-pro-locked", query: "?nopro", width: 1280, height: 800, click: "Erdgeschoss", then: "Wohnzimmer", viewScript: "v.lookThrough('camera.wohnzimmer');" },
   { name: "view-weather-rain", query: "?weather=pouring", width: 1280, height: 800, wait: 1200 },
   { name: "view-weather-snow", query: "?weather=snowy", width: 1280, height: 800, wait: 1200 },
+  { name: "view-weather-fog", query: "?weather=fog", width: 1280, height: 800, viewScript: "v.building.settings.weather_effects = ['rain', 'snow', 'fog', 'clouds', 'lightning', 'sky']; v.syncDevices(true);", wait: 1200, afterWait: 1500 },
   { name: "view-trail", query: "", width: 1280, height: 800, click: "Erdgeschoss", then: "Spur", wait: 1500 },
   // Zeitreise (Pro): the invented week of the demo replayed – time bar, clock, amber frame, read-only room panel
   { name: "view-timetravel", query: "?tt=07:42", width: 1280, height: 800, click: "Erdgeschoss" },

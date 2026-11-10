@@ -84,6 +84,18 @@ test("a card without the top floor shows no roof: it would come down onto the ne
   assert.equal(roomsOnly(b, ["kids"]).settings, b.settings);
 });
 
+test("a card with some rooms of the top floor keeps the whole house's roof footprint (#997)", () => {
+  const b = house();
+  b.floors[1].rooms = [room("attic", 0, 4), room("store", 4, 7)];
+  b.settings = { ...b.settings, roof: { ...b.settings.roof, type: "gable" } };
+  const cut = roomsOnly(b, ["attic"]);
+  assert.equal(cut.settings.roof.type, "gable");
+  assert.deepEqual(cut.settings.roof.frame, [0, 0, 7, 3]);
+  // a roof of sections has its own coordinates and needs no frame
+  b.settings = { ...b.settings, roof: { ...b.settings.roof, type: "custom", sections: [] } };
+  assert.equal(roomsOnly(b, ["attic"]).settings.roof.frame, undefined);
+});
+
 test("rooms the plan no longer has are left out of a card's list", () => {
   assert.deepEqual(shownRoomIds(house(), ["kids", "gone"]), ["kids"]);
   assert.deepEqual(shownRoomIds(house(), []), []);
