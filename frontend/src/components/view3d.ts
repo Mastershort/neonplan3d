@@ -32,6 +32,7 @@ import { carState, type CarState, heatSensorOn, roomClimateValue,
   cooktopLevel,
   onlyColor,
   fixedGlowColor,
+  colorCapable,
   fanSpeed,
   apOnline,
   isPulseDrive,
@@ -3667,7 +3668,8 @@ export class Fp3dView3d extends LitElement {
       x: f.x,
       z: f.z,
       y,
-      icon: iconSvg("light"),
+      // an own symbol wins over the lamp's (#1005)
+      icon: f.icon ? mdiIcon(f.icon) : iconSvg("light"),
       name: f.name || (entity ? entityName(hass, entity) : furnitureName(hass, f.type)),
       text: st ? stateText(hass, st) : "",
       active: st ? isActive(st) : false,
@@ -3689,8 +3691,15 @@ export class Fp3dView3d extends LitElement {
       pack: item ? f.type : null,
       lightY: item ? (item.mount === "ceiling" ? base : base + f.h * 0.85) : undefined,
       // a running colour effect – not a "mode" some integrations report as their effect (LocalTuya: "white",
-      // "colour"; others "manual", "default", an empty one)
-      effect: !!st && st.state === "on" && typeof st.attributes.effect === "string" && !/^(none|off|solid|static|normal|white|colou?r|rgb|manual|default|-|)$/i.test(st.attributes.effect.trim()),
+      // "colour"; others "manual", "default", an empty one), not a mood of a white-only light, and never while the
+      // lamp has a fixed colour (#977)
+      effect:
+        !!st &&
+        st.state === "on" &&
+        !f.glow_color &&
+        colorCapable(st) &&
+        typeof st.attributes.effect === "string" &&
+        !/^(none|off|solid|static|normal|white|colou?r|rgb|manual|default|-|)$/i.test(st.attributes.effect.trim()),
       variant: f.variant,
       show: f.marker ?? undefined,
       fromFurniture: true,

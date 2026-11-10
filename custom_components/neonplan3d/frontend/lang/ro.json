@@ -2296,5 +2296,6 @@
  "camera_popup_open": "Privește prin cameră",
  "style_slide": "Glisant (o foaie alunecă în fața celei fixe)",
  "preset_terrace_slide": "Ușă glisantă cu ridicare",
- "preset_window_slide": "Fereastră glisantă"
+ "preset_window_slide": "Fereastră glisantă",
+ "mount_below_hint": "Sub 0 doar în afara camerelor: trepte în jos spre o terasă coborâtă sau o curte de lumină."
 }

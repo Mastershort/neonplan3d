@@ -391,6 +391,8 @@ export type ModuleField =
   | { kind: "entity"; label: string; value: string | null; auto?: string | null; filter(id: string): boolean; set(v: string | null): void }
   | { kind: "select"; label: string; value: string; options: { id: string; label: string }[]; set(v: string): void }
   | { kind: "check"; label: string; value: boolean; set(v: boolean): void }
+  /** A plain number (a fixed flow rate stamped on a pump, #987); empty = none. */
+  | { kind: "number"; label: string; value: number | null; step?: number; min?: number; max?: number; placeholder?: string; hint?: string; set(v: number | null): void }
   | { kind: "button"; label: string; primary?: boolean; title?: string; onTap(): void }
   /** A list of lines to edit, one per line (sentences, names). */
   | { kind: "lines"; label: string; value: string[]; placeholder?: string; set(v: string[]): void };

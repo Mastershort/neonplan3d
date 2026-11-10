@@ -2296,5 +2296,6 @@
  "camera_popup_open": "Katso kameran läpi",
  "style_slide": "Liuku (lasi liukuu kiinteän eteen)",
  "preset_terrace_slide": "Nosto-liukuovi",
- "preset_window_slide": "Liukuikkuna"
+ "preset_window_slide": "Liukuikkuna",
+ "mount_below_hint": "Alle 0 vain huoneiden ulkopuolella: portaat alas upotetulle terassille tai valokuiluun."
 }

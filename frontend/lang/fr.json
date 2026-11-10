@@ -2296,5 +2296,6 @@
  "camera_popup_open": "Regarder par la caméra",
  "style_slide": "Coulissant (un vantail glisse devant le fixe)",
  "preset_terrace_slide": "Porte levante-coulissante",
- "preset_window_slide": "Fenêtre coulissante"
+ "preset_window_slide": "Fenêtre coulissante",
+ "mount_below_hint": "En dessous de 0 seulement hors des pièces : des marches qui descendent vers une terrasse en contrebas ou une cour anglaise."
 }

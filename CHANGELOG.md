@@ -4,6 +4,18 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 [releases page](https://github.com/Mastershort/neonplan3d/releases). Ideas and votes:
 [Discussions → Ideas](https://github.com/Mastershort/neonplan3d/discussions/categories/ideas).
 
+## 3.0.4
+
+### Added
+- **Ground mist in fog:** with the fog effect switched on, soft swathes of mist drift low over the ground around the house; the grey behind the house alone was hard to see (#990, thanks PetrMa).
+- **Outdoor steps below the floor level:** outside the rooms the height above the floor may go below 0 (down to −5 m) – steps down to a sunken terrace or a light well (#897, thanks fammastrodaiuto).
+
+### Fixed
+- **Own symbol on lamps and in the room list:** a lamp's own symbol shows in its pin, and the room panel's device list shows the own symbols of furniture and placed devices (#1005, thanks EduK85).
+- **Fixed colour and moods:** a light whose integration reports a mood or scene as its "effect" (Loxone) no longer turns through the colour wheel; a lamp with a fixed colour never animates, and a white-only light never runs a colour effect (#977, thanks chRyX-giT).
+- **Sun arc and compass with the floors pulled apart:** the ring now rides with the ground floor instead of staying down at the cellar (#998, thanks RkcCorian).
+- **Roof in a card with some rooms of the top floor:** a flat or gable roof kept the footprint of the shown rooms only, so its slopes and roof windows no longer matched; the card keeps the whole house's roof (#997, thanks RkcCorian).
+
 ## 3.0.3
 
 ### Added

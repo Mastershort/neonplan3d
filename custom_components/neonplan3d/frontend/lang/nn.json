@@ -2296,5 +2296,6 @@
  "camera_popup_open": "Sjå gjennom kameraet",
  "style_slide": "Skyve (ei rute glid framfor den faste)",
  "preset_terrace_slide": "Løfte-skyvedør",
- "preset_window_slide": "Skyvevindauge"
+ "preset_window_slide": "Skyvevindauge",
+ "mount_below_hint": "Under 0 berre utanfor romma: trinn ned til ein nedsenka terrasse eller ein lyssjakt."
 }

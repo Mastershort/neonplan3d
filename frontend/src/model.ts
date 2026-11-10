@@ -505,6 +505,12 @@ export interface RoofSettings {
   overhang: number;
   /** Gable roof: ridge along the long side (default) or across, along the short side (terraced houses). */
   ridge?: "long" | "short" | null;
+  /**
+   * The footprint a flat or gable roof spans [x0, z0, x1, z1] (the top floor's rooms, without walls and overhang)
+   * when it is not that of the rooms present: a card that shows only some rooms keeps the whole house's roof over
+   * them (#997). Never saved; set by roomsOnly.
+   */
+  frame?: [number, number, number, number] | null;
   /** Roof sections of a "custom" roof. */
   sections?: RoofSection[];
   /** Solar fields on the roof faces. */

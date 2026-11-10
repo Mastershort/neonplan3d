@@ -169,6 +169,8 @@ type FixKind = "room" | "opening" | "furniture" | "device" | "wall" | "outdoor";
 
 /** Highest mount height the backend accepts (schema: 0–10 m); "40" meant as centimetres would refuse every save. */
 const MAX_MOUNT_Y = 10;
+/** How far below the floor a piece outside the rooms may stand: steps down to a sunken terrace (#897). */
+const MIN_MOUNT_Y_OUT = -5;
 
 type Tool = "select" | "rect" | "polygon" | "measure" | "opening" | "furniture" | "outdoor" | "hole" | "wall" | "roof" | "energy" | "pool";
 
@@ -1054,11 +1056,11 @@ export class Fp3dEditor extends LitElement {
                 type=${this.unit === "imperial" ? "text" : "number"}
                 inputmode="decimal"
                 step="0.05"
-                min="0"
+                min=${this.minMountY(f)}
                 .value=${this.unit === "imperial" ? formatImperial(f.mount_y ?? mountBase(this.floor!, f)) : String(Math.round((f.mount_y ?? mountBase(this.floor!, f)) * 100) / 100)}
                 @change=${(e: Event) => {
                   const v = this.readLen((e.target as HTMLInputElement).value);
-                  if (v !== null && v >= 0) this.updateFurniture({ mount_y: Math.round(Math.min(MAX_MOUNT_Y, v) * 1000) / 1000 });
+                  if (v !== null && v >= this.minMountY(f)) this.updateFurniture({ mount_y: Math.round(Math.min(MAX_MOUNT_Y, v) * 1000) / 1000 });
                 }}
               />
             </label>`
@@ -6787,7 +6789,7 @@ export class Fp3dEditor extends LitElement {
         for (const m of floor.furniture) {
           if (!set.has(m.id)) continue;
           Object.assign(m, slideAlong(frame, m, ds));
-          if (dy !== null && canLift(m)) m.mount_y = Math.round(Math.min(MAX_MOUNT_Y, Math.max(0, mountBase(floor, m) + dy)) * 1000) / 1000;
+          if (dy !== null && canLift(m)) m.mount_y = Math.round(Math.min(MAX_MOUNT_Y, Math.max(this.minMountY(m, floor), mountBase(floor, m) + dy)) * 1000) / 1000;
         }
       },
       base,
@@ -7085,7 +7087,7 @@ export class Fp3dEditor extends LitElement {
         const m = floor.furniture.find((x) => x.id === id);
         if (!m) return;
         Object.assign(m, slideAlong(frame, m, ds));
-        if (y0 !== null) m.mount_y = Math.round(Math.min(MAX_MOUNT_Y, Math.max(0, y0)) * 1000) / 1000;
+        if (y0 !== null) m.mount_y = Math.round(Math.min(MAX_MOUNT_Y, Math.max(this.minMountY(m, floor), y0)) * 1000) / 1000;
       },
       base,
       history,
@@ -7122,7 +7124,7 @@ export class Fp3dEditor extends LitElement {
           const nt = y1 ?? bottom + m.h;
           if (nt - nb < 0.03) return;
           m.h = round(nt - nb);
-          if (y0 !== null && canLift(m)) m.mount_y = round(Math.max(0, nb));
+          if (y0 !== null && canLift(m)) m.mount_y = round(Math.max(this.minMountY(m, floor), nb));
         }
       },
       base,
@@ -10116,6 +10118,26 @@ export class Fp3dEditor extends LitElement {
           >`;
         case "check":
           return html`<label class="fp3d-check fp3d-wide"><input type="checkbox" .checked=${f.value} ?disabled=${!admin} @change=${(e: Event) => f.set((e.target as HTMLInputElement).checked)} /> ${f.label}</label>`;
+        case "number":
+          // a plain number next to the entity pickers (a fixed flow rate, #987); cleared = none
+          return html`<label class="fp3d-field fp3d-wide"
+              >${f.label}
+              <input
+                type="number"
+                inputmode="decimal"
+                step=${f.step ?? 1}
+                min=${f.min ?? nothing}
+                max=${f.max ?? nothing}
+                placeholder=${f.placeholder ?? ""}
+                .value=${f.value === null ? "" : String(f.value)}
+                ?disabled=${!admin}
+                @change=${(e: Event) => {
+                  const raw = (e.target as HTMLInputElement).value.trim().replace(",", ".");
+                  const v = raw === "" ? null : Number(raw);
+                  if (v === null || Number.isFinite(v)) f.set(v);
+                }}
+              /></label>
+            ${f.hint ? html`<p class="fp3d-sub fp3d-wide">${f.hint}</p>` : nothing}`;
         case "button":
           return html`<button class="fp3d-btn ${f.primary ? "fp3d-primary" : ""} fp3d-wide" ?disabled=${!admin} title=${f.title ?? ""} @click=${() => f.onTap()}>${f.label}</button>`;
         case "lines":
@@ -10544,6 +10566,14 @@ export class Fp3dEditor extends LitElement {
   }
 
   /** A length field: a number field in metres, a text field in feet and inches (8' 2", 98in, 2.5m all work). */
+  /**
+   * The lowest height a piece may be set to: 0 in a room; outside the rooms it may go below the floor level – outdoor
+   * steps down to a sunken terrace or a light well (#897).
+   */
+  private minMountY(f: Pick<Furniture, "x" | "z">, floor: Floor | null | undefined = this.floor): number {
+    return floor && !floor.rooms.some((r) => r.points.length >= 3 && pointInPolygon([f.x, f.z], r.points)) ? MIN_MOUNT_Y_OUT : 0;
+  }
+
   private len(label: string, value: number, onChange: (v: number) => void, step = 0.01, min?: number) {
     if (this.unit !== "imperial") return this.num(label, value, onChange, step, min);
     return html`<label class="fp3d-field"
@@ -11509,7 +11539,8 @@ export class Fp3dEditor extends LitElement {
               >`
           : nothing}
         ${canLift(f) && this.floor
-          ? html`${this.len(this.t("mount_height"), f.mount_y ?? mountBase(this.floor, f), (v) => this.updateFurniture({ mount_y: Math.min(MAX_MOUNT_Y, Math.max(0, v)) }), 0.01, 0)}
+          ? html`${this.len(this.t("mount_height"), f.mount_y ?? mountBase(this.floor, f), (v) => this.updateFurniture({ mount_y: Math.min(MAX_MOUNT_Y, Math.max(this.minMountY(f), v)) }), 0.01, this.minMountY(f))}
+              ${this.minMountY(f) < 0 && (f.mount_y ?? 0) < 0 ? html`<p class="fp3d-sub fp3d-wide">${this.t("mount_below_hint")}</p>` : nothing}
               ${f.mount_y != null ? html`<button class="fp3d-btn fp3d-field-btn" ?disabled=${!admin} @click=${() => this.updateFurniture({ mount_y: null })}>${this.t("height_auto")}</button>` : nothing}`
           : nothing}
       </div>

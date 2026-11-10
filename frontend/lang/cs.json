@@ -2296,5 +2296,6 @@
  "camera_popup_open": "Dívat se kamerou",
  "style_slide": "Posuvné (křídlo zajede před pevné)",
  "preset_terrace_slide": "Zvedací posuvné dveře",
- "preset_window_slide": "Posuvné okno"
+ "preset_window_slide": "Posuvné okno",
+ "mount_below_hint": "Pod 0 jen mimo místnosti: schody dolů na sníženou terasu nebo do světlíku."
 }

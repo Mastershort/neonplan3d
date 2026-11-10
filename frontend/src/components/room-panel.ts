@@ -328,6 +328,15 @@ export class Fp3dRoomPanel extends LitElement {
     </div>`;
   }
 
+  /** A row's symbol: the own one of the furniture or the placed device behind this entity (#1005), else by kind. */
+  private rowIcon(kind: DeviceKind, id: string) {
+    const f = this.floor;
+    const own = f?.furniture.find((m) => m.icon && (m.entity === id || m.fan === id))?.icon ?? f?.placements.find((p) => p.icon && p.entity_id === id)?.icon;
+    if (!own) return icon(kind);
+    const clean = own.replace(/^mdi:/, "").replace(/[^a-z0-9-]/gi, "");
+    return html`<ha-icon icon=${`mdi:${clean}`} style="--mdc-icon-size:18px"></ha-icon>`;
+  }
+
   private lightRow(st: HassEntity) {
     const a = st.attributes;
     const on = st.state === "on";
@@ -340,7 +349,7 @@ export class Fp3dRoomPanel extends LitElement {
     const kMax = (a.max_color_temp_kelvin as number | undefined) ?? 6500;
     const id = st.entity_id;
     return html`<div class="fp3d-rp-row">
-      <span class="fp3d-rp-icon ${on ? "fp3d-rp-on" : ""}">${icon("light")}</span>
+      <span class="fp3d-rp-icon ${on ? "fp3d-rp-on" : ""}">${this.rowIcon("light", id)}</span>
       ${this.nameButton(id)}
       <span class="fp3d-rp-state">${this.stateOf(st)}</span>
       ${this.toggle(st, on, () => this.call("light", "toggle", { entity_id: id }))}
@@ -394,7 +403,7 @@ export class Fp3dRoomPanel extends LitElement {
     const id = st.entity_id;
     const na = isUnavailable(st);
     return html`<div class="fp3d-rp-row">
-      <span class="fp3d-rp-icon">${icon("cover")}</span>
+      <span class="fp3d-rp-icon">${this.rowIcon("cover", st.entity_id)}</span>
       ${this.nameButton(id)}
       <span class="fp3d-rp-state">${this.stateOf(st)}</span>
       <div class="fp3d-rp-buttons">
@@ -446,7 +455,7 @@ export class Fp3dRoomPanel extends LitElement {
     const modes = (a.hvac_modes as string[] | undefined) ?? [];
     const set = (v: number) => this.call("climate", "set_temperature", { entity_id: id, temperature: Math.min(max, Math.max(min, Math.round(v / step) * step)) });
     return html`<div class="fp3d-rp-row">
-      <span class="fp3d-rp-icon ${a.hvac_action === "heating" ? "fp3d-rp-on" : ""}">${icon("climate")}</span>
+      <span class="fp3d-rp-icon ${a.hvac_action === "heating" ? "fp3d-rp-on" : ""}">${this.rowIcon("climate", st.entity_id)}</span>
       ${this.nameButton(id)}
       <span class="fp3d-rp-state">${this.stateOf(st)}</span>
       ${target !== null
@@ -495,7 +504,7 @@ export class Fp3dRoomPanel extends LitElement {
     const na = isUnavailable(st) || st.state === "off";
     const title = [a.media_title, a.media_artist].filter((x) => typeof x === "string" && x).join(" · ");
     return html`<div class="fp3d-rp-row">
-      <span class="fp3d-rp-icon ${st.state === "playing" ? "fp3d-rp-on" : ""}">${icon("media")}</span>
+      <span class="fp3d-rp-icon ${st.state === "playing" ? "fp3d-rp-on" : ""}">${this.rowIcon("media", st.entity_id)}</span>
       ${this.nameButton(id)}
       <span class="fp3d-rp-state">${this.stateOf(st, this.stateLabel(st.state))}</span>
       ${title ? html`<p class="fp3d-rp-media fp3d-rp-wide">${title}</p>` : nothing}
@@ -531,7 +540,7 @@ export class Fp3dRoomPanel extends LitElement {
     const on = kind === "lock" ? st.state === "unlocked" || st.state === "open" : st.state === "on";
     const act = () => (kind === "lock" ? this.call("lock", on ? "lock" : "unlock", { entity_id: id }) : this.call(domain, "toggle", { entity_id: id }));
     return html`<div class="fp3d-rp-row">
-      <span class="fp3d-rp-icon ${on ? "fp3d-rp-on" : ""}">${icon(kind)}</span>
+      <span class="fp3d-rp-icon ${on ? "fp3d-rp-on" : ""}">${this.rowIcon(kind, id)}</span>
       ${this.nameButton(id)}
       <span class="fp3d-rp-state">${this.stateOf(st)}</span>
       ${this.toggle(st, on, act)}
@@ -565,7 +574,7 @@ export class Fp3dRoomPanel extends LitElement {
     const kind = kindOf(st.entity_id)!;
     const warn = kind === "binary" && st.state === "on";
     return html`<div class="fp3d-rp-row">
-      <span class="fp3d-rp-icon ${warn ? "fp3d-rp-on" : ""}">${icon(kind)}</span>
+      <span class="fp3d-rp-icon ${warn ? "fp3d-rp-on" : ""}">${this.rowIcon(kind, st.entity_id)}</span>
       ${this.nameButton(st.entity_id)}
       <span class="fp3d-rp-state">${this.stateOf(st)}</span>
     </div>`;

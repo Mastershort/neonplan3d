@@ -2296,5 +2296,6 @@
  "camera_popup_open": "通过摄像头查看",
  "style_slide": "推拉（一扇滑到固定扇前面）",
  "preset_terrace_slide": "提升推拉门",
- "preset_window_slide": "推拉窗"
+ "preset_window_slide": "推拉窗",
+ "mount_below_hint": "只有在房间之外才能低于 0：通往下沉露台或采光井的台阶。"
 }

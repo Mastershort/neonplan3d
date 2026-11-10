@@ -2296,5 +2296,6 @@
  "camera_popup_open": "Titta genom kameran",
  "style_slide": "Skjut (en ruta glider framför den fasta)",
  "preset_terrace_slide": "Lyft-skjutdörr",
- "preset_window_slide": "Skjutfönster"
+ "preset_window_slide": "Skjutfönster",
+ "mount_below_hint": "Under 0 bara utanför rummen: trappsteg ner till en nedsänkt terrass eller en ljusgård."
 }

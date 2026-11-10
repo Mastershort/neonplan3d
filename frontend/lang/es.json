@@ -2296,5 +2296,6 @@
  "camera_popup_open": "Mirar a través de la cámara",
  "style_slide": "Corredera (una hoja se desliza delante de la fija)",
  "preset_terrace_slide": "Puerta elevadora corredera",
- "preset_window_slide": "Ventana corredera"
+ "preset_window_slide": "Ventana corredera",
+ "mount_below_hint": "Por debajo de 0 solo fuera de las habitaciones: escalones que bajan a una terraza hundida o a un patio de luces."
 }
