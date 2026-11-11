@@ -77,3 +77,15 @@ test("pets stay indoors: only doors between two rooms are ways, never round the 
   // and not while that door is reported shut
   assert.equal(petMap(FloorMap, { ...plan, floors: [joined] }, joined, new Set(["inner"]), []).path(from, to), null);
 });
+
+test("upstairs, a door between rooms drawn a wall's width apart is a way, not a door into the air (#970)", () => {
+  const door = { id: "d", room_id: "a", edge: 1, offset: 2.5, width: 0.8, type: "door" as const, sill: 0, height: 2.1, hinge: "left" as const, leaves: 1 as const, swing: "in" as const, cover: null, contact: null, contact2: null, tilt: null };
+  // two rooms with a 12 cm gap between them: the wall there is room a's "outer" wall, room b has none on that side
+  const up = { ...newFloor("og", "OG", 2.75), rooms: [rect("a", 0, 0, 4, 5), { ...rect("b", 4.12, 0, 8, 5), wall_heights: [null, null, null, 0] }], openings: [door] };
+  const map = new FloorMap({ ...emptyBuilding(), floors: [up] }, up);
+  assert.equal(map.doors.length, 1);
+  assert.ok(map.path([1, 2.5], [7, 2.5]), "from room to room");
+  // the same door with nothing behind it still leads nowhere
+  const alone = { ...up, rooms: [rect("a", 0, 0, 4, 5)] };
+  assert.equal(new FloorMap({ ...emptyBuilding(), floors: [alone] }, alone).doors.length, 0);
+});
