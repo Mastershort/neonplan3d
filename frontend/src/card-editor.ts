@@ -1,6 +1,7 @@
 // Visual editor of the dashboard card: Home Assistant shows it in the card dialog, so nobody has to
 // write YAML. It follows Home Assistant's colours (the dialog is light or dark with the user's theme).
 
+import { styleOptions } from "./style-select.ts";
 import { css, html, LitElement, nothing, svg } from "lit";
 import { fetchBuilding, listPlans, MAIN_PLAN, type PlanEntry } from "./api.ts";
 import { labOn, UNRELEASED } from "./features.ts";
@@ -246,6 +247,16 @@ export class Floorplan3dCardEditor extends LitElement {
       >${this.t(label)}
       <select @change=${(e: Event) => this.set(key, (e.target as HTMLSelectElement).value as CardConfig[K])}>
         ${choices.map(([value, text]) => html`<option value=${value} ?selected=${value === current}>${this.t(text)}</option>`)}
+      </select>
+    </label>`;
+  }
+
+  /** A style choice (grouped); an empty choice removes the option. */
+  private styleSelect(key: "theme" | "theme_evening" | "theme_night", label: I18nKey, current: string, opts: { auto?: boolean; house?: boolean; none?: boolean }) {
+    return html`<label class="field"
+      >${this.t(label)}
+      <select @change=${(e: Event) => this.set(key, (e.target as HTMLSelectElement).value || undefined)}>
+        ${styleOptions((k) => this.t(k), current, opts)}
       </select>
     </label>`;
   }
@@ -604,7 +615,21 @@ export class Floorplan3dCardEditor extends LitElement {
             }}
           />
         </label>
-        ${this.select("theme", "theme", [["neon", "theme_neon"], ["blueprint", "theme_blueprint"], ["day", "theme_day"], ["auto", "theme_auto"]], v.theme)}
+        ${this.styleSelect("theme", "style", v.theme ?? "neon", { auto: true, house: true })}
+        ${v.theme && v.theme !== "house" && v.theme !== "auto"
+          ? html`${this.styleSelect("theme_evening", "theme_evening", this._config.theme_evening ?? "", { none: true })}
+              ${this.styleSelect("theme_night", "theme_night", this._config.theme_night ?? "", { none: true })}
+              <p class="hint">${this.t("theme_schedule_hint")}</p>`
+          : nothing}
+        <label class="field"
+          >${this.t("style_entity")}
+          <input
+            type="text"
+            placeholder="input_select.neonplan_stil"
+            .value=${this._config.style_entity ?? ""}
+            @change=${(e: Event) => this.set("style_entity", (e.target as HTMLInputElement).value.trim() || undefined)}
+          />
+        </label>
         ${this.select("clock", "clock", [["off", "clock_off"], ["tl", "clock_tl"], ["tr", "clock_tr"], ["bl", "clock_bl"], ["br", "clock_br"]], v.clock ?? "off")}
         <label class="field"
           >${this.t("accent")}

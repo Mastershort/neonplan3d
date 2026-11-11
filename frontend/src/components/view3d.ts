@@ -104,6 +104,7 @@ const GRID_ICON = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" s
 /** The grid connection during a power outage: the bolt crossed out (#214). */
 const GRID_OFF_ICON = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/><path d="M3 3l18 18"/></svg>';
 import { STAGE, type Theme } from "../themes.ts";
+import { resolveStyle, styleById, styleFromText, STYLES, type StyleDef } from "../looks.ts";
 import { HEAT_SCALES, heatColor, heatGradient, roomValues, type HeatMode } from "../heatmap.ts";
 import { furnitureName } from "../furniture-names.ts";
 import { fetchImage, MAIN_PLAN, saveBuilding } from "../api.ts";
@@ -149,7 +150,7 @@ import { loadVoice, micProbeAsked, micProbeDone, voiceArea, voicePipeline } from
 import { callCount, cleaningCall, everythingOff, roomOfArea } from "../room-actions.ts";
 import { deviceLabel } from "../screen-info.ts";
 import { FRONTEND_VERSION } from "../building-controller.ts";
-import { answerAsk, subscribeAsk, type Ask, type ScreenAnnouncement, type ScreenReload } from "../api.ts";
+import { answerAsk, subscribeAsk, type Ask, type ScreenAnnouncement, type ScreenReload, type ScreenStyle } from "../api.ts";
 import { pipePlanner } from "../pipe-planner.ts";
 import type { ClockPos } from "../card-config.ts";
 import { Director, HOLD_DEFAULT, directorAny, doorbellCamera, doorbellEntities, doorbellRang, triggerFired, type DirectorSettings, type Shot } from "../director.ts";
@@ -268,6 +269,10 @@ export class Fp3dView3d extends LitElement {
     markerNames: { attribute: false },
     heatMode: { attribute: false },
     theme: { attribute: false },
+    themeEvening: { attribute: false },
+    themeNight: { attribute: false },
+    styleEntity: { attribute: false },
+    _styleOverride: { state: true },
     clock: { attribute: false },
     _clockTick: { state: true },
     accent: { attribute: false },
@@ -406,8 +411,18 @@ export class Fp3dView3d extends LitElement {
   declare heatMode: HeatMode;
   /** Imported furniture packs (a new list rebuilds pack furniture). */
   declare packs: unknown;
-  /** The look; "auto" is Day while the sun is up and Neon at night (D623). */
-  declare theme: Theme | "auto";
+  /**
+   * The look or style: a style id, "auto" (Day while the sun is up and Neon at night, D623) or "house" (the house's
+   * plan for day, evening and night).
+   */
+  declare theme: string;
+  /** A card's own styles for the evening and the night (with `theme` as its day style). */
+  declare themeEvening: string | null;
+  declare themeNight: string | null;
+  /** A helper entity whose state names the style (the card's own; else the house's). */
+  declare styleEntity: string | null;
+  /** A style set from outside for this device (the action `neonplan3d.set_style`, a voice command), until a time. */
+  private declare _styleOverride: { style: string; until: number | null } | null;
   /** Date and time in a corner of the view (D631); null or "off": none. */
   declare clock: ClockPos | null;
   private declare _clockTick: number;
@@ -839,6 +854,12 @@ export class Fp3dView3d extends LitElement {
       this.watchTrail();
     }
     document.addEventListener("visibilitychange", this.onVisible);
+    try {
+      const kept = JSON.parse(localStorage.getItem(STYLE_OVERRIDE_KEY) ?? "null") as { style: string; until: number | null } | null;
+      this._styleOverride = kept && (kept.until === null || kept.until > Date.now()) && styleById(kept.style) ? kept : null;
+    } catch {
+      this._styleOverride = null;
+    }
     this.watchAsk();
   }
 
@@ -851,6 +872,7 @@ export class Fp3dView3d extends LitElement {
       (ask) => void this.onAsk(ask),
       (a) => void this.onAnnounce(a),
       (r) => this.onReload(r),
+      (st) => this.onStyle(st),
       { kind: this.viewKind, screen: this.screen, template: this.template, device: deviceLabel(), version: FRONTEND_VERSION, ...(this.planId && this.planId !== MAIN_PLAN ? { plan: this.planId } : {}) },
     ).catch(() => {
       // a replay or an older backend: nothing to listen to
@@ -1004,7 +1026,7 @@ export class Fp3dView3d extends LitElement {
       this.viewer.setWallMode(this.wallMode);
       this.viewer.setKeepView(this.keepView);
       this.viewer.setAngleLock(this.angleLock);
-      this.viewer.setTheme(this.effectiveTheme());
+      this.viewer.setStyle(this.effectiveStyle());
       this.viewer.setAccent(this.accent ?? null);
       this.viewer.setFurnishMode(this.furnish);
       this.viewer.setSurfaceGrab(this.surfaceGrab ?? null);
@@ -1124,7 +1146,7 @@ export class Fp3dView3d extends LitElement {
     if (changed.has("keepRoof")) v.setKeepRoof(this.keepRoof);
     if (changed.has("hideRoof")) v.setHideRoof(this.hideRoof);
     if (changed.has("floorStack")) v.setFloorStack(this.floorStack);
-    if (changed.has("theme")) v.setTheme(this.effectiveTheme());
+    if (changed.has("theme") || changed.has("themeEvening") || changed.has("themeNight") || changed.has("styleEntity") || changed.has("_styleOverride") || changed.has("building")) v.setStyle(this.effectiveStyle());
     if (changed.has("accent")) v.setAccent(this.accent ?? null);
     if (changed.has("surfaceGrab")) v.setSurfaceGrab(this.surfaceGrab ?? null);
     if (changed.has("furnishTypes")) v.setFurnishTypes(this.furnishTypes ?? null);
@@ -1678,8 +1700,8 @@ export class Fp3dView3d extends LitElement {
     // the compass ring's letters: the first letter of each direction in the user's language
     const letter = (k: I18nKey) => translate(hass, k).charAt(0).toUpperCase();
     v.setSunPath(this.sunFx === false ? null : this.sunPathToday(hass), [letter("compass_n"), letter("compass_e"), letter("compass_s"), letter("compass_w")], hourCycle(hass));
-    // the automatic look follows the sun (setTheme ignores a look it already shows)
-    if (this.theme === "auto") v.setTheme(this.effectiveTheme());
+    // the style follows the sun, the clock and the helper entity (setStyle ignores a style it already shows)
+    v.setStyle(this.effectiveStyle());
     // the weather outside: clouds darken the sky, rain, snow and fog fall over the plot
     const raw = this.weather && !this.dimmed && hasFeature("weather") ? weatherState(hass, weatherEntity(hass, this.weatherEntityId ?? b.settings.weather_entity), b.settings.rain_entity) : null;
     const weather = raw ? limitEffects(raw, b.settings.weather_effects) : null;
@@ -4653,6 +4675,12 @@ export class Fp3dView3d extends LitElement {
    */
   private async handleSentence(hass: HomeAssistant, b: Building, v: Awaited<ReturnType<typeof loadVoice>>, text: string, speak: boolean): Promise<string | null> {
     const say = (phase: "wait" | "listen" | "done" | "error", t: string) => this.sayVoice(phase, t);
+    const styled = this.replay ? null : this.styleSentence(text);
+    if (styled) {
+      say("done", `“${text}” – ${styled}`);
+      if (speak) void v.speak(hass, styled, voicePipeline());
+      return styled;
+    }
     const { devices, items } = this.spokenDevices(hass, b, v.SYNONYMS);
     // "Saug die Küche", "Saug hier", "Mach da alles aus": the robot vacuum or everything off for a room
     const intent = this.replay ? null : v.roomIntent(text, b, hass.language, (r) => (r.area_id ? hass.areas?.[r.area_id]?.name : null));
@@ -5942,10 +5970,76 @@ export class Fp3dView3d extends LitElement {
     void this.hass.callService(domain, domain === "switch" ? "turn_on" : "press", { entity_id: drive });
   }
 
-  /** The look shown: the chosen one, or by the sun for "auto" – Day above the horizon, Neon below. */
+  /** The classic look under the style shown: pins, menus and the stage follow it. */
   private effectiveTheme(): Theme {
-    if (this.theme !== "auto") return this.theme;
-    return this.hass?.states["sun.sun"]?.state === "above_horizon" ? "day" : "neon";
+    return this.effectiveStyle().base;
+  }
+
+  /** The style shown now: a set override, the helper entity, the screen's choice, the time of day. */
+  private effectiveStyle(): StyleDef {
+    const hass = this.hass;
+    const settings = this.building?.settings;
+    const over = this._styleOverride;
+    const live = over && (over.until === null || over.until > Date.now()) ? over.style : null;
+    const entity = this.styleEntity || settings?.style_entity || null;
+    const names: Record<string, string[]> = {};
+    for (const s of STYLES) names[s.id] = [translate(hass, `style_${s.id}` as I18nKey)];
+    const sun = hass?.states["sun.sun"]?.state;
+    const id = resolveStyle({
+      choice: this.theme,
+      evening: this.themeEvening,
+      night: this.themeNight,
+      plan: settings,
+      entityState: entity ? (hass?.states[entity]?.state ?? null) : null,
+      override: live,
+      now: new Date(),
+      sunUp: sun === "above_horizon" ? true : sun === "below_horizon" ? false : null,
+      names,
+    });
+    return styleById(id) ?? styleById("neon")!;
+  }
+
+  /** Remembers a style set from outside for this device ("" or "reset": back to the setting). */
+  private setStyleOverride(style: string, minutes: number | null): string | null {
+    const id = style === "" || style === "reset" || style === "auto_reset" ? null : (styleById(style) ? style : styleFromText(style));
+    this._styleOverride = id ? { style: id, until: minutes ? Date.now() + minutes * 60000 : null } : null;
+    try {
+      if (this._styleOverride) localStorage.setItem(STYLE_OVERRIDE_KEY, JSON.stringify(this._styleOverride));
+      else localStorage.removeItem(STYLE_OVERRIDE_KEY);
+    } catch {
+      // private mode: for this page only
+    }
+    this.viewer?.setStyle(this.effectiveStyle());
+    return id;
+  }
+
+  /** The action `neonplan3d.set_style` for the open screens: this view when it is named, or when none is. */
+  private onStyle(st: ScreenStyle): void {
+    const mine = (this.screen ?? "").trim().toLowerCase();
+    if (st.screens.length && !st.screens.some((x) => x.trim().toLowerCase() === mine)) return;
+    this.setStyleOverride(st.style, st.minutes ?? null);
+  }
+
+  /** "Stil Wohnlich", "NeonPlan auf Pastell", "style homely": switches this view's style (null: no style sentence). */
+  private styleSentence(text: string): string | null {
+    const hass = this.hass;
+    const words = text.toLowerCase().trim();
+    const keyword = /\b(stil|style|look|design|farbstil|ansicht|optik)\b/.test(words);
+    const rest = words
+      .replace(/\b(neon ?plan|haus|house|bitte|please|stelle?|schalte?|mach|setze?|set|switch|change|to|auf|zu|um|in|den|die|das|the|an|on|ein|als|modus|mode|stil|style|look|design|farbstil|ansicht|optik)\b/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+    if (keyword && /^(zurück|zurueck|normal|reset|back|standard|automatisch|auto)$/.test(rest)) {
+      this.setStyleOverride("reset", null);
+      return translate(hass, "style_reset");
+    }
+    const names: Record<string, string[]> = {};
+    for (const st of STYLES) names[st.id] = [translate(hass, `style_${st.id}` as I18nKey)];
+    // the words left must name a style as a whole ("Wohnlich Abend", "auf Synthwave"), so "Licht an" stays a light
+    const id = styleFromText(rest, names);
+    if (!id) return null;
+    this.setStyleOverride(id, null);
+    return translate(hass, "style_set", { name: translate(hass, `style_${id}` as I18nKey) });
   }
 
   /** The start view: the card's own, else the one remembered in the editor. */
@@ -6084,7 +6178,8 @@ export class Fp3dView3d extends LitElement {
     const mix = (a: number[], b: number[]) => `rgb(${a.map((v, i) => Math.round(v + (b[i] - v) * sky)).join(",")})`;
     const stage = STAGE[this.effectiveTheme()] ?? STAGE.neon;
     // an own background (colour, gradient, picture) replaces the look's sky
-    const own = backdropCss(this.building?.settings.backdrop);
+    const styleBg = this.effectiveStyle().bg;
+    const own = backdropCss(this.building?.settings.backdrop) ?? (styleBg ? `linear-gradient(180deg, ${styleBg[0]}, ${styleBg[1]})` : null);
     const pinK = this.pinSize === "small" ? 0.8 : this.pinSize === "large" ? 1.25 : 1;
     const style = `--fp3d-pin-k:${pinK};--fp3d-sky:${mix(stage.night[0], stage.day[0])};--fp3d-ground:${mix(stage.night[1], stage.day[1])}${own ? `;background:${own}` : ""}`;
     return html`<div
@@ -8690,3 +8785,6 @@ function markerHeight(f: Furniture): number {
   if (f.type === "tv_wall" || f.type === "kitchen_wall") return f.h + 0.25;
   return f.h + 0.35;
 }
+
+/** Where a style set from outside (an action, a voice command) is kept on this device. */
+const STYLE_OVERRIDE_KEY = "neonplan3d.style_override";

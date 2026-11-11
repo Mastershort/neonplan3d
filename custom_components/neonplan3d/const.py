@@ -48,6 +48,8 @@ DATA_ASK = f"{DOMAIN}_ask"
 SIGNAL_ANNOUNCE = f"{DOMAIN}_announce"
 # the open views of some card templates (or all) load their page again (the service `reload_screens`)
 SIGNAL_RELOAD = f"{DOMAIN}_reload"
+# a style for the open views (the service `set_style`): the screens named, or every one
+SIGNAL_STYLE = f"{DOMAIN}_style"
 # the voice settings (which sentences Assist hands to NeonPlan), kept in .storage
 DATA_VOICE = f"{DOMAIN}_voice"
 # the NeonPlan views open now (screens.py): what each shows, for the card templates' overview

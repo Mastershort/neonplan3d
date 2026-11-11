@@ -1,5 +1,6 @@
 // 2D editor: floors, rooms (rectangles and free shapes), snapping, undo, background template.
 
+import { isStyleChoice, styleOptions } from "../style-select.ts";
 import { css, html, LitElement, nothing, svg, type PropertyValues, type TemplateResult } from "lit";
 import { linesField } from "./lines-field.ts";
 import { unsafeHTML } from "lit/directives/unsafe-html.js";
@@ -225,7 +226,7 @@ const turnBy = (a: number, d: number): number => {
 };
 
 /** Topics of the ⚙ settings menu (everything that belongs to the whole plan). */
-type SettingsTopic = "plans" | "house" | "weather" | "director" | "voice" | "locate" | "favorites" | "backdrop" | "terrain" | "backup" | "modules" | "fun" | "cards" | "diagnostics";
+type SettingsTopic = "plans" | "house" | "weather" | "director" | "voice" | "locate" | "favorites" | "styles" | "backdrop" | "terrain" | "backup" | "modules" | "fun" | "cards" | "diagnostics";
 
 /** Wall view side bar: what stands or hangs at a wall, by kind. */
 const WALL_CATS: Record<string, string[]> = {
@@ -388,6 +389,7 @@ export class Fp3dEditor extends LitElement {
     _supporter: { state: true },
     _wall3d: { state: true },
     _fx3d: { state: true },
+    _style3d: { state: true },
     _sidePinned: { state: true },
     _sideMin: { state: true },
     _sideOpen: { state: true },
@@ -504,6 +506,8 @@ export class Fp3dEditor extends LitElement {
   private declare _wall3d: WallMode;
   /** Weather, sun, pets and ghost in the 3D pane beside the plan (off: a quiet pane for drawing, #1033). */
   private declare _fx3d: boolean;
+  /** The style of the 3D pane beside the plan (and the wall view), kept per device. */
+  private declare _style3d: string;
   /** Sidebar beside the 3D pane: pinned open always, or folded to a strip while nothing is selected. */
   private declare _sidePinned: boolean;
   /** The sidebar folded to a narrow strip beside the plan (more room to move furniture); remembered per browser. */
@@ -817,9 +821,12 @@ export class Fp3dEditor extends LitElement {
     this._supporter = false;
     // the 3D pane's wall view stays as it was last set on this device (#309)
     this._wall3d = "cut";
+    this._style3d = "neon";
     try {
       if (localStorage.getItem("neonplan3d.walls3d") === "auto") this._wall3d = "auto";
       this._fx3d = localStorage.getItem("neonplan3d.editor_fx") !== "0";
+      const st = localStorage.getItem("neonplan3d.editor_style");
+      this._style3d = isStyleChoice(st) ? st : "neon";
     } catch {
       // no storage: the default
     }
@@ -1184,6 +1191,15 @@ export class Fp3dEditor extends LitElement {
     return this._tool === "roof" || this._tool === "energy";
   }
 
+  private setStyle3d(style: string): void {
+    this._style3d = style;
+    try {
+      localStorage.setItem("neonplan3d.editor_style", style);
+    } catch {
+      /* no storage */
+    }
+  }
+
   private setFx3d(on: boolean): void {
     this._fx3d = on;
     try {
@@ -1201,6 +1217,9 @@ export class Fp3dEditor extends LitElement {
             <button aria-pressed=${this._wall3d === "auto"} @click=${() => this.setWall3d("auto")}>${this.t("walls_auto")}</button>
             <button aria-pressed=${this._wall3d === "cut"} @click=${() => this.setWall3d("cut")}>${this.t("walls_cut")}</button>
             <button class="fp3d-fx3d" aria-pressed=${this._fx3d} title=${this.t("fx3d_hint")} @click=${() => this.setFx3d(!this._fx3d)}>${this.t("fx3d")}</button>
+            <select class="fp3d-style3d" title=${this.t("style")} aria-label=${this.t("style")} @change=${(e: Event) => this.setStyle3d((e.target as HTMLSelectElement).value)}>
+              ${styleOptions((k) => this.t(k), this._style3d, { auto: true, house: true })}
+            </select>
           </div>`}
       ${this.render3dBar()}
       <fp3d-view3d
@@ -1219,7 +1238,7 @@ export class Fp3dEditor extends LitElement {
         .keepRoof=${this._tool === "roof" || this._tool === "energy"}
         .markerMode=${"important"}
         .heatMode=${"none"}
-        .theme=${"neon"}
+        .theme=${this._style3d}
         .packs=${this.packs}
         .showEnergy=${false}
         .holograms=${this._tool === "energy" ? true : null}
@@ -5837,6 +5856,7 @@ export class Fp3dEditor extends LitElement {
       { key: "voice", icon: "🎙", label: this.t("voice"), admin: false },
       ...(released("locate") ? [{ key: "locate" as const, icon: "📡", label: this.t("locate"), admin: true }] : []),
       { key: "favorites", icon: "⭐", label: this.t("favorites"), admin: true },
+      { key: "styles", icon: "🎨", label: this.t("styles_title"), admin: true },
       { key: "backdrop", icon: "🖼", label: this.t("backdrop"), admin: true },
       { key: "terrain", icon: "⛰", label: this.t("terrain"), admin: true },
       { key: "backup", icon: "💾", label: this.t("backup"), admin: true },
@@ -5911,6 +5931,7 @@ export class Fp3dEditor extends LitElement {
       voice: this.t("voice"),
       locate: this.t("locate"),
       favorites: this.t("favorites"),
+      styles: this.t("styles_title"),
       backdrop: this.t("backdrop"),
       terrain: this.t("terrain"),
       backup: this.t("backup"),
@@ -5939,6 +5960,8 @@ export class Fp3dEditor extends LitElement {
               ? this.renderVoice()
               : topic === "favorites"
                 ? this.renderFavorites()
+                : topic === "styles"
+                  ? this.renderStyleSettings()
                 : topic === "backdrop"
                   ? this.renderBackdrop()
                   : topic === "terrain"
@@ -7573,7 +7596,7 @@ export class Fp3dEditor extends LitElement {
               .explode=${false}
               .markerMode=${"none"}
               .heatMode=${"none"}
-              .theme=${"neon"}
+              .theme=${this._style3d}
               .packs=${this.packs}
               .showEnergy=${false}
               .holograms=${false}
@@ -11045,7 +11068,7 @@ export class Fp3dEditor extends LitElement {
       </div>
       <p class="fp3d-sub" title=${this.t("room_area_net_hint")}>${this.t("room_area_net", { a: this.area(polygonArea(room.points)), n: this.area(netRoomArea(room, this.floor!, { exterior: this._doc.settings.wall_exterior, interior: this._doc.settings.wall_interior })) })}</p>
       <p class="fp3d-sub fp3d-room-id">${this.t("room_id")} <code title=${this.t("license_copy")} @click=${() => void navigator.clipboard?.writeText(room.id).catch(() => undefined)}>${room.id}</code></p>
-      ${this.renderEdgeHeights(room)} ${this.renderRoomClimate(room)} ${this.renderRoomOpenings(room)}
+      ${this.renderEdgeHeights(room)} ${this.renderWallColors(room)} ${this.renderRoomClimate(room)} ${this.renderRoomOpenings(room)}
       <details class="fp3d-points" ?open=${!rect}>
         <summary>${this.t("points")} (${room.points.length})</summary>
         ${room.points.map(
@@ -13800,6 +13823,88 @@ export class Fp3dEditor extends LitElement {
     </details>`;
   }
 
+  /** ⚙ Styles: the house's plan for day, evening and night, how it switches, a helper entity, the facade colour. */
+  private renderStyleSettings() {
+    const st = this._doc.settings;
+    const pick = (key: "style_day" | "style_evening" | "style_night", label: I18nKey) =>
+      html`<label class="fp3d-field"
+        >${this.t(label)}
+        <select ?disabled=${!this.isAdmin} @change=${(e: Event) => this.setSettings({ [key]: (e.target as HTMLSelectElement).value || null })}>
+          ${styleOptions((k) => this.t(k), st[key] ?? "", { none: true })}
+        </select>
+      </label>`;
+    const time = (key: "style_morning_at" | "style_evening_at" | "style_night_at", label: I18nKey, fallback: string) =>
+      html`<label class="fp3d-field"
+        >${this.t(label)}
+        <input type="time" ?disabled=${!this.isAdmin} .value=${st[key] ?? fallback} @change=${(e: Event) => this.setSettings({ [key]: (e.target as HTMLInputElement).value || null })} />
+      </label>`;
+    const byTime = st.style_switch === "time";
+    return html`<div class="fp3d-form">
+        ${pick("style_day", "style_day_label")} ${pick("style_evening", "style_evening_label")} ${pick("style_night", "style_night_label")}
+        <label class="fp3d-field"
+          >${this.t("style_switch")}
+          <select ?disabled=${!this.isAdmin} @change=${(e: Event) => this.setSettings({ style_switch: (e.target as HTMLSelectElement).value === "time" ? "time" : null })}>
+            <option value="sun" ?selected=${!byTime}>${this.t("style_switch_sun")}</option>
+            <option value="time" ?selected=${byTime}>${this.t("style_switch_time")}</option>
+          </select>
+        </label>
+        ${byTime ? html`${time("style_morning_at", "style_morning_at", "07:00")} ${time("style_evening_at", "style_evening_at", "18:00")}` : nothing}
+        ${time("style_night_at", "style_night_at", "23:00")}
+        <p class="fp3d-sub fp3d-wide">${this.t("style_switch_hint")}</p>
+        <label class="fp3d-field fp3d-wide"
+          >${this.t("style_entity")}
+          <input type="text" placeholder="input_select.neonplan_stil" ?disabled=${!this.isAdmin} .value=${st.style_entity ?? ""} @change=${(e: Event) => this.setSettings({ style_entity: (e.target as HTMLInputElement).value.trim() || null })} />
+        </label>
+        <p class="fp3d-sub fp3d-wide">${this.t("style_entity_hint")}</p>
+        <label class="fp3d-field"
+          >${this.t("facade_color")}
+          <input type="color" ?disabled=${!this.isAdmin} .value=${st.facade_color ?? "#e9e5de"} @change=${(e: Event) => this.setSettings({ facade_color: (e.target as HTMLInputElement).value })} />
+        </label>
+        ${st.facade_color ? html`<button class="fp3d-btn" ?disabled=${!this.isAdmin} @click=${() => this.setSettings({ facade_color: null })}>${this.t("color_reset")}</button>` : nothing}
+      </div>
+      <p class="fp3d-sub">${this.t("styles_hint")}</p>`;
+  }
+
+  /** The room's wall colours (homely styles): all walls at once, or each wall on its own. */
+  private renderWallColors(room: Room) {
+    const admin = this.isAdmin;
+    const swatches = WALL_SWATCHES;
+    const setAll = (hex: string | null) => this.updateRoom({ wall_color: hex, wall_colors: null });
+    const setOne = (i: number, hex: string | null) => {
+      const list = room.wall_colors ? [...room.wall_colors] : room.points.map(() => null as string | null);
+      while (list.length < room.points.length) list.push(null);
+      list[i] = hex;
+      this.updateRoom({ wall_colors: list.some(Boolean) ? list : null });
+    };
+    const len = (i: number) => {
+      const a = room.points[i];
+      const b = room.points[(i + 1) % room.points.length];
+      return this.lenValue(Math.hypot(b[0] - a[0], b[1] - a[1]));
+    };
+    const any = !!room.wall_color || !!room.wall_colors?.some(Boolean);
+    return html`<details class="fp3d-points" ?open=${any}>
+      <summary>🎨 ${this.t("wall_colors")}</summary>
+      <div class="fp3d-wallcolors">
+        <div class="fp3d-point">
+          <span>${this.t("wall_colors_all")}</span>
+          <input type="color" ?disabled=${!admin} .value=${room.wall_color ?? "#f0ede8"} @change=${(e: Event) => setAll((e.target as HTMLInputElement).value)} />
+          ${room.wall_color ? html`<button class="fp3d-btn" title=${this.t("color_reset")} ?disabled=${!admin} @click=${() => setAll(null)}>↺</button>` : nothing}
+        </div>
+        <div class="fp3d-swatches">
+          ${swatches.map(([name, hex]) => html`<button class="fp3d-swatch" title=${name} style="background:${hex}" ?disabled=${!admin} @click=${() => setAll(hex)}></button>`)}
+        </div>
+        ${room.points.map(
+          (_, i) => html`<div class="fp3d-point">
+            <span>${this.t("wall_color_n", { n: i + 1 })} · ${len(i)}</span>
+            <input type="color" ?disabled=${!admin} .value=${room.wall_colors?.[i] ?? room.wall_color ?? "#f0ede8"} @change=${(e: Event) => setOne(i, (e.target as HTMLInputElement).value)} />
+            ${room.wall_colors?.[i] ? html`<button class="fp3d-btn" title=${this.t("color_reset")} ?disabled=${!admin} @click=${() => setOne(i, null)}>↺</button>` : nothing}
+          </div>`,
+        )}
+        <p class="fp3d-sub">${this.t("wall_colors_hint")}</p>
+      </div>
+    </details>`;
+  }
+
   /** The ground around the house: its height, a hillside, the earth around cellars. */
   /** The background behind the 3D house: the look's own sky, one colour, a gradient or a picture. */
   private renderBackdrop() {
@@ -14290,6 +14395,41 @@ export class Fp3dEditor extends LitElement {
         top: 10px;
         left: 10px;
         z-index: 3;
+      }
+      .fp3d-style3d {
+        margin-left: 6px;
+        background: var(--fp3d-chrome-solid);
+        color: var(--fp3d-text);
+        border: 1px solid var(--fp3d-line);
+        border-radius: 10px;
+        padding: 4px 6px;
+        font: inherit;
+        font-size: 12px;
+        max-width: 170px;
+      }
+      .fp3d-wallcolors .fp3d-point {
+        grid-template-columns: 1fr auto auto;
+        align-items: center;
+      }
+      .fp3d-wallcolors input[type="color"] {
+        width: 44px;
+        height: 26px;
+        padding: 0;
+        border: 0;
+        background: none;
+      }
+      .fp3d-swatches {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+        margin: 2px 0 6px;
+      }
+      .fp3d-swatch {
+        width: 28px;
+        height: 22px;
+        border-radius: 6px;
+        border: 1px solid var(--fp3d-line);
+        cursor: pointer;
       }
       .fp3d-3d-bar {
         position: absolute;
@@ -17082,3 +17222,15 @@ function numberish(id: string): boolean {
 function binaryish(id: string): boolean {
   return /^(binary_sensor|input_boolean)\./.test(id);
 }
+
+/** Ready wall colours (names in German and English are plain enough for both). */
+const WALL_SWATCHES: [string, string][] = [
+  ["Weiß / White", "#f0ede8"],
+  ["Sand", "#e3d6bf"],
+  ["Salbei / Sage", "#a9b9a0"],
+  ["Taupe", "#a99c8e"],
+  ["Petrol", "#3f6b72"],
+  ["Terrakotta / Terracotta", "#c27b5a"],
+  ["Rauchblau / Smoke blue", "#8fa3b8"],
+  ["Anthrazit / Anthracite", "#4a4e55"],
+];

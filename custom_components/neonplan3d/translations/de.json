@@ -76,6 +76,24 @@
           "description": "Nur die Ansichten dieses Grundrisses (seine ID, \"main\" für den ersten)."
         }
       }
+    },
+    "set_style": {
+      "name": "Stil setzen",
+      "description": "Die offenen NeonPlan-Bildschirme zeigen diesen Stil: Neon, Wohnlich, Wohnlich Abend und mehr. Ohne Bildschirme: jede offene Ansicht. Mit dem Stil reset zurück zur eigenen Einstellung.",
+      "fields": {
+        "style": {
+          "name": "Stil",
+          "description": "Eine Stil-Kennung (neon, blueprint, day, focus, synth, cozy, evening, winter, model, pastel, warm) oder ihr Name; reset: zurück zur eigenen Einstellung."
+        },
+        "screens": {
+          "name": "Bildschirme",
+          "description": "Nur die NeonPlan-Bildschirme mit diesen Bildschirmnamen (in den Einstellungen der Ansicht oder der Karten-Option screen). Leer: jede offene Ansicht."
+        },
+        "minutes": {
+          "name": "Minuten",
+          "description": "So lange, dann zurück zur eigenen Einstellung. Leer: bis zur nächsten Änderung."
+        }
+      }
     }
   }
 }

@@ -148,6 +148,17 @@ export interface ScreenReload {
   plan?: string | null;
 }
 
+/** A style for the open screens (the action `neonplan3d.set_style`). */
+export interface ScreenStyle {
+  id: string;
+  /** A style id or name; "" or "reset": back to the screen's own setting. */
+  style: string;
+  /** Only the views with these screen names (empty: every open view). */
+  screens: string[];
+  /** For this many minutes, then back (null: until changed). */
+  minutes?: number | null;
+}
+
 /** What a view shows, for the card templates' overview of the open screens. */
 export interface ViewInfo {
   kind: "panel" | "card" | "preview";
@@ -173,16 +184,18 @@ export function subscribeAsk(
   callback: (ask: Ask) => void,
   onAnnounce?: (a: ScreenAnnouncement) => void,
   onReload?: (r: ScreenReload) => void,
+  onStyle?: (st: ScreenStyle) => void,
   view?: ViewInfo,
 ): Promise<() => Promise<void>> {
-  return hass.connection.subscribeMessage<Ask | { announce: ScreenAnnouncement } | { reload: ScreenReload }>(
+  return hass.connection.subscribeMessage<Ask | { announce: ScreenAnnouncement } | { reload: ScreenReload } | { style: ScreenStyle }>(
     (ev) => {
       if ("announce" in ev) onAnnounce?.(ev.announce);
       else if ("reload" in ev) onReload?.(ev.reload);
+      else if ("style" in ev) onStyle?.(ev.style);
       // a sentence (anything else, e.g. a message this view does not know yet, is left alone)
       else if (typeof (ev as Ask).text === "string") callback(ev as Ask);
     },
-    { type: "neonplan3d/voice/subscribe", ...(onAnnounce ? { announce: true } : {}), ...(onReload ? { reload: true } : {}), ...(view ? { view } : {}) },
+    { type: "neonplan3d/voice/subscribe", ...(onAnnounce ? { announce: true } : {}), ...(onReload ? { reload: true } : {}), ...(onStyle ? { style: true } : {}), ...(view ? { view } : {}) },
   );
 }
 
