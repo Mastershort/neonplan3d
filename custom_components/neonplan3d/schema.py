@@ -7,6 +7,7 @@ so saving keeps working after a frontend update until Home Assistant restarts wi
 from __future__ import annotations
 
 import math
+from typing import Any
 
 import voluptuous as vol
 
@@ -799,6 +800,22 @@ FLOOR_SCHEMA = vol.Schema(
 )
 
 
+# the styles' text settings: the house's plan for day, evening and night, a helper entity, the facade colour
+_STYLE_TEXTS: dict[Any, Any] = {
+    vol.Optional(key): vol.Any(None, vol.All(str, vol.Length(max=64)))
+    for key in (
+        "style_day",
+        "style_evening",
+        "style_night",
+        "style_morning_at",
+        "style_evening_at",
+        "style_night_at",
+        "style_entity",
+        "facade_color",
+    )
+}
+
+
 SETTINGS_SCHEMA = vol.Schema(
     {
         vol.Required("wall_exterior"): vol.All(vol.Coerce(float), vol.Range(min=0.02, max=1)),
@@ -888,19 +905,7 @@ SETTINGS_SCHEMA = vol.Schema(
         ),
         # the styles: the house's plan for day, evening and night, how it switches, a helper entity naming the style,
         # and the facade colour of the homely styles
-        **{
-            vol.Optional(key): vol.Any(None, vol.All(str, vol.Length(max=64)))
-            for key in (
-                "style_day",
-                "style_evening",
-                "style_night",
-                "style_morning_at",
-                "style_evening_at",
-                "style_night_at",
-                "style_entity",
-                "facade_color",
-            )
-        },
+        **_STYLE_TEXTS,
         vol.Optional("style_switch"): vol.Any(None, vol.In(["sun", "time"])),
         # own styles: built-in ones adjusted and named (their settings are checked by the frontend)
         vol.Optional("styles_custom"): vol.Any(None, vol.All([dict], vol.Length(max=40))),
