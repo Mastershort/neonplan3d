@@ -2513,6 +2513,8 @@ export class FloorplanViewer {
         if (d) return this.options.onRoomTap?.(d.floorId, d.roomId ?? null);
         return this.onTap(r.left + r.width / 2 - h.left, r.bottom - h.top);
       }
+      const other = this.elsewhere(entityId);
+      if (other) return this.options.onRoomTap?.(other.floorId, other.roomId);
       this.options.onDeviceTap?.(entityId, r.left + r.width / 2 - h.left, r.top + r.height / 2 - h.top);
     });
     pin.addEventListener("keydown", (e) => {
@@ -4563,6 +4565,25 @@ export class FloorplanViewer {
     return !!this.building?.settings.tap_in_room && this.roomId === null && !this.furnish;
   }
 
+  /**
+   * With "switch devices only in the opened room" and a room opened: where a device lies that is not in that room –
+   * a tap opens that place instead of switching (a blind of the house, seen from the opened garden, #896). Null when
+   * it is in the opened room, or nobody knows where it is.
+   */
+  private elsewhere(entity: string): { floorId: string; roomId: string | null } | null {
+    if (!this.building?.settings.tap_in_room || this.roomId === null || this.furnish) return null;
+    const found: { floorId: string; roomId: string | null }[] = [];
+    for (const m of this.devices) if (m.id === entity) found.push({ floorId: m.floorId, roomId: m.roomId ?? null });
+    for (const fv of this.floors) {
+      const zones = [...fv.floor.rooms, ...outdoorZones(fv.floor)].filter((r) => r.points.length >= 3);
+      for (const o of fv.floor.openings) if (this.pickOpenings.get(o.id) === entity) found.push({ floorId: fv.floor.id, roomId: o.room_id || null });
+      for (const f of fv.floor.furniture) {
+        if (this.pickFurniture.get(f.id) === entity) found.push({ floorId: fv.floor.id, roomId: zones.find((r) => pointInPolygon([f.x, f.z], r.points))?.id ?? null });
+      }
+    }
+    return !found.length || found.some((r) => r.roomId === this.roomId) ? null : found[0];
+  }
+
   private onTap(x: number, y: number): void {
     const hit = this.pick(x, y, !this.tapOpens);
     if (hit && "entity" in hit && this.furnish) {
@@ -4571,6 +4592,8 @@ export class FloorplanViewer {
       return;
     }
     if (hit && "entity" in hit) {
+      const other = this.elsewhere(hit.entity);
+      if (other) return void this.options.onRoomTap?.(other.floorId, other.roomId);
       this.flashes.set(hit.entity, performance.now() + FLASH_MS);
       this.invalidate();
       this.options.onDeviceTap?.(hit.entity, x, y);
@@ -4899,7 +4922,7 @@ export class FloorplanViewer {
   private swipeStart(x: number, y: number, dx: number, dy: number): boolean {
     if (this.furnish || this.tapOpens || Math.abs(dy) < Math.abs(dx) * 1.2) return false;
     const hit = this.pick(x, y);
-    if (!hit || !("entity" in hit)) return false;
+    if (!hit || !("entity" in hit) || this.elsewhere(hit.entity)) return false;
     if (this.options.onDeviceSwipe?.(hit.entity, "start", 0, x, y) !== true) return false;
     this.swipe = { entity: hit.entity, x, y };
     return true;
