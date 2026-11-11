@@ -175,7 +175,7 @@ Plus **Auto** (day while the sun is up, neon after sunset), an accent colour of 
 | 🚨 **Safety** | Smoke, gas, CO, water, alarm, power outage · window open in the rain · contacts gone silent · the room pulses red, a banner with a jump there · **Window watch** module (open in the cold) |
 | 🎈 **Fun packs** | Pets (cat, rabbit, dogs, fish) · Halloween · Winter & Christmas with fairy lights, snow and a New Year firework – free with a customer account |
 | 🔁 **Import & backup** | Restore points per plan · export and import, share as a template · full backup of every plan, picture and pack · import page for Sweet Home 3D, LiDAR scans, DXF, glTF/OBJ/STL, Floorplanner, Valetudo · AI import template |
-| 🎨 **Styles & languages** | 11 styles: Neon, Blueprint, Day, Night, Synthwave, Homely, Homely evening, Winter evening, Architect's model, Pastel, Warm · own styles · wall and facade colours · styles by time of day, voice, automation or helper · own accent colour · own background · 19 languages |
+| 🎨 **Styles & languages** | 11 styles: Neon, Blueprint, Day, Night, Synthwave, Homely, Homely evening, Winter evening, Architect's model, Pastel, Warm · own styles · wall and facade colours · styles by time of day, voice, automation or helper · own accent colour · own background · 20 languages |
 | 🔒 **Privacy** | Everything stays in Home Assistant · voice and locating stay local · reports only if you switch them on, each one viewable and deletable · signed packs, module code runs only after you approve it · open source |
 
 **Safety is always free. Everything you need day to day stays free.**

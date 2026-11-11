@@ -22,7 +22,7 @@ const common = {
 const viewerConfig = { ...common, entryPoints: ["src/viewer/viewer3d.ts"], outfile: `${out}/neonplan3d-3d.js` };
 // the card's visual editor only loads in the dashboard's card dialog
 // the language files (lang/*.json) are fetched with a hash of their content, so a new text is never stale
-const LANGS = ["fr", "es", "nl", "it", "hu", "da", "sv", "nb", "nn", "fi", "cs", "pl", "ro", "sl", "sk", "zh", "pt"];
+const LANGS = ["fr", "es", "nl", "it", "hu", "da", "sv", "nb", "nn", "fi", "cs", "pl", "ro", "sl", "sk", "zh", "pt", "tr"];
 const langHash = createHash("sha256")
   // line endings normalised: a file written with CRLF on Windows must give the same hash as the LF copy CI checks out
   .update(LANGS.map((l) => (existsSync(`lang/${l}.json`) ? readFileSync(`lang/${l}.json`, "utf8").replace(/\r\n/g, "\n") : "")).join("\n"))

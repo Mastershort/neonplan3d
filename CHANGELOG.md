@@ -6,6 +6,12 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 
 ## 3.1.1
 
+### Added
+- **Turkish** as the twentieth language (thanks ethemcemozkan for the texts, #884).
+
+### Changed
+- **Slovak** reads far more naturally: 745 texts reworked by a native speaker (thanks Bearstorm, #924).
+
 ### Fixed
 - **Located people vanished when Home Assistant did not say "home":** a person standing in a zone of their own at the house (a "Garden" or "Workshop" zone) is at home and gets their figure; and what is heard at home of someone who is away (a phone left behind, a watch on its charger) stands there as a point with its name instead of disappearing – the plan showed nothing at all, while "Who is home?" still named the room (#900, #1049, thanks cesp99-ux and gshafer).
 - **A top-floor wall cut to a lower roof:** a wall whose outer face lay a few millimetres outside its own roof section was ended under a lower roof that happened to cover that strip (a garage roof whose ridge reaches above the floor) – half a wall inside, see-through from outside. It now ends under its own roof's edge (#1051, thanks TRusselo).
