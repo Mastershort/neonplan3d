@@ -2297,5 +2297,7 @@
  "style_slide": "Glisant (o foaie alunecă în fața celei fixe)",
  "preset_terrace_slide": "Ușă glisantă cu ridicare",
  "preset_window_slide": "Fereastră glisantă",
- "mount_below_hint": "Sub 0 doar în afara camerelor: trepte în jos spre o terasă coborâtă sau o curte de lumină."
+ "mount_below_hint": "Sub 0 doar în afara camerelor: trepte în jos spre o terasă coborâtă sau o curte de lumină.",
+ "fx3d": "Efecte",
+ "fx3d_hint": "Arată vremea, soarele, animalele și fantoma și în panoul 3D al editorului (oprit: un panou liniștit pentru desen)"
 }

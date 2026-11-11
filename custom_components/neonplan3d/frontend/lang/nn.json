@@ -2297,5 +2297,7 @@
  "style_slide": "Skyve (ei rute glid framfor den faste)",
  "preset_terrace_slide": "Løfte-skyvedør",
  "preset_window_slide": "Skyvevindauge",
- "mount_below_hint": "Under 0 berre utanfor romma: trinn ned til ein nedsenka terrasse eller ein lyssjakt."
+ "mount_below_hint": "Under 0 berre utanfor romma: trinn ned til ein nedsenka terrasse eller ein lyssjakt.",
+ "fx3d": "Effektar",
+ "fx3d_hint": "Vis vêr, sol, kjæledyr og spøkelse òg i 3D-ruta til redigeringa (av: ei roleg rute å teikne i)"
 }

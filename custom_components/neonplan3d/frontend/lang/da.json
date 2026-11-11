@@ -2297,5 +2297,7 @@
  "style_slide": "Skyde (en rude glider foran den faste)",
  "preset_terrace_slide": "Løfte-skydedør",
  "preset_window_slide": "Skydevindue",
- "mount_below_hint": "Under 0 kun uden for rummene: trin ned til en lavereliggende terrasse eller en lysskakt."
+ "mount_below_hint": "Under 0 kun uden for rummene: trin ned til en lavereliggende terrasse eller en lysskakt.",
+ "fx3d": "Effekter",
+ "fx3d_hint": "Vis også vejr, sol, kæledyr og spøgelse i editorens 3D-rude (fra: en rolig rude til at tegne i)"
 }

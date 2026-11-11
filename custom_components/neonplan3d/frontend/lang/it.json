@@ -2297,5 +2297,7 @@
  "style_slide": "Scorrevole (un'anta scorre davanti a quella fissa)",
  "preset_terrace_slide": "Alzante scorrevole",
  "preset_window_slide": "Finestra scorrevole",
- "mount_below_hint": "Sotto 0 solo fuori dalle stanze: gradini che scendono a una terrazza ribassata o a un pozzo di luce."
+ "mount_below_hint": "Sotto 0 solo fuori dalle stanze: gradini che scendono a una terrazza ribassata o a un pozzo di luce.",
+ "fx3d": "Effetti",
+ "fx3d_hint": "Mostrare meteo, sole, animali e fantasma anche nel riquadro 3D dell’editor (spento: un riquadro tranquillo per disegnare)"
 }

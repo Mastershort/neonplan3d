@@ -2297,5 +2297,7 @@
  "style_slide": "Skjut (en ruta glider framför den fasta)",
  "preset_terrace_slide": "Lyft-skjutdörr",
  "preset_window_slide": "Skjutfönster",
- "mount_below_hint": "Under 0 bara utanför rummen: trappsteg ner till en nedsänkt terrass eller en ljusgård."
+ "mount_below_hint": "Under 0 bara utanför rummen: trappsteg ner till en nedsänkt terrass eller en ljusgård.",
+ "fx3d": "Effekter",
+ "fx3d_hint": "Visa väder, sol, husdjur och spöke även i redigerarens 3D-ruta (av: en lugn ruta att rita i)"
 }

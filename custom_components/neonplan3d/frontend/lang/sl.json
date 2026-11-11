@@ -2297,5 +2297,7 @@
  "style_slide": "Drsno (krilo zdrsne pred fiksno)",
  "preset_terrace_slide": "Dvižno-drsna vrata",
  "preset_window_slide": "Drsno okno",
- "mount_below_hint": "Pod 0 samo zunaj prostorov: stopnice navzdol do poglobljene terase ali svetlobnega jaška."
+ "mount_below_hint": "Pod 0 samo zunaj prostorov: stopnice navzdol do poglobljene terase ali svetlobnega jaška.",
+ "fx3d": "Učinki",
+ "fx3d_hint": "Vreme, sonce, hišne ljubljenčke in duha prikaži tudi v 3D-oknu urejevalnika (izklop: mirno okno za risanje)"
 }

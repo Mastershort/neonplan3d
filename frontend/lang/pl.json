@@ -2297,5 +2297,7 @@
  "style_slide": "Przesuwne (skrzydło przesuwa się przed stałym)",
  "preset_terrace_slide": "Drzwi podnoszono-przesuwne",
  "preset_window_slide": "Okno przesuwne",
- "mount_below_hint": "Poniżej 0 tylko poza pomieszczeniami: stopnie w dół na obniżony taras lub do studzienki świetlnej."
+ "mount_below_hint": "Poniżej 0 tylko poza pomieszczeniami: stopnie w dół na obniżony taras lub do studzienki świetlnej.",
+ "fx3d": "Efekty",
+ "fx3d_hint": "Pokazuj pogodę, słońce, zwierzęta i ducha także w oknie 3D edytora (wył.: spokojne okno do rysowania)"
 }

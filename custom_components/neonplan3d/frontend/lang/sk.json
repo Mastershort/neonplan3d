@@ -2297,5 +2297,7 @@
  "style_slide": "Posuvné (krídlo zájde pred pevné)",
  "preset_terrace_slide": "Zdvižné posuvné dvere",
  "preset_window_slide": "Posuvné okno",
- "mount_below_hint": "Pod 0 len mimo miestností: schody dole na zníženú terasu alebo do svetlíka."
+ "mount_below_hint": "Pod 0 len mimo miestností: schody dole na zníženú terasu alebo do svetlíka.",
+ "fx3d": "Efekty",
+ "fx3d_hint": "Zobraziť počasie, slnko, zvieratá a ducha aj v 3D okne editora (vypnuté: pokojné okno na kreslenie)"
 }

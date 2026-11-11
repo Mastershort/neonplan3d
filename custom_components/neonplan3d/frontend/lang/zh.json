@@ -2297,5 +2297,7 @@
  "style_slide": "推拉（一扇滑到固定扇前面）",
  "preset_terrace_slide": "提升推拉门",
  "preset_window_slide": "推拉窗",
- "mount_below_hint": "只有在房间之外才能低于 0：通往下沉露台或采光井的台阶。"
+ "mount_below_hint": "只有在房间之外才能低于 0：通往下沉露台或采光井的台阶。",
+ "fx3d": "效果",
+ "fx3d_hint": "在编辑器的 3D 窗格中也显示天气、太阳、宠物和幽灵（关闭：安静的绘图窗格）"
 }

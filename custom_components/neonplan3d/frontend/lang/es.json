@@ -2297,5 +2297,7 @@
  "style_slide": "Corredera (una hoja se desliza delante de la fija)",
  "preset_terrace_slide": "Puerta elevadora corredera",
  "preset_window_slide": "Ventana corredera",
- "mount_below_hint": "Por debajo de 0 solo fuera de las habitaciones: escalones que bajan a una terraza hundida o a un patio de luces."
+ "mount_below_hint": "Por debajo de 0 solo fuera de las habitaciones: escalones que bajan a una terraza hundida o a un patio de luces.",
+ "fx3d": "Efectos",
+ "fx3d_hint": "Mostrar también tiempo, sol, mascotas y fantasma en la vista 3D del editor (desactivado: una vista tranquila para dibujar)"
 }

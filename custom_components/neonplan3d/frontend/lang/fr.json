@@ -2297,5 +2297,7 @@
  "style_slide": "Coulissant (un vantail glisse devant le fixe)",
  "preset_terrace_slide": "Porte levante-coulissante",
  "preset_window_slide": "Fenêtre coulissante",
- "mount_below_hint": "En dessous de 0 seulement hors des pièces : des marches qui descendent vers une terrasse en contrebas ou une cour anglaise."
+ "mount_below_hint": "En dessous de 0 seulement hors des pièces : des marches qui descendent vers une terrasse en contrebas ou une cour anglaise.",
+ "fx3d": "Effets",
+ "fx3d_hint": "Afficher aussi météo, soleil, animaux et fantôme dans la vue 3D de l’éditeur (désactivé : une vue calme pour dessiner)"
 }

@@ -387,6 +387,7 @@ export class Fp3dEditor extends LitElement {
     _backupBusy: { state: true },
     _supporter: { state: true },
     _wall3d: { state: true },
+    _fx3d: { state: true },
     _sidePinned: { state: true },
     _sideMin: { state: true },
     _sideOpen: { state: true },
@@ -501,6 +502,8 @@ export class Fp3dEditor extends LitElement {
   private supporterChecked = false;
   /** Walls in the 3D pane: full height ("auto") or cut at the cut height (shows wall units and shelves). */
   private declare _wall3d: WallMode;
+  /** Weather, sun, pets and ghost in the 3D pane beside the plan (off: a quiet pane for drawing, #1033). */
+  private declare _fx3d: boolean;
   /** Sidebar beside the 3D pane: pinned open always, or folded to a strip while nothing is selected. */
   private declare _sidePinned: boolean;
   /** The sidebar folded to a narrow strip beside the plan (more room to move furniture); remembered per browser. */
@@ -816,6 +819,7 @@ export class Fp3dEditor extends LitElement {
     this._wall3d = "cut";
     try {
       if (localStorage.getItem("neonplan3d.walls3d") === "auto") this._wall3d = "auto";
+      this._fx3d = localStorage.getItem("neonplan3d.editor_fx") !== "0";
     } catch {
       // no storage: the default
     }
@@ -1180,6 +1184,15 @@ export class Fp3dEditor extends LitElement {
     return this._tool === "roof" || this._tool === "energy";
   }
 
+  private setFx3d(on: boolean): void {
+    this._fx3d = on;
+    try {
+      localStorage.setItem("neonplan3d.editor_fx", on ? "1" : "0");
+    } catch {
+      /* no storage */
+    }
+  }
+
   private render3d() {
     return html`<div class="fp3d-editor-3d">
       ${this.houseTool
@@ -1187,6 +1200,7 @@ export class Fp3dEditor extends LitElement {
         : html`<div class="fp3d-seg fp3d-3d-walls">
             <button aria-pressed=${this._wall3d === "auto"} @click=${() => this.setWall3d("auto")}>${this.t("walls_auto")}</button>
             <button aria-pressed=${this._wall3d === "cut"} @click=${() => this.setWall3d("cut")}>${this.t("walls_cut")}</button>
+            <button class="fp3d-fx3d" aria-pressed=${this._fx3d} title=${this.t("fx3d_hint")} @click=${() => this.setFx3d(!this._fx3d)}>${this.t("fx3d")}</button>
           </div>`}
       ${this.render3dBar()}
       <fp3d-view3d
@@ -1198,6 +1212,10 @@ export class Fp3dEditor extends LitElement {
         .roomId=${null}
         .wallMode=${this.houseTool ? "auto" : this._wall3d}
         .explode=${false}
+        .weather=${this._fx3d}
+        .petsOn=${this._fx3d}
+        .ghostOn=${this._fx3d}
+        .sunFx=${this._fx3d}
         .keepRoof=${this._tool === "roof" || this._tool === "energy"}
         .markerMode=${"important"}
         .heatMode=${"none"}

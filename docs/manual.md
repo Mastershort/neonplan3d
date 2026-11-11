@@ -425,7 +425,7 @@ With **Outside → Outdoor** you draw lawn, terrace, path, driveway, flower bed,
 **3D beside** shows the 3D view to the right of the plan. Every change appears there a moment later.
 
 - Drag the **divider between plan and 3D** to change the ratio. The browser remembers it.
-- At the top of the 3D half you switch between **Tall walls** and **Cut**.
+- At the top of the 3D half you switch between **Tall walls** and **Cut**. Beside them sits **Effects**: off = no weather, no sun, no pets and no ghost in the 3D half, a quiet pane for drawing. The device remembers the switch; the 3D view itself is not affected.
 - You can also tap and drag an item or device in the 3D half. A bar with width, depth, height, height above the floor, rotation and delete appears at the bottom.
 - Without the pin, the sidebar folds away beside the 3D view as soon as you tap something there, and opens over the 3D half; **‹** at the right edge brings it back. With **📌 Pinned** it stays beside it and only folds with **Collapse**.
 

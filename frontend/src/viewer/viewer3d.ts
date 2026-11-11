@@ -8,7 +8,7 @@
 import { AdditiveBlending, CustomBlending, OneFactor, SrcAlphaFactor, ZeroFactor, RingGeometry, Fog, CircleGeometry, Box3, CanvasTexture, ClampToEdgeWrapping, Color, BackSide, DoubleSide, FrontSide, Group, LineBasicMaterial, LineSegments, Mesh, MeshBasicMaterial, MultiplyBlending, OrthographicCamera, PerspectiveCamera, Points, PointsMaterial, PlaneGeometry, Raycaster, RepeatWrapping, Scene, SRGBColorSpace, TextureLoader, type Texture, Float32BufferAttribute, Uint32BufferAttribute, DynamicDrawUsage, BufferGeometry as Geometry, Vector2, Vector3, WebGLRenderer, WebGLRenderTarget, type Material, BufferGeometry } from "three";
 import type { Building, Floor, Furniture, Room, StartView } from "../model.ts";
 import { recolorLamps, SHADE_SENTINEL, shadeFactors } from "./lamp-colors.ts";
-import { centroid, GANG_TYPES, gateSpans, outdoorSurface, outdoorZones, pointInPolygon, openingStyle, setTerrain, WALL_LAMP_Y, zonesOf } from "../model.ts";
+import { centroid, GANG_TYPES, gateSpans, outdoorSurface, outdoorTopAt, outdoorZones, pointInPolygon, openingStyle, setTerrain, WALL_LAMP_Y, zonesOf } from "../model.ts";
 import { placeWallPlate } from "../geometry/walls.ts";
 import { buildEarth } from "./earth.ts";
 import { clampIntoRoom } from "../geometry/snap.ts";
@@ -17,7 +17,7 @@ import { buildFloorGeometry, SLAB, stairHoleParts, type FloorGeometry } from "./
 import { OrbitControls, type OrbitView } from "./controls.ts";
 import { makeFoldable, type FoldMasks } from "./fold.ts";
 import { CameraProjections, PROJECTION_LAYER, type ProjectionSurface, type ProjectorPose } from "./projection.ts";
-import { packGlowCentre, pushAwning, pushCameraModel, pushPackGlow, pushPackRobot, pushPackLamp, pushPackMotion, screenRect, screenPictureSize, pushFridgeDoors, setLightLook, hasFixedColors } from "./furniture.ts";
+import { packGlowCentre, packGlowCentres, pushAwning, pushCameraModel, pushPackGlow, pushPackRobot, pushPackLamp, pushPackMotion, screenRect, screenPictureSize, pushFridgeDoors, setLightLook, hasFixedColors } from "./furniture.ts";
 import { pushPipeTube, type PipeTube } from "./pipes.ts";
 import { pushGate } from "./outdoor.ts";
 import { pinKey } from "./pin-key.ts";
@@ -228,6 +228,8 @@ export interface PatchPiece {
   opacity: number;
   /** Adds light instead of tinting (a heated floor glowing warm). */
   glow?: boolean;
+  /** Lies on this outdoor area's surface, `lift` metres above it, following its slope (snow on a sloping lawn, #1036). */
+  follow?: { areaId: string; lift: number };
 }
 
 /** A lit TV or monitor screen: colour of the running app and brightness (0..1). */
@@ -1299,9 +1301,11 @@ export class FloorplanViewer {
       for (const t of mine) {
         if (!!t.glow !== glow) continue;
         const a = Math.min(1, t.opacity);
+        const area = t.follow ? (fv.floor.outdoor ?? []).find((o) => o.id === t.follow!.areaId) : undefined;
         for (const tri of triangulate(t.points)) {
           for (const i of tri) {
-            p.push(t.points[i][0], t.y, t.points[i][1]);
+            const [px, pz] = t.points[i];
+            p.push(px, area ? outdoorTopAt(fv.floor, area, px, pz) + t.follow!.lift : t.y, pz);
             c.push(t.color[0], t.color[1], t.color[2], a);
           }
         }
@@ -2482,6 +2486,16 @@ export class FloorplanViewer {
    * A wall lamp from a furniture pack: the centre of its glowing parts (plan x, height, plan z), where its halo and its
    * light sit (#680); null for any other lamp and for a pack lamp without glowing parts (they keep their old places).
    */
+  /** The glowing parts of a pack lamp with several of them (a track's spots), each a light of its own (#1034). */
+  private packLightsAt(d: DeviceMarker): [number, number, number][] {
+    if (!d.pack || d.lamp === "wall" || d.lamp === "strip") return [];
+    const item = packItem(d.pack);
+    if (!item) return [];
+    const [w, dd, h] = d.size ?? LAMP_SIZE[d.lamp ?? "ceiling"];
+    const pts = packGlowCentres(item, { x: d.x, z: d.z, rotation: d.rotation ?? 0, w, d: dd, h, mirror: d.mirror }, d.base ?? 0);
+    return pts.length > 1 ? pts : [];
+  }
+
   private packLightAt(d: DeviceMarker): [number, number, number] | null {
     if (d.lamp !== "wall" || !d.pack) return null;
     const item = packItem(d.pack);
@@ -2535,6 +2549,12 @@ export class FloorplanViewer {
           }
         }
       } else {
+        // a lamp with several glowing parts (a track with three spots) lights from each of them (#1034)
+        const many = this.packLightsAt(d);
+        if (many.length) {
+          for (const p of many) out.push({ x: p[0], y: Math.min(y, p[1]), z: p[2], color, level: glow.level * 0.8, kind, room });
+          continue;
+        }
         // a wall lamp from a pack shines from its glowing parts (the lantern's glass), not from in front of it (#680)
         const at = this.packLightAt(d);
         out.push({ x: at ? at[0] : d.x, y: at ? at[1] : y, z: at ? at[2] : d.z, color, level: glow.level, kind, room });
@@ -3039,7 +3059,8 @@ export class FloorplanViewer {
           this.snowMat ??= new MeshBasicMaterial({ color: 0xf1f5ff, transparent: true, side: DoubleSide, forceSinglePass: true, depthWrite: false });
           this.snowMat.opacity = 0.85 * this.roofSnow;
           const mesh = new Mesh(snow, this.snowMat);
-          mesh.renderOrder = 9;
+          // under the living solar overlay (render order 9): the modules and their figures stay readable in the snow (#1031)
+          mesh.renderOrder = 8;
           part.add(mesh);
         }
       }
@@ -3666,6 +3687,7 @@ export class FloorplanViewer {
         bollard: base + h - 0.08,
         garden: base + h - 0.03,
       }[d.lamp];
+      const many = this.packLightsAt(d);
       // a wall light glows in front of the wall
       const push = (x: number, z: number, k = 1) => {
         hp.push(x, y, z);
@@ -3691,23 +3713,26 @@ export class FloorplanViewer {
           hc.push(...glow.color.map((c) => c * glow.level * 0.7));
         } else push(d.x - Math.sin(ang) * (dd / 2 + 0.05), d.z + Math.cos(ang) * (dd / 2 + 0.05));
       }
+      else if (many.length) for (const p of many) push(p[0], p[2], 0.8);
       else push(d.x, d.z);
       if (this.highQuality && (d.lamp === "downlight" || d.lamp === "spot")) {
-        // soft cone from the lamp to the floor, fading towards the floor
+        // soft cone from the lamp to the floor, fading towards the floor – one under each spot of a track (#1034)
         const top = new Color(...glow.color.map((c) => c * 0.09 * glow.level) as [number, number, number]);
         const bottom = new Color(0, 0, 0);
-        const r0 = Math.max(0.03, w / 2);
-        const r1 = 0.45 + 0.35 * glow.level;
+        const r0 = Math.max(0.03, many.length ? Math.min(w, dd) / 2 : w / 2);
+        const r1 = (0.45 + 0.35 * glow.level) * (many.length ? 0.8 : 1);
         const n = 16;
-        for (let i = 0; i < n; i++) {
-          const a0 = (i / n) * Math.PI * 2;
-          const a1 = ((i + 1) / n) * Math.PI * 2;
-          const t0 = [d.x + Math.cos(a0) * r0, y, d.z + Math.sin(a0) * r0];
-          const t1 = [d.x + Math.cos(a1) * r0, y, d.z + Math.sin(a1) * r0];
-          const b0 = [d.x + Math.cos(a0) * r1, 0.02, d.z + Math.sin(a0) * r1];
-          const b1 = [d.x + Math.cos(a1) * r1, 0.02, d.z + Math.sin(a1) * r1];
-          cones.tri(t0, b0, b1, top, bottom, bottom);
-          cones.tri(t0, b1, t1, top, bottom, top);
+        for (const [cx, cz] of many.length ? many.map((p) => [p[0], p[2]] as [number, number]) : [[d.x, d.z] as [number, number]]) {
+          for (let i = 0; i < n; i++) {
+            const a0 = (i / n) * Math.PI * 2;
+            const a1 = ((i + 1) / n) * Math.PI * 2;
+            const t0 = [cx + Math.cos(a0) * r0, y, cz + Math.sin(a0) * r0];
+            const t1 = [cx + Math.cos(a1) * r0, y, cz + Math.sin(a1) * r0];
+            const b0 = [cx + Math.cos(a0) * r1, 0.02, cz + Math.sin(a0) * r1];
+            const b1 = [cx + Math.cos(a1) * r1, 0.02, cz + Math.sin(a1) * r1];
+            cones.tri(t0, b0, b1, top, bottom, bottom);
+            cones.tri(t0, b1, t1, top, bottom, top);
+          }
         }
       }
     }

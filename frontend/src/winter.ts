@@ -81,12 +81,14 @@ function safeStorage(): Storage | null {
 }
 
 /** The lawns under snow: a white patch on each, a little above its surface. */
-export function lawnSnow(b: Building, level: number): { floorId: string; points: Vec2[]; y: number; color: [number, number, number]; opacity: number }[] {
+export function lawnSnow(b: Building, level: number): { floorId: string; points: Vec2[]; y: number; color: [number, number, number]; opacity: number; follow?: { areaId: string; lift: number } }[] {
   if (level <= 0) return [];
-  const out: { floorId: string; points: Vec2[]; y: number; color: [number, number, number]; opacity: number }[] = [];
+  const out: { floorId: string; points: Vec2[]; y: number; color: [number, number, number]; opacity: number; follow?: { areaId: string; lift: number } }[] = [];
   for (const floor of b.floors)
     for (const a of floor.outdoor ?? [])
-      if (a.type === "lawn" && a.points.length >= 3) out.push({ floorId: floor.id, points: a.points, y: areaGround(floor, a) + OUTDOOR_TOP[a.type] + 0.025, color: [0.93, 0.96, 1], opacity: 0.78 * level });
+      if (a.type === "lawn" && a.points.length >= 3)
+        // on a sloping lawn the snow follows the ground (#1036)
+        out.push({ floorId: floor.id, points: a.points, y: areaGround(floor, a) + OUTDOOR_TOP[a.type] + 0.025, color: [0.93, 0.96, 1], opacity: 0.78 * level, ...(a.slope ? { follow: { areaId: a.id, lift: 0.025 } } : {}) });
   return out;
 }
 

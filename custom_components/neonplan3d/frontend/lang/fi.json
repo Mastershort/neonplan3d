@@ -2297,5 +2297,7 @@
  "style_slide": "Liuku (lasi liukuu kiinteän eteen)",
  "preset_terrace_slide": "Nosto-liukuovi",
  "preset_window_slide": "Liukuikkuna",
- "mount_below_hint": "Alle 0 vain huoneiden ulkopuolella: portaat alas upotetulle terassille tai valokuiluun."
+ "mount_below_hint": "Alle 0 vain huoneiden ulkopuolella: portaat alas upotetulle terassille tai valokuiluun.",
+ "fx3d": "Tehosteet",
+ "fx3d_hint": "Näytä sää, aurinko, lemmikit ja kummitus myös editorin 3D-ruudussa (pois: rauhallinen ruutu piirtämiseen)"
 }

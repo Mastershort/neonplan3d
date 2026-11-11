@@ -281,6 +281,7 @@ export class Fp3dView3d extends LitElement {
     trail: { type: Boolean },
     cameraWall: { attribute: false },
     weather: { type: Boolean },
+    sunFx: { attribute: false },
     weatherEntityId: { attribute: false },
     _flash: { state: true },
     _proHint: { state: true },
@@ -432,6 +433,8 @@ export class Fp3dView3d extends LitElement {
   declare cameraWall: boolean;
   /** Weather outside: rain, snow, fog and clouds from a weather entity, sun and moon from sun.sun. */
   declare weather: boolean;
+  /** Sun, its arc and the house's shadow (the editor's pane switches them off with its effects). */
+  declare sunFx: boolean;
   /** The weather entity to use (null: the first one). */
   declare weatherEntityId: string | null;
   /** A lightning flash lights the stage for a moment. */
@@ -733,6 +736,7 @@ export class Fp3dView3d extends LitElement {
     this.furnish = false;
     this.trail = false;
     this.weather = true;
+    this.sunFx = true;
     this.weatherEntityId = null;
     this._flash = false;
     this._proHint = null;
@@ -1670,10 +1674,10 @@ export class Fp3dView3d extends LitElement {
     // daylight: sun through the windows and a lighter sky
     const sun = hass.states["sun.sun"]?.attributes;
     const elevation = typeof sun?.elevation === "number" ? sun.elevation : null;
-    v.setSun(elevation !== null && typeof sun?.azimuth === "number" ? { elevation, azimuth: sun.azimuth } : null);
+    v.setSun(this.sunFx !== false && elevation !== null && typeof sun?.azimuth === "number" ? { elevation, azimuth: sun.azimuth } : null);
     // the compass ring's letters: the first letter of each direction in the user's language
     const letter = (k: I18nKey) => translate(hass, k).charAt(0).toUpperCase();
-    v.setSunPath(this.sunPathToday(hass), [letter("compass_n"), letter("compass_e"), letter("compass_s"), letter("compass_w")], hourCycle(hass));
+    v.setSunPath(this.sunFx === false ? null : this.sunPathToday(hass), [letter("compass_n"), letter("compass_e"), letter("compass_s"), letter("compass_w")], hourCycle(hass));
     // the automatic look follows the sun (setTheme ignores a look it already shows)
     if (this.theme === "auto") v.setTheme(this.effectiveTheme());
     // the weather outside: clouds darken the sky, rain, snow and fog fall over the plot

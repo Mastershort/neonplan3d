@@ -109,10 +109,13 @@ export function composeSite(main: Building, others: readonly SitePlan[]): Buildi
   floors.sort((a, b) => a.elevation - b.elevation);
   // every building keeps its own roof: all of them become sections of one roof (an automatic roof would span the
   // whole property). The main roof's solar fields on its single roof move to its first section.
-  const own = roofSectionsOf(main);
+  // a building without a single room has no roof on the property: sections left over from deleted rooms would stand
+  // in the air beside the other buildings (#986)
+  const hasRooms = (b: Building) => b.floors.some((f) => f.rooms.some((r) => r.points.length >= 3));
+  const own = hasRooms(main) ? roofSectionsOf(main) : [];
   const single = main.settings.roof.type !== "custom" && main.settings.roof.type !== undefined;
   const solar = (main.settings.roof.solar ?? []).map((f) => (single && own[0] && f.face.startsWith("main:") ? { ...f, face: `${own[0].id}:${f.face.slice(5)}` } : f));
-  const sections = [...own, ...others.filter((p) => p.site?.on).flatMap((p) => roofSectionsOf(p.building).map((x) => placeSection(x, p.id, p.site!)))];
+  const sections = [...own, ...others.filter((p) => p.site?.on && hasRooms(p.building)).flatMap((p) => roofSectionsOf(p.building).map((x) => placeSection(x, p.id, p.site!)))];
   const roof = { ...main.settings.roof, type: "custom" as const, sections, solar };
   // the property has no house start view (it would frame the main house only) and no card templates of its own
   return { ...main, floors, card_templates: [], settings: { ...main.settings, start_view: null, roof } };

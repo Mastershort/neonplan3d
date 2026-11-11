@@ -2297,5 +2297,7 @@
  "style_slide": "Schuif (één ruit schuift voor de vaste)",
  "preset_terrace_slide": "Hefschuifpui",
  "preset_window_slide": "Schuifraam",
- "mount_below_hint": "Onder 0 alleen buiten de kamers: treden omlaag naar een verdiept terras of een lichtkoker."
+ "mount_below_hint": "Onder 0 alleen buiten de kamers: treden omlaag naar een verdiept terras of een lichtkoker.",
+ "fx3d": "Effecten",
+ "fx3d_hint": "Weer, zon, huisdieren en spook ook in het 3D-venster van de editor tonen (uit: een rustig venster om te tekenen)"
 }
