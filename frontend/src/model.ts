@@ -4,7 +4,7 @@
 import type { CardConfig } from "./card-config.ts";
 import { packItem } from "./packs.ts";
 import type { LampModel } from "./viewer/viewer3d.ts";
-import type { StylePlan } from "./looks.ts";
+import type { CustomStyle, StylePlan } from "./looks.ts";
 
 export type Vec2 = [number, number];
 
@@ -724,6 +724,8 @@ export const DOG_BREEDS = ["dachshund", "pug", "terrier", "labrador", "shepherd"
 export interface BuildingSettings extends StylePlan {
   /** The outside of the house in the homely styles ("#rrggbb", null = like the walls). */
   facade_color?: string | null;
+  /** Own styles: built-in ones adjusted and named (listed with the others everywhere). */
+  styles_custom?: CustomStyle[] | null;
   /** The background behind the 3D house (null: the look's own sky): a colour, a gradient or a picture. */
   backdrop?: { kind?: "color" | "gradient" | "image" | null; color?: string | null; color2?: string | null; image?: string | null; dim?: number | null } | null;
   /**

@@ -902,6 +902,8 @@ SETTINGS_SCHEMA = vol.Schema(
             )
         },
         vol.Optional("style_switch"): vol.Any(None, vol.In(["sun", "time"])),
+        # own styles: built-in ones adjusted and named (their settings are checked by the frontend)
+        vol.Optional("styles_custom"): vol.Any(None, vol.All([dict], vol.Length(max=40))),
         # the background behind the 3D house (None = the look's own sky): a colour, a gradient or a picture
         vol.Optional("backdrop", default=None): vol.Any(
             None,

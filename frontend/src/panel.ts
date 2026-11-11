@@ -22,6 +22,7 @@ import type { HomeAssistant } from "./types.ts";
 import type { MarkerMode } from "./components/view3d.ts";
 import type { HeatMode } from "./heatmap.ts";
 import { styleOptions, isStyleChoice } from "./style-select.ts";
+import { setCustomStyles } from "./looks.ts";
 import { keepInRoom, snapToWall } from "./geometry/snap.ts";
 import { furnitureName } from "./furniture-names.ts";
 import { confirmEntities, defaultHeight, entityName, kindOf } from "./devices.ts";
@@ -728,6 +729,7 @@ export class Floorplan3dPanel extends LitElement {
     if (this.hass && !languageReady(this.hass.language)) return nothing;
     this.checkOffers();
     const b = this.data.building;
+    setCustomStyles(b?.settings.styles_custom);
     const saveState = this.data.saveState;
     return html`
       <div class="fp3d-app ${this._clean && this._mode === "view" ? "fp3d-clean" : ""}" style=${this._accent ? `--fp3d-accent:${this._accent}` : ""}>

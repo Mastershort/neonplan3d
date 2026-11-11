@@ -2,6 +2,7 @@
 // write YAML. It follows Home Assistant's colours (the dialog is light or dark with the user's theme).
 
 import { styleOptions } from "./style-select.ts";
+import { setCustomStyles } from "./looks.ts";
 import { css, html, LitElement, nothing, svg } from "lit";
 import { fetchBuilding, listPlans, MAIN_PLAN, type PlanEntry } from "./api.ts";
 import { labOn, UNRELEASED } from "./features.ts";
@@ -253,6 +254,7 @@ export class Floorplan3dCardEditor extends LitElement {
 
   /** A style choice (grouped); an empty choice removes the option. */
   private styleSelect(key: "theme" | "theme_evening" | "theme_night", label: I18nKey, current: string, opts: { auto?: boolean; house?: boolean; none?: boolean }) {
+    setCustomStyles(this.building?.settings.styles_custom);
     return html`<label class="field"
       >${this.t(label)}
       <select @change=${(e: Event) => this.set(key, (e.target as HTMLSelectElement).value || undefined)}>

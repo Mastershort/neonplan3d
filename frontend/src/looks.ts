@@ -45,7 +45,9 @@ export interface StyleDef {
   /** The stage behind the house: top and bottom of a gradient. */
   bg?: [string, string] | null;
   /** The menu group. */
-  group: "neon" | "homely" | "designed";
+  group: "neon" | "homely" | "designed" | "custom";
+  /** An own style's name (the built-in ones are named by their texts). */
+  name?: string;
   /** Words that name it (a helper entity, voice); the id and the German and English names always count. */
   aliases: string[];
 }
@@ -120,8 +122,30 @@ export const STYLES: StyleDef[] = [
 export const STYLE_IDS = STYLES.map((s) => s.id);
 const BY_ID = new Map(STYLES.map((s) => [s.id, s]));
 
+/** An own style, kept in the plan's settings (`styles_custom`): a built-in one adjusted and named. */
+export interface CustomStyle extends Omit<StyleDef, "group" | "aliases"> {
+  name: string;
+}
+
+let custom: StyleDef[] = [];
+
+/** The plan's own styles: every place that lists or resolves styles sets them from the building it shows. */
+export function setCustomStyles(list: readonly CustomStyle[] | null | undefined): void {
+  custom = (list ?? []).filter((c) => c && typeof c.id === "string" && c.id.startsWith("my_") && typeof c.name === "string").map((c) => ({ ...c, group: "custom", aliases: [c.name] }));
+}
+
+/** The built-in styles and the plan's own ones. */
+export function allStyles(): StyleDef[] {
+  return custom.length ? [...STYLES, ...custom] : STYLES;
+}
+
 export function styleById(id: string | null | undefined): StyleDef | undefined {
-  return id ? BY_ID.get(id) : undefined;
+  return id ? (BY_ID.get(id) ?? custom.find((c) => c.id === id)) : undefined;
+}
+
+/** An id for a new own style. */
+export function newStyleId(): string {
+  return `my_${Math.random().toString(36).slice(2, 8)}`;
 }
 
 /** A style chosen for a screen: a style, "auto" (Day by sunlight, Neon after dark) or "house" (the house's plan). */
@@ -185,7 +209,7 @@ export function styleFromText(text: string | null | undefined, names: Record<str
   if (!text) return null;
   const n = norm(text);
   if (!n) return null;
-  for (const s of STYLES) if (norm(s.id) === n || s.aliases.some((a) => norm(a) === n) || (names[s.id] ?? []).some((a) => norm(a) === n)) return s.id;
+  for (const s of allStyles()) if (norm(s.id) === n || s.aliases.some((a) => norm(a) === n) || (names[s.id] ?? []).some((a) => norm(a) === n)) return s.id;
   return null;
 }
 
@@ -209,7 +233,7 @@ export interface StyleInputs {
 
 /** The style a screen shows now. */
 export function resolveStyle(i: StyleInputs): string {
-  const valid = (id: string | null | undefined): string | null => (id && BY_ID.has(id) ? id : null);
+  const valid = (id: string | null | undefined): string | null => (styleById(id) ? id! : null);
   const over = valid(i.override);
   if (over) return over;
   const named = styleFromText(i.entityState, i.names);

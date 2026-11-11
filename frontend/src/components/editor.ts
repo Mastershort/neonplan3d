@@ -1,7 +1,7 @@
 // 2D editor: floors, rooms (rectangles and free shapes), snapping, undo, background template.
 
 import { isStyleChoice, styleOptions } from "../style-select.ts";
-import { styleById } from "../looks.ts";
+import { allStyles, newStyleId, setCustomStyles, styleById, type CustomStyle, type StyleDef } from "../looks.ts";
 import { css, html, LitElement, nothing, svg, type PropertyValues, type TemplateResult } from "lit";
 import { linesField } from "./lines-field.ts";
 import { unsafeHTML } from "lit/directives/unsafe-html.js";
@@ -391,6 +391,7 @@ export class Fp3dEditor extends LitElement {
     _wall3d: { state: true },
     _fx3d: { state: true },
     _style3d: { state: true },
+    _styleSel: { state: true },
     _sidePinned: { state: true },
     _sideMin: { state: true },
     _sideOpen: { state: true },
@@ -509,6 +510,8 @@ export class Fp3dEditor extends LitElement {
   private declare _fx3d: boolean;
   /** The style of the 3D pane beside the plan (and the wall view), kept per device. */
   private declare _style3d: string;
+  /** The style shown in the styles dialog (its preview and, for an own one, its settings). */
+  private declare _styleSel: string | null;
   /** Sidebar beside the 3D pane: pinned open always, or folded to a strip while nothing is selected. */
   private declare _sidePinned: boolean;
   /** The sidebar folded to a narrow strip beside the plan (more room to move furniture); remembered per browser. */
@@ -1218,6 +1221,7 @@ export class Fp3dEditor extends LitElement {
   }
 
   private render3d() {
+    setCustomStyles(this._doc.settings.styles_custom);
     return html`<div class="fp3d-editor-3d">
       ${this.houseTool
         ? nothing
@@ -13864,8 +13868,150 @@ export class Fp3dEditor extends LitElement {
     </details>`;
   }
 
-  /** ⚙ Styles: the house's plan for day, evening and night, how it switches, a helper entity, the facade colour. */
+  /**
+   * ⚙ Styles: a preview of the house in the style chosen, every style as a tile, own styles made from them with all
+   * their settings, then the times of day (the house plan for screens set to it) and the facade colour.
+   */
   private renderStyleSettings() {
+    const st = this._doc.settings;
+    setCustomStyles(st.styles_custom);
+    const admin = this.isAdmin;
+    const sel = styleById(this._styleSel) ? this._styleSel! : styleById(this._style3d) ? this._style3d : "cozy";
+    const def = styleById(sel)!;
+    const name = (x: StyleDef) => x.name ?? this.t(`style_${x.id}` as I18nKey);
+    const groups = ["neon", "homely", "designed", "custom"] as const;
+    const styles = allStyles();
+    const copy = () => {
+      const { group: _g, aliases: _a, name: _n, ...rest } = def;
+      const id = newStyleId();
+      const own: CustomStyle = { ...rest, id, name: `${name(def)} ${this.t("style_own_suffix")}`, palette: def.natural ? null : (def.palette ?? CLASSIC_PALETTE[def.base]), bg: def.bg ?? CLASSIC_BG[def.base] };
+      this.change((d) => (d.settings.styles_custom = [...(d.settings.styles_custom ?? []), own]));
+      this._styleSel = id;
+    };
+    return html`<div class="fp3d-style-studio">
+        <div class="fp3d-style-preview">
+          <fp3d-view3d
+            .walkable=${false}
+            .viewKind=${"preview"}
+            .hass=${this.hass}
+            .building=${this._doc}
+            .floorId=${this._floorId}
+            .roomId=${null}
+            .wallMode=${"auto"}
+            .explode=${false}
+            .markerMode=${"none"}
+            .heatMode=${"none"}
+            .theme=${sel}
+            .packs=${this.packs}
+            .showEnergy=${false}
+            .holograms=${false}
+            .flows=${false}
+            .weather=${false}
+            .petsOn=${false}
+            .ghostOn=${false}
+            .sunFx=${false}
+            .quality=${"auto"}
+            .floorThumbs=${false}
+            .roomLabels=${false}
+            .floorStack=${"single"}
+            .panelOpen=${false}
+            .alerts=${false}
+            .scenes=${false}
+            .central=${false}
+          ></fp3d-view3d>
+        </div>
+        ${groups
+          .filter((g) => styles.some((x) => x.group === g))
+          .map(
+            (g) => html`<div class="fp3d-style-group">
+              <span class="fp3d-sub">${this.t(`style_group_${g}` as I18nKey)}</span>
+              <div class="fp3d-style-tiles">
+                ${styles
+                  .filter((x) => x.group === g)
+                  .map(
+                    (x) => html`<button class="fp3d-style-tile" aria-pressed=${x.id === sel} @click=${() => (this._styleSel = x.id)}>
+                      <span class="fp3d-style-dot" style="background:linear-gradient(135deg, ${x.bg?.[0] ?? CLASSIC_BG[x.base][0]}, ${x.palette?.light ?? (x.natural ? "#e9e2d6" : CLASSIC_PALETTE[x.base].light)} 60%, ${x.palette?.line ?? (x.natural ? "#b3885f" : CLASSIC_PALETTE[x.base].line)})"></span>
+                      ${name(x)}
+                    </button>`,
+                  )}
+              </div>
+            </div>`,
+          )}
+        <div class="fp3d-actions">
+          ${admin ? html`<button class="fp3d-btn fp3d-primary" @click=${copy}>＋ ${this.t("style_new")}</button>` : nothing}
+          <button class="fp3d-btn" @click=${() => this.setStyle3d(sel)}>${this.t("style_show_beside")}</button>
+        </div>
+        ${def.group === "custom" ? this.renderOwnStyle(def) : html`<p class="fp3d-sub">${this.t("style_builtin_hint")}</p>`}
+        <details class="fp3d-section">
+          <summary>🕒 ${this.t("style_times")}</summary>
+          ${this.renderStylePlan()}
+        </details>
+        <div class="fp3d-form">
+          <label class="fp3d-field"
+            >${this.t("facade_color")}
+            <input type="color" ?disabled=${!admin} .value=${st.facade_color ?? "#e9e5de"} @change=${(e: Event) => this.setSettings({ facade_color: (e.target as HTMLInputElement).value })} />
+          </label>
+          ${st.facade_color ? html`<button class="fp3d-btn" ?disabled=${!admin} @click=${() => this.setSettings({ facade_color: null })}>${this.t("color_reset")}</button>` : nothing}
+        </div>
+      </div>`;
+  }
+
+  /** An own style's settings: name, materials or palette, the realism switches, the background. */
+  private renderOwnStyle(def: StyleDef) {
+    const admin = this.isAdmin;
+    const edit = (patch: Partial<CustomStyle>) =>
+      this.change((d) => {
+        const list = d.settings.styles_custom ?? [];
+        const x = list.find((c) => c.id === def.id);
+        if (x) Object.assign(x, patch);
+      });
+    const pal = def.palette ?? CLASSIC_PALETTE[def.base];
+    const setPal = (patch: Partial<NonNullable<StyleDef["palette"]>>) => edit({ palette: { ...pal, ...patch } });
+    const bg = def.bg ?? CLASSIC_BG[def.base];
+    const colour = (label: I18nKey, value: string, set: (v: string) => void) =>
+      html`<label class="fp3d-field"
+        >${this.t(label)}<input type="color" ?disabled=${!admin} .value=${value} @input=${(e: Event) => set((e.target as HTMLInputElement).value)}
+      /></label>`;
+    const slider = (label: I18nKey, value: number, min: number, max: number, step: number, set: (v: number) => void) =>
+      html`<label class="fp3d-field"
+        >${this.t(label)}<input type="range" min=${min} max=${max} step=${step} ?disabled=${!admin} .value=${String(value)} @input=${(e: Event) => set(Number((e.target as HTMLInputElement).value))}
+      /></label>`;
+    const check = (label: I18nKey, on: boolean, set: (v: boolean) => void) =>
+      html`<label class="fp3d-check fp3d-wide"><input type="checkbox" ?disabled=${!admin} .checked=${on} @change=${(e: Event) => set((e.target as HTMLInputElement).checked)} /> ${this.t(label)}</label>`;
+    return html`<div class="fp3d-form fp3d-own-style">
+      <label class="fp3d-field fp3d-wide"
+        >${this.t("style_name")}<input type="text" ?disabled=${!admin} .value=${def.name ?? ""} @change=${(e: Event) => edit({ name: (e.target as HTMLInputElement).value.trim() || def.name })}
+      /></label>
+      ${check("style_natural", !!def.natural, (v) => edit({ natural: v, palette: v ? null : pal, floors: v ? (def.floors ?? 1) : def.floors, cutDark: v ? (def.cutDark ?? true) : def.cutDark }))}
+      ${check("style_dark", def.base === "neon", (v) => edit({ base: v ? "neon" : "day" }))}
+      ${def.natural
+        ? html`${slider("style_dim", def.dim ?? 0, 0, 0.9, 0.01, (v) => edit({ dim: v }))} ${slider("style_floors", def.floors ?? 0, 0, 1, 0.01, (v) => edit({ floors: v }))}
+          ${check("style_cut", !!def.cutDark, (v) => edit({ cutDark: v }))}`
+        : html`${colour("style_line", pal.line, (v) => setPal({ line: v }))} ${colour("style_surface_dark", pal.dark, (v) => setPal({ dark: v }))}
+          ${colour("style_surface_light", pal.light, (v) => setPal({ light: v }))} ${slider("style_hue", pal.hue, 0, 1, 0.01, (v) => setPal({ hue: v }))}
+          ${slider("style_lift", pal.lift, 0, 0.7, 0.01, (v) => setPal({ lift: v }))} ${slider("style_contrast", pal.contrast, 0.5, 7, 0.1, (v) => setPal({ contrast: v }))}
+          ${check("style_signal", def.signal !== false, (v) => edit({ signal: v }))}`}
+      ${slider("style_sun", def.sun ?? 0, 0, 0.7, 0.01, (v) => edit({ sun: v }))} ${slider("style_ao", def.ao ?? 0, 0, 0.7, 0.01, (v) => edit({ ao: v }))}
+      ${check("style_shadows", !!def.shadows, (v) => edit({ shadows: v }))}
+      ${colour("style_bg_top", bg[0], (v) => edit({ bg: [v, bg[1]] }))} ${colour("style_bg_bottom", bg[1], (v) => edit({ bg: [bg[0], v] }))}
+      ${admin
+        ? html`<div class="fp3d-actions fp3d-wide">
+            <button
+              class="fp3d-btn fp3d-danger"
+              @click=${() => {
+                this.change((d) => (d.settings.styles_custom = (d.settings.styles_custom ?? []).filter((c) => c.id !== def.id)));
+                this._styleSel = null;
+              }}
+            >
+              ${this.t("style_delete")}
+            </button>
+          </div>`
+        : nothing}
+    </div>`;
+  }
+
+  /** The times of day: the house plan for every screen set to "House plan", how it switches, a helper entity. */
+  private renderStylePlan() {
     const st = this._doc.settings;
     const pick = (key: "style_day" | "style_evening" | "style_night", label: I18nKey) =>
       html`<label class="fp3d-field"
@@ -13880,7 +14026,8 @@ export class Fp3dEditor extends LitElement {
         <input type="time" ?disabled=${!this.isAdmin} .value=${st[key] ?? fallback} @change=${(e: Event) => this.setSettings({ [key]: (e.target as HTMLInputElement).value || null })} />
       </label>`;
     const byTime = st.style_switch === "time";
-    return html`<div class="fp3d-form">
+    return html`<p class="fp3d-sub">${this.t("styles_hint")}</p>
+      <div class="fp3d-form">
         ${pick("style_day", "style_day_label")} ${pick("style_evening", "style_evening_label")} ${pick("style_night", "style_night_label")}
         <label class="fp3d-field"
           >${this.t("style_switch")}
@@ -13897,13 +14044,7 @@ export class Fp3dEditor extends LitElement {
           <input type="text" placeholder="input_select.neonplan_stil" ?disabled=${!this.isAdmin} .value=${st.style_entity ?? ""} @change=${(e: Event) => this.setSettings({ style_entity: (e.target as HTMLInputElement).value.trim() || null })} />
         </label>
         <p class="fp3d-sub fp3d-wide">${this.t("style_entity_hint")}</p>
-        <label class="fp3d-field"
-          >${this.t("facade_color")}
-          <input type="color" ?disabled=${!this.isAdmin} .value=${st.facade_color ?? "#e9e5de"} @change=${(e: Event) => this.setSettings({ facade_color: (e.target as HTMLInputElement).value })} />
-        </label>
-        ${st.facade_color ? html`<button class="fp3d-btn" ?disabled=${!this.isAdmin} @click=${() => this.setSettings({ facade_color: null })}>${this.t("color_reset")}</button>` : nothing}
-      </div>
-      <p class="fp3d-sub">${this.t("styles_hint")}</p>`;
+      </div>`;
   }
 
   /** The ground around the house: its height, a hillside, the earth around cellars. */
@@ -14396,6 +14537,53 @@ export class Fp3dEditor extends LitElement {
         top: 10px;
         left: 10px;
         z-index: 3;
+      }
+      .fp3d-style-studio {
+        display: grid;
+        gap: 12px;
+      }
+      .fp3d-style-preview {
+        position: relative;
+        height: 280px;
+        border-radius: 12px;
+        overflow: hidden;
+        border: 1px solid var(--fp3d-line);
+      }
+      .fp3d-style-preview fp3d-view3d {
+        position: absolute;
+        inset: 0;
+      }
+      .fp3d-style-group {
+        display: grid;
+        gap: 4px;
+      }
+      .fp3d-style-tiles {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+      .fp3d-style-tile {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 10px;
+        border-radius: 10px;
+        border: 1px solid var(--fp3d-line);
+        background: rgba(255, 255, 255, 0.04);
+        color: var(--fp3d-text);
+        font: inherit;
+        font-size: 13px;
+        cursor: pointer;
+      }
+      .fp3d-style-tile[aria-pressed="true"] {
+        border-color: var(--fp3d-accent);
+        background: rgba(55, 224, 255, 0.12);
+      }
+      .fp3d-style-dot {
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        border: 1px solid var(--fp3d-line);
       }
       .fp3d-style3d {
         margin-left: 6px;
@@ -17251,3 +17439,15 @@ const WALL_SWATCHES: [string, string][] = [
   ["Rauchblau / Smoke blue", "#8fa3b8"],
   ["Anthrazit / Anthracite", "#4a4e55"],
 ];
+
+/** The classic looks as a palette, the start of an own style made from one of them. */
+const CLASSIC_PALETTE: Record<"neon" | "blueprint" | "day", NonNullable<StyleDef["palette"]>> = {
+  neon: { line: "#37e0ff", dark: "#0e1629", light: "#22345a", hue: 0.6, lift: 0.05, contrast: 2.5 },
+  blueprint: { line: "#cce6ff", dark: "#0a2147", light: "#336bbf", hue: 0, lift: 0.05, contrast: 4 },
+  day: { line: "#0d1c45", dark: "#b8c0cc", light: "#f2f4f7", hue: 0.3, lift: 0.28, contrast: 3.6 },
+};
+const CLASSIC_BG: Record<"neon" | "blueprint" | "day", [string, string]> = {
+  neon: ["#0b1120", "#070b14"],
+  blueprint: ["#1a4682", "#0a264e"],
+  day: ["#f2f6fb", "#cdd8e6"],
+};

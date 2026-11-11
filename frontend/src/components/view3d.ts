@@ -104,7 +104,7 @@ const GRID_ICON = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" s
 /** The grid connection during a power outage: the bolt crossed out (#214). */
 const GRID_OFF_ICON = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/><path d="M3 3l18 18"/></svg>';
 import { STAGE, type Theme } from "../themes.ts";
-import { resolveStyle, styleById, styleFromText, STYLES, type StyleDef } from "../looks.ts";
+import { allStyles, resolveStyle, setCustomStyles, styleById, styleFromText, type StyleDef } from "../looks.ts";
 import { HEAT_SCALES, heatColor, heatGradient, roomValues, type HeatMode } from "../heatmap.ts";
 import { furnitureName } from "../furniture-names.ts";
 import { fetchImage, MAIN_PLAN, saveBuilding } from "../api.ts";
@@ -5992,8 +5992,9 @@ export class Fp3dView3d extends LitElement {
     const over = this._styleOverride;
     const live = over && (over.until === null || over.until > Date.now()) ? over.style : null;
     const entity = this.styleEntity || settings?.style_entity || null;
+    setCustomStyles(settings?.styles_custom);
     const names: Record<string, string[]> = {};
-    for (const s of STYLES) names[s.id] = [translate(hass, `style_${s.id}` as I18nKey)];
+    for (const s of allStyles()) names[s.id] = [s.name ?? translate(hass, `style_${s.id}` as I18nKey)];
     const sun = hass?.states["sun.sun"]?.state;
     const id = resolveStyle({
       choice: this.theme,
@@ -6043,13 +6044,14 @@ export class Fp3dView3d extends LitElement {
       this.setStyleOverride("reset", null);
       return translate(hass, "style_reset");
     }
+    setCustomStyles(this.building?.settings.styles_custom);
     const names: Record<string, string[]> = {};
-    for (const st of STYLES) names[st.id] = [translate(hass, `style_${st.id}` as I18nKey)];
+    for (const st of allStyles()) names[st.id] = [st.name ?? translate(hass, `style_${st.id}` as I18nKey)];
     // the words left must name a style as a whole ("Wohnlich Abend", "auf Synthwave"), so "Licht an" stays a light
     const id = styleFromText(rest, names);
     if (!id) return null;
     this.setStyleOverride(id, null);
-    return translate(hass, "style_set", { name: translate(hass, `style_${id}` as I18nKey) });
+    return translate(hass, "style_set", { name: styleById(id)?.name ?? translate(hass, `style_${id}` as I18nKey) });
   }
 
   /** The start view: the card's own, else the one remembered in the editor. */

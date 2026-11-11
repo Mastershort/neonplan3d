@@ -62,3 +62,17 @@ test("a helper entity and an override win; names match loosely", () => {
   assert.equal(resolveStyle({ choice: "neon", entityState: "Pastell", override: "synth", now: at(12), sunUp: true }), "synth");
   assert.equal(resolveStyle({ choice: "neon", names: { cozy: ["Kuschelig"] }, entityState: "kuschelig", now: at(12), sunUp: true }), "cozy");
 });
+
+test("own styles: listed, resolved, named by voice; gone again when the plan has none", async () => {
+  const { setCustomStyles, allStyles, styleById: byId } = await import("./looks.ts");
+  setCustomStyles([{ id: "my_pink", name: "Synthwave Pink", base: "neon", palette: { line: "#ff66cc", dark: "#100010", light: "#401040", hue: 0.3, lift: 0.05, contrast: 2.5 } }]);
+  assert.equal(allStyles().length, STYLES.length + 1);
+  assert.equal(byId("my_pink")?.group, "custom");
+  assert.equal(resolveStyle({ choice: "my_pink", now: at(12), sunUp: true }), "my_pink");
+  assert.equal(styleFromText("synthwave pink"), "my_pink");
+  // an id that does not look like an own one is not taken
+  setCustomStyles([{ id: "cozy", name: "x", base: "day" } as never]);
+  assert.equal(allStyles().length, STYLES.length);
+  setCustomStyles(null);
+  assert.equal(resolveStyle({ choice: "my_pink", now: at(12), sunUp: true }), "neon");
+});
