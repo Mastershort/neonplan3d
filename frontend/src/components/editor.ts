@@ -1,6 +1,7 @@
 // 2D editor: floors, rooms (rectangles and free shapes), snapping, undo, background template.
 
 import { isStyleChoice, styleOptions } from "../style-select.ts";
+import { styleById } from "../looks.ts";
 import { css, html, LitElement, nothing, svg, type PropertyValues, type TemplateResult } from "lit";
 import { linesField } from "./lines-field.ts";
 import { unsafeHTML } from "lit/directives/unsafe-html.js";
@@ -1189,6 +1190,13 @@ export class Fp3dEditor extends LitElement {
   /** Tools that work on the whole house (roof, solar): the 3D pane shows all floors with the roof. */
   private get houseTool(): boolean {
     return this._tool === "roof" || this._tool === "energy";
+  }
+
+  /** A wall colour was set: the 3D pane beside the plan switches to a homely style, where wall colours show. */
+  private showWallColours(): void {
+    if (styleById(this._style3d)?.natural) return;
+    this.setStyle3d("cozy");
+    this._notice = this.t("wall_colors_shown");
   }
 
   private setStyle3d(style: string): void {
@@ -6471,12 +6479,16 @@ export class Fp3dEditor extends LitElement {
         r.wall_thickness = list.every((t) => t === null) ? undefined : list;
       });
     // wall colours (homely styles): one for all walls on top, each wall may differ in its own row
-    const setAllColours = (hex: string | null) => this.updateRoom({ wall_color: hex, wall_colors: null });
+    const setAllColours = (hex: string | null) => {
+      this.updateRoom({ wall_color: hex, wall_colors: null });
+      if (hex) this.showWallColours();
+    };
     const setColour = (i: number, hex: string | null) => {
       const list = room.wall_colors ? [...room.wall_colors] : room.points.map(() => null as string | null);
       while (list.length < room.points.length) list.push(null);
       list[i] = hex;
       this.updateRoom({ wall_colors: list.some(Boolean) ? list : null });
+      if (hex) this.showWallColours();
     };
     return html`<div class="fp3d-edge-box">
       <h4>${this.t("wall_settings")}</h4>
