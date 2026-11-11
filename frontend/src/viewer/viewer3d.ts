@@ -6,7 +6,7 @@
 // animated independently.
 
 import { AdditiveBlending, CustomBlending, OneFactor, SrcAlphaFactor, ZeroFactor, RingGeometry, Fog, CircleGeometry, Box3, CanvasTexture, ClampToEdgeWrapping, Color, BackSide, DoubleSide, FrontSide, Group, LineBasicMaterial, LineSegments, Mesh, MeshBasicMaterial, MultiplyBlending, OrthographicCamera, PerspectiveCamera, Points, PointsMaterial, PlaneGeometry, Raycaster, RepeatWrapping, Scene, SRGBColorSpace, TextureLoader, type Texture, Float32BufferAttribute, Uint32BufferAttribute, DynamicDrawUsage, BufferGeometry as Geometry, Vector2, Vector3, WebGLRenderer, WebGLRenderTarget, type Material, BufferGeometry } from "three";
-import type { Building, Floor, Furniture, Room, StartView } from "../model.ts";
+import type { Building, Floor, Furniture, Room, StartView, Vec2 } from "../model.ts";
 import { recolorLamps, SHADE_SENTINEL, shadeFactors } from "./lamp-colors.ts";
 import { centroid, GANG_TYPES, gateSpans, outdoorSurface, outdoorTopAt, outdoorZones, pointInPolygon, openingStyle, setTerrain, WALL_LAMP_Y, zonesOf } from "../model.ts";
 import { placeWallPlate } from "../geometry/walls.ts";
@@ -28,6 +28,7 @@ export { FloorMap, WalkCamera, type WalkState } from "./walk.ts";
 export const funLib = { Group, Mesh, MeshBasicMaterial, CanvasTexture, Color, PlaneGeometry, BufferGeometry: Geometry, Float32BufferAttribute, DoubleSide };
 
 export type { PipeTube };
+import { lumenGlowScale } from "../markers.ts";
 import { groundUnder, isCooktopZone, mountBase, packItem, packMotion, setPacks, type FurniturePack } from "../packs.ts";
 import { withVehicles } from "../parking.ts";
 import { buildRoof, type RoofGeometry, type RoofWindowState } from "./roof.ts";
@@ -37,7 +38,7 @@ import type { SunPath } from "../sun-path.ts";
 import { sunArcFrame, type SunArcFrame } from "./sun-arc.ts";
 import { GROUND, groundFace, groundFloor, roofFaces, roofWindowRoom, wallFaces } from "../solar.ts";
 import { buildSolarLive, solarLiveMaterial, writeSolarLevels, type SolarLive } from "./solar-live.ts";
-import { dotTexture, roofLightPoints, roofSnowGeometry } from "./snow.ts";
+import { CHRISTMAS_PALETTE, dotTexture, roofLightPoints, roofSnowGeometry, wledColorTwinkle } from "./snow.ts";
 import { Firework } from "./firework.ts";
 import { buildPools, disposePools, type PoolPiece } from "./pool-water.ts";
 import { accentOnUniform, accentUniform, applyStyleUniforms, floorLevelUniform, makeStyleUniforms, parseAccent, lineBlending, STYLE_LOOK, themed, themeIndex, type Theme, type ThemeUniform } from "./theme.ts";
@@ -143,6 +144,26 @@ export interface DeviceMarker {
   upright?: boolean;
   /** LED strip: rising along its length (degrees; D539). */
   rise?: number;
+  /** 3D LED strip: points in (x, z). */
+  points?: Vec2[];
+  /** 3D LED strip: height above floor per point. */
+  heights?: (number | null)[];
+  /** 3D LED strip: number of LEDs along strip. */
+  led_count?: number | null;
+  /** 3D LED strip: light effect. */
+  stripEffect?: string | null;
+  /** 3D LED strip: closed loop/polygon. */
+  closed?: boolean;
+  /** 3D LED strip: show line / cable even when turned off. */
+  showLineOff?: boolean;
+  /** 3D LED strip: hide the line/strip body, showing only the lights/bulbs. */
+  hide_line?: boolean;
+  /** 3D LED strip: sync group name for synchronizing effects and colors across strips. */
+  ledGroup?: string | null;
+  /** Nominal luminous flux in lumens (at 100% brightness). */
+  lumens?: number | null;
+  /** LED strip: whether lumens is strip total or per LED ("total" | "per_led"). */
+  lumenMode?: "total" | "per_led" | null;
   /** Ceiling fan: how fast its blades turn (0–1; D606). */
   fanSpeed?: number;
   /** Show the HTML marker (false: the 3D object alone stands for the device). */
@@ -1030,7 +1051,7 @@ export class FloorplanViewer {
     this.devices = devices;
     this.syncFans(devices);
     this.labelsDirty = true;
-    this.effectFloors = new Set(devices.filter((d) => d.effect && d.glow).map((d) => d.floorId));
+    this.effectFloors = new Set(devices.filter((d) => (d.effect && d.glow) || (d.lamp === "strip" && !!d.stripEffect)).map((d) => d.floorId));
     this.deviceFloor = new Map(devices.map((d) => [d.id, d.floorId]));
     const seen = new Set<string>();
     for (const d of devices) {
@@ -2620,17 +2641,33 @@ export class FloorplanViewer {
       const [y0, kind] = d.lamp ? kinds[d.lamp] : [d.y, "omni" as LightKind];
       const y = d.lightY ?? y0;
       const color = glow.color;
+      const lScale = lumenGlowScale(d.lumens, d.lumenMode, d.led_count);
       if (d.lamp === "strip") {
-        // a strip lights along its length: three sources spread over it; standing upright they climb,
-        // and a strip turned on its side (or standing) lights all around rather than up or down
-        const a = (d.rotation ?? 0) * DEG;
-        const sideways = !!d.upright || Math.abs(d.roll ?? 0) > 45;
-        for (const t of [-1 / 3, 0, 1 / 3]) {
-          if (d.upright) out.push({ x: d.x, y: base + w * (0.5 + t), z: d.z, color, level: glow.level * 0.55, kind: "omni", room });
-          else {
-            // a rising strip: its sources climb with it
-            const r = (d.rise ?? 0) * DEG;
-            out.push({ x: d.x + Math.cos(a) * w * t * Math.cos(r), y: y + Math.sin(r) * w * t, z: d.z + Math.sin(a) * w * t * Math.cos(r), color, level: glow.level * 0.55, kind: sideways || r ? "omni" : kind, room });
+        if (d.points && d.points.length >= 2) {
+          const pts = d.points;
+          const n = pts.length;
+          const isClosed = !!d.closed && n > 2;
+          const count = Math.min(8, Math.max(2, n));
+          for (let pi = 0; pi < count; pi++) {
+            const idx = Math.floor((pi / count) * (isClosed ? n : n - 1));
+            const p = pts[idx];
+            const py = (d.heights?.[idx] ?? base) + 0.05;
+            const ri = roomIndexAt(fv.floor, p[0], p[1]);
+            const rZone = zoneOf(fv.lightZones, ri);
+            out.push({ x: p[0], y: py, z: p[1], color, level: glow.level * lScale * 0.55, kind: "omni", room: rZone });
+          }
+        } else {
+          // a strip lights along its length: three sources spread over it; standing upright they climb,
+          // and a strip turned on its side (or standing) lights all around rather than up or down
+          const a = (d.rotation ?? 0) * DEG;
+          const sideways = !!d.upright || Math.abs(d.roll ?? 0) > 45;
+          for (const t of [-1 / 3, 0, 1 / 3]) {
+            if (d.upright) out.push({ x: d.x, y: base + w * (0.5 + t), z: d.z, color, level: glow.level * lScale * 0.55, kind: "omni", room });
+            else {
+              // a rising strip: its sources climb with it
+              const r = (d.rise ?? 0) * DEG;
+              out.push({ x: d.x + Math.cos(a) * w * t * Math.cos(r), y: y + Math.sin(r) * w * t, z: d.z + Math.sin(a) * w * t * Math.cos(r), color, level: glow.level * lScale * 0.55, kind: sideways || r ? "omni" : kind, room });
+            }
           }
         }
       } else {
@@ -2642,7 +2679,7 @@ export class FloorplanViewer {
         }
         // a wall lamp from a pack shines from its glowing parts (the lantern's glass), not from in front of it (#680)
         const at = this.packLightAt(d);
-        out.push({ x: at ? at[0] : d.x, y: at ? at[1] : y, z: at ? at[2] : d.z, color, level: glow.level, kind, room });
+        out.push({ x: at ? at[0] : d.x, y: at ? at[1] : y, z: at ? at[2] : d.z, color, level: glow.level * lScale, kind, room });
       }
     }
     out.push(...this.lightFromAbove(fv));
@@ -2796,7 +2833,7 @@ export class FloorplanViewer {
       lamps: themed(new MeshBasicMaterial({ vertexColors: true }), this.themeUniform),
       halos: new PointsMaterial({
         map: this.haloTexture,
-        size: 0.9,
+        size: 1.15,
         sizeAttenuation: true,
         vertexColors: true,
         transparent: true,
@@ -3157,7 +3194,7 @@ export class FloorplanViewer {
       // winter: the fairy lights along the eaves of this part, riding with it
       if (this.roofLights !== "off") {
         const mine = [...faces.values()].filter((face) => (face.section ? geo.sections?.includes(face.section) : geo === geos[0]));
-        const bulbs = roofLightPoints(mine, geo.floor.elevation + geo.base, this.roofLights === "color", this.roofOutline);
+        const bulbs = roofLightPoints(mine, geo.floor.elevation + geo.base, this.roofLights === "color", this.roofOutline, this.effectTime || performance.now() / 1000);
         if (bulbs) {
           const g = new BufferGeometry();
           g.setAttribute("position", new Float32BufferAttribute(bulbs.positions, 3));
@@ -3447,14 +3484,62 @@ export class FloorplanViewer {
     return moving;
   }
 
+  private stripGlowColor(d: DeviceMarker, time: number): [number, number, number] {
+  const seed = d.ledGroup ? 0 : Math.abs(d.id.split("").reduce((a, c) => (a * 31 + c.charCodeAt(0)) | 0, 0)) % 1000;
+  if (d.stripEffect === "christmas") {
+    const cycle = time * 1.2 + seed * 0.3;
+    const n = CHRISTMAS_PALETTE.length;
+    const idx = Math.floor(cycle) % n;
+    const nextIdx = (idx + 1) % n;
+    const fract = cycle - Math.floor(cycle);
+    const ease = (1 - Math.cos(fract * Math.PI)) / 2;
+    const c1 = CHRISTMAS_PALETTE[idx];
+    const c2 = CHRISTMAS_PALETTE[nextIdx];
+    return [
+      c1[0] * (1 - ease) + c2[0] * ease,
+      c1[1] * (1 - ease) + c2[1] * ease,
+      c1[2] * (1 - ease) + c2[2] * ease,
+    ];
+  }
+  if (d.stripEffect === "rainbow" || d.stripEffect === "color_loop") {
+    const h = (time * 60 + seed * 30) % 360;
+    const c = 1, x = 1 - Math.abs(((h / 60) % 2) - 1);
+    let r = 0, g = 0, b = 0;
+    if (h < 60) [r, g, b] = [c, x, 0];
+    else if (h < 120) [r, g, b] = [x, c, 0];
+    else if (h < 180) [r, g, b] = [0, c, x];
+    else if (h < 240) [r, g, b] = [0, x, c];
+    else if (h < 300) [r, g, b] = [x, 0, c];
+    else [r, g, b] = [c, 0, x];
+    return [r, g, b];
+  }
+  if (d.stripEffect === "multicolor") {
+    const pal: [number, number, number][] = [[1, 0.15, 0.2], [1, 0.82, 0.25], [0.15, 0.95, 0.35], [0.2, 0.6, 1], [0.92, 0.22, 0.75]];
+    const cycle = time * 1.2 + seed * 0.3;
+    const n = pal.length;
+    const idx = Math.floor(cycle) % n;
+    const nextIdx = (idx + 1) % n;
+    const fract = cycle - Math.floor(cycle);
+    const ease = (1 - Math.cos(fract * Math.PI)) / 2;
+    const c1 = pal[idx];
+    const c2 = pal[nextIdx];
+    return [c1[0] * (1 - ease) + c2[0] * ease, c1[1] * (1 - ease) + c2[1] * ease, c1[2] * (1 - ease) + c2[2] * ease];
+  }
+  return d.glow?.color ?? [1, 1, 1];
+}
+
   /** Glow of a device, with the hue turning while a colour effect runs. */
   private glowOf(d: DeviceMarker): DeviceMarker["glow"] {
+    if (d.lamp === "strip" && d.stripEffect) {
+      const nowTime = this.effectTime || performance.now() / 1000;
+      return { color: this.stripGlowColor(d, nowTime), level: d.glow?.level ?? 1 };
+    }
     if (!d.glow || !d.effect) return d.glow;
     const c = new Color(...d.glow.color);
     const hsl = { h: 0, s: 0, l: 0 };
     c.getHSL(hsl);
-    // lamps start at different points of the colour wheel, so a room does not blink in sync
-    const offset = (d.x * 0.37 + d.z * 0.61) % 1;
+    // lamps start at different points of the colour wheel unless grouped
+    const offset = d.ledGroup ? 0 : (d.x * 0.37 + d.z * 0.61) % 1;
     // at lightness 1 every hue is white: a light that reports no colour while its effect runs (Nanoleaf, #373)
     // glows white, so the lightness stays where hues show
     c.setHSL((hsl.h + this.effectTime * EFFECT_SPEED + offset) % 1, Math.max(0.6, hsl.s), Math.min(0.6, Math.max(0.45, hsl.l)));
@@ -3481,10 +3566,11 @@ export class FloorplanViewer {
     const shapeSig =
       this.wallMode +
       (this.lowQuality ? "L" : this.highQuality ? "H" : "M") +
-      lamps.map((d) => `${d.id},${d.lamp ?? d.model},${d.variant},${d.x},${d.z},${d.y},${d.rotation ?? 0},${d.roll ?? 0},${d.upright ? 1 : 0},${d.rise ?? 0},${d.size?.join("/")},${d.base ?? 0},${d.pack ?? ""},${d.mirror ? 1 : 0},${d.ownLook ? 1 : 0}`).join(";");
+      lamps.map((d) => `${d.id},${d.lamp ?? d.model},${d.variant},${d.x},${d.z},${d.y},${d.rotation ?? 0},${d.roll ?? 0},${d.upright ? 1 : 0},${d.rise ?? 0},${d.size?.join("/")},${d.base ?? 0},${d.pack ?? ""},${d.mirror ? 1 : 0},${d.ownLook ? 1 : 0},${d.points?.map((p) => p.join(".")).join(":") ?? ""},${d.heights?.join(".") ?? ""},${d.closed ? 1 : 0},${d.showLineOff ? 1 : 0},${d.ledGroup ?? ""}`).join(";");
     const glows = lamps.map((d) => this.glowOf(d));
     // a camera's motion is in it too: its wedge on the floor (buildHalos) turns red without any lamp changing (#901)
-    const colorSig = lamps.map((d, i) => `${flash(d.id)},${glows[i] ? `${glows[i]!.level.toFixed(3)},${glows[i]!.color.map((c) => c.toFixed(3)).join("/")}` : "off"}${d.motion ? ",m" : ""}`).join(";");
+    const timeStep = Math.floor((this.effectTime || performance.now() / 1000) * 10);
+    const colorSig = lamps.map((d, i) => `${flash(d.id)},${glows[i] ? `${glows[i]!.level.toFixed(3)},${glows[i]!.color.map((c) => c.toFixed(3)).join("/")}` : "off"}${d.motion ? ",m" : ""},${d.stripEffect ? `${d.stripEffect}:${d.ledGroup ?? ""}:${timeStep}` : ""}`).join(";");
     if (shapeSig !== fv.lampShapeSig || !fv.lampMesh.geometry.getAttribute("position")) {
       fv.lampShapeSig = shapeSig;
       fv.lampColorSig = "";
@@ -3530,7 +3616,11 @@ export class FloorplanViewer {
       const glow = glows[i];
       // a lit shade glows in the light's colour, brighter with more brightness; a tap flashes it white
       const k = glow ? 0.55 + 0.45 * glow.level : 0;
-      const shadeC = glow ? new Color(...(glow.color.map((c) => Math.min(1, c * k)) as [number, number, number])) : new Color(LAMP_SHADE);
+      const shadeC = glow
+        ? new Color(...(glow.color.map((c) => Math.min(1, c * k)) as [number, number, number]))
+        : d.lamp === "strip" && d.showLineOff
+          ? new Color(0x64748b)
+          : new Color(LAMP_SHADE);
       const f = flash(d.id);
       if (f > 0) shadeC.lerp(new Color(1, 1, 1), 0.7 * f);
       // the model's colours come from hex values: convert the same way (colour management)
@@ -3786,19 +3876,107 @@ export class FloorplanViewer {
         hp.push(x, y, z);
         hc.push(...glow.color.map((c) => c * glow.level * 0.7 * k));
       };
-      if (d.lamp === "strip")
-        for (const t of [-0.4, -0.13, 0.13, 0.4]) {
-          if (d.upright) {
-            // an upright strip glows up its length
-            hp.push(d.x, base + w * (0.5 + t), d.z);
-            hc.push(...glow.color.map((c) => c * glow.level * 0.7 * 0.6));
-          } else if (d.rise) {
-            // a rising strip glows along its slope
-            const r = d.rise * DEG;
-            hp.push(d.x + Math.cos(ang) * w * t * Math.cos(r), y + Math.sin(r) * w * t, d.z + Math.sin(ang) * w * t * Math.cos(r));
-            hc.push(...glow.color.map((c) => c * glow.level * 0.7 * 0.6));
-          } else push(d.x + Math.cos(ang) * w * t, d.z + Math.sin(ang) * w * t, 0.6);
+      if (d.lamp === "strip") {
+        if (d.points && d.points.length >= 2) {
+          const pts = d.points;
+          const n = pts.length;
+          const isClosed = !!d.closed && n > 2;
+          const edgeCount = isClosed ? n : n - 1;
+          let totalLen = 0;
+          const segLens: number[] = [];
+          for (let si = 0; si < edgeCount; si++) {
+            const p1 = pts[si];
+            const p2 = pts[(si + 1) % n];
+            const y1 = d.heights?.[si] ?? d.base ?? H - 0.04;
+            const y2 = d.heights?.[(si + 1) % n] ?? d.base ?? H - 0.04;
+            const sl = Math.hypot(p2[0] - p1[0], y2 - y1, p2[1] - p1[1]);
+            segLens.push(sl);
+            totalLen += sl;
+          }
+          const ledCount = d.led_count || Math.max(4, Math.round(totalLen / 0.12));
+          const effect = d.stripEffect;
+          const rainbowColors = (k: number, count: number): [number, number, number] => {
+            const h = (k / count) * 360;
+            const c = 1, x = 1 - Math.abs(((h / 60) % 2) - 1);
+            let r = 0, g = 0, b = 0;
+            if (h < 60) [r, g, b] = [c, x, 0];
+            else if (h < 120) [r, g, b] = [x, c, 0];
+            else if (h < 180) [r, g, b] = [0, c, x];
+            else if (h < 240) [r, g, b] = [0, x, c];
+            else if (h < 300) [r, g, b] = [x, 0, c];
+            else [r, g, b] = [c, 0, x];
+            return [r, g, b];
+          };
+          const step = totalLen / Math.max(1, isClosed ? ledCount : ledCount - 1);
+          let curDist = 0;
+          let segIdx = 0;
+
+          for (let k = 0; k < ledCount; k++) {
+            const targetDist = k * step;
+            while (segIdx < edgeCount - 1 && targetDist > curDist + segLens[segIdx]) {
+              curDist += segLens[segIdx];
+              segIdx++;
+            }
+            const p1 = pts[segIdx];
+            const p2 = pts[(segIdx + 1) % n];
+            const y1 = d.heights?.[segIdx] ?? d.base ?? H - 0.04;
+            const y2 = d.heights?.[(segIdx + 1) % n] ?? d.base ?? H - 0.04;
+            const t = segLens[segIdx] > 1e-4 ? Math.min(1, Math.max(0, (targetDist - curDist) / segLens[segIdx])) : 0;
+            const lx = p1[0] + (p2[0] - p1[0]) * t;
+            const ly = y1 + (y2 - y1) * t + 0.015;
+            const lz = p1[1] + (p2[1] - p1[1]) * t;
+
+            let rgb: [number, number, number];
+            const nowTime = this.effectTime || performance.now() / 1000;
+            const stripSeed = d.ledGroup ? 0 : Math.abs(d.id.split("").reduce((a, c) => (a * 31 + c.charCodeAt(0)) | 0, 0)) % 1000;
+            if (effect === "christmas") {
+              rgb = wledColorTwinkle(k + stripSeed, nowTime, CHRISTMAS_PALETTE);
+            } else if (effect === "rainbow" || effect === "color_loop") {
+              rgb = rainbowColors(d.ledGroup ? Math.floor(nowTime * 30) + k : k + stripSeed, ledCount);
+            } else if (effect === "multicolor") {
+              const pal: [number, number, number][] = [[1, 0.15, 0.2], [1, 0.82, 0.25], [0.15, 0.95, 0.35], [0.2, 0.6, 1], [0.92, 0.22, 0.75]];
+              rgb = wledColorTwinkle(k + stripSeed, nowTime, pal);
+            } else if (effect === "chase") {
+              const factor = (k + stripSeed + Math.floor(nowTime * 8)) % 3 === 0 ? 1 : 0.25;
+              rgb = glow.color.map((c) => c * factor) as [number, number, number];
+            } else if (effect === "twinkle") {
+              rgb = wledColorTwinkle(k + stripSeed, nowTime, [[glow.color[0], glow.color[1], glow.color[2]]]);
+            } else {
+              rgb = [glow.color[0], glow.color[1], glow.color[2]];
+            }
+            hp.push(lx, ly, lz);
+            const bulbLevel = Math.max(0.85, glow.level);
+            hc.push(rgb[0] * bulbLevel, rgb[1] * bulbLevel, rgb[2] * bulbLevel);
+          }
+        } else {
+          const nowTime = this.effectTime || performance.now() / 1000;
+          const stripSeed = d.ledGroup ? 0 : Math.abs(d.id.split("").reduce((a, c) => (a * 31 + c.charCodeAt(0)) | 0, 0)) % 1000;
+          for (const t of [-0.4, -0.13, 0.13, 0.4]) {
+            const ki = Math.round((t + 0.5) * 6);
+            let rgb: [number, number, number];
+            if (d.stripEffect === "christmas") {
+              rgb = wledColorTwinkle(ki + stripSeed, nowTime, CHRISTMAS_PALETTE);
+            } else if (d.stripEffect === "multicolor") {
+              const pal: [number, number, number][] = [[1, 0.15, 0.2], [1, 0.82, 0.25], [0.15, 0.95, 0.35], [0.2, 0.6, 1], [0.92, 0.22, 0.75]];
+              rgb = wledColorTwinkle(ki + stripSeed, nowTime, pal);
+            } else {
+              rgb = glow.color;
+            }
+            const bulbLevel = Math.max(0.8, glow.level) * 0.85;
+            if (d.upright) {
+              hp.push(d.x, base + w * (0.5 + t), d.z);
+              hc.push(rgb[0] * bulbLevel, rgb[1] * bulbLevel, rgb[2] * bulbLevel);
+            } else if (d.rise) {
+              const r = d.rise * DEG;
+              hp.push(d.x + Math.cos(ang) * w * t * Math.cos(r), y + Math.sin(r) * w * t, d.z + Math.sin(ang) * w * t * Math.cos(r));
+              hc.push(rgb[0] * bulbLevel, rgb[1] * bulbLevel, rgb[2] * bulbLevel);
+            } else {
+              hp.push(d.x + Math.cos(ang) * w * t, y, d.z + Math.sin(ang) * w * t);
+              hc.push(rgb[0] * bulbLevel, rgb[1] * bulbLevel, rgb[2] * bulbLevel);
+            }
+          }
         }
+      }
       else if (d.lamp === "wall") {
         const at = this.packLightAt(d);
         if (at) {
@@ -4855,6 +5033,62 @@ export class FloorplanViewer {
 
   /** The wireframe box of one piece (its front edge brighter at floor level). */
   private ghostBox(lines: LineBuffer, fv: FloorView, f: Furniture, color: Color): void {
+    if (f.type === "led_strip" && f.points && f.points.length >= 2) {
+      const dx = this.grab?.id === f.id ? this.grab.x - f.x : 0;
+      const dz = this.grab?.id === f.id ? this.grab.z - f.z : 0;
+      const pts = f.points.map((p) => [p[0] + dx, p[1] + dz]);
+      const n = pts.length;
+      const isClosed = !!f.closed && n > 2;
+      const edgeCount = isClosed ? n : n - 1;
+      const stripW = Math.max(0.02, f.d || 0.03);
+      const stripH = Math.max(0.015, f.h || 0.02);
+      const defaultY = f.mount_y ?? mountBase(fv.floor, f);
+      const spineColor = new Color(1, 1, 1);
+
+      for (let i = 0; i < edgeCount; i++) {
+        const p1 = pts[i];
+        const p2 = pts[(i + 1) % n];
+        const y1 = f.heights?.[i] ?? defaultY;
+        const y2 = f.heights?.[(i + 1) % n] ?? defaultY;
+        const sx = p2[0] - p1[0];
+        const sz = p2[1] - p1[1];
+        const len = Math.hypot(sx, sz) || 1;
+        const nx = (-sz / len) * (stripW / 2);
+        const nz = (sx / len) * (stripW / 2);
+
+        const a = [p1[0] - nx, y1, p1[1] - nz];
+        const b = [p1[0] + nx, y1, p1[1] + nz];
+        const c = [p2[0] + nx, y2, p2[1] + nz];
+        const e = [p2[0] - nx, y2, p2[1] - nz];
+
+        const at = [p1[0] - nx, y1 + stripH, p1[1] - nz];
+        const bt = [p1[0] + nx, y1 + stripH, p1[1] + nz];
+        const ct = [p2[0] + nx, y2 + stripH, p2[1] + nz];
+        const et = [p2[0] - nx, y2 + stripH, p2[1] - nz];
+
+        lines.seg(a, e, color);
+        lines.seg(b, c, color);
+        lines.seg(at, et, color);
+        lines.seg(bt, ct, color);
+
+        lines.seg(a, at, color);
+        lines.seg(b, bt, color);
+        lines.seg(e, et, color);
+        lines.seg(c, ct, color);
+
+        if (i === 0) {
+          lines.seg(a, b, color);
+          lines.seg(at, bt, color);
+        }
+        if (i === edgeCount - 1) {
+          lines.seg(e, c, color);
+          lines.seg(et, ct, color);
+        }
+
+        lines.seg([p1[0], y1 + stripH + 0.005, p1[1]], [p2[0], y2 + stripH + 0.005, p2[1]], spineColor);
+      }
+      return;
+    }
     const x = this.grab?.id === f.id ? this.grab.x : f.x;
     const z = this.grab?.id === f.id ? this.grab.z : f.z;
     const H = fv.floor.height;
@@ -6009,7 +6243,7 @@ export function pushFanBlades(buf: GeoBuffer, cx: number, y: number, cz: number,
 /** Model of a lamp into a buffer (3D view and furniture previews); `H` is the ceiling height. */
 export function pushLampModel(
   buf: GeoBuffer,
-  d: Pick<DeviceMarker, "x" | "z" | "size" | "base" | "rotation" | "variant" | "roll" | "upright" | "rise"> & { lamp: LampModel },
+  d: Pick<DeviceMarker, "x" | "z" | "size" | "base" | "rotation" | "variant" | "roll" | "upright" | "rise" | "points" | "heights" | "closed" | "hide_line"> & { lamp: LampModel },
   H: number,
   shadeCol: number,
   blades = true,
@@ -6121,6 +6355,39 @@ export function pushLampModel(
       break;
     }
     case "strip": {
+      if (d.points && d.points.length >= 2) {
+        const pts = d.points;
+        const n = pts.length;
+        const isClosed = !!d.closed && n > 2;
+        const edgeCount = isClosed ? n : n - 1;
+        const stripW = Math.max(0.015, d.size?.[1] ?? 0.03);
+        const stripH = Math.max(0.01, d.size?.[2] ?? 0.02);
+        const col = new Color(shadeCol);
+        for (let i = 0; i < edgeCount; i++) {
+          const p1 = pts[i];
+          const p2 = pts[(i + 1) % n];
+          const y1 = d.heights?.[i] ?? d.base ?? H - 0.04;
+          const y2 = d.heights?.[(i + 1) % n] ?? d.base ?? H - 0.04;
+          const dx = p2[0] - p1[0];
+          const dz = p2[1] - p1[1];
+          const len = Math.hypot(dx, dz) || 1;
+          const nx = (-dz / len) * (stripW / 2);
+          const nz = (dx / len) * (stripW / 2);
+          const a = [p1[0] - nx, y1, p1[1] - nz];
+          const b = [p1[0] + nx, y1, p1[1] + nz];
+          const c = [p2[0] + nx, y2, p2[1] + nz];
+          const e = [p2[0] - nx, y2, p2[1] - nz];
+          buf.tri(a, b, c, col, col, col);
+          buf.tri(a, c, e, col, col, col);
+          const at = [p1[0] - nx, y1 + stripH, p1[1] - nz];
+          const bt = [p1[0] + nx, y1 + stripH, p1[1] + nz];
+          const ct = [p2[0] + nx, y2 + stripH, p2[1] + nz];
+          const et = [p2[0] - nx, y2 + stripH, p2[1] - nz];
+          buf.tri(at, ct, bt, col, col, col);
+          buf.tri(at, et, ct, col, col, col);
+        }
+        break;
+      }
       // a thin bar along the wall: under the ceiling (cove light) or at its mount height; tilted about its
       // length it lies against a slope, standing upright it climbs from its mount height
       const t = Math.max(0.02, h);

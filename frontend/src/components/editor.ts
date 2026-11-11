@@ -8,7 +8,7 @@ import { unsafeHTML } from "lit/directives/unsafe-html.js";
 import { ref } from "lit/directives/ref.js";
 import { fetchImage, getLicense, importPack, listHistory, restoreSnapshot, storeImage, takeSnapshot, type Snapshot, getVoiceSettings, setVoiceSentences, type SentenceMode } from "../api.ts";
 import { copyFloor, download, exportFile, parseExport } from "../transfer.ts";
-import { carEntities, type CarEntities, areaEntities, autoPlace, hiddenInHa, CLIMATE_CLASSES, defaultHeight, entityName, entityAreaId, furnitureEntities, groupByDevice, hasScreen, isMediaFurniture, isPlaceable, isRoomClimateSensor, kindOf, openingEntities, otherAreaEntities, pictureRuleMatches, roomClimateSensors, roomPanelEntities, unassignedEntities, windowPosition, type ClimateKey } from "../devices.ts";
+import { carEntities, type CarEntities, areaEntities, autoPlace, colorCapable, hiddenInHa, CLIMATE_CLASSES, defaultHeight, entityName, entityAreaId, furnitureEntities, groupByDevice, hasScreen, isMediaFurniture, isPlaceable, isRoomClimateSensor, kindOf, openingEntities, otherAreaEntities, pictureRuleMatches, roomClimateSensors, roomPanelEntities, unassignedEntities, windowPosition, type ClimateKey } from "../devices.ts";
 import { furnitureSymbol } from "./furniture2d.ts";
 import { clipConvex, netRoomArea } from "../geometry/area.ts";
 import { areaText, formatImperial, lengthText, lengthUnit, parseLength, unitLabel, type LengthUnit } from "../units.ts";
@@ -174,7 +174,7 @@ const MAX_MOUNT_Y = 10;
 /** How far below the floor a piece outside the rooms may stand: steps down to a sunken terrace (#897). */
 const MIN_MOUNT_Y_OUT = -5;
 
-type Tool = "select" | "rect" | "polygon" | "measure" | "opening" | "furniture" | "outdoor" | "hole" | "wall" | "roof" | "energy" | "pool";
+type Tool = "select" | "rect" | "polygon" | "measure" | "opening" | "furniture" | "outdoor" | "hole" | "wall" | "roof" | "energy" | "pool" | "led_strip";
 
 type Drag =
   | { kind: "pan"; last: [number, number] }
@@ -193,6 +193,7 @@ type Drag =
   | { kind: "solarturn"; id: string; base: Building; moved: boolean }
   | { kind: "solarmove"; id: string; start: Vec2; startScreen: [number, number]; base: Building; moved: boolean; grab: { du: number; ds: number } | null; win?: boolean }
   | { kind: "outvertex"; id: string; index: number; base: Building; moved: boolean }
+  | { kind: "stripvertex"; id: string; index: number; base: Building; moved: boolean }
   | { kind: "outbox"; id: string; corner: number; base: Building; moved: boolean }
   | { kind: "pipept"; pool: string; pipe: string; index: number; base: Building; moved: boolean }
   | { kind: "poolport"; pool: string; id: string; base: Building; moved: boolean }
@@ -217,7 +218,7 @@ interface Guides {
 }
 
 /** Drags that change the document live (restored when cancelled, recorded in the history when done). */
-const EDIT_DRAGS = new Set(["vertex", "room", "device", "opening", "furniture", "furnset", "rotate", "resize", "outdoor", "roofmove", "roofcorner", "roofvertex", "outvertex", "outbox", "pipept", "poolport", "pooldev", "pooljoint", "solarmove", "solarturn", "cablept", "holopt", "bgmove", "bgscale", "bgrotate"]);
+const EDIT_DRAGS = new Set(["vertex", "room", "device", "opening", "furniture", "furnset", "rotate", "resize", "outdoor", "roofmove", "roofcorner", "roofvertex", "outvertex", "outbox", "stripvertex", "pipept", "poolport", "pooldev", "pooljoint", "solarmove", "solarturn", "cablept", "holopt", "bgmove", "bgscale", "bgrotate"]);
 
 const HISTORY = 100;
 /** An angle turned on by `d` degrees, kept between -180 and 180. */
@@ -422,6 +423,8 @@ export class Fp3dEditor extends LitElement {
     _diagNote: { state: true },
     _spots: { state: true },
     _outdoorId: { state: true },
+    _outVertex: { state: true },
+    _stripVertex: { state: true },
     _wallId: { state: true },
     _edgeHi: { state: true },
     _wallView: { state: true },
@@ -570,6 +573,10 @@ export class Fp3dEditor extends LitElement {
   private declare _diagNote: string;
   /** Open "place spots" form of the selected room. */
   private declare _outdoorId: string | null;
+  /** Selected vertex of the selected outdoor area. */
+  private declare _outVertex: number | null;
+  /** Selected vertex of the selected 3D LED strip. */
+  private declare _stripVertex: number | null;
   /** Selected free-standing wall. */
   private declare _wallId: string | null;
   /** Selected room wall (id from generateWalls), to set its height. */
@@ -761,6 +768,8 @@ export class Fp3dEditor extends LitElement {
     this._diagNote = "";
     this._spots = null;
     this._outdoorId = null;
+    this._outVertex = null;
+    this._stripVertex = null;
     this._wallId = null;
     this._edgeHi = null;
     this._wallView = null;
@@ -1007,7 +1016,14 @@ export class Fp3dEditor extends LitElement {
       const dz = round(z - f.z);
       const ids = new Set(together);
       this.change((_, floor) => {
-        for (const m of floor.furniture) if (ids.has(m.id)) Object.assign(m, { x: round(m.x + dx), z: round(m.z + dz) });
+        for (const m of floor.furniture) {
+          if (ids.has(m.id)) {
+            Object.assign(m, { x: round(m.x + dx), z: round(m.z + dz) });
+            if (m.points && m.points.length >= 2) {
+              m.points = m.points.map(([px, pz]) => [round(px + dx), round(pz + dz)]);
+            }
+          }
+        }
       });
       return;
     }
@@ -1020,10 +1036,22 @@ export class Fp3dEditor extends LitElement {
         const [nx, nz] = clampIntoRoom(floor, f, kx, kz, wall);
         const was = snapToWall(floor, f, wall);
         const gapBefore = was ? Math.hypot(was.x - f.x, was.z - f.z) : Infinity;
-        Object.assign(f, { x: nx, z: nz });
+        let finalX = nx;
+        let finalZ = nz;
+        let finalRot = f.rotation;
         const snap = snapToWall(floor, f, wall);
         // pulled away from the wall (a fridge 15 cm forward): it stays where it was put instead of snapping back
-        if (snap && Math.hypot(snap.x - nx, snap.z - nz) <= gapBefore + 0.01) Object.assign(f, snap);
+        if (snap && Math.hypot(snap.x - nx, snap.z - nz) <= gapBefore + 0.01) {
+          finalX = snap.x;
+          finalZ = snap.z;
+          finalRot = snap.rotation;
+        }
+        const moveDx = round(finalX - f.x);
+        const moveDz = round(finalZ - f.z);
+        Object.assign(f, { x: finalX, z: finalZ, rotation: finalRot });
+        if (f.points && f.points.length >= 2) {
+          f.points = f.points.map(([px, pz]) => [round(px + moveDx), round(pz + moveDz)]);
+        }
       }
     });
   }
@@ -1416,6 +1444,8 @@ export class Fp3dEditor extends LitElement {
     if (!doc.floors.some((f) => f.id === this._floorId)) this._floorId = doc.floors[0]?.id ?? null;
     if (!this.floor?.rooms.some((r) => r.id === this._roomId)) this._roomId = null;
     this._vertex = null;
+    this._outVertex = null;
+    this._stripVertex = null;
     this._canUndo = this.past.length > 0;
     this._canRedo = this.future.length > 0;
     this.dispatchEvent(new CustomEvent("building-changed", { detail: { building: doc }, bubbles: true, composed: true }));
@@ -1584,7 +1614,8 @@ export class Fp3dEditor extends LitElement {
     else if (d.kind === "furniture" || d.kind === "rotate" || d.kind === "resize") target = ["furniture", d.id];
     else if (d.kind === "furnset") target = ["furniture", d.ids.find((id) => this.isFixedItem("furniture", id)) ?? d.ids[0]];
     else if (d.kind === "wallmove") target = ["wall", d.id];
-    else if (d.kind === "outdoor") target = ["outdoor", d.id];
+    else if (d.kind === "outdoor" || d.kind === "outvertex" || d.kind === "outbox") target = ["outdoor", d.id];
+    else if (d.kind === "stripvertex") target = ["furniture", d.id];
     if (!target || !this.isFixedItem(...target)) return;
     if ("moved" in d && d.moved && "base" in d) this.restoreLive(d.base);
     this.drag = { kind: "pan", last: local };
@@ -1831,7 +1862,7 @@ export class Fp3dEditor extends LitElement {
       this.drag = { kind: "rect", start, end: start, outdoor: this._tool === "outdoor" || drawsPool, hole: this._tool === "hole" };
       return;
     }
-    if (this._tool === "polygon" || this._tool === "measure" || ((this._tool === "outdoor" || drawsPool) && this._outdoorFree)) {
+    if (this._tool === "polygon" || this._tool === "measure" || this._tool === "led_strip" || ((this._tool === "outdoor" || drawsPool) && this._outdoorFree)) {
       this.drag = { kind: "tap", startScreen: local, last: local, panning: false };
       return;
     }
@@ -1880,8 +1911,48 @@ export class Fp3dEditor extends LitElement {
       this.drag = { kind: "aim", entityId: aimEl.getAttribute("data-aim")!, base: this._doc, moved: false };
       return;
     }
+    const stripVertexEl = target.closest("[data-strip-vertex]");
+    if (stripVertexEl && this.isAdmin) {
+      const attr = stripVertexEl.getAttribute("data-strip-vertex")!;
+      const i = attr.lastIndexOf(":");
+      const id = attr.slice(0, i);
+      const index = Number(attr.slice(i + 1));
+      this.selectItem("furniture", id);
+      this._stripVertex = index;
+      this.drag = { kind: "stripvertex", id, index, base: this._doc, moved: false };
+      return;
+    }
+    const stripMidEl = target.closest("[data-strip-mid]");
+    if (stripMidEl && this.isAdmin) {
+      const attr = stripMidEl.getAttribute("data-strip-mid")!;
+      const i = attr.lastIndexOf(":");
+      const id = attr.slice(0, i);
+      const index = Number(attr.slice(i + 1));
+      const f = this.floor?.furniture.find((m) => m.id === id);
+      if (f?.points) {
+        const pts = f.points;
+        const p1 = pts[index];
+        const p2 = pts[(index + 1) % pts.length];
+        const mid: Vec2 = [round((p1[0] + p2[0]) / 2), round((p1[1] + p2[1]) / 2)];
+        const midY = ((f.heights?.[index] ?? f.mount_y ?? 2.4) + (f.heights?.[(index + 1) % pts.length] ?? f.mount_y ?? 2.4)) / 2;
+        this.change((_, floor) => {
+          const target = floor.furniture.find((m) => m.id === id)!;
+          target.points!.splice(index + 1, 0, mid);
+          if (target.heights) target.heights.splice(index + 1, 0, round(midY));
+          const n = target.points!.length;
+          let len = 0;
+          for (let j = 0; j + 1 < n; j++) len += Math.hypot(target.points![j + 1][0] - target.points![j][0], target.points![j + 1][1] - target.points![j][1]);
+          if (target.closed && n > 2) len += Math.hypot(target.points![0][0] - target.points![n - 1][0], target.points![0][1] - target.points![n - 1][1]);
+          target.w = round(len || 1);
+        });
+        this.selectItem("furniture", id);
+        this._stripVertex = index + 1;
+        this.drag = { kind: "stripvertex", id, index: index + 1, base: this._doc, moved: true };
+        return;
+      }
+    }
     const furnitureEl = target.closest("[data-furniture]");
-    if (furnitureEl && !target.closest("[data-vertex], [data-mid]")) {
+    if (furnitureEl && !target.closest("[data-vertex], [data-mid], [data-out-vertex], [data-out-mid], [data-strip-vertex], [data-strip-mid]")) {
       const id = furnitureEl.getAttribute("data-furniture")!;
       const now = Date.now();
       const twice = this.lastFurnTap?.id === id && now - this.lastFurnTap.t < 400;
@@ -2322,6 +2393,27 @@ export class Fp3dEditor extends LitElement {
         );
         break;
       }
+      case "stripvertex": {
+        drag.moved = true;
+        const p = this.snap(world, undefined, e.altKey);
+        this.change(
+          (_, floor) => {
+            const f = floor.furniture.find((m) => m.id === drag.id);
+            if (!f?.points) return;
+            f.points[drag.index] = [round(p[0]), round(p[1])];
+            const n = f.points.length;
+            let len = 0;
+            for (let j = 0; j + 1 < n; j++) len += Math.hypot(f.points[j + 1][0] - f.points[j][0], f.points[j + 1][1] - f.points[j][1]);
+            if (f.closed && n > 2) len += Math.hypot(f.points[0][0] - f.points[n - 1][0], f.points[0][1] - f.points[n - 1][1]);
+            f.w = round(len || 1);
+            f.x = round(f.points.reduce((s, pt) => s + pt[0], 0) / n);
+            f.z = round(f.points.reduce((s, pt) => s + pt[1], 0) / n);
+          },
+          drag.base,
+          false,
+        );
+        break;
+      }
       case "cablept": {
         drag.moved = true;
         const p = this.snap(world, undefined, e.altKey);
@@ -2456,7 +2548,10 @@ export class Fp3dEditor extends LitElement {
         // near a wall: turn the back (or a side) to it and sit flush; Alt moves freely
         const snap = e.altKey ? null : this.snapToWall({ ...f, x, z });
         if (snap) ({ x, z, rotation } = snap);
-        this.change((_, floor) => patchItem(floor.furniture.find((q) => q.id === drag.id), { x, z, rotation }), drag.base, false);
+        const dx = round(x - f.x);
+        const dz = round(z - f.z);
+        const pts = f.points ? (f.points.map(([px, pz]) => [round(px + dx), round(pz + dz)]) as Vec2[]) : undefined;
+        this.change((_, floor) => patchItem(floor.furniture.find((q) => q.id === drag.id), { x, z, rotation, ...(pts ? { points: pts } : {}) }), drag.base, false);
         break;
       }
       case "furnset": {
@@ -2469,7 +2564,12 @@ export class Fp3dEditor extends LitElement {
         const ids = new Set(drag.ids);
         this.change(
           (_, floor) => {
-            for (const m of floor.furniture) if (ids.has(m.id)) Object.assign(m, { x: round(m.x + dx), z: round(m.z + dz) });
+            for (const m of floor.furniture) {
+              if (ids.has(m.id)) {
+                Object.assign(m, { x: round(m.x + dx), z: round(m.z + dz) });
+                if (m.points) m.points = m.points.map(([px, pz]) => [round(px + dx), round(pz + dz)] as Vec2);
+              }
+            }
           },
           drag.base,
           false,
@@ -2623,6 +2723,7 @@ export class Fp3dEditor extends LitElement {
       case "cablept":
       case "outvertex":
       case "outbox":
+      case "stripvertex":
       case "pipept":
       case "poolport":
       case "pooljoint":
@@ -2723,14 +2824,14 @@ export class Fp3dEditor extends LitElement {
     return hits[0]?.id ?? null;
   }
 
-  /** Corners are set one by one: the free-form room, and an outdoor area drawn as a free shape. */
+  /** Corners are set one by one: the free-form room, an outdoor area drawn as a free shape, and a 3D LED strip. */
   private get drawingPoints(): boolean {
-    return this._tool === "polygon" || ((this._tool === "outdoor" || (this._tool === "pool" && !this._pipeMode)) && this._outdoorFree);
+    return this._tool === "polygon" || ((this._tool === "outdoor" || (this._tool === "pool" && !this._pipeMode)) && this._outdoorFree) || this._tool === "led_strip";
   }
 
   private addDraftPoint(p: Vec2, screen: [number, number]): void {
     const draft = this._draft;
-    if (draft.length >= 3) {
+    if (draft.length >= (this._tool === "led_strip" ? 2 : 3)) {
       const [fx, fy] = this.toScreen(draft[0]);
       if (Math.hypot(fx - screen[0], fy - screen[1]) < 14) {
         this.closeDraft();
@@ -2743,13 +2844,16 @@ export class Fp3dEditor extends LitElement {
   }
 
   private closeDraft(): void {
-    if (this._draft.length >= 3 && Math.abs(polygonArea(this._draft)) > 0.05) {
+    if (this._tool === "led_strip" && this._draft.length >= 2) {
+      this.addLedStrip(this._draft);
+    } else if (this._draft.length >= 3 && Math.abs(polygonArea(this._draft)) > 0.05) {
       if (this._tool === "outdoor" || this._tool === "pool") this.addOutdoor(this._draft);
       else this.addRoom(this._draft);
     }
     this._draft = [];
     this._cursor = null;
     this._guides = {};
+    if (this._tool === "led_strip") this._tool = "select";
   }
 
   /** Adds a wall of the typed length in a direction (drawing by measure). */
@@ -3036,6 +3140,136 @@ export class Fp3dEditor extends LitElement {
     // the tool stays: one room after the other (Esc or "Select" ends it)
   }
 
+  private addLedStrip(points: Vec2[]): void {
+    const floor = this.floor;
+    if (!floor || points.length < 2) return;
+    const defaultY = Math.max(0.2, (floor.height ?? 2.5) - 0.05);
+    const n = points.length;
+    let len = 0;
+    for (let i = 0; i + 1 < n; i++) len += Math.hypot(points[i + 1][0] - points[i][0], points[i + 1][1] - points[i][1]);
+    const cx = points.reduce((s, p) => s + p[0], 0) / n;
+    const cz = points.reduce((s, p) => s + p[1], 0) / n;
+    const item: Furniture = {
+      id: uid("furniture"),
+      type: "led_strip",
+      x: round(cx),
+      z: round(cz),
+      rotation: 0,
+      w: round(len || 2),
+      d: 0.03,
+      h: 0.02,
+      variant: null,
+      mount_y: defaultY,
+      points: points.map(([x, z]) => [round(x), round(z)] as Vec2),
+      heights: points.map(() => defaultY),
+      led_count: Math.max(10, Math.round((len || 2) * 30)),
+      effect: "static",
+    };
+    this.change((_, f) => f.furniture.push(item));
+    this.selectItem("furniture", item.id);
+  }
+
+  private convertTo3dStrip(f: Furniture): void {
+    if (!this.isAdmin) return;
+    const a = (f.rotation * Math.PI) / 180;
+    const dx = Math.cos(a) * (f.w / 2);
+    const dz = Math.sin(a) * (f.w / 2);
+    const p1: Vec2 = [round(f.x - dx), round(f.z - dz)];
+    const p2: Vec2 = [round(f.x + dx), round(f.z + dz)];
+    const y = f.mount_y ?? (this.floor?.height ?? 2.5) - 0.05;
+    this.updateFurniture({
+      points: [p1, p2],
+      heights: [round(y), round(y)],
+      led_count: f.led_count || Math.max(10, Math.round(f.w * 30)),
+      effect: f.effect || "static",
+      rotation: 0,
+    });
+  }
+
+  private setStripPoint(f: Furniture, index: number, axis: 0 | 1, value: number): void {
+    if (!Number.isFinite(value) || !f.points) return;
+    const points: Vec2[] = f.points.map((p) => {
+      const px = Number.isFinite(p?.[0]) ? p[0] : Number.isFinite((p as any)?.x) ? (p as any).x : 0;
+      const pz = Number.isFinite(p?.[1]) ? p[1] : Number.isFinite((p as any)?.z) ? (p as any).z : Number.isFinite((p as any)?.y) ? (p as any).y : 0;
+      return [round(px), round(pz)];
+    });
+    if (index >= 0 && index < points.length) {
+      points[index][axis] = round(value);
+    }
+    const n = points.length;
+    let len = 0;
+    for (let j = 0; j + 1 < n; j++) len += Math.hypot(points[j + 1][0] - points[j][0], points[j + 1][1] - points[j][1]);
+    if (f.closed && n > 2) len += Math.hypot(points[0][0] - points[n - 1][0], points[0][1] - points[n - 1][1]);
+    this.updateFurniture({
+      points,
+      w: round(len || 1),
+      x: round(points.reduce((s, pt) => s + pt[0], 0) / n),
+      z: round(points.reduce((s, pt) => s + pt[1], 0) / n),
+    });
+  }
+
+  private setStripHeight(f: Furniture, index: number, value: number): void {
+    if (!Number.isFinite(value)) return;
+    const defaultY = f.mount_y ?? 2.4;
+    const heights = (f.heights ?? f.points?.map(() => defaultY) ?? []).slice();
+    heights[index] = round(value);
+    this.updateFurniture({ heights });
+  }
+
+  private deleteStripPoint(f: Furniture, index: number): void {
+    if (!f.points || f.points.length <= 2) return;
+    const points: Vec2[] = f.points
+      .filter((_, i) => i !== index)
+      .map((p) => {
+        const px = Number.isFinite(p?.[0]) ? p[0] : Number.isFinite((p as any)?.x) ? (p as any).x : 0;
+        const pz = Number.isFinite(p?.[1]) ? p[1] : Number.isFinite((p as any)?.z) ? (p as any).z : Number.isFinite((p as any)?.y) ? (p as any).y : 0;
+        return [round(px), round(pz)];
+      });
+    const heights = f.heights ? f.heights.filter((_, i) => i !== index) : undefined;
+    const n = points.length;
+    let len = 0;
+    for (let j = 0; j + 1 < n; j++) len += Math.hypot(points[j + 1][0] - points[j][0], points[j + 1][1] - points[j][1]);
+    if (f.closed && n > 2) len += Math.hypot(points[0][0] - points[n - 1][0], points[0][1] - points[n - 1][1]);
+    this.updateFurniture({
+      points,
+      heights,
+      w: round(len || 1),
+      x: round(points.reduce((s, pt) => s + pt[0], 0) / n),
+      z: round(points.reduce((s, pt) => s + pt[1], 0) / n),
+    });
+    this._stripVertex = null;
+  }
+
+  private addStripPoint(f: Furniture): void {
+    if (!f.points || !f.points.length) return;
+    const points: Vec2[] = f.points.map((p) => {
+      const px = Number.isFinite(p?.[0]) ? p[0] : Number.isFinite((p as any)?.x) ? (p as any).x : 0;
+      const pz = Number.isFinite(p?.[1]) ? p[1] : Number.isFinite((p as any)?.z) ? (p as any).z : Number.isFinite((p as any)?.y) ? (p as any).y : 0;
+      return [round(px), round(pz)];
+    });
+    const last = points[points.length - 1];
+    const prev = points.length > 1 ? points[points.length - 2] : [last[0] - 1, last[1]];
+    const dx = last[0] - prev[0];
+    const dz = last[1] - prev[1];
+    const l = Math.hypot(dx, dz) || 1;
+    const nextPt: Vec2 = [round(last[0] + (dx / l) * 0.5), round(last[1] + (dz / l) * 0.5)];
+    const defaultY = f.heights?.[f.heights.length - 1] ?? f.mount_y ?? 2.4;
+    const newPoints = [...points, nextPt];
+    const heights = f.heights ? [...f.heights, defaultY] : newPoints.map(() => defaultY);
+    const n = newPoints.length;
+    let len = 0;
+    for (let j = 0; j + 1 < n; j++) len += Math.hypot(newPoints[j + 1][0] - newPoints[j][0], newPoints[j + 1][1] - newPoints[j][1]);
+    if (f.closed && n > 2) len += Math.hypot(newPoints[0][0] - newPoints[n - 1][0], newPoints[0][1] - newPoints[n - 1][1]);
+    this.updateFurniture({
+      points: newPoints,
+      heights,
+      w: round(len || 1),
+      x: round(newPoints.reduce((s, pt) => s + pt[0], 0) / n),
+      z: round(newPoints.reduce((s, pt) => s + pt[1], 0) / n),
+    });
+    this._stripVertex = newPoints.length - 1;
+  }
+
   // ------------------------------------------------------------------ keyboard
 
   private readonly onKey = (e: KeyboardEvent) => {
@@ -3063,6 +3297,10 @@ export class Fp3dEditor extends LitElement {
       else if (this._outdoorId) this.deleteOutdoor();
       else if (this._wallId) this.deleteFreeWall();
       else if (this._openingId) this.deleteOpening();
+      else if (this._furnitureId && this._stripVertex !== null) {
+        const f = this.floor?.furniture.find((m) => m.id === this._furnitureId);
+        if (f?.points && f.points.length > 2) this.deleteStripPoint(f, this._stripVertex);
+      }
       else if (this._furnitureId) this.deleteFurniture();
       else if (this._vertex !== null) this.deleteVertex(this._vertex);
       else this.deleteRoom();
@@ -3098,6 +3336,9 @@ export class Fp3dEditor extends LitElement {
         return;
       }
       if (this._draft.length) this._draft = [];
+      else if (this._stripVertex !== null) this._stripVertex = null;
+      else if (this._outVertex !== null) this._outVertex = null;
+      else if (this._vertex !== null) this._vertex = null;
       else if (this._tool !== "select") this._tool = "select";
       else this.selectItem("room", null);
       this._cursor = null;
@@ -3133,9 +3374,19 @@ export class Fp3dEditor extends LitElement {
       });
     } else if (this._furnitureId) {
       const id = this._furnitureId;
+      const vertex = this._stripVertex;
       this.change((_, f) => {
         const m = f.furniture.find((x) => x.id === id);
-        if (m) [m.x, m.z] = mv([m.x, m.z]);
+        if (!m) return;
+        if (m.points && vertex !== null && vertex < m.points.length) {
+          m.points[vertex] = mv(m.points[vertex]);
+          const n = m.points.length;
+          m.x = round(m.points.reduce((s, pt) => s + pt[0], 0) / n);
+          m.z = round(m.points.reduce((s, pt) => s + pt[1], 0) / n);
+        } else {
+          [m.x, m.z] = mv([m.x, m.z]);
+          if (m.points) m.points = m.points.map(mv);
+        }
       });
     } else if (this._openingId) {
       const o = this.opening;
@@ -4852,6 +5103,7 @@ export class Fp3dEditor extends LitElement {
     if (kind !== "room" || id !== this._roomId) this._vertex = null;
     this._roomId = kind === "room" ? id : this._roomId;
     this._openingId = kind === "opening" ? id : null;
+    if (kind !== "furniture" || id !== this._furnitureId) this._stripVertex = null;
     this._furnitureId = kind === "furniture" ? id : null;
     this._multi = [];
     this._single = false;
@@ -5267,7 +5519,19 @@ export class Fp3dEditor extends LitElement {
     if (ids.size < 2) return;
     const gid = uid("block");
     this.change((_, floor) => {
-      for (const m of floor.furniture) if (ids.has(m.id)) m.group = gid;
+      const strips = floor.furniture.filter((m) => ids.has(m.id) && m.type === "led_strip");
+      const sharedEffect = strips.find((s) => s.effect)?.effect ?? "christmas";
+      const sharedEffectEntity = strips.find((s) => s.effect_entity)?.effect_entity ?? null;
+      for (const m of floor.furniture) {
+        if (ids.has(m.id)) {
+          m.group = gid;
+          if (m.type === "led_strip") {
+            m.effect = sharedEffect;
+            m.effect_entity = sharedEffectEntity;
+            m.led_group = gid;
+          }
+        }
+      }
     });
     this._multi = [];
     this._single = false;
@@ -5775,14 +6039,31 @@ export class Fp3dEditor extends LitElement {
       {
         id: "build",
         label: this.t("tool_group_build"),
-        entries: [room, { tool: "wall", label: this.t("tool_wall") }, { tool: "opening", label: this.t("tool_opening") }, { tool: "hole", label: this.t("tool_hole") }, { tool: "roof", label: this.t("tool_roof") }],
+        entries: [
+          room,
+          { tool: "wall", label: this.t("tool_wall") },
+          { tool: "led_strip", label: this.t("furn_led_strip") },
+          { tool: "opening", label: this.t("tool_opening") },
+          { tool: "hole", label: this.t("tool_hole") },
+          { tool: "roof", label: this.t("tool_roof") },
+        ],
       },
       { id: "outside", label: this.t("tool_group_outside"), entries: [outdoor, pool] },
     ];
     const inEntry = (e: Entry) => e.tool === this._tool || (e === room && (this._tool === "polygon" || this._tool === "measure"));
     // what a group's button says while one of its tools is in use: the tool, and its shape or kind
     const detail = (e: Entry) =>
-      e === pool ? (this._pipeMode ? this.t("pool_pipe_draw") : this.t(`pool_shape_${this._poolShape ?? "rect"}` as I18nKey)) : e === outdoor ? this.t(`out_${this._outdoorType ?? "lawn"}` as I18nKey) : e === room ? this.t(`tool_${this._tool}` as I18nKey) : "";
+      e.tool === "led_strip"
+        ? this.t("furn_led_strip")
+        : e === pool
+          ? this._pipeMode
+            ? this.t("pool_pipe_draw")
+            : this.t(`pool_shape_${this._poolShape ?? "rect"}` as I18nKey)
+          : e === outdoor
+            ? this.t(`out_${this._outdoorType ?? "lawn"}` as I18nKey)
+            : e === room
+              ? this.t(`tool_${this._tool}` as I18nKey)
+              : "";
     const close = () => ((this._toolMenu = null), (this._toolOpen = null));
     const plain = (tool: Tool, label: string) =>
       html`<button aria-pressed=${this._tool === tool} ?disabled=${off} @click=${() => (close(), this.setTool(tool))}>${label}</button>`;
@@ -10339,6 +10620,45 @@ export class Fp3dEditor extends LitElement {
       const [hx, hy] = this.toScreen([f.x - Math.sin(a) * reach, f.z + Math.cos(a) * reach]);
       const [fx, fy] = this.toScreen([f.x - Math.sin(a) * (f.d / 2), f.z + Math.cos(a) * (f.d / 2)]);
       const lit = isLamp(f.type) && !!f.entity && f.entity !== "none" && this.hass?.states[f.entity]?.state === "on";
+      if (f.type === "led_strip" && f.points && f.points.length >= 2) {
+        const pts: Vec2[] = f.points.map((p) => {
+          const px = Number.isFinite(p?.[0]) ? p[0] : Number.isFinite((p as any)?.x) ? (p as any).x : 0;
+          const pz = Number.isFinite(p?.[1]) ? p[1] : Number.isFinite((p as any)?.z) ? (p as any).z : Number.isFinite((p as any)?.y) ? (p as any).y : 0;
+          return [px, pz];
+        });
+        const n = pts.length;
+        const screenPts = pts.map((p) => this.toScreen(p));
+        const polyPts = screenPts.map((p) => p.join(",")).join(" ");
+        const isClosed = !!f.closed && n > 2;
+        const edgeCount = isClosed ? n : n - 1;
+        const edges = pts.slice(0, edgeCount).map((p1, i) => {
+          const p2 = pts[(i + 1) % n];
+          const [ax, ay] = this.toScreen(p1);
+          const [bx, by] = this.toScreen(p2);
+          const segLen = Math.hypot(p2[0] - p1[0], p2[1] - p1[1]);
+          const mx = (ax + bx) / 2;
+          const my = (ay + by) / 2;
+          const screenLen = Math.hypot(bx - ax, by - ay);
+          return svg`
+            ${screenLen > 40 ? svg`<text class="fp3d-dim" x=${mx} y=${my - 6}>${this.m(segLen, 2)}</text>` : nothing}
+            ${sel && screenLen > 30 ? svg`<g data-strip-mid=${`${f.id}:${i}`} class="fp3d-mid"><circle cx=${mx} cy=${my} r="14" class="fp3d-hit" /><circle cx=${mx} cy=${my} r="5" /><path d="M${mx - 3} ${my}h6M${mx} ${my - 3}v6" /></g>` : nothing}
+          `;
+        });
+        const vertices = sel && this.isAdmin ? pts.map((p, i) => {
+          const [x, y] = this.toScreen(p);
+          const selV = i === this._stripVertex;
+          return svg`<g class=${selV ? "fp3d-vertex fp3d-vertex-sel" : "fp3d-vertex"} data-strip-vertex=${`${f.id}:${i}`}><circle cx=${x} cy=${y} r="16" class="fp3d-hit" /><circle cx=${x} cy=${y} r="6" /></g>
+            <text class="fp3d-vertex-no" x=${x + 9} y=${y - 9}>${i + 1}</text>`;
+        }) : nothing;
+        const strokeColor = lit ? "#38bdf8" : sel ? "#60a5fa" : "#94a3b8";
+        return svg`<g data-furniture=${f.id} class=${`fp3d-furn fp3d-strip-furn${sel || member ? " fp3d-furn-sel" : ""}${lit ? " fp3d-furn-lit" : ""}`}>
+          ${isClosed
+            ? svg`<polygon points=${polyPts} style="fill:none;stroke:${strokeColor};stroke-width:4;stroke-linecap:round;stroke-linejoin:round;" />`
+            : svg`<polyline points=${polyPts} style="fill:none;stroke:${strokeColor};stroke-width:4;stroke-linecap:round;stroke-linejoin:round;" />`}
+          ${edges}
+          ${vertices}
+        </g>`;
+      }
       return svg`<g data-furniture=${f.id} class=${`fp3d-furn${sel || member ? " fp3d-furn-sel" : ""}${lit ? " fp3d-furn-lit" : ""}${f.show_if?.entity && !furnitureShown(this.hass, f) ? " fp3d-furn-away" : ""}${(ENERGY_DEVICES as readonly string[]).includes(f.type) ? " fp3d-energy-item" : ""}`}>
         <g transform="translate(${cx} ${cy}) rotate(${f.rotation}) scale(${f.mirror ? -k : k} ${k})">
           <rect class="fp3d-furn-body" x=${-f.w / 2} y=${-f.d / 2} width=${f.w} height=${f.d} />
@@ -10423,6 +10743,33 @@ export class Fp3dEditor extends LitElement {
         <button class="fp3d-btn ${some ? "fp3d-primary" : ""}" @click=${() => this.lockSelection(!fixed && !some)}>${fixed ? `🔓 ${this.t("unfix")}` : some ? `🔓 ${this.t("unfix_all")}` : `🔒 ${this.t("fix")}`}</button>
         <button class="fp3d-btn fp3d-danger" @click=${() => this.deleteFurniture()}>${this.t("delete")}</button>
       </div>
+      ${items.some((m) => m.type === "led_strip")
+        ? html`<div class="fp3d-form" style="margin-top:12px">
+            <label class="fp3d-field fp3d-wide"
+              >${this.t("led_effect")}
+              <select
+                ?disabled=${!this.isAdmin}
+                @change=${(e: Event) => {
+                  const eff = (e.target as HTMLSelectElement).value || null;
+                  this.change((_, floor) => {
+                    for (const m of floor.furniture) {
+                      if (set.includes(m.id) && m.type === "led_strip") {
+                        m.effect = eff;
+                      }
+                    }
+                  });
+                }}
+              >
+                <option value="">${this.t("effect_static")}</option>
+                <option value="multicolor">${this.t("effect_multicolor")}</option>
+                <option value="rainbow">${this.t("effect_rainbow")}</option>
+                <option value="christmas" selected>${this.t("effect_christmas")}</option>
+                <option value="chase">${this.t("effect_chase")}</option>
+                <option value="twinkle">${this.t("effect_twinkle")}</option>
+              </select></label
+            >
+          </div>`
+        : nothing}
       ${this.renderMultiToggle()}
     </section>`;
   }
@@ -11670,12 +12017,193 @@ export class Fp3dEditor extends LitElement {
               ${this.t("furn_mirror")}</label
             >`}
         ${f.type === "led_strip"
-          ? html`${this.num(this.t("strip_tilt"), f.tilt ?? 0, (v) => this.updateFurniture({ tilt: Math.max(-90, Math.min(90, Math.round(v))) }), 5)}
-              ${f.upright ? nothing : html`<span title=${this.t("strip_rise_hint")}>${this.num(this.t("strip_rise"), f.rise ?? 0, (v) => this.updateFurniture({ rise: Math.max(-80, Math.min(80, Math.round(v))) || undefined }), 5)}</span>`}
-              <label class="fp3d-check" title=${this.t("strip_upright_hint")}
-                ><input type="checkbox" .checked=${!!f.upright} ?disabled=${!admin} @change=${(ev: Event) => this.updateFurniture({ upright: (ev.target as HTMLInputElement).checked })} />
-                ${this.t("strip_upright")}</label
-              >`
+          ? html`
+              ${f.points && f.points.length >= 2
+                ? nothing
+                : html`
+                    ${this.num(this.t("strip_tilt"), f.tilt ?? 0, (v) => this.updateFurniture({ tilt: Math.max(-90, Math.min(90, Math.round(v))) }), 5)}
+                    ${f.upright ? nothing : html`<span title=${this.t("strip_rise_hint")}>${this.num(this.t("strip_rise"), f.rise ?? 0, (v) => this.updateFurniture({ rise: Math.max(-80, Math.min(80, Math.round(v))) || undefined }), 5)}</span>`}
+                    <label class="fp3d-check" title=${this.t("strip_upright_hint")}
+                      ><input type="checkbox" .checked=${!!f.upright} ?disabled=${!admin} @change=${(ev: Event) => this.updateFurniture({ upright: (ev.target as HTMLInputElement).checked })} />
+                      ${this.t("strip_upright")}</label
+                    >
+                  `}
+              <label class="fp3d-field"
+                >${this.t("led_count")}
+                <input
+                  type="number"
+                  min="1"
+                  max="10000"
+                  .value=${f.led_count != null ? String(f.led_count) : ""}
+                  placeholder="auto"
+                  ?disabled=${!admin}
+                  @change=${(e: Event) => {
+                    const val = parseInt((e.target as HTMLInputElement).value, 10);
+                    this.updateFurniture({ led_count: Number.isFinite(val) && val > 0 ? val : null });
+                  }}
+              /></label>
+              <label class="fp3d-field"
+                >${this.t("led_effect")}
+                <select
+                  ?disabled=${!admin}
+                  @change=${(e: Event) => {
+                    const effect = (e.target as HTMLSelectElement).value || null;
+                    const group = f.led_group || f.group;
+                    if (group) {
+                      this.change((_, floor) => {
+                        for (const m of floor.furniture) {
+                          if (m.type === "led_strip" && (m.led_group === group || m.group === group)) {
+                            m.effect = effect;
+                          }
+                        }
+                      });
+                    } else {
+                      this.updateFurniture({ effect });
+                    }
+                  }}
+                >
+                  <option value="" ?selected=${!f.effect}>${this.t("effect_static")}</option>
+                  <option value="multicolor" ?selected=${f.effect === "multicolor"}>${this.t("effect_multicolor")}</option>
+                  <option value="rainbow" ?selected=${f.effect === "rainbow"}>${this.t("effect_rainbow")}</option>
+                  <option value="christmas" ?selected=${f.effect === "christmas"}>${this.t("effect_christmas")}</option>
+                  <option value="chase" ?selected=${f.effect === "chase"}>${this.t("effect_chase")}</option>
+                  <option value="twinkle" ?selected=${f.effect === "twinkle"}>${this.t("effect_twinkle")}</option>
+                </select></label
+              >
+              ${this.entitySelect(
+                this.t("led_effect_entity"),
+                f.effect_entity ?? null,
+                undefined,
+                this.entityOptions((id) => /^(input_select|select|sensor|light)\./.test(id)),
+                (v) => {
+                  const effect_entity = v === "none" ? null : v;
+                  const group = f.led_group || f.group;
+                  if (group) {
+                    this.change((_, floor) => {
+                      for (const m of floor.furniture) {
+                        if (m.type === "led_strip" && (m.led_group === group || m.group === group)) {
+                          m.effect_entity = effect_entity;
+                        }
+                      }
+                    });
+                  } else {
+                    this.updateFurniture({ effect_entity });
+                  }
+                },
+              )}
+              <label class="fp3d-field fp3d-wide" title=${this.t("led_group_hint")}
+                >${this.t("led_group")}
+                <input
+                  type="text"
+                  maxlength="40"
+                  list="fp3d-led-groups"
+                  .value=${f.led_group ?? f.group ?? ""}
+                  placeholder=${this.t("led_group_placeholder")}
+                  ?disabled=${!admin}
+                  @change=${(e: Event) => {
+                    const val = (e.target as HTMLInputElement).value.trim() || null;
+                    this.updateFurniture({ led_group: val });
+                    if (val && this.floor) {
+                      const sibling = this.floor.furniture.find((m) => m.id !== f.id && m.type === "led_strip" && (m.led_group === val || m.group === val));
+                      if (sibling?.effect && !f.effect) {
+                        this.updateFurniture({ effect: sibling.effect, effect_entity: sibling.effect_entity });
+                      } else if (f.effect) {
+                        this.change((_, floor) => {
+                          for (const m of floor.furniture) {
+                            if (m.type === "led_strip" && (m.led_group === val || m.group === val)) {
+                              m.effect = f.effect;
+                              m.effect_entity = f.effect_entity;
+                            }
+                          }
+                        });
+                      }
+                    }
+                  }}
+              /></label>
+              <datalist id="fp3d-led-groups">
+                ${[...new Set((this.floor?.furniture ?? []).filter((m) => m.type === "led_strip" && (m.led_group || m.group)).map((m) => (m.led_group || m.group)!))].map(
+                  (g) => html`<option value=${g}></option>`,
+                )}
+              </datalist>
+              <label class="fp3d-check fp3d-wide"
+                ><input type="checkbox" .checked=${!!f.closed} ?disabled=${!admin} @change=${(ev: Event) => this.updateFurniture({ closed: (ev.target as HTMLInputElement).checked })} />
+                ${this.t("led_closed")}</label
+              >
+              <label class="fp3d-check fp3d-wide" title=${this.t("strip_show_line_off_hint")}
+                ><input type="checkbox" .checked=${!!f.show_line_off} ?disabled=${!admin} @change=${(ev: Event) => this.updateFurniture({ show_line_off: (ev.target as HTMLInputElement).checked })} />
+                ${this.t("strip_show_line_off")}</label
+              >
+              <label class="fp3d-field"
+                >${this.t("strip_lumen_mode")}
+                <select
+                  ?disabled=${!admin}
+                  @change=${(e: Event) => this.updateFurniture({ lumen_mode: ((e.target as HTMLSelectElement).value as "total" | "per_led") || null })}
+                >
+                  <option value="total" ?selected=${(f.lumen_mode ?? "total") === "total"}>${this.t("strip_lumen_total")}</option>
+                  <option value="per_led" ?selected=${f.lumen_mode === "per_led"}>${this.t("strip_lumen_per_led")}</option>
+                </select>
+              </label>
+              <label class="fp3d-field"
+                >${f.lumen_mode === "per_led" ? this.t("lumens_per_led") : this.t("lumens_total")}
+                <input
+                  type="number"
+                  min="0"
+                  step="1"
+                  .value=${f.lumens != null ? String(f.lumens) : ""}
+                  placeholder="lm"
+                  ?disabled=${!admin}
+                  @change=${(e: Event) => {
+                    const val = parseFloat((e.target as HTMLInputElement).value);
+                    this.updateFurniture({ lumens: Number.isFinite(val) && val >= 0 ? Math.round(val) : null });
+                  }}
+                />
+              </label>
+              ${f.lumens != null && f.lumens > 0
+                ? html`<p class="fp3d-sub fp3d-wide">
+                    ${f.lumen_mode === "per_led"
+                      ? `${this.t("strip_calc_total")}: ${Math.round(f.lumens * (f.led_count || Math.max(10, Math.round(f.w * 30))))} lm`
+                      : `${this.t("strip_calc_per_led")}: ${(f.lumens / (f.led_count || Math.max(10, Math.round(f.w * 30)))).toFixed(1)} lm/LED`}
+                    ${(() => {
+                      const st = f.entity ? this.hass?.states[f.entity] : undefined;
+                      const a = st?.attributes;
+                      const pct = st?.state === "on" && typeof a?.brightness === "number" ? Math.round((a.brightness / 255) * 100) : null;
+                      if (pct !== null) {
+                        const total = f.lumen_mode === "per_led" ? f.lumens * (f.led_count || Math.max(10, Math.round(f.w * 30))) : f.lumens;
+                        return ` · ${this.t("current_at_pct", { pct, lm: Math.round(total * (pct / 100)) })}`;
+                      }
+                      return "";
+                    })()}
+                  </p>`
+                : nothing}
+              ${f.points && f.points.length >= 2
+                ? html`<details class="fp3d-points fp3d-wide" open>
+                    <summary>${this.t("strip_3d_points")} (${f.points.length})</summary>
+                    ${f.points.map((p, i) => {
+                      const px = Number.isFinite(p?.[0]) ? p[0] : Number.isFinite((p as any)?.x) ? (p as any).x : 0;
+                      const pz = Number.isFinite(p?.[1]) ? p[1] : Number.isFinite((p as any)?.z) ? (p as any).z : Number.isFinite((p as any)?.y) ? (p as any).y : 0;
+                      const py = Number.isFinite(f.heights?.[i]) ? f.heights![i]! : (f.mount_y ?? 2.4);
+                      return html`<div class="fp3d-strip-point ${i === this._stripVertex ? "fp3d-point-sel" : ""}">
+                        <span class="fp3d-muted">${i + 1}</span>
+                        ${this.len(this.t("x"), px, (v) => this.setStripPoint(f, i, 0, v))}
+                        ${this.len(this.t("z"), pz, (v) => this.setStripPoint(f, i, 1, v))}
+                        ${this.len(this.t("height_m"), py, (v) => this.setStripHeight(f, i, v), 0.05, 0.05)}
+                        ${admin && f.points!.length > 2
+                          ? html`<button class="fp3d-btn fp3d-strip-del-btn" title=${this.t("delete_point")} @click=${() => this.deleteStripPoint(f, i)}>×</button>`
+                          : html`<span class="fp3d-strip-btn-spacer"></span>`}
+                      </div>`;
+                    })}
+                    ${admin
+                      ? html`<div class="fp3d-actions">
+                          <button class="fp3d-btn" @click=${() => this.addStripPoint(f)}>${this.t("strip_add_point")}</button>
+                        </div>`
+                      : nothing}
+                  </details>`
+                : admin
+                  ? html`<div class="fp3d-actions fp3d-wide">
+                      <button class="fp3d-btn" @click=${() => this.convertTo3dStrip(f)}>⇋ ${this.t("strip_convert_3d")}</button>
+                    </div>`
+                  : nothing}
+            `
           : nothing}
         ${canLift(f) && this.floor
           ? html`${this.len(this.t("mount_height"), f.mount_y ?? mountBase(this.floor, f), (v) => this.updateFurniture({ mount_y: Math.min(MAX_MOUNT_Y, Math.max(this.minMountY(f), v)) }), 0.01, this.minMountY(f))}
@@ -12700,17 +13228,59 @@ export class Fp3dEditor extends LitElement {
               <p class="fp3d-sub fp3d-wide">${this.t("furn_color_entity_hint")}</p>`
           : nothing}
         ${lamp ? this.glowScaleField(f.glow_scale, (v) => this.updateFurniture({ glow_scale: v })) : nothing}
-        ${lamp
-          ? html`<label class="fp3d-check fp3d-wide" title=${this.t("furn_glow_color_hint")}
-                ><input type="checkbox" .checked=${!!f.glow_color} ?disabled=${!this.isAdmin} @change=${(ev: Event) => this.updateFurniture({ glow_color: (ev.target as HTMLInputElement).checked ? "#ffd9a0" : null })} />
-                ${this.t("furn_glow_color")}</label
-              >
-              ${f.glow_color
-                ? html`<label class="fp3d-field"
-                      >${this.t("furn_only_color_pick")}
-                      <input type="color" .value=${f.glow_color} ?disabled=${!this.isAdmin} @change=${(ev: Event) => this.updateFurniture({ glow_color: (ev.target as HTMLInputElement).value })} /></label>
-                    <p class="fp3d-sub fp3d-wide">${this.t("furn_glow_color_hint")}</p>`
+        ${lamp && f.type !== "led_strip"
+          ? html`<label class="fp3d-field"
+                >${this.t("lumens")}
+                <input
+                  type="number"
+                  min="0"
+                  step="1"
+                  .value=${f.lumens != null ? String(f.lumens) : ""}
+                  placeholder="lm"
+                  ?disabled=${!this.isAdmin}
+                  @change=${(e: Event) => {
+                    const val = parseFloat((e.target as HTMLInputElement).value);
+                    this.updateFurniture({ lumens: Number.isFinite(val) && val >= 0 ? Math.round(val) : null });
+                  }}
+                />
+              </label>
+              ${f.lumens != null && f.lumens > 0
+                ? html`<p class="fp3d-sub fp3d-wide">
+                    ${(() => {
+                      const st = f.entity ? this.hass?.states[f.entity] : undefined;
+                      const a = st?.attributes;
+                      const pct = st?.state === "on" && typeof a?.brightness === "number" ? Math.round((a.brightness / 255) * 100) : null;
+                      return pct !== null ? this.t("current_at_pct", { pct, lm: Math.round(f.lumens * (pct / 100)) }) : "";
+                    })()}
+                  </p>`
                 : nothing}`
+          : nothing}
+        ${lamp
+          ? (() => {
+              const lightSt = f.entity ? this.hass?.states[f.entity] : undefined;
+              const hasColor = lightSt ? colorCapable(lightSt) : false;
+              if (!hasColor) {
+                return html`<label class="fp3d-field"
+                  >${this.t("furn_fixed_light_color")}
+                  <input
+                    type="color"
+                    .value=${f.glow_color || "#ffb547"}
+                    ?disabled=${!this.isAdmin}
+                    @change=${(ev: Event) => this.updateFurniture({ glow_color: (ev.target as HTMLInputElement).value })}
+                  />
+                </label>`;
+              }
+              return html`<label class="fp3d-check fp3d-wide" title=${this.t("furn_glow_color_hint")}
+                    ><input type="checkbox" .checked=${!!f.glow_color} ?disabled=${!this.isAdmin} @change=${(ev: Event) => this.updateFurniture({ glow_color: (ev.target as HTMLInputElement).checked ? "#ffd9a0" : null })} />
+                    ${this.t("furn_glow_color")}</label
+                  >
+                  ${f.glow_color
+                    ? html`<label class="fp3d-field"
+                          >${this.t("furn_only_color_pick")}
+                          <input type="color" .value=${f.glow_color} ?disabled=${!this.isAdmin} @change=${(ev: Event) => this.updateFurniture({ glow_color: (ev.target as HTMLInputElement).value })} /></label>
+                        <p class="fp3d-sub fp3d-wide">${this.t("furn_glow_color_hint")}</p>`
+                    : nothing}`;
+            })()
           : nothing}
         ${lamp && f.entity && f.entity !== "none"
           ? html`<label class="fp3d-check fp3d-wide" title=${this.t("furn_only_color_hint")}
@@ -13230,7 +13800,57 @@ export class Fp3dEditor extends LitElement {
                 ${(["ceiling", "floor", "table", "wall"] as const).map((m) => html`<option value=${m} ?selected=${m === mount}>${this.t(`lamp_${m}`)}</option>`)}
               </select></label
             >
-            ${this.glowScaleField(pl.glow_scale, (v) => this.updateDevice({ glow_scale: v }))}`
+            ${this.glowScaleField(pl.glow_scale, (v) => this.updateDevice({ glow_scale: v }))}
+            <label class="fp3d-field"
+              >${this.t("lumens")}
+              <input
+                type="number"
+                min="0"
+                step="1"
+                .value=${pl.lumens != null ? String(pl.lumens) : ""}
+                placeholder="lm"
+                ?disabled=${!admin}
+                @change=${(e: Event) => {
+                  const val = parseFloat((e.target as HTMLInputElement).value);
+                  this.updateDevice({ lumens: Number.isFinite(val) && val >= 0 ? Math.round(val) : null });
+                }}
+              />
+            </label>
+            ${pl.lumens != null && pl.lumens > 0
+              ? html`<p class="fp3d-sub fp3d-wide">
+                  ${(() => {
+                    const st = this.hass?.states[pl.entity_id];
+                    const a = st?.attributes;
+                    const pct = st?.state === "on" && typeof a?.brightness === "number" ? Math.round((a.brightness / 255) * 100) : null;
+                    return pct !== null ? this.t("current_at_pct", { pct, lm: Math.round(pl.lumens * (pct / 100)) }) : "";
+                  })()}
+                </p>`
+              : nothing}
+            ${(() => {
+              const lightSt = this.hass?.states[pl.entity_id];
+              const hasColor = lightSt ? colorCapable(lightSt) : false;
+              if (!hasColor) {
+                return html`<label class="fp3d-field"
+                  >${this.t("furn_fixed_light_color")}
+                  <input
+                    type="color"
+                    .value=${pl.glow_color || "#ffb547"}
+                    ?disabled=${!admin}
+                    @change=${(ev: Event) => this.updateDevice({ glow_color: (ev.target as HTMLInputElement).value })}
+                  />
+                </label>`;
+              }
+              return html`<label class="fp3d-check fp3d-wide" title=${this.t("furn_glow_color_hint")}
+                    ><input type="checkbox" .checked=${!!pl.glow_color} ?disabled=${!admin} @change=${(ev: Event) => this.updateDevice({ glow_color: (ev.target as HTMLInputElement).checked ? "#ffd9a0" : null })} />
+                    ${this.t("furn_glow_color")}</label
+                  >
+                  ${pl.glow_color
+                    ? html`<label class="fp3d-field"
+                          >${this.t("furn_only_color_pick")}
+                          <input type="color" .value=${pl.glow_color} ?disabled=${!admin} @change=${(ev: Event) => this.updateDevice({ glow_color: (ev.target as HTMLInputElement).value })} /></label>
+                        <p class="fp3d-sub fp3d-wide">${this.t("furn_glow_color_hint")}</p>`
+                    : nothing}`;
+            })()}`
           : kind === "camera"
             ? html`<label class="fp3d-field fp3d-wide"
                 >${this.t("camera_mount")}
@@ -17334,6 +17954,39 @@ export class Fp3dEditor extends LitElement {
         gap: 6px;
         align-items: end;
         padding: 4px 0;
+      }
+      .fp3d-strip-point {
+        display: grid;
+        grid-template-columns: 20px 1fr 1fr 1fr 34px;
+        gap: 6px;
+        align-items: end;
+        padding: 4px 0;
+      }
+      .fp3d-strip-point .fp3d-field {
+        min-width: 0;
+      }
+      .fp3d-strip-point .fp3d-field input {
+        width: 100%;
+        box-sizing: border-box;
+        text-align: center;
+        padding: 7px 4px;
+      }
+      .fp3d-strip-del-btn {
+        height: 34px;
+        min-height: 34px;
+        width: 34px;
+        padding: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+        line-height: 1;
+        box-sizing: border-box;
+      }
+      .fp3d-strip-btn-spacer {
+        width: 34px;
+        height: 34px;
+        display: block;
       }
       .fp3d-point-sel .fp3d-muted {
         color: var(--fp3d-accent);

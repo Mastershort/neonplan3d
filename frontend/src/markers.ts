@@ -1,7 +1,7 @@
 // Turns placements and entity states into device markers for the 3D view, and formats short state
 // texts shared by markers and the room panel.
 
-import { defaultHeight, entityName, isActive, isUnavailable, kindOf, lightGlow, tempUnit } from "./devices.ts";
+import { defaultHeight, entityName, fixedGlowColor, isActive, isUnavailable, kindOf, lightGlow, tempUnit } from "./devices.ts";
 import { formatNumber, translate, type I18nKey } from "./i18n.ts";
 import { iconSvg, mdiIcon } from "./icons.ts";
 import type { Building } from "./model.ts";
@@ -10,6 +10,17 @@ import type { HassEntity, HomeAssistant } from "./types.ts";
 import type { DeviceMarker } from "./viewer/viewer3d.ts";
 
 const t = (hass: HomeAssistant | undefined, key: I18nKey) => translate(hass, key);
+
+/** Text representation with lumens and brightness percentage when nominal lumens are configured. */
+export function lightLumensText(st: HassEntity | undefined, lumens?: number | null, lumenMode?: "total" | "per_led" | null, ledCount?: number | null): string | null {
+  if (!st || st.state !== "on" || typeof lumens !== "number" || lumens <= 0) return null;
+  const count = ledCount && ledCount > 0 ? ledCount : 1;
+  const total = lumenMode === "per_led" ? lumens * count : lumens;
+  const a = st.attributes;
+  const pct = typeof a.brightness === "number" ? Math.max(1, Math.round((a.brightness / 255) * 100)) : 100;
+  const cur = Math.round(total * (pct / 100));
+  return typeof a.brightness === "number" ? `${pct} % (${cur} lm)` : `${cur} lm`;
+}
 
 /** Short, localised state text for a marker or a panel row. */
 export function stateText(hass: HomeAssistant | undefined, st: HassEntity | undefined): string {
@@ -94,10 +105,11 @@ export function buildMarkers(hass: HomeAssistant, building: Building): DeviceMar
         name: pl.name || entityName(hass, pl.entity_id, areaName),
         ownName: pl.name || undefined,
         showName: !!pl.show_name,
-        text: stateText(hass, st),
+        text: (kind === "light" ? lightLumensText(st, pl.lumens) : null) ?? stateText(hass, st),
         active: isActive(st),
         unavailable: isUnavailable(st),
-        glow: kind === "light" ? scaleGlow(lightGlow(st), pl.glow_scale) : null,
+        glow: kind === "light" ? scaleGlow(fixedGlowColor(lightGlow(st), pl.glow_color), pl.glow_scale) : null,
+        lumens: pl.lumens,
         show: pl.marker ?? undefined,
         fixed: !!pl.locked,
       });
@@ -167,5 +179,16 @@ export function toggleEntity(hass: HomeAssistant, entityId: string): Promise<unk
 /** A glow made weaker or stronger by the lamp's own factor (#181): many LED strips need not outshine the room. */
 export function scaleGlow<T extends { level: number }>(glow: T | null, scale: number | null | undefined): T | null {
   if (!glow || scale == null || scale === 1) return glow;
-  return { ...glow, level: Math.max(0.02, Math.min(1.5, glow.level * scale)) };
+  return { ...glow, level: Math.max(0.02, Math.min(2.5, glow.level * scale)) };
+}
+
+/**
+ * Scales a lamp's 3D glow level based on its configured nominal lumens and LED count.
+ * Baseline is 800 lm (equivalent to a standard 60W bulb or typical ~2m strip output).
+ */
+export function lumenGlowScale(lumens: number | null | undefined, lumenMode?: "total" | "per_led" | null, ledCount?: number | null): number {
+  if (typeof lumens !== "number" || lumens <= 0) return 1;
+  const count = ledCount && ledCount > 0 ? ledCount : 1;
+  const total = lumenMode === "per_led" ? lumens * count : lumens;
+  return Math.min(2.5, Math.max(0.15, Math.pow(total / 800, 0.55)));
 }

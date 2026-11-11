@@ -214,6 +214,10 @@ export interface Furniture {
   only_color?: string | null;
   /** Lamps: always drawn in this colour ("#rrggbb"), whatever the light reports – on/off and brightness still follow it (#977). Null: the light's colour. */
   glow_color?: string | null;
+  /** Lamps: nominal luminous flux in lumens (at 100% brightness). */
+  lumens?: number | null;
+  /** LED strip: whether lumens is specified as strip total or per LED ("total" | "per_led"). */
+  lumen_mode?: "total" | "per_led" | null;
   /** With a power sensor: the item counts as running above this many watts (null = the default, 10 W). */
   run_w?: number | null;
   /** Awning: the fabric's fall in degrees (null = 12°). */
@@ -320,6 +324,24 @@ export interface Furniture {
   rise?: number;
   /** LED strip: standing upright – its length runs up from the mount height (door frame, light column). */
   upright?: boolean;
+  /** Custom 3D path / polygon points in (x, z) for LED strip */
+  points?: Vec2[];
+  /** Height per point in metres above the floor for 3D LED strip */
+  heights?: (number | null)[];
+  /** Number of individual LEDs along the strip (null = automatic / continuous) */
+  led_count?: number | null;
+  /** Effect of the LED strip ("static", "multicolor", "rainbow", "christmas", "chase", "twinkle") */
+  effect?: string | null;
+  /** Entity or attribute that provides the effect state */
+  effect_entity?: EntityRef;
+  /** Whether the LED strip forms a closed loop/polygon */
+  closed?: boolean;
+  /** LED strip: show line / cable even when turned off (e.g. for outdoor fairy lights) */
+  show_line_off?: boolean;
+  /** LED strip: hide the line/strip body, showing only the lights/bulbs */
+  hide_line?: boolean;
+  /** LED strip: group identifier to synchronize effects and colors across multiple strips */
+  led_group?: string | null;
   /** Ceiling fan with light (D606): its fan entity – the blades turn with its speed (the light is `entity`). */
   fan?: EntityRef;
   /** Wi-Fi access point (D582): a sensor with the number of connected clients (its status is `entity`). */
@@ -392,6 +414,10 @@ export interface Placement {
   show_name?: boolean;
   /** Lights: how strongly the light glows in 3D, 0.1–1.5 (1 = as bright as the light reports) – #181. */
   glow_scale?: number | null;
+  /** Lights: always drawn in this colour ("#rrggbb"), whatever the light reports (#977). */
+  glow_color?: string | null;
+  /** Lights: nominal luminous flux in lumens (at 100% brightness). */
+  lumens?: number | null;
   /** Energie Pro: a glass card over the device (a smart plug) with its power, today's kWh and the day curve (D178). */
   holo?: boolean;
   /** Cameras: show the field-of-view wedge on the floor (null = yes). */
@@ -2050,6 +2076,11 @@ export function bounds(points: readonly Vec2[]): { x0: number; z0: number; x1: n
 
 /** Corners of a furniture item in world x/z (rotated rectangle). */
 export function furnitureFootprint(f: Furniture): Vec2[] {
+  if (f.points && f.points.length >= 3 && f.closed) return f.points;
+  if (f.points && f.points.length >= 2) {
+    const b = bounds(f.points);
+    return [[b.x0, b.z0], [b.x1, b.z0], [b.x1, b.z1], [b.x0, b.z1]];
+  }
   const a = (f.rotation * Math.PI) / 180;
   const c = Math.cos(a);
   const s = Math.sin(a);

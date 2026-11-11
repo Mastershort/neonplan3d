@@ -348,6 +348,16 @@ export class Fp3dRoomPanel extends LitElement {
     const kMin = (a.min_color_temp_kelvin as number | undefined) ?? 2200;
     const kMax = (a.max_color_temp_kelvin as number | undefined) ?? 6500;
     const id = st.entity_id;
+    const furn = this.building?.floors.flatMap((fl) => fl.furniture).find((f) => f.entity === id);
+    const pl = this.building?.floors.flatMap((fl) => fl.placements).find((p) => p.entity_id === id);
+    const lumens = furn?.lumens ?? pl?.lumens;
+    let lumenNote = "";
+    if (typeof lumens === "number" && lumens > 0) {
+      const count = furn?.type === "led_strip" ? (furn.led_count || Math.max(10, Math.round(furn.w * 30))) : 1;
+      const total = furn?.type === "led_strip" && furn.lumen_mode === "per_led" ? lumens * count : lumens;
+      const cur = Math.round(total * (pct / 100));
+      lumenNote = ` · ${cur} lm`;
+    }
     return html`<div class="fp3d-rp-row">
       <span class="fp3d-rp-icon ${on ? "fp3d-rp-on" : ""}">${this.rowIcon("light", id)}</span>
       ${this.nameButton(id)}
@@ -355,7 +365,7 @@ export class Fp3dRoomPanel extends LitElement {
       ${this.toggle(st, on, () => this.call("light", "toggle", { entity_id: id }))}
       ${on && dimmable
         ? html`<label class="fp3d-rp-slider"
-            ><span>${this.t("brightness")}</span>
+            ><span>${this.t("brightness")} (${pct}%${lumenNote})</span>
             <input
               type="range"
               min="1"

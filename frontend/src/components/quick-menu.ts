@@ -48,11 +48,13 @@ export class Fp3dQuickMenu extends LitElement {
     doorLock: { type: Boolean },
     pro: { type: Boolean },
     low: { type: Boolean, reflect: true },
+    lumens: { attribute: false },
     _tick: { state: true },
   };
 
   declare hass: HomeAssistant;
   declare entity: string;
+  declare lumens: number | null;
   /** Auto Pro: the car behind a parking spot's pin – its menu replaces the entity's. */
   declare car: CarState | null;
   /** Klang & Kino: stations and playlists to start on a speaker. */
@@ -135,6 +137,7 @@ export class Fp3dQuickMenu extends LitElement {
     const can = lightAbilities(st);
     const on = st.state === "on";
     const pct = on && typeof st.attributes.brightness === "number" ? Math.round((st.attributes.brightness as number) / 2.55) : on ? 100 : 0;
+    const curLumens = on && typeof this.lumens === "number" && this.lumens > 0 ? Math.round(this.lumens * (pct / 100)) : null;
     const swatches = can.color
       ? COLORS.map(
           (c) => html`<button class="qm-swatch" style="background:rgb(${c.join(",")})" aria-label=${`RGB ${c.join(", ")}`} @click=${() => this.call("light", "turn_on", { rgb_color: c })}></button>`,
@@ -148,7 +151,7 @@ export class Fp3dQuickMenu extends LitElement {
         ${this.ring(swatches)}
         <button class="qm-power ${on ? "qm-on" : ""}" aria-pressed=${on} @click=${() => this.ask() && this.call("light", "toggle")}>
           <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3v8M6.3 6.8a8 8 0 1 0 11.4 0" /></svg>
-          <b>${on ? `${pct} %` : this.t("qm_off")}</b>
+          <b>${on ? (curLumens ? `${pct} % · ${curLumens} lm` : `${pct} %`) : this.t("qm_off")}</b>
         </button>
       </div>
       ${can.dim

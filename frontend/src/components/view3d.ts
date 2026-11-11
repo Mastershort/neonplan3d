@@ -128,7 +128,7 @@ import { coverPositionable, lightAbilities } from "./quick-menu.ts";
 import "./quick-menu.ts";
 import { load3d } from "../load3d.ts";
 import { loadFun } from "../load-fun.ts";
-import { detectionKind, scaleGlow, buildMarkers, cameraMotionSensors, openMoreInfo, setCameraSensors, stateText, toggleEntity } from "../markers.ts";
+import { detectionKind, scaleGlow, buildMarkers, cameraMotionSensors, lightLumensText, openMoreInfo, setCameraSensors, stateText, toggleEntity } from "../markers.ts";
 import { activeSections, roofUnderAt, sectionAbove, sectionCutsBelow } from "../roof-sections.ts";
 import { centroid, furnitureFootprint, gangEntities, gangsOf, GANG_TYPES, STAIR_TYPES, TECH_TYPES, isLamp, setTerrain, poolFloorY, LAMP_MODEL, LIFT_SPOTS, outdoorGround, pointInPolygon, poolWaterY, spotDepth, surfaceHeight, zonesOf, type Building, type Floor, type Furniture, type Pet, type StartView } from "../model.ts";
 
@@ -2836,6 +2836,18 @@ export class Fp3dView3d extends LitElement {
     this.binHolos = [];
     // a module lights furniture of its own (Pool Pro: the pump while it runs, the heat pump while it heats)
     const glows = new Map(this.scene.filter((p): p is Extract<ScenePiece, { kind: "glow" }> => p.kind === "glow").map((p) => [p.furnitureId, p]));
+    // Collect group effects for LED strips so grouped strips always share their effect
+    const groupEffects = new Map<string, string>();
+    for (const fl of b.floors) {
+      for (const m of fl.furniture) {
+        if (m.type === "led_strip") {
+          const gid = m.led_group || m.group || (m.entity && m.entity !== "none" ? `ent:${m.entity}` : null) || (m.effect_entity && m.effect_entity !== "none" ? `eff:${m.effect_entity}` : null);
+          if (gid && m.effect && !groupEffects.has(gid)) {
+            groupEffects.set(gid, m.effect);
+          }
+        }
+      }
+    }
     for (const floor of b.floors) {
       for (const f of floor.furniture) {
         const linked = this.furnitureLinks.get(f.id);
@@ -2844,7 +2856,7 @@ export class Fp3dView3d extends LitElement {
         const faces = this.stateFaces(hass, f);
         if (faces.length) screens.set(f.id, { color: faces[0].color, level: faces[0].level, faces });
         if (isLamp(f.type)) {
-          const lamp = this.lampMarker(hass, floor, f, linked?.entity ?? null);
+          const lamp = this.lampMarker(hass, floor, f, linked?.entity ?? (f.entity && f.entity !== "none" ? f.entity : null), groupEffects);
           markers.push(lamp);
           // a ceiling fan with light: its fan gets a pin of its own beside the light (tap: on/off, hold: speed)
           const fan = f.type === "lamp_fan" && f.fan && f.fan !== "none" ? f.fan : null;
@@ -3671,10 +3683,12 @@ export class Fp3dView3d extends LitElement {
   }
 
   /** A lamp: its 3D model glows with the linked light and is tapped directly. */
-  private lampMarker(hass: HomeAssistant, floor: Building["floors"][number], f: Furniture, entity: string | null): DeviceMarker & { fromFurniture: boolean } {
+  private lampMarker(hass: HomeAssistant, floor: Building["floors"][number], f: Furniture, entity: string | null, groupEffects?: Map<string, string>): DeviceMarker & { fromFurniture: boolean } {
     const st = entity ? hass.states[entity] : undefined;
     const item = packItem(f.type);
     const model = LAMP_MODEL[f.type] ?? item?.light ?? "floor";
+    const gid = f.led_group || f.group || (entity && entity !== "none" ? `ent:${entity}` : null) || (f.effect_entity && f.effect_entity !== "none" ? `eff:${f.effect_entity}` : null);
+    const effectiveEffect = f.effect || (gid && groupEffects ? groupEffects.get(gid) : null) || (f.effect_entity && hass.states[f.effect_entity]?.state) || (st?.attributes.effect as string | undefined) || null;
     // a height above the floor set by hand wins (a table lamp on a shelf, a floor lamp on a platform);
     // an LED strip outside the house counts from the ground there (a path light flush with the lawn)
     const inRoom = floor.rooms.some((r) => r.points.length >= 3 && pointInPolygon([f.x, f.z], r.points));
@@ -3718,6 +3732,19 @@ export class Fp3dView3d extends LitElement {
       bollard: base + f.h + 0.25,
       garden: base + f.h + 0.25,
     }[model];
+    const ledCount = f.led_count || Math.max(10, Math.round(f.w * 30));
+    const liveGlow = st ? scaleGlow(fixedGlowColor(onlyColor(lightGlow(st, f.color_entity && f.color_entity !== "none" ? hass.states[f.color_entity] : undefined), f.only_color), f.glow_color), f.glow_scale) : null;
+    const previewGlow = (effectiveEffect ? ({ color: [1, 1, 1] as [number, number, number], level: 1 }) : null)
+      ?? (!entity || entity === "none" || !st
+        ? (f.type === "led_strip" || (this.furnish && this.selectedFurniture === f.id)
+          ? {
+              color: f.glow_color && /^#[0-9a-f]{6}$/i.test(f.glow_color)
+                ? ([1, 3, 5].map((i) => parseInt(f.glow_color!.slice(i, i + 2), 16) / 255) as [number, number, number])
+                : ([1, 0.71, 0.28] as [number, number, number]),
+              level: 1,
+            }
+          : null)
+        : null);
     return {
       // a lamp without a light keeps a key of its own (it is drawn, but not tappable)
       id: entity ?? `lamp:${f.id}`,
@@ -3729,16 +3756,26 @@ export class Fp3dView3d extends LitElement {
       // an own symbol wins over the lamp's (#1005)
       icon: f.icon ? mdiIcon(f.icon) : iconSvg("light"),
       name: f.name || (entity ? entityName(hass, entity) : furnitureName(hass, f.type)),
-      text: st ? stateText(hass, st) : "",
+      text: (st ? lightLumensText(st, f.lumens, f.lumen_mode, f.type === "led_strip" ? ledCount : undefined) : null) ?? (st ? stateText(hass, st) : ""),
       active: st ? isActive(st) : false,
       unavailable: st ? isUnavailable(st) : false,
-      glow: st ? scaleGlow(fixedGlowColor(onlyColor(lightGlow(st, f.color_entity && f.color_entity !== "none" ? hass.states[f.color_entity] : undefined), f.only_color), f.glow_color), f.glow_scale) : null,
+      glow: liveGlow ?? previewGlow,
       lamp: model,
       rotation: f.rotation,
       mirror: !!f.mirror,
       roll: f.tilt ?? 0,
       upright: !!f.upright,
       rise: f.rise ?? 0,
+      points: f.points,
+      heights: f.heights,
+      led_count: f.led_count,
+      stripEffect: effectiveEffect,
+      closed: !!f.closed,
+      showLineOff: !!f.show_line_off,
+      hide_line: !!f.hide_line,
+      ledGroup: gid,
+      lumens: f.lumens,
+      lumenMode: f.lumen_mode,
       // a ceiling fan's blades turn with its fan entity (D606)
       fanSpeed: model === "fan" ? fanSpeed(f.fan && f.fan !== "none" ? hass.states[f.fan] : undefined) : undefined,
       size: [f.w, f.d, f.h],
@@ -5556,9 +5593,21 @@ export class Fp3dView3d extends LitElement {
     const s = this._swipe;
     if (!s || !this.hass) return nothing;
     const off = s.kind === "light" && s.value <= 0;
+    let lumenNote = "";
+    if (s.kind === "light" && !off && this.building) {
+      const furn = this.building.floors.flatMap((fl) => fl.furniture).find((f) => f.entity === s.entity);
+      const pl = this.building.floors.flatMap((fl) => fl.placements).find((p) => p.entity_id === s.entity);
+      const lumens = furn?.lumens ?? pl?.lumens;
+      if (typeof lumens === "number" && lumens > 0) {
+        const count = furn?.type === "led_strip" ? (furn.led_count || Math.max(10, Math.round(furn.w * 30))) : 1;
+        const total = furn?.type === "led_strip" && furn.lumen_mode === "per_led" ? lumens * count : lumens;
+        const cur = Math.round(total * (s.value / 100));
+        lumenNote = ` · ${cur} lm`;
+      }
+    }
     return html`<div class="fp3d-swipe" style="left:${s.x}px;top:${s.y}px">
       <span>${entityName(this.hass, s.entity)}</span>
-      <b>${off ? translate(this.hass, "swipe_off") : `${s.value} %`}</b>
+      <b>${off ? translate(this.hass, "swipe_off") : `${s.value} %${lumenNote}`}</b>
       <i><em style="height:${s.value}%"></em></i>
     </div>`;
   }
@@ -5803,12 +5852,18 @@ export class Fp3dView3d extends LitElement {
     const h = stage?.clientHeight ?? 600;
     const left = Math.max(8, Math.min(w - 240, m.x - 116));
     const top = Math.max(8, Math.min(h - 360, m.y - 170));
+    const furn = this.building?.floors.flatMap((fl) => fl.furniture).find((f) => f.entity === m.entity);
+    const pl = this.building?.floors.flatMap((fl) => fl.placements).find((p) => p.entity_id === m.entity);
+    const nominalLumens = furn?.lumens ?? pl?.lumens ?? null;
+    const count = furn?.type === "led_strip" ? (furn.led_count || Math.max(10, Math.round(furn.w * 30))) : 1;
+    const totalLumens = furn?.type === "led_strip" && furn.lumen_mode === "per_led" && typeof nominalLumens === "number" ? nominalLumens * count : nominalLumens;
     return html`<div class="fp3d-menu-backdrop" @click=${() => (this._menu = null)}></div>
       <fp3d-quick-menu
         style="left:${left}px;top:${top}px"
         ?low=${this._low}
         .hass=${this.hass}
         .entity=${m.entity}
+        .lumens=${totalLumens}
         .car=${m.car ?? null}
         ?doorLock=${!!m.doorLock}
         .presets=${hasFeature("sound") ? (this.building?.settings.media_presets ?? []) : []}

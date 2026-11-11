@@ -11,13 +11,50 @@ const COLOURS = [
   [0.3, 0.55, 1],
 ];
 
+export const CHRISTMAS_PALETTE: readonly [number, number, number][] = [
+  [1.0, 0.15, 0.2],   // Festive Ruby Red
+  [1.0, 0.82, 0.25],  // Golden Amber Warmth
+  [0.15, 0.95, 0.35], // Emerald Pine Green
+  [0.2, 0.6, 1.0],    // Sapphire Ice Blue
+  [1.0, 0.92, 0.65],  // Warm Candlelight
+  [0.92, 0.22, 0.75], // Sparkling Magenta
+  [0.2, 0.95, 0.9],   // Mint / Cyan Frost
+];
+
+/**
+ * WLED Color Twinkles effect (inspired by WLED FX_MODE_COLOR_TWINKLE):
+ * Each individual bulb fades in and out smoothly with its own golden-ratio phase offset.
+ * As it cycles, it transitions to new vibrant festive colors from the palette.
+ */
+export function wledColorTwinkle(
+  k: number,
+  time: number,
+  palette: readonly [number, number, number][] = CHRISTMAS_PALETTE,
+  speed = 1.6,
+): [number, number, number] {
+  const phase = k * 1.61803398875;
+  const cycleTime = time * speed + phase;
+  const cycleAngle = cycleTime % (Math.PI * 2);
+  const cycleIndex = Math.floor(cycleTime / (Math.PI * 2));
+
+  // WLED twinkle curve: smooth sinusoidal peak with organic power-decay
+  const raw = Math.sin(cycleAngle);
+  if (raw <= 0) {
+    return [0, 0, 0];
+  }
+  const brightness = Math.pow(raw, 2.2);
+  const colorIdx = (k * 3 + cycleIndex * 5) % palette.length;
+  const base = palette[colorIdx];
+  return [base[0] * brightness, base[1] * brightness, base[2] * brightness];
+}
+
 /**
  * The fairy lights of these faces: a bulb every 25 cm along every eave and, with `outline`, up the gable edges (a hip
  * roof's hips) and along the ridge – the whole roof drawn in light. Just in front of the edges, under the eaves and
  * verges and on top of the ridge; where two faces share an edge it gets one chain. Warm white or the colours in turn
  * (positions and colours for points). Part of the roof, so they ride with it when the floors are pulled apart.
  */
-export function roofLightPoints(faces: readonly RoofFace[], dy: number, colourful: boolean, outline = true): { positions: Float32Array; colors: Float32Array } | null {
+export function roofLightPoints(faces: readonly RoofFace[], dy: number, colourful: boolean, outline = true, time = 0): { positions: Float32Array; colors: Float32Array } | null {
   const p: number[] = [];
   const c: number[] = [];
   const seen = new Set<string>();
@@ -28,7 +65,12 @@ export function roofLightPoints(faces: readonly RoofFace[], dy: number, colourfu
     if (seen.has(key)) return;
     seen.add(key);
     p.push(x, y - dy, z);
-    c.push(...(colourful ? COLOURS[k++ % COLOURS.length] : WARM));
+    if (time > 0) {
+      const col = wledColorTwinkle(k++, time, colourful ? CHRISTMAS_PALETTE : [[1.0, 0.82, 0.45], [1.0, 0.9, 0.6]]);
+      c.push(col[0], col[1], col[2]);
+    } else {
+      c.push(...(colourful ? COLOURS[k++ % COLOURS.length] : WARM));
+    }
   };
   const along = (a: number[], b: number[], away: number[], lift = -0.04) => {
     const l = Math.hypot(away[0], away[2]);
