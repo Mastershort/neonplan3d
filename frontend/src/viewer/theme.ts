@@ -152,14 +152,15 @@ vec3 fp3dThemed(vec3 c, bool line, bool accent) {
   float sat = mx > 0.0 ? (mx - mn) / mx : 0.0;
   if (uTheme == ${STYLE_LOOK}) {
     if (line) return uStLine * clamp(mx * 1.4, 0.55, 1.0);
-    bool signal = mx > 0.45 && sat > 0.45;
+    // lit lamps, screens, open windows keep their colour – but not the green of plants, which only looks like one
+    bool signal = mx > 0.45 && sat > 0.45 && !(c.g > c.r * 1.25 && c.g > c.b * 1.25);
     vec3 n = fp3dFaceNormal();
     if (uStNatural == 1) {
       // neon leftovers the natural palette does not reach (dark navy lamp bodies, small devices) turn neutral grey
       vec3 cc = (mx < 0.2 && c.b > c.r * 2.0 && c.b > c.g * 1.5) ? vec3(0.32 + dot(c, vec3(0.3, 0.59, 0.11)) * 1.4) : c;
       cc *= fp3dStyleLight(n) * fp3dStyleFloor(cc, n);
       // evening: the house dims warm, lit lamps and screens keep their glow
-      if (uStDim > 0.0 && !signal) cc *= mix(vec3(1.0), vec3(0.62, 0.52, 0.42), uStDim) * (1.0 - 0.45 * uStDim);
+      if (uStDim > 0.0 && !signal) cc *= mix(vec3(1.0), vec3(0.62, 0.52, 0.42), uStDim) * (1.0 - 0.75 * uStDim);
       return cc;
     }
     if (uStSignal == 1 && signal) return c;

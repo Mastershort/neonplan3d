@@ -79,8 +79,8 @@ export const STYLES: StyleDef[] = [
     aliases: ["synthwave", "synth", "retro", "party"],
   },
   { id: "cozy", base: "day", group: "homely", ...NATURAL, palette: null, bg: ["#f1efeb", "#d9d5ce"], aliases: ["wohnlich", "gemütlich", "cozy", "homely", "echt", "real"] },
-  { id: "evening", base: "neon", group: "homely", ...NATURAL, sun: 0.4, dim: 0.65, bg: ["#14161c", "#272630"], aliases: ["wohnlich abend", "abend", "abendstimmung", "evening", "cozy evening"] },
-  { id: "winter", base: "neon", group: "homely", ...NATURAL, sun: 0.4, dim: 0.55, bg: ["#0b1322", "#1d2a40"], aliases: ["winterabend", "winter", "advent", "weihnachten", "christmas"] },
+  { id: "evening", base: "neon", group: "homely", ...NATURAL, sun: 0.4, dim: 0.75, bg: ["#14161c", "#272630"], aliases: ["wohnlich abend", "abend", "abendstimmung", "evening", "cozy evening"] },
+  { id: "winter", base: "neon", group: "homely", ...NATURAL, sun: 0.4, dim: 0.8, bg: ["#0b1322", "#1d2a40"], aliases: ["winterabend", "winter", "advent", "weihnachten", "christmas"] },
   {
     id: "model",
     base: "day",
