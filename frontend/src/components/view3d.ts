@@ -3746,6 +3746,8 @@ export class Fp3dView3d extends LitElement {
   }
 
   private showPin(m: DeviceMarker & { fromFurniture?: boolean; energyDevice?: boolean }): boolean {
+    // a lamp without a light is drawn but switches nothing: no pin, whatever the mode (#982)
+    if (m.id.startsWith("lamp:")) return false;
     // while furnishing every placed device has a pin to grab it by
     if (this.furnish && !m.fromFurniture) return true;
     // the device's own setting wins over the marker mode (except "none", which hides every marker)

@@ -15,6 +15,8 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 - **Snow on the roof covered the solar modules' figures;** the living solar overlay now lies on top of the snow (#1031, thanks PetrMa).
 - **A track with several spots** lit only from its middle with one narrow cone; a pack lamp with several glowing parts now lights from each of them, with a cone under each spot (#1034, thanks daene85).
 - **Time travel, day summary:** a room's temperature range used every temperature sensor of its area, dew point and comfort indices included; it now takes the room's own temperature (⚙ Room climate) or the plain temperature sensors. Switches that drive a lamp of the plan count as lights (#1032, thanks abgestumpft).
+- **Free-form outdoor areas had no corners to type in:** the form now lists every corner with X and Y like a room's, so edges can be made straight and parallel; × removes a corner (#1041, thanks daene85).
+- **A lamp without a light showed an "Off" pin** in the marker modes *All* and *In the room*; it could not be tapped. Such a lamp gets no pin any more (#982, thanks daene85).
 - **Import page: a RoomPlan scan of a whole home** whose walls are listed only per room was not recognised; it is now read like any other scan.
 
 ### Changed

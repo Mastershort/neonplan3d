@@ -2939,6 +2939,41 @@ export class Fp3dEditor extends LitElement {
     this.change((_, floor) => patchItem(floor.outdoor.find((o) => o.id === id), patch));
   }
 
+  /** An outdoor area's corners to type in, like a room's (#1041): free shapes get straight and parallel edges. */
+  private renderOutdoorPoints(a: OutdoorArea, rect: boolean) {
+    const admin = this.isAdmin;
+    // an open run (a fence, an open pergola) may keep two points, a surface needs three
+    const min = a.open ? 2 : 3;
+    const setPoint = (i: number, axis: 0 | 1, v: number) => {
+      if (!Number.isFinite(v)) return;
+      const points = a.points.map((p) => [...p] as Vec2);
+      points[i][axis] = round(v);
+      this.updateOutdoor({ points });
+    };
+    const dropPoint = (i: number) => {
+      if (a.points.length <= min) return;
+      const n = a.points.length;
+      const prev = (i - 1 + n) % n;
+      // the two edges at the removed corner merge: their gates lose their place, later edges move up by one
+      const gates = a.gates?.filter((g) => g.edge !== i && g.edge !== prev).map((g) => ({ ...g, edge: g.edge > i ? g.edge - 1 : g.edge }));
+      this.updateOutdoor({ points: a.points.filter((_, k) => k !== i).map((p) => [...p] as Vec2), ...(a.gates ? { gates: gates?.length ? gates : undefined } : {}) });
+    };
+    // a round or oval pool is made from its box: its corners are not edited one by one
+    if (a.pool_shape) return nothing;
+    return html`<details class="fp3d-points" ?open=${!rect}>
+      <summary>${this.t("points")} (${a.points.length})</summary>
+      ${a.points.map(
+        (p, i) => html`<div class="fp3d-point">
+          <span class="fp3d-muted">${i + 1}</span>
+          ${this.len(this.t("x"), p[0], (v) => setPoint(i, 0, v))} ${this.len(this.t("z"), p[1], (v) => setPoint(i, 1, v))}
+          ${admin
+            ? html`<button class="fp3d-btn" title=${this.t("delete_point")} ?disabled=${a.points.length <= min} @click=${() => dropPoint(i)}>×</button>`
+            : nothing}
+        </div>`,
+      )}
+    </details>`;
+  }
+
   private deleteOutdoor(): void {
     const id = this._outdoorId;
     if (!id || !this.isAdmin || !this.confirmFixedDelete("outdoor", id)) return;
@@ -6748,6 +6783,7 @@ export class Fp3dEditor extends LitElement {
       </div>
       ${a.slope ? html`<p class="fp3d-sub">${this.t("outdoor_slope_hint")}</p>` : nothing}
       <p class="fp3d-sub">${this.t("outdoor_hint")}</p>
+      ${this.renderOutdoorPoints(a, rect)}
       ${this.renderModuleFields(a)}
       ${admin
         ? html`<div class="fp3d-actions">
