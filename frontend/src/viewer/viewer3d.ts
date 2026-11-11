@@ -40,9 +40,9 @@ import { buildSolarLive, solarLiveMaterial, writeSolarLevels, type SolarLive } f
 import { dotTexture, roofLightPoints, roofSnowGeometry } from "./snow.ts";
 import { Firework } from "./firework.ts";
 import { buildPools, disposePools, type PoolPiece } from "./pool-water.ts";
-import { accentOnUniform, accentUniform, applyStyleUniforms, floorLevelUniform, parseAccent, lineBlending, STYLE_LOOK, themed, themeIndex, type Theme, type ThemeUniform } from "./theme.ts";
+import { accentOnUniform, accentUniform, applyStyleUniforms, floorLevelUniform, makeStyleUniforms, parseAccent, lineBlending, STYLE_LOOK, themed, themeIndex, type Theme, type ThemeUniform } from "./theme.ts";
 import { styleById, type StyleDef } from "../looks.ts";
-import { hexColor, naturalPalette, setNaturalPalette, cutTopColor } from "./palette.ts";
+import { hexColor, setNaturalPalette } from "./palette.ts";
 
 export type { Theme } from "./theme.ts";
 import { ALWAYS, DEG, GeoBuffer, LineBuffer, pushPrism, triangulate } from "./geo.ts";
@@ -740,7 +740,9 @@ export class FloorplanViewer {
   private lightLookOn = false;
   /** Per floor: the shader uniforms that learn where the floor lies (wall feet, floor structure). */
   private floorLevels = new Map<string, { value: number }[]>();
-  private readonly themeUniform: ThemeUniform = { value: 0 };
+  private readonly themeUniform: ThemeUniform = { value: 0, style: makeStyleUniforms() };
+  /** This view's palette (natural materials, cut tops, facade): set before it builds anything, as views share the palette module. */
+  private palette = { natural: false, cutTop: null as number | null, facade: null as number | null };
   private sun: SunState | null = null;
   private weather: WeatherView | null = null;
   /** Rain streaks and snow flakes over the plot, the sun or moon disc in the sky. */
@@ -1144,6 +1146,7 @@ export class FloorplanViewer {
   }
 
   private buildPoolWater(fv: FloorView): void {
+    this.usePalette();
     if (fv.poolGroup) {
       disposePools(fv.poolGroup);
       fv.group.remove(fv.poolGroup);
@@ -1300,6 +1303,7 @@ export class FloorplanViewer {
   }
 
   private buildPatches(fv: FloorView): void {
+    this.usePalette();
     const mine = this.patches.filter((t) => t.floorId === fv.floor.id && t.points.length >= 3 && t.opacity > 0);
     const sig = JSON.stringify(mine);
     if (sig === fv.patchSig) return;
@@ -1331,6 +1335,7 @@ export class FloorplanViewer {
 
 
   private buildPipes(fv: FloorView): void {
+    this.usePalette();
     const mine = this.pipes.filter((t) => t.floorId === fv.floor.id);
     const sig = JSON.stringify(mine);
     if (sig === fv.pipeSig) return;
@@ -1497,7 +1502,7 @@ export class FloorplanViewer {
     this.theme = theme;
     this.themeUniform.value = themeIndex(theme);
     // waste bins and pack items in colours of their own keep them in the light looks: drawn anew in full colour (#609)
-    const light = theme !== "neon" || naturalPalette();
+    const light = theme !== "neon" || this.palette.natural;
     this.lightLookOn = light;
     setLightLook(light);
     if (this.building?.floors.some((f) => f.furniture.some((m) => m.type === "waste_bin" || hasFixedColors(m.type)))) this.rebuild();
@@ -1522,7 +1527,10 @@ export class FloorplanViewer {
     if (key === this.styleKey) return;
     this.styleKey = key;
     this.style = style;
-    const rebuild = setNaturalPalette(!!style.natural, { cutTop: style.natural && style.cutDark ? 0x34373d : null, facade: hexColor(this.building?.settings.facade_color) });
+    const next = { natural: !!style.natural, cutTop: style.natural && style.cutDark ? 0x34373d : null, facade: style.natural ? hexColor(this.building?.settings.facade_color) : null };
+    const rebuild = next.natural !== this.palette.natural || next.cutTop !== this.palette.cutTop || next.facade !== this.palette.facade;
+    this.palette = next;
+    this.usePalette();
     const lightBefore = this.lightLookOn;
     // a theme already shown is not set again: the light look follows natural materials here as well
     if (style.base !== this.theme) this.setTheme(style.base);
@@ -1532,11 +1540,17 @@ export class FloorplanViewer {
     }
     const plain = !style.palette && !style.natural;
     this.themeUniform.value = plain ? themeIndex(style.base) : STYLE_LOOK;
-    applyStyleUniforms(style);
+    applyStyleUniforms(style, this.themeUniform.style);
     const fixedColours = this.lightLookOn !== lightBefore && !!this.building?.floors.some((f) => f.furniture.some((m) => m.type === "waste_bin" || hasFixedColors(m.type)));
     if (rebuild || fixedColours) this.rebuild();
     else this.styleFloors();
     this.invalidate();
+  }
+
+  /** Puts this view's palette and light look in place: several views on a page share the palette module. */
+  private usePalette(): void {
+    setNaturalPalette(this.palette.natural, { cutTop: this.palette.cutTop, facade: this.palette.facade });
+    setLightLook(this.lightLookOn);
   }
 
   /** The style's extras per floor: contact shadows, the neon floor pattern (off on natural floors), the floor levels. */
@@ -1801,6 +1815,7 @@ export class FloorplanViewer {
    * to the whole-house view and rests on the tablet level; the arc shows by day on every level.
    */
   private buildSunFx(): void {
+    this.usePalette();
     const b = this.building;
     const sun = this.sun;
     const on = !!b && !!sun && b.settings.sun_shadow !== false && !this.options.safeFx;
@@ -1871,6 +1886,7 @@ export class FloorplanViewer {
    * beside the window shades the ground in front of it (#954). Only the floors at ground level.
    */
   private buildSpill(fv: FloorView, sources: LightSource[]): void {
+    this.usePalette();
     const b = this.building;
     const night = b?.settings.window_glow === false || this.options.safeFx ? 0 : this.nightFactor();
     const gf = b && night > 0 ? groundFloor(b) : null;
@@ -2197,6 +2213,7 @@ export class FloorplanViewer {
   }
 
   private buildFridges(fv: FloorView): void {
+    this.usePalette();
     const buf = new GeoBuffer();
     for (const f of fv.floor.furniture) {
       if (f.type !== "fridge_smart") continue;
@@ -2512,6 +2529,7 @@ export class FloorplanViewer {
   /** Light cones of the lights that are on, merged into one mesh per floor. */
   /** Light surface of a floor (rebuilt with the floor plan and when the detail level changes). */
   private buildLightSurface(fv: FloorView): void {
+    this.usePalette();
     const cell = this.lowQuality ? 0.5 : 0.25;
     const surface = buildLightSurface(fv.floor, fv.geo.walls2d, fv.geo.wallBuckets, fv.geo.openings, cell, fv.geo.holes, fv.geo.roofUnder);
     // rooms joined by "no wall" form one zone: a lamp lights the open neighbour as if it stood in the same room
@@ -2671,6 +2689,7 @@ export class FloorplanViewer {
 
   /** Colours of the light surface for the current lights and doors. */
   private buildGlow(fv: FloorView): void {
+    this.usePalette();
     const surface = fv.lightSurface;
     if (!surface) return;
     const sources = this.lightSources(fv);
@@ -2794,7 +2813,8 @@ export class FloorplanViewer {
   }
 
   private rebuild(): void {
-    if (naturalPalette()) setNaturalPalette(true, { cutTop: cutTopColor(), facade: hexColor(this.building?.settings.facade_color) });
+    if (this.palette.natural) this.palette.facade = hexColor(this.building?.settings.facade_color);
+    this.usePalette();
     const previous = new Map(this.floors.map((f) => [f.floor.id, { y: f.y, o: f.o }]));
     const previousOpenings = new Map(this.floors.map((f) => [f.floor.id, f.openings]));
     this.clear();
@@ -3066,6 +3086,7 @@ export class FloorplanViewer {
   }
 
   private buildRoofMesh(): void {
+    this.usePalette();
     if (this.roof) {
       this.roof.group.traverse((o) => ((o as Mesh).geometry as BufferGeometry | undefined)?.dispose());
       this.roof.solid.dispose();
@@ -3445,6 +3466,7 @@ export class FloorplanViewer {
    * the mesh in place, so colour effects cost no geometry.
    */
   private buildLamps(fv: FloorView): void {
+    this.usePalette();
     const now = performance.now();
     const flash = (id: string) => {
       const until = this.flashes.get(id);
@@ -3523,6 +3545,7 @@ export class FloorplanViewer {
    * projected along the sun's rays onto the floor as a warm, soft patch.
    */
   private buildSun(fv: FloorView): void {
+    this.usePalette();
     // the patches of sunlight can be switched off in the settings (#266)
     const sun = this.building?.settings.sun_patches === false ? null : this.sun;
     const north = (this.building?.settings.north ?? 0) * DEG;
@@ -3664,6 +3687,7 @@ export class FloorplanViewer {
 
   /** Glow points at lit shades (not at the tablet level) and light cones under spots (level "High"). */
   private buildHalos(fv: FloorView): void {
+    this.usePalette();
     if (this.lowQuality) {
       fv.haloMesh.visible = false;
       fv.coneMesh.visible = false;
@@ -3818,6 +3842,7 @@ export class FloorplanViewer {
 
   /** Lit screens of a floor: a bright panel in the app colour and a faint glow around it. */
   private buildScreens(fv: FloorView): void {
+    this.usePalette();
     // the vehicles in the parking spots count as furniture here too (Auto Pro lights a band on them)
     const items = withVehicles(fv.floor, this.parked).furniture.filter((f) => this.screens.has(f.id));
     // (with the accent colour: a light switch's rocker glows in it)
@@ -4173,6 +4198,7 @@ export class FloorplanViewer {
 
   /** Energy cables of a floor as flat glowing ribbons (vertical pieces as two crossed ribbons). */
   private buildFlows(fv: FloorView): void {
+    this.usePalette();
     this.buildPipeLines(fv);
     const layout = this.flows
       .filter((f) => f.floorId === fv.floor.id && !f.pipe)
@@ -4258,6 +4284,7 @@ export class FloorplanViewer {
    * view go into a mesh of their own, hidden while a floor is opened; those shown only on an opened floor into another.
    */
   private buildPipeLines(fv: FloorView): void {
+    this.usePalette();
     const mine = this.flows.filter((f) => f.floorId === fv.floor.id && f.pipe);
     const sig = JSON.stringify(mine.map((f) => [f.a, f.b, f.dist, f.color, f.width, f.house, f.floor, Math.round(f.power / 50), this.flowPhase.get(flowKey(f))?.speed ?? 0]));
     if (sig === fv.pipeLineSig) return;
@@ -4333,6 +4360,7 @@ export class FloorplanViewer {
   }
 
   private buildOpenings(fv: FloorView): void {
+    this.usePalette();
     const parts = buildOpeningParts(fv.geo.openings, fv.openings, Math.min(fv.floor.cut_height, fv.floor.height));
     fv.frameTris = parts.frameTris;
     fv.glassTris = parts.glassTris;
@@ -5260,6 +5288,7 @@ export class FloorplanViewer {
 
   private render(now: number): void {
     this.frame = 0;
+    this.usePalette();
     if (this.disposed) return;
     const dt = this.lastFrame ? Math.min(100, now - this.lastFrame) : 16;
     let orbiting = false;

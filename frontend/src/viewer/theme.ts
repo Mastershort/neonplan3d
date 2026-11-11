@@ -10,6 +10,8 @@ export type { Theme } from "../themes.ts";
 
 export interface ThemeUniform {
   value: number;
+  /** The style's shader numbers of this view (several views on a page each keep their own). */
+  style?: StyleUniforms;
 }
 
 export function themeIndex(theme: Theme): number {
@@ -23,21 +25,26 @@ export const accentOnUniform = { value: 0 };
 /** Look index of the styles (a palette or natural materials with their realism): driven by `styleUniforms`. */
 export const STYLE_LOOK = 3;
 
-/** The style's settings in the shader: one set for the whole page, every themed material reads them. */
-export const styleUniforms = {
-  uStLine: { value: new Vector3(0.55, 0.57, 0.6) },
-  uStDark: { value: new Vector3(0.8, 0.79, 0.76) },
-  uStLight: { value: new Vector3(0.98, 0.98, 0.97) },
-  uStHue: { value: 0 },
-  uStLift: { value: 0.3 },
-  uStContrast: { value: 3 },
-  uStSignal: { value: 1 },
-  uStNatural: { value: 0 },
-  uStSun: { value: 0 },
-  uStAO: { value: 0 },
-  uStDim: { value: 0 },
-  uStFloors: { value: 0 },
-};
+/** A fresh set of a style's shader numbers (one per view). */
+export function makeStyleUniforms() {
+  return {
+    uStLine: { value: new Vector3(0.55, 0.57, 0.6) },
+    uStDark: { value: new Vector3(0.8, 0.79, 0.76) },
+    uStLight: { value: new Vector3(0.98, 0.98, 0.97) },
+    uStHue: { value: 0 },
+    uStLift: { value: 0.3 },
+    uStContrast: { value: 3 },
+    uStSignal: { value: 1 },
+    uStNatural: { value: 0 },
+    uStSun: { value: 0 },
+    uStAO: { value: 0 },
+    uStDim: { value: 0 },
+    uStFloors: { value: 0 },
+  };
+}
+export type StyleUniforms = ReturnType<typeof makeStyleUniforms>;
+/** The set of views that bring none of their own. */
+export const styleUniforms = makeStyleUniforms();
 
 const hex3 = (h: string): [number, number, number] => {
   const n = parseInt(h.replace("#", ""), 16) || 0;
@@ -45,8 +52,7 @@ const hex3 = (h: string): [number, number, number] => {
 };
 
 /** Puts a style's numbers into the shader (no recompiling, takes effect with the next frame). */
-export function applyStyleUniforms(s: StyleDef): void {
-  const u = styleUniforms;
+export function applyStyleUniforms(s: StyleDef, u: StyleUniforms = styleUniforms): void {
   const p = s.palette;
   if (p) {
     u.uStLine.value.set(...hex3(p.line));
@@ -195,7 +201,7 @@ export function themed<T extends Material>(material: T, uniform: ThemeUniform, l
     shader.uniforms.uTheme = uniform;
     shader.uniforms.uAccent = accentUniform;
     shader.uniforms.uAccentOn = accentOnUniform;
-    Object.assign(shader.uniforms, styleUniforms);
+    Object.assign(shader.uniforms, uniform.style ?? styleUniforms);
     shader.uniforms.uFloorY = floorLevelUniform(material);
     shader.vertexShader = shader.vertexShader
       .replace("#include <common>", "#include <common>\nvarying vec3 vFp3dWorld;")

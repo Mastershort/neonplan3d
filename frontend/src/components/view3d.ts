@@ -873,12 +873,19 @@ export class Fp3dView3d extends LitElement {
       (a) => void this.onAnnounce(a),
       (r) => this.onReload(r),
       (st) => this.onStyle(st),
-      { kind: this.viewKind, screen: this.screen, template: this.template, device: deviceLabel(), version: FRONTEND_VERSION, ...(this.planId && this.planId !== MAIN_PLAN ? { plan: this.planId } : {}) },
-    ).catch(() => {
+      this.viewInfo(),
+    )
+      // a backend older than this page (not restarted after an update) knows no style channel: without it, then
+      .catch(() => subscribeAsk(hass, (ask) => void this.onAsk(ask), (a) => void this.onAnnounce(a), (r) => this.onReload(r), undefined, this.viewInfo()))
+      .catch(() => {
       // a replay or an older backend: nothing to listen to
       this.unsubAsk = null;
       return async () => {};
     });
+  }
+
+  private viewInfo() {
+    return { kind: this.viewKind, screen: this.screen, template: this.template, device: deviceLabel(), version: FRONTEND_VERSION, ...(this.planId && this.planId !== MAIN_PLAN ? { plan: this.planId } : {}) };
   }
 
   private unwatchAsk(): void {
