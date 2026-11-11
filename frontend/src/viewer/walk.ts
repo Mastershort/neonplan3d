@@ -31,6 +31,8 @@ export interface DoorNode {
   /** Points on both sides of the opening, a little into each room. */
   p: [Vec2, Vec2];
   centre: Vec2;
+  /** The opening's id. */
+  id: string;
 }
 
 export class FloorMap {
@@ -79,7 +81,7 @@ export class FloorMap {
       const list = gapsBy.get(w) ?? [];
       list.push([at.s - o.width / 2 + 0.05, at.s + o.width / 2 - 0.05]);
       gapsBy.set(w, list);
-      this.doors.push({ centre: c, p: pts });
+      this.doors.push({ centre: c, p: pts, id: o.id });
     }
     for (const w of this.walls) {
       if (w.height !== undefined && w.height < 0.9) continue;

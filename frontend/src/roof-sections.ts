@@ -107,6 +107,8 @@ export function activeSections(b: RoofHolder): readonly RoofSection[] {
 
 /** Thickness of the roof slab (the walls under it end this far below the profile). */
 export const ROOF_THICK = 0.14;
+/** A roof that ends this close beside a point (m) still counts as that point's roof where a lower roof covers it. */
+const ROOF_NEAR = 0.03;
 
 /**
  * Whether a section can reach below a floor's ceiling: its wall top or one of its eaves lies lower. A low
@@ -132,6 +134,8 @@ export function sectionAbove(s: Parameters<typeof sectionProfile>[0], level: num
  */
 export function roofUnderAt(b: RoofHolder, x: number, z: number, level?: number): number | null {
   let best: number | null = null;
+  // the highest roof that ends a few centimetres beside the point (see below)
+  let beside: number | null = null;
   const o = Math.max(0, b.settings.roof.overhang ?? 0);
   // where sections overlap, the higher roof is the ceiling: a dormer or a cross gable over the main
   // slope, a lower annex roof running under a higher one
@@ -147,17 +151,25 @@ export function roofUnderAt(b: RoofHolder, x: number, z: number, level?: number)
     const [u, v] = sectionUV(s, x, z);
     const fr = sectionFrame({ ...s, rotation: 0 });
     const m = 1e-6;
-    if (u < fr.u0 - (set(2) ?? 0) - m || u > fr.u1 + (set(3) ?? 0) + m || v < -(set(0) ?? 0) - m || v > fr.w + (set(1) ?? 0) + m) continue;
+    const [u0, u1, v0, v1] = [fr.u0 - (set(2) ?? 0), fr.u1 + (set(3) ?? 0), -(set(0) ?? 0), fr.w + (set(1) ?? 0)];
+    const off = Math.max(u0 - u, u - u1, v0 - v, v - v1);
+    const shaped = !!s.points && s.points.length >= 3;
+    if (off > (shaped ? m : ROOF_NEAR)) continue;
     // a free-shaped flat roof covers its polygon only
-    if (s.points && s.points.length >= 3 && !pointInPolygon([x, z], s.points)) continue;
+    if (shaped && !pointInPolygon([x, z], s.points!)) continue;
     // hipped ends and broken slopes: the planes decide, the profile across is the fallback
     const flat = s.shape === "flat" || s.shape === "parapet";
     const so = Math.max(0, s.overhang ?? o);
-    const planes = flat ? null : sectionHeightAt(sectionGeometry(s, { a: set(0) ?? so, b: set(1) ?? so, u0: set(2) ?? so, u1: set(3) ?? so }), u, v);
-    const y = (planes ?? sectionProfile(s).y(v)) - ROOF_THICK;
-    best = best === null ? y : Math.max(best, y);
+    const [cu, cv] = [Math.min(u1, Math.max(u0, u)), Math.min(v1, Math.max(v0, v))];
+    const planes = flat ? null : sectionHeightAt(sectionGeometry(s, { a: set(0) ?? so, b: set(1) ?? so, u0: set(2) ?? so, u1: set(3) ?? so }), cu, cv);
+    const y = (planes ?? sectionProfile(s).y(cv)) - ROOF_THICK;
+    if (off > m) beside = beside === null ? y : Math.max(beside, y);
+    else best = best === null ? y : Math.max(best, y);
   }
-  return best;
+  // a wall face a few millimetres outside its own roof, over a lower roof (a garage roof whose ridge pokes above
+  // this floor): the wall ends under its own roof's edge, not at the lower roof (#1051). Where no roof covers the
+  // point at all, nothing changes.
+  return best !== null && beside !== null && beside > best ? beside : best;
 }
 
 /**

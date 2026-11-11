@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { emptyBuilding, newFloor, type Room, type Vec2 } from "../model.ts";
 import { FloorMap, type Obstacle } from "./walk.ts";
+import { petMap } from "../fun/pets.ts";
 
 function rect(id: string, x0: number, z0: number, x1: number, z1: number): Room {
   return { id, name: id, area_id: null, points: [[x0, z0], [x1, z0], [x1, z1], [x0, z1]], floor_material: "wood" };
@@ -54,4 +55,25 @@ test("an outer door upstairs leads nowhere unless a balcony is drawn behind it; 
   assert.equal(new FloorMap({ ...emptyBuilding(), floors: [withBalcony] }, withBalcony).doors.length, 1);
   const down = { ...up, elevation: 0 };
   assert.equal(new FloorMap({ ...emptyBuilding(), floors: [down] }, down).doors.length, 1);
+});
+
+test("pets stay indoors: only doors between two rooms are ways, never round the outside of the house (#1047)", () => {
+  const door = (id: string, room: string, edge: number, offset: number, type: "door" | "garage" | "window" = "door") => ({ id, room_id: room, edge, offset, width: 0.9, type, sill: 0, height: 2.1, hinge: "left" as const, leaves: 1 as const, swing: "in" as const, cover: null, contact: null, contact2: null, tilt: null });
+  // two rooms side by side, each with a door to the outside (edge 0 runs along z = 0), the right one a garage door
+  const rooms = [rect("a", 0, 0, 4, 5), rect("b", 4, 0, 8, 5)];
+  const outside = [door("front", "a", 0, 2), door("gate", "b", 0, 2, "garage"), door("french", "b", 2, 2, "window")];
+  const apart = { ...newFloor("f", "EG", 0), rooms, openings: outside };
+  const plan = { ...emptyBuilding(), floors: [apart] };
+  const from: Vec2 = [1, 3];
+  const to: Vec2 = [7, 3];
+  // a person walking through the house may take the way round the outside
+  assert.ok(new FloorMap(plan, apart).path(from, to));
+  // a pet does not: without a door between the rooms it stays in its room
+  assert.equal(petMap(FloorMap, plan, apart, new Set(), []).path(from, to), null);
+  // with a door between the rooms (edge 1 of room a runs along x = 4) it takes that one
+  const joined = { ...apart, openings: [...outside, door("inner", "a", 1, 2.5)] };
+  const way = petMap(FloorMap, { ...plan, floors: [joined] }, joined, new Set(), []).path(from, to);
+  assert.ok(way && way.every((p) => p[1] > 0.3 && p[1] < 4.7), "through the house");
+  // and not while that door is reported shut
+  assert.equal(petMap(FloorMap, { ...plan, floors: [joined] }, joined, new Set(["inner"]), []).path(from, to), null);
 });

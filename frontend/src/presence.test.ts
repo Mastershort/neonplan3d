@@ -69,7 +69,7 @@ test("floor labels count rooms, lights on, open windows and people", () => {
   assert.equal(floorInfoText(hass, counts), "2 Räume · 1 Licht an · 2 Pers.");
 });
 
-test("located people: a worn device places the person, a phone left elsewhere stands as a thing, away left out", () => {
+test("located people: a worn device places the person, a phone left elsewhere stands as a thing, away as a thing", () => {
   const { hass, building } = setup();
   const now = Date.parse("2026-10-23T12:00:00Z");
   const iso = (agoS: number) => new Date(now - agoS * 1000).toISOString();
@@ -78,7 +78,7 @@ test("located people: a worn device places the person, a phone left elsewhere st
   for (const s of [
     loc("r2", "person.mia", "Mia iPhone", false, 5, 1200, 0.99), // fresher and sure, but lying in the kitchen for 20 minutes
     loc("r1", "person.mia", "Mia Watch", true, 20), // worn, walked into the living room a minute ago: Mia is there
-    loc("r2", "person.lea", "Leas Uhr", true, 3), // Lea is away
+    loc("r2", "person.lea", "Leas Uhr", true, 3), // Lea is away: her watch at home stands as a thing, no figure
     loc("r2", null, "Schlüssel", false, 60),
     loc("nowhere", null, "Tag", false, 1),
   ]) {
@@ -91,6 +91,7 @@ test("located people: a worn device places the person, a phone left elsewhere st
       ["sensor.schlüssel_raum", "r2", true, "Schlüssel"],
       ["person.mia", "r1", false, "Mia"],
       ["sensor.mia_iphone_raum", "r2", true, "Mia iPhone"],
+      ["sensor.leas_uhr_raum", "r2", true, "Leas Uhr"],
     ],
   );
   assert.equal(people[1].entity, "sensor.mia_watch_raum");
@@ -208,7 +209,16 @@ test("a located person whose Home Assistant person has no tracker (state unknown
     last_seen: new Date(now - 5000).toISOString(),
   });
   assert.ok(locatedPersons(hass, building, new Set(), now).some((p) => p.id === "person.tom"));
-  // really away: not shown
+  // really away: no figure, the phone heard at home stands as a thing
   hass.states["person.tom"] = st("person.tom", "not_home", { friendly_name: "Tom" });
+  assert.ok(!locatedPersons(hass, building, new Set(), now).some((p) => p.id === "person.tom"));
+  assert.ok(locatedPersons(hass, building, new Set(), now).some((p) => p.id === "sensor.pixel_raum" && p.thing));
+  // in a zone of their own at the house ("Garten" inside the home zone): home, the figure stands (#900)
+  hass.states["zone.home"] = st("zone.home", "0", { latitude: 52.5, longitude: 13.4, radius: 100 });
+  hass.states["zone.garten"] = st("zone.garten", "1", { friendly_name: "Garten", latitude: 52.5003, longitude: 13.4002, radius: 15 });
+  hass.states["zone.arbeit"] = st("zone.arbeit", "0", { friendly_name: "Arbeit", latitude: 52.6, longitude: 13.5, radius: 100 });
+  hass.states["person.tom"] = st("person.tom", "Garten", { friendly_name: "Tom" });
+  assert.ok(locatedPersons(hass, building, new Set(), now).some((p) => p.id === "person.tom" && !p.thing));
+  hass.states["person.tom"] = st("person.tom", "Arbeit", { friendly_name: "Tom" });
   assert.ok(!locatedPersons(hass, building, new Set(), now).some((p) => p.id === "person.tom"));
 });

@@ -500,3 +500,19 @@ test("turning a roof takes its dormer along: both turn about the roof's point an
   assert.equal(back.rotation, 0);
   for (const k of ["x0", "z0", "x1", "z1"] as const) near(back[k], parent[k]);
 });
+
+test("a wall face a few millimetres outside its roof ends under that roof, not under a lower roof below (#1051)", () => {
+  // the house roof starts at x = 1.113; the garage roof runs under it and beyond, its ridge 0.46 m above the top floor
+  const main = section({ id: "main", axis: "z", x0: 1.113, z0: 0, x1: 9, z1: 10, eave_a: 5.18, eave_b: 5.18, pitch_a: 25, pitch_b: 25, base: 5.18 });
+  const garage = section({ id: "garage", axis: "x", x0: -0.075, z0: 2, x1: 1.615, z1: 8, eave_a: 1.661, eave_b: 1.661, pitch_a: 26.57, pitch_b: 26.57, base: 1.661 });
+  const b = { settings: { roof: { type: "custom" as const, pitch: 25, overhang: 0, sections: [main, garage] } } };
+  const level = 2.74;
+  const inside = roofUnderAt(b, 1.2, 5, level)!;
+  // 6 mm outside the house roof: its edge counts (the eave, 5.18 m less the roof's thickness)
+  near(roofUnderAt(b, 1.107, 5, level)!, 5.18 - 0.14);
+  assert.ok(inside > 5, `under the house roof ${inside}`);
+  // well outside: the garage roof alone, as before
+  assert.ok(roofUnderAt(b, 0.9, 5, level)! < 3.1);
+  // beside a roof with nothing else above: still no roof at all
+  assert.equal(roofUnderAt({ settings: { roof: { ...b.settings.roof, sections: [main] } } }, 1.107, 5, level), null);
+});

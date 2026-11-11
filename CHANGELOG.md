@@ -4,6 +4,13 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 [releases page](https://github.com/Mastershort/neonplan3d/releases). Ideas and votes:
 [Discussions → Ideas](https://github.com/Mastershort/neonplan3d/discussions/categories/ideas).
 
+## 3.1.1
+
+### Fixed
+- **Located people vanished when Home Assistant did not say "home":** a person standing in a zone of their own at the house (a "Garden" or "Workshop" zone) is at home and gets their figure; and what is heard at home of someone who is away (a phone left behind, a watch on its charger) stands there as a point with its name instead of disappearing – the plan showed nothing at all, while "Who is home?" still named the room (#900, #1049, thanks cesp99-ux and gshafer).
+- **A top-floor wall cut to a lower roof:** a wall whose outer face lay a few millimetres outside its own roof section was ended under a lower roof that happened to cover that strip (a garage roof whose ridge reaches above the floor) – half a wall inside, see-through from outside. It now ends under its own roof's edge (#1051, thanks TRusselo).
+- **Pets walked through walls:** the shortest way from room to room could lead out of the front door, round the house and in through the closed garage door or a floor-length window – through hedges and fences. Pets now stay indoors and take only the doors between two rooms; and a dog no longer lies down inside the coffee table in front of the sofa (#1047, thanks vincegre).
+
 ## 3.1.0
 
 **Neon was just the beginning – your home in every style.**
