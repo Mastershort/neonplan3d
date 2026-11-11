@@ -170,15 +170,17 @@ Walls are created automatically: every shared edge of two rooms becomes an inter
 
 **Single walls:** The **Wall** tool draws a free-standing wall, e.g. a partition that runs through half a room. **Shift** keeps it straight, **Alt** draws without snapping. Where it meets a room wall, the corner is mitred. When selected, drag the handles to move its ends or the line to move the whole wall. On the right you set **X** and **Y** (the middle of the wall, as with furniture; so you place it to the centimetre, off the grid), **Length**, **Wall thickness** and **Height**. In 3D it behaves like any interior wall. With rooms on one side only (a single wall drawn as an outer wall), the other side counts as outside: blinds and sills sit there whichever way the wall was drawn, and it turns to glass like the other outer walls when it faces the camera. You can put doors and windows into single walls too, with **Doors & windows** (see 4.7). Deleting the wall removes its doors and windows as well. Since 2.2 a single wall can slope too: **◢ Sloping** in its form gives it a **height at corner 1** and **at corner 2** (the plan numbers its ends while it is selected), like a room wall (see *Sloping wall* below).
 
-**Wall height:** Any wall can be lower than the room, e.g. a parapet or a counter. For a single wall you set its **Height** in the form. For rooms (rectangle and free shape) select the room; the form shows the **Wall heights** box with every wall of the room, named by its corners (e.g. "Wall 2–3", the numbers are shown at the corners in the plan) and with its length. Hovering a row or tapping its field lights the wall up in the plan. ↥ resets it to full room height. If two rooms share the wall, the lower setting applies. Windows and doors in a low wall end at the wall height. Low walls look lighter in the plan. If one wall in line should have two heights (2.5 m next to 1.7 m), split it with **✂**: the part gets a row and a height of its own, the split point can be moved in **Split point from corner** (marked by a tick in the plan), **⨉** joins the parts again.
+**Wall height:** Any wall can be lower than the room, e.g. a parapet or a counter. For a single wall you set its **Height** in the form. For rooms (rectangle and free shape) select the room; the form shows the **Wall settings** box with every wall of the room, named by its corners (e.g. "Wall 2–3", the numbers are shown at the corners in the plan) and with its length. Hovering a row or tapping its field lights the wall up in the plan. ↥ resets it to full room height. If two rooms share the wall, the lower setting applies. Windows and doors in a low wall end at the wall height. Low walls look lighter in the plan. If one wall in line should have two heights (2.5 m next to 1.7 m), split it with **✂**: the part gets a row and a height of its own, the split point can be moved in **Split point from corner** (marked by a tick in the plan), **⨉** joins the parts again.
 
 **Thickness per wall:** in the same box every wall has a **Thickness (m)** field. By default it is the house's thickness (exterior or interior wall, chapter 4.4); a setting of its own makes the 36.5 cm outer wall next to a 24 cm one, or the 11.5 cm partition. If two rooms share the wall, the thicker setting applies and the wall stays centred on the room border. ↺ goes back to the house's thickness. Windows and doors follow the thickness.
 
 **Sloping wall:** **◢ Sloping** in a row of the wall heights gives the wall a height of its own at each of its two corners; the top runs straight between them – for a lean-to, a garage on a slope or clerestory windows on the tall side. The tall side may reach above the floor height. Windows and doors stay under the top, so a window at the low end gets lower. Splitting the edge with a new corner, both halves meet at the height in between. **◢ Sloping** again makes the wall straight.
 
-**No wall:** In open floor plans the hall, kitchen and living room are one space, yet separate areas in Home Assistant. For that, every row in the **Wall heights** box has a **No wall** button: the wall is left out in the plan and in 3D, even when the neighbouring room shares it. ↥ brings it back. The light follows: a lamp shines through the left-out wall into the neighbouring room as if it were one room.
+**No wall:** In open floor plans the hall, kitchen and living room are one space, yet separate areas in Home Assistant. For that, every row in the **Wall settings** box has a **No wall** button: the wall is left out in the plan and in 3D, even when the neighbouring room shares it. ↥ brings it back. The light follows: a lamp shines through the left-out wall into the neighbouring room as if it were one room.
 
 **Split walls:** When a neighbouring room splits a wall into several parts (say two small rooms along one long wall), every part gets a row of its own, "Wall 2–3 · part 1", "… part 2", with its length, and every part can have its own height or be left out.
+
+**Wall colours (new in 3.1):** The **Wall settings** box starts with **Wall colours**: **All walls** colours every wall of the room at once, the swatches beside it are quick picks. After that each wall has its own colour well in its row; a colour of its own has a blue frame, **Reset** takes it away again. The side of the wall inside the room is coloured – the side in the neighbouring room belongs to that room. The outside of the outer walls is set under **⚙ Settings → 🎨 Styles → Facade**. Only the homely styles show wall colours (see [5.12](#512-styles-new-in-31)); in the neon look the walls stay neon. So you see the colours right away, **3D beside** switches to **Homely** while you colour.
 
 ### 4.5 The ⚙ settings menu
 
@@ -191,6 +193,7 @@ Everything that belongs to the whole plan rather than to a floor, a room or an i
 | **🎬 Live director** | see [6.1](#61-camera-cockpit) |
 | **🎙 Voice control** | see [5.10](#510-voice-control-new) |
 | **⭐ Favourites** | the central menu of the 3D view (below) |
+| **🎨 Styles** | styles, own styles, times of day and facade, see [5.12](#512-styles-new-in-31) |
 | **🖼 Background** | what lies behind the 3D house (below) |
 | **⛰ Ground** | see [4.21](#421-cellar-and-ground) |
 | **💾 Backup** | export, import, restore, see chapter 9 |
@@ -608,7 +611,7 @@ At the top right:
 |---|---|
 | **Auto** / **Tablet** / **High** | Quality level. Tablet leaves out patterns, shadows and halos and is chosen automatically on Fire tablets and slow devices. High adds light cones under spots |
 | **Clock** | Date and time in a corner of the view (↖ ↗ ↙ ↘) or off – per device; in the card `clock: tr`. 12 or 24 hours as set in your Home Assistant profile under **Time format** |
-| **Neon** / **Blueprint** / **Day** / **Auto** | The look; **Auto** shows Day while the sun is above the horizon (`sun.sun`) and Neon after sunset – for the wall tablet. In the card `theme: auto`. The colour well beside it sets an **accent colour of your own**: in the neon look lines and glowing edges take it, the buttons and pins in every look; ↺ brings the cyan back |
+| **🎨** | The style: Neon, Blueprint, Day, the homely and designed styles, your own styles, **Auto** (Day while the sun is above the horizon, then Neon) or **House plan**, see [5.12](#512-styles-new-in-31). In the card `theme: cozy`. The colour well beside it sets an **accent colour of your own**: in the neon look lines and glowing edges take it, the buttons and pins in every look; ↺ brings the cyan back |
 | **None** / **In the room** / **Important** / **All** | Which device markers appear. Important shows only devices without their own 3D model and values such as watts or the running app. **In the room** shows no markers in the house and floor views and, in an open room, only that room's own – handy with many sockets and sensors |
 | **Small** / **Normal** / **Large** | How large the device markers are; the device remembers the choice (card: `marker_size`) |
 | **◧ / ◨** | Floor pictures, star, search and eye on the left or on the right – handy when the view sits at the left edge of a dashboard |
@@ -733,6 +736,7 @@ Talk to your house. A **microphone button** 🎙️ appears at the bottom left o
 | "Show the front door camera", "Show the camera in the garden" | The view looks through the camera (with the Camera Cockpit). |
 | "Show the cameras" | The camera wall opens (with the Camera Cockpit). |
 | "What is open?", "Where is it cold?", "Is the washing machine running?", "What is drawing power?", "Who is home?", "What is the weather like?", "Is everything OK?", "What is on today?", "Good morning", "Good night" … | With the module **The house answers** (free in the shop, see below): the answer shows as a speech bubble, is spoken through Assist's text-to-speech, and the house shows it – open windows flash, the coldest room opens, the view flies to the washing machine. The full list is below. |
+| "NeonPlan style homely", "House to synthwave", "Style back" | The screen changes its style, see [5.12](#512-styles-new-in-31). |
 | "Turn on the hall light", "Lower the blinds" | Commands go to Home Assistant's **Assist**. The answer shows as a speech bubble. |
 
 Compounds work too: "driveway camera" said as one word finds the camera "Driveway". Under **⚙ Settings → Voice control** the list **What NeonPlan understands** shows the sentences, with those of the installed modules.
@@ -886,6 +890,48 @@ actions:
 You can reuse the ESP32 afterwards, best as an ESPHome Bluetooth proxy – it then even makes locating faster. The helper is built on [irk-capture](https://github.com/DerekSeaman/irk-capture) by Derek Seaman (MIT licence) – thank you! Another way: with a **Mac** through Keychain Access (the Mac must be on the same iCloud account). Then paste the key in the assistant under **Devices → Paste a key** (as 32 characters or the way the Mac shows it).
 
 ---
+
+### 5.12 Styles (new in 3.1)
+
+> **Neon was just the beginning.** Since 3.1 NeonPlan shows your home in many styles, free for everyone. The editor and the controls stay neon, the house may become homely. Every style also runs on old wall tablets: the styles only colour differently and need no extra computing power.
+
+![One house – many styles](images/styles-hero-en.jpg)
+
+**Choosing a style.** In the 3D view: **⚙** (top, next to the version) → **🎨**. Every device remembers its style. The list is grouped:
+
+| Group | Styles |
+|---|---|
+| **Automatic** | **Auto** (Day while the sun is up, then Neon – as before) and **House plan (day / evening / night)**, see below |
+| **Neon & classic** | Neon (default), Blueprint, Day, Night / Focus |
+| **Homely – real materials** | Homely, Homely evening, Winter evening: wooden floors, tiles, light walls with your wall colours, soft shadows under the furniture. The evening styles dim the house warmly |
+| **Designed** | Synthwave, Architect's model, Pastel, Warm / Wood & paper |
+| **Own styles** | What you made yourself (below) |
+
+Lights, open windows and active devices keep their signal colour in every style, so you see at a glance what is going on. Only the homely styles show wall colours and the facade (see [4.4](#44-walls)).
+
+**The styles in the editor.** **⚙ Settings → 🎨 Styles** shows the house large in the style chosen, with every style as a tile below. **Show in "3D beside"** takes it into the 3D view next to the plan; there is also a style list next to **Effects** for that. **Facade** sets the colour of the outer walls in the homely styles.
+
+**Own styles.** **＋ Make an own style from it** copies any style with all its settings: name, **Real materials** or a colour palette of your own (lines, dark and light surfaces, amount of colour, base brightness, contrast), **Dark style – lines glow**, **Evening mood**, **Floor texture**, **Light by direction**, **Room corners**, **Contact shadows under furniture**, **Active devices in colour** and the background at the top and bottom. You see every change right away in the large picture. Own styles then appear in every style list (view, card, templates) and answer to their name in voice control.
+
+**Times of day (house plan).** Under **🕒 Times of day (house plan)** you set which style applies **during the day**, **in the evening** and **at night**, for example Homely, Homely evening and Night / Focus. **Switch by the sun**: day while the sun is up, then evening until **Night from**. **By the clock**: the three times **Day from**, **Evening from** and **Night from**. The plan applies to every screen whose style is **House plan** – above all the panel on the wall tablet.
+
+**Dashboard card.** In the card dialog you pick any style, **Auto** or **House plan** under **Style**. With a fixed style the card can also have a **Style in the evening** and a **Style at night**; it switches by the house plan (sun or clock). In YAML: `theme`, `theme_evening`, `theme_night` (see [8.2](#82-all-options-in-yaml)). Card templates take the style the same way.
+
+**By voice.** "NeonPlan style homely", "House to synthwave", "Style winter evening" – the style applies at once on the screen you speak to. "Style back" (or "style normal") brings the set style back. Through Assist this works with the sentence starting "NeonPlan …" or "House …".
+
+**From automations.** The action **NeonPlan 3D: Set style** (`neonplan3d.set_style`) switches the open NeonPlan screens:
+
+```yaml
+action: neonplan3d.set_style
+data:
+  style: evening        # neon, blueprint, day, focus, synth, cozy, evening, winter, model, pastel, warm – or the name
+  screens: [kitchen]    # optional: only these screen names; empty = all
+  minutes: 60           # optional: for this long, then back; empty = until changed again
+```
+
+`style: reset` brings the set style back. **Style from a helper entity:** under **🕒 Times of day** (for the whole house) or in the card (`style_entity`) you enter an `input_select` or `input_text`. While its state names a style (e.g. "Homely"), that style applies.
+
+**What wins?** The newest setting. A style set by voice or an action applies until you reset it, its minutes run out, or you choose a style anew for the screen (device, card or template). After that comes the helper entity, then the style set.
 
 ## 6. Pro add-ons
 
@@ -1327,7 +1373,10 @@ angle_lock: false       # true: 3D lock – the angle stays fixed, a drag moves 
 explode: true           # pull floors apart in the house view
 floor_stack: dim        # floors below: dim | stacked | single
 quality: auto           # auto | low | high
-theme: neon             # neon | blueprint | day
+theme: neon             # neon | blueprint | day | focus | synth | cozy | evening | winter | model | pastel | warm | my_… (own style) | auto | house
+theme_evening: evening  # optional: style in the evening (by the house plan)
+theme_night: focus      # optional: style at night
+style_entity: input_select.neonplan_style  # optional: helper whose state names a style
 accent: "#ff8a00"       # an accent colour of your own (neon lines, buttons, pins); leave out for cyan
 markers: important      # none | room | important | all
 marker_size: normal     # small | normal | large

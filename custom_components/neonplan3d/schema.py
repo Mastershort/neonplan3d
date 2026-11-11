@@ -85,6 +85,11 @@ ROOM_SCHEMA = vol.Schema(
         ),
         # ceiling height of the room (None = the floor height)
         vol.Optional("ceiling_height"): vol.Any(None, vol.All(vol.Coerce(float), vol.Range(min=1, max=30))),
+        # colour of the room's side of each wall ("#rrggbb", None = wall_color), and of all its walls (homely styles)
+        vol.Optional("wall_colors"): vol.Any(
+            None, vol.All([vol.Any(None, vol.All(str, vol.Length(max=16)))], vol.Length(max=MAX_POINTS))
+        ),
+        vol.Optional("wall_color"): vol.Any(None, vol.All(str, vol.Length(max=16))),
         # thickness of the wall on each edge in m (None = the building's exterior / interior thickness)
         vol.Optional("wall_thickness"): vol.All(
             [vol.Any(None, vol.All(vol.Coerce(float), vol.Range(min=0.02, max=1.5)))],
@@ -881,6 +886,24 @@ SETTINGS_SCHEMA = vol.Schema(
                 extra=vol.ALLOW_EXTRA,
             ),
         ),
+        # the styles: the house's plan for day, evening and night, how it switches, a helper entity naming the style,
+        # and the facade colour of the homely styles
+        **{
+            vol.Optional(key): vol.Any(None, vol.All(str, vol.Length(max=64)))
+            for key in (
+                "style_day",
+                "style_evening",
+                "style_night",
+                "style_morning_at",
+                "style_evening_at",
+                "style_night_at",
+                "style_entity",
+                "facade_color",
+            )
+        },
+        vol.Optional("style_switch"): vol.Any(None, vol.In(["sun", "time"])),
+        # own styles: built-in ones adjusted and named (their settings are checked by the frontend)
+        vol.Optional("styles_custom"): vol.Any(None, vol.All([dict], vol.Length(max=40))),
         # the background behind the 3D house (None = the look's own sky): a colour, a gradient or a picture
         vol.Optional("backdrop", default=None): vol.Any(
             None,

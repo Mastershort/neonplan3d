@@ -40,7 +40,9 @@ import { buildSolarLive, solarLiveMaterial, writeSolarLevels, type SolarLive } f
 import { dotTexture, roofLightPoints, roofSnowGeometry } from "./snow.ts";
 import { Firework } from "./firework.ts";
 import { buildPools, disposePools, type PoolPiece } from "./pool-water.ts";
-import { accentOnUniform, accentUniform, parseAccent, lineBlending, themed, themeIndex, type Theme, type ThemeUniform } from "./theme.ts";
+import { accentOnUniform, accentUniform, applyStyleUniforms, floorLevelUniform, makeStyleUniforms, parseAccent, lineBlending, STYLE_LOOK, themed, themeIndex, type Theme, type ThemeUniform } from "./theme.ts";
+import { styleById, type StyleDef } from "../looks.ts";
+import { hexColor, setNaturalPalette } from "./palette.ts";
 
 export type { Theme } from "./theme.ts";
 import { ALWAYS, DEG, GeoBuffer, LineBuffer, pushPrism, triangulate } from "./geo.ts";
@@ -731,7 +733,16 @@ export class FloorplanViewer {
   private ghost: LineSegments | null = null;
   private selectedSet: string[] = [];
   private theme: Theme = "neon";
-  private readonly themeUniform: ThemeUniform = { value: 0 };
+  /** The style shown (a classic look, a palette or natural materials) and its key, to skip repeats. */
+  private style: StyleDef = styleById("neon")!;
+  private styleKey = "";
+  /** Pack items in colours of their own are drawn in full colour in the light looks and the homely styles. */
+  private lightLookOn = false;
+  /** Per floor: the shader uniforms that learn where the floor lies (wall feet, floor structure). */
+  private floorLevels = new Map<string, { value: number }[]>();
+  private readonly themeUniform: ThemeUniform = { value: 0, style: makeStyleUniforms() };
+  /** This view's palette (natural materials, cut tops, facade): set before it builds anything, as views share the palette module. */
+  private palette = { natural: false, cutTop: null as number | null, facade: null as number | null };
   private sun: SunState | null = null;
   private weather: WeatherView | null = null;
   /** Rain streaks and snow flakes over the plot, the sun or moon disc in the sky. */
@@ -1135,6 +1146,7 @@ export class FloorplanViewer {
   }
 
   private buildPoolWater(fv: FloorView): void {
+    this.usePalette();
     if (fv.poolGroup) {
       disposePools(fv.poolGroup);
       fv.group.remove(fv.poolGroup);
@@ -1291,6 +1303,7 @@ export class FloorplanViewer {
   }
 
   private buildPatches(fv: FloorView): void {
+    this.usePalette();
     const mine = this.patches.filter((t) => t.floorId === fv.floor.id && t.points.length >= 3 && t.opacity > 0);
     const sig = JSON.stringify(mine);
     if (sig === fv.patchSig) return;
@@ -1322,6 +1335,7 @@ export class FloorplanViewer {
 
 
   private buildPipes(fv: FloorView): void {
+    this.usePalette();
     const mine = this.pipes.filter((t) => t.floorId === fv.floor.id);
     const sig = JSON.stringify(mine);
     if (sig === fv.pipeSig) return;
@@ -1488,7 +1502,8 @@ export class FloorplanViewer {
     this.theme = theme;
     this.themeUniform.value = themeIndex(theme);
     // waste bins and pack items in colours of their own keep them in the light looks: drawn anew in full colour (#609)
-    const light = theme !== "neon";
+    const light = theme !== "neon" || this.palette.natural;
+    this.lightLookOn = light;
     setLightLook(light);
     if (this.building?.floors.some((f) => f.furniture.some((m) => m.type === "waste_bin" || hasFixedColors(m.type)))) this.rebuild();
     const blending = lineBlending(theme);
@@ -1502,6 +1517,72 @@ export class FloorplanViewer {
     this.buildSunFx();
     this.invalidate();
   }
+
+  /**
+   * The style: a classic look, a colour palette, or natural materials with cheap realism. Palettes and the realism
+   * switches are shader numbers (instant); natural materials, dark cut tops and the facade colour rebuild the house.
+   */
+  setStyle(style: StyleDef): void {
+    const key = JSON.stringify(style);
+    if (key === this.styleKey) return;
+    this.styleKey = key;
+    this.style = style;
+    const next = { natural: !!style.natural, cutTop: style.natural && style.cutDark ? 0x34373d : null, facade: style.natural ? hexColor(this.building?.settings.facade_color) : null };
+    const rebuild = next.natural !== this.palette.natural || next.cutTop !== this.palette.cutTop || next.facade !== this.palette.facade;
+    this.palette = next;
+    this.usePalette();
+    const lightBefore = this.lightLookOn;
+    // a theme already shown is not set again: the light look follows natural materials here as well
+    if (style.base !== this.theme) this.setTheme(style.base);
+    else {
+      this.lightLookOn = style.base !== "neon" || !!style.natural;
+      setLightLook(this.lightLookOn);
+    }
+    const plain = !style.palette && !style.natural;
+    this.themeUniform.value = plain ? themeIndex(style.base) : STYLE_LOOK;
+    applyStyleUniforms(style, this.themeUniform.style);
+    const fixedColours = this.lightLookOn !== lightBefore && !!this.building?.floors.some((f) => f.furniture.some((m) => m.type === "waste_bin" || hasFixedColors(m.type)));
+    if (rebuild || fixedColours) this.rebuild();
+    else this.styleFloors();
+    this.placeGround();
+    this.invalidate();
+  }
+
+  /** Puts this view's palette and light look in place: several views on a page share the palette module. */
+  private usePalette(): void {
+    setNaturalPalette(this.palette.natural, { cutTop: this.palette.cutTop, facade: this.palette.facade });
+    setLightLook(this.lightLookOn);
+  }
+
+  /** The style's extras per floor: contact shadows, the neon floor pattern (off on natural floors), the floor levels. */
+  private styleFloors(): void {
+    for (const fv of this.floors) {
+      fv.patternMesh.visible = !this.style.natural;
+      const old = fv.group.getObjectByName("fp3d-contact-shadows");
+      if (old) {
+        fv.group.remove(old);
+        (old as Mesh).geometry.dispose();
+      }
+      if (this.style.shadows) {
+        const mesh = contactShadows(fv.floor);
+        if (mesh) fv.group.add(mesh);
+      }
+      const levels: { value: number }[] = [];
+      for (const m of Object.values(fv.materials)) if (m && (m as Material).isMaterial) levels.push(floorLevelUniform(m as Material));
+      this.floorLevels.set(fv.floor.id, levels);
+    }
+  }
+
+  /** Every frame: the shader learns where each floor lies now (floors move when they fan out or lift). */
+  private stepFloorLevels(): void {
+    for (const fv of this.floors) {
+      const levels = this.floorLevels.get(fv.floor.id);
+      if (!levels?.length) continue;
+      fv.group.getWorldPosition(this.levelTmp);
+      for (const u of levels) u.value = this.levelTmp.y;
+    }
+  }
+  private readonly levelTmp = new Vector3();
 
   /** Furnishing mode: dragging furniture and lamps moves them instead of turning the view. */
   setFurnishMode(on: boolean): void {
@@ -1735,6 +1816,7 @@ export class FloorplanViewer {
    * to the whole-house view and rests on the tablet level; the arc shows by day on every level.
    */
   private buildSunFx(): void {
+    this.usePalette();
     const b = this.building;
     const sun = this.sun;
     const on = !!b && !!sun && b.settings.sun_shadow !== false && !this.options.safeFx;
@@ -1805,6 +1887,7 @@ export class FloorplanViewer {
    * beside the window shades the ground in front of it (#954). Only the floors at ground level.
    */
   private buildSpill(fv: FloorView, sources: LightSource[]): void {
+    this.usePalette();
     const b = this.building;
     const night = b?.settings.window_glow === false || this.options.safeFx ? 0 : this.nightFactor();
     const gf = b && night > 0 ? groundFloor(b) : null;
@@ -2131,6 +2214,7 @@ export class FloorplanViewer {
   }
 
   private buildFridges(fv: FloorView): void {
+    this.usePalette();
     const buf = new GeoBuffer();
     for (const f of fv.floor.furniture) {
       if (f.type !== "fridge_smart") continue;
@@ -2446,6 +2530,7 @@ export class FloorplanViewer {
   /** Light cones of the lights that are on, merged into one mesh per floor. */
   /** Light surface of a floor (rebuilt with the floor plan and when the detail level changes). */
   private buildLightSurface(fv: FloorView): void {
+    this.usePalette();
     const cell = this.lowQuality ? 0.5 : 0.25;
     const surface = buildLightSurface(fv.floor, fv.geo.walls2d, fv.geo.wallBuckets, fv.geo.openings, cell, fv.geo.holes, fv.geo.roofUnder);
     // rooms joined by "no wall" form one zone: a lamp lights the open neighbour as if it stood in the same room
@@ -2605,6 +2690,7 @@ export class FloorplanViewer {
 
   /** Colours of the light surface for the current lights and doors. */
   private buildGlow(fv: FloorView): void {
+    this.usePalette();
     const surface = fv.lightSurface;
     if (!surface) return;
     const sources = this.lightSources(fv);
@@ -2728,6 +2814,8 @@ export class FloorplanViewer {
   }
 
   private rebuild(): void {
+    if (this.palette.natural) this.palette.facade = hexColor(this.building?.settings.facade_color);
+    this.usePalette();
     const previous = new Map(this.floors.map((f) => [f.floor.id, { y: f.y, o: f.o }]));
     const previousOpenings = new Map(this.floors.map((f) => [f.floor.id, f.openings]));
     this.clear();
@@ -2995,9 +3083,11 @@ export class FloorplanViewer {
     this.buildRoofMesh();
     this.buildSunFx();
     this.updateGhost();
+    this.styleFloors();
   }
 
   private buildRoofMesh(): void {
+    this.usePalette();
     if (this.roof) {
       this.roof.group.traverse((o) => ((o as Mesh).geometry as BufferGeometry | undefined)?.dispose());
       this.roof.solid.dispose();
@@ -3377,6 +3467,7 @@ export class FloorplanViewer {
    * the mesh in place, so colour effects cost no geometry.
    */
   private buildLamps(fv: FloorView): void {
+    this.usePalette();
     const now = performance.now();
     const flash = (id: string) => {
       const until = this.flashes.get(id);
@@ -3455,6 +3546,7 @@ export class FloorplanViewer {
    * projected along the sun's rays onto the floor as a warm, soft patch.
    */
   private buildSun(fv: FloorView): void {
+    this.usePalette();
     // the patches of sunlight can be switched off in the settings (#266)
     const sun = this.building?.settings.sun_patches === false ? null : this.sun;
     const north = (this.building?.settings.north ?? 0) * DEG;
@@ -3596,6 +3688,7 @@ export class FloorplanViewer {
 
   /** Glow points at lit shades (not at the tablet level) and light cones under spots (level "High"). */
   private buildHalos(fv: FloorView): void {
+    this.usePalette();
     if (this.lowQuality) {
       fv.haloMesh.visible = false;
       fv.coneMesh.visible = false;
@@ -3750,6 +3843,7 @@ export class FloorplanViewer {
 
   /** Lit screens of a floor: a bright panel in the app colour and a faint glow around it. */
   private buildScreens(fv: FloorView): void {
+    this.usePalette();
     // the vehicles in the parking spots count as furniture here too (Auto Pro lights a band on them)
     const items = withVehicles(fv.floor, this.parked).furniture.filter((f) => this.screens.has(f.id));
     // (with the accent colour: a light switch's rocker glows in it)
@@ -4105,6 +4199,7 @@ export class FloorplanViewer {
 
   /** Energy cables of a floor as flat glowing ribbons (vertical pieces as two crossed ribbons). */
   private buildFlows(fv: FloorView): void {
+    this.usePalette();
     this.buildPipeLines(fv);
     const layout = this.flows
       .filter((f) => f.floorId === fv.floor.id && !f.pipe)
@@ -4190,6 +4285,7 @@ export class FloorplanViewer {
    * view go into a mesh of their own, hidden while a floor is opened; those shown only on an opened floor into another.
    */
   private buildPipeLines(fv: FloorView): void {
+    this.usePalette();
     const mine = this.flows.filter((f) => f.floorId === fv.floor.id && f.pipe);
     const sig = JSON.stringify(mine.map((f) => [f.a, f.b, f.dist, f.color, f.width, f.house, f.floor, Math.round(f.power / 50), this.flowPhase.get(flowKey(f))?.speed ?? 0]));
     if (sig === fv.pipeLineSig) return;
@@ -4265,6 +4361,7 @@ export class FloorplanViewer {
   }
 
   private buildOpenings(fv: FloorView): void {
+    this.usePalette();
     const parts = buildOpeningParts(fv.geo.openings, fv.openings, Math.min(fv.floor.cut_height, fv.floor.height));
     fv.frameTris = parts.frameTris;
     fv.glassTris = parts.glassTris;
@@ -4363,7 +4460,8 @@ export class FloorplanViewer {
       for (const room of fv.floor.rooms) for (const [x, z] of room.points) box.expandByPoint(new Vector3(x, 0, z));
       for (const a of fv.floor.outdoor ?? []) for (const [x, z] of a.points) box.expandByPoint(new Vector3(x, 0, z));
     }
-    this.ground.visible = !box.isEmpty() && !this.lowQuality && this.theme !== "day";
+    // the neon grid belongs to the neon looks: not under the light looks, nor under real materials
+    this.ground.visible = !box.isEmpty() && !this.lowQuality && this.theme !== "day" && !this.style.natural;
     if (box.isEmpty()) return;
     if (this.ground.visible && !this.groundTexture) {
       this.groundTexture = makeGroundTexture();
@@ -5192,6 +5290,7 @@ export class FloorplanViewer {
 
   private render(now: number): void {
     this.frame = 0;
+    this.usePalette();
     if (this.disposed) return;
     const dt = this.lastFrame ? Math.min(100, now - this.lastFrame) : 16;
     let orbiting = false;
@@ -5202,6 +5301,7 @@ export class FloorplanViewer {
     } else this.orbitLast = 0;
     const cameraMoving = this.controls.update(now);
     const floorsMoving = this.stepFloors(dt);
+    this.stepFloorLevels();
     const openingsMoving = this.stepOpenings(dt) || this.stepFridges(dt);
     let flashing = false;
     if (this.flashes.size) {
@@ -6066,4 +6166,76 @@ export function pushLampModel(
       break;
     }
   }
+}
+
+/** Soft blots under furniture: round under round things, a blurred rounded box under the rest (one shared picture). */
+let contactTexture: CanvasTexture | null = null;
+function contactShadowTexture(): CanvasTexture {
+  if (contactTexture) return contactTexture;
+  const c = document.createElement("canvas");
+  c.width = 256;
+  c.height = 128;
+  const g = c.getContext("2d")!;
+  // left half: round
+  const grad = g.createRadialGradient(64, 64, 8, 64, 64, 64);
+  grad.addColorStop(0, "rgba(0,0,0,0.5)");
+  grad.addColorStop(0.6, "rgba(0,0,0,0.3)");
+  grad.addColorStop(1, "rgba(0,0,0,0)");
+  g.fillStyle = grad;
+  g.fillRect(0, 0, 128, 128);
+  // right half: a rounded box, blurred
+  g.filter = "blur(9px)";
+  g.fillStyle = "rgba(0,0,0,0.55)";
+  g.beginPath();
+  g.roundRect(128 + 22, 22, 84, 84, 14);
+  g.fill();
+  contactTexture = new CanvasTexture(c);
+  return contactTexture;
+}
+let contactMaterial: MeshBasicMaterial | null = null;
+
+const NO_CONTACT = /^(lamp_(ceiling|downlight|spot|panel|pendant|strip|wall)|window|door|curtain|blind|picture|frame|tv_wall|clock|rug|carpet|camera|sensor|speaker_wall|ac_indoor|parking|spot_grid)/;
+const ROUND_CONTACT = /round|plant|stool|pouf|bin|tree|lamp_floor|barrel|drum|vacuum|ottoman|pot/;
+
+/** One mesh per floor with a soft shadow under each standing piece of furniture (null when none). */
+function contactShadows(floor: Floor): Mesh | null {
+  const pos: number[] = [];
+  const uv: number[] = [];
+  for (const f of floor.furniture) {
+    const item = packItem(f.type);
+    const type = f.type.replace(/^pack:[^:]+:/, "");
+    if (NO_CONTACT.test(type) || item?.mount === "ceiling" || item?.mount === "wall") continue;
+    if ((f.mount_y ?? 0) > 0.1 || f.h < 0.15 || f.w < 0.2 || f.d < 0.15) continue;
+    const round = ROUND_CONTACT.test(type);
+    // the box picture has a soft margin of its own: it is laid a little wider than the piece
+    const k = round ? 1.3 : 1.5;
+    const hw = (f.w * k + 0.08) / 2;
+    const hd = (f.d * k + 0.08) / 2;
+    const a = -(f.rotation ?? 0) * DEG;
+    const c = Math.cos(a);
+    const sn = Math.sin(a);
+    const corner = (x: number, z: number): [number, number, number] => [f.x + x * c + z * sn, 0.008, f.z - x * sn + z * c];
+    const p = [corner(-hw, -hd), corner(hw, -hd), corner(hw, hd), corner(-hw, hd)];
+    const u0 = round ? 0 : 0.5;
+    const t = [
+      [u0, 0],
+      [u0 + 0.5, 0],
+      [u0 + 0.5, 1],
+      [u0, 1],
+    ];
+    for (const i of [0, 2, 1, 0, 3, 2]) {
+      pos.push(...p[i]);
+      uv.push(...t[i]);
+    }
+  }
+  if (!pos.length) return null;
+  const geo = new BufferGeometry();
+  geo.setAttribute("position", new Float32BufferAttribute(pos, 3));
+  geo.setAttribute("uv", new Float32BufferAttribute(uv, 2));
+  contactMaterial ??= new MeshBasicMaterial({ map: contactShadowTexture(), transparent: true, depthWrite: false, opacity: 0.9, side: DoubleSide });
+  const mesh = new Mesh(geo, contactMaterial);
+  mesh.name = "fp3d-contact-shadows";
+  // after the floor's tile pattern (render order 2)
+  mesh.renderOrder = 3;
+  return mesh;
 }

@@ -21,7 +21,8 @@ import { controls, tokens } from "./styles.ts";
 import type { HomeAssistant } from "./types.ts";
 import type { MarkerMode } from "./components/view3d.ts";
 import type { HeatMode } from "./heatmap.ts";
-import { THEMES, type Theme } from "./themes.ts";
+import { styleOptions, isStyleChoice } from "./style-select.ts";
+import { setCustomStyles } from "./looks.ts";
 import { keepInRoom, snapToWall } from "./geometry/snap.ts";
 import { furnitureName } from "./furniture-names.ts";
 import { confirmEntities, defaultHeight, entityName, kindOf } from "./devices.ts";
@@ -163,7 +164,8 @@ export class Floorplan3dPanel extends LitElement {
   /** How large the device symbols are (this device). */
   private declare _pinSize: "small" | "normal" | "large";
   private declare _heat: HeatMode;
-  private declare _theme: Theme | "auto";
+  /** The style of this device: a style, "auto" (Day/Neon by the sun) or "house" (the house's plan). */
+  private declare _theme: string;
   private declare _clock: ClockPos;
   private declare _furnish: boolean;
   private declare _selFurniture: string | null;
@@ -240,8 +242,8 @@ export class Floorplan3dPanel extends LitElement {
     this._pinSize = pinSize === "small" || pinSize === "large" ? pinSize : "normal";
     const heat = prefs.get("heat");
     this._heat = heat === "temperature" || heat === "humidity" || heat === "co2" || heat === "values" ? heat : "none";
-    const theme = prefs.get("theme") as Theme | "auto" | null;
-    this._theme = theme === "auto" || (theme && THEMES.includes(theme)) ? theme : "neon";
+    const theme = prefs.get("theme");
+    this._theme = isStyleChoice(theme) ? theme : "neon";
     const clock = prefs.get("clock");
     this._clock = clock === "tl" || clock === "tr" || clock === "bl" || clock === "br" ? clock : "off";
     const accent = prefs.get("accent");
@@ -727,6 +729,7 @@ export class Floorplan3dPanel extends LitElement {
     if (this.hass && !languageReady(this.hass.language)) return nothing;
     this.checkOffers();
     const b = this.data.building;
+    setCustomStyles(b?.settings.styles_custom);
     const saveState = this.data.saveState;
     return html`
       <div class="fp3d-app ${this._clean && this._mode === "view" ? "fp3d-clean" : ""}" style=${this._accent ? `--fp3d-accent:${this._accent}` : ""}>
@@ -795,19 +798,19 @@ export class Floorplan3dPanel extends LitElement {
                   (q) => html`<button aria-pressed=${this._quality === q} @click=${() => this.setQuality(q)}>${this.t(`quality_${q}`)}</button>`,
                 )}
               </div>
-              <div class="fp3d-seg fp3d-quality" role="group" aria-label=${this.t("theme")}>
-                ${[...THEMES, "auto" as const].map(
-                  (t) =>
-                    html`<button
-                      aria-pressed=${this._theme === t}
-                      @click=${() => {
-                        this._theme = t;
-                        prefs.set("theme", t);
-                      }}
-                    >
-                      ${this.t(`theme_${t}`)}
-                    </button>`,
-                )}
+              <div class="fp3d-seg fp3d-quality" role="group" aria-label=${this.t("style")}>
+                <label class="fp3d-style-pick" title=${this.t("style")}>
+                  <span aria-hidden="true">🎨</span>
+                  <select
+                    aria-label=${this.t("style")}
+                    @change=${(e: Event) => {
+                      this._theme = (e.target as HTMLSelectElement).value;
+                      prefs.set("theme", this._theme);
+                    }}
+                  >
+                    ${styleOptions((k) => this.t(k), this._theme, { auto: true, house: true })}
+                  </select>
+                </label>
                 <label class="fp3d-accent-pick" title=${this.t("accent_hint")}>
                   <input
                     type="color"
@@ -1651,6 +1654,21 @@ export class Floorplan3dPanel extends LitElement {
         min-height: 0;
       }
       /* the colour well beside the look: a small round swatch, the reset arrow next to it */
+      .fp3d-style-pick {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 0 6px;
+      }
+      .fp3d-style-pick select {
+        background: var(--fp3d-chrome-solid);
+        color: var(--fp3d-text);
+        border: 1px solid var(--fp3d-line);
+        border-radius: 10px;
+        padding: 6px 8px;
+        font: inherit;
+        max-width: 230px;
+      }
       .fp3d-accent-pick {
         display: inline-flex;
         align-items: center;

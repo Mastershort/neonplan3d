@@ -9,10 +9,11 @@ import { polygonArea } from "../model.ts";
 import { coversIn, cutHole, cutUnder, lineOutside, meetLine, sectionCovers, sectionFloor, sectionsCut, dormerHoles, dormerParent, effectiveDormer, turnedDormer, offsetPolygon, sectionGeometry, sectionHeightAt, sectionPolygon, sectionFrame, sectionOverhang, sectionProfile, sectionUV, wingJunction, wingSection, type LocalCover, type Q, type SectionOverhang } from "../roof-sections.ts";
 import { DEG, GeoBuffer, LineBuffer, pushPrism, shade } from "./geo.ts";
 import { fieldModules, roofFaces, roofFootprint, roofWindowRoom, windowCorners, type RoofFace } from "../solar.ts";
+import { palette } from "./palette.ts";
 
-const ROOF = 0x1a2338;
-const ROOF_TOP = 0x222d48;
-const GABLE = 0x141d31;
+/** Colours of the parts: neon, or natural materials while a homely style is on. */
+const RF = palette({ ROOF: 0x1a2338, ROOF_TOP: 0x222d48, GABLE: 0x141d31 }, { ROOF: 0x55595f, ROOF_TOP: 0x63686f, GABLE: 0xebe7e0 });
+
 const RIDGE = shade(0x37e0ff, 0.9);
 const EAVE = shade(0x5b7cff, 0.45);
 const THICK = 0.14;
@@ -212,7 +213,7 @@ function buildSingleRoof(b: Building): RoofGeometry | null {
   const solid = new GeoBuffer();
   const lines = new LineBuffer();
   if (roof.type === "flat") {
-    pushPrism(solid, [[x0, z0], [x1, z0], [x1, z1], [x0, z1]], 0, 0.25, ROOF, ROOF_TOP, { bottom: true });
+    pushPrism(solid, [[x0, z0], [x1, z0], [x1, z1], [x0, z1]], 0, 0.25, RF.ROOF, RF.ROOF_TOP, { bottom: true });
     const e = 0.252;
     for (const [a, c] of [
       [[x0, z0], [x1, z0]],
@@ -233,8 +234,8 @@ function buildSingleRoof(b: Building): RoofGeometry | null {
   // coordinates: u along the ridge, v across (from -half to +half)
   const P = (u: number, v: number, y: number): number[] => (alongX ? [u, y, (z0 + z1) / 2 + v] : [(x0 + x1) / 2 + v, y, u]);
   const [u0, u1] = alongX ? [x0, x1] : [z0, z1];
-  const top = new Color(ROOF_TOP);
-  const under = new Color(ROOF);
+  const top = new Color(RF.ROOF_TOP);
+  const under = new Color(RF.ROOF);
   const quad = (a: number[], b2: number[], c: number[], d: number[], col: Color) => {
     solid.tri(a, b2, c, col);
     solid.tri(a, c, d, col);
@@ -250,7 +251,7 @@ function buildSingleRoof(b: Building): RoofGeometry | null {
   }
   // gable walls above the outer walls (set back by the overhang)
   const inset = roof.overhang;
-  const g = new Color(GABLE);
+  const g = new Color(RF.GABLE);
   const hw = half - inset;
   const rw = hw * Math.tan(roof.pitch * DEG);
   for (const u of [u0 + inset, u1 - inset]) {
@@ -375,9 +376,9 @@ export function pushSection(
     const [x, z] = fr.at(u, v);
     return [x, y - yOff, z];
   };
-  const top = new Color(ROOF_TOP);
-  const under = new Color(ROOF);
-  const g = new Color(GABLE);
+  const top = new Color(RF.ROOF_TOP);
+  const under = new Color(RF.ROOF);
+  const g = new Color(RF.GABLE);
   const fan = (pts: number[][], col: Color) => {
     for (let i = 1; i + 1 < pts.length; i++) solid.tri(pts[0], pts[i], pts[i + 1], col);
   };
@@ -397,7 +398,7 @@ export function pushSection(
         : parapet
           ? [fr.at(fr.u0, 0), fr.at(fr.u1, 0), fr.at(fr.u1, w), fr.at(fr.u0, w)]
           : [fr.at(U0, -oa), fr.at(U1, -oa), fr.at(U1, w + ob), fr.at(U0, w + ob)];
-    pushPrism(solid, poly, y - yOff, y - yOff + 0.25, ROOF, ROOF_TOP, { bottom: true });
+    pushPrism(solid, poly, y - yOff, y - yOff + 0.25, RF.ROOF, RF.ROOF_TOP, { bottom: true });
     for (let i = 0; i < poly.length; i++) {
       const a = poly[i];
       const c = poly[(i + 1) % poly.length];
@@ -412,7 +413,7 @@ export function pushSection(
       const n = outer.length;
       for (let i = 0; i < n; i++) {
         const strip = ccw([outer[i], outer[(i + 1) % n], inner[(i + 1) % n], inner[i]]);
-        pushPrism(solid, strip, y - yOff + 0.25, y - yOff + 0.65, ROOF, ROOF_TOP);
+        pushPrism(solid, strip, y - yOff + 0.25, y - yOff + 0.65, RF.ROOF, RF.ROOF_TOP);
         lines.seg([outer[i][0], y - yOff + 0.652, outer[i][1]], [outer[(i + 1) % n][0], y - yOff + 0.652, outer[(i + 1) % n][1]], RIDGE);
         lines.seg([inner[i][0], y - yOff + 0.652, inner[i][1]], [inner[(i + 1) % n][0], y - yOff + 0.652, inner[(i + 1) % n][1]], RIDGE);
       }

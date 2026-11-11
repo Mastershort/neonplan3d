@@ -4,6 +4,20 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 [releases page](https://github.com/Mastershort/neonplan3d/releases). Ideas and votes:
 [Discussions → Ideas](https://github.com/Mastershort/neonplan3d/discussions/categories/ideas).
 
+## 3.1.0
+
+**Neon was just the beginning – your home in every style.**
+
+### Added
+- **Styles (free for everyone):** the 3D view shows the house in many styles besides Neon, Blueprint and Day – *Night / Focus*, *Synthwave*, *Architect's model*, *Pastel*, *Warm / Wood & paper* and the homely styles *Homely*, *Homely evening* and *Winter evening* with real materials (wooden floors, tiles, light walls, soft contact shadows under the furniture). Lights, open windows and active devices keep their signal colours in every style. The styles cost no extra performance and run on old wall tablets. Pick one in the 3D view under **⚙ → 🎨**; every device remembers its own.
+- **Own styles:** **⚙ Settings → 🎨 Styles** shows the house large in the style chosen and every style as a tile; **＋ Make an own style from it** copies any style with all its settings (real materials or an own palette, evening mood, floor texture, light by direction, room corners, shadows, background). Own styles appear in every style list and answer to their name by voice.
+- **Times of day:** the house plan sets a style for the day, the evening and the night, switched by the sun or by the clock; screens set to *House plan* follow it. Dashboard cards can have their own evening and night style (`theme_evening`, `theme_night`), card templates included.
+- **Wall colours:** the room's **Wall settings** (formerly *Wall heights*) colour all walls at once or each wall on its own; the outer walls get a **Facade** colour. The homely styles show them; the editor's 3D pane switches to *Homely* while you colour.
+- **Switching styles by voice and automation:** "NeonPlan style homely", "House to synthwave", "Style back" – also through Assist. New action `neonplan3d.set_style` (style, screens, minutes) and an optional helper entity (`style_entity`) whose state names the style. The newest setting wins: choosing a style for a screen again ends one set by voice or an action.
+
+### Changed
+- The view options' look buttons became one **🎨 style list**; `theme:` in the card takes every style id (`neon`, `blueprint`, `day`, `focus`, `synth`, `cozy`, `evening`, `winter`, `model`, `pastel`, `warm`, own `my_…`), `auto` and `house`. Neon stays the default; nothing changes until you pick a style.
+
 ## 3.0.6
 
 ### Added

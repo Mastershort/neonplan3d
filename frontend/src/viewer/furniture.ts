@@ -11,8 +11,9 @@ import { fitParts } from "../pack-scale.ts";
 import { binColors, binShape, householdCountry, mailboxShape, type BinShape, type MailboxShape } from "../household.ts";
 import type { Floor } from "../model.ts";
 import { ALWAYS, DEG, EDGE_TOP, GeoBuffer, LineBuffer, pushLoft, pushLyingCyl, pushPrism, shade } from "./geo.ts";
+import { palette } from "./palette.ts";
 
-const C = {
+const C = palette({
   body: 0x172238,
   bodyTop: 0x1d2b47,
   fabric: 0x1a2644,
@@ -29,7 +30,7 @@ const C = {
   plantTop: 0x1a4540,
   pot: 0x1d2640,
   accent: 0x2b8fb3,
-};
+}, { body: 0xe8e3db, bodyTop: 0xf2efe9, fabric: 0x8e97a5, fabricTop: 0xa4acb9, cushion: 0xb4bbc5, wood: 0xa67a52, woodTop: 0xbd9067, white: 0xedebe7, whiteTop: 0xf8f7f4, metal: 0x9da3ab, dark: 0x40454d, glass: 0xa9cfe0, plant: 0x4b8a49, plantTop: 0x66a861, pot: 0xcdbfae, accent: 0x2b8fb3 });
 
 const EDGE_FURN = shade(0x5b7cff, 0.3);
 const EDGE_FAINT = shade(0x5b7cff, 0.17);

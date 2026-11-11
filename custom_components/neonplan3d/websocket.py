@@ -27,6 +27,7 @@ from .const import (
     SIGNAL_BUILDING_UPDATED,
     SIGNAL_PLANS_UPDATED,
     SIGNAL_RELOAD,
+    SIGNAL_STYLE,
 )
 from .diagnostics_report import DiagnosticsError, DiagnosticsReporter
 from .locate.recorder import ws_locate_rec
@@ -779,6 +780,7 @@ def ws_diagnostics_client(hass: HomeAssistant, connection: websocket_api.ActiveC
         vol.Required("type"): "neonplan3d/voice/subscribe",
         vol.Optional("announce", default=False): bool,
         vol.Optional("reload", default=False): bool,
+        vol.Optional("style", default=False): bool,
         # what the view shows, for the card templates' overview of the open screens
         vol.Optional("view"): {
             vol.Optional("kind", default="panel"): vol.In(KINDS),
@@ -806,12 +808,18 @@ def ws_voice_subscribe(hass: HomeAssistant, connection: websocket_api.ActiveConn
     def forward_reload(reload: dict[str, Any]) -> None:
         connection.send_message(websocket_api.event_message(msg["id"], {"reload": reload}))
 
+    @callback
+    def forward_style(style: dict[str, Any]) -> None:
+        connection.send_message(websocket_api.event_message(msg["id"], {"style": style}))
+
     unsubs = [async_dispatcher_connect(hass, SIGNAL_ASK, forward)]
     if msg["announce"]:
         unsubs.append(async_dispatcher_connect(hass, SIGNAL_ANNOUNCE, forward_announce))
     if msg["reload"]:
         # asked for by name: an older frontend would take the call for a sentence
         unsubs.append(async_dispatcher_connect(hass, SIGNAL_RELOAD, forward_reload))
+    if msg["style"]:
+        unsubs.append(async_dispatcher_connect(hass, SIGNAL_STYLE, forward_style))
 
     screen_key: str | None = None
     if "view" in msg:

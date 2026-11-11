@@ -28,7 +28,7 @@ from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.util import dt as dt_util
 import voluptuous as vol
 
-from .const import DOMAIN, MAIN_PLAN, SIGNAL_ANNOUNCE, SIGNAL_RELOAD
+from .const import DOMAIN, MAIN_PLAN, SIGNAL_ANNOUNCE, SIGNAL_RELOAD, SIGNAL_STYLE
 from .locate.scanners import device_area_id
 from .packs import module_sha
 
@@ -36,6 +36,7 @@ _LOGGER = logging.getLogger(__name__)
 
 SERVICE_ANNOUNCE = "announce"
 SERVICE_RELOAD = "reload_screens"
+SERVICE_STYLE = "set_style"
 MODULE_ID = "mastershort.announce"
 # Home Assistant's MEDIA_ANNOUNCE feature of a media player (Sonos and others lower their music for the words)
 MEDIA_ANNOUNCE = 1048576
@@ -386,6 +387,16 @@ RELOAD_SCHEMA = vol.Schema(
 )
 
 
+STYLE_SCHEMA = vol.Schema(
+    {
+        # a style id or name ("cozy", "Wohnlich Abend"); "reset" or empty: the screens go back to their own setting
+        vol.Required("style"): vol.All(cv.string, vol.Length(max=60)),
+        vol.Optional("screens", default=[]): vol.All(cv.ensure_list, [vol.All(cv.string, vol.Length(max=60))]),
+        vol.Optional("minutes"): vol.Any(None, vol.All(vol.Coerce(int), vol.Range(min=1, max=10080))),
+    }
+)
+
+
 def async_setup_announce(hass: HomeAssistant) -> None:
     """Registers the services (announcements answer only while the module is installed)."""
 
@@ -407,8 +418,24 @@ def async_setup_announce(hass: HomeAssistant) -> None:
 
     hass.services.async_register(DOMAIN, SERVICE_RELOAD, reload, schema=RELOAD_SCHEMA)
 
+    async def set_style(call: ServiceCall) -> None:
+        # the open views (the screens named, or every one) show this style, for some minutes or until changed
+        async_dispatcher_send(
+            hass,
+            SIGNAL_STYLE,
+            {
+                "id": uuid.uuid4().hex[:12],
+                "style": call.data["style"].strip(),
+                "screens": call.data["screens"],
+                "minutes": call.data.get("minutes"),
+            },
+        )
+
+    hass.services.async_register(DOMAIN, SERVICE_STYLE, set_style, schema=STYLE_SCHEMA)
+
 
 def async_unload_announce(hass: HomeAssistant) -> None:
     """The services go with the integration."""
     hass.services.async_remove(DOMAIN, SERVICE_ANNOUNCE)
     hass.services.async_remove(DOMAIN, SERVICE_RELOAD)
+    hass.services.async_remove(DOMAIN, SERVICE_STYLE)

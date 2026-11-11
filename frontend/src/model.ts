@@ -4,6 +4,7 @@
 import type { CardConfig } from "./card-config.ts";
 import { packItem } from "./packs.ts";
 import type { LampModel } from "./viewer/viewer3d.ts";
+import type { CustomStyle, StylePlan } from "./looks.ts";
 
 export type Vec2 = [number, number];
 
@@ -59,6 +60,10 @@ export interface Room {
    * thickness. A wall two rooms share takes the thicker of their settings (D149).
    */
   wall_thickness?: (number | null)[];
+  /** Colour of the room's side of each wall ("#rrggbb", aligned with the points; null = `wall_color`), shown in the homely styles. */
+  wall_colors?: (string | null)[] | null;
+  /** Colour of every wall of the room on its own side, unless the wall has its own (null = the style's white). */
+  wall_color?: string | null;
   /**
    * Split points on each edge (index = edge): distances in metres from points[i] where the wall is cut
    * into parts of their own (each with its own height), e.g. a 2.5 m wall next to a 1.7 m one in line.
@@ -716,7 +721,11 @@ export const PET_FURS_OF: Record<Pet["kind"], readonly string[]> = {
 /** Dog breeds, small to large. */
 export const DOG_BREEDS = ["dachshund", "pug", "terrier", "labrador", "shepherd"] as const;
 
-export interface BuildingSettings {
+export interface BuildingSettings extends StylePlan {
+  /** The outside of the house in the homely styles ("#rrggbb", null = like the walls). */
+  facade_color?: string | null;
+  /** Own styles: built-in ones adjusted and named (listed with the others everywhere). */
+  styles_custom?: CustomStyle[] | null;
   /** The background behind the 3D house (null: the look's own sky): a colour, a gradient or a picture. */
   backdrop?: { kind?: "color" | "gradient" | "image" | null; color?: string | null; color2?: string | null; image?: string | null; dim?: number | null } | null;
   /**
