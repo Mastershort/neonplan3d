@@ -37,6 +37,8 @@ export interface Wall {
   free?: string;
   /** Own height in metres; undefined = full floor height. */
   height?: number;
+  /** Height offset in metres (null/undefined = 0). */
+  offset?: number;
   /** A sloping top: the heights h0 at plan point p and h1 at q, straight in between (D569). */
   slope?: WallSlope;
 }
@@ -84,6 +86,7 @@ interface Segment {
 interface Draft {
   free?: string;
   height?: number;
+  offset?: number;
   slope?: WallSlope;
   a: number;
   b: number;
@@ -244,6 +247,11 @@ export function generateWalls(rooms: readonly Room[], options: WallOptions, free
     const slope = slopeOf(list);
     return slope ? { height: Math.max(slope.h0, slope.h1), slope } : { height: heightOf(list) };
   };
+  // a height offset set on a room edge
+  const offsetOf = (list: Segment[]): number | undefined => {
+    const os = list.map((s) => rooms.find((r) => r.id === s.room)?.wall_offsets?.[s.edge]).filter((t): t is number => typeof t === "number" && Math.abs(t) > 1e-4);
+    return os.length ? Math.min(...os) : undefined;
+  };
   const open: [string, string][] = [];
   let drafts: Draft[] = [];
   for (const g of groups.values()) {
@@ -256,6 +264,7 @@ export function generateWalls(rooms: readonly Room[], options: WallOptions, free
       if (partner) open.push([first.room, partner.room]);
       continue;
     }
+    const off = offsetOf(partner ? [first, partner] : [first]);
     if (partner) {
       const t = thickOf([first, partner]) ?? options.interior;
       drafts.push({
@@ -268,6 +277,7 @@ export function generateWalls(rooms: readonly Room[], options: WallOptions, free
         roomRight: partner.room,
         sources: [src(first), src(partner)],
         ...withSlope([first, partner]),
+        ...(off !== undefined ? { offset: off } : {}),
       });
     } else {
       drafts.push({
@@ -280,6 +290,7 @@ export function generateWalls(rooms: readonly Room[], options: WallOptions, free
         roomRight: null,
         sources: [src(first)],
         ...withSlope([first]),
+        ...(off !== undefined ? { offset: off } : {}),
       });
     }
   }
@@ -320,7 +331,8 @@ export function generateWalls(rooms: readonly Room[], options: WallOptions, free
     // a sloping free wall (#834): the same slope as a room edge's, from end a to end b
     const sl = w.slope;
     const slope: WallSlope | undefined = sl ? { p: [w.a[0], w.a[1]], q: [w.b[0], w.b[1]], h0: Math.max(0.05, sl[0]), h1: Math.max(0.05, sl[1]) } : undefined;
-    drafts.push({ free: w.id, a: ia, b: ib, left: half, right: half, exterior: false, roomLeft: room, roomRight: room, sources: [], ...(slope ? { height: Math.max(slope.h0, slope.h1), slope } : { height }) });
+    const off = typeof w.offset === "number" && Math.abs(w.offset) > 1e-4 ? w.offset : undefined;
+    drafts.push({ free: w.id, a: ia, b: ib, left: half, right: half, exterior: false, roomLeft: room, roomRight: room, sources: [], ...(slope ? { height: Math.max(slope.h0, slope.h1), slope } : { height }), ...(off !== undefined ? { offset: off } : {}) });
   });
 
   // 5. merge collinear runs through nodes where nothing else meets (never across a split point)
@@ -348,6 +360,7 @@ export function generateWalls(rooms: readonly Room[], options: WallOptions, free
       footprint,
       ...(w.free ? { free: w.free } : {}),
       ...(w.height !== undefined ? { height: w.height } : {}),
+      ...(w.offset !== undefined ? { offset: w.offset } : {}),
       ...(w.slope ? { slope: w.slope } : {}),
     };
   });
@@ -394,6 +407,7 @@ function mergeCollinear(drafts: Draft[], verts: Vec2[], fixed: ReadonlySet<numbe
         w1.free ||
         w2.free ||
         w1.height !== w2.height ||
+        (w1.offset ?? 0) !== (w2.offset ?? 0) ||
         !!w1.slope ||
         !!w2.slope ||
         w1.exterior !== w2.exterior ||

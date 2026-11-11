@@ -1925,6 +1925,7 @@ export class Fp3dEditor extends LitElement {
           // both halves of the split edge keep its wall height
           if (target.wall_heights) target.wall_heights.splice(i + 1, 0, target.wall_heights[i] ?? null);
           if (target.wall_thickness) target.wall_thickness.splice(i + 1, 0, target.wall_thickness[i] ?? null);
+          if (target.wall_offsets) target.wall_offsets.splice(i + 1, 0, target.wall_offsets[i] ?? null);
           const first = Math.hypot(mid[0] - a[0], mid[1] - a[1]);
           if (target.wall_slopes) {
             const sl = target.wall_slopes[i] ?? null;
@@ -2908,6 +2909,7 @@ export class Fp3dEditor extends LitElement {
         <p class="fp3d-sub fp3d-wide">${this.t("wall_pos_hint")}</p>
         ${this.len(this.t("wall_length"), length, setLength, 0.01, 0.1)}
         ${this.len(this.t("wall_thickness"), w.thickness ?? this._doc.settings.wall_interior, (v) => this.updateFreeWall({ thickness: Math.min(1, Math.max(0.02, v)) }), 0.01, 0.02)}
+        ${this.len(this.t("wall_offset"), w.offset ?? 0, (v) => this.updateFreeWall({ offset: Math.min(10, Math.max(-10, round(v))) || null }), 0.05)}
         ${slope
           ? html`${this.len(this.t("wall_slope_start", { n: 1 }), slope[0], (v) => setSlope([v, slope[1]]), 0.05, 0.05)}
             ${this.len(this.t("wall_slope_end", { n: 2 }), slope[1], (v) => setSlope([slope[0], v]), 0.05, 0.05)}`
@@ -5411,6 +5413,7 @@ export class Fp3dEditor extends LitElement {
       // the edge starting at the removed corner goes away; the one before it keeps its height
       if (target.wall_heights) target.wall_heights.splice(index, 1);
       if (target.wall_thickness) target.wall_thickness.splice(index, 1);
+      if (target.wall_offsets) target.wall_offsets.splice(index, 1);
       if (target.wall_slopes) {
         target.wall_slopes.splice(index, 1);
         target.wall_slopes[(index - 1 + target.points.length) % target.points.length] = null;
@@ -6482,6 +6485,15 @@ export class Fp3dEditor extends LitElement {
         list[edge] = v;
         r.wall_thickness = list.every((t) => t === null) ? undefined : list;
       });
+    const setOffset = (edge: number, v: number | null) =>
+      this.change((_, f) => {
+        const r = f.rooms.find((x) => x.id === room.id);
+        if (!r) return;
+        const list = (r.wall_offsets ?? []).slice(0, r.points.length);
+        while (list.length < r.points.length) list.push(null);
+        list[edge] = v;
+        r.wall_offsets = list.every((t) => t === null) ? undefined : list;
+      });
     // wall colours (homely styles): one for all walls on top, each wall may differ in its own row
     const setAllColours = (hex: string | null) => {
       this.updateRoom({ wall_color: hex, wall_colors: null });
@@ -6564,6 +6576,10 @@ export class Fp3dEditor extends LitElement {
                     setThick(i, Math.abs(t - def) < 0.0005 ? null : t);
                   }, 0.01, 0.02)}
                   ${this.isAdmin && room.wall_thickness?.[i] != null ? html`<button class="fp3d-btn" title=${this.t("wall_thickness_reset")} @click=${() => setThick(i, null)}>↺</button>` : nothing}</span
+                >
+                <span class="fp3d-wide fp3d-split-row" title=${this.t("wall_offset_hint")}
+                  >${this.len(this.t("wall_offset"), room.wall_offsets?.[i] ?? 0, (v) => setOffset(i, Math.min(10, Math.max(-10, round(v))) || null), 0.05)}
+                  ${this.isAdmin && room.wall_offsets?.[i] != null ? html`<button class="fp3d-btn" title=${this.t("wall_thickness_reset")} @click=${() => setOffset(i, null)}>↺</button>` : nothing}</span
                 >`
               : nothing}
             ${part !== undefined && part > 0 && (room.wall_splits?.[i] ?? []).some((d) => Math.abs(d - starts[part]) < 1e-3)
