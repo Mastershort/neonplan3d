@@ -123,6 +123,14 @@ export const controls = css`
     background: var(--fp3d-chrome-solid);
     color: var(--fp3d-text);
   }
+  /* the group titles of an opened list (the styles): dark too, else a white bar with light text */
+  .fp3d-field select optgroup,
+  select optgroup {
+    background: var(--fp3d-chrome-solid);
+    color: var(--fp3d-accent);
+    font-style: normal;
+    font-weight: 700;
+  }
   /* a list to edit line by line (a module's sentences): ✕ per line, a field to add one */
   .fp3d-lines {
     display: grid;

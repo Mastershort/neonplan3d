@@ -1,5 +1,7 @@
 // 2D editor: floors, rooms (rectangles and free shapes), snapping, undo, background template.
 
+import { isStyleChoice, styleOptions } from "../style-select.ts";
+import { allStyles, newStyleId, setCustomStyles, styleById, type CustomStyle, type StyleDef } from "../looks.ts";
 import { css, html, LitElement, nothing, svg, type PropertyValues, type TemplateResult } from "lit";
 import { linesField } from "./lines-field.ts";
 import { unsafeHTML } from "lit/directives/unsafe-html.js";
@@ -225,7 +227,7 @@ const turnBy = (a: number, d: number): number => {
 };
 
 /** Topics of the ⚙ settings menu (everything that belongs to the whole plan). */
-type SettingsTopic = "plans" | "house" | "weather" | "director" | "voice" | "locate" | "favorites" | "backdrop" | "terrain" | "backup" | "modules" | "fun" | "cards" | "diagnostics";
+type SettingsTopic = "plans" | "house" | "weather" | "director" | "voice" | "locate" | "favorites" | "styles" | "backdrop" | "terrain" | "backup" | "modules" | "fun" | "cards" | "diagnostics";
 
 /** Wall view side bar: what stands or hangs at a wall, by kind. */
 const WALL_CATS: Record<string, string[]> = {
@@ -388,6 +390,8 @@ export class Fp3dEditor extends LitElement {
     _supporter: { state: true },
     _wall3d: { state: true },
     _fx3d: { state: true },
+    _style3d: { state: true },
+    _styleSel: { state: true },
     _sidePinned: { state: true },
     _sideMin: { state: true },
     _sideOpen: { state: true },
@@ -504,6 +508,10 @@ export class Fp3dEditor extends LitElement {
   private declare _wall3d: WallMode;
   /** Weather, sun, pets and ghost in the 3D pane beside the plan (off: a quiet pane for drawing, #1033). */
   private declare _fx3d: boolean;
+  /** The style of the 3D pane beside the plan (and the wall view), kept per device. */
+  private declare _style3d: string;
+  /** The style shown in the styles dialog (its preview and, for an own one, its settings). */
+  private declare _styleSel: string | null;
   /** Sidebar beside the 3D pane: pinned open always, or folded to a strip while nothing is selected. */
   private declare _sidePinned: boolean;
   /** The sidebar folded to a narrow strip beside the plan (more room to move furniture); remembered per browser. */
@@ -817,9 +825,12 @@ export class Fp3dEditor extends LitElement {
     this._supporter = false;
     // the 3D pane's wall view stays as it was last set on this device (#309)
     this._wall3d = "cut";
+    this._style3d = "neon";
     try {
       if (localStorage.getItem("neonplan3d.walls3d") === "auto") this._wall3d = "auto";
       this._fx3d = localStorage.getItem("neonplan3d.editor_fx") !== "0";
+      const st = localStorage.getItem("neonplan3d.editor_style");
+      this._style3d = isStyleChoice(st) ? st : "neon";
     } catch {
       // no storage: the default
     }
@@ -1184,6 +1195,22 @@ export class Fp3dEditor extends LitElement {
     return this._tool === "roof" || this._tool === "energy";
   }
 
+  /** A wall colour was set: the 3D pane beside the plan switches to a homely style, where wall colours show. */
+  private showWallColours(): void {
+    if (styleById(this._style3d)?.natural) return;
+    this.setStyle3d("cozy");
+    this._notice = this.t("wall_colors_shown");
+  }
+
+  private setStyle3d(style: string): void {
+    this._style3d = style;
+    try {
+      localStorage.setItem("neonplan3d.editor_style", style);
+    } catch {
+      /* no storage */
+    }
+  }
+
   private setFx3d(on: boolean): void {
     this._fx3d = on;
     try {
@@ -1194,6 +1221,7 @@ export class Fp3dEditor extends LitElement {
   }
 
   private render3d() {
+    setCustomStyles(this._doc.settings.styles_custom);
     return html`<div class="fp3d-editor-3d">
       ${this.houseTool
         ? nothing
@@ -1201,6 +1229,9 @@ export class Fp3dEditor extends LitElement {
             <button aria-pressed=${this._wall3d === "auto"} @click=${() => this.setWall3d("auto")}>${this.t("walls_auto")}</button>
             <button aria-pressed=${this._wall3d === "cut"} @click=${() => this.setWall3d("cut")}>${this.t("walls_cut")}</button>
             <button class="fp3d-fx3d" aria-pressed=${this._fx3d} title=${this.t("fx3d_hint")} @click=${() => this.setFx3d(!this._fx3d)}>${this.t("fx3d")}</button>
+            <select class="fp3d-style3d" title=${this.t("style")} aria-label=${this.t("style")} @change=${(e: Event) => this.setStyle3d((e.target as HTMLSelectElement).value)}>
+              ${styleOptions((k) => this.t(k), this._style3d, { auto: true, house: true })}
+            </select>
           </div>`}
       ${this.render3dBar()}
       <fp3d-view3d
@@ -1219,7 +1250,7 @@ export class Fp3dEditor extends LitElement {
         .keepRoof=${this._tool === "roof" || this._tool === "energy"}
         .markerMode=${"important"}
         .heatMode=${"none"}
-        .theme=${"neon"}
+        .theme=${this._style3d}
         .packs=${this.packs}
         .showEnergy=${false}
         .holograms=${this._tool === "energy" ? true : null}
@@ -5837,6 +5868,7 @@ export class Fp3dEditor extends LitElement {
       { key: "voice", icon: "🎙", label: this.t("voice"), admin: false },
       ...(released("locate") ? [{ key: "locate" as const, icon: "📡", label: this.t("locate"), admin: true }] : []),
       { key: "favorites", icon: "⭐", label: this.t("favorites"), admin: true },
+      { key: "styles", icon: "🎨", label: this.t("styles_title"), admin: true },
       { key: "backdrop", icon: "🖼", label: this.t("backdrop"), admin: true },
       { key: "terrain", icon: "⛰", label: this.t("terrain"), admin: true },
       { key: "backup", icon: "💾", label: this.t("backup"), admin: true },
@@ -5911,6 +5943,7 @@ export class Fp3dEditor extends LitElement {
       voice: this.t("voice"),
       locate: this.t("locate"),
       favorites: this.t("favorites"),
+      styles: this.t("styles_title"),
       backdrop: this.t("backdrop"),
       terrain: this.t("terrain"),
       backup: this.t("backup"),
@@ -5939,6 +5972,8 @@ export class Fp3dEditor extends LitElement {
               ? this.renderVoice()
               : topic === "favorites"
                 ? this.renderFavorites()
+                : topic === "styles"
+                  ? this.renderStyleSettings()
                 : topic === "backdrop"
                   ? this.renderBackdrop()
                   : topic === "terrain"
@@ -6447,8 +6482,29 @@ export class Fp3dEditor extends LitElement {
         list[edge] = v;
         r.wall_thickness = list.every((t) => t === null) ? undefined : list;
       });
+    // wall colours (homely styles): one for all walls on top, each wall may differ in its own row
+    const setAllColours = (hex: string | null) => {
+      this.updateRoom({ wall_color: hex, wall_colors: null });
+      if (hex) this.showWallColours();
+    };
+    const setColour = (i: number, hex: string | null) => {
+      const list = room.wall_colors ? [...room.wall_colors] : room.points.map(() => null as string | null);
+      while (list.length < room.points.length) list.push(null);
+      list[i] = hex;
+      this.updateRoom({ wall_colors: list.some(Boolean) ? list : null });
+      if (hex) this.showWallColours();
+    };
     return html`<div class="fp3d-edge-box">
-      <h4>${this.t("wall_heights")}</h4>
+      <h4>${this.t("wall_settings")}</h4>
+      <div class="fp3d-wall-all">
+        <span>🎨 ${this.t("wall_colors_all")}</span>
+        <input type="color" title=${this.t("wall_colors")} ?disabled=${!this.isAdmin} .value=${room.wall_color ?? "#f0ede8"} @change=${(e: Event) => setAllColours((e.target as HTMLInputElement).value)} />
+        ${this.isAdmin && room.wall_color ? html`<button class="fp3d-btn" title=${this.t("color_reset")} @click=${() => setAllColours(null)}>↺</button>` : nothing}
+      </div>
+      <div class="fp3d-swatches">
+        ${WALL_SWATCHES.map(([name, hex]) => html`<button class="fp3d-swatch" title=${name} style="background:${hex}" ?disabled=${!this.isAdmin} @click=${() => setAllColours(hex)}></button>`)}
+      </div>
+      <p class="fp3d-sub">${this.t("wall_colors_hint")}</p>
       ${room.points.flatMap((a, i) => {
         const b = room.points[(i + 1) % n];
         const len = Math.hypot(b[0] - a[0], b[1] - a[1]);
@@ -6488,6 +6544,18 @@ export class Fp3dEditor extends LitElement {
             ${this.isAdmin && h !== 0 ? html`<button class="fp3d-btn" title=${this.t("wall_none_hint")} @click=${() => set(0)}>${this.t("wall_none")}</button>` : nothing}
             ${this.isAdmin && partLen >= 0.4 ? html`<button class="fp3d-btn" title=${this.t("wall_split_hint")} @click=${() => this.splitEdge(room, i, part)}>✂</button>` : nothing}
             ${(part === undefined || part === 0) && h !== 0 ? html`<button class="fp3d-btn" title=${this.t("wall_view_open")} @click=${() => this.openWallView(room.id, i)}>▦</button>` : nothing}
+            ${(part === undefined || part === 0) && h !== 0
+              ? html`<span class="fp3d-wall-colour${room.wall_colors?.[i] ? " fp3d-wall-colour-own" : ""}"
+                  ><input
+                    type="color"
+                    title=${this.t("wall_color_n", { n: i + 1 })}
+                    aria-label=${this.t("wall_color_n", { n: i + 1 })}
+                    ?disabled=${!this.isAdmin}
+                    .value=${room.wall_colors?.[i] ?? room.wall_color ?? "#f0ede8"}
+                    @change=${(e: Event) => setColour(i, (e.target as HTMLInputElement).value)}
+                  />${this.isAdmin && room.wall_colors?.[i] ? html`<button class="fp3d-btn" title=${this.t("color_reset")} @click=${() => setColour(i, null)}>↺</button>` : nothing}</span
+                >`
+              : nothing}
             ${(part === undefined || part === 0) && h !== 0
               ? html`<span class="fp3d-wide fp3d-split-row" title=${this.t("wall_thickness_hint")}
                   >${this.len(this.t("edge_thickness"), room.wall_thickness?.[i] ?? (outer.has(i) ? s.wall_exterior : s.wall_interior), (v) => {
@@ -7573,7 +7641,7 @@ export class Fp3dEditor extends LitElement {
               .explode=${false}
               .markerMode=${"none"}
               .heatMode=${"none"}
-              .theme=${"neon"}
+              .theme=${this._style3d}
               .packs=${this.packs}
               .showEnergy=${false}
               .holograms=${false}
@@ -13800,6 +13868,185 @@ export class Fp3dEditor extends LitElement {
     </details>`;
   }
 
+  /**
+   * ⚙ Styles: a preview of the house in the style chosen, every style as a tile, own styles made from them with all
+   * their settings, then the times of day (the house plan for screens set to it) and the facade colour.
+   */
+  private renderStyleSettings() {
+    const st = this._doc.settings;
+    setCustomStyles(st.styles_custom);
+    const admin = this.isAdmin;
+    const sel = styleById(this._styleSel) ? this._styleSel! : styleById(this._style3d) ? this._style3d : "cozy";
+    const def = styleById(sel)!;
+    const name = (x: StyleDef) => x.name ?? this.t(`style_${x.id}` as I18nKey);
+    const groups = ["neon", "homely", "designed", "custom"] as const;
+    const styles = allStyles();
+    const copy = () => {
+      const { group: _g, aliases: _a, name: _n, ...rest } = def;
+      const id = newStyleId();
+      const own: CustomStyle = { ...rest, id, name: `${name(def)} ${this.t("style_own_suffix")}`, palette: def.natural ? null : (def.palette ?? CLASSIC_PALETTE[def.base]), bg: def.bg ?? CLASSIC_BG[def.base] };
+      this.change((d) => (d.settings.styles_custom = [...(d.settings.styles_custom ?? []), own]));
+      this._styleSel = id;
+    };
+    return html`<div class="fp3d-style-studio">
+        <div class="fp3d-style-preview">
+          <fp3d-view3d
+            .walkable=${false}
+            .viewKind=${"preview"}
+            .hass=${this.hass}
+            .building=${this._doc}
+            .floorId=${this._floorId}
+            .roomId=${null}
+            .wallMode=${"auto"}
+            .explode=${false}
+            .markerMode=${"none"}
+            .heatMode=${"none"}
+            .theme=${sel}
+            .packs=${this.packs}
+            .showEnergy=${false}
+            .holograms=${false}
+            .flows=${false}
+            .weather=${false}
+            .petsOn=${false}
+            .ghostOn=${false}
+            .sunFx=${false}
+            .quality=${"auto"}
+            .floorThumbs=${false}
+            .roomLabels=${false}
+            .floorStack=${"single"}
+            .panelOpen=${false}
+            .alerts=${false}
+            .scenes=${false}
+            .central=${false}
+          ></fp3d-view3d>
+        </div>
+        ${groups
+          .filter((g) => styles.some((x) => x.group === g))
+          .map(
+            (g) => html`<div class="fp3d-style-group">
+              <span class="fp3d-sub">${this.t(`style_group_${g}` as I18nKey)}</span>
+              <div class="fp3d-style-tiles">
+                ${styles
+                  .filter((x) => x.group === g)
+                  .map(
+                    (x) => html`<button class="fp3d-style-tile" aria-pressed=${x.id === sel} @click=${() => (this._styleSel = x.id)}>
+                      <span class="fp3d-style-dot" style="background:linear-gradient(135deg, ${x.bg?.[0] ?? CLASSIC_BG[x.base][0]}, ${x.palette?.light ?? (x.natural ? "#e9e2d6" : CLASSIC_PALETTE[x.base].light)} 60%, ${x.palette?.line ?? (x.natural ? "#b3885f" : CLASSIC_PALETTE[x.base].line)})"></span>
+                      ${name(x)}
+                    </button>`,
+                  )}
+              </div>
+            </div>`,
+          )}
+        <div class="fp3d-actions">
+          ${admin ? html`<button class="fp3d-btn fp3d-primary" @click=${copy}>＋ ${this.t("style_new")}</button>` : nothing}
+          <button class="fp3d-btn" @click=${() => this.setStyle3d(sel)}>${this.t("style_show_beside")}</button>
+        </div>
+        ${def.group === "custom" ? this.renderOwnStyle(def) : html`<p class="fp3d-sub">${this.t("style_builtin_hint")}</p>`}
+        <details class="fp3d-section">
+          <summary>🕒 ${this.t("style_times")}</summary>
+          ${this.renderStylePlan()}
+        </details>
+        <div class="fp3d-form">
+          <label class="fp3d-field"
+            >${this.t("facade_color")}
+            <input type="color" ?disabled=${!admin} .value=${st.facade_color ?? "#e9e5de"} @change=${(e: Event) => this.setSettings({ facade_color: (e.target as HTMLInputElement).value })} />
+          </label>
+          ${st.facade_color ? html`<button class="fp3d-btn" ?disabled=${!admin} @click=${() => this.setSettings({ facade_color: null })}>${this.t("color_reset")}</button>` : nothing}
+        </div>
+      </div>`;
+  }
+
+  /** An own style's settings: name, materials or palette, the realism switches, the background. */
+  private renderOwnStyle(def: StyleDef) {
+    const admin = this.isAdmin;
+    const edit = (patch: Partial<CustomStyle>) =>
+      this.change((d) => {
+        const list = d.settings.styles_custom ?? [];
+        const x = list.find((c) => c.id === def.id);
+        if (x) Object.assign(x, patch);
+      });
+    const pal = def.palette ?? CLASSIC_PALETTE[def.base];
+    const setPal = (patch: Partial<NonNullable<StyleDef["palette"]>>) => edit({ palette: { ...pal, ...patch } });
+    const bg = def.bg ?? CLASSIC_BG[def.base];
+    const colour = (label: I18nKey, value: string, set: (v: string) => void) =>
+      html`<label class="fp3d-field"
+        >${this.t(label)}<input type="color" ?disabled=${!admin} .value=${value} @input=${(e: Event) => set((e.target as HTMLInputElement).value)}
+      /></label>`;
+    const slider = (label: I18nKey, value: number, min: number, max: number, step: number, set: (v: number) => void) =>
+      html`<label class="fp3d-field"
+        >${this.t(label)}<input type="range" min=${min} max=${max} step=${step} ?disabled=${!admin} .value=${String(value)} @input=${(e: Event) => set(Number((e.target as HTMLInputElement).value))}
+      /></label>`;
+    const check = (label: I18nKey, on: boolean, set: (v: boolean) => void) =>
+      html`<label class="fp3d-check fp3d-wide"><input type="checkbox" ?disabled=${!admin} .checked=${on} @change=${(e: Event) => set((e.target as HTMLInputElement).checked)} /> ${this.t(label)}</label>`;
+    return html`<div class="fp3d-form fp3d-own-style">
+      <label class="fp3d-field fp3d-wide"
+        >${this.t("style_name")}<input type="text" ?disabled=${!admin} .value=${def.name ?? ""} @change=${(e: Event) => edit({ name: (e.target as HTMLInputElement).value.trim() || def.name })}
+      /></label>
+      ${check("style_natural", !!def.natural, (v) => edit({ natural: v, palette: v ? null : pal, floors: v ? (def.floors ?? 1) : def.floors, cutDark: v ? (def.cutDark ?? true) : def.cutDark }))}
+      ${check("style_dark", def.base === "neon", (v) => edit({ base: v ? "neon" : "day" }))}
+      ${def.natural
+        ? html`${slider("style_dim", def.dim ?? 0, 0, 0.9, 0.01, (v) => edit({ dim: v }))} ${slider("style_floors", def.floors ?? 0, 0, 1, 0.01, (v) => edit({ floors: v }))}
+          ${check("style_cut", !!def.cutDark, (v) => edit({ cutDark: v }))}`
+        : html`${colour("style_line", pal.line, (v) => setPal({ line: v }))} ${colour("style_surface_dark", pal.dark, (v) => setPal({ dark: v }))}
+          ${colour("style_surface_light", pal.light, (v) => setPal({ light: v }))} ${slider("style_hue", pal.hue, 0, 1, 0.01, (v) => setPal({ hue: v }))}
+          ${slider("style_lift", pal.lift, 0, 0.7, 0.01, (v) => setPal({ lift: v }))} ${slider("style_contrast", pal.contrast, 0.5, 7, 0.1, (v) => setPal({ contrast: v }))}
+          ${check("style_signal", def.signal !== false, (v) => edit({ signal: v }))}`}
+      ${slider("style_sun", def.sun ?? 0, 0, 0.7, 0.01, (v) => edit({ sun: v }))} ${slider("style_ao", def.ao ?? 0, 0, 0.7, 0.01, (v) => edit({ ao: v }))}
+      ${check("style_shadows", !!def.shadows, (v) => edit({ shadows: v }))}
+      ${colour("style_bg_top", bg[0], (v) => edit({ bg: [v, bg[1]] }))} ${colour("style_bg_bottom", bg[1], (v) => edit({ bg: [bg[0], v] }))}
+      ${admin
+        ? html`<div class="fp3d-actions fp3d-wide">
+            <button
+              class="fp3d-btn fp3d-danger"
+              @click=${() => {
+                this.change((d) => (d.settings.styles_custom = (d.settings.styles_custom ?? []).filter((c) => c.id !== def.id)));
+                this._styleSel = null;
+              }}
+            >
+              ${this.t("style_delete")}
+            </button>
+          </div>`
+        : nothing}
+    </div>`;
+  }
+
+  /** The times of day: the house plan for every screen set to "House plan", how it switches, a helper entity. */
+  private renderStylePlan() {
+    const st = this._doc.settings;
+    const pick = (key: "style_day" | "style_evening" | "style_night", label: I18nKey) =>
+      html`<label class="fp3d-field"
+        >${this.t(label)}
+        <select ?disabled=${!this.isAdmin} @change=${(e: Event) => this.setSettings({ [key]: (e.target as HTMLSelectElement).value || null })}>
+          ${styleOptions((k) => this.t(k), st[key] ?? "", { none: true })}
+        </select>
+      </label>`;
+    const time = (key: "style_morning_at" | "style_evening_at" | "style_night_at", label: I18nKey, fallback: string) =>
+      html`<label class="fp3d-field"
+        >${this.t(label)}
+        <input type="time" ?disabled=${!this.isAdmin} .value=${st[key] ?? fallback} @change=${(e: Event) => this.setSettings({ [key]: (e.target as HTMLInputElement).value || null })} />
+      </label>`;
+    const byTime = st.style_switch === "time";
+    return html`<p class="fp3d-sub">${this.t("styles_hint")}</p>
+      <div class="fp3d-form">
+        ${pick("style_day", "style_day_label")} ${pick("style_evening", "style_evening_label")} ${pick("style_night", "style_night_label")}
+        <label class="fp3d-field"
+          >${this.t("style_switch")}
+          <select ?disabled=${!this.isAdmin} @change=${(e: Event) => this.setSettings({ style_switch: (e.target as HTMLSelectElement).value === "time" ? "time" : null })}>
+            <option value="sun" ?selected=${!byTime}>${this.t("style_switch_sun")}</option>
+            <option value="time" ?selected=${byTime}>${this.t("style_switch_time")}</option>
+          </select>
+        </label>
+        ${byTime ? html`${time("style_morning_at", "style_morning_at", "07:00")} ${time("style_evening_at", "style_evening_at", "18:00")}` : nothing}
+        ${time("style_night_at", "style_night_at", "23:00")}
+        <p class="fp3d-sub fp3d-wide">${this.t("style_switch_hint")}</p>
+        <label class="fp3d-field fp3d-wide"
+          >${this.t("style_entity")}
+          <input type="text" placeholder="input_select.neonplan_stil" ?disabled=${!this.isAdmin} .value=${st.style_entity ?? ""} @change=${(e: Event) => this.setSettings({ style_entity: (e.target as HTMLInputElement).value.trim() || null })} />
+        </label>
+        <p class="fp3d-sub fp3d-wide">${this.t("style_entity_hint")}</p>
+      </div>`;
+  }
+
   /** The ground around the house: its height, a hillside, the earth around cellars. */
   /** The background behind the 3D house: the look's own sky, one colour, a gradient or a picture. */
   private renderBackdrop() {
@@ -14290,6 +14537,104 @@ export class Fp3dEditor extends LitElement {
         top: 10px;
         left: 10px;
         z-index: 3;
+      }
+      .fp3d-style-studio {
+        display: grid;
+        gap: 12px;
+      }
+      .fp3d-style-preview {
+        position: relative;
+        height: 280px;
+        border-radius: 12px;
+        overflow: hidden;
+        border: 1px solid var(--fp3d-line);
+      }
+      .fp3d-style-preview fp3d-view3d {
+        position: absolute;
+        inset: 0;
+      }
+      .fp3d-style-group {
+        display: grid;
+        gap: 4px;
+      }
+      .fp3d-style-tiles {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+      .fp3d-style-tile {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 10px;
+        border-radius: 10px;
+        border: 1px solid var(--fp3d-line);
+        background: rgba(255, 255, 255, 0.04);
+        color: var(--fp3d-text);
+        font: inherit;
+        font-size: 13px;
+        cursor: pointer;
+      }
+      .fp3d-style-tile[aria-pressed="true"] {
+        border-color: var(--fp3d-accent);
+        background: rgba(55, 224, 255, 0.12);
+      }
+      .fp3d-style-dot {
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        border: 1px solid var(--fp3d-line);
+      }
+      .fp3d-style3d {
+        margin-left: 6px;
+        background: var(--fp3d-chrome-solid);
+        color: var(--fp3d-text);
+        border: 1px solid var(--fp3d-line);
+        border-radius: 10px;
+        padding: 4px 6px;
+        font: inherit;
+        font-size: 12px;
+        max-width: 170px;
+      }
+      .fp3d-wall-all {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 2px 0 4px;
+      }
+      .fp3d-wall-all span {
+        flex: 1;
+      }
+      .fp3d-wall-all input[type="color"],
+      .fp3d-wall-colour input[type="color"] {
+        width: 40px;
+        height: 30px;
+        padding: 0;
+        border: 1px solid var(--fp3d-line);
+        border-radius: 8px;
+        background: none;
+        cursor: pointer;
+      }
+      .fp3d-wall-colour {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+      }
+      .fp3d-wall-colour-own input[type="color"] {
+        border-color: var(--fp3d-accent);
+      }
+      .fp3d-swatches {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+        margin: 2px 0 6px;
+      }
+      .fp3d-swatch {
+        width: 28px;
+        height: 22px;
+        border-radius: 6px;
+        border: 1px solid var(--fp3d-line);
+        cursor: pointer;
       }
       .fp3d-3d-bar {
         position: absolute;
@@ -17082,3 +17427,27 @@ function numberish(id: string): boolean {
 function binaryish(id: string): boolean {
   return /^(binary_sensor|input_boolean)\./.test(id);
 }
+
+/** Ready wall colours (names in German and English are plain enough for both). */
+const WALL_SWATCHES: [string, string][] = [
+  ["Weiß / White", "#f0ede8"],
+  ["Sand", "#e3d6bf"],
+  ["Salbei / Sage", "#a9b9a0"],
+  ["Taupe", "#a99c8e"],
+  ["Petrol", "#3f6b72"],
+  ["Terrakotta / Terracotta", "#c27b5a"],
+  ["Rauchblau / Smoke blue", "#8fa3b8"],
+  ["Anthrazit / Anthracite", "#4a4e55"],
+];
+
+/** The classic looks as a palette, the start of an own style made from one of them. */
+const CLASSIC_PALETTE: Record<"neon" | "blueprint" | "day", NonNullable<StyleDef["palette"]>> = {
+  neon: { line: "#37e0ff", dark: "#0e1629", light: "#22345a", hue: 0.6, lift: 0.05, contrast: 2.5 },
+  blueprint: { line: "#cce6ff", dark: "#0a2147", light: "#336bbf", hue: 0, lift: 0.05, contrast: 4 },
+  day: { line: "#0d1c45", dark: "#b8c0cc", light: "#f2f4f7", hue: 0.3, lift: 0.28, contrast: 3.6 },
+};
+const CLASSIC_BG: Record<"neon" | "blueprint" | "day", [string, string]> = {
+  neon: ["#0b1120", "#070b14"],
+  blueprint: ["#1a4682", "#0a264e"],
+  day: ["#f2f6fb", "#cdd8e6"],
+};

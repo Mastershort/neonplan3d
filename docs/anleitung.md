@@ -170,15 +170,17 @@ Wände entstehen automatisch: Jede gemeinsame Kante zweier Räume wird eine Inne
 
 **Einzelne Wände:** Mit dem Werkzeug **Wand** ziehst du eine frei stehende Wand, zum Beispiel einen Raumteiler, der nur durch den halben Raum geht. **Umschalt** hält sie gerade, **Alt** zeichnet ohne Fangen. Trifft sie auf eine Raumwand, wird die Ecke verschnitten. Ausgewählt ziehst du die Endpunkte an den Griffen oder die ganze Wand an der Linie. Rechts stellst du **X** und **Y** (die Mitte der Wand, wie bei Möbeln; so setzt du sie zentimetergenau, ohne Raster), **Länge**, **Wandstärke** und **Höhe** ein. In 3D verhält sie sich wie jede Innenwand. Liegen nur auf einer Seite Räume (eine einzelne Wand als Außenwand gezeichnet), gilt die andere Seite als draußen: Rollläden und Fensterbänke sitzen dort, egal in welche Richtung die Wand gezogen wurde, und sie wird wie die übrigen Außenwände zu Glas, wenn sie zur Kamera zeigt. Auch in einzelne Wände setzt du mit **Tür & Fenster** Türen und Fenster ein (siehe 4.7). Löschst du die Wand, verschwinden ihre Türen und Fenster mit. Seit 2.2 kann auch eine einzelne Wand schräg sein: **◢ Schräg** in ihrem Formular gibt ihr eine **Höhe an Ecke 1** und **an Ecke 2** (der Plan nummeriert ihre Enden, solange sie ausgewählt ist), wie bei einer Raumwand (siehe *Schräge Wand* unten).
 
-**Wandhöhe:** Jede Wand kann niedriger sein als der Raum, etwa als Brüstung oder Theke. Bei einer einzelnen Wand stellst du die **Höhe** im Formular ein. Bei Räumen (Rechteck und freie Form) wählst du den Raum aus; im Formular steht der Kasten **Wandhöhen** mit jeder Wand des Raums, benannt nach ihren Eckpunkten (z. B. „Wand 2–3“, die Nummern stehen im Plan an den Ecken) und mit ihrer Länge. Fährst du über eine Zeile oder tippst in ihr Feld, leuchtet die Wand im Plan auf. ↥ setzt sie auf volle Raumhöhe zurück. Teilen sich zwei Räume die Wand, gilt die niedrigere Einstellung. Fenster und Türen in einer niedrigen Wand enden an der Wandhöhe. Niedrige Wände erscheinen im Plan heller. Soll eine Wand in einer Flucht zwei Höhen haben (2,5 m neben 1,7 m), teilst du sie mit **✂**: Das Teilstück bekommt eine eigene Zeile und Höhe, der Teilpunkt lässt sich im Feld **Teilpunkt ab Ecke** verschieben (im Plan als Strich markiert), **⨉** fügt die Teile wieder zusammen.
+**Wandhöhe:** Jede Wand kann niedriger sein als der Raum, etwa als Brüstung oder Theke. Bei einer einzelnen Wand stellst du die **Höhe** im Formular ein. Bei Räumen (Rechteck und freie Form) wählst du den Raum aus; im Formular steht der Kasten **Wandeinstellungen** mit jeder Wand des Raums, benannt nach ihren Eckpunkten (z. B. „Wand 2–3“, die Nummern stehen im Plan an den Ecken) und mit ihrer Länge. Fährst du über eine Zeile oder tippst in ihr Feld, leuchtet die Wand im Plan auf. ↥ setzt sie auf volle Raumhöhe zurück. Teilen sich zwei Räume die Wand, gilt die niedrigere Einstellung. Fenster und Türen in einer niedrigen Wand enden an der Wandhöhe. Niedrige Wände erscheinen im Plan heller. Soll eine Wand in einer Flucht zwei Höhen haben (2,5 m neben 1,7 m), teilst du sie mit **✂**: Das Teilstück bekommt eine eigene Zeile und Höhe, der Teilpunkt lässt sich im Feld **Teilpunkt ab Ecke** verschieben (im Plan als Strich markiert), **⨉** fügt die Teile wieder zusammen.
 
 **Wandstärke je Wand:** Im selben Kasten hat jede Wand ein Feld **Dicke (m)**. Voreingestellt ist die Dicke des Hauses (Außen- oder Innenwand, Kapitel 4.4); eine eigene Angabe macht etwa die 36,5-cm-Außenwand neben einer 24er oder die 11,5-cm-Trennwand. Teilen sich zwei Räume die Wand, gilt die dickere Angabe, die Wand bleibt auf der Raumgrenze mittig. ↺ setzt auf die Hausdicke zurück. Fenster und Türen passen sich der Dicke an.
 
 **Schräge Wand:** **◢ Schräg** in einer Zeile der Wandhöhen gibt der Wand eine eigene Höhe an jeder ihrer beiden Ecken; die Oberkante läuft gerade dazwischen – für ein Pultdach, eine Garage am Hang oder Oberlichter auf der hohen Seite. Die hohe Seite darf über die Etagenhöhe hinausreichen. Fenster und Türen bleiben unter der Oberkante, ein Fenster am niedrigen Ende wird also niedriger. Teilst du die Kante mit einem neuen Eckpunkt, treffen sich beide Hälften auf der Höhe dazwischen. Noch einmal **◢ Schräg** macht die Wand wieder gerade.
 
-**Keine Wand:** Bei offenen Grundrissen gehören Flur, Küche und Wohnzimmer baulich zusammen, sind in Home Assistant aber getrennte Bereiche. Dafür hat jede Zeile im Kasten **Wandhöhen** den Knopf **Keine Wand**: Die Wand fällt im Grundriss und in 3D ganz weg, auch wenn der Nachbarraum sie teilt. ↥ holt sie zurück. Das Licht folgt dem: Eine Lampe leuchtet durch die weggelassene Wand in den Nachbarraum, als wäre es ein Raum.
+**Keine Wand:** Bei offenen Grundrissen gehören Flur, Küche und Wohnzimmer baulich zusammen, sind in Home Assistant aber getrennte Bereiche. Dafür hat jede Zeile im Kasten **Wandeinstellungen** den Knopf **Keine Wand**: Die Wand fällt im Grundriss und in 3D ganz weg, auch wenn der Nachbarraum sie teilt. ↥ holt sie zurück. Das Licht folgt dem: Eine Lampe leuchtet durch die weggelassene Wand in den Nachbarraum, als wäre es ein Raum.
 
 **Geteilte Wände:** Teilt ein Nachbarraum eine Wand in mehrere Stücke (etwa zwei kleine Räume an einer langen Wand), bekommt jedes Stück eine eigene Zeile „Wand 2–3 · Teil 1“, „… Teil 2“ mit seiner Länge, und jedes Stück kann seine eigene Höhe haben oder wegfallen.
+
+**Wandfarben (neu in 3.1):** Im Kasten **Wandeinstellungen** steht oben **Wandfarben**: **Alle Wände** färbt jede Wand des Raums auf einmal, die Farbfelder daneben sind schnelle Vorschläge. Danach hat jede Wand in ihrer Zeile ein eigenes Farbfeld; eine eigene Farbe ist blau umrandet, **Zurücksetzen** nimmt sie wieder weg. Gefärbt wird die Seite der Wand, die im Raum liegt – die Seite im Nachbarraum färbt jener Raum. Die Außenseite der Außenwände stellst du unter **⚙ Einstellungen → 🎨 Stile → Fassade** ein. Wandfarben zeigen nur die wohnlichen Stile (siehe [5.12](#512-stile-neu-in-31)); im Neon-Look bleiben die Wände Neon. Damit du die Farben gleich siehst, schaltet **3D daneben** beim Färben auf **Wohnlich** um.
 
 ### 4.5 Das ⚙ Einstellungen-Menü
 
@@ -191,6 +193,7 @@ Alles, was zum ganzen Plan gehört und nicht zu einer Etage, einem Raum oder ein
 | **🎬 Live-Regie** | siehe [6.1](#61-kamera-cockpit) |
 | **🎙 Sprachsteuerung** | siehe [5.10](#510-sprachsteuerung-neu) |
 | **⭐ Favoriten** | das Zentral-Menü der 3D-Ansicht (unten) |
+| **🎨 Stile** | Stile, eigene Stile, Tageszeiten und Fassade, siehe [5.12](#512-stile-neu-in-31) |
 | **🖼 Hintergrund** | was hinter dem 3D-Haus liegt (unten) |
 | **⛰ Gelände** | siehe [4.21](#421-keller-und-gelände) |
 | **💾 Sicherung** | Export, Import, Wiederherstellen, siehe Kapitel 9 |
@@ -608,7 +611,7 @@ Oben rechts stehen:
 |---|---|
 | **Auto** / **Tablet** / **Hoch** | Qualitätsstufe. Tablet lässt Muster, Schatten und Halos weg und wird auf Fire-Tablets und langsamen Geräten automatisch gewählt. Hoch zeigt zusätzlich Lichtkegel unter Spots |
 | **Uhr** | Datum und Uhrzeit in einer Ecke der Ansicht (↖ ↗ ↙ ↘) oder aus – pro Gerät; in der Karte `clock: tr`. 12 oder 24 Stunden wie im Home-Assistant-Profil unter **Zeitformat** eingestellt |
-| **Neon** / **Blueprint** / **Tag** / **Auto** | Der Look; **Auto** zeigt Tag, solange die Sonne über dem Horizont steht (`sun.sun`), und Neon nach Sonnenuntergang – fürs Wandtablet. In der Karte `theme: auto`. Das Farbfeld daneben setzt eine **eigene Akzentfarbe**: Im Neon-Look nehmen Linien und Leuchtkanten sie an, die Knöpfe und Pins in jedem Look; ↺ bringt das Cyan zurück |
+| **🎨** | Der Stil: Neon, Blueprint, Tag, die wohnlichen und gestalteten Stile, deine eigenen Stile, **Auto** (Tag, solange die Sonne über dem Horizont steht, danach Neon) oder **Hausplan**, siehe [5.12](#512-stile-neu-in-31). In der Karte `theme: cozy`. Das Farbfeld daneben setzt eine **eigene Akzentfarbe**: Im Neon-Look nehmen Linien und Leuchtkanten sie an, die Knöpfe und Pins in jedem Look; ↺ bringt das Cyan zurück |
 | **Keine** / **Im Raum** / **Wichtige** / **Alle** | Welche Gerätesymbole erscheinen. Wichtige zeigt nur Geräte ohne eigenes 3D-Modell und Werte wie Watt oder die laufende App. **Im Raum** zeigt in der Haus- und Etagenansicht keine Symbole und in einem geöffneten Raum nur dessen eigene – praktisch bei vielen Steckdosen und Sensoren |
 | **Klein** / **Normal** / **Groß** | Wie groß die Gerätesymbole sind; das Gerät merkt sich die Wahl (Karte: `marker_size`) |
 | **◧ / ◨** | Etagenbilder, Stern, Suche und Auge links oder rechts – praktisch, wenn die Ansicht am linken Rand des Dashboards sitzt |
@@ -733,6 +736,7 @@ Sprich mit deinem Haus. Unten links in der 3D-Ansicht erscheint ein **Mikrofon-K
 | „Zeig die Kamera Haustür“, „Zeig die Kamera im Garten“ | Die Ansicht schaut durch die Kamera (mit dem Kamera-Cockpit). |
 | „Zeig die Kameras“ | Die Kamera-Wand öffnet sich (mit dem Kamera-Cockpit). |
 | „Was ist offen?“, „Wo ist es kalt?“, „Läuft die Waschmaschine?“, „Was zieht Strom?“, „Wer ist zu Hause?“, „Wie ist das Wetter?“, „Ist alles in Ordnung?“, „Was steht heute an?“, „Guten Morgen“, „Gute Nacht“ … | Mit dem Modul **Das Haus antwortet** (kostenlos im Shop, siehe unten): Die Antwort erscheint als Sprechblase, wird über die Sprachausgabe von Assist vorgelesen, und das Haus zeigt sie – offene Fenster blinken, der kälteste Raum öffnet sich, die Ansicht fliegt zur Waschmaschine. Die ganze Liste steht unten. |
+| „NeonPlan Stil Wohnlich“, „Haus auf Synthwave“, „Stil zurück“ | Der Bildschirm wechselt den Stil, siehe [5.12](#512-stile-neu-in-31). |
 | „Licht im Flur an“, „Mach die Rollläden runter“ | Befehle gehen an **Assist** von Home Assistant. Die Antwort erscheint als Sprechblase. |
 
 Zusammengesetzte Wörter versteht es auch: „Auffahrtkamera“ trifft die Kamera „Auffahrt“, „Flurlicht“ das Licht im Flur. Unter **⚙ Einstellungen → Sprachsteuerung** steht die Liste **Das versteht NeonPlan**, mit den Sätzen der eingespielten Module.
@@ -886,6 +890,48 @@ actions:
 Den ESP32 kannst du danach weiterverwenden, am besten als ESPHome-Bluetooth-Proxy – dann macht er die Ortung sogar schneller. Der Helfer baut auf [irk-capture](https://github.com/DerekSeaman/irk-capture) von Derek Seaman auf (MIT-Lizenz) – danke! Andere Wege: mit einem **Mac** über die Schlüsselbundverwaltung (der Mac muss im selben iCloud-Konto sein). Den Schlüssel fügst du dann im Assistenten unter **Geräte → Schlüssel einfügen** ein (als 32 Zeichen oder so, wie der Mac ihn zeigt).
 
 ---
+
+### 5.12 Stile (neu in 3.1)
+
+> **Neon war erst der Anfang.** Seit 3.1 zeigt NeonPlan dein Haus in vielen Stilen, kostenlos für alle. Editor und Bedienung bleiben Neon, das Haus darf wohnlich werden. Alle Stile laufen auch auf alten Wandtablets: Sie färben nur anders ein und brauchen keine zusätzliche Rechenleistung.
+
+![Ein Haus – viele Stile](images/styles-hero-de.jpg)
+
+**Stil wählen.** In der 3D-Ansicht: **⚙** (oben neben der Version) → **🎨**. Jedes Gerät merkt sich seinen Stil. Die Liste ist in Gruppen geordnet:
+
+| Gruppe | Stile |
+|---|---|
+| **Automatisch** | **Auto** (Tag, solange die Sonne scheint, danach Neon – wie bisher) und **Hausplan (Tag / Abend / Nacht)**, siehe unten |
+| **Neon & Klassik** | Neon (Standard), Blueprint, Tag, Nacht / Fokus |
+| **Wohnlich – echte Materialien** | Wohnlich, Wohnlich Abend, Winterabend: Holzböden, Fliesen, helle Wände mit deinen Wandfarben, weiche Schatten unter den Möbeln. Die Abend-Stile dunkeln das Haus warm ab |
+| **Gestaltet** | Synthwave, Architekturmodell, Pastell, Warm / Holz & Papier |
+| **Eigene Stile** | Was du selbst angelegt hast (unten) |
+
+Lichter, offene Fenster und aktive Geräte behalten in jedem Stil ihre Signalfarbe, damit du auf einen Blick siehst, was los ist. Wandfarben und Fassade zeigen nur die wohnlichen Stile (siehe [4.4](#44-wände)).
+
+**Die Stile im Editor.** **⚙ Einstellungen → 🎨 Stile** zeigt oben das Haus groß im gewählten Stil, darunter jeden Stil als Kachel. **In „3D daneben“ zeigen** übernimmt ihn in die 3D-Ansicht neben dem Plan; dafür steht dort auch eine Stil-Auswahl neben **Effekte**. **Fassade** setzt die Farbe der Außenwände in den wohnlichen Stilen.
+
+**Eigene Stile.** **＋ Als eigenen Stil anlegen** macht aus jedem Stil eine Kopie mit allen Einstellungen: Name, **Echte Materialien** oder eine eigene Farbpalette (Linien, dunkle und helle Flächen, Farbanteil, Grundhelligkeit, Kontrast), **Dunkler Stil – Linien leuchten**, **Abendstimmung**, **Bodenstruktur**, **Licht nach Richtung**, **Raumecken**, **Kontaktschatten unter Möbeln**, **Aktive Geräte farbig** und der Hintergrund oben und unten. Jede Änderung siehst du sofort im großen Bild. Eigene Stile stehen danach in jeder Stil-Liste (Ansicht, Karte, Vorlagen) und hören auf ihren Namen in der Sprachsteuerung.
+
+**Tageszeiten (Hausplan).** Unter **🕒 Tageszeiten (Hausplan)** legst du fest, welcher Stil **tagsüber**, **abends** und **nachts** gilt, zum Beispiel Wohnlich, Wohnlich Abend und Nacht / Fokus. **Umschalten nach Sonne**: Tag, solange die Sonne oben ist, danach Abend bis **Nacht ab**. **Nach Uhrzeit**: die drei Zeiten **Tag ab**, **Abend ab** und **Nacht ab**. Der Plan gilt für jeden Bildschirm, dessen Stil **Hausplan** ist – vor allem das Panel auf dem Wandtablet.
+
+**Dashboard-Karte.** Im Karten-Dialog wählst du unter **Stil** jeden Stil, **Auto** oder **Hausplan**. Hat die Karte einen festen Stil, kann sie zusätzlich **Stil abends** und **Stil nachts** haben; umgeschaltet wird nach dem Hausplan (Sonne oder Uhrzeit). In YAML: `theme`, `theme_evening`, `theme_night` (siehe [8.2](#82-alle-optionen-in-yaml)). Karten-Vorlagen übernehmen den Stil genauso.
+
+**Per Sprache.** „NeonPlan Stil Wohnlich“, „Haus auf Synthwave“, „Stil Winterabend“ – der Stil gilt sofort auf dem Bildschirm, auf dem du sprichst. „Stil zurück“ (oder „Stil normal“) holt den eingestellten Stil zurück. Über Assist geht das mit dem Satzanfang „NeonPlan …“ oder „Haus …“.
+
+**Aus Automationen.** Die Aktion **NeonPlan 3D: Stil setzen** (`neonplan3d.set_style`) schaltet die offenen NeonPlan-Bildschirme um:
+
+```yaml
+action: neonplan3d.set_style
+data:
+  style: evening        # neon, blueprint, day, focus, synth, cozy, evening, winter, model, pastel, warm – oder der Name
+  screens: [kueche]     # optional: nur diese Bildschirmnamen; leer = alle
+  minutes: 60           # optional: so lange, dann zurück; leer = bis zur nächsten Änderung
+```
+
+`style: reset` stellt den eingestellten Stil wieder her. **Stil aus Helfer-Entität:** Unter **🕒 Tageszeiten** (für das ganze Haus) oder in der Karte (`style_entity`) trägst du einen `input_select` oder `input_text` ein. Solange sein Zustand einen Stil nennt (z. B. „Wohnlich“), gilt dieser Stil.
+
+**Was gewinnt?** Die neueste Einstellung. Ein Stil per Sprache oder Aktion gilt, bis du ihn zurücksetzt, die Minuten ablaufen oder du für den Bildschirm (Gerät, Karte oder Vorlage) einen Stil neu wählst. Danach kommen die Helfer-Entität und dann der eingestellte Stil.
 
 ## 6. Pro-Erweiterungen
 
@@ -1327,7 +1373,10 @@ angle_lock: false       # true: 3D-Sperre – der Blickwinkel bleibt fest, Ziehe
 explode: true           # Etagen in der Hausansicht auseinanderziehen
 floor_stack: dim        # Etagen darunter: dim | stacked | single
 quality: auto           # auto | low | high
-theme: neon             # neon | blueprint | day
+theme: neon             # neon | blueprint | day | focus | synth | cozy | evening | winter | model | pastel | warm | my_… (eigener Stil) | auto | house
+theme_evening: evening  # optional: Stil abends (nach dem Hausplan)
+theme_night: focus      # optional: Stil nachts
+style_entity: input_select.neonplan_stil  # optional: Helfer, dessen Zustand einen Stil nennt
 accent: "#ff8a00"       # eigene Akzentfarbe (Linien im Neon-Look, Knöpfe, Pins); weglassen = Cyan
 markers: important      # none | room | important | all
 marker_size: normal     # small | normal | large

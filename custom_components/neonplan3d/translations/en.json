@@ -76,6 +76,24 @@
           "description": "Only the views of this floor plan (its id, \"main\" for the first one)."
         }
       }
+    },
+    "set_style": {
+      "name": "Set style",
+      "description": "The open NeonPlan screens show this style: Neon, Homely, Homely evening and more. Without screens: every open view. Back to the screen's own setting with the style reset.",
+      "fields": {
+        "style": {
+          "name": "Style",
+          "description": "A style id (neon, blueprint, day, focus, synth, cozy, evening, winter, model, pastel, warm) or its name; reset: back to the own setting."
+        },
+        "screens": {
+          "name": "Screens",
+          "description": "Only the NeonPlan screens with these screen names (set in the view's settings or the card's option screen). Empty: every open view."
+        },
+        "minutes": {
+          "name": "Minutes",
+          "description": "For this long, then back to the own setting. Empty: until changed again."
+        }
+      }
     }
   }
 }
