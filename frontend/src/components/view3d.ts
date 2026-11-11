@@ -1153,6 +1153,9 @@ export class Fp3dView3d extends LitElement {
     if (changed.has("keepRoof")) v.setKeepRoof(this.keepRoof);
     if (changed.has("hideRoof")) v.setHideRoof(this.hideRoof);
     if (changed.has("floorStack")) v.setFloorStack(this.floorStack);
+    // the newest setting wins: a style chosen anew for this screen (device, card, template) ends one set by voice or an action
+    const restyled = (["theme", "themeEvening", "themeNight"] as const).some((k) => changed.has(k) && changed.get(k) !== undefined);
+    if (restyled && this._styleOverride) this.setStyleOverride("reset", null);
     if (changed.has("theme") || changed.has("themeEvening") || changed.has("themeNight") || changed.has("styleEntity") || changed.has("_styleOverride") || changed.has("building")) v.setStyle(this.effectiveStyle());
     if (changed.has("accent")) v.setAccent(this.accent ?? null);
     if (changed.has("surfaceGrab")) v.setSurfaceGrab(this.surfaceGrab ?? null);
