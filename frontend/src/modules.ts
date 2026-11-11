@@ -117,6 +117,8 @@ export interface SpokenOpening {
 /** What a module may ask the host for. */
 export interface ModuleHost {
   api: typeof MODULE_API;
+  /** What the stage can do beyond api 1: 2 = pictures on screen faces, pop-ups, uploaded pictures (NeonPlan 3.0.6). */
+  stage?: number;
   hass(): HomeAssistant;
   building(): Building | null;
   /** The language of the user ("de", "en-GB" …). */
@@ -173,6 +175,19 @@ export interface ModuleHost {
   /** The media players of the plan (placed as a device or linked to a piece of furniture), each with its room. */
   /** The plan's speakers; `at` where it stands (floor x, z) and `top` its height above the floor (m). */
   speakers?(): { entity: string; name: string; floorId: string; roomId: string | null; furnitureId?: string; at?: [number, number]; top?: number }[];
+
+  // --- pop-ups, pictures and the people (the 3D view's host has them) ---
+  /** Opens one of the module's pop-ups (see `popups`); it closes by itself after `autoCloseMs` (default a minute). */
+  openPopup?(id: string, autoCloseMs?: number): void;
+  closePopup?(): void;
+  /** A stored picture (an id from an `images` field) as a URL the view can show; null while it is still fetched. */
+  imageUrl?(id: string): string | null;
+  /** Where located people stand right now (person entity ids with their room). */
+  people?(): { id: string; floorId: string; roomId: string; roomName: string }[];
+  /** The look of the view: pale (Day) or dark (Neon, Blueprint). */
+  look?(): "light" | "dark";
+  /** The tablet level (weak devices): a module takes it slower. */
+  lowPower?(): boolean;
 }
 
 /**
@@ -307,7 +322,51 @@ export type ScenePiece =
       floorId: string;
       areaId: string;
       flows: Record<string, { active: boolean; color: [number, number, number] }>;
+    }
+  | {
+      /** A picture on the screen face of a piece of furniture (a display, a frame): the host fits it into the face. */
+      kind: "screen";
+      furnitureId: string;
+      /** A URL or a data URL. */
+      picture: string;
+      /** Brightness 0..1 (dimmed at night); default 1. */
+      level?: number;
+      /** The pane behind a picture that does not fill the face (0..1 per channel). */
+      color?: [number, number, number];
+      /** A tap on the item opens this pop-up of the module (see `popups`). */
+      popup?: string;
     };
+
+/**
+ * A pop-up a module opens over the middle of the 3D view, built from plain sections the host draws in its own look:
+ * a picture, text, grouped rows, a check list, people, tiles, a media head, a form. The host closes it on a tap
+ * beside it or after `autoCloseMs`.
+ */
+export interface ModulePopup {
+  id: string;
+  title: string;
+  icon?: string;
+  /** Wider (a picture at full size). */
+  wide?: boolean;
+  sections: PopupSection[];
+}
+
+export type PopupSection =
+  | { kind: "image"; src: string; /** A camera entity: the host shows its stream when it can. */ live?: string }
+  | { kind: "text"; text: string; muted?: boolean }
+  | { kind: "heading"; text: string }
+  /** A line of values: a big one, a smaller one beside it, a highlighted note. */
+  | { kind: "line"; text: string; sub?: string; note?: string }
+  /** Groups of rows (days with their events): a lead (the time), the text, a small sub text, a detail shown when the group is open, a colour bar. */
+  | { kind: "groups"; groups: { key: string; title: string; strong?: boolean; open?: boolean; onToggle?(): void; rows: { lead: string; leadStrong?: boolean; text: string; sub?: string; detail?: string; color?: string }[] }[]; empty?: string }
+  | { kind: "checklist"; items: { id: string; text: string; done: boolean; onToggle(): void | Promise<void> }[]; empty?: string }
+  | { kind: "people"; items: { name: string; picture?: string | null; sub: string; bright: boolean }[] }
+  | { kind: "tiles"; items: { label: string; symbol: string; main: string; sub?: string }[] }
+  | { kind: "media"; picture?: string | null; title: string; sub?: string; buttons?: { label: string; onTap(): void | Promise<void> }[] }
+  /** A small form: fields with ids, the values come back on submit; `open` false shows only the button that opens it. */
+  | { kind: "form"; id: string; open: boolean; button: string; onOpen(): void; onCancel(): void; fields: { id: string; kind: "text" | "date" | "time" | "select"; placeholder?: string; value: string; options?: { id: string; label: string }[] }[]; submit: string; onSubmit(values: Record<string, string>): void | Promise<void> }
+  /** A line to type and send (a new item of a list). */
+  | { kind: "input"; placeholder: string; button: string; onSubmit(text: string): void | Promise<void> };
 
 /** A row of a module's glass card: a label with its value, coloured, with a position on a scale (0..100) when it has one. */
 export interface CardRow {
@@ -395,7 +454,9 @@ export type ModuleField =
   | { kind: "number"; label: string; value: number | null; step?: number; min?: number; max?: number; placeholder?: string; hint?: string; set(v: number | null): void }
   | { kind: "button"; label: string; primary?: boolean; title?: string; onTap(): void }
   /** A list of lines to edit, one per line (sentences, names). */
-  | { kind: "lines"; label: string; value: string[]; placeholder?: string; set(v: string[]): void };
+  | { kind: "lines"; label: string; value: string[]; placeholder?: string; set(v: string[]): void }
+  /** Pictures the user uploads (stored by the host, ids in `value`); `add` is the button's label. */
+  | { kind: "images"; label: string; value: string[]; add: string; set(ids: string[]): void };
 
 /** A pool's pipe as the module's flow logic sees it. */
 export interface PipeFlowDevice {
@@ -462,6 +523,8 @@ export interface NeonModule {
   pipes?: PipeRules;
   /** Pool Pro: the pools as the voice modules ask for them. */
   pools?(host: ModuleHost): SpokenPool[];
+  /** The module's pop-ups (opened by a tap on a `screen` piece, or by the module through `host.openPopup`). */
+  popups?(host: ModuleHost): ModulePopup[];
 }
 
 interface Loaded {
@@ -573,6 +636,10 @@ export async function moduleVoice(sentence: string, host: ModuleHost): Promise<V
 /** Everything the loaded modules add to the stage. */
 export function moduleScene(host: ModuleHost): ScenePiece[] {
   return collect((m) => m.scene?.(host));
+}
+
+export function modulePopups(host: ModuleHost): ModulePopup[] {
+  return [...loaded.values()].flatMap((m) => m.module.popups?.(host) ?? []);
 }
 
 export function moduleCards(host: ModuleHost): ModuleCard[] {

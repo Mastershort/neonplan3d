@@ -4,6 +4,23 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 [releases page](https://github.com/Mastershort/neonplan3d/releases). Ideas and votes:
 [Discussions → Ideas](https://github.com/Mastershort/neonplan3d/discussions/categories/ideas).
 
+## 3.0.6
+
+### Added
+- **Effects in the editor's 3D pane can rest:** a chip **Effects** beside *Auto / Cut* switches weather, sun, pets and ghost off in the pane beside the plan – a quiet pane for drawing; the 3D view itself is not affected (#1033, thanks daene85).
+
+### Fixed
+- **A new plan showed roofs of the main plan:** on the property, a plan whose rooms were all deleted still brought its leftover roof sections along (a pent roof in the air looked like a glass table) – a building without rooms has no roof on the property any more (#986, thanks Ollywood71).
+- **Snow on a sloping lawn** followed the high edge and floated over the low side; it now lies on the slope (#1036, thanks Anrolosia).
+- **Snow on the roof covered the solar modules' figures;** the living solar overlay now lies on top of the snow (#1031, thanks PetrMa).
+- **A track with several spots** lit only from its middle with one narrow cone; a pack lamp with several glowing parts now lights from each of them, with a cone under each spot (#1034, thanks daene85).
+- **Time travel, day summary:** a room's temperature range used every temperature sensor of its area, dew point and comfort indices included; it now takes the room's own temperature (⚙ Room climate) or the plain temperature sensors. Switches that drive a lamp of the plan count as lights (#1032, thanks abgestumpft).
+- **Import page: a RoomPlan scan of a whole home** whose walls are listed only per room was not recognised; it is now read like any other scan.
+
+### Changed
+- **The frames pack brings its own module:** the living faces of the "Digital Picture Frames" pack (calendar, lists, board, people, camera, cover, person, photos, weather) and their pop-ups now come with the pack (release 2) as a signed module, like Heat Pro; NeonPlan itself only provides the stage. Settings made with 3.0.5 are read as they are. Until an administrator has approved the module under Extensions (the usual review), the frames show a dark pane.
+- **Module API:** a module may lay a picture on the screen face of a piece of furniture (`screen` piece), open a pop-up of plain sections over the view (`popups`, `host.openPopup`), and ask the editor for uploaded pictures (`images` field); the host tells a module where people stand, which look is on and whether the tablet level runs.
+
 ## 3.0.5
 
 ### Added

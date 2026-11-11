@@ -85,6 +85,7 @@
 
       // furniture packs: the invented demo pack, plus local pack sources from private/ (not in git)
       let importedPacks = null;
+      const moduleCode = {};
       async function previewPacks() {
         if (importedPacks === null) {
           importedPacks = [DEMO_PACK];
@@ -98,7 +99,14 @@
             const index = await fetch("../private/packs/src/index.json");
             for (const name of index.ok ? await index.json() : []) {
               const pack = await fetch(`../private/packs/src/${name}`);
-              if (pack.ok) importedPacks.push({ licensee: null, ...(await pack.json()) });
+              if (!pack.ok) continue;
+              const data = await pack.json();
+              // a pack that carries a module (a local build with its code): the code is served apart, the module counts as approved
+              if (data.module?.code) {
+                moduleCode[data.id] = { code: data.module.code, release: data.release ?? 1, api: data.module.api ?? 1 };
+                data.module = { api: data.module.api ?? 1, kind: data.module.kind ?? "stage", approved: true };
+              }
+              importedPacks.push({ licensee: null, ...data });
             }
           } catch {
             // no local packs
@@ -175,6 +183,10 @@
         },
         async callWS(msg) {
           switch (msg.type) {
+            // a local module's code (see previewPacks)
+            case "neonplan3d/modules/code":
+              if (moduleCode[msg.pack_id]) return moduleCode[msg.pack_id];
+              throw new Error("no such module in the demo");
             // the card templates' overview of the open screens (invented devices)
             case "neonplan3d/screens/list": {
               const t = Date.now() / 1000;

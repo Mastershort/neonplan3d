@@ -64,7 +64,15 @@ export function roomEntities(hass: HomeAssistant, building: Building, spec: Pick
         lights: all.filter((id) => domainOf(id) === "light"),
         windows,
         climates: all.filter((id) => domainOf(id) === "climate"),
-        temps: all.filter((id) => domainOf(id) === "sensor" && cls(id) === "temperature"),
+        // the room's own temperature when one is set (⚙ Room climate); else the temperature sensors of its area without
+        // the comfort indices some integrations add (dew point, frost point, humidex …, #1032)
+        temps: (() => {
+          const own = (room as { climate?: { temperature?: string | null } | null }).climate?.temperature;
+          if (own && hass.states[own]) return [own];
+          const index = /dew|frost|humidex|heat_?index|simmer|wind_?chill|apparent|feels|taupunkt|gef(ü|ue)hlt|perceived|comfort/i;
+          const name = (id: string) => `${id} ${String(hass.states[id]?.attributes.friendly_name ?? "")}`;
+          return all.filter((id) => domainOf(id) === "sensor" && cls(id) === "temperature" && !index.test(name(id)));
+        })(),
         all,
       });
     }

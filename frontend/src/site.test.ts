@@ -87,3 +87,16 @@ test("every building keeps its own roof: both become sections, the garden house'
   const none = composeSite(h, [{ id: "pgarten", building: g, site: { on: true, x: 12, y: 8, rot: 90 } }]);
   assert.ok((none.settings.roof.sections ?? []).every((x) => !x.id.startsWith("pgarten:")));
 });
+
+test("a building without rooms brings no roof to the property: sections left from deleted rooms stay out (#986)", () => {
+  // the main plan: rooms deleted, three sections left over; the new plan beside it has one room
+  const h = house();
+  for (const f of h.floors) f.rooms = [];
+  h.settings.roof = { ...h.settings.roof, type: "custom", sections: [{ id: "roof_old", x0: 11, z0: 15, x1: 17, z1: 21, shape: "flat", axis: "z", eave_a: 5.5, eave_b: 5.5, pitch_a: 35, pitch_b: 35, base: 5.5 }] };
+  const g = garden();
+  g.settings.roof = { ...g.settings.roof, type: "flat", pitch: 35, overhang: 0.4 };
+  const b = composeSite(h, [{ id: "pneu", building: g, site: { on: true, x: 0, y: 0, rot: 0 } }]);
+  const secs = b.settings.roof.sections ?? [];
+  assert.ok(!secs.some((x) => x.id === "roof_old"), "the empty main plan's leftover sections");
+  assert.ok(secs.some((x) => x.id.startsWith("pneu:")), "the new plan's own roof");
+});

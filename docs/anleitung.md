@@ -425,7 +425,7 @@ Mit **Draußen → Außen** ziehst du Rasen, Terrasse, Weg, Einfahrt, Beet, Heck
 **3D daneben** zeigt die 3D-Ansicht rechts neben dem Plan. Jede Änderung erscheint dort nach einem Augenblick.
 
 - Die **Leiste zwischen Plan und 3D** ziehst du, um das Verhältnis zu ändern. Der Browser merkt sich die Einstellung.
-- Oben in der 3D-Hälfte schaltest du zwischen **Wände hoch** und **Schnitt**.
+- Oben in der 3D-Hälfte schaltest du zwischen **Wände hoch** und **Schnitt**. Daneben steht **Effekte**: aus = kein Wetter, keine Sonne, keine Haustiere und kein Geist in der 3D-Hälfte, ein ruhiges Fenster zum Zeichnen. Das Gerät merkt sich den Schalter; die eigentliche 3D-Ansicht bleibt davon unberührt.
 - Ein Möbel oder Gerät kannst du auch in der 3D-Hälfte antippen und ziehen. Unten erscheint dann eine Leiste mit Breite, Tiefe, Höhe, Höhe über Boden, Drehung und Löschen.
 - Ohne Stecknadel klappt die Seitenleiste neben der 3D-Ansicht ein, sobald du dort etwas antippst, und öffnet sich über der 3D-Hälfte; **‹** am rechten Rand holt sie zurück. Mit **📌 Angeheftet** bleibt sie daneben stehen und klappt nur mit **Einklappen** ein.
 
