@@ -31,7 +31,7 @@ import { backdropImage } from "../backdrop.ts";
 import { screenName, setScreenName, setVoiceArea, setVoiceHere, setVoicePipeline, voiceArea, voiceOnHere, voicePipeline } from "../load-voice.ts";
 import { doorbellCamera, doorbellEntities, directorOnHere, HOLD_DEFAULT, HOLD_MAX, HOLD_MIN, setDirectorHere, type DirectorSettings } from "../director.ts";
 import { deviceSensors, energySummary, flowSegments, gridPoint, hubPoint, inverterToGrid, powerSensorFor, proposeEnergySensors, type EnergyPrefs, type FlowSegment, proposeMeters } from "../energy.ts";
-import { CLIMATE_ATTRS, isPulseDrive, isStatusSensor, robotRoomSensor, TOGGLE_KINDS } from "../devices.ts";
+import { CLIMATE_ATTRS, isPulseDrive, isStatusSensor, robotRoomSensor, slatTilt, TOGGLE_KINDS } from "../devices.ts";
 import { activeSections, sectionFloor, sectionOverhang, dormerParent, effectiveDormer, proposeDormer, sectionGeometry, floorOutline, polygonBox, headroomLines, ridgeHeight, sectionAbove, sectionCutsBelow, roofSectionsFromRooms, sectionFrame, sectionTurn, turnPoint, turnSectionAbout, wallTopUnder } from "../roof-sections.ts";
 import { bestFace, clampField, faceAt, faceCompass, fieldFace, fieldModules, GROUND, moveField, pointOnFace, proposeField, proposeGroundField, proposeWindow, proposeWallField, roofFaces, rowCounts, turnGroundField, fieldCenter, wallFaces, windowAsField, windowCorners, onFace, onField, rayOnFace, type RoofFace } from "../solar.ts";
 import type { SurfaceGrab, SurfaceRay } from "../viewer/viewer3d.ts";
@@ -11508,6 +11508,16 @@ export class Fp3dEditor extends LitElement {
                     ${this.t("cover_position_invert")}</label
                   >`
                 : nothing}
+              ${this.renderSlatInvert(o, o.cover && o.cover !== "none" ? o.cover : autoPick("cover"))}
+              ${garage || isPulseDrive(o.cover)
+                ? nothing
+                : html`<label class="fp3d-field fp3d-wide"
+                    >${this.t("blind_side")}
+                    <select ?disabled=${!admin} @change=${(e: Event) => this.updateOpening({ blind_side: (e.target as HTMLSelectElement).value === "inside" ? "inside" : null })}>
+                      <option value="outside" ?selected=${o.blind_side !== "inside"}>${this.t("blind_side_outside")}</option>
+                      <option value="inside" ?selected=${o.blind_side === "inside"}>${this.t("blind_side_inside")}</option>
+                    </select></label
+                  >`}
               <label class="fp3d-check fp3d-wide" title=${this.t("cover_confirm_hint")}
                 ><input type="checkbox" ?disabled=${!admin} .checked=${!!o.confirm} @change=${(ev: Event) => this.updateOpening({ confirm: (ev.target as HTMLInputElement).checked })} />
                 ${this.t("device_confirm")}</label
@@ -14011,6 +14021,17 @@ export class Fp3dEditor extends LitElement {
   }
 
   /** The times of day: the house plan for every screen set to "House plan", how it switches, a helper entity. */
+  /** "Invert slats" for a blind whose cover reports a slat tilt (a Raffstore, a venetian blind). */
+  private renderSlatInvert(o: Opening, cover: string | null) {
+    if (!o.slat_invert && (!cover || slatTilt(this.hass?.states[cover]) === null)) return nothing;
+    // the blind found by itself is written down with the option, so the sliders know whose slats are turned
+    const set = (on: boolean) => this.updateOpening(on ? { slat_invert: true, ...(cover && !o.cover ? { cover } : {}) } : { slat_invert: null });
+    return html`<label class="fp3d-check fp3d-wide" title=${this.t("slat_invert_hint")}
+      ><input type="checkbox" ?disabled=${!this.isAdmin} .checked=${!!o.slat_invert} @change=${(ev: Event) => set((ev.target as HTMLInputElement).checked)} />
+      ${this.t("slat_invert")}</label
+    >`;
+  }
+
   private renderStylePlan() {
     const st = this._doc.settings;
     const pick = (key: "style_day" | "style_evening" | "style_night", label: I18nKey) =>

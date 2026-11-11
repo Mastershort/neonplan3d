@@ -249,6 +249,8 @@ Türen und Fenster lassen sich im Plan auch an einem breiten Streifen um die Öf
 |---|---|
 | **Rollladen** | Der Rollladen fährt vor dem Fenster – oder vor einer Tür (Haustür, Terrassentür, Schiebetür) – mit der Position der Cover-Entität |
 | **Positions-Sensor** | Für Rollläden, deren Position über einen eigenen Sensor kommt, etwa bei Homematic. Bei Bedarf umkehrbar |
+| **Rollladen sitzt** (seit 3.1.1) | **außen (Rollladen)** wie bisher, oder **innen (Rollo)**: Die Kassette sitzt dann innen über dem Fenster und der Stoff läuft im Raum herunter. Sonnenflecken und das Fensterlicht folgen dem Rollo genauso |
+| **Lamellen** (seit 3.1.1) | Meldet die Cover-Entität eine Lamellenstellung (Raffstore, Jalousie), zeichnet NeonPlan einzelne Lamellen, die sich mitdrehen: waagerecht bei 100, geschlossen bei 0. Das Sonnenlicht im Raum folgt ihnen – ein heruntergefahrener Raffstore mit offenen Lamellen lässt Licht durch. **Lamellen umkehren (0 = offen)** erscheint dann im Formular, für Integrationen, die den Wert andersherum melden: Er wird in 3D, im Schnellmenü und im Raumfenster gedreht, auch der gesendete |
 | **Vor dem Schalten nachfragen** | Auf, Zu und Positionen fragen im Schnellmenü und im Raumfenster erst nach, und Wischen über das Symbol bewegt den Rollladen nicht mehr (es dreht dann die Ansicht). Stopp fragt nie. Gut für Tablets, auf denen Rollläden oder das Garagentor sonst versehentlich fahren |
 | **Kontakt** | Die Tür schwingt auf, das Fenster öffnet sich. Angeboten werden Binärsensoren der Klasse Tür, Fenster oder Öffnung und solche ohne Klasse (KNX, enOcean, Template-Sensoren haben oft keine) |
 | **Kippkontakt** | Ein zweiter Sensor, der „gekippt“ meldet |

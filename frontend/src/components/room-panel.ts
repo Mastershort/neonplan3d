@@ -2,7 +2,7 @@
 // scenes and scripts). Shown next to the 3D view when a room is selected.
 
 import { css, html, LitElement, nothing, type TemplateResult } from "lit";
-import { areaEntities, coverCalls, coverTiltButtons, entityName, groupByDevice, isUnavailable, kindOf, roomClimateSensors, roomClimateValue, roomPanelEntities, fromCelsius, tempUnit, type DeviceKind } from "../devices.ts";
+import { areaEntities, coverCalls, coverTiltButtons, slatTilt, slatsInverted, entityName, groupByDevice, isUnavailable, kindOf, roomClimateSensors, roomClimateValue, roomPanelEntities, fromCelsius, tempUnit, type DeviceKind } from "../devices.ts";
 import { formatNumber, translate, type I18nKey } from "../i18n.ts";
 import { hasFeature, released } from "../features.ts";
 import { locatedPersons, personsShown } from "../presence.ts";
@@ -433,8 +433,11 @@ export class Fp3dRoomPanel extends LitElement {
               min="0"
               max="100"
               ?disabled=${na}
-              .value=${String(a.current_tilt_position)}
-              @change=${(e: Event) => this.call("cover", "set_cover_tilt_position", { entity_id: id, tilt_position: Number((e.target as HTMLInputElement).value) })}
+              .value=${String(slatTilt(st, slatsInverted(this.building, id)) ?? 0)}
+              @change=${(e: Event) => {
+                const shown = Number((e.target as HTMLInputElement).value);
+                this.call("cover", "set_cover_tilt_position", { entity_id: id, tilt_position: slatsInverted(this.building, id) ? 100 - shown : shown });
+              }}
           /></label>`
         : coverTiltButtons(this.hass?.states[id])
           ? html`<div class="fp3d-rp-buttons">

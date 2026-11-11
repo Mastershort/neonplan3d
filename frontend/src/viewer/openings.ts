@@ -6,6 +6,7 @@
 import { Color, type BufferGeometry } from "three";
 import { sidelightLayout, isFrontDoor, openingStyle } from "../model.ts";
 import type { OpeningInfo } from "./build.ts";
+import type { Opening } from "../model.ts";
 import { ALWAYS, GeoBuffer, shade } from "./geo.ts";
 import { palette } from "./palette.ts";
 
@@ -23,6 +24,8 @@ export interface OpeningState {
   tilt2?: number;
   /** Closed fraction of the blind or garage door (0 = up, 1 = down); null = no blind. */
   cover: number | null;
+  /** A venetian blind or Raffstore: how far its slats stand open (1 = level, 0 = shut); null or missing: a plain blind. */
+  slats?: number | null;
   /** A sensor reports the state (contact, tilt sensor or cover); without one "closed" is a guess. */
   sensed?: boolean;
   /** The door's smart lock is unlocked: the leaf's free edge glows softly (#682). */
@@ -87,6 +90,49 @@ function panel(buf: GeoBuffer, tf: Tf, x0: number, x1: number, n: number, y0: nu
     part(y0, cut, ALWAYS);
     part(cut, y1, bucket);
   }
+}
+
+/** A blind hung inside the room (a roller shade) – windows and doors only, never a garage door. */
+export function blindInside(o: Pick<Opening, "type" | "blind_side">): boolean {
+  return o.blind_side === "inside" && o.type !== "garage";
+}
+
+/** Distance between the slats of a venetian blind, their depth, and how steep they stand when shut. */
+const SLAT_PITCH = 0.07;
+const SLAT_DEPTH = 0.075;
+const SLAT_SHUT = 1.4;
+
+/**
+ * How much of the opening a blind covers for the light (0 = none, 1 = all): the lowered part of a venetian blind
+ * lets light through as far as its slats stand open.
+ */
+export function lightCover(st: Pick<OpeningState, "cover" | "slats"> | null | undefined): number {
+  const cover = Math.min(1, Math.max(0, st?.cover ?? 0));
+  return typeof st?.slats === "number" ? cover * (1 - Math.min(1, Math.max(0, st.slats))) : cover;
+}
+
+/**
+ * The slats of a venetian blind from `y1` down to `y0`, each a strip turned about its long axis: level when open
+ * (1), steep with the outer edge down when shut (0). `n` is the plane the blind hangs in. Returns their number.
+ */
+export function slatStrips(buf: GeoBuffer, tf: Tf, x0: number, x1: number, n: number, y0: number, y1: number, open: number, color: Color, cut: number, bucket: number, side = 1): number {
+  const a = (1 - Math.min(1, Math.max(0, open))) * SLAT_SHUT;
+  // inside the room (side −1) the low edge is the one towards the room
+  const dn = ((Math.cos(a) * SLAT_DEPTH) / 2) * side;
+  const dy = (Math.sin(a) * SLAT_DEPTH) / 2;
+  let count = 0;
+  for (let y = y1 - SLAT_PITCH / 2; y > y0 - 1e-6; y -= SLAT_PITCH) {
+    const fold = y <= cut + 1e-6 ? ALWAYS : bucket;
+    // outer edge (away from the room) lower, inner edge higher; the texture's bright line runs along the outer edge
+    const p = tf(x0, n - dn, y - dy);
+    const q = tf(x1, n - dn, y - dy);
+    const r = tf(x1, n + dn, y + dy);
+    const s = tf(x0, n + dn, y + dy);
+    buf.tri(p, q, r, color, color, color, [0, 0.03, 1, 0.03, 1, 0.85], fold);
+    buf.tri(p, r, s, color, color, color, [0, 0.03, 1, 0.85, 0, 0.85], fold);
+    count++;
+  }
+  return count;
 }
 
 /** Horizontal quad in local coordinates (x along the opening, n towards the room) at height y. */
@@ -420,14 +466,28 @@ export function buildOpeningParts(infos: readonly OpeningInfo[], states: Readonl
       }
     }
     // blind on the outside: box above the opening, slats down to the closed fraction
-    if (st.cover !== null) {
+    if (st.cover !== null && blindInside(info.opening)) {
+      // a roller shade inside the room: a slim cassette on the wall above the window, the cloth runs down in
+      // front of the reveal and ends on the window board, a bar along its lower edge
+      const face = info.faceRoom;
+      splitBox(frames, tf, -0.04, W + 0.04, face, face + 0.07, T, T + 0.09, new Color(OP.BLIND_BOX), frameTop, cut, bucket);
+      const closed = Math.min(1, Math.max(0, st.cover));
+      if (closed > 0.01) {
+        const bottom = T - closed * (T - S);
+        if (typeof st.slats === "number" && st.slats > 0.04) slatStrips(blinds, tf, 0, W, face + 0.04, bottom, T, st.slats, new Color(0xffffff), cut, bucket, -1);
+        else panel(blinds, tf, -0.02, W + 0.02, face + 0.03, bottom, T, new Color(0xffffff), cut, bucket);
+        splitBox(frames, tf, -0.02, W + 0.02, face + 0.02, face + 0.045, bottom, bottom + 0.025, new Color(OP.BLIND_BOX), frameTop, cut, bucket);
+      }
+    } else if (st.cover !== null) {
       const out = -info.faceOut;
       const boxTop = T + 0.2;
       splitBox(frames, tf, -0.05, W + 0.05, out - 0.15, out, T, boxTop, new Color(OP.BLIND_BOX), frameTop, cut, bucket);
       const closed = Math.min(1, Math.max(0, st.cover));
       if (closed > 0.01) {
         const bottom = T - closed * (T - S);
-        panel(blinds, tf, 0, W, out - 0.07, bottom, T, new Color(0xffffff), cut, bucket, 0.045);
+        // a venetian blind shows its slats while they stand open; shut it looks like the roller shutter
+        if (typeof st.slats === "number" && st.slats > 0.04) slatStrips(blinds, tf, 0, W, out - 0.07, bottom, T, st.slats, new Color(0xffffff), cut, bucket);
+        else panel(blinds, tf, 0, W, out - 0.07, bottom, T, new Color(0xffffff), cut, bucket, 0.045);
       }
     }
     frameTris.push({ id: info.opening.id, start: fStart, end: frames.count });

@@ -8,6 +8,8 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 
 ### Added
 - **Turkish** as the twentieth language (thanks ethemcemozkan for the texts, #884).
+- **Venetian blinds show their slats:** a blind whose cover reports a slat tilt (a Raffstore) is drawn as single slats that turn with it – level when open, like the roller shutter when shut – and they glide like the blind runs. The sunlight in the room and the window light outside follow them: a lowered blind with open slats lets light through. A window gets **Invert slats (0 = open)** for integrations that report the tilt the other way round; it turns the value in 3D, in the quick menu and the room panel, and the value sent (thanks danymue for the idea and the groundwork, #971 and #999).
+- **Blinds inside the room:** a window's or door's blind can hang inside as a roller shade – **Blind sits: inside (roller shade)** in its form. The cassette sits on the room's side above the window, the cloth runs down in the room. Outside stays the default, existing plans do not change (thanks TRusselo for the idea, #904).
 
 ### Changed
 - **Slovak** reads far more naturally: 745 texts reworked by a native speaker (thanks Bearstorm, #924).

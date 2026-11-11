@@ -6,6 +6,7 @@ import { carState, type CarState, heatSensorOn, roomClimateValue,
   appColor,
   areaEntities,
   coverCalls,
+  slatsInverted,
   entityName,
   furnitureEntities,
   isActive,
@@ -5811,6 +5812,7 @@ export class Fp3dView3d extends LitElement {
         .entity=${m.entity}
         .car=${m.car ?? null}
         ?doorLock=${!!m.doorLock}
+        ?slatInvert=${slatsInverted(this.building, m.entity)}
         .presets=${hasFeature("sound") ? (this.building?.settings.media_presets ?? []) : []}
         ?confirmSwitch=${this.confirmSet.has(m.entity)}
         ?pro=${hasFeature("camera_cockpit")}

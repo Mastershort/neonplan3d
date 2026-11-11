@@ -124,6 +124,10 @@ export interface Opening {
   position?: string | null;
   /** The position sensor counts the other way round (0 = open). */
   position_inverted?: boolean;
+  /** Where the blind sits: outside as a roller shutter (null, the default) or inside the room as a roller shade. */
+  blind_side?: "inside" | "outside" | null;
+  /** The blind's slats report their tilt the other way round (0 = open): turned in 3D and in the sliders. */
+  slat_invert?: boolean | null;
   /** Windows: a sensor with the sash's tilt angle (degrees); the sash tilts in 3D as far as it reports. */
   tilt_angle?: EntityRef;
   /** Angle that counts as fully tilted (default 15°), an offset the sensor reports when closed, and the other sign. */

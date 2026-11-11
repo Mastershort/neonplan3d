@@ -249,6 +249,8 @@ Doors and windows can also be tapped in a wide band around the opening in the pl
 |---|---|
 | **Cover** | The blind moves in front of the window – or of a door (front door, French window, sliding door) – with the cover's position |
 | **Position sensor** | For blinds whose position comes from a separate sensor, e.g. Homematic. Can be inverted |
+| **Blind sits** (since 3.1.1) | **outside (roller shutter)** as before, or **inside (roller shade)**: the cassette then sits inside above the window and the cloth runs down in the room. Sun patches and the window light follow the shade just the same |
+| **Slats** (since 3.1.1) | When the cover reports a slat tilt (a Raffstore, a venetian blind), NeonPlan draws single slats that turn with it: level at 100, shut at 0. The sunlight in the room follows them – a lowered blind with open slats lets light through. **Invert slats (0 = open)** then shows in the form, for integrations that report the value the other way round: it is turned in 3D, in the quick menu and in the room panel, the one sent too |
 | **Ask before switching** | Open, close and positions ask first in the quick menu and the room panel, and a swipe on the marker no longer moves the blind (it turns the view instead). Stop never asks. Good for tablets where blinds or the garage door would otherwise move by accident |
 | **Contact** | The door swings open, the window opens. Offered are binary sensors of the door, window or opening class and ones without a class (KNX, enOcean, template sensors often have none) |
 | **Tilt contact** | A second sensor that reports "tilted" |
