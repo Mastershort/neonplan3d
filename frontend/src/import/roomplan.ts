@@ -41,7 +41,10 @@ function matrix(t: Surface["transform"]): number[] | null {
 /** Whether a JSON value looks like a RoomPlan capture. */
 export function isRoomPlan(data: unknown): boolean {
   const d = data as { walls?: unknown; rooms?: unknown };
-  const walls = Array.isArray(d?.walls) ? (d.walls as Surface[]) : Array.isArray(d?.rooms) ? ((d.rooms as { walls?: Surface[] }[])[0]?.walls ?? []) : [];
+  // a structure may list its walls only per room, with an empty list at the top
+  const top = Array.isArray(d?.walls) ? (d.walls as Surface[]) : [];
+  const rooms = Array.isArray(d?.rooms) ? (d.rooms as { walls?: Surface[] }[]) : [];
+  const walls = top.length ? top : (rooms.find((r) => Array.isArray(r?.walls) && r.walls.length)?.walls ?? []);
   return walls.length > 0 && !!walls[0]?.dimensions && !!walls[0]?.transform;
 }
 

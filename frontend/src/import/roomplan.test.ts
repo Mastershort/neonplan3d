@@ -68,3 +68,16 @@ test("RoomPlan floor outlines and labels name the rooms", () => {
   assert.equal(raw.floors[0].rooms[0].name, "Wohnzimmer");
   assert.equal(readRoomPlan(withFloors, "en").floors[0].rooms[0].name, "Living room");
 });
+
+test("RoomPlan as Swift's Codable writes it: transforms as four columns, a whole home as a structure of rooms", () => {
+  // simd_float4x4 encodes as an array of its four columns
+  const cols = (s: { transform: number[] }) => ({ ...s, transform: [s.transform.slice(0, 4), s.transform.slice(4, 8), s.transform.slice(8, 12), s.transform.slice(12, 16)] });
+  const room = (walls: ReturnType<typeof wall>[]) => ({ identifier: "r", walls: walls.map(cols), doors: [], windows: [], openings: [], objects: [], sections: [] });
+  // a CapturedStructure: only per-room lists, nothing at the top
+  const structure = { rooms: [room(scan.walls.slice(0, 4)), room(scan.walls.slice(4))], walls: [], doors: [], windows: [], openings: [], objects: [], floors: [], sections: [] };
+  assert.ok(isRoomPlan(structure));
+  const { building: b } = buildPlan(readRoomPlan(structure, "en"));
+  assert.equal(b.floors.length, 1);
+  assert.equal(b.floors[0].rooms.length, 2);
+  assert.equal(b.floors[0].name, "Ground floor");
+});
