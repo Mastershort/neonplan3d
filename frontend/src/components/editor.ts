@@ -1881,7 +1881,7 @@ export class Fp3dEditor extends LitElement {
       return;
     }
     const furnitureEl = target.closest("[data-furniture]");
-    if (furnitureEl && !target.closest("[data-vertex], [data-mid]")) {
+    if (furnitureEl && !target.closest("[data-vertex], [data-mid], [data-out-vertex], [data-out-mid]")) {
       const id = furnitureEl.getAttribute("data-furniture")!;
       const now = Date.now();
       const twice = this.lastFurnTap?.id === id && now - this.lastFurnTap.t < 400;
@@ -1966,6 +1966,30 @@ export class Fp3dEditor extends LitElement {
     if (outBoxEl && this.isAdmin) {
       const [id, i] = outBoxEl.getAttribute("data-out-box")!.split(":");
       this.drag = { kind: "outbox", id, corner: Number(i), base: this._doc, moved: false };
+      return;
+    }
+    const outMidEl = target.closest("[data-out-mid]");
+    if (outMidEl && this.isAdmin) {
+      // a new corner in the middle of an outdoor area's edge, taken along with the pointer at once
+      const [id, n] = outMidEl.getAttribute("data-out-mid")!.split(":");
+      const i = Number(n);
+      this.change((_, floor) => {
+        const a = floor.outdoor.find((x) => x.id === id);
+        if (!a || !a.points[i]) return;
+        const p = a.points[i];
+        const q = a.points[(i + 1) % a.points.length];
+        const first = Math.hypot(q[0] - p[0], q[1] - p[1]) / 2;
+        a.points.splice(i + 1, 0, [round((p[0] + q[0]) / 2), round((p[1] + q[1]) / 2)]);
+        // gates behind the new corner move to the second half of the split edge, later edges move up by one
+        for (const g of a.gates ?? []) {
+          if (g.edge > i) g.edge += 1;
+          else if (g.edge === i && g.at > first) {
+            g.edge = i + 1;
+            g.at = round(g.at - first);
+          }
+        }
+      });
+      this.drag = { kind: "outvertex", id, index: i + 1, base: this._doc, moved: false };
       return;
     }
     const outVertexEl = target.closest("[data-out-vertex]");
@@ -6593,7 +6617,17 @@ export class Fp3dEditor extends LitElement {
         return svg`<g class="fp3d-vertex fp3d-box-corner" data-out-box=${`${a.id}:${i}`}><circle cx=${x} cy=${y} r="16" class="fp3d-hit" /><rect x=${x - 5} y=${y - 5} width="10" height="10" /></g>`;
       })}`;
     }
-    return svg`${a.points.map((p, i) => {
+    // a "+" in the middle of each edge puts a corner there, as with a room (an open run has no closing edge)
+    const n = a.points.length;
+    const mids = Array.from({ length: a.open ? n - 1 : n }, (_, i) => {
+      const [ax, ay] = this.toScreen(a.points[i]);
+      const [bx, by] = this.toScreen(a.points[(i + 1) % n]);
+      if (Math.hypot(bx - ax, by - ay) <= 36) return nothing;
+      const mx = (ax + bx) / 2;
+      const my = (ay + by) / 2;
+      return svg`<g data-out-mid=${`${a.id}:${i}`} class="fp3d-mid"><circle cx=${mx} cy=${my} r="14" class="fp3d-hit" /><circle cx=${mx} cy=${my} r="6" /><path d="M${mx - 3} ${my}h6M${mx} ${my - 3}v6" /></g>`;
+    });
+    return svg`${mids}${a.points.map((p, i) => {
       const [x, y] = this.toScreen(p);
       return svg`<g class="fp3d-vertex" data-out-vertex=${`${a.id}:${i}`}><circle cx=${x} cy=${y} r="16" class="fp3d-hit" /><circle cx=${x} cy=${y} r="6" /></g>`;
     })}`;
