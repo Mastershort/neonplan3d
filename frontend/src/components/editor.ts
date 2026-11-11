@@ -6470,8 +6470,25 @@ export class Fp3dEditor extends LitElement {
         list[edge] = v;
         r.wall_thickness = list.every((t) => t === null) ? undefined : list;
       });
+    // wall colours (homely styles): one for all walls on top, each wall may differ in its own row
+    const setAllColours = (hex: string | null) => this.updateRoom({ wall_color: hex, wall_colors: null });
+    const setColour = (i: number, hex: string | null) => {
+      const list = room.wall_colors ? [...room.wall_colors] : room.points.map(() => null as string | null);
+      while (list.length < room.points.length) list.push(null);
+      list[i] = hex;
+      this.updateRoom({ wall_colors: list.some(Boolean) ? list : null });
+    };
     return html`<div class="fp3d-edge-box">
-      <h4>${this.t("wall_heights")}</h4>
+      <h4>${this.t("wall_settings")}</h4>
+      <div class="fp3d-wall-all">
+        <span>🎨 ${this.t("wall_colors_all")}</span>
+        <input type="color" title=${this.t("wall_colors")} ?disabled=${!this.isAdmin} .value=${room.wall_color ?? "#f0ede8"} @change=${(e: Event) => setAllColours((e.target as HTMLInputElement).value)} />
+        ${this.isAdmin && room.wall_color ? html`<button class="fp3d-btn" title=${this.t("color_reset")} @click=${() => setAllColours(null)}>↺</button>` : nothing}
+      </div>
+      <div class="fp3d-swatches">
+        ${WALL_SWATCHES.map(([name, hex]) => html`<button class="fp3d-swatch" title=${name} style="background:${hex}" ?disabled=${!this.isAdmin} @click=${() => setAllColours(hex)}></button>`)}
+      </div>
+      <p class="fp3d-sub">${this.t("wall_colors_hint")}</p>
       ${room.points.flatMap((a, i) => {
         const b = room.points[(i + 1) % n];
         const len = Math.hypot(b[0] - a[0], b[1] - a[1]);
@@ -6511,6 +6528,18 @@ export class Fp3dEditor extends LitElement {
             ${this.isAdmin && h !== 0 ? html`<button class="fp3d-btn" title=${this.t("wall_none_hint")} @click=${() => set(0)}>${this.t("wall_none")}</button>` : nothing}
             ${this.isAdmin && partLen >= 0.4 ? html`<button class="fp3d-btn" title=${this.t("wall_split_hint")} @click=${() => this.splitEdge(room, i, part)}>✂</button>` : nothing}
             ${(part === undefined || part === 0) && h !== 0 ? html`<button class="fp3d-btn" title=${this.t("wall_view_open")} @click=${() => this.openWallView(room.id, i)}>▦</button>` : nothing}
+            ${(part === undefined || part === 0) && h !== 0
+              ? html`<span class="fp3d-wall-colour${room.wall_colors?.[i] ? " fp3d-wall-colour-own" : ""}"
+                  ><input
+                    type="color"
+                    title=${this.t("wall_color_n", { n: i + 1 })}
+                    aria-label=${this.t("wall_color_n", { n: i + 1 })}
+                    ?disabled=${!this.isAdmin}
+                    .value=${room.wall_colors?.[i] ?? room.wall_color ?? "#f0ede8"}
+                    @change=${(e: Event) => setColour(i, (e.target as HTMLInputElement).value)}
+                  />${this.isAdmin && room.wall_colors?.[i] ? html`<button class="fp3d-btn" title=${this.t("color_reset")} @click=${() => setColour(i, null)}>↺</button>` : nothing}</span
+                >`
+              : nothing}
             ${(part === undefined || part === 0) && h !== 0
               ? html`<span class="fp3d-wide fp3d-split-row" title=${this.t("wall_thickness_hint")}
                   >${this.len(this.t("edge_thickness"), room.wall_thickness?.[i] ?? (outer.has(i) ? s.wall_exterior : s.wall_interior), (v) => {
@@ -11068,7 +11097,7 @@ export class Fp3dEditor extends LitElement {
       </div>
       <p class="fp3d-sub" title=${this.t("room_area_net_hint")}>${this.t("room_area_net", { a: this.area(polygonArea(room.points)), n: this.area(netRoomArea(room, this.floor!, { exterior: this._doc.settings.wall_exterior, interior: this._doc.settings.wall_interior })) })}</p>
       <p class="fp3d-sub fp3d-room-id">${this.t("room_id")} <code title=${this.t("license_copy")} @click=${() => void navigator.clipboard?.writeText(room.id).catch(() => undefined)}>${room.id}</code></p>
-      ${this.renderEdgeHeights(room)} ${this.renderWallColors(room)} ${this.renderRoomClimate(room)} ${this.renderRoomOpenings(room)}
+      ${this.renderEdgeHeights(room)} ${this.renderRoomClimate(room)} ${this.renderRoomOpenings(room)}
       <details class="fp3d-points" ?open=${!rect}>
         <summary>${this.t("points")} (${room.points.length})</summary>
         ${room.points.map(
@@ -13865,46 +13894,6 @@ export class Fp3dEditor extends LitElement {
       <p class="fp3d-sub">${this.t("styles_hint")}</p>`;
   }
 
-  /** The room's wall colours (homely styles): all walls at once, or each wall on its own. */
-  private renderWallColors(room: Room) {
-    const admin = this.isAdmin;
-    const swatches = WALL_SWATCHES;
-    const setAll = (hex: string | null) => this.updateRoom({ wall_color: hex, wall_colors: null });
-    const setOne = (i: number, hex: string | null) => {
-      const list = room.wall_colors ? [...room.wall_colors] : room.points.map(() => null as string | null);
-      while (list.length < room.points.length) list.push(null);
-      list[i] = hex;
-      this.updateRoom({ wall_colors: list.some(Boolean) ? list : null });
-    };
-    const len = (i: number) => {
-      const a = room.points[i];
-      const b = room.points[(i + 1) % room.points.length];
-      return this.lenValue(Math.hypot(b[0] - a[0], b[1] - a[1]));
-    };
-    const any = !!room.wall_color || !!room.wall_colors?.some(Boolean);
-    return html`<details class="fp3d-points" ?open=${any}>
-      <summary>🎨 ${this.t("wall_colors")}</summary>
-      <div class="fp3d-wallcolors">
-        <div class="fp3d-point">
-          <span>${this.t("wall_colors_all")}</span>
-          <input type="color" ?disabled=${!admin} .value=${room.wall_color ?? "#f0ede8"} @change=${(e: Event) => setAll((e.target as HTMLInputElement).value)} />
-          ${room.wall_color ? html`<button class="fp3d-btn" title=${this.t("color_reset")} ?disabled=${!admin} @click=${() => setAll(null)}>↺</button>` : nothing}
-        </div>
-        <div class="fp3d-swatches">
-          ${swatches.map(([name, hex]) => html`<button class="fp3d-swatch" title=${name} style="background:${hex}" ?disabled=${!admin} @click=${() => setAll(hex)}></button>`)}
-        </div>
-        ${room.points.map(
-          (_, i) => html`<div class="fp3d-point">
-            <span>${this.t("wall_color_n", { n: i + 1 })} · ${len(i)}</span>
-            <input type="color" ?disabled=${!admin} .value=${room.wall_colors?.[i] ?? room.wall_color ?? "#f0ede8"} @change=${(e: Event) => setOne(i, (e.target as HTMLInputElement).value)} />
-            ${room.wall_colors?.[i] ? html`<button class="fp3d-btn" title=${this.t("color_reset")} ?disabled=${!admin} @click=${() => setOne(i, null)}>↺</button>` : nothing}
-          </div>`,
-        )}
-        <p class="fp3d-sub">${this.t("wall_colors_hint")}</p>
-      </div>
-    </details>`;
-  }
-
   /** The ground around the house: its height, a hillside, the earth around cellars. */
   /** The background behind the 3D house: the look's own sky, one colour, a gradient or a picture. */
   private renderBackdrop() {
@@ -14407,16 +14396,32 @@ export class Fp3dEditor extends LitElement {
         font-size: 12px;
         max-width: 170px;
       }
-      .fp3d-wallcolors .fp3d-point {
-        grid-template-columns: 1fr auto auto;
+      .fp3d-wall-all {
+        display: flex;
         align-items: center;
+        gap: 8px;
+        margin: 2px 0 4px;
       }
-      .fp3d-wallcolors input[type="color"] {
-        width: 44px;
-        height: 26px;
+      .fp3d-wall-all span {
+        flex: 1;
+      }
+      .fp3d-wall-all input[type="color"],
+      .fp3d-wall-colour input[type="color"] {
+        width: 40px;
+        height: 30px;
         padding: 0;
-        border: 0;
+        border: 1px solid var(--fp3d-line);
+        border-radius: 8px;
         background: none;
+        cursor: pointer;
+      }
+      .fp3d-wall-colour {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+      }
+      .fp3d-wall-colour-own input[type="color"] {
+        border-color: var(--fp3d-accent);
       }
       .fp3d-swatches {
         display: flex;
