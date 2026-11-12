@@ -275,6 +275,7 @@ export class Fp3dView3d extends LitElement {
     styleEntity: { attribute: false },
     zoomStyle: { attribute: false },
     zoomLate: { attribute: false },
+    zoomScope: { attribute: false },
     _styleOverride: { state: true },
     clock: { attribute: false },
     _clockTick: { state: true },
@@ -428,6 +429,8 @@ export class Fp3dView3d extends LitElement {
   declare zoomStyle: string | null;
   /** How late the zoom style sets in, 0 (early) … 100 (late); empty: 50. */
   declare zoomLate: number | null;
+  /** Only the room zoomed into turns ("room"), or every room ("all", empty). */
+  declare zoomScope: string | null;
   /** How far the zoom style has come (0 = far look, 1 = near style): the near background's opacity, set directly. */
   private morph = 0;
   /** A style set from outside for this device (the action `neonplan3d.set_style`, a voice command), until a time. */
@@ -1054,6 +1057,7 @@ export class Fp3dView3d extends LitElement {
       this.viewer.setStyle(this.effectiveStyle());
       this.viewer.setZoomStyle(this.zoomDef());
       this.viewer.setZoomLate((this.zoomLate ?? 50) / 100);
+      this.viewer.setZoomScope(this.zoomScope === "room" ? "room" : "all");
       this.viewer.setAccent(this.accent ?? null);
       this.viewer.setFurnishMode(this.furnish);
       this.viewer.setSurfaceGrab(this.surfaceGrab ?? null);
@@ -1181,6 +1185,7 @@ export class Fp3dView3d extends LitElement {
     if (changed.has("theme") || changed.has("themeEvening") || changed.has("themeNight") || changed.has("styleEntity") || changed.has("_styleOverride") || changed.has("building")) v.setStyle(this.effectiveStyle());
     if (changed.has("zoomStyle") || changed.has("building")) v.setZoomStyle(this.zoomDef());
     if (changed.has("zoomLate")) v.setZoomLate((this.zoomLate ?? 50) / 100);
+    if (changed.has("zoomScope")) v.setZoomScope(this.zoomScope === "room" ? "room" : "all");
     if (changed.has("accent")) v.setAccent(this.accent ?? null);
     if (changed.has("surfaceGrab")) v.setSurfaceGrab(this.surfaceGrab ?? null);
     if (changed.has("furnishTypes")) v.setFurnishTypes(this.furnishTypes ?? null);
