@@ -103,6 +103,37 @@ async def test_save_and_get_building(hass: HomeAssistant, hass_ws_client) -> Non
     assert got["result"]["version"]
 
 
+async def test_save_over_a_newer_plan_is_refused(hass: HomeAssistant, hass_ws_client) -> None:
+    """A save based on an older revision does not overwrite what was saved elsewhere meanwhile (#1059)."""
+    await _setup(hass)
+    client = await hass_ws_client(hass)
+    await client.send_json_auto_id({"type": "neonplan3d/building/save", "building": BUILDING, "base_revision": 0})
+    first = await client.receive_json()
+    assert first["success"]
+    assert first["result"]["revision"] == 1
+    # another device saved revision 2
+    newer = copy.deepcopy(BUILDING)
+    newer["floors"][0]["rooms"][0]["name"] = "Newer"
+    await client.send_json_auto_id({"type": "neonplan3d/building/save", "building": newer, "base_revision": 1})
+    second = await client.receive_json()
+    assert second["result"]["revision"] == 2
+    # a device still on revision 1 is refused
+    stale = copy.deepcopy(BUILDING)
+    stale["floors"][0]["rooms"][0]["name"] = "Old"
+    await client.send_json_auto_id({"type": "neonplan3d/building/save", "building": stale, "base_revision": 1})
+    refused = await client.receive_json()
+    assert not refused["success"]
+    assert refused["error"]["code"] == "stale_plan"
+    await client.send_json_auto_id({"type": "neonplan3d/building/get"})
+    got = await client.receive_json()
+    assert got["result"]["revision"] == 2
+    assert got["result"]["building"]["floors"][0]["rooms"][0]["name"] == "Newer"
+    # without a base revision (an older frontend) the save goes through as before
+    await client.send_json_auto_id({"type": "neonplan3d/building/save", "building": stale})
+    plain = await client.receive_json()
+    assert plain["success"]
+
+
 async def test_opening_fields_get_defaults(hass: HomeAssistant, hass_ws_client) -> None:
     await _setup(hass)
     client = await hass_ws_client(hass)

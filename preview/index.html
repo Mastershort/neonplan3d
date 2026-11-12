@@ -54,6 +54,16 @@
         updates: params.has("shop") ? [{ id: "mastershort.kitchen", name: "Küche", release: 2, added: 10, at: Date.now() / 1000 - 600 }] : [],
       };
       let building = params.has("empty") ? { version: 1, floors: [], settings: { wall_exterior: 0.24, wall_interior: 0.12, grid: 0.05 } } : DEMO_BUILDING;
+      // add-ons not out yet (Pool Pro) only on a local preview or with ?pool: the public demo shows neither the pool's
+      // technical room (pump, sand filter, valves, heat pump) nor its pipes (#1063)
+      const unreleasedDemo = params.has("pool") || ["localhost", "127.0.0.1"].includes(location.hostname);
+      if (!unreleasedDemo) {
+        building = structuredClone(building);
+        for (const floor of building.floors) {
+          floor.furniture = floor.furniture.filter((f) => !/^pool_/.test(f.type));
+          for (const area of floor.outdoor ?? []) delete area.pool;
+        }
+      }
       let revision = 1;
       // ?plans: further floor plans (the garden house, a holiday flat); the main plan is `building` above
       const EN_PLAN = { Gartenhaus: "Garden house", Ferienwohnung: "Holiday flat" };
@@ -90,8 +100,6 @@
         if (importedPacks === null) {
           importedPacks = [DEMO_PACK];
           // the demo has NeonPlan Pro unless ?nopro asks for the locked look
-          // add-ons not out yet (Pool Pro) only on a local preview or with ?pool, not on the public demo
-          const unreleasedDemo = params.has("pool") || ["localhost", "127.0.0.1"].includes(location.hostname);
           if (!params.has("nopro")) importedPacks.push({ format: "fp3dpack", version: 1, id: "demo.pro", name: "NeonPlan Pro (Demo)", publisher: "Mastershort", licensee: null, features: ["camera_cockpit", "weather", "screens", "energy_pro", "sound", "auto_pro", "time_travel", "household", "fun_pets", "fun_halloween", ...(unreleasedDemo ? ["pool"] : [])], items: [] });
           try {
             const res = await fetch("../private/packs/starter.json");

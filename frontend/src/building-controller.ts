@@ -2,7 +2,7 @@
 // of plans and switches between them.
 
 import type { ReactiveController, ReactiveControllerHost } from "lit";
-import { fetchBuilding, listPacks, listPlans, MAIN_PLAN, saveBuilding, subscribeBuilding, subscribePlans, type PlanEntry } from "./api.ts";
+import { fetchBuilding, isStalePlan, listPacks, listPlans, MAIN_PLAN, saveBuilding, subscribeBuilding, subscribePlans, type PlanEntry } from "./api.ts";
 import { initDiagnostics } from "./diagnostics.ts";
 import { normalizeBuilding, type Building } from "./model.ts";
 import { setPacks, type FurniturePack } from "./packs.ts";
@@ -21,6 +21,8 @@ export const FRONTEND_VERSION = typeof __FP3D_VERSION__ === "string" ? __FP3D_VE
 export interface Draft {
   building: Building;
   savedAt: number;
+  /** The plan had been saved elsewhere meanwhile: this edit was made on the older plan (#1059). */
+  conflict?: boolean;
 }
 
 /** Unsaved edits of the earlier name (the browser may still hold them). */
@@ -94,6 +96,11 @@ export class BuildingController implements ReactiveController {
   private pending: Building | null = null;
   private saving: Promise<void> | null = null;
   private connected = false;
+  /** A page that comes back from the background (a phone's app overnight) loads the plan again: it may have missed saves. */
+  private readonly onVisible = () => {
+    if (document.visibilityState !== "visible" || !this.hass || this.pending || this.saving) return;
+    void this.reload();
+  };
 
   constructor(host: ReactiveControllerHost) {
     this.host = host;
@@ -109,11 +116,13 @@ export class BuildingController implements ReactiveController {
 
   hostConnected(): void {
     this.connected = true;
+    if (typeof document !== "undefined") document.addEventListener("visibilitychange", this.onVisible);
     if (this.hass) void this.start();
   }
 
   hostDisconnected(): void {
     this.connected = false;
+    if (typeof document !== "undefined") document.removeEventListener("visibilitychange", this.onVisible);
     void this.flush();
     void this.unsubscribe?.();
     this.unsubscribe = null;
@@ -186,6 +195,8 @@ export class BuildingController implements ReactiveController {
   restoreDraft(): void {
     const draft = this.draft;
     this.draft = null;
+    // taken over on purpose: it is saved over the plan shown now
+    if (draft?.conflict) writeDraft(this.planId, null);
     if (draft) this.edit(normalizeBuilding(draft.building));
   }
 
@@ -210,7 +221,8 @@ export class BuildingController implements ReactiveController {
     this.host.requestUpdate();
     this.saving = (async () => {
       try {
-        const revision = await saveBuilding(this.hass!, building, plan);
+        // the revision this edit was made on: a newer plan saved elsewhere is not overwritten (#1059)
+        const revision = await saveBuilding(this.hass!, building, plan, plan === this.planId ? this.revision : undefined);
         if (plan === this.planId) {
           this.ownRevisions.add(revision);
           this.revision = revision;
@@ -219,6 +231,18 @@ export class BuildingController implements ReactiveController {
         this.saveError = null;
         writeDraft(plan, null);
       } catch (err) {
+        if (isStalePlan(err) && plan === this.planId) {
+          // saved elsewhere meanwhile: the newer plan is shown, this edit waits as a draft to be taken over or dropped
+          const draft = { building, savedAt: Date.now(), conflict: true };
+          writeDraft(plan, draft);
+          this.pending = null;
+          this.saveState = "idle";
+          this.saveError = null;
+          await this.reload();
+          this.draft = draft;
+          this.host.requestUpdate();
+          return;
+        }
         this.saveState = "error";
         this.saveError = errorText(err);
         // keep the edit: after a restart it can be restored and saved

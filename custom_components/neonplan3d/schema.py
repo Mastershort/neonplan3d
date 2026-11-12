@@ -169,6 +169,10 @@ OPENING_SCHEMA = vol.Schema(
         vol.Optional("position", default=None): vol.Any(None, vol.All(str, vol.Length(max=255))),
         # the position sensor counts the other way round (0 = open)
         vol.Optional("position_inverted", default=False): bool,
+        # a venetian blind whose cover reports its slats the other way round (0 = open): turned in 3D and the sliders
+        vol.Optional("slat_invert"): vol.Any(None, bool),
+        # where the blind sits: outside as a roller shutter (None) or inside the room as a roller shade
+        vol.Optional("blind_side"): vol.Any(None, vol.In(["inside", "outside"])),
         # windows: a sensor with the sash's tilt angle (degrees), the angle that counts as fully tilted,
         # an offset the sensor reports when closed, and the other sign
         vol.Optional("tilt_angle", default=None): _ENTITY_REF,

@@ -18,9 +18,24 @@ export async function fetchBuilding(
   return hass.callWS({ type: "neonplan3d/building/get", ...planOf(plan) });
 }
 
-export async function saveBuilding(hass: HomeAssistant, building: Building, plan?: string): Promise<number> {
-  const res = await hass.callWS<{ revision: number }>({ type: "neonplan3d/building/save", building, ...planOf(plan) });
-  return res.revision;
+/**
+ * Save a plan. With `base` (the revision the edit was made on) Home Assistant refuses the save when the plan was
+ * saved elsewhere meanwhile – the error's code is "stale_plan" (#1059). A backend older than that does not know
+ * the field: the save is sent again without it.
+ */
+export async function saveBuilding(hass: HomeAssistant, building: Building, plan?: string, base?: number): Promise<number> {
+  const send = (withBase: boolean) => hass.callWS<{ revision: number }>({ type: "neonplan3d/building/save", building, ...planOf(plan), ...(withBase && base !== undefined && base >= 0 ? { base_revision: base } : {}) });
+  try {
+    return (await send(true)).revision;
+  } catch (err) {
+    if (base === undefined || !/extra keys not allowed.*base_revision/i.test(String((err as { message?: unknown })?.message ?? err))) throw err;
+    return (await send(false)).revision;
+  }
+}
+
+/** A save was refused because the plan was saved elsewhere meanwhile. */
+export function isStalePlan(err: unknown): boolean {
+  return !!err && typeof err === "object" && (err as { code?: unknown }).code === "stale_plan";
 }
 
 export function subscribeBuilding(hass: HomeAssistant, callback: (revision: number) => void, plan?: string): Promise<() => Promise<void>> {

@@ -31,6 +31,8 @@ export interface DoorNode {
   /** Points on both sides of the opening, a little into each room. */
   p: [Vec2, Vec2];
   centre: Vec2;
+  /** The opening's id. */
+  id: string;
 }
 
 export class FloorMap {
@@ -73,13 +75,15 @@ export class FloorMap {
         [c[0] - uz * nl, c[1] + ux * nl],
         [c[0] + uz * nr, c[1] - ux * nr],
       ];
-      // an outer door upstairs leads into the air unless a balcony or terrace is drawn there (#766); outer walls
-      // have their room on the left, the outside on the right
-      if (w.exterior && floor.elevation > 0.3 && !(floor.outdoor ?? []).some((a) => a.points.length >= 3 && pointInPolygon(pts[1], a.points))) continue;
+      // an outer door upstairs leads into the air unless a balcony or terrace is drawn there (#766) – or another room
+      // lies behind it: rooms drawn a wall's width apart have "outer" walls between them (#970); outer walls have
+      // their room on the left, the outside on the right
+      const beyond = (areas: readonly { points: Vec2[] }[]) => areas.some((a) => a.points.length >= 3 && pointInPolygon(pts[1], a.points));
+      if (w.exterior && floor.elevation > 0.3 && !beyond(floor.outdoor ?? []) && !beyond(this.rooms)) continue;
       const list = gapsBy.get(w) ?? [];
       list.push([at.s - o.width / 2 + 0.05, at.s + o.width / 2 - 0.05]);
       gapsBy.set(w, list);
-      this.doors.push({ centre: c, p: pts });
+      this.doors.push({ centre: c, p: pts, id: o.id });
     }
     for (const w of this.walls) {
       if (w.height !== undefined && w.height < 0.9) continue;

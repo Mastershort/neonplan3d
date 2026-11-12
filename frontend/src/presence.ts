@@ -66,8 +66,28 @@ export function initials(name: string): string {
 
 /** People at home whose room sensor names a room of the plan, spread around the room centre. */
 /** A person's state that says away: not home and not on, and not merely unknown (a person without a tracker). */
-export function isAway(state: string): boolean {
-  return !["home", "on", "unknown", "unavailable", ""].includes(state);
+export function isAway(state: string, hass?: HomeAssistant): boolean {
+  if (["home", "on", "unknown", "unavailable", ""].includes(state)) return false;
+  // a zone of their own at the house ("Garten", "Werkstatt") names the person's state, yet they are home (#900)
+  return !(hass && state !== "not_home" && zoneAtHome(hass, state));
+}
+
+/** A zone by its name that touches the home zone: someone in it is at home. */
+function zoneAtHome(hass: HomeAssistant, name: string): boolean {
+  const home = hass.states["zone.home"]?.attributes;
+  if (!home || typeof home.latitude !== "number" || typeof home.longitude !== "number") return false;
+  const rad = Math.PI / 180;
+  for (const [id, st] of Object.entries(hass.states)) {
+    if (!id.startsWith("zone.") || id === "zone.home") continue;
+    const a = st.attributes;
+    if (a.friendly_name !== name || typeof a.latitude !== "number" || typeof a.longitude !== "number") continue;
+    const dLat = (a.latitude - home.latitude) * rad;
+    const dLon = (a.longitude - home.longitude) * rad;
+    const h = Math.sin(dLat / 2) ** 2 + Math.cos(home.latitude * rad) * Math.cos(a.latitude * rad) * Math.sin(dLon / 2) ** 2;
+    const metres = 2 * 6_371_000 * Math.asin(Math.sqrt(h));
+    if (metres <= (typeof home.radius === "number" ? home.radius : 100) + (typeof a.radius === "number" ? a.radius : 0)) return true;
+  }
+  return false;
 }
 
 export function personsInRooms(hass: HomeAssistant, building: Building): PersonMarker[] {
@@ -105,7 +125,7 @@ export function personsInRooms(hass: HomeAssistant, building: Building): PersonM
 
 /**
  * People and things NeonPlan's own locating puts in a room: its sensors (attribute neonplan_locate) name a room of
- * the plan. A device of a person who is away is left out; several in one room stand on a small circle.
+ * the plan. A device of a person who is away stands as a thing; several in one room stand on a small circle.
  */
 export function locatedPersons(hass: HomeAssistant, building: Building, skip: ReadonlySet<string> = new Set(), now = Date.now()): PersonMarker[] {
   interface Found {
@@ -153,7 +173,15 @@ export function locatedPersons(hass: HomeAssistant, building: Building, skip: Re
     // a person (not a thing) stands where an occupied zone of the room's presence sensor says: at the sofa
     if (!marker.thing) {
       let spots = spotsOf.get(f.room.id);
-      if (!spots) spotsOf.set(f.room.id, (spots = zoneSpots(hass, building, f.floorId, f.room)));
+      if (!spots) {
+        // an odd plan or registry must never cost the person their place: without zones they stand at the room's middle
+        try {
+          spots = zoneSpots(hass, building, f.floorId, f.room);
+        } catch {
+          spots = [];
+        }
+        spotsOf.set(f.room.id, spots);
+      }
       const spot = spots.shift();
       if (spot) {
         out.push({ ...marker, floorId: f.floorId, roomId: f.room.id, x: spot[0], z: spot[1] });
@@ -174,9 +202,13 @@ export function locatedPersons(hass: HomeAssistant, building: Building, skip: Re
   for (const [personId, list] of byPerson) {
     if (skip.has(personId)) continue;
     const person = hass.states[personId];
-    // away: neither the person nor a device left at home is shown as the person – but a person without a tracker of
-    // their own ("unknown") is not away: located in a room, they are home (#744)
-    if (person && isAway(person.state)) continue;
+    // away: no figure – but a person without a tracker of their own ("unknown") is not away: located in a room, they
+    // are home (#744). What is heard at home of someone away (a phone left behind, a watch on its charger) stands
+    // there as a thing instead of vanishing: with a tracker that is wrong, the plan showed nothing at all (#900, #1049)
+    if (person && isAway(person.state, hass)) {
+      for (const f of list) thing(f, personColor(personId));
+      continue;
+    }
     // the same rule as the spoken answers (person_state in locate/answers.py): the worn device (watch) heard in the
     // last two minutes, unless a phone heard at the same time is clearly surer about another room (a shared wall
     // fools the watch) – a phone that stayed put while the watch walked on was left lying, a watch that lay still for

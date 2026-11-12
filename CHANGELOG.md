@@ -4,6 +4,33 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 [releases page](https://github.com/Mastershort/neonplan3d/releases). Ideas and votes:
 [Discussions → Ideas](https://github.com/Mastershort/neonplan3d/discussions/categories/ideas).
 
+## 3.1.1
+
+### Added
+- **Turkish** as the twentieth language (thanks ethemcemozkan for the texts, #884).
+- **Venetian blinds show their slats:** a blind whose cover reports a slat tilt (a Raffstore) is drawn as single slats that turn with it – level when open, like the roller shutter when shut – and they glide like the blind runs. The sunlight in the room and the window light outside follow them: a lowered blind with open slats lets light through. A window gets **Invert slats (0 = open)** for integrations that report the tilt the other way round; it turns the value in 3D, in the quick menu and the room panel, and the value sent (thanks danymue for the idea and the groundwork, #971 and #999).
+- **A new corner on an outdoor area's edge:** the **+** in the middle of an edge of a selected lawn, terrace or fence puts a corner there and takes it along with the pointer, as with a room; a fence's gates keep their place (thanks wilds for the idea, #1029).
+- **Blinds inside the room:** a window's or door's blind can hang inside as a roller shade – **Blind sits: inside (roller shade)** in its form. The cassette sits on the room's side above the window, the cloth runs down in the room. Outside stays the default, existing plans do not change (thanks TRusselo for the idea, #904).
+
+- **"more" on a module's glass card:** on a narrow dashboard card or the tablet level a card such as the heat pump's leaves its minor values out (starts, run time, the 24-hour curve); a small **more** under it shows them on this device, **less** hides them again. Nothing changes until it is tapped (#1016, thanks Deninho91).
+
+### Changed
+- **Slovak** reads far more naturally: 745 texts reworked by a native speaker (thanks Bearstorm, #924).
+
+### Fixed
+- **Located people vanished when Home Assistant did not say "home":** a person standing in a zone of their own at the house (a "Garden" or "Workshop" zone) is at home and gets their figure; and what is heard at home of someone who is away (a phone left behind, a watch on its charger) stands there as a point with its name instead of disappearing – the plan showed nothing at all, while "Who is home?" still named the room (#900, #1049, thanks cesp99-ux and gshafer).
+- **A top-floor wall cut to a lower roof:** a wall whose outer face lay a few millimetres outside its own roof section was ended under a lower roof that happened to cover that strip (a garage roof whose ridge reaches above the floor) – half a wall inside, see-through from outside. It now ends under its own roof's edge (#1051, thanks TRusselo).
+- **"Switch devices only in the opened room" let other rooms' devices switch:** with a room opened – above all the garden – a tap or swipe on a blind of another room moved it. A device that is not in the opened room now opens its own room instead (#896, thanks RobertSorgenfrei).
+- **Lamp light washed coloured walls out to white in the homely styles:** the light was added on top of the wall's colour; with real materials it now lights the surface – a blue wall stays blue and gets brighter, a wooden floor warmer. Neon and the drawn styles are unchanged (#1054, thanks abgestumpft).
+- **The online demo showed parts of an add-on that is not out yet** (a pool's pump, sand filter, valves and pipes); they are gone from the public demo (#1063, thanks daene85).
+- **Looking through a camera (Camera Cockpit) showed a narrow slice:** the 3D view kept its own field of view, 38° up and down, so a wall camera's 90° looked like a zoomed view from eye level. The view now takes the camera's field of view while it looks through it and gives it back afterwards; its angle and height also count under the 3D lock. The camera's picture comes when the flight has arrived, also when it was loaded before (#1060, thanks daene85).
+- **A fixed device could not be chosen in the editor:** a press on it turned into moving the view before it was selected; it is selected now like a fixed piece of furniture (#1060).
+- **A selected outdoor area shows its corner numbers and edge lengths** in the plan, like a room – the numbers are the ones in the form's list of corners (#1041, thanks daene85).
+- **A device could write an old plan over a newer one:** a phone whose app slept in the background overnight still held the plan of the evening before, and its next edit saved that over what had been drawn on the PC meanwhile. A save now says which state of the plan it was made on, and Home Assistant refuses it when the plan was saved elsewhere since: the newer plan is shown, and your change waits with *take over* or *discard*. A page coming back from the background also loads the plan again (#1059, thanks daene85).
+- **The 3D view jumped when the pointer crossed the floor and room row** on a desktop: the row's thin scrollbar took room only while hovered. Its room is kept now, so nothing moves (thanks TRusselo for finding it, #1053).
+- **The walk stopped at upstairs doors:** on an upper floor whose rooms are drawn a wall's width apart, every door counted as a door into the air – the walk (and the pets) could not leave a room. A door with a room behind it is a way (#970, thanks luisrocejo).
+- **Pets walked through walls:** the shortest way from room to room could lead out of the front door, round the house and in through the closed garage door or a floor-length window – through hedges and fences. Pets now stay indoors and take only the doors between two rooms; and a dog no longer lies down inside the coffee table in front of the sofa (#1047, thanks vincegre).
+
 ## 3.1.0
 
 **Neon was just the beginning – your home in every style.**

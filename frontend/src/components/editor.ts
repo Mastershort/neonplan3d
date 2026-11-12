@@ -31,7 +31,7 @@ import { backdropImage } from "../backdrop.ts";
 import { screenName, setScreenName, setVoiceArea, setVoiceHere, setVoicePipeline, voiceArea, voiceOnHere, voicePipeline } from "../load-voice.ts";
 import { doorbellCamera, doorbellEntities, directorOnHere, HOLD_DEFAULT, HOLD_MAX, HOLD_MIN, setDirectorHere, type DirectorSettings } from "../director.ts";
 import { deviceSensors, energySummary, flowSegments, gridPoint, hubPoint, inverterToGrid, powerSensorFor, proposeEnergySensors, type EnergyPrefs, type FlowSegment, proposeMeters } from "../energy.ts";
-import { CLIMATE_ATTRS, isPulseDrive, isStatusSensor, robotRoomSensor, TOGGLE_KINDS } from "../devices.ts";
+import { CLIMATE_ATTRS, isPulseDrive, isStatusSensor, robotRoomSensor, slatTilt, TOGGLE_KINDS } from "../devices.ts";
 import { activeSections, sectionFloor, sectionOverhang, dormerParent, effectiveDormer, proposeDormer, sectionGeometry, floorOutline, polygonBox, headroomLines, ridgeHeight, sectionAbove, sectionCutsBelow, roofSectionsFromRooms, sectionFrame, sectionTurn, turnPoint, turnSectionAbout, wallTopUnder } from "../roof-sections.ts";
 import { bestFace, clampField, faceAt, faceCompass, fieldFace, fieldModules, GROUND, moveField, pointOnFace, proposeField, proposeGroundField, proposeWindow, proposeWallField, roofFaces, rowCounts, turnGroundField, fieldCenter, wallFaces, windowAsField, windowCorners, onFace, onField, rayOnFace, type RoofFace } from "../solar.ts";
 import type { SurfaceGrab, SurfaceRay } from "../viewer/viewer3d.ts";
@@ -1587,6 +1587,8 @@ export class Fp3dEditor extends LitElement {
     else if (d.kind === "outdoor") target = ["outdoor", d.id];
     if (!target || !this.isFixedItem(...target)) return;
     if ("moved" in d && d.moved && "base" in d) this.restoreLive(d.base);
+    // a device is selected when its press ends – a fixed one never got there and could not be chosen at all (#1060)
+    if (target[0] === "device" && this._deviceId !== target[1]) this.selectItem("device", target[1]);
     this.drag = { kind: "pan", last: local };
     this.fixedPan = true;
   }
@@ -1881,7 +1883,7 @@ export class Fp3dEditor extends LitElement {
       return;
     }
     const furnitureEl = target.closest("[data-furniture]");
-    if (furnitureEl && !target.closest("[data-vertex], [data-mid]")) {
+    if (furnitureEl && !target.closest("[data-vertex], [data-mid], [data-out-vertex], [data-out-mid]")) {
       const id = furnitureEl.getAttribute("data-furniture")!;
       const now = Date.now();
       const twice = this.lastFurnTap?.id === id && now - this.lastFurnTap.t < 400;
@@ -1966,6 +1968,30 @@ export class Fp3dEditor extends LitElement {
     if (outBoxEl && this.isAdmin) {
       const [id, i] = outBoxEl.getAttribute("data-out-box")!.split(":");
       this.drag = { kind: "outbox", id, corner: Number(i), base: this._doc, moved: false };
+      return;
+    }
+    const outMidEl = target.closest("[data-out-mid]");
+    if (outMidEl && this.isAdmin) {
+      // a new corner in the middle of an outdoor area's edge, taken along with the pointer at once
+      const [id, n] = outMidEl.getAttribute("data-out-mid")!.split(":");
+      const i = Number(n);
+      this.change((_, floor) => {
+        const a = floor.outdoor.find((x) => x.id === id);
+        if (!a || !a.points[i]) return;
+        const p = a.points[i];
+        const q = a.points[(i + 1) % a.points.length];
+        const first = Math.hypot(q[0] - p[0], q[1] - p[1]) / 2;
+        a.points.splice(i + 1, 0, [round((p[0] + q[0]) / 2), round((p[1] + q[1]) / 2)]);
+        // gates behind the new corner move to the second half of the split edge, later edges move up by one
+        for (const g of a.gates ?? []) {
+          if (g.edge > i) g.edge += 1;
+          else if (g.edge === i && g.at > first) {
+            g.edge = i + 1;
+            g.at = round(g.at - first);
+          }
+        }
+      });
+      this.drag = { kind: "outvertex", id, index: i + 1, base: this._doc, moved: false };
       return;
     }
     const outVertexEl = target.closest("[data-out-vertex]");
@@ -6593,9 +6619,40 @@ export class Fp3dEditor extends LitElement {
         return svg`<g class="fp3d-vertex fp3d-box-corner" data-out-box=${`${a.id}:${i}`}><circle cx=${x} cy=${y} r="16" class="fp3d-hit" /><rect x=${x - 5} y=${y - 5} width="10" height="10" /></g>`;
       })}`;
     }
-    return svg`${a.points.map((p, i) => {
+    // a "+" in the middle of each edge puts a corner there, as with a room (an open run has no closing edge); each edge
+    // shows its length outside the area and each corner its number, the ones in the form's list of corners (#1041)
+    const n = a.points.length;
+    const [cx, cy] = this.toScreen(centroid(a.points));
+    const mids = Array.from({ length: a.open ? n - 1 : n }, (_, i) => {
+      const p = a.points[i];
+      const q = a.points[(i + 1) % n];
+      const [ax, ay] = this.toScreen(p);
+      const [bx, by] = this.toScreen(q);
+      const screenLen = Math.hypot(bx - ax, by - ay);
+      const mx = (ax + bx) / 2;
+      const my = (ay + by) / 2;
+      let nx = -(by - ay);
+      let ny = bx - ax;
+      const nl = Math.hypot(nx, ny) || 1;
+      nx /= nl;
+      ny /= nl;
+      if (nx * (mx - cx) + ny * (my - cy) < 0) {
+        nx = -nx;
+        ny = -ny;
+      }
+      const len = Math.hypot(q[0] - p[0], q[1] - p[1]);
+      return svg`${screenLen > 50
+        ? Math.abs(nx) > Math.abs(ny)
+          ? svg`<text class="fp3d-dim" style="text-anchor:${nx > 0 ? "start" : "end"}" x=${mx + nx * 13} y=${my + ny * 13 + 4}>${this.m(len, 2)}</text>`
+          : svg`<text class="fp3d-dim" x=${mx + nx * 16} y=${my + ny * 16 + 4}>${this.m(len, 2)}</text>`
+        : nothing}${screenLen > 36
+        ? svg`<g data-out-mid=${`${a.id}:${i}`} class="fp3d-mid"><circle cx=${mx} cy=${my} r="14" class="fp3d-hit" /><circle cx=${mx} cy=${my} r="6" /><path d="M${mx - 3} ${my}h6M${mx} ${my - 3}v6" /></g>`
+        : nothing}`;
+    });
+    return svg`${mids}${a.points.map((p, i) => {
       const [x, y] = this.toScreen(p);
-      return svg`<g class="fp3d-vertex" data-out-vertex=${`${a.id}:${i}`}><circle cx=${x} cy=${y} r="16" class="fp3d-hit" /><circle cx=${x} cy=${y} r="6" /></g>`;
+      return svg`<g class="fp3d-vertex" data-out-vertex=${`${a.id}:${i}`}><circle cx=${x} cy=${y} r="16" class="fp3d-hit" /><circle cx=${x} cy=${y} r="6" /></g>
+        <text class="fp3d-vertex-no" x=${x + 9} y=${y - 9}>${i + 1}</text>`;
     })}`;
   }
 
@@ -11508,6 +11565,16 @@ export class Fp3dEditor extends LitElement {
                     ${this.t("cover_position_invert")}</label
                   >`
                 : nothing}
+              ${this.renderSlatInvert(o, o.cover && o.cover !== "none" ? o.cover : autoPick("cover"))}
+              ${garage || isPulseDrive(o.cover)
+                ? nothing
+                : html`<label class="fp3d-field fp3d-wide"
+                    >${this.t("blind_side")}
+                    <select ?disabled=${!admin} @change=${(e: Event) => this.updateOpening({ blind_side: (e.target as HTMLSelectElement).value === "inside" ? "inside" : null })}>
+                      <option value="outside" ?selected=${o.blind_side !== "inside"}>${this.t("blind_side_outside")}</option>
+                      <option value="inside" ?selected=${o.blind_side === "inside"}>${this.t("blind_side_inside")}</option>
+                    </select></label
+                  >`}
               <label class="fp3d-check fp3d-wide" title=${this.t("cover_confirm_hint")}
                 ><input type="checkbox" ?disabled=${!admin} .checked=${!!o.confirm} @change=${(ev: Event) => this.updateOpening({ confirm: (ev.target as HTMLInputElement).checked })} />
                 ${this.t("device_confirm")}</label
@@ -14011,6 +14078,17 @@ export class Fp3dEditor extends LitElement {
   }
 
   /** The times of day: the house plan for every screen set to "House plan", how it switches, a helper entity. */
+  /** "Invert slats" for a blind whose cover reports a slat tilt (a Raffstore, a venetian blind). */
+  private renderSlatInvert(o: Opening, cover: string | null) {
+    if (!o.slat_invert && (!cover || slatTilt(this.hass?.states[cover]) === null)) return nothing;
+    // the blind found by itself is written down with the option, so the sliders know whose slats are turned
+    const set = (on: boolean) => this.updateOpening(on ? { slat_invert: true, ...(cover && !o.cover ? { cover } : {}) } : { slat_invert: null });
+    return html`<label class="fp3d-check fp3d-wide" title=${this.t("slat_invert_hint")}
+      ><input type="checkbox" ?disabled=${!this.isAdmin} .checked=${!!o.slat_invert} @change=${(ev: Event) => set((ev.target as HTMLInputElement).checked)} />
+      ${this.t("slat_invert")}</label
+    >`;
+  }
+
   private renderStylePlan() {
     const st = this._doc.settings;
     const pick = (key: "style_day" | "style_evening" | "style_night", label: I18nKey) =>

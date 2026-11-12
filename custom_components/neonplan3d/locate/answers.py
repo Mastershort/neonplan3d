@@ -9,6 +9,7 @@ import time
 from typing import Any, NamedTuple
 
 from homeassistant.core import HomeAssistant
+from homeassistant.util.location import distance as location_distance
 
 from .service import LocateService
 
@@ -191,12 +192,30 @@ def _match(
 _NOT_AWAY = ("home", "on", "unknown", "unavailable", "")
 
 
+def _away(hass: HomeAssistant, state: str) -> bool:
+    """A person's state that says away; a zone of their own that touches the home zone ("Garten") is home (#900)."""
+    if state in _NOT_AWAY:
+        return False
+    home = hass.states.get("zone.home")
+    if state == "not_home" or home is None:
+        return True
+    lat, lon = home.attributes.get("latitude"), home.attributes.get("longitude")
+    for zone in hass.states.async_all("zone"):
+        a = zone.attributes
+        if zone.entity_id == "zone.home" or zone.name != state:
+            continue
+        metres = location_distance(lat, lon, a.get("latitude"), a.get("longitude"))
+        if metres is not None and metres <= float(home.attributes.get("radius") or 100) + float(a.get("radius") or 0):
+            return False
+    return True
+
+
 def _where(hass: HomeAssistant, service: LocateService, who: str, devices: list[dict[str, Any]], lang: str) -> Located:
     t = _TEXT[lang]
     person = devices[0].get("person")
     persons = any(d.get("person") for d in devices)
     # away, but not merely unknown: a person without a tracker of their own is home when located (#744)
-    if person and (state := hass.states.get(person)) and state.state not in _NOT_AWAY:
+    if person and (state := hass.states.get(person)) and _away(hass, state.state):
         return Located(t["away"].format(who=who), [], persons)
     best = person_state(service, devices)
     if best is None:

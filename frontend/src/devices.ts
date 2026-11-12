@@ -1,7 +1,7 @@
 // Devices of a room: which entities belong to an area, what kind they are, how they are placed and
 // what their state looks like. Pure functions (no Lit, no three.js) so they can be tested directly.
 
-import type { Furniture, EntityRef, FenceGate, Floor, LampMount, Opening, Placement, RoofWindow, Room, Vec2 } from "./model.ts";
+import type { Building, Furniture, EntityRef, FenceGate, Floor, LampMount, Opening, Placement, RoofWindow, Room, Vec2 } from "./model.ts";
 import { centroid, outdoorZones, pointInPolygon } from "./model.ts";
 import { isRobotVacuum, packMotion, packScreen } from "./packs.ts";
 import type { HassEntity, HomeAssistant } from "./types.ts";
@@ -676,6 +676,8 @@ export interface OpeningEntities {
   /** A sensor with the blind's position while it moves (0–100 % or 0–1, open = high). */
   position?: string | null;
   positionInverted?: boolean;
+  /** The cover reports its slats' tilt the other way round (0 = open). */
+  slatInvert?: boolean;
   /** A sensor with the sash's tilt angle (degrees), with the angle that counts as fully tilted, an offset and the sign. */
   tiltAngle?: string | null;
   tiltMax?: number | null;
@@ -722,6 +724,7 @@ export function openingEntities(hass: HomeAssistant, floors: readonly Floor[]): 
       // from a window turned into a door) would otherwise lower a roller shutter over a plain door (#682)
       position: cover && kindOf(cover) === "cover" && o.position && o.position !== "none" ? o.position : null,
       positionInverted: !!o.position_inverted,
+      ...(o.slat_invert ? { slatInvert: true } : {}),
       tiltAngle: o.tilt_angle && o.tilt_angle !== "none" ? o.tilt_angle : null,
       tiltMax: o.tilt_max ?? null,
       tiltOffset: o.tilt_offset ?? null,
@@ -803,7 +806,7 @@ export function openingState(
   hass: HomeAssistant,
   e: OpeningEntities,
   type: Opening["type"] = "window",
-): { open: number; open2: number; tilt: number; tilt2: number; cover: number | null; sensed: boolean; unlocked?: boolean } {
+): { open: number; open2: number; tilt: number; tilt2: number; cover: number | null; slats?: number | null; sensed: boolean; unlocked?: boolean } {
   // a drive that only gives a pulse (a switch, a button) reports nothing about the door: the contact does (#677)
   if (e.cover && isPulseDrive(e.cover)) e = { ...e, cover: null, position: null };
   // the door's smart lock: unlocked (or unlatched) gives the leaf a soft glow at its edge (#682)
@@ -841,6 +844,9 @@ export function openingState(
     if (typeof pos === "number") cover = 1 - Math.min(100, Math.max(0, pos)) / 100;
     else cover = c.state === "closed" ? 1 : c.state === "opening" || c.state === "closing" ? 0.5 : 0;
   } else if (e.cover) cover = 0;
+  // a venetian blind or Raffstore: how far its slats stand open (1 = level, 0 = shut)
+  const slatsOpen = c && !isUnavailable(c) ? slatTilt(c, !!e.slatInvert) : null;
+  const slats = slatsOpen === null ? {} : { slats: slatsOpen / 100 };
   if (type === "door") {
     const p = pos(e.contact);
     // a cover that is a gate, garage door or door is the door itself (a sliding gate on a sliding door): it moves the
@@ -850,7 +856,7 @@ export function openingState(
       return { open: leaf, open2: pos(e.contact2) === "open" ? 1 : 0, tilt: 0, tilt2: 0, cover: null, sensed: true, ...lockOpen };
     }
     // a door with a roller shutter (front door, French window, sliding door): the blind comes down over it
-    return { open: p === null ? (e.shut ? 0 : DOOR_DEFAULT_OPEN) : p === "closed" ? 0 : 1, open2: pos(e.contact2) === "open" ? 1 : 0, tilt: 0, tilt2: 0, cover, sensed: p !== null || cover !== null, ...lockOpen };
+    return { open: p === null ? (e.shut ? 0 : DOOR_DEFAULT_OPEN) : p === "closed" ? 0 : 1, open2: pos(e.contact2) === "open" ? 1 : 0, tilt: 0, tilt2: 0, cover, ...slats, sensed: p !== null || cover !== null, ...lockOpen };
   }
   if (type === "garage") {
     // a garage door without a cover shows its contact: open or closed (read like a door's, so text states and
@@ -860,7 +866,23 @@ export function openingState(
     if (cover === null) cover = p === null || p === "closed" ? 1 : 0;
     return { open: 0, open2: 0, tilt: 0, tilt2: 0, cover, sensed };
   }
-  return { open, open2, tilt: tiltFrac, tilt2: tilted2 ? 1 : 0, cover, sensed: known(e.contact) || known(e.tilt) || Number.isFinite(angleRaw), ...lockOpen };
+  return { open, open2, tilt: tiltFrac, tilt2: tilted2 ? 1 : 0, cover, ...slats, sensed: known(e.contact) || known(e.tilt) || Number.isFinite(angleRaw), ...lockOpen };
+}
+
+/**
+ * How far the slats of a cover stand open (0–100, 100 = level), as it reports them – or turned round for an
+ * integration that reports 0 for open slats. Null for a cover without slats.
+ */
+export function slatTilt(st: HassEntity | undefined, invert = false): number | null {
+  const t = st?.attributes.current_tilt_position;
+  if (typeof t !== "number" || !Number.isFinite(t)) return null;
+  const v = Math.min(100, Math.max(0, t));
+  return invert ? 100 - v : v;
+}
+
+/** Whether a window of the plan turns this cover's slats round ("Invert slats"). */
+export function slatsInverted(building: Building | null | undefined, entityId: string): boolean {
+  return !!building?.floors.some((f) => f.openings.some((o) => o.cover === entityId && o.slat_invert));
 }
 
 /**

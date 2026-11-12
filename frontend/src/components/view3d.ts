@@ -6,6 +6,7 @@ import { carState, type CarState, heatSensorOn, roomClimateValue,
   appColor,
   areaEntities,
   coverCalls,
+  slatsInverted,
   entityName,
   furnitureEntities,
   isActive,
@@ -493,6 +494,8 @@ export class Fp3dView3d extends LitElement {
   private holoFolded = new Set<number>();
   /** Media cards folded by the user, by player (positions shift as players start and stop). */
   private mediaFolded = new Set<string>();
+  /** Module cards that show their minor values also on a narrow card or the tablet level (this device, #1016). */
+  private moduleFull = new Set<string>(readModuleFull());
   /** A module card just opened from its marker (it lights up for a moment). */
   private cardPing: string | null = null;
   private cardPingTimer: ReturnType<typeof setTimeout> | undefined;
@@ -524,7 +527,8 @@ export class Fp3dView3d extends LitElement {
   private declare _camPop: { entity: string; text: string; until: number; src: string | null } | null;
   /** Detections already shown as a pop-up (sensor and the moment it went on). */
   private popSeen = new Set<string>();
-  private declare _through: { entity: string; back: ReturnType<FloorplanViewer["getView"]> } | null;
+  /** Looking through a camera: which one, the view to go back to, and whether the flight there has arrived. */
+  private declare _through: { entity: string; back: ReturnType<FloorplanViewer["getView"]>; ready?: boolean } | null;
   /** Camera wall: the camera shown big (null: all tiles). */
   private declare _wallBig: string | null;
   /** The look-through was started from the camera wall: going back reopens the wall. */
@@ -1093,6 +1097,8 @@ export class Fp3dView3d extends LitElement {
       if (this.floorId === this.throughFloor) this.throughFloor = null;
       else this._through = null;
     }
+    // however the look through a camera ended, the view gets its own field of view back
+    if (changed.has("_through") && !this._through && changed.get("_through")) v.endLook();
     // packs arrive with the building (or after an import): the viewer rebuilds pack furniture
     if (this.shownPacks !== packsVersion()) {
       this.shownPacks = packsVersion();
@@ -2279,8 +2285,20 @@ export class Fp3dView3d extends LitElement {
       this.requestUpdate();
     };
     const styled = (color?: string) => (color ? `color:${color}` : "");
-    // the tablet level and narrow screens leave the minor parts out
-    const compact = this._low || this.clientWidth < 600;
+    // the tablet level and narrow screens leave the minor parts out – unless asked for with "more" on the card (#1016)
+    const narrow = this._low || this.clientWidth < 600;
+    const compact = narrow && !this.moduleFull.has(m.id);
+    const minors = narrow && [...(m.rows ?? []), ...(m.cells ?? []), ...(m.chain?.items ?? []), ...(m.spark ? [m.spark] : [])].some((x) => x.minor);
+    const more = () => {
+      if (this.moduleFull.has(m.id)) this.moduleFull.delete(m.id);
+      else this.moduleFull.add(m.id);
+      try {
+        localStorage.setItem(MODULE_FULL_KEY, JSON.stringify([...this.moduleFull]));
+      } catch {
+        // private window: for this page only
+      }
+      this.requestUpdate();
+    };
     const rows = majorOnly(m.rows, compact);
     const cells = majorOnly(m.cells, compact);
     const chain = m.chain ? majorOnly(m.chain.items, compact) : [];
@@ -2330,6 +2348,9 @@ export class Fp3dView3d extends LitElement {
                     <div class="fp3d-holo-chip-row">${g.items.map((c) => html`<button class=${c.on ? "fp3d-holo-on" : ""} title=${c.title ?? ""} @click=${() => c.onTap()}>${c.label}</button>`)}</div>`,
                 )}
               </div>`
+            : nothing}
+          ${open && minors
+            ? html`<button class="fp3d-holo-more" @click=${more}>${translate(this.hass, compact ? "holo_more" : "holo_less")}</button>`
             : nothing}
           ${open && !this.ro && m.buttons?.length
             ? html`<div class="fp3d-holo-media-controls fp3d-holo-car-controls">${m.buttons.map((bt) => html`<button class=${bt.on ? "fp3d-holo-on" : ""} title=${bt.title ?? ""} @click=${() => bt.onTap()}>${bt.label}</button>`)}</div>`
@@ -5576,8 +5597,8 @@ export class Fp3dView3d extends LitElement {
     const floorId = b.floors.find((f) => f.placements.some((p) => p.entity_id === entityId))?.id;
     if (!floorId) return;
     this._menu = null;
-    if (!this._through) this._through = { entity: entityId, back: v.getView() };
-    else this._through = { ...this._through, entity: entityId };
+    if (!this._through) this._through = { entity: entityId, back: v.getView(), ready: false };
+    else this._through = { ...this._through, entity: entityId, ready: false };
     this.watchCameras(true);
     // another floor first opens (its own flight must not win over ours)
     const wait = this.floorId === floorId ? 0 : 300;
@@ -5588,6 +5609,10 @@ export class Fp3dView3d extends LitElement {
     setTimeout(() => {
       if (this._through?.entity === entityId && !this.viewer?.lookThrough(entityId)) this._through = null;
     }, wait);
+    // the picture comes when the flight has arrived, also when it was loaded before (#1060)
+    setTimeout(() => {
+      if (this._through?.entity === entityId) this._through = { ...this._through, ready: true };
+    }, wait + 950);
   }
 
   private endThrough(): void {
@@ -5596,6 +5621,7 @@ export class Fp3dView3d extends LitElement {
     this._through = null;
     // the stream player goes with the look (the camera wall makes its own when it opens)
     if (this.live?.id === t.entity) this.live = null;
+    this.viewer?.endLook();
     this.viewer?.flyTo(t.back);
     if (this.throughWall) {
       this.throughWall = false;
@@ -5767,7 +5793,7 @@ export class Fp3dView3d extends LitElement {
     // the live stream when it is switched on (D589), the still until the player is there or when it fails
     const stream = this.building?.settings.director?.live ? this.liveFor(t.entity) : null;
     return html`<div class="fp3d-through" style="--fp3d-blend:${this._blend}">
-      ${stream ? html`<div class="fp3d-through-img fp3d-through-live">${stream}</div>` : src ? html`<img class="fp3d-through-img" src=${src} alt="" />` : nothing}
+      ${!t.ready ? nothing : stream ? html`<div class="fp3d-through-img fp3d-through-live">${stream}</div>` : src ? html`<img class="fp3d-through-img" src=${src} alt="" />` : nothing}
       <div class="fp3d-through-bar">
         <span class="fp3d-through-name">${entityName(this.hass, t.entity)}</span>
         <span class="fp3d-still">${stream ? "● Live" : translate(this.hass, "camera_still", { s: this._low ? 10 : 5 })}</span>
@@ -5811,6 +5837,7 @@ export class Fp3dView3d extends LitElement {
         .entity=${m.entity}
         .car=${m.car ?? null}
         ?doorLock=${!!m.doorLock}
+        ?slatInvert=${slatsInverted(this.building, m.entity)}
         .presets=${hasFeature("sound") ? (this.building?.settings.media_presets ?? []) : []}
         ?confirmSwitch=${this.confirmSet.has(m.entity)}
         ?pro=${hasFeature("camera_cockpit")}
@@ -8212,6 +8239,18 @@ export class Fp3dView3d extends LitElement {
         border-radius: 50%;
         box-shadow: 0 0 6px currentColor;
       }
+      .fp3d-holo-more {
+        display: block;
+        margin: 6px 0 0 auto;
+        padding: 2px 9px;
+        border: 1px solid color-mix(in srgb, var(--fp3d-accent, #37e0ff) 45%, transparent);
+        border-radius: 9px;
+        background: transparent;
+        color: var(--fp3d-accent, #37e0ff);
+        font: 600 11px var(--fp3d-font);
+        cursor: pointer;
+        pointer-events: auto;
+      }
       .fp3d-holo-mline {
         margin-top: 5px;
         font-size: 12px;
@@ -8800,3 +8839,14 @@ function markerHeight(f: Furniture): number {
 
 /** Where a style set from outside (an action, a voice command) is kept on this device. */
 const STYLE_OVERRIDE_KEY = "neonplan3d.style_override";
+
+const MODULE_FULL_KEY = "neonplan3d.module_full";
+
+function readModuleFull(): string[] {
+  try {
+    const raw = JSON.parse(localStorage.getItem(MODULE_FULL_KEY) ?? "[]");
+    return Array.isArray(raw) ? raw.filter((x): x is string => typeof x === "string") : [];
+  } catch {
+    return [];
+  }
+}

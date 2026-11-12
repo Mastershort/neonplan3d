@@ -21,6 +21,9 @@ const de = {
   reload_page: "Neu laden",
   needs_restart_old: "Eine neue Version von NeonPlan 3D ist installiert, aber Home Assistant läuft noch mit einer älteren. Bitte Home Assistant neu starten – bis dahin schlägt das Speichern fehl.",
   draft_found: "Nicht gespeicherte Änderungen vom {time} gefunden.",
+  holo_more: "mehr",
+  holo_less: "weniger",
+  draft_conflict: "Der Plan wurde inzwischen auf einem anderen Gerät gespeichert – hier steht jetzt dieser neuere Stand. Deine Änderung von {time} beruhte auf dem älteren und ist nicht gespeichert.",
   draft_restore: "Übernehmen und speichern",
   draft_discard: "Verwerfen",
   walls_auto: "Wände hoch",
@@ -1665,6 +1668,11 @@ const de = {
   door_cover: "Antrieb (Tür oder Tor mit Motor)",
   cover_position_entity: "Positions-Sensor (live)",
   cover_position_invert: "Sensor zählt umgekehrt (0 = offen)",
+  slat_invert: "Lamellen umkehren (0 = offen)",
+  blind_side: "Rollladen sitzt",
+  blind_side_outside: "außen (Rollladen)",
+  blind_side_inside: "innen (Rollo)",
+  slat_invert_hint: "Für Raffstores und Jalousien, deren Integration die Lamellen andersherum meldet: Der Wert wird in 3D, im Schnellmenü und im Raumfenster gedreht – auch der gesendete.",
   contact_entity: "Kontakt",
   sensor_kind: "Sensor-Art",
   sensor_kind_contact: "Fensterkontakt (offen/zu)",
@@ -2451,6 +2459,9 @@ const en: Record<Key, string> = {
   reload_page: "Reload",
   needs_restart_old: "A new version of NeonPlan 3D is installed, but Home Assistant still runs an older one. Please restart Home Assistant – until then saving fails.",
   draft_found: "Unsaved changes from {time} found.",
+  holo_more: "more",
+  holo_less: "less",
+  draft_conflict: "The plan was saved on another device meanwhile – this newer plan is shown now. Your change from {time} was made on the older one and is not saved.",
   draft_restore: "Restore and save",
   draft_discard: "Discard",
   walls_auto: "Tall walls",
@@ -4095,6 +4106,11 @@ const en: Record<Key, string> = {
   door_cover: "Drive (motorised door or gate)",
   cover_position_entity: "Position sensor (live)",
   cover_position_invert: "Sensor counts the other way round (0 = open)",
+  slat_invert: "Invert slats (0 = open)",
+  blind_side: "Blind sits",
+  blind_side_outside: "outside (roller shutter)",
+  blind_side_inside: "inside (roller shade)",
+  slat_invert_hint: "For venetian blinds whose integration reports the slats the other way round: the value is turned in 3D, in the quick menu and in the room panel – the one sent too.",
   contact_entity: "Contact",
   sensor_kind: "Sensor type",
   sensor_kind_contact: "Window contact (open/closed)",
@@ -4870,7 +4886,7 @@ declare const __FP3D_LANG_HASH__: string;
  * keys fall back to English.
  */
 // "zh" is Simplified Chinese (zh-Hans; zh-Hant reads it too until it has its own), "pt" Portuguese for Portugal and Brazil
-export const EXTRA_LANGUAGES = ["fr", "es", "nl", "it", "hu", "da", "sv", "nb", "nn", "fi", "cs", "pl", "ro", "sl", "sk", "zh", "pt"] as const;
+export const EXTRA_LANGUAGES = ["fr", "es", "nl", "it", "hu", "da", "sv", "nb", "nn", "fi", "cs", "pl", "ro", "sl", "sk", "zh", "pt", "tr"] as const;
 const extra = new Map<string, Record<string, string>>();
 const pending = new Map<string, Promise<void>>();
 

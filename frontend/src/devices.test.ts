@@ -13,7 +13,7 @@ test("a lamp switched by a relay takes colour and brightness from its colour ent
   // the bulb unavailable: the relay's own (plain) glow
   assert.deepEqual(lightGlow(relay as never, { ...bulb, state: "unavailable" } as never)!.color, [1, 0.71, 0.28]);
 });
-import { coverTiltButtons, isPulseDrive, isRelevant, apOnline, fanSpeed, climateModeGlow, cooktopLevel, onlyColor, fixedGlowColor, colorCapable, appColor, carLocked, areaEntities, otherAreaEntities, roomClimateSensors, roomClimateValue, unassignedEntities, autoPlace, entityName, fridgeDoors, furnitureEntities, groupByDevice, isActive, kindOf, lightGlow, openingEntities, openingState, powerSensorsOf, primaryEntities, roomPanelEntities, windowPosition, confirmEntities, robotRoom, robotRoomSensor, roomKey, vacuumCleaning } from "./devices.ts";
+import { slatTilt, slatsInverted, coverTiltButtons, isPulseDrive, isRelevant, apOnline, fanSpeed, climateModeGlow, cooktopLevel, onlyColor, fixedGlowColor, colorCapable, appColor, carLocked, areaEntities, otherAreaEntities, roomClimateSensors, roomClimateValue, unassignedEntities, autoPlace, entityName, fridgeDoors, furnitureEntities, groupByDevice, isActive, kindOf, lightGlow, openingEntities, openingState, powerSensorsOf, primaryEntities, roomPanelEntities, windowPosition, confirmEntities, robotRoom, robotRoomSensor, roomKey, vacuumCleaning } from "./devices.ts";
 import type { Floor, Opening, Room } from "./model.ts";
 import { centroid, newFloor, pointInPolygon } from "./model.ts";
 import type { HomeAssistant } from "./types.ts";
@@ -967,4 +967,27 @@ test("covers open, close and stop the way they can: a slat-only blind by its til
     { service: "open_cover", data: { entity_id: ["cover.a", "cover.c"] } },
     { service: "set_cover_tilt_position", data: { tilt_position: 100, entity_id: ["cover.b"] } },
   ]);
+});
+
+test("a venetian blind reports how far its slats stand open; \"Invert slats\" turns it round (#971)", () => {
+  const cover = (attributes: Record<string, unknown>) => ({ entity_id: "cover.raff", state: "open", attributes });
+  const hass = (attributes: Record<string, unknown>) => ({ states: { "cover.raff": cover(attributes) } }) as unknown as HomeAssistant;
+  const link = { cover: "cover.raff", contact: null, tilt: null, contact2: null, tilt2: null };
+  // down to 30 % open, slats level
+  const level = openingState(hass({ current_position: 30, current_tilt_position: 100 }), link, "window");
+  assert.equal(level.cover, 0.7);
+  assert.equal(level.slats, 1);
+  assert.equal(openingState(hass({ current_position: 30, current_tilt_position: 25 }), link, "window").slats, 0.25);
+  // an integration that reports 0 for open slats
+  assert.equal(openingState(hass({ current_position: 30, current_tilt_position: 0 }), { ...link, slatInvert: true }, "window").slats, 1);
+  // a roller shutter has no slats to turn: nothing changes for it
+  assert.equal("slats" in openingState(hass({ current_position: 30 }), link, "window"), false);
+  // a garage door never shows slats
+  assert.equal("slats" in openingState(hass({ current_position: 30, current_tilt_position: 50 }), link, "garage"), false);
+  assert.equal(slatTilt(cover({ current_tilt_position: 130 }) as never), 100);
+  assert.equal(slatTilt(cover({ current_tilt_position: 20 }) as never, true), 80);
+  assert.equal(slatTilt(cover({}) as never), null);
+  const floor = { ...newFloor("f", "EG", 0), openings: [{ id: "w", cover: "cover.raff", slat_invert: true } as unknown as Opening] };
+  assert.equal(slatsInverted({ floors: [floor] } as never, "cover.raff"), true);
+  assert.equal(slatsInverted({ floors: [floor] } as never, "cover.other"), false);
 });
