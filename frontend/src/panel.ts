@@ -166,6 +166,8 @@ export class Floorplan3dPanel extends LitElement {
   private declare _heat: HeatMode;
   /** The style of this device: a style, "auto" (Day/Neon by the sun) or "house" (the house's plan). */
   private declare _theme: string;
+  /** Zoom style (test): the style the house turns into when zoomed in (empty: off). */
+  private declare _zoomStyle: string;
   private declare _clock: ClockPos;
   private declare _furnish: boolean;
   private declare _selFurniture: string | null;
@@ -244,6 +246,7 @@ export class Floorplan3dPanel extends LitElement {
     this._heat = heat === "temperature" || heat === "humidity" || heat === "co2" || heat === "values" ? heat : "none";
     const theme = prefs.get("theme");
     this._theme = isStyleChoice(theme) ? theme : "neon";
+    this._zoomStyle = prefs.get("zoom_style") ?? "";
     const clock = prefs.get("clock");
     this._clock = clock === "tl" || clock === "tr" || clock === "bl" || clock === "br" ? clock : "off";
     const accent = prefs.get("accent");
@@ -811,6 +814,19 @@ export class Floorplan3dPanel extends LitElement {
                     ${styleOptions((k) => this.t(k), this._theme, { auto: true, house: true })}
                   </select>
                 </label>
+                <label class="fp3d-style-pick" title=${this.t("zoom_style_hint")}>
+                  <span aria-hidden="true">🔍</span>
+                  <select
+                    aria-label=${this.t("zoom_style")}
+                    @change=${(e: Event) => {
+                      this._zoomStyle = (e.target as HTMLSelectElement).value;
+                      prefs.set("zoom_style", this._zoomStyle);
+                    }}
+                  >
+                    <option value="" ?selected=${!this._zoomStyle}>${this.t("zoom_style_off")}</option>
+                    ${styleOptions((k) => this.t(k), this._zoomStyle, {})}
+                  </select>
+                </label>
                 <label class="fp3d-accent-pick" title=${this.t("accent_hint")}>
                   <input
                     type="color"
@@ -1223,6 +1239,7 @@ export class Floorplan3dPanel extends LitElement {
           .pinSize=${this._pinSize}
           .heatMode=${this._heat}
           .theme=${this._theme}
+          .zoomStyle=${this._zoomStyle}
           .clock=${this._clock}
           .accent=${this._accent}
           ?furnish=${this._furnish && !tt}

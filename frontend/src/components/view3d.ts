@@ -273,6 +273,8 @@ export class Fp3dView3d extends LitElement {
     themeEvening: { attribute: false },
     themeNight: { attribute: false },
     styleEntity: { attribute: false },
+    zoomStyle: { attribute: false },
+    _morph: { state: true },
     _styleOverride: { state: true },
     clock: { attribute: false },
     _clockTick: { state: true },
@@ -422,6 +424,10 @@ export class Fp3dView3d extends LitElement {
   declare themeNight: string | null;
   /** A helper entity whose state names the style (the card's own; else the house's). */
   declare styleEntity: string | null;
+  /** Zoom style (test): the style the house turns into when zoomed in (a style id; empty: off). */
+  declare zoomStyle: string | null;
+  /** How far the zoom style has come (0 = far look, 1 = near style), for the background behind the house. */
+  private declare _morph: number;
   /** A style set from outside for this device (the action `neonplan3d.set_style`, a voice command), until a time. */
   private declare _styleOverride: { style: string; until: number | null } | null;
   /** Date and time in a corner of the view (D631); null or "off": none. */
@@ -1024,6 +1030,11 @@ export class Fp3dView3d extends LitElement {
         onDeviceHold: (id, x, y) => this.onDeviceHold(id, x, y),
         onRoomDoubleTap: (floorId, roomId) => this.onRoomDoubleTap(floorId, roomId),
         onDeviceSwipe: (id, phase, dy, x, y) => this.onDeviceSwipe(id, phase, dy, x, y),
+        onMorph: (m) => {
+          // the background follows in steps (a re-render per frame would be too much on a tablet)
+          const step = Math.round(m * 20) / 20;
+          if (step !== (this._morph ?? 0)) this._morph = step;
+        },
         onFurnitureSelect: (id) => this.fire("furniture-select", { id }),
         onFurnitureMove: (id, x, z) => this.fire("furniture-move", { id, x, z }),
         onDeviceSelect: (id) => this.fire("device-select", { id }),
@@ -1038,6 +1049,7 @@ export class Fp3dView3d extends LitElement {
       this.viewer.setKeepView(this.keepView);
       this.viewer.setAngleLock(this.angleLock);
       this.viewer.setStyle(this.effectiveStyle());
+      this.viewer.setZoomStyle(this.zoomDef());
       this.viewer.setAccent(this.accent ?? null);
       this.viewer.setFurnishMode(this.furnish);
       this.viewer.setSurfaceGrab(this.surfaceGrab ?? null);
@@ -1163,6 +1175,7 @@ export class Fp3dView3d extends LitElement {
     const restyled = (["theme", "themeEvening", "themeNight"] as const).some((k) => changed.has(k) && changed.get(k) !== undefined);
     if (restyled && this._styleOverride) this.setStyleOverride("reset", null);
     if (changed.has("theme") || changed.has("themeEvening") || changed.has("themeNight") || changed.has("styleEntity") || changed.has("_styleOverride") || changed.has("building")) v.setStyle(this.effectiveStyle());
+    if (changed.has("zoomStyle") || changed.has("building")) v.setZoomStyle(this.zoomDef());
     if (changed.has("accent")) v.setAccent(this.accent ?? null);
     if (changed.has("surfaceGrab")) v.setSurfaceGrab(this.surfaceGrab ?? null);
     if (changed.has("furnishTypes")) v.setFurnishTypes(this.furnishTypes ?? null);
@@ -5784,6 +5797,20 @@ export class Fp3dView3d extends LitElement {
     </div>`;
   }
 
+  /** Zoom style (test): the style asked for, when it is one. */
+  private zoomDef(): StyleDef | null {
+    setCustomStyles(this.building?.settings.styles_custom);
+    return this.zoomStyle ? (styleById(this.zoomStyle) ?? null) : null;
+  }
+
+  /** The near style's background fades in over the far one while the house turns (under the canvas). */
+  private renderZoomBackground() {
+    const m = this._morph ?? 0;
+    const bg = this.zoomDef()?.bg;
+    if (!bg || m <= 0) return nothing;
+    return html`<div class="fp3d-zoom-bg" style="opacity:${m};background:linear-gradient(180deg, ${bg[0]}, ${bg[1]})"></div>`;
+  }
+
   private renderThrough() {
     const t = this._through;
     if (!t || !this.hass) return nothing;
@@ -6228,6 +6255,7 @@ export class Fp3dView3d extends LitElement {
       class="fp3d-stage ${this.roomLabels ? "" : "fp3d-no-room-names"} ${this._low ? "fp3d-low" : ""} ${this.panelOpen ? "fp3d-panel-open" : ""} ${this.controlsRight ? "fp3d-side-right" : ""} ${this._alerts.length ? "fp3d-has-alerts" : ""} ${this._through ? "fp3d-through-on" : ""} ${this._flash ? "fp3d-flash" : ""} ${this.replay ? "fp3d-replay" : ""}"
       style=${style}
     >
+      ${this.renderZoomBackground()}
       ${this._error ? html`<p class="fp3d-error">${this._error}</p>` : nothing} ${this.clean ? nothing : this.renderEnergy()} ${this.renderHologram()} ${this.clean ? nothing : this.renderLegend()}
       ${this.renderClock()} ${this.renderAlerts()} ${this.clean || this._walk ? nothing : html`${this.renderHousehold()} ${this.renderThumbs()} ${this.renderScenes()} ${this.renderFind()} ${this.renderCentral()}`} ${this.clean ? nothing : this.renderWalk()} ${this.renderSwipe()} ${this.renderInfo()} ${this.renderBinInfo()} ${this.renderGangMenu()} ${this.renderThrough()} ${this.renderCamPop()} ${this.renderCameraWall()} ${this.renderSheet()} ${this.renderModulePopup()} ${this.renderSettings()} ${this.renderNote()}
       ${this.clean ? nothing : this.renderProHint()} ${this.renderMenu()} ${this.renderEye()}
@@ -6585,6 +6613,14 @@ export class Fp3dView3d extends LitElement {
         container-name: fp3d;
         background: radial-gradient(ellipse at 50% 35%, var(--fp3d-sky, var(--fp3d-bg2)), var(--fp3d-ground, var(--fp3d-bg)) 72%);
         transition: background 2s ease;
+        isolation: isolate;
+      }
+      /* under everything on the stage, above the stage's own background (the stage isolates its layers) */
+      .fp3d-zoom-bg {
+        position: absolute;
+        inset: 0;
+        z-index: -1;
+        pointer-events: none;
       }
       .fp3d-canvas {
         position: absolute;
