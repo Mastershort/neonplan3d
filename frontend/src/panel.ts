@@ -1708,8 +1708,21 @@ export class Floorplan3dPanel extends LitElement {
         scrollbar-width: none;
         flex: none;
       }
-      /* a desktop shows a thin scrollbar while the pointer rests on the bar */
-      .fp3d-nav:hover {
+      /* a desktop shows a thin scrollbar while the pointer rests on the bar. Its room is kept all the time (an
+         invisible thumb), so the bar does not grow on hover and the 3D view below does not jump; the bottom padding
+         gives that room back (idea from TRusselo, #1053). Touch screens keep their overlay scrollbars. */
+      @media (hover: hover) and (pointer: fine) {
+        .fp3d-nav:not(.fp3d-nav-wrap) {
+          scrollbar-width: thin;
+          scrollbar-color: transparent transparent;
+          padding-bottom: 3px;
+        }
+        .fp3d-nav:not(.fp3d-nav-wrap):hover {
+          scrollbar-color: color-mix(in srgb, var(--fp3d-text) 35%, transparent) transparent;
+        }
+      }
+      /* wrapped (several lines, scrolling up and down): the thin scrollbar on hover as before */
+      .fp3d-nav-wrap:hover {
         scrollbar-width: thin;
       }
       /* wrapped: several lines, at most about three before the bar itself scrolls */
