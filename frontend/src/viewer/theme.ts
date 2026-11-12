@@ -185,6 +185,9 @@ uniform float uStDim;
 uniform float uStFloors;
 uniform float uFloorY;
 varying vec3 vFp3dWorld;
+#ifdef FP3D_LIT
+varying float vFp3dLit;
+#endif
 float fp3dHash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
 // the face's normal from the screen-space change of the world position: no normals needed in the geometry
 vec3 fp3dFaceNormal() { return normalize(cross(dFdx(vFp3dWorld), dFdy(vFp3dWorld))); }
@@ -236,6 +239,10 @@ vec3 fp3dThemedAs(vec3 c, bool line, bool accent, int look) {
     bool signal = mx > 0.45 && sat > 0.45 && !(c.g > c.r * 1.25 && c.g > c.b * 1.25);
     vec3 n = fp3dFaceNormal();
     if (uStNatural == 1) {
+      #ifdef FP3D_LIT
+      // a lit lamp shines: no shading, no evening dimming – brighter than the walls it lights (#1071)
+      if (vFp3dLit > 0.5) return c;
+      #endif
       // neon leftovers the natural palette does not reach (dark navy lamp bodies, small devices) turn neutral grey
       vec3 cc = (mx < 0.2 && c.b > c.r * 2.0 && c.b > c.g * 1.5) ? vec3(0.32 + dot(c, vec3(0.3, 0.59, 0.11)) * 1.4) : c;
       cc *= fp3dStyleLight(n) * fp3dStyleFloor(cc, n);
@@ -288,10 +295,10 @@ export function themed<T extends Material>(material: T, uniform: ThemeUniform, l
     shader.uniforms.uMorph = uniform.morph ?? NO_MORPH;
     Object.assign(shader.uniforms, morphMaskUniforms(uniform));
     shader.vertexShader = shader.vertexShader
-      .replace("#include <common>", `#include <common>\nvarying vec3 vFp3dWorld;\n#ifdef FP3D_MORPH\nattribute vec3 ${MORPH_ATTRIBUTE};\nvarying vec3 vFp3dColor2;\n#endif`)
+      .replace("#include <common>", `#include <common>\nvarying vec3 vFp3dWorld;\n#ifdef FP3D_MORPH\nattribute vec3 ${MORPH_ATTRIBUTE};\nvarying vec3 vFp3dColor2;\n#endif\n#ifdef FP3D_LIT\nattribute float ${LIT_ATTRIBUTE};\nvarying float vFp3dLit;\n#endif`)
       .replace(
         "#include <project_vertex>",
-        `#include <project_vertex>\nvFp3dWorld = (modelMatrix * vec4(transformed, 1.0)).xyz;\n#ifdef FP3D_MORPH\nvFp3dColor2 = ${MORPH_ATTRIBUTE};\n#endif`,
+        `#include <project_vertex>\nvFp3dWorld = (modelMatrix * vec4(transformed, 1.0)).xyz;\n#ifdef FP3D_MORPH\nvFp3dColor2 = ${MORPH_ATTRIBUTE};\n#endif\n#ifdef FP3D_LIT\nvFp3dLit = ${LIT_ATTRIBUTE};\n#endif`,
       );
     // the zoom style: the far look from the neon colours, the near style from the natural ones, blended by uMorph
     // (a uniform: the GPU takes one branch for the whole frame, both only while the blend runs)
@@ -316,6 +323,12 @@ export function themed<T extends Material>(material: T, uniform: ThemeUniform, l
 }
 
 const NO_MORPH = { value: 0 };
+
+/**
+ * Lamps: 1 per vertex of a lit shade, 0 elsewhere. A material with the FP3D_LIT define reads it, so natural styles
+ * draw lit shades bright and unshaded instead of mistaking a warm white light for a beige lampshade.
+ */
+export const LIT_ATTRIBUTE = "fp3dLit";
 
 /** Additive glow disappears on light backgrounds: in the day look, lines are drawn normally. */
 export function lineBlending(theme: Theme): typeof AdditiveBlending | typeof NormalBlending {

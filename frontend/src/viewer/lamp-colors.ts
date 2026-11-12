@@ -25,3 +25,8 @@ export function recolorLamps(colors: Float32Array, factors: Float32Array, range:
     colors[v * 3 + 2] = Math.min(1, color[2] * f);
   }
 }
+
+/** Marks a lamp's shade vertices as lit (1) or not (0) in its triangle range; bodies stay 0. */
+export function markLit(lit: Float32Array, factors: Float32Array, range: { start: number; end: number }, on: boolean): void {
+  for (let v = range.start * 3; v < range.end * 3; v++) if (factors[v] > 0) lit[v] = on ? 1 : 0;
+}
