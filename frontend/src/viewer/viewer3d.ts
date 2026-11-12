@@ -5,9 +5,9 @@
 // flight into it). Each floor is a group with its own materials so its height and opacity can be
 // animated independently.
 
-import { AdditiveBlending, CustomBlending, DstColorFactor, OneFactor, SrcAlphaFactor, ZeroFactor, RingGeometry, Fog, CircleGeometry, Box3, CanvasTexture, ClampToEdgeWrapping, Color, BackSide, DoubleSide, FrontSide, Group, LineBasicMaterial, LineSegments, Mesh, MeshBasicMaterial, MultiplyBlending, OrthographicCamera, PerspectiveCamera, Points, PointsMaterial, PlaneGeometry, Raycaster, RepeatWrapping, Scene, SRGBColorSpace, TextureLoader, type Texture, Float32BufferAttribute, Uint32BufferAttribute, DynamicDrawUsage, BufferGeometry as Geometry, Vector2, Vector3, WebGLRenderer, WebGLRenderTarget, type Material, BufferGeometry } from "three";
+import { AdditiveBlending, CustomBlending, DstColorFactor, NormalBlending, OneFactor, OneMinusSrcAlphaFactor, SrcAlphaFactor, ZeroFactor, RingGeometry, Fog, CircleGeometry, Box3, CanvasTexture, ClampToEdgeWrapping, Color, BackSide, DoubleSide, FrontSide, Group, LineBasicMaterial, LineSegments, Mesh, MeshBasicMaterial, MultiplyBlending, OrthographicCamera, PerspectiveCamera, Points, PointsMaterial, PlaneGeometry, Raycaster, RepeatWrapping, Scene, SRGBColorSpace, TextureLoader, type Texture, Float32BufferAttribute, Uint32BufferAttribute, DynamicDrawUsage, BufferGeometry as Geometry, Vector2, Vector3, WebGLRenderer, WebGLRenderTarget, type Material, BufferGeometry } from "three";
 import type { Building, Floor, Furniture, Room, StartView } from "../model.ts";
-import { recolorLamps, SHADE_SENTINEL, shadeFactors } from "./lamp-colors.ts";
+import { markLit, recolorLamps, SHADE_SENTINEL, shadeFactors } from "./lamp-colors.ts";
 import { centroid, GANG_TYPES, gateSpans, outdoorSurface, outdoorTopAt, outdoorZones, pointInPolygon, openingStyle, setTerrain, WALL_LAMP_Y, zonesOf } from "../model.ts";
 import { placeWallPlate } from "../geometry/walls.ts";
 import { buildEarth } from "./earth.ts";
@@ -40,7 +40,7 @@ import { buildSolarLive, solarLiveMaterial, writeSolarLevels, type SolarLive } f
 import { dotTexture, roofLightPoints, roofSnowGeometry } from "./snow.ts";
 import { Firework } from "./firework.ts";
 import { buildPools, disposePools, type PoolPiece } from "./pool-water.ts";
-import { accentOnUniform, accentUniform, applyStyleUniforms, floorLevelUniform, makeStyleUniforms, parseAccent, lineBlending, STYLE_LOOK, themed, themeIndex, type Theme, type ThemeUniform } from "./theme.ts";
+import { accentOnUniform, accentUniform, applyStyleUniforms, floorLevelUniform, LIT_ATTRIBUTE, makeStyleUniforms, parseAccent, lineBlending, STYLE_LOOK, themed, themeIndex, type Theme, type ThemeUniform } from "./theme.ts";
 import { styleById, type StyleDef } from "../looks.ts";
 import { hexColor, setNaturalPalette } from "./palette.ts";
 
@@ -1561,6 +1561,9 @@ export class FloorplanViewer {
     for (const fv of this.floors) {
       fv.patternMesh.visible = !this.style.natural;
       lightOnSurfaces(fv.glowMesh.material as MeshBasicMaterial, !!this.style.natural);
+      const dim = this.style.natural ? (this.style.dim ?? 0) : 0;
+      glassLook(fv.materials.glass, !!this.style.natural, dim);
+      screenLook(fv.materials.screens, !!this.style.natural, dim);
       const old = fv.group.getObjectByName("fp3d-contact-shadows");
       if (old) {
         fv.group.remove(old);
@@ -2798,7 +2801,8 @@ export class FloorplanViewer {
       patch: new MeshBasicMaterial({ vertexColors: true, transparent: true, depthWrite: false, side: DoubleSide, forceSinglePass: true, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }),
       patchGlow: new MeshBasicMaterial({ vertexColors: true, transparent: true, blending: AdditiveBlending, depthWrite: false, side: DoubleSide, forceSinglePass: true, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }),
       solarLive: solarLiveMaterial(this.flowTime),
-      lamps: themed(new MeshBasicMaterial({ vertexColors: true }), this.themeUniform),
+      // lit shades are marked per vertex: natural styles draw them bright and unshaded (#1071)
+      lamps: Object.assign(themed(new MeshBasicMaterial({ vertexColors: true }), this.themeUniform), { defines: { FP3D_LIT: "" } }),
       halos: new PointsMaterial({
         map: this.haloTexture,
         size: 0.9,
@@ -2811,7 +2815,7 @@ export class FloorplanViewer {
       // adds its colour but never covers: over the empty, see-through background a wedge fading to black stays
       // see-through instead of drawing a black half-circle (the Day look, #955)
       cones: new MeshBasicMaterial({ vertexColors: true, transparent: true, blending: CustomBlending, blendSrc: SrcAlphaFactor, blendDst: OneFactor, blendSrcAlpha: ZeroFactor, blendDstAlpha: OneFactor, depthWrite: false, side: DoubleSide, forceSinglePass: true }),
-      screens: new MeshBasicMaterial({ vertexColors: true, transparent: true, blending: AdditiveBlending, depthWrite: false, side: DoubleSide, forceSinglePass: true }),
+      screens: screenMaterial(),
       earth: themed(new MeshBasicMaterial({ vertexColors: true }), this.themeUniform),
       earthWell: themed(new MeshBasicMaterial({ vertexColors: true, side: DoubleSide }), this.themeUniform),
       earthLines: themed(new LineBasicMaterial({ vertexColors: true, transparent: true, depthWrite: false }), this.themeUniform, true),
@@ -3531,12 +3535,14 @@ export class FloorplanViewer {
       fv.lampShade = shadeFactors(buf.c);
       fv.lampMesh.geometry.dispose();
       fv.lampMesh.geometry = buf.geometry();
+      fv.lampMesh.geometry.setAttribute(LIT_ATTRIBUTE, new Float32BufferAttribute(new Float32Array(fv.lampShade.length), 1));
       fv.lampMesh.visible = buf.count > 0;
     }
     if (colorSig === fv.lampColorSig) return;
     fv.lampColorSig = colorSig;
     const attr = fv.lampMesh.geometry.getAttribute("color") as Float32BufferAttribute;
     const colors = attr.array as Float32Array;
+    const litAttr = fv.lampMesh.geometry.getAttribute(LIT_ATTRIBUTE) as Float32BufferAttribute | undefined;
     lamps.forEach((d, i) => {
       const range = fv.lampRanges.get(d.furnitureId ?? d.id);
       if (!range) return;
@@ -3549,8 +3555,10 @@ export class FloorplanViewer {
       // the model's colours come from hex values: convert the same way (colour management)
       const c = new Color(shadeC.getHex());
       recolorLamps(colors, fv.lampShade, range, [c.r, c.g, c.b]);
+      if (litAttr) markLit(litAttr.array as Float32Array, fv.lampShade, range, !!glow);
     });
     attr.needsUpdate = true;
+    if (litAttr) litAttr.needsUpdate = true;
     this.buildHalos(fv);
   }
 
@@ -5893,6 +5901,51 @@ function patternMaterial(texture: CanvasTexture): MeshBasicMaterial {
  * materials are lit by it instead: the surface's own colour times (1 + light), so a blue wall stays blue and gets
  * brighter, a wooden floor warmer – added light washed coloured walls out to white (#1054).
  */
+/**
+ * Window glass: neon adds a faint cyan sheen to the dark behind it; on the light walls and the sky of the natural
+ * styles that sum was always white (#1070). There it is a light tint laid over what lies behind, dimmed in the evening.
+ */
+function glassLook(m: MeshBasicMaterial, natural: boolean, dim: number): void {
+  const blending = natural ? NormalBlending : AdditiveBlending;
+  if (m.blending !== blending) {
+    m.blending = blending;
+    m.needsUpdate = true;
+  }
+  m.opacity = natural ? 0.28 : 1;
+  m.color.setScalar(natural ? 1 - 0.55 * dim : 1);
+}
+
+/**
+ * The display faces of running devices (a heating radiator, a TV, a coffee machine): added light glows on neon's dark
+ * bodies but turns white on a natural style's light ones (#1071). There they cover the body as much as they glow
+ * (their colour over it, the halo fading out), a little softer, and dim with the house in the evening – less than it,
+ * so a running device still shows.
+ */
+function screenMaterial(): MeshBasicMaterial {
+  const m = new MeshBasicMaterial({ vertexColors: true, transparent: true, blending: AdditiveBlending, depthWrite: false, side: DoubleSide, forceSinglePass: true });
+  m.onBeforeCompile = (shader) => {
+    shader.fragmentShader = shader.fragmentShader.replace(
+      "#include <opaque_fragment>",
+      "#include <opaque_fragment>\n#ifdef FP3D_COVER\ngl_FragColor.a = max(gl_FragColor.r, max(gl_FragColor.g, gl_FragColor.b));\n#endif",
+    );
+  };
+  return m;
+}
+
+function screenLook(m: MeshBasicMaterial, natural: boolean, dim: number): void {
+  const defines = (m.defines ??= {});
+  if (natural !== "FP3D_COVER" in defines) {
+    if (natural) defines.FP3D_COVER = "";
+    else delete defines.FP3D_COVER;
+    m.needsUpdate = true;
+  }
+  // colour plus what lies behind, less as much as the colour covers it
+  m.blending = natural ? CustomBlending : AdditiveBlending;
+  m.blendSrc = OneFactor;
+  m.blendDst = OneMinusSrcAlphaFactor;
+  m.color.setScalar(natural ? 0.8 * (1 - 0.35 * dim) : 1);
+}
+
 function lightOnSurfaces(m: MeshBasicMaterial, natural: boolean): void {
   const blending = natural ? CustomBlending : AdditiveBlending;
   if (m.blending === blending) return;
