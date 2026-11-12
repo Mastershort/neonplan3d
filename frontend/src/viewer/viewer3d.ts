@@ -750,6 +750,8 @@ export class FloorplanViewer {
   /** The zoom style asked for (used while the own look is a plain one). */
   private zoomWanted: StyleDef | null = null;
   private morphShown = -1;
+  /** The blend now, gliding after the one the camera's distance asks for. */
+  private morphNow = 0;
   /** This view's palette (natural materials, cut tops, facade): set before it builds anything, as views share the palette module. */
   private palette = { natural: false, cutTop: null as number | null, facade: null as number | null };
   private sun: SunState | null = null;
@@ -1517,6 +1519,7 @@ export class FloorplanViewer {
     if (JSON.stringify(usable) === JSON.stringify(this.zoomStyle)) return;
     this.zoomStyle = usable;
     this.morphShown = -1;
+    this.morphNow = 0;
     if (usable) applyStyleUniforms(usable, this.themeUniform.style);
     else {
       applyStyleUniforms(this.style, this.themeUniform.style);
@@ -1549,13 +1552,18 @@ export class FloorplanViewer {
   }
 
   /** Every frame: the blend from the camera's distance; the parts that are no shader follow at the middle. */
-  private stepMorph(): void {
+  private stepMorph(dt: number): boolean {
     const near = this.zoomStyle;
-    if (!near) return;
+    if (!near) return false;
     const r = this.controls.view.radius / Math.max(1, this.houseRadius);
-    // the house as a whole stays neon; from a floor's distance on it turns, a room is fully in the style
+    // the house and an opened floor stay in the far look; zooming towards a room turns it, a room is (nearly) all style
     const k = Math.min(1, Math.max(0, (ZOOM_FAR - r) / (ZOOM_FAR - ZOOM_NEAR)));
-    const m = k * k * (3 - 2 * k);
+    const want = k * k * (3 - 2 * k);
+    // the colours glide after the camera: no jump when a flight is quick
+    const d = want - this.morphNow;
+    this.morphNow = Math.abs(d) < 0.003 ? want : this.morphNow + d * (1 - Math.exp(-dt / MORPH_TAU));
+    const m = this.morphNow;
+    const gliding = m !== want;
     // themed meshes built without a second colour (lamps, roof, earth) take their own colours for it
     this.scene.traverse((o) => {
       const mesh = o as Mesh;
@@ -1566,7 +1574,7 @@ export class FloorplanViewer {
       const color = geo?.getAttribute("color");
       if (geo && color && !geo.getAttribute(MORPH_ATTRIBUTE)) geo.setAttribute(MORPH_ATTRIBUTE, color);
     });
-    if (Math.abs(m - this.morphShown) < 0.002) return;
+    if (Math.abs(m - this.morphShown) < 0.002 && !(m === want && m !== this.morphShown)) return gliding;
     const crossed = (this.morphShown < 0.5) !== (m < 0.5);
     this.morphShown = m;
     this.themeUniform.morph!.value = m;
@@ -1586,8 +1594,8 @@ export class FloorplanViewer {
       }
       this.placeGround();
     }
-    this.labelsDirty = true;
     this.invalidate();
+    return gliding;
   }
 
   setTheme(theme: Theme): void {
@@ -5464,7 +5472,7 @@ export class FloorplanViewer {
       orbiting = true;
     } else this.orbitLast = 0;
     const cameraMoving = this.controls.update(now);
-    this.stepMorph();
+    const morphMoving = this.stepMorph(dt);
     const floorsMoving = this.stepFloors(dt) || this.stepFov(dt);
     this.stepFloorLevels();
     const openingsMoving = this.stepOpenings(dt) || this.stepFridges(dt);
@@ -5484,7 +5492,7 @@ export class FloorplanViewer {
     const robotsMoving = this.stepRobots(now);
     const fansTurning = this.stepFans(now);
     const weatherMoving = this.stepWeather(now);
-    const moving = cameraMoving || floorsMoving || openingsMoving || flashing || roofMoving;
+    const moving = cameraMoving || floorsMoving || openingsMoving || flashing || roofMoving || morphMoving;
     const busy: string[] = [];
     // a finger or the mouse turning the view draws frames too, though no inertia runs yet
     if (cameraMoving || this.controls.busy) busy.push("camera");
@@ -6016,8 +6024,10 @@ function lightOnSurfaces(m: MeshBasicMaterial, natural: boolean): void {
 const BASE_FOV = 38;
 
 /** Zoom style: camera distance in house radii where the blend starts (the house) and ends (a floor, a room). */
-const ZOOM_FAR = 0.95;
-const ZOOM_NEAR = 0.6;
+const ZOOM_FAR = 0.8;
+const ZOOM_NEAR = 0.35;
+/** How slowly the colours follow the camera (ms): a quick flight into a room still turns the house over a second or two. */
+const MORPH_TAU = 450;
 
 /**
  * Gives every geometry in `own` the colours of its twin in `nat` as the second colour (found by the same key, or

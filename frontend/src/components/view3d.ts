@@ -274,7 +274,6 @@ export class Fp3dView3d extends LitElement {
     themeNight: { attribute: false },
     styleEntity: { attribute: false },
     zoomStyle: { attribute: false },
-    _morph: { state: true },
     _styleOverride: { state: true },
     clock: { attribute: false },
     _clockTick: { state: true },
@@ -426,8 +425,8 @@ export class Fp3dView3d extends LitElement {
   declare styleEntity: string | null;
   /** Zoom style (test): the style the house turns into when zoomed in (a style id; empty: off). */
   declare zoomStyle: string | null;
-  /** How far the zoom style has come (0 = far look, 1 = near style), for the background behind the house. */
-  private declare _morph: number;
+  /** How far the zoom style has come (0 = far look, 1 = near style): the near background's opacity, set directly. */
+  private morph = 0;
   /** A style set from outside for this device (the action `neonplan3d.set_style`, a voice command), until a time. */
   private declare _styleOverride: { style: string; until: number | null } | null;
   /** Date and time in a corner of the view (D631); null or "off": none. */
@@ -1031,9 +1030,10 @@ export class Fp3dView3d extends LitElement {
         onRoomDoubleTap: (floorId, roomId) => this.onRoomDoubleTap(floorId, roomId),
         onDeviceSwipe: (id, phase, dy, x, y) => this.onDeviceSwipe(id, phase, dy, x, y),
         onMorph: (m) => {
-          // the background follows in steps (a re-render per frame would be too much on a tablet)
-          const step = Math.round(m * 20) / 20;
-          if (step !== (this._morph ?? 0)) this._morph = step;
+          // straight onto the element: a render of the whole view per frame would make the zoom stutter
+          this.morph = m;
+          const el = this.renderRoot.querySelector<HTMLElement>(".fp3d-zoom-bg");
+          if (el) el.style.opacity = String(m);
         },
         onFurnitureSelect: (id) => this.fire("furniture-select", { id }),
         onFurnitureMove: (id, x, z) => this.fire("furniture-move", { id, x, z }),
@@ -5805,9 +5805,9 @@ export class Fp3dView3d extends LitElement {
 
   /** The near style's background fades in over the far one while the house turns (under the canvas). */
   private renderZoomBackground() {
-    const m = this._morph ?? 0;
+    const m = this.morph;
     const bg = this.zoomDef()?.bg;
-    if (!bg || m <= 0) return nothing;
+    if (!bg) return nothing;
     return html`<div class="fp3d-zoom-bg" style="opacity:${m};background:linear-gradient(180deg, ${bg[0]}, ${bg[1]})"></div>`;
   }
 
