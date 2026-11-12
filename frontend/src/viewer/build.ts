@@ -17,7 +17,8 @@ import { freeWallRoomLeft, generateWalls, locateOpening, openingHost, placeWallP
 import { clipConvex, isConvex } from "../geometry/area.ts";
 import { holeInRoom, insetHole, mergeHoles } from "../geometry/holes.ts";
 import { pushFurniture } from "./furniture.ts";
-import { mountBase, packItem } from "../packs.ts";
+import { mountBase, packItem, type PackItem } from "../packs.ts";
+import { fitParts } from "../pack-scale.ts";
 import { pushOutdoor } from "./outdoor.ts";
 import { pushModules } from "./roof.ts";
 import type { RoofFace } from "../solar.ts";
@@ -806,7 +807,11 @@ export function stairHoleParts(floors: readonly Floor[], floor: Floor): Vec2[][]
   if (!below) return own;
   const stairs = below.furniture
     .filter((f) => (STAIR_TYPES.has(f.type) || packItem(f.type)?.hole) && below.elevation + f.h >= floor.elevation - 0.3)
-    .flatMap((f) => (f.type === "stairs_u" ? uStairHole(f) : [furnitureFootprint(f)]));
+    .flatMap((f) => {
+      if (f.type === "stairs_u") return uStairHole(f);
+      const item = packItem(f.type);
+      return item?.hole ? packStairHole(f, item) : [furnitureFootprint(f)];
+    });
   // overlapping openings become one outline (an L-shaped stairwell made of two) – after cutting, room by room
   return [...own, ...stairs];
 }
@@ -831,6 +836,43 @@ export function uStairHole(f: Furniture): Vec2[][] {
   };
   const xb0 = f.w / 2 - fw;
   return [rect(-f.w / 2, -f.d / 2, xb0, f.d / 2), rect(xb0, -f.d / 2, f.w / 2, zTop)];
+}
+
+/**
+ * The opening a pack stair needs (#1073): where its parts stand – treads, landings, flights – instead of its whole box.
+ * An L-stair leaves the corner beside its first flight empty, and the floor above keeps it there. Each part is grown
+ * by a centimetre so neighbouring treads overlap and merge into one outline.
+ */
+export function packStairHole(f: Furniture, item: PackItem): Vec2[][] {
+  const a = (f.rotation * Math.PI) / 180;
+  const c = Math.cos(a);
+  const s = Math.sin(a);
+  const mx = f.mirror ? -1 : 1;
+  const tf = (lx: number, lz: number): Vec2 => [f.x + mx * lx * c - lz * s, f.z + mx * lx * s + lz * c];
+  const grow = 0.01;
+  const out: Vec2[][] = [];
+  for (const p of fitParts(item, f.w, f.d, f.h)) {
+    // a loft's footprint takes in its top rectangle as well
+    const tx = p.tx ?? p.x;
+    const tz = p.tz ?? p.z;
+    const tw = p.tw ?? p.w;
+    const td = p.td ?? p.d;
+    const x0 = Math.min(p.x - p.w / 2, tx - tw / 2) * f.w - grow;
+    const x1 = Math.max(p.x + p.w / 2, tx + tw / 2) * f.w + grow;
+    const z0 = Math.min(p.z - p.d / 2, tz - td / 2) * f.d - grow;
+    const z1 = Math.max(p.z + p.d / 2, tz + td / 2) * f.d + grow;
+    if (x1 - x0 < 0.03 || z1 - z0 < 0.03) continue;
+    // a turned part turns around its own centre, as the model draws it
+    const cx = p.x * f.w;
+    const cz = p.z * f.d;
+    const r = p.rot ? (p.rot * Math.PI) / 180 : 0;
+    const rc = Math.cos(r);
+    const rs = Math.sin(r);
+    const turn = (x: number, z: number): Vec2 => (r ? tf(cx + (x - cx) * rc - (z - cz) * rs, cz + (x - cx) * rs + (z - cz) * rc) : tf(x, z));
+    const ring = [turn(x0, z0), turn(x1, z0), turn(x1, z1), turn(x0, z1)];
+    out.push(f.mirror ? ring.reverse() : ring);
+  }
+  return out.length ? out : [furnitureFootprint(f)];
 }
 
 /** How tall a wall stands: its own height (a low wall, a counter), never above the floor height. */
