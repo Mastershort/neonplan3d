@@ -546,7 +546,9 @@ export class FloorplanViewer {
   private readonly options: ViewerOptions;
   private renderer: WebGLRenderer;
   private readonly scene = new Scene();
-  private readonly camera = new PerspectiveCamera(38, 1, 0.1, 400);
+  private readonly camera = new PerspectiveCamera(BASE_FOV, 1, 0.1, 400);
+  /** The field of view the camera glides to: the view's own, or a camera's while looking through it. */
+  private fovTarget = BASE_FOV;
   private controls: OrbitControls;
   private readonly labels: HTMLDivElement;
   private readonly root = new Group();
@@ -5295,7 +5297,32 @@ export class FloorplanViewer {
     const tilt = Math.min(1.45, Math.max(0.22, (d.tilt ?? (ceiling ? 65 : 20)) * DEG));
     const y = fv.floor.elevation + fv.ty + (ceiling ? fv.floor.height - 0.1 : d.y);
     const dir = new Vector3(-Math.sin(a) * Math.cos(tilt), -Math.sin(tilt), Math.cos(a) * Math.cos(tilt));
-    this.controls.flyTo({ target: new Vector3(d.x, y, d.z).addScaledVector(dir, 3.15), radius: 3, phi: Math.PI / 2 - tilt, theta: Math.atan2(Math.sin(a), -Math.cos(a)) }, 900);
+    // the camera's own angle and height count, also under the 3D lock (#1060)
+    this.controls.flyTo({ target: new Vector3(d.x, y, d.z).addScaledVector(dir, 3.15), radius: 3, phi: Math.PI / 2 - tilt, theta: Math.atan2(Math.sin(a), -Math.cos(a)) }, 900, true);
+    // and its field of view: a wall camera sees about 90° across, the 3D view only 38° up and down – the look through
+    // it was a narrow slice that seemed to stand at eye level (#1060); a dome sees all round, it gets a wide view
+    const across = Math.min(110, Math.max(50, d.fov && d.fov < 360 ? d.fov : ceiling ? 100 : 90)) * DEG;
+    const aspect = this.camera.aspect || 1;
+    this.fovTarget = Math.min(85, Math.max(BASE_FOV, (2 * Math.atan(Math.tan(across / 2) / aspect)) / DEG));
+    this.invalidate();
+    return true;
+  }
+
+  /** Back from a look through a camera: the view's own field of view again. */
+  endLook(): void {
+    this.fovTarget = BASE_FOV;
+    this.invalidate();
+  }
+
+  /** The field of view glides with the flight to and from a camera. */
+  private stepFov(dt: number): boolean {
+    const d = this.fovTarget - this.camera.fov;
+    if (Math.abs(d) < 0.05) {
+      if (d === 0) return false;
+      this.camera.fov = this.fovTarget;
+    } else this.camera.fov += d * (1 - Math.exp(-dt / 260));
+    this.camera.updateProjectionMatrix();
+    this.labelsDirty = true;
     return true;
   }
 
@@ -5332,7 +5359,7 @@ export class FloorplanViewer {
       orbiting = true;
     } else this.orbitLast = 0;
     const cameraMoving = this.controls.update(now);
-    const floorsMoving = this.stepFloors(dt);
+    const floorsMoving = this.stepFloors(dt) || this.stepFov(dt);
     this.stepFloorLevels();
     const openingsMoving = this.stepOpenings(dt) || this.stepFridges(dt);
     let flashing = false;
@@ -5878,6 +5905,9 @@ function lightOnSurfaces(m: MeshBasicMaterial, natural: boolean): void {
   } else m.color.setScalar(1);
   m.needsUpdate = true;
 }
+
+/** The 3D view's vertical field of view (degrees). */
+const BASE_FOV = 38;
 
 function makeBlindTexture(): CanvasTexture {
   const canvas = document.createElement("canvas");

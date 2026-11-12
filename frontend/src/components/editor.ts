@@ -1587,6 +1587,8 @@ export class Fp3dEditor extends LitElement {
     else if (d.kind === "outdoor") target = ["outdoor", d.id];
     if (!target || !this.isFixedItem(...target)) return;
     if ("moved" in d && d.moved && "base" in d) this.restoreLive(d.base);
+    // a device is selected when its press ends – a fixed one never got there and could not be chosen at all (#1060)
+    if (target[0] === "device" && this._deviceId !== target[1]) this.selectItem("device", target[1]);
     this.drag = { kind: "pan", last: local };
     this.fixedPan = true;
   }
@@ -6617,19 +6619,40 @@ export class Fp3dEditor extends LitElement {
         return svg`<g class="fp3d-vertex fp3d-box-corner" data-out-box=${`${a.id}:${i}`}><circle cx=${x} cy=${y} r="16" class="fp3d-hit" /><rect x=${x - 5} y=${y - 5} width="10" height="10" /></g>`;
       })}`;
     }
-    // a "+" in the middle of each edge puts a corner there, as with a room (an open run has no closing edge)
+    // a "+" in the middle of each edge puts a corner there, as with a room (an open run has no closing edge); each edge
+    // shows its length outside the area and each corner its number, the ones in the form's list of corners (#1041)
     const n = a.points.length;
+    const [cx, cy] = this.toScreen(centroid(a.points));
     const mids = Array.from({ length: a.open ? n - 1 : n }, (_, i) => {
-      const [ax, ay] = this.toScreen(a.points[i]);
-      const [bx, by] = this.toScreen(a.points[(i + 1) % n]);
-      if (Math.hypot(bx - ax, by - ay) <= 36) return nothing;
+      const p = a.points[i];
+      const q = a.points[(i + 1) % n];
+      const [ax, ay] = this.toScreen(p);
+      const [bx, by] = this.toScreen(q);
+      const screenLen = Math.hypot(bx - ax, by - ay);
       const mx = (ax + bx) / 2;
       const my = (ay + by) / 2;
-      return svg`<g data-out-mid=${`${a.id}:${i}`} class="fp3d-mid"><circle cx=${mx} cy=${my} r="14" class="fp3d-hit" /><circle cx=${mx} cy=${my} r="6" /><path d="M${mx - 3} ${my}h6M${mx} ${my - 3}v6" /></g>`;
+      let nx = -(by - ay);
+      let ny = bx - ax;
+      const nl = Math.hypot(nx, ny) || 1;
+      nx /= nl;
+      ny /= nl;
+      if (nx * (mx - cx) + ny * (my - cy) < 0) {
+        nx = -nx;
+        ny = -ny;
+      }
+      const len = Math.hypot(q[0] - p[0], q[1] - p[1]);
+      return svg`${screenLen > 50
+        ? Math.abs(nx) > Math.abs(ny)
+          ? svg`<text class="fp3d-dim" style="text-anchor:${nx > 0 ? "start" : "end"}" x=${mx + nx * 13} y=${my + ny * 13 + 4}>${this.m(len, 2)}</text>`
+          : svg`<text class="fp3d-dim" x=${mx + nx * 16} y=${my + ny * 16 + 4}>${this.m(len, 2)}</text>`
+        : nothing}${screenLen > 36
+        ? svg`<g data-out-mid=${`${a.id}:${i}`} class="fp3d-mid"><circle cx=${mx} cy=${my} r="14" class="fp3d-hit" /><circle cx=${mx} cy=${my} r="6" /><path d="M${mx - 3} ${my}h6M${mx} ${my - 3}v6" /></g>`
+        : nothing}`;
     });
     return svg`${mids}${a.points.map((p, i) => {
       const [x, y] = this.toScreen(p);
-      return svg`<g class="fp3d-vertex" data-out-vertex=${`${a.id}:${i}`}><circle cx=${x} cy=${y} r="16" class="fp3d-hit" /><circle cx=${x} cy=${y} r="6" /></g>`;
+      return svg`<g class="fp3d-vertex" data-out-vertex=${`${a.id}:${i}`}><circle cx=${x} cy=${y} r="16" class="fp3d-hit" /><circle cx=${x} cy=${y} r="6" /></g>
+        <text class="fp3d-vertex-no" x=${x + 9} y=${y - 9}>${i + 1}</text>`;
     })}`;
   }
 

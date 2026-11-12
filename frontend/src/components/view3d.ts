@@ -525,7 +525,8 @@ export class Fp3dView3d extends LitElement {
   private declare _camPop: { entity: string; text: string; until: number; src: string | null } | null;
   /** Detections already shown as a pop-up (sensor and the moment it went on). */
   private popSeen = new Set<string>();
-  private declare _through: { entity: string; back: ReturnType<FloorplanViewer["getView"]> } | null;
+  /** Looking through a camera: which one, the view to go back to, and whether the flight there has arrived. */
+  private declare _through: { entity: string; back: ReturnType<FloorplanViewer["getView"]>; ready?: boolean } | null;
   /** Camera wall: the camera shown big (null: all tiles). */
   private declare _wallBig: string | null;
   /** The look-through was started from the camera wall: going back reopens the wall. */
@@ -1094,6 +1095,8 @@ export class Fp3dView3d extends LitElement {
       if (this.floorId === this.throughFloor) this.throughFloor = null;
       else this._through = null;
     }
+    // however the look through a camera ended, the view gets its own field of view back
+    if (changed.has("_through") && !this._through && changed.get("_through")) v.endLook();
     // packs arrive with the building (or after an import): the viewer rebuilds pack furniture
     if (this.shownPacks !== packsVersion()) {
       this.shownPacks = packsVersion();
@@ -5577,8 +5580,8 @@ export class Fp3dView3d extends LitElement {
     const floorId = b.floors.find((f) => f.placements.some((p) => p.entity_id === entityId))?.id;
     if (!floorId) return;
     this._menu = null;
-    if (!this._through) this._through = { entity: entityId, back: v.getView() };
-    else this._through = { ...this._through, entity: entityId };
+    if (!this._through) this._through = { entity: entityId, back: v.getView(), ready: false };
+    else this._through = { ...this._through, entity: entityId, ready: false };
     this.watchCameras(true);
     // another floor first opens (its own flight must not win over ours)
     const wait = this.floorId === floorId ? 0 : 300;
@@ -5589,6 +5592,10 @@ export class Fp3dView3d extends LitElement {
     setTimeout(() => {
       if (this._through?.entity === entityId && !this.viewer?.lookThrough(entityId)) this._through = null;
     }, wait);
+    // the picture comes when the flight has arrived, also when it was loaded before (#1060)
+    setTimeout(() => {
+      if (this._through?.entity === entityId) this._through = { ...this._through, ready: true };
+    }, wait + 950);
   }
 
   private endThrough(): void {
@@ -5597,6 +5604,7 @@ export class Fp3dView3d extends LitElement {
     this._through = null;
     // the stream player goes with the look (the camera wall makes its own when it opens)
     if (this.live?.id === t.entity) this.live = null;
+    this.viewer?.endLook();
     this.viewer?.flyTo(t.back);
     if (this.throughWall) {
       this.throughWall = false;
@@ -5768,7 +5776,7 @@ export class Fp3dView3d extends LitElement {
     // the live stream when it is switched on (D589), the still until the player is there or when it fails
     const stream = this.building?.settings.director?.live ? this.liveFor(t.entity) : null;
     return html`<div class="fp3d-through" style="--fp3d-blend:${this._blend}">
-      ${stream ? html`<div class="fp3d-through-img fp3d-through-live">${stream}</div>` : src ? html`<img class="fp3d-through-img" src=${src} alt="" />` : nothing}
+      ${!t.ready ? nothing : stream ? html`<div class="fp3d-through-img fp3d-through-live">${stream}</div>` : src ? html`<img class="fp3d-through-img" src=${src} alt="" />` : nothing}
       <div class="fp3d-through-bar">
         <span class="fp3d-through-name">${entityName(this.hass, t.entity)}</span>
         <span class="fp3d-still">${stream ? "● Live" : translate(this.hass, "camera_still", { s: this._low ? 10 : 5 })}</span>
