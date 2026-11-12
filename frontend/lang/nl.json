@@ -17,6 +17,8 @@
  "reload_page": "Herladen",
  "needs_restart_old": "Er is een nieuwe versie van NeonPlan 3D geïnstalleerd, maar Home Assistant draait nog een oudere. Herstart Home Assistant – tot dan mislukt opslaan.",
  "draft_found": "Niet-opgeslagen wijzigingen van {time} gevonden.",
+ "holo_more": "meer",
+ "holo_less": "minder",
  "draft_conflict": "De plattegrond is intussen op een ander apparaat opgeslagen – die nieuwere versie wordt nu getoond. Je wijziging van {time} was gemaakt op de oudere en is niet opgeslagen.",
  "draft_restore": "Herstellen en opslaan",
  "draft_discard": "Weggooien",

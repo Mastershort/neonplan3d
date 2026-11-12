@@ -17,6 +17,8 @@
  "reload_page": "Recargar",
  "needs_restart_old": "Hay una versión nueva de NeonPlan 3D instalada, pero Home Assistant aún ejecuta una anterior. Reinicia Home Assistant; hasta entonces falla el guardado.",
  "draft_found": "Se encontraron cambios sin guardar de {time}.",
+ "holo_more": "más",
+ "holo_less": "menos",
  "draft_conflict": "El plano se guardó mientras tanto en otro dispositivo; ahora se muestra esa versión más reciente. Tu cambio de las {time} se hizo sobre la anterior y no está guardado.",
  "draft_restore": "Restaurar y guardar",
  "draft_discard": "Descartar",

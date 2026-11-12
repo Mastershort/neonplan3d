@@ -17,6 +17,8 @@
  "reload_page": "Načítať znova",
  "needs_restart_old": "Je nainštalovaná nová verzia NeonPlan 3D, ale Home Assistant stále používa staršiu verziu. Reštartuj Home Assistant – dovtedy môže ukladanie zlyhávať.",
  "draft_found": "Našli sa neuložené zmeny z {time}.",
+ "holo_more": "viac",
+ "holo_less": "menej",
  "draft_conflict": "Plán bol medzitým uložený na inom zariadení – teraz sa zobrazuje táto novšia verzia. Tvoja zmena z {time} vychádzala zo staršej a nie je uložená.",
  "draft_restore": "Obnoviť a uložiť",
  "draft_discard": "Zahodiť zmeny",

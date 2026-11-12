@@ -12,6 +12,8 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 - **A new corner on an outdoor area's edge:** the **+** in the middle of an edge of a selected lawn, terrace or fence puts a corner there and takes it along with the pointer, as with a room; a fence's gates keep their place (thanks wilds for the idea, #1029).
 - **Blinds inside the room:** a window's or door's blind can hang inside as a roller shade – **Blind sits: inside (roller shade)** in its form. The cassette sits on the room's side above the window, the cloth runs down in the room. Outside stays the default, existing plans do not change (thanks TRusselo for the idea, #904).
 
+- **"more" on a module's glass card:** on a narrow dashboard card or the tablet level a card such as the heat pump's leaves its minor values out (starts, run time, the 24-hour curve); a small **more** under it shows them on this device, **less** hides them again. Nothing changes until it is tapped (#1016, thanks Deninho91).
+
 ### Changed
 - **Slovak** reads far more naturally: 745 texts reworked by a native speaker (thanks Bearstorm, #924).
 

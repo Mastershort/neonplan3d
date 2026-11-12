@@ -17,6 +17,8 @@
  "reload_page": "重新加载",
  "needs_restart_old": "已安装新版本的 NeonPlan 3D，但 Home Assistant 仍在运行旧版本。请重启 Home Assistant——在此之前保存会失败。",
  "draft_found": "发现 {time} 的未保存更改。",
+ "holo_more": "更多",
+ "holo_less": "收起",
  "draft_conflict": "该平面图已在另一台设备上保存——现在显示的是这个较新的版本。你在 {time} 的更改基于旧版本，尚未保存。",
  "draft_restore": "恢复并保存",
  "draft_discard": "丢弃",

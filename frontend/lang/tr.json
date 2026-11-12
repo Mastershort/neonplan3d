@@ -17,6 +17,8 @@
  "reload_page": "Yenile",
  "needs_restart_old": "NeonPlan 3D'nin yeni sürümü kuruldu ama Home Assistant hâlâ eski sürümü çalıştırıyor. Home Assistant'ı yeniden başlat – o zamana kadar kaydetme başarısız olur.",
  "draft_found": "{time} tarihli kaydedilmemiş değişiklikler bulundu.",
+ "holo_more": "daha fazla",
+ "holo_less": "daha az",
  "draft_conflict": "Plan bu arada başka bir cihazda kaydedildi – şimdi bu daha yeni hâli gösteriliyor. {time} tarihli değişikliğin eski hâline dayanıyordu ve kaydedilmedi.",
  "draft_restore": "Geri yükle ve kaydet",
  "draft_discard": "At",

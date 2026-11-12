@@ -494,6 +494,8 @@ export class Fp3dView3d extends LitElement {
   private holoFolded = new Set<number>();
   /** Media cards folded by the user, by player (positions shift as players start and stop). */
   private mediaFolded = new Set<string>();
+  /** Module cards that show their minor values also on a narrow card or the tablet level (this device, #1016). */
+  private moduleFull = new Set<string>(readModuleFull());
   /** A module card just opened from its marker (it lights up for a moment). */
   private cardPing: string | null = null;
   private cardPingTimer: ReturnType<typeof setTimeout> | undefined;
@@ -2283,8 +2285,20 @@ export class Fp3dView3d extends LitElement {
       this.requestUpdate();
     };
     const styled = (color?: string) => (color ? `color:${color}` : "");
-    // the tablet level and narrow screens leave the minor parts out
-    const compact = this._low || this.clientWidth < 600;
+    // the tablet level and narrow screens leave the minor parts out – unless asked for with "more" on the card (#1016)
+    const narrow = this._low || this.clientWidth < 600;
+    const compact = narrow && !this.moduleFull.has(m.id);
+    const minors = narrow && [...(m.rows ?? []), ...(m.cells ?? []), ...(m.chain?.items ?? []), ...(m.spark ? [m.spark] : [])].some((x) => x.minor);
+    const more = () => {
+      if (this.moduleFull.has(m.id)) this.moduleFull.delete(m.id);
+      else this.moduleFull.add(m.id);
+      try {
+        localStorage.setItem(MODULE_FULL_KEY, JSON.stringify([...this.moduleFull]));
+      } catch {
+        // private window: for this page only
+      }
+      this.requestUpdate();
+    };
     const rows = majorOnly(m.rows, compact);
     const cells = majorOnly(m.cells, compact);
     const chain = m.chain ? majorOnly(m.chain.items, compact) : [];
@@ -2334,6 +2348,9 @@ export class Fp3dView3d extends LitElement {
                     <div class="fp3d-holo-chip-row">${g.items.map((c) => html`<button class=${c.on ? "fp3d-holo-on" : ""} title=${c.title ?? ""} @click=${() => c.onTap()}>${c.label}</button>`)}</div>`,
                 )}
               </div>`
+            : nothing}
+          ${open && minors
+            ? html`<button class="fp3d-holo-more" @click=${more}>${translate(this.hass, compact ? "holo_more" : "holo_less")}</button>`
             : nothing}
           ${open && !this.ro && m.buttons?.length
             ? html`<div class="fp3d-holo-media-controls fp3d-holo-car-controls">${m.buttons.map((bt) => html`<button class=${bt.on ? "fp3d-holo-on" : ""} title=${bt.title ?? ""} @click=${() => bt.onTap()}>${bt.label}</button>`)}</div>`
@@ -8222,6 +8239,18 @@ export class Fp3dView3d extends LitElement {
         border-radius: 50%;
         box-shadow: 0 0 6px currentColor;
       }
+      .fp3d-holo-more {
+        display: block;
+        margin: 6px 0 0 auto;
+        padding: 2px 9px;
+        border: 1px solid color-mix(in srgb, var(--fp3d-accent, #37e0ff) 45%, transparent);
+        border-radius: 9px;
+        background: transparent;
+        color: var(--fp3d-accent, #37e0ff);
+        font: 600 11px var(--fp3d-font);
+        cursor: pointer;
+        pointer-events: auto;
+      }
       .fp3d-holo-mline {
         margin-top: 5px;
         font-size: 12px;
@@ -8810,3 +8839,14 @@ function markerHeight(f: Furniture): number {
 
 /** Where a style set from outside (an action, a voice command) is kept on this device. */
 const STYLE_OVERRIDE_KEY = "neonplan3d.style_override";
+
+const MODULE_FULL_KEY = "neonplan3d.module_full";
+
+function readModuleFull(): string[] {
+  try {
+    const raw = JSON.parse(localStorage.getItem(MODULE_FULL_KEY) ?? "[]");
+    return Array.isArray(raw) ? raw.filter((x): x is string => typeof x === "string") : [];
+  } catch {
+    return [];
+  }
+}

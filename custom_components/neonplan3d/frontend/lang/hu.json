@@ -17,6 +17,8 @@
  "reload_page": "Újratöltés",
  "needs_restart_old": "A NeonPlan 3D új verziója van telepítve, de a Home Assistant még egy régebbit futtat. Indítsd újra a Home Assistantot – addig a mentés nem sikerül.",
  "draft_found": "Nem mentett módosítások találhatók ({time}).",
+ "holo_more": "több",
+ "holo_less": "kevesebb",
  "draft_conflict": "Az alaprajzot közben egy másik eszközön mentették – most ez az újabb változat látszik. A(z) {time} időpontú módosításod a régebbin alapult, és nincs mentve.",
  "draft_restore": "Visszaállítás és mentés",
  "draft_discard": "Elvetés",

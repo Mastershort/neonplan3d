@@ -17,6 +17,8 @@
  "reload_page": "Odśwież",
  "needs_restart_old": "Zainstalowano nową wersję NeonPlan 3D, ale Home Assistant nadal działa na starszej. Uruchom ponownie Home Assistant – do tego czasu zapisywanie nie działa.",
  "draft_found": "Znaleziono niezapisane zmiany z: {time}.",
+ "holo_more": "więcej",
+ "holo_less": "mniej",
  "draft_conflict": "Plan został w międzyczasie zapisany na innym urządzeniu – teraz widać tę nowszą wersję. Twoja zmiana z {time} była oparta na starszej i nie została zapisana.",
  "draft_restore": "Przywróć i zapisz",
  "draft_discard": "Odrzuć",
