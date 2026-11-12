@@ -6,7 +6,7 @@
 import { Color } from "three";
 import type { Building, Floor, RoofSection, SolarField, Vec2 } from "../model.ts";
 import { polygonArea } from "../model.ts";
-import { coversIn, cutHole, cutUnder, lineOutside, meetLine, sectionCovers, sectionFloor, sectionsCut, dormerHoles, dormerParent, effectiveDormer, turnedDormer, offsetPolygon, sectionGeometry, sectionHeightAt, sectionPolygon, sectionFrame, sectionOverhang, sectionProfile, sectionUV, wingJunction, wingSection, type LocalCover, type Q, type SectionOverhang } from "../roof-sections.ts";
+import { coversIn, crossAsWing, cutHole, cutUnder, lineOutside, meetLine, sectionCovers, sectionFloor, sectionsCut, dormerHoles, dormerParent, effectiveDormer, turnedDormer, offsetPolygon, sectionGeometry, sectionHeightAt, sectionPolygon, sectionFrame, sectionOverhang, sectionProfile, sectionUV, wingJunction, wingSection, type LocalCover, type Q, type SectionOverhang } from "../roof-sections.ts";
 import { DEG, GeoBuffer, LineBuffer, pushPrism, shade } from "./geo.ts";
 import { fieldModules, roofFaces, roofFootprint, roofWindowRoom, windowCorners, type RoofFace } from "../solar.ts";
 import { palette } from "./palette.ts";
@@ -298,8 +298,8 @@ function buildSections(b: Building, sections: readonly RoofSection[], overhang: 
     const parent = plan.parent;
     const attic = floor.elevation + floor.height > sec.base + 0.05 && !sec.dormer && !parent;
     // the slope opens under every dormer and cross gable sitting on this section, and under its roof windows
-    // (a turned one cuts the slope by its planes instead, see sectionsCut)
-    const holes = sections.filter((d) => d !== sec && dormerParent(sections, d) === sec && !turnedDormer(sections, d)).flatMap((d) => dormerHoles(sec, d));
+    // (a turned one, or one as high as this roof, cuts the slope by its planes instead, see sectionsCut)
+    const holes = sections.filter((d) => d !== sec && dormerParent(sections, d) === sec && !crossAsWing(sections, d)).flatMap((d) => dormerHoles(sec, d));
     for (const w of b.settings.roof.windows ?? []) {
       const face = faceMap.get(w.face);
       const corners = face && face.section === sec.id ? windowCorners(face, w) : null;
