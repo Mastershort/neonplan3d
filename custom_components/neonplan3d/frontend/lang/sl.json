@@ -17,6 +17,7 @@
  "reload_page": "Znova naloži",
  "needs_restart_old": "Nameščena je nova različica NeonPlan 3D, Home Assistant pa še vedno izvaja starejšo. Znova zaženi Home Assistant – do takrat shranjevanje ne deluje.",
  "draft_found": "Najdene so neshranjene spremembe (čas: {time}).",
+ "draft_conflict": "Načrt je bil medtem shranjen na drugi napravi – zdaj je prikazana ta novejša različica. Tvoja sprememba iz {time} je temeljila na starejši in ni shranjena.",
  "draft_restore": "Obnovi in shrani",
  "draft_discard": "Zavrzi",
  "walls_auto": "Visoke stene",

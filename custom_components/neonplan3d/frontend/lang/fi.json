@@ -17,6 +17,7 @@
  "reload_page": "Lataa uudelleen",
  "needs_restart_old": "NeonPlan 3D:n uusi versio on asennettu, mutta Home Assistant käyttää yhä vanhempaa. Käynnistä Home Assistant uudelleen – siihen asti tallennus ei onnistu.",
  "draft_found": "Tallentamattomia muutoksia löytyi ajalta {time}.",
+ "draft_conflict": "Pohjapiirros on sillä välin tallennettu toisella laitteella – nyt näytetään tämä uudempi versio. Muutoksesi ajalta {time} perustui vanhempaan, eikä sitä ole tallennettu.",
  "draft_restore": "Palauta ja tallenna",
  "draft_discard": "Hylkää",
  "walls_auto": "Korkeat seinät",

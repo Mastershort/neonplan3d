@@ -43,6 +43,7 @@ function fakeHass() {
         case "neonplan3d/building/get":
           return { building: plans[plan].building, revision: plans[plan].revision, plan };
         case "neonplan3d/building/save":
+          if (typeof msg.base_revision === "number" && msg.base_revision !== plans[plan].revision) throw { code: "stale_plan", message: "saved elsewhere" };
           plans[plan] = { building: msg.building as Building, revision: plans[plan].revision + 1 };
           return { revision: plans[plan].revision };
         default:
@@ -93,5 +94,36 @@ test("switching plans saves the open edits to their own plan first, then follows
   const followed = subs.filter((s) => s.msg.type === "neonplan3d/building/subscribe");
   assert.equal(followed.length, 1);
   assert.equal(followed[0].msg.plan, undefined);
+  c.hostDisconnected();
+});
+
+test("an edit made on an older plan does not overwrite one saved elsewhere meanwhile; it waits as a draft (#1059)", async () => {
+  (globalThis as { window?: unknown }).window ??= new EventTarget();
+  const store = new Map<string, string>();
+  (globalThis as { localStorage?: unknown }).localStorage ??= { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => void store.set(k, v), removeItem: (k: string) => void store.delete(k) };
+  const { hass, plans, calls } = fakeHass();
+  const c = new BuildingController(host() as never);
+  c.setHass(hass);
+  c.hostConnected();
+  await new Promise((r) => setTimeout(r, 10));
+  assert.equal(c.building?.floors[0].name, "Haus");
+  // the PC saves meanwhile; this device (asleep) did not hear of it
+  plans.main = { building: { ...plans.main.building, floors: [newFloor("f1", "Neuer Stand", 0)] }, revision: 2 };
+  const edited = structuredClone(c.building!);
+  edited.floors[0].name = "Alter Stand geändert";
+  c.edit(edited);
+  await c.flush();
+  // refused: the newer plan stays and is shown, the edit waits as a draft
+  assert.equal(plans.main.building.floors[0].name, "Neuer Stand");
+  assert.equal(c.building?.floors[0].name, "Neuer Stand");
+  assert.equal(c.draft?.conflict, true);
+  assert.equal(c.draft?.building.floors[0].name, "Alter Stand geändert");
+  assert.equal(c.saveState, "idle");
+  assert.equal(calls.filter((m) => m.type === "neonplan3d/building/save")[0].base_revision, 1);
+  // taken over on purpose: saved over the newer plan
+  c.restoreDraft();
+  await c.flush();
+  assert.equal(plans.main.building.floors[0].name, "Alter Stand geändert");
+  assert.equal(plans.main.revision, 3);
   c.hostDisconnected();
 });

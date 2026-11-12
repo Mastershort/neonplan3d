@@ -1034,7 +1034,7 @@ export class Floorplan3dPanel extends LitElement {
       const at = new Date(d.draft.savedAt).toLocaleString(this.hass?.language);
       notices.push(
         html`<div class="fp3d-notice">
-          <span>${this.t("draft_found", { time: at })}</span>
+          <span>${this.t(d.draft.conflict ? "draft_conflict" : "draft_found", { time: at })}</span>
           <button class="fp3d-btn fp3d-primary" @click=${() => d.restoreDraft()}>${this.t("draft_restore")}</button>
           <button class="fp3d-btn" @click=${() => d.discardDraft()}>${this.t("draft_discard")}</button>
         </div>`,

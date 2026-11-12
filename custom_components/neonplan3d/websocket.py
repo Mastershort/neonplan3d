@@ -149,6 +149,8 @@ async def ws_get_building(hass: HomeAssistant, connection: websocket_api.ActiveC
         vol.Required("type"): "neonplan3d/building/save",
         vol.Required("building"): BUILDING_SCHEMA,
         _PLAN: _PLAN_ID,
+        # the revision the edit was made on: a save over a newer plan (saved elsewhere meanwhile) is refused
+        vol.Optional("base_revision"): vol.Coerce(int),
     }
 )
 @websocket_api.require_admin
@@ -156,8 +158,14 @@ async def ws_get_building(hass: HomeAssistant, connection: websocket_api.ActiveC
 async def ws_save_building(
     hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]
 ) -> None:
-    """Replace the building."""
+    """Replace the building, unless it was edited on an older revision than the one stored (#1059)."""
     if (plan := _plan(hass, connection, msg)) is None:
+        return
+    base = msg.get("base_revision")
+    if base is not None and base != plan.revision:
+        # a phone that slept in the background overnight would otherwise write its old plan over the newer one
+        text = f"The plan was saved elsewhere meanwhile (revision {plan.revision})."
+        connection.send_error(msg["id"], "stale_plan", text)
         return
     revision = await plan.async_save_building(msg["building"])
     connection.send_result(msg["id"], {"revision": revision})

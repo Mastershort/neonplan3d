@@ -17,6 +17,7 @@
  "reload_page": "Reîncarcă",
  "needs_restart_old": "O versiune nouă de NeonPlan 3D este instalată, dar Home Assistant rulează încă una mai veche. Repornește Home Assistant – până atunci salvarea eșuează.",
  "draft_found": "Am găsit modificări nesalvate de la {time}.",
+ "draft_conflict": "Planul a fost salvat între timp pe alt dispozitiv – acum se afișează această versiune mai nouă. Modificarea ta de la {time} se baza pe cea veche și nu este salvată.",
  "draft_restore": "Restaurează și salvează",
  "draft_discard": "Renunță",
  "walls_auto": "Pereți înalți",

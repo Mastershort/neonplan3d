@@ -17,6 +17,7 @@
  "reload_page": "Last inn på nytt",
  "needs_restart_old": "Ein ny versjon av NeonPlan 3D er installert, men Home Assistant køyrer framleis ein eldre. Start Home Assistant på nytt – fram til då feilar lagring.",
  "draft_found": "Fann ulagra endringar frå {time}.",
+ "draft_conflict": "Planen er i mellomtida lagra på ei anna eining – den nyare versjonen blir vist no. Endringa di frå {time} var gjord på den eldre og er ikkje lagra.",
  "draft_restore": "Gjenopprett og lagre",
  "draft_discard": "Forkast",
  "walls_auto": "Høge veggar",

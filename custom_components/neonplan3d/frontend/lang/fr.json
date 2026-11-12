@@ -17,6 +17,7 @@
  "reload_page": "Recharger",
  "needs_restart_old": "Une nouvelle version de NeonPlan 3D est installée, mais Home Assistant en exécute encore une ancienne. Redémarre Home Assistant – d'ici là, l'enregistrement échoue.",
  "draft_found": "Modifications non enregistrées de {time} trouvées.",
+ "draft_conflict": "Le plan a été enregistré entre-temps sur un autre appareil – c’est cette version plus récente qui est affichée. Ta modification de {time} reposait sur l’ancienne et n’est pas enregistrée.",
  "draft_restore": "Restaurer et enregistrer",
  "draft_discard": "Abandonner",
  "walls_auto": "Murs hauts",

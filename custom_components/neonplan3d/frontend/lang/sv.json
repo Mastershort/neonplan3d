@@ -17,6 +17,7 @@
  "reload_page": "Ladda om",
  "needs_restart_old": "En ny version av NeonPlan 3D är installerad, men Home Assistant kör fortfarande en äldre. Starta om Home Assistant – tills dess misslyckas sparandet.",
  "draft_found": "Osparade ändringar från {time} hittades.",
+ "draft_conflict": "Planen har under tiden sparats på en annan enhet – den nyare versionen visas nu. Din ändring från {time} gjordes på den äldre och är inte sparad.",
  "draft_restore": "Återställ och spara",
  "draft_discard": "Släng",
  "walls_auto": "Höga väggar",

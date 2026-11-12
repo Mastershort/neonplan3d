@@ -17,6 +17,7 @@
  "reload_page": "Genindlæs",
  "needs_restart_old": "En ny version af NeonPlan 3D er installeret, men Home Assistant kører stadig en ældre. Genstart Home Assistant – indtil da mislykkes gemning.",
  "draft_found": "Ikke-gemte ændringer fra {time} fundet.",
+ "draft_conflict": "Planen er i mellemtiden gemt på en anden enhed – den nyere version vises nu. Din ændring fra {time} var lavet på den ældre og er ikke gemt.",
  "draft_restore": "Gendan og gem",
  "draft_discard": "Kassér",
  "walls_auto": "Høje vægge",

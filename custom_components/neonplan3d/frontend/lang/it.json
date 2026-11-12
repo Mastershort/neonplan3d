@@ -17,6 +17,7 @@
  "reload_page": "Ricarica",
  "needs_restart_old": "È installata una nuova versione di NeonPlan 3D, ma Home Assistant ne esegue ancora una precedente. Riavvia Home Assistant: fino ad allora il salvataggio fallisce.",
  "draft_found": "Trovate modifiche non salvate delle {time}.",
+ "draft_conflict": "Nel frattempo la planimetria è stata salvata su un altro dispositivo: ora viene mostrata quella più recente. La tua modifica delle {time} era basata sulla precedente e non è salvata.",
  "draft_restore": "Ripristina e salva",
  "draft_discard": "Scarta",
  "walls_auto": "Pareti alte",
