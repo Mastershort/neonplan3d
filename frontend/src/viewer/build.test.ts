@@ -4,7 +4,8 @@ import type { BufferGeometry } from "three";
 import type { Floor, Furniture, Opening, Room, Vec2 } from "../model.ts";
 import { newFloor, pointInPolygon, stairsULayout } from "../model.ts";
 import { generateWalls } from "../geometry/walls.ts";
-import { buildFloorGeometry, clipAlong, stairHoles, stairHoleParts, wallHeight } from "./build.ts";
+import { buildFloorGeometry, clipAlong, packStairHole, stairHoles, stairHoleParts, wallHeight } from "./build.ts";
+import type { PackItem } from "../packs.ts";
 
 const EXT = 0.24;
 const INT = 0.12;
@@ -333,4 +334,22 @@ test("a window across a transition without a wall cuts both outer walls, framed 
   const jambs = segs.filter((s) => vertical(s) && s[1] > 0.8 && s[4] > 0.8 && s[0] > 2 && s[0] < 6);
   near(Math.max(...jambs.map((s) => s[0])), 4.4, 1e-5);
   near(Math.min(...jambs.map((s) => s[0])), 3.2, 1e-5);
+});
+
+test("a pack L-stair opens the floor above only where it stands, not in the empty corner of its box (#1073)", () => {
+  // first flight along the right half, the second along the back, the front left corner empty
+  const box = (x: number, z: number, w: number, d: number) => ({ shape: "box" as const, x, z, w, d, y: 0, h: 0.5, color: "wood" });
+  const item = { id: "l", name: { en: "L" }, size: [2, 2, 3], hole: true, parts: [box(0.25, 0.15, 0.5, 0.7), box(0, -0.35, 1, 0.3)] } as unknown as PackItem;
+  const stair = { id: "s", type: "pack:l", x: 0, z: 0, w: 2, d: 2, h: 3, rotation: 0 } as unknown as Furniture;
+  const inside = (p: Vec2, holes: Vec2[][]) => holes.some((ring) => pointInPolygon(p, ring));
+  const holes = packStairHole(stair, item);
+  assert.ok(inside([0.5, 0.5], holes), "the first flight is open");
+  assert.ok(inside([-0.5, -0.7], holes), "the second flight is open");
+  assert.ok(!inside([-0.5, 0.5], holes), "the empty corner keeps its floor");
+  // mirrored, the empty corner is on the other side
+  const mirrored = packStairHole({ ...stair, mirror: true }, item);
+  assert.ok(inside([-0.5, 0.5], mirrored) && !inside([0.5, 0.5], mirrored));
+  // turned a quarter: the corner turns with it
+  const turned = packStairHole({ ...stair, rotation: 90 }, item);
+  assert.ok(!inside([-0.5, -0.5], turned) && inside([0.5, 0.5], turned));
 });

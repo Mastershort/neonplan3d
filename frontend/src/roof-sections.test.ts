@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { emptyBuilding, newFloor, ROOF_SHAPES, type Room, type RoofSection } from "./model.ts";
-import { onSection, sectionTurn, turnPoint, turnSectionAbout, coversIn, cutHole, cutUnder, dormerHole, dormerHoles, dormerParent, sectionsCut, turnedDormer, floorOutline, lineOutside, sectionCovers, sectionEnds, sectionUV, wingJunction, wingSection, offsetPolygon, polygonBox, proposeDormer, ridgeHeight, roofRider, roofSectionsFromRooms, roofUnderAt, sectionFrame, sectionGeometry, sectionHeightAt, sectionOverhang, sectionPolygon, sectionProfile, wallTopUnder } from "./roof-sections.ts";
+import { onSection, sectionTurn, turnPoint, turnSectionAbout, coversIn, crossAsWing, cutHole, cutUnder, dormerHole, dormerHoles, dormerParent, sectionsCut, turnedDormer, floorOutline, lineOutside, sectionCovers, sectionEnds, sectionUV, wingJunction, wingSection, offsetPolygon, polygonBox, proposeDormer, ridgeHeight, roofRider, roofSectionsFromRooms, roofUnderAt, sectionFrame, sectionGeometry, sectionHeightAt, sectionOverhang, sectionPolygon, sectionProfile, wallTopUnder } from "./roof-sections.ts";
 import { buildRoof } from "./viewer/roof.ts";
 
 const near = (a: number, b: number, eps = 1e-6) => assert.ok(Math.abs(a - b) < eps, `${a} != ${b}`);
@@ -515,4 +515,45 @@ test("a wall face a few millimetres outside its roof ends under that roof, not u
   assert.ok(roofUnderAt(b, 0.9, 5, level)! < 3.1);
   // beside a roof with nothing else above: still no roof at all
   assert.equal(roofUnderAt({ settings: { roof: { ...b.settings.roof, sections: [main] } } }, 1.107, 5, level), null);
+});
+
+test("a cross gable as high as a roof with a hipped end meets it like a wing, nothing of either stays under the other (#970)", () => {
+  // the main roof runs along z with a hip at its z0 end; the cross gable runs along x into it, as wide and as high,
+  // flush with the hipped end: its slope on that side lies in the hip's plane
+  const b = emptyBuilding();
+  b.floors = [{ ...newFloor("eg", "EG", 0), height: 2.75, rooms: [rect("main", 4, -2, 13, 12), rect("wing", 2, -2, 4, 7.3)] }];
+  const main = section({ id: "main", x0: 4, z0: -2, x1: 13, z1: 12, axis: "z", eave_a: 2.75, eave_b: 2.75, pitch_a: 40, pitch_b: 40, base: 2.75, end_u0: "hip", end_u1: "gable" });
+  const wing = section({ id: "wing", x0: 2, z0: -2, x1: 8.5, z1: 7, axis: "x", eave_a: 2.75, eave_b: 2.75, pitch_a: 40, pitch_b: 40, base: 2.75, overhang: 0, dormer: true });
+  const sections = [main, wing];
+  assert.equal(dormerParent(sections, wing), main);
+  assert.ok(crossAsWing(sections, wing), "as high as its roof: cut like a wing");
+  assert.ok(sectionsCut(sections, main, wing));
+  // a real dormer, lower than the ridge, still opens a hole in the slope
+  const low = section({ id: "low", x0: 4, z0: 6, x1: 6, z1: 8, axis: "x", eave_a: 4, eave_b: 4, pitch_a: 35, pitch_b: 35, base: 2.75, dormer: true });
+  assert.ok(!crossAsWing([main, low], low));
+  b.settings.roof = { type: "custom", pitch: 40, overhang: 0, sections };
+  const height = (s: RoofSection, x: number, z: number) => {
+    const fr = sectionFrame(s);
+    const [u, v] = sectionUV(s, x, z);
+    if (u < fr.u0 || u > fr.u1 || v < 0 || v > fr.w) return null;
+    return sectionHeightAt(sectionGeometry(s, { u0: 0, u1: 0, a: 0, b: 0 }), u, v);
+  };
+  const [part] = buildRoof(b);
+  const p = part.solid.p;
+  const c = part.solid.c;
+  // the top faces (the lighter colour) where both roofs are: none lies under the higher of the two
+  const topShade = Math.max(...c.filter((_, i) => i % 3 === 0));
+  let both = 0;
+  for (let t = 0; t + 8 < p.length; t += 9) {
+    if (c[t] < topShade - 1e-6) continue;
+    const x = (p[t] + p[t + 3] + p[t + 6]) / 3;
+    const y = (p[t + 1] + p[t + 4] + p[t + 7]) / 3 + part.floor.elevation;
+    const z = (p[t + 2] + p[t + 5] + p[t + 8]) / 3;
+    const hm = height(main, x, z);
+    const hw = height(wing, x, z);
+    if (hm === null || hw === null || (Math.abs(y - hm) > 0.2 && Math.abs(y - hw) > 0.2)) continue;
+    both++;
+    assert.ok(y >= Math.max(hm, hw) - 0.05, `a face at (${x.toFixed(2)}, ${z.toFixed(2)}) stands ${(Math.max(hm, hw) - y).toFixed(2)} m under the other roof`);
+  }
+  assert.ok(both >= 4, `faces where both roofs are: ${both}`);
 });

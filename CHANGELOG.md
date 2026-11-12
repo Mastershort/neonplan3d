@@ -4,6 +4,15 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 [releases page](https://github.com/Mastershort/neonplan3d/releases). Ideas and votes:
 [Discussions → Ideas](https://github.com/Mastershort/neonplan3d/discussions/categories/ideas).
 
+## 3.1.2
+
+### Fixed
+- **Window panes were pure white in the homely styles,** from outside and from inside, with the light on or off: the glass added its colour to what lies behind it, which on light walls and the sky always summed up to white. In the styles with real materials the glass is now a light tint over what lies behind – you see through it again – and it darkens with the house in the evening. Neon and the drawn styles are unchanged (#1070, thanks abgestumpft).
+- **Running devices glared white in the homely styles:** the display of a heating radiator, a TV, a coffee machine or a running washer was added to its light body and turned white; in the evening styles it stayed at full brightness while the house dimmed. It now covers the body in its own colour, a little softer, and dims in the evening – less than the house, so a running device still shows (#1071, thanks abgestumpft).
+- **Lit lamps were darker than the walls they light** in the homely styles: a lit shade was shaded and dimmed like a beige lampshade. Lit shades now shine unshaded and keep their brightness in the evening (#1071).
+- **An L-shaped stair from the stairs pack cut a hole where no stair is:** stairs from a pack opened their whole box in the floor above, for an L-stair also the empty corner beside its first flight. They now open the floor only where their treads, landings and flights stand, mirrored and turned as placed (#1073, thanks bwynants).
+- **Two equal roofs crossing at a hipped end:** a cross gable as wide and as high as the roof it sits on, flush with its hipped end, was cut into it like a small dormer – parts of both roofs stood where they should meet in a valley. Such a gable now meets its roof like a wing: each keeps what shows above the other, the valley runs cleanly up to the ridge. Smaller dormers are unchanged (#970, thanks luisrocejo).
+
 ## 3.1.1
 
 ### Added
