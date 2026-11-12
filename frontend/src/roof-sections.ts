@@ -1053,7 +1053,7 @@ export function coversIn(s: RoofSection, covers: readonly RoofCover[]): LocalCov
 export function sectionsCut(sections: readonly RoofSection[], p: RoofSection, q: RoofSection): boolean {
   const sloped = (s: RoofSection) => !s.open && s.shape !== "flat" && s.shape !== "parapet";
   if (p === q || !sloped(p) || !sloped(q)) return false;
-  return (dormerParent(sections, p) !== q || turnedDormer(sections, p)) && (dormerParent(sections, q) !== p || turnedDormer(sections, q));
+  return (dormerParent(sections, p) !== q || crossAsWing(sections, p)) && (dormerParent(sections, q) !== p || crossAsWing(sections, q));
 }
 
 /**
@@ -1065,6 +1065,19 @@ export function turnedDormer(sections: readonly RoofSection[], d: RoofSection): 
   if (!parent) return false;
   const a = (((d.rotation ?? 0) - (parent.rotation ?? 0)) % 90) + 90;
   return Math.min(a % 90, 90 - (a % 90)) > 0.5;
+}
+
+/**
+ * A section on a bigger roof that meets it like a wing – each keeps what shows above the other – instead of opening a
+ * dormer hole in it: a turned one, and a cross gable as high as its roof (#970). Such a gable's ridge runs on to the
+ * roof's ridge, and at a hipped end its slope lies in the hip's plane: a hole of strips across its depth cut the hip
+ * wrongly and left parts of both roofs standing where they should meet in a valley.
+ */
+export function crossAsWing(sections: readonly RoofSection[], d: RoofSection): boolean {
+  if (turnedDormer(sections, d)) return true;
+  const parent = dormerParent(sections, d);
+  if (!parent || d.open || d.shape === "flat" || d.shape === "parapet") return false;
+  return sectionProfile(d).rh >= sectionProfile(parent).rh - 0.05;
 }
 
 /**
