@@ -93,6 +93,8 @@ export class Floorplan3dPanel extends LitElement {
     _pinSize: { state: true },
     _heat: { state: true },
     _theme: { state: true },
+    _zoomStyle: { state: true },
+    _zoomLate: { state: true },
     _clock: { state: true },
     _furnish: { state: true },
     _selFurniture: { state: true },
@@ -168,6 +170,8 @@ export class Floorplan3dPanel extends LitElement {
   private declare _theme: string;
   /** Zoom style (test): the style the house turns into when zoomed in (empty: off). */
   private declare _zoomStyle: string;
+  /** How late it sets in, 0 (early) … 100 (late). */
+  private declare _zoomLate: number;
   private declare _clock: ClockPos;
   private declare _furnish: boolean;
   private declare _selFurniture: string | null;
@@ -247,6 +251,8 @@ export class Floorplan3dPanel extends LitElement {
     const theme = prefs.get("theme");
     this._theme = isStyleChoice(theme) ? theme : "neon";
     this._zoomStyle = prefs.get("zoom_style") ?? "";
+    const late = Number(prefs.get("zoom_late"));
+    this._zoomLate = Number.isFinite(late) && prefs.get("zoom_late") !== null ? Math.min(100, Math.max(0, late)) : 50;
     const clock = prefs.get("clock");
     this._clock = clock === "tl" || clock === "tr" || clock === "bl" || clock === "br" ? clock : "off";
     const accent = prefs.get("accent");
@@ -827,6 +833,24 @@ export class Floorplan3dPanel extends LitElement {
                     ${styleOptions((k) => this.t(k), this._zoomStyle, {})}
                   </select>
                 </label>
+                ${this._zoomStyle
+                  ? html`<label class="fp3d-style-pick fp3d-zoom-late" title=${this.t("zoom_late_hint")}>
+                      <span>${this.t("zoom_late_early")}</span>
+                      <input
+                        type="range"
+                        min="0"
+                        max="100"
+                        step="5"
+                        aria-label=${this.t("zoom_late_hint")}
+                        .value=${String(this._zoomLate)}
+                        @input=${(e: Event) => {
+                          this._zoomLate = Number((e.target as HTMLInputElement).value);
+                          prefs.set("zoom_late", String(this._zoomLate));
+                        }}
+                      />
+                      <span>${this.t("zoom_late_late")}</span>
+                    </label>`
+                  : nothing}
                 <label class="fp3d-accent-pick" title=${this.t("accent_hint")}>
                   <input
                     type="color"
@@ -1240,6 +1264,7 @@ export class Floorplan3dPanel extends LitElement {
           .heatMode=${this._heat}
           .theme=${this._theme}
           .zoomStyle=${this._zoomStyle}
+          .zoomLate=${this._zoomLate}
           .clock=${this._clock}
           .accent=${this._accent}
           ?furnish=${this._furnish && !tt}
@@ -1676,6 +1701,13 @@ export class Floorplan3dPanel extends LitElement {
         align-items: center;
         gap: 6px;
         padding: 0 6px;
+      }
+      .fp3d-zoom-late {
+        font-size: 12px;
+        color: var(--fp3d-muted, var(--fp3d-text));
+      }
+      .fp3d-zoom-late input {
+        width: 110px;
       }
       .fp3d-style-pick select {
         background: var(--fp3d-chrome-solid);

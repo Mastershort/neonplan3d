@@ -274,6 +274,7 @@ export class Fp3dView3d extends LitElement {
     themeNight: { attribute: false },
     styleEntity: { attribute: false },
     zoomStyle: { attribute: false },
+    zoomLate: { attribute: false },
     _styleOverride: { state: true },
     clock: { attribute: false },
     _clockTick: { state: true },
@@ -425,6 +426,8 @@ export class Fp3dView3d extends LitElement {
   declare styleEntity: string | null;
   /** Zoom style (test): the style the house turns into when zoomed in (a style id; empty: off). */
   declare zoomStyle: string | null;
+  /** How late the zoom style sets in, 0 (early) … 100 (late); empty: 50. */
+  declare zoomLate: number | null;
   /** How far the zoom style has come (0 = far look, 1 = near style): the near background's opacity, set directly. */
   private morph = 0;
   /** A style set from outside for this device (the action `neonplan3d.set_style`, a voice command), until a time. */
@@ -1050,6 +1053,7 @@ export class Fp3dView3d extends LitElement {
       this.viewer.setAngleLock(this.angleLock);
       this.viewer.setStyle(this.effectiveStyle());
       this.viewer.setZoomStyle(this.zoomDef());
+      this.viewer.setZoomLate((this.zoomLate ?? 50) / 100);
       this.viewer.setAccent(this.accent ?? null);
       this.viewer.setFurnishMode(this.furnish);
       this.viewer.setSurfaceGrab(this.surfaceGrab ?? null);
@@ -1176,6 +1180,7 @@ export class Fp3dView3d extends LitElement {
     if (restyled && this._styleOverride) this.setStyleOverride("reset", null);
     if (changed.has("theme") || changed.has("themeEvening") || changed.has("themeNight") || changed.has("styleEntity") || changed.has("_styleOverride") || changed.has("building")) v.setStyle(this.effectiveStyle());
     if (changed.has("zoomStyle") || changed.has("building")) v.setZoomStyle(this.zoomDef());
+    if (changed.has("zoomLate")) v.setZoomLate((this.zoomLate ?? 50) / 100);
     if (changed.has("accent")) v.setAccent(this.accent ?? null);
     if (changed.has("surfaceGrab")) v.setSurfaceGrab(this.surfaceGrab ?? null);
     if (changed.has("furnishTypes")) v.setFurnishTypes(this.furnishTypes ?? null);

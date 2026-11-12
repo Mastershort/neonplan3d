@@ -752,6 +752,8 @@ export class FloorplanViewer {
   private morphShown = -1;
   /** The blend now, gliding after the one the camera's distance asks for. */
   private morphNow = 0;
+  /** How late the zoom style sets in (0 early … 1 late). */
+  private zoomLate = 0.5;
   /** This view's palette (natural materials, cut tops, facade): set before it builds anything, as views share the palette module. */
   private palette = { natural: false, cutTop: null as number | null, facade: null as number | null };
   private sun: SunState | null = null;
@@ -1530,6 +1532,14 @@ export class FloorplanViewer {
     this.invalidate();
   }
 
+  /** How late the zoom style sets in: 0 early (from an opened floor on) … 1 late (only close up in a room). */
+  setZoomLate(late: number): void {
+    const v = Math.min(1, Math.max(0, late));
+    if (v === this.zoomLate) return;
+    this.zoomLate = v;
+    this.invalidate();
+  }
+
   /**
    * Builds something twice while a zoom style with natural materials is on: once with the natural palette, once with
    * the view's own; every geometry of the result gets the natural colours as its second colour (same vertices – the
@@ -1557,7 +1567,8 @@ export class FloorplanViewer {
     if (!near) return false;
     const r = this.controls.view.radius / Math.max(1, this.houseRadius);
     // the house and an opened floor stay in the far look; zooming towards a room turns it, a room is (nearly) all style
-    const k = Math.min(1, Math.max(0, (ZOOM_FAR - r) / (ZOOM_FAR - ZOOM_NEAR)));
+    const { far, near: close } = zoomRange(this.zoomLate);
+    const k = Math.min(1, Math.max(0, (far - r) / (far - close)));
     const want = k * k * (3 - 2 * k);
     // the colours glide after the camera: no jump when a flight is quick
     const d = want - this.morphNow;
@@ -6023,9 +6034,16 @@ function lightOnSurfaces(m: MeshBasicMaterial, natural: boolean): void {
 /** The 3D view's vertical field of view (degrees). */
 const BASE_FOV = 38;
 
-/** Zoom style: camera distance in house radii where the blend starts (the house) and ends (a floor, a room). */
-const ZOOM_FAR = 0.8;
-const ZOOM_NEAR = 0.35;
+/**
+ * Zoom style: camera distance in house radii where the blend starts and ends, from how late it should set in (0 = early:
+ * from about an opened floor on; 1 = late: only close up in a room). The house view stands at 1, a floor at about 0.9,
+ * a room at 0.25–0.45.
+ */
+export function zoomRange(late: number): { far: number; near: number } {
+  const s = Math.min(1, Math.max(0, late));
+  const far = 0.9 - 0.5 * s;
+  return { far, near: Math.max(0.12, far - 0.4) };
+}
 /** How slowly the colours follow the camera (ms): a quick flight into a room still turns the house over a second or two. */
 const MORPH_TAU = 450;
 

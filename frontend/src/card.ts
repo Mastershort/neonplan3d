@@ -521,6 +521,7 @@ clearTimeout(this.cleanTimer);
               .heatMode=${heat}
               .theme=${this._config?.theme ?? "neon"}
               .zoomStyle=${this._config?.zoom_style ?? null}
+              .zoomLate=${this._config?.zoom_late ?? null}
               .themeEvening=${this._config?.theme_evening ?? null}
               .themeNight=${this._config?.theme_night ?? null}
               .styleEntity=${this._config?.style_entity ?? null}

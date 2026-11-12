@@ -77,6 +77,8 @@ export interface CardConfig {
   style_entity?: string;
   /** Zoom style (test): the style the house turns into when zoomed in. */
   zoom_style?: string;
+  /** How late the zoom style sets in, 0 (early) … 100 (late). */
+  zoom_late?: number;
   /** Date and time in a corner of the view (default off). */
   clock?: ClockPos;
   /** Accent colour for the neon look and the card's chips ("#rrggbb"); leave out for the stock cyan. */
