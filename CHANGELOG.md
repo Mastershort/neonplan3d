@@ -4,6 +4,12 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 [releases page](https://github.com/Mastershort/neonplan3d/releases). Ideas and votes:
 [Discussions → Ideas](https://github.com/Mastershort/neonplan3d/discussions/categories/ideas).
 
+## Unreleased
+
+### Fixed
+
+- **3D view jumping when the pointer crosses the floor/room bar:** on a desktop the bar's thin scrollbar appeared on hover and added its own height, so the whole 3D scene below it moved down by the scrollbar's height and back up again – a visible flicker when moving the mouse over the bar. The scrollbar track is now reserved all the time and only its thumb fades in, so nothing moves. Touch screens and wall tablets (overlay scrollbars) look as before.
+
 ## 3.1.0
 
 **Neon was just the beginning – your home in every style.**
