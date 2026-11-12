@@ -5,7 +5,7 @@
 // flight into it). Each floor is a group with its own materials so its height and opacity can be
 // animated independently.
 
-import { AdditiveBlending, CustomBlending, OneFactor, SrcAlphaFactor, ZeroFactor, RingGeometry, Fog, CircleGeometry, Box3, CanvasTexture, ClampToEdgeWrapping, Color, BackSide, DoubleSide, FrontSide, Group, LineBasicMaterial, LineSegments, Mesh, MeshBasicMaterial, MultiplyBlending, OrthographicCamera, PerspectiveCamera, Points, PointsMaterial, PlaneGeometry, Raycaster, RepeatWrapping, Scene, SRGBColorSpace, TextureLoader, type Texture, Float32BufferAttribute, Uint32BufferAttribute, DynamicDrawUsage, BufferGeometry as Geometry, Vector2, Vector3, WebGLRenderer, WebGLRenderTarget, type Material, BufferGeometry } from "three";
+import { AdditiveBlending, CustomBlending, DstColorFactor, OneFactor, SrcAlphaFactor, ZeroFactor, RingGeometry, Fog, CircleGeometry, Box3, CanvasTexture, ClampToEdgeWrapping, Color, BackSide, DoubleSide, FrontSide, Group, LineBasicMaterial, LineSegments, Mesh, MeshBasicMaterial, MultiplyBlending, OrthographicCamera, PerspectiveCamera, Points, PointsMaterial, PlaneGeometry, Raycaster, RepeatWrapping, Scene, SRGBColorSpace, TextureLoader, type Texture, Float32BufferAttribute, Uint32BufferAttribute, DynamicDrawUsage, BufferGeometry as Geometry, Vector2, Vector3, WebGLRenderer, WebGLRenderTarget, type Material, BufferGeometry } from "three";
 import type { Building, Floor, Furniture, Room, StartView } from "../model.ts";
 import { recolorLamps, SHADE_SENTINEL, shadeFactors } from "./lamp-colors.ts";
 import { centroid, GANG_TYPES, gateSpans, outdoorSurface, outdoorTopAt, outdoorZones, pointInPolygon, openingStyle, setTerrain, WALL_LAMP_Y, zonesOf } from "../model.ts";
@@ -1558,6 +1558,7 @@ export class FloorplanViewer {
   private styleFloors(): void {
     for (const fv of this.floors) {
       fv.patternMesh.visible = !this.style.natural;
+      lightOnSurfaces(fv.glowMesh.material as MeshBasicMaterial, !!this.style.natural);
       const old = fv.group.getObjectByName("fp3d-contact-shadows");
       if (old) {
         fv.group.remove(old);
@@ -5860,6 +5861,24 @@ function patternMaterial(texture: CanvasTexture): MeshBasicMaterial {
 }
 
 /** Blind slats: dark stripes with a faint cyan edge, repeated along v. */
+/**
+ * How lamp light lies on floors and walls. Neon and the drawn looks add it (light glows on dark surfaces); real
+ * materials are lit by it instead: the surface's own colour times (1 + light), so a blue wall stays blue and gets
+ * brighter, a wooden floor warmer – added light washed coloured walls out to white (#1054).
+ */
+function lightOnSurfaces(m: MeshBasicMaterial, natural: boolean): void {
+  const blending = natural ? CustomBlending : AdditiveBlending;
+  if (m.blending === blending) return;
+  m.blending = blending;
+  if (natural) {
+    m.blendSrc = DstColorFactor;
+    m.blendDst = OneFactor;
+    // a little less than the full light: multiplied, it already brightens the surface it falls on
+    m.color.setScalar(0.85);
+  } else m.color.setScalar(1);
+  m.needsUpdate = true;
+}
+
 function makeBlindTexture(): CanvasTexture {
   const canvas = document.createElement("canvas");
   canvas.width = 8;
