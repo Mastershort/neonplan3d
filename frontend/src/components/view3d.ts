@@ -2125,6 +2125,8 @@ export class Fp3dView3d extends LitElement {
   /** Cards placed in this frame (screen boxes), so the next one can step aside (D178). */
   private holoBoxes: { i: number; x0: number; x1: number; y0: number; y1: number }[] = [];
   private holoSizes = new Map<number, { w: number; h: number; at: number }>();
+  /** The 3D area's size for keeping cards inside it, read now and then (not every frame). */
+  private holoStage = { w: 0, h: 0, at: 0 };
 
   private placeHolo(index: number, x: number, y: number, on: boolean, scale: number, facing: boolean): void {
     // a new frame starts with the first anchor again
@@ -2179,7 +2181,7 @@ export class Fp3dView3d extends LitElement {
     const dx = 34 * s;
     const dy = 46 * s;
     // the card's lower left corner (lower right seen from behind) sits up and to the side of the anchor
-    const cx = x + (facing ? dx : -dx);
+    let cx = x + (facing ? dx : -dx);
     let cy = y - dy;
     // cards that would cover one placed before step up above it (two devices side by side, D178);
     // the card's size is read now and then, not every frame
@@ -2191,12 +2193,38 @@ export class Fp3dView3d extends LitElement {
     }
     const w = size.w * s;
     const h = size.h * s;
-    const x0 = facing ? cx : cx - w;
+    // inside the 3D area (#1088): a card that would stick out at a side moves in, its line follows
+    if (now - this.holoStage.at > 2000) {
+      const stage = el.parentElement;
+      this.holoStage = { w: stage?.clientWidth || innerWidth, h: stage?.clientHeight || innerHeight, at: now };
+    }
+    const edge = 8;
+    const W = this.holoStage.w;
+    const H = this.holoStage.h;
+    let x0 = facing ? cx : cx - w;
+    const shift = W > w + 2 * edge ? Math.max(0, edge - x0) - Math.max(0, x0 + w - (W - edge)) : 0;
+    x0 += shift;
+    cx += shift;
     const x1 = x0 + w;
     for (let pass = 0; pass < 6; pass++) {
       const hit = this.holoBoxes.find((b) => x0 < b.x1 + 4 && x1 > b.x0 - 4 && cy - h < b.y1 + 4 && cy > b.y0 - 4);
       if (!hit) break;
       cy = hit.y0 - 6;
+    }
+    // no room above (a roof near the top edge, a big card, cards stacked up): it hangs below its anchor instead,
+    // stepping down past the cards there – and never above the top edge
+    // the top keeps clear of the bar of energy tiles there
+    const top = 60;
+    const below = cy - h < top;
+    if (below) {
+      cy = y + dy + h;
+      for (let pass = 0; pass < 6; pass++) {
+        const hit = this.holoBoxes.find((b) => x0 < b.x1 + 4 && x1 > b.x0 - 4 && cy - h < b.y1 + 4 && cy > b.y0 - 4);
+        if (!hit) break;
+        cy = hit.y1 + 6 + h;
+      }
+      if (H > h + top + edge) cy = Math.min(cy, H - edge);
+      cy = Math.max(cy, top + h);
     }
     this.holoBoxes.push({ i: index, x0, x1, y0: cy - h, y1: cy });
     // seen from behind the field the card shows its back, mirrored like glass – or, switched off, it stays
@@ -2211,7 +2239,8 @@ export class Fp3dView3d extends LitElement {
       line?.setAttribute("x1", x.toFixed(1));
       line?.setAttribute("y1", y.toFixed(1));
       line?.setAttribute("x2", cx.toFixed(1));
-      line?.setAttribute("y2", cy.toFixed(1));
+      // a card hanging below its anchor is met at its upper corner
+      line?.setAttribute("y2", (below ? cy - h : cy).toFixed(1));
       dot?.setAttribute("cx", x.toFixed(1));
       dot?.setAttribute("cy", y.toFixed(1));
     }

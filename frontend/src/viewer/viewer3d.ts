@@ -1686,7 +1686,7 @@ export class FloorplanViewer {
       lightOnSurfaces(fv.glowMesh.material as MeshBasicMaterial, nearOn && !!near.natural);
       // window glass and device displays follow like the light (#1070, #1071)
       const dimNear = nearOn && near.natural ? (near.dim ?? 0) : 0;
-      glassLook(fv.materials.glass, nearOn && !!near.natural, dimNear);
+      glassLook(fv.materials.glass, nearOn && !!near.natural, dimNear, fv.o);
       screenLook(fv.materials.screens, nearOn && !!near.natural, dimNear);
     }
     if (crossed) {
@@ -1775,7 +1775,7 @@ export class FloorplanViewer {
       fv.patternMesh.visible = !this.style.natural;
       lightOnSurfaces(fv.glowMesh.material as MeshBasicMaterial, !!this.style.natural);
       const dim = this.style.natural ? (this.style.dim ?? 0) : 0;
-      glassLook(fv.materials.glass, !!this.style.natural, dim);
+      glassLook(fv.materials.glass, !!this.style.natural, dim, fv.o);
       screenLook(fv.materials.screens, !!this.style.natural, dim);
       const old = fv.group.getObjectByName("fp3d-contact-shadows");
       if (old) {
@@ -3567,7 +3567,8 @@ export class FloorplanViewer {
     m.pattern.opacity = fv.o;
     m.glow.opacity = fv.o;
     m.lines.opacity = fv.o;
-    m.glass.opacity = fv.o;
+    // a natural style's glass is a light tint (glassLook): fading keeps its own opacity (#1081)
+    m.glass.opacity = fv.o * glassOpacity(m.glass);
     m.glassWall.opacity = fv.o;
     m.flow.opacity = fv.o;
     m.solarLive.opacity = fv.o;
@@ -6130,14 +6131,21 @@ function patternMaterial(texture: CanvasTexture, theme: ThemeUniform): MeshBasic
  * Window glass: neon adds a faint cyan sheen to the dark behind it; on the light walls and the sky of the natural
  * styles that sum was always white (#1070). There it is a light tint laid over what lies behind, dimmed in the evening.
  */
-function glassLook(m: MeshBasicMaterial, natural: boolean, dim: number): void {
+function glassLook(m: MeshBasicMaterial, natural: boolean, dim: number, fade = 1): void {
   const blending = natural ? NormalBlending : AdditiveBlending;
   if (m.blending !== blending) {
     m.blending = blending;
     m.needsUpdate = true;
   }
-  m.opacity = natural ? 0.28 : 1;
+  m.userData.glassOpacity = natural ? 0.28 : 1;
+  m.opacity = fade * m.userData.glassOpacity;
   m.color.setScalar(natural ? 1 - 0.55 * dim : 1);
+}
+
+/** The opacity of a floor's window glass in the look it has now (glassLook), before the floor fades. */
+function glassOpacity(m: MeshBasicMaterial): number {
+  const v = m.userData.glassOpacity;
+  return typeof v === "number" ? v : 1;
 }
 
 /**

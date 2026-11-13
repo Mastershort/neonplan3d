@@ -35,7 +35,7 @@ var N=globalThis,$=N.ShadowRoot&&(N.ShadyCSS===void 0||N.ShadyCSS.nativeShadow)&
       <select @change=${o=>this.set(e,o.target.value)}>
         ${t.map(([o,a])=>l`<option value=${o} ?selected=${o===r}>${this.t(a)}</option>`)}
       </select>
-    </label>`}styleSelect(e,n,t,r){return Te(this.building?.settings.styles_custom),l`<label class="field"
+    </label>`}styleSelect(e,n,t,r){return Te((this.building??this.plan)?.settings.styles_custom),l`<label class="field"
       >${this.t(n)}
       <select @change=${o=>this.set(e,o.target.value||void 0)}>
         ${We(o=>this.t(o),t,r)}
