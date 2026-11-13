@@ -41,7 +41,8 @@ import { carState, type CarState, heatSensorOn, roomClimateValue,
 } from "../devices.ts";
 import { alertColor, alertEntities, alertSources, alertText, findAlerts, isOutage, type Alert, type AlertSources } from "../alerts.ts";
 import { iconPath, iconSvg, mdiIcon } from "../icons.ts";
-import { applianceIdle, applianceOf, type ApplianceKind, binColors, binDue, binNext, binOut, binOutToggleable, binTagsShown, doorsOf, fetchPickups, FinishedMemory, fridgeOpenTooLong, groupTags, hassCountry, isFinishedState, mailboxPost, nextFridgeCheck, plantThirsty, remainingMinutes, remainingText, servicesDue, setHouseholdCountry, wasteCalendars, isPackPlant, type HouseholdItem, type HouseholdTag, type Pickup } from "../household.ts";
+import { neonSignPicture, signLight, signLines } from "../neon-sign.ts";
+import { applianceIdle, applianceOf, type ApplianceKind, binColors, calendarItems, type DayEvent, fetchDayEvents, binDue, binNext, binOut, binOutToggleable, binTagsShown, doorsOf, fetchPickups, FinishedMemory, fridgeOpenTooLong, groupTags, hassCountry, isFinishedState, mailboxPost, nextFridgeCheck, plantThirsty, remainingMinutes, remainingText, servicesDue, setHouseholdCountry, wasteCalendars, isPackPlant, type HouseholdItem, type HouseholdTag, type Pickup } from "../household.ts";
 import { deviceSensors, energySummary, fetchSolarRows, fetchTodayChange, fieldLevels, fieldPowers, findConsumers, flowColor, flowSegments, gridPoint, powerSensorFor, readPower, solarCurvePath, solarDayFromStats, type Consumer, type EnergySummary, type StatRow } from "../energy.ts";
 import { fieldFace, fieldSize, roofFaces, roofWindowRoom } from "../solar.ts";
 import { type CustomButton, type EntityRef, DEFAULT_HOLOGRAM, lockAlong, type PoolPipe, type RoofWindow, type SolarField, uid } from "../model.ts";
@@ -249,6 +250,12 @@ async function chime(): Promise<void> {
   } finally {
     void ctx.close().catch(() => undefined);
   }
+}
+
+/** The size of the room names in 3D: the house's setting, between half and double (1 = as before). */
+function roomScale(b: Building | null | undefined): number {
+  const v = b?.settings.label_scale;
+  return typeof v === "number" && Number.isFinite(v) ? Math.min(2, Math.max(0.5, v)) : 1;
 }
 
 export class Fp3dView3d extends LitElement {
@@ -698,6 +705,8 @@ export class Fp3dView3d extends LitElement {
   private furnitureLinks = new Map<string, FurnitureLinks>();
   /** Haushalt Pro: the pickups of the waste calendars (fetched every 10 minutes while bins read one). */
   private pickups = new Map<string, Pickup[]>();
+  /** Haushalt Pro: today's entries of the calendars chosen for the glass card. */
+  private dayEvents: DayEvent[] = [];
   private pickupKey = "";
   private householdTimer: ReturnType<typeof setInterval> | undefined;
   /** Haushalt Pro: small holograms – bins that go out today or tomorrow, post, a thirsty plant (set by the furniture pass). */
@@ -3151,6 +3160,11 @@ export class Fp3dView3d extends LitElement {
         .slice(0, 8);
       today.unshift(...lines.map((text) => ({ icon: "pin-outline", text, entity: notes as string })));
     }
+    // today's calendar entries (idea: T-Eberle), right under the pinboard
+    if (household && this.dayEvents.length) {
+      const pins = today.findIndex((it) => it.icon !== "pin-outline");
+      today.splice(pins < 0 ? today.length : pins, 0, ...calendarItems(this.dayEvents, new Date(), hass.language));
+    }
     this._household = today.filter((it, i) => today.findIndex((x) => x.text === it.text) === i);
     // picture rules: the first rule whose entity is in its state puts its picture on the screen (a Pro feature)
     this.cameraScreens = 0;
@@ -3166,6 +3180,16 @@ export class Fp3dView3d extends LitElement {
         const picture = this.pictureUrl(rule.image);
         const bg: [number, number, number] = f.screen_bg === "white" ? [0.92, 0.94, 1] : [0.08, 0.08, 0.1];
         if (picture) screens.set(f.id, { color: bg, level: 1, picture, plain: true });
+      }
+    }
+    // neon signs (idea: ProvUK): their own text in tubes, lit with their light or switch (always, with nothing linked)
+    for (const floor of b.floors) {
+      for (const f of floor.furniture) {
+        if (f.type !== "neon_sign") continue;
+        const entity = this.furnitureLinks.get(f.id)?.entity ?? null;
+        const lit = signLight(f, entity ? hass.states[entity] : undefined, !!entity);
+        const picture = neonSignPicture(signLines(f.sign_text), lit.color, lit.on, lit.level, Math.max(0.05, f.w) / Math.max(0.05, f.h));
+        screens.set(f.id, { color: [0.015, 0.015, 0.03], level: 1, picture, plain: true });
       }
     }
     // a module's band of light round an item, or its layers (a tank warm above, cool below): on any item, over its own glow
@@ -3190,27 +3214,29 @@ export class Fp3dView3d extends LitElement {
    */
   private watchHousehold(hass: HomeAssistant, b: Building): void {
     const items = b.floors.flatMap((f) => f.furniture).filter((f) => f.type === "waste_bin" || f.type === "mailbox");
-    const on = hasFeature("household") && items.length > 0 && !this.replay;
+    const day = (b.settings.household?.calendars ?? []).filter((c) => typeof c === "string" && c.startsWith("calendar."));
+    const on = hasFeature("household") && (items.length > 0 || day.length > 0) && !this.replay;
     const calendars = on ? wasteCalendars(b.floors) : [];
-    const key = calendars.join(",");
+    const key = `${calendars.join(",")}|${day.join(",")}`;
     if (!on) {
       clearInterval(this.householdTimer);
       this.householdTimer = undefined;
       this.pickupKey = "";
+      this.dayEvents = [];
       return;
     }
-    const fetch = async () => {
-      if (calendars.length) this.pickups = await fetchPickups(this.hass ?? hass, calendars);
+    const fetch = async (h: HomeAssistant) => {
+      const [p, d] = await Promise.all([calendars.length ? fetchPickups(h, calendars) : null, day.length ? fetchDayEvents(h, day) : null]);
+      if (p) this.pickups = p;
+      this.dayEvents = d ?? [];
       this.syncDevices(true);
     };
     if (key !== this.pickupKey || !this.householdTimer) {
       this.pickupKey = key;
       clearInterval(this.householdTimer);
-      this.householdTimer = setInterval(() => !document.hidden && void fetch(), 600_000);
-      if (calendars.length) void fetchPickups(hass, calendars).then((p) => {
-        this.pickups = p;
-        this.syncDevices(true);
-      });
+      this.householdTimer = setInterval(() => !document.hidden && void fetch(this.hass ?? hass), 600_000);
+      if (calendars.length || day.length) void fetch(hass);
+      else this.dayEvents = [];
     }
   }
 
@@ -6257,7 +6283,7 @@ export class Fp3dView3d extends LitElement {
     const styleBg = this.effectiveStyle().bg;
     const own = backdropCss(this.building?.settings.backdrop) ?? (styleBg ? `linear-gradient(180deg, ${styleBg[0]}, ${styleBg[1]})` : null);
     const pinK = this.pinSize === "small" ? 0.8 : this.pinSize === "large" ? 1.25 : 1;
-    const style = `--fp3d-pin-k:${pinK};--fp3d-sky:${mix(stage.night[0], stage.day[0])};--fp3d-ground:${mix(stage.night[1], stage.day[1])}${own ? `;background:${own}` : ""}`;
+    const style = `--fp3d-pin-k:${pinK};--fp3d-room-scale:${roomScale(this.building)};--fp3d-sky:${mix(stage.night[0], stage.day[0])};--fp3d-ground:${mix(stage.night[1], stage.day[1])}${own ? `;background:${own}` : ""}`;
     return html`<div
       @touchstart=${this.keepTouch}
       @touchmove=${this.keepTouch}
@@ -6655,7 +6681,7 @@ export class Fp3dView3d extends LitElement {
         text-align: center;
       }
       .fp3d-pin-info small {
-        font-size: 11px;
+        font-size: calc(11px * var(--fp3d-room-scale, 1));
         font-weight: 500;
         opacity: 0.9;
         font-variant-numeric: tabular-nums;
@@ -6675,6 +6701,12 @@ export class Fp3dView3d extends LitElement {
         white-space: nowrap;
         backdrop-filter: blur(6px);
         box-shadow: var(--fp3d-shadow);
+      }
+      /* the house's size of the room names (idea: Banhammer1919) */
+      .fp3d-pin[data-room] {
+        font-size: calc(12.5px * var(--fp3d-room-scale, 1));
+        padding: calc(5px * var(--fp3d-room-scale, 1)) calc(10px * var(--fp3d-room-scale, 1));
+        border-radius: calc(10px * var(--fp3d-room-scale, 1));
       }
       .fp3d-pin-floor {
         display: grid;

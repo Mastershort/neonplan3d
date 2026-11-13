@@ -92,6 +92,39 @@ function panel(buf: GeoBuffer, tf: Tf, x0: number, x1: number, n: number, y0: nu
   }
 }
 
+/**
+ * A flat quad leaning in the opening's plane across: from (n0, y0) to (n1, y1), along x0 … x1 – an up-and-over
+ * garage door on its way up. The part above the cut height folds away with its wall.
+ */
+function tiltPanel(buf: GeoBuffer, tf: Tf, x0: number, x1: number, p0: [number, number], p1: [number, number], color: Color, cut: number, bucket: number): void {
+  const part = (a: [number, number], b: [number, number], fold: number) => {
+    const q = [tf(x0, a[0], a[1]), tf(x1, a[0], a[1]), tf(x1, b[0], b[1]), tf(x0, b[0], b[1])];
+    buf.tri(q[0], q[1], q[2], color, color, color, [0, 0.5, 1, 0.5, 1, 0.5], fold);
+    buf.tri(q[0], q[2], q[3], color, color, color, [0, 0.5, 1, 0.5, 0, 0.5], fold);
+  };
+  const [lo, hi] = p0[1] <= p1[1] ? [p0, p1] : [p1, p0];
+  if (hi[1] <= cut + 1e-6) return part(lo, hi, ALWAYS);
+  if (lo[1] >= cut - 1e-6) return part(lo, hi, bucket);
+  const k = (cut - lo[1]) / (hi[1] - lo[1]);
+  const m: [number, number] = [lo[0] + (hi[0] - lo[0]) * k, cut];
+  part(lo, m, ALWAYS);
+  part(m, hi, bucket);
+}
+
+/** How far an up-and-over door's leaf hangs out of the wall when it is open: a third of it (a canopy door). */
+export const TILT_PIVOT = 2 / 3;
+
+/**
+ * An up-and-over garage door (idea: ProvUK): one stiff leaf whose top runs on the tracks under the ceiling into the
+ * garage while its bottom swings out and up; open, it lies under the ceiling with a third out of the wall. Returns
+ * the leaf's top and bottom edge (n, y) for `open` 0 … 1.
+ */
+export function tiltLeaf(plane: number, top: number, length: number, open: number): [[number, number], [number, number]] {
+  const a = Math.min(1, Math.max(0, open)) * (Math.PI / 2);
+  const t: [number, number] = [plane + TILT_PIVOT * length * Math.sin(a), top];
+  return [t, [t[0] - length * Math.sin(a), top - length * Math.cos(a)]];
+}
+
 /** A blind hung inside the room (a roller shade) – windows and doors only, never a garage door. */
 export function blindInside(o: Pick<Opening, "type" | "blind_side">): boolean {
   return o.blind_side === "inside" && o.type !== "garage";
@@ -331,10 +364,20 @@ export function buildOpeningParts(infos: readonly OpeningInfo[], states: Readonl
       const closed = Math.min(1, Math.max(0, st.cover ?? 1));
       const panelC = new Color(0xd4e0ff);
       const plane = info.faceRoom - 0.03;
-      const bottom = T * (1 - closed);
-      if (closed > 0.01) panel(blinds, tf, 0.02, W - 0.02, plane, bottom, T, panelC, cut, bucket, 0.5);
-      const up = (1 - closed) * T;
-      if (up > 0.01) flatPanel(blinds, tf, 0.02, W - 0.02, plane, plane + up, T + 0.03, panelC, bucket, 0.5);
+      if (info.opening.garage_kind === "tilt") {
+        // up-and-over: one stiff leaf swinging out and up
+        const [t, b] = tiltLeaf(plane, T - 0.01, T - 0.02, 1 - closed);
+        tiltPanel(blinds, tf, 0.02, W - 0.02, b, t, panelC, cut, bucket);
+        // a handle in the middle near its bottom edge, on the outside
+        const hy = b[1] + (t[1] - b[1]) * 0.12;
+        const hn = b[0] + (t[0] - b[0]) * 0.12;
+        if (closed > 0.98) splitBox(frames, tf, W / 2 - 0.08, W / 2 + 0.08, hn - 0.04, hn - 0.005, hy - 0.02, hy + 0.02, new Color(OP.HANDLE), new Color(OP.HANDLE_TOP), cut, bucket);
+      } else {
+        const bottom = T * (1 - closed);
+        if (closed > 0.01) panel(blinds, tf, 0.02, W - 0.02, plane, bottom, T, panelC, cut, bucket, 0.5);
+        const up = (1 - closed) * T;
+        if (up > 0.01) flatPanel(blinds, tf, 0.02, W - 0.02, plane, plane + up, T + 0.03, panelC, bucket, 0.5);
+      }
     } else if (openingStyle(info.opening, info.exterior) === "slide") {
       // lift-and-slide door or sliding window (#397, #361): the pane on the hinge side stands, the other runs on the
       // inner track in front of it as far as it is open

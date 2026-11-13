@@ -155,6 +155,7 @@ const BASIC: Record<string, [Kind, Room[]]> = {
   awning: ["outdoor", ["garden"]],
   waste_bin: ["household", ["garden", "garage", "utility"]],
   mailbox: ["household", ["garden", "hall"]],
+  neon_sign: ["deco", ["living", "hobby", "kids", "bedroom"]],
   wall_switch: ["tech", []],
   wall_socket: ["tech", []],
   wifi_ap: ["tech", []],

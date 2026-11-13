@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { applianceIdle, applianceOf, binColors, binDue, binGlows, binNext, binOut, binOutToggleable, binTagsShown, FinishedMemory, fridgeOpenTooLong, groupTags, householdEntities, isFinishedState, mailboxBase, mailboxPost, nextFridgeCheck, pickupsOf, plantThirsty, remainingMinutes, remainingText, sensorDays, serviceDue, servicesDue, wasteCalendars, wasteColors, wasteMatches, type HouseholdTag } from "./household.ts";
+import { applianceIdle, applianceOf, binColors, calendarItems, dayEventsOf, binDue, binGlows, binNext, binOut, binOutToggleable, binTagsShown, FinishedMemory, fridgeOpenTooLong, groupTags, householdEntities, isFinishedState, mailboxBase, mailboxPost, nextFridgeCheck, pickupsOf, plantThirsty, remainingMinutes, remainingText, sensorDays, serviceDue, servicesDue, wasteCalendars, wasteColors, wasteMatches, type HouseholdTag } from "./household.ts";
 import type { Furniture } from "./model.ts";
 import type { HassEntity, HomeAssistant } from "./types.ts";
 import { setPacks, type FurniturePack } from "./packs.ts";
@@ -332,4 +332,31 @@ test("pack plants are plants by their name, not only by the palette's leaf colou
   assert.equal(isPackPlant(packType("deco", "humidifier")), false);
   assert.equal(isPackPlant(packType("deco", "tv_stand")), false);
   setPacks([]);
+});
+
+test("calendar entries in Today in the household (idea: T-Eberle)", () => {
+  const now = new Date(2026, 10, 13, 13, 50);
+  const at = (h: number, m = 0) => ({ dateTime: new Date(2026, 10, 13, h, m).toISOString() });
+  const events = dayEventsOf(
+    [
+      { summary: "Dentist", start: at(14, 30), end: at(15) },
+      { summary: "Breakfast", start: at(8), end: at(9) },
+      { summary: "Grandma's birthday", start: { date: "2026-11-13" }, end: { date: "2026-11-14" } },
+      { summary: "Holiday", start: { date: "2026-11-10" }, end: { date: "2026-11-13" } },
+      { summary: "Yoga", start: at(19), end: at(20) },
+      { summary: "  " },
+    ],
+    "calendar.family",
+  );
+  // all-day first, then by time; ended ones and yesterday's holiday are gone
+  const items = calendarItems(events, now, "de");
+  assert.deepEqual(items.map((i) => i.text), ["Grandma's birthday", "14:30 Dentist", "19:00 Yoga"]);
+  assert.ok(items.every((i) => i.entity === "calendar.family" && i.icon === "calendar-clock"));
+  // starting within the hour: amber
+  assert.equal(items.find((i) => i.text.includes("Dentist"))?.hot, true);
+  assert.equal(items.find((i) => i.text.includes("Yoga"))?.hot, undefined);
+  // the same entry in two calendars is one line; at most max lines
+  const twice = [...events, ...dayEventsOf([{ summary: "Yoga", start: at(19) }], "calendar.other")];
+  assert.equal(calendarItems(twice, now, "de").length, 3);
+  assert.equal(calendarItems(events, now, "de", 2).length, 2);
 });
