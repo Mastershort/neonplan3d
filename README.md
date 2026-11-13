@@ -60,6 +60,12 @@ You love the neon. But on the living-room wall in the evening, a homely house wi
 
 Pick a style in the 3D view under **⚙ → 🎨**, build your own under **⚙ Settings → 🎨 Styles** in the editor. [How it all works →](docs/manual.md#512-styles-new-in-31)
 
+### 🔍 New in 3.2 – zoom in and it turns homely
+
+Neon from afar, homely up close: pick a second style under **When zooming in** and the house flows into it as you come closer – just the room you zoom into, or every room. No reload, still fine on old wall tablets.
+
+[![Zooming into the living room: it turns homely while the kitchen next to it stays neon](https://raw.githubusercontent.com/Mastershort/neonplan3d/main/docs/images/zoom-style.webp)](docs/manual.md#512-styles-new-in-31)
+
 ---
 
 ## 🚀 New in 3.0 – the biggest update ever

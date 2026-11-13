@@ -253,7 +253,7 @@ export class Floorplan3dCardEditor extends LitElement {
   }
 
   /** A style choice (grouped); an empty choice removes the option. */
-  private styleSelect(key: "theme" | "theme_evening" | "theme_night", label: I18nKey, current: string, opts: { auto?: boolean; house?: boolean; none?: boolean }) {
+  private styleSelect(key: "theme" | "theme_evening" | "theme_night" | "zoom_style", label: I18nKey, current: string, opts: { auto?: boolean; house?: boolean; none?: boolean }) {
     // the plan fetched for a card on a dashboard too, not only the one NeonPlan's editor hands over (#1077)
     setCustomStyles((this.building ?? this.plan)?.settings.styles_custom);
     return html`<label class="field"
@@ -633,6 +633,25 @@ export class Floorplan3dCardEditor extends LitElement {
             @change=${(e: Event) => this.set("style_entity", (e.target as HTMLInputElement).value.trim() || undefined)}
           />
         </label>
+        ${this.styleSelect("zoom_style", "zoom_style", this._config.zoom_style ?? "", { none: true })}
+        ${this._config.zoom_style
+          ? html`<label class="field" title=${this.t("zoom_late_hint")}
+                >${this.t("zoom_late_early")} … ${this.t("zoom_late_late")}
+                <input type="range" min="0" max="100" step="10" .value=${String(this._config.zoom_late ?? 50)}
+                  @change=${(e: Event) => {
+                    const n = Number((e.target as HTMLInputElement).value);
+                    this.set("zoom_late", n === 50 ? undefined : n);
+                  }} />
+              </label>
+              <label class="field" title=${this.t("zoom_scope_hint")}
+                >${this.t("zoom_scope_all")} / ${this.t("zoom_scope_room")}
+                <select @change=${(e: Event) => this.set("zoom_scope", (e.target as HTMLSelectElement).value === "room" ? "room" : undefined)}>
+                  <option value="all" ?selected=${this._config.zoom_scope !== "room"}>${this.t("zoom_scope_all")}</option>
+                  <option value="room" ?selected=${this._config.zoom_scope === "room"}>${this.t("zoom_scope_room")}</option>
+                </select>
+              </label>
+              <p class="hint">${this.t("zoom_style_hint")}</p>`
+          : nothing}
         ${this.select("clock", "clock", [["off", "clock_off"], ["tl", "clock_tl"], ["tr", "clock_tr"], ["bl", "clock_bl"], ["br", "clock_br"]], v.clock ?? "off")}
         <label class="field"
           >${this.t("accent")}
