@@ -254,7 +254,8 @@ export class Floorplan3dCardEditor extends LitElement {
 
   /** A style choice (grouped); an empty choice removes the option. */
   private styleSelect(key: "theme" | "theme_evening" | "theme_night", label: I18nKey, current: string, opts: { auto?: boolean; house?: boolean; none?: boolean }) {
-    setCustomStyles(this.building?.settings.styles_custom);
+    // the plan fetched for a card on a dashboard too, not only the one NeonPlan's editor hands over (#1077)
+    setCustomStyles((this.building ?? this.plan)?.settings.styles_custom);
     return html`<label class="field"
       >${this.t(label)}
       <select @change=${(e: Event) => this.set(key, (e.target as HTMLSelectElement).value || undefined)}>

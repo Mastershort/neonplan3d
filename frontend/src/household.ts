@@ -172,6 +172,7 @@ export interface Pickup {
 interface CalEvent {
   summary?: string;
   start?: { date?: string; dateTime?: string } | string;
+  end?: { date?: string; dateTime?: string } | string;
 }
 
 /** The day of an event's start, local midnight. */
@@ -218,6 +219,77 @@ export async function fetchPickups(hass: HomeAssistant, calendars: readonly stri
     }),
   );
   return out;
+}
+
+/** An entry of a calendar today (the glass card "Today in the household"): all day, or from its start to its end. */
+export interface DayEvent {
+  summary: string;
+  calendar: string;
+  allDay: boolean;
+  start: Date | null;
+  end: Date | null;
+}
+
+/** The moment of an event's start or end; an all-day "2026-11-13" is local midnight. */
+function momentOf(t: CalEvent["start"]): { at: Date; allDay: boolean } | null {
+  const raw = typeof t === "string" ? t : (t?.dateTime ?? t?.date);
+  if (!raw) return null;
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(raw);
+  const at = m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])) : new Date(raw);
+  return Number.isNaN(at.getTime()) ? null : { at, allDay: !!m };
+}
+
+export function dayEventsOf(events: readonly CalEvent[], calendar: string): DayEvent[] {
+  return events
+    .map((e) => {
+      const s = momentOf(e.start);
+      const en = momentOf(e.end);
+      return { summary: String(e.summary ?? "").trim(), calendar, allDay: !!s?.allDay, start: s?.at ?? null, end: en?.at ?? null };
+    })
+    .filter((e) => e.summary);
+}
+
+/** Today's entries of the household calendars (idea: T-Eberle); a calendar that fails is left out. */
+export async function fetchDayEvents(hass: HomeAssistant, calendars: readonly string[], now = new Date()): Promise<DayEvent[]> {
+  const api = (hass as unknown as { callApi?: <T>(method: string, path: string) => Promise<T> }).callApi;
+  if (!api || !calendars.length) return [];
+  const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const end = addDays(start, 1);
+  const lists = await Promise.all(
+    calendars.map(async (id) => {
+      try {
+        const events = await api.call(hass, "GET", `calendars/${id}?start=${encodeURIComponent(start.toISOString())}&end=${encodeURIComponent(end.toISOString())}`);
+        return dayEventsOf(Array.isArray(events) ? (events as CalEvent[]) : [], id);
+      } catch {
+        return [];
+      }
+    }),
+  );
+  return lists.flat();
+}
+
+/**
+ * The card's lines for today's calendar entries: all-day ones first, then by their start ("14:30 Dentist"); an entry
+ * that has ended is gone, one starting within the hour is drawn in amber. At most `max` lines.
+ */
+export function calendarItems(events: readonly DayEvent[], now = new Date(), lang?: string, max = 6): HouseholdItem[] {
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const tomorrow = addDays(today, 1);
+  const time = (d: Date) => d.toLocaleTimeString(lang || undefined, { hour: "2-digit", minute: "2-digit" });
+  return events
+    .filter((e) => {
+      if (e.allDay) return (!e.start || e.start < tomorrow) && (!e.end || e.end > today);
+      if (e.end && e.end <= now) return false;
+      return !e.start || e.start < tomorrow;
+    })
+    .sort((a, b) => Number(b.allDay) - Number(a.allDay) || (a.start?.getTime() ?? 0) - (b.start?.getTime() ?? 0))
+    .filter((e, i, all) => all.findIndex((x) => x.summary === e.summary && x.start?.getTime() === e.start?.getTime()) === i)
+    .slice(0, max)
+    .map((e) => {
+      const timed = !e.allDay && e.start && e.start >= today;
+      const soon = !e.allDay && !!e.start && e.start.getTime() - now.getTime() <= 3_600_000 && (!e.end || e.end > now);
+      return { icon: "calendar-clock", text: timed ? `${time(e.start as Date)} ${e.summary}` : e.summary, entity: e.calendar, ...(soon ? { hot: true } : {}) };
+    });
 }
 
 /** What a bin shows: its next pickup in days (0 = today) and whether it glows now. */

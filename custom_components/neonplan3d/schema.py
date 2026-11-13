@@ -69,6 +69,10 @@ ROOM_SCHEMA = vol.Schema(
         vol.Optional("cleaning"): vol.Any(None, vol.All(str, vol.Length(max=255))),
         vol.Required("points"): vol.All([_POINT], vol.Length(min=3, max=MAX_POINTS)),
         vol.Required("floor_material"): vol.All(str, vol.Length(max=32)),
+        # the room's name moved from its middle in the plan and in 3D (metres; None = in the middle)
+        vol.Optional("label_offset"): vol.Any(
+            None, vol.All([vol.All(vol.Coerce(float), vol.Range(min=-100, max=100))], vol.Length(min=2, max=2))
+        ),
         # the camera this room opens with when it is tapped (None = framed from above)
         vol.Optional("start_view", default=None): vol.Any(None, START_VIEW_SCHEMA),
         # entities shown in the room's panel although they are not in the plan
@@ -151,6 +155,8 @@ OPENING_SCHEMA = vol.Schema(
         vol.Optional("top_hung", default=False): bool,
         # look: None = automatic (front door in an exterior wall, room door inside; plain window)
         vol.Optional("style", default=None): vol.Any(None, vol.In(_OPENING_STYLES)),
+        # a garage door: sectional (None) or up-and-over
+        vol.Optional("garage_kind"): vol.Any(None, vol.In(["sectional", "tilt"])),
         # front doors with sidelights: one on the hinge side, and the widths (None = automatic)
         vol.Optional("sidelight_hinge", default=False): bool,
         vol.Optional("sidelight_width", default=None): vol.Any(
@@ -324,6 +330,9 @@ FURNITURE_SCHEMA = vol.Schema(
         # household: a waste bin's kind and colours, its calendar (Haushalt Pro); a mailbox's emptying door
         vol.Optional("bin_kind"): vol.Any(None, vol.In(WASTE_KINDS)),
         vol.Optional("bin_color"): vol.Any(None, vol.Match(r"^#[0-9a-fA-F]{6}$")),
+        # a neon sign: its own text and the colour of its tubes
+        vol.Optional("sign_text"): vol.Any(None, vol.All(str, vol.Length(max=80))),
+        vol.Optional("sign_color"): vol.Any(None, vol.Match(r"^#[0-9a-fA-F]{6}$")),
         vol.Optional("bin_lid"): vol.Any(None, vol.Match(r"^#[0-9a-fA-F]{6}$")),
         vol.Optional("bin_source"): vol.Any(None, vol.All(str, vol.Length(max=255))),
         vol.Optional("bin_match"): vol.Any(None, vol.All(str, vol.Length(max=120))),
@@ -833,6 +842,8 @@ SETTINGS_SCHEMA = vol.Schema(
         vol.Optional("person_look", default=None): vol.Any(None, vol.In(["figure", "pin", "off"])),
         # plan lock: rooms, walls, doors, windows and outdoor areas cannot be moved by accident
         vol.Optional("lock_plan", default=False): bool,
+        # size of the room names in 3D (1 = as before)
+        vol.Optional("label_scale"): vol.Any(None, vol.All(vol.Coerce(float), vol.Range(min=0.5, max=2))),
         # stations and playlists for the speakers' quick menu (media_player.play_media type + content id)
         vol.Optional("media_presets", default=list): vol.All(
             [
@@ -903,6 +914,10 @@ SETTINGS_SCHEMA = vol.Schema(
                     # only the bins of the next pickup wear a tag; tags only from some days before (None = always)
                     vol.Optional("bin_next_only"): vol.Any(None, bool),
                     vol.Optional("bin_days"): vol.Any(None, vol.All(vol.Coerce(int), vol.Range(min=0, max=60))),
+                    # calendars whose entries of today stand in the glass card "Today in the household"
+                    vol.Optional("calendars"): vol.Any(
+                        None, vol.All([vol.All(str, vol.Length(max=255))], vol.Length(max=10))
+                    ),
                 },
                 extra=vol.ALLOW_EXTRA,
             ),

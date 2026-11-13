@@ -1208,6 +1208,13 @@ function tvWall(b: Builder, w: number, d: number, h: number): void {
   b.box(-w / 2, w / 2, y0, y0 + h, -d / 2 + 0.03, d / 2, C.dark, C.dark, EDGE_GLOW);
 }
 
+/** Neon sign: a dark acrylic plate on four little spacers; its text is a picture on the plate (see screenRect). */
+function neonSign(b: Builder, w: number, d: number, h: number): void {
+  for (const x of [-w / 2 + 0.04, w / 2 - 0.04])
+    for (const y of [0.04, h - 0.04]) b.box(x - 0.008, x + 0.008, y - 0.008, y + 0.008, -d / 2, -d / 2 + 0.02, C.metal);
+  b.box(-w / 2, w / 2, 0, h, -d / 2 + 0.02, d / 2, C.dark, C.dark, EDGE_FAINT);
+}
+
 /** Radiator on the wall (back at -z): panel with vertical fins, standing on short brackets. */
 function radiator(b: Builder, w: number, d: number, h: number): void {
   const y0 = RADIATOR_Y;
@@ -1479,6 +1486,10 @@ function builtInScreen(f: Furniture, w: number, d: number, h: number, floor?: Fl
   if (f.type === "tv_wall") {
     const y0 = 1.3 - h / 2;
     return { x0: -w / 2 + 0.02, x1: w / 2 - 0.02, y0: y0 + 0.02, y1: y0 + h - 0.02, z: d / 2 + 0.003 };
+  }
+  if (f.type === "neon_sign") {
+    const y0 = builtinBase(f);
+    return { x0: -w / 2 + 0.01, x1: w / 2 - 0.01, y0: y0 + 0.01, y1: y0 + h - 0.01, z: d / 2 + 0.002 };
   }
   if (f.type === "desk") return { x0: -0.28, x1: 0.28, y0: h + 0.1, y1: h + 0.4, z: -d / 2 + 0.115 };
   if (f.type === "fridge_smart") {
@@ -1787,6 +1798,16 @@ function buildFurniture(buf: GeoBuffer, lines: LineBuffer, shadow: GeoBuffer, f:
     case "tv_wall":
       tvWall(b, w, d, h);
       return;
+    case "neon_sign": {
+      // hangs on the wall at its own height: no shadow on the floor
+      const p0 = buf.p.length;
+      const l0 = lines.p.length;
+      neonSign(b, w, d, h);
+      const lift = builtinBase(f);
+      for (let i = p0 + 1; i < buf.p.length; i += 3) buf.p[i] += lift;
+      for (let i = l0 + 1; i < lines.p.length; i += 3) lines.p[i] += lift;
+      return;
+    }
     case "parking": {
       // only the marking of the spot: a vehicle standing in it is added by the viewer
       const y = 0.012;

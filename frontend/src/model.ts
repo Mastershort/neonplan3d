@@ -34,6 +34,11 @@ export interface Room {
   start_view?: StartView | null;
   points: Vec2[];
   floor_material: string;
+  /**
+   * The room's name moved from its middle in the plan and in 3D, in metres (null: in the middle) – where names of
+   * small rooms would cover each other. An offset, so it moves along with the room.
+   */
+  label_offset?: Vec2 | null;
   /** Entities shown in the room's panel although they are not in the plan. */
   panel?: string[];
   /** Entities of the room's area kept out of the room panel. */
@@ -106,6 +111,8 @@ export interface Opening {
   top_hung?: boolean;
   /** Look of the door or window (null = automatic: a front door in an exterior wall, else a room door). */
   style?: OpeningStyle | null;
+  /** A garage door's kind: a sectional door (null) or an up-and-over door, one leaf that swings out and up. */
+  garage_kind?: "sectional" | "tilt" | null;
   /** One sidelight: on the hinge side instead of opposite the hinge. */
   sidelight_hinge?: boolean;
   /** Width of the sidelight(s) in m (null = automatic); with two, `sidelight_width2` is the right one (seen from the room). */
@@ -234,6 +241,9 @@ export interface Furniture {
   bin_kind?: "rest" | "bio" | "paper" | "plastic" | "glass" | "garden" | "recycling" | "other" | null;
   /** Waste bin: its body colour ("#rrggbb"; null = the usual one of its kind in the country). */
   bin_color?: string | null;
+  /** Neon sign: its own text (one or two lines, split with |) and the colour of its tubes while no light gives one. */
+  sign_text?: string | null;
+  sign_color?: string | null;
   /** Waste bin: its lid colour ("#rrggbb"; null = like the body, or the country's usual lid). */
   bin_lid?: string | null;
   /** Haushalt Pro: the waste calendar (calendar.*) or a sensor with the next pickup of this bin. */
@@ -806,7 +816,7 @@ export interface BuildingSettings extends StylePlan {
    * Haushalt Pro: from which hour the day before a bin glows (null = 14) and until which hour on the day (null = 12);
    * only the bins of the next pickup wear a tag (`bin_next_only`), tags only from `bin_days` days before (null = always).
    */
-  household?: { bin_from?: number | null; bin_until?: number | null; notes?: EntityRef; bin_next_only?: boolean | null; bin_days?: number | null } | null;
+  household?: { bin_from?: number | null; bin_until?: number | null; notes?: EntityRef; bin_next_only?: boolean | null; bin_days?: number | null; /** Calendars whose entries of today stand in "Today in the household". */ calendars?: string[] | null } | null;
   /** The floor the editor opens with (null: the first of the list) (D418). */
   editor_floor?: string | null;
   /** Located people in 3D: a neon figure (null = default), a pin, or not shown. */
@@ -815,6 +825,8 @@ export interface BuildingSettings extends StylePlan {
   halloween?: { ghost?: boolean } | null;
   /** Fun pack "Winter & Christmas": fairy lights along the eaves, snow on roof and lawn, the New Year's firework (winter.ts). */
   winter?: { roof_lights?: boolean; roof_entity?: string | null; roof_color?: boolean; roof_outline?: boolean; snow?: boolean; firework?: boolean } | null;
+  /** Size of the room names in 3D (null = 1, as before). */
+  label_scale?: number | null;
   /** Plan lock: rooms, walls, doors, windows and outdoor areas cannot be moved by accident. */
   lock_plan?: boolean;
   /** The camera the house view opens with (3D view, card, kiosk); null = fitted from the front left. */
@@ -1473,12 +1485,13 @@ export const FURNITURE_TYPES = [
   "lamp_fan",
   "wifi_ap",
   "water_heater",
+  "neon_sign",
 ] as const;
 
 /** Furniture library sections (the editor lists them in this order). */
 export const FURNITURE_GROUPS: Record<string, FurnitureType[]> = {
   lights: ["lamp_ceiling", "lamp_downlight", "lamp_spot", "lamp_panel", "lamp_pendant", "lamp_fan", "lamp_floor", "lamp_uplight", "lamp_table", "lamp_wall", "led_strip", "lamp_bollard", "lamp_garden"],
-  living: ["sofa", "sofa_l", "sofa_u", "armchair", "stool", "coffee_table", "tv_board", "tv_wall", "sideboard", "shelf", "plant", "rug"],
+  living: ["sofa", "sofa_l", "sofa_u", "armchair", "stool", "coffee_table", "tv_board", "tv_wall", "sideboard", "shelf", "plant", "rug", "neon_sign"],
   dining: ["table", "table_round", "chair", "bench", "corner_bench", "bar_stool"],
   kitchen: ["kitchen", "kitchen_wall", "kitchen_tall", "island", "worktop", "sink", "stove", "dishwasher", "fridge"],
   sleeping: ["bed", "bunk_bed", "nightstand", "wardrobe", "dresser"],
@@ -1635,6 +1648,9 @@ export function builtinBase(f: Pick<Furniture, "type" | "h"> & { variant?: strin
       return 1.45;
     case "tv_wall":
       return Math.max(0, 1.3 - f.h / 2);
+    case "neon_sign":
+      // a neon sign hangs on the wall, its middle at 1.6 m
+      return Math.max(0, 1.6 - f.h / 2);
     case "radiator":
       return 0.12;
     case "ac_unit":
@@ -1739,6 +1755,7 @@ export const ELECTRIC_FURNITURE = new Set<string>([
   "pool_dosing",
   "tv_board",
   "tv_wall",
+  "neon_sign",
   "desk",
   "fridge",
   "fridge_smart",
@@ -1815,6 +1832,8 @@ export const FURNITURE_SIZE: Record<FurnitureType, [number, number, number]> = {
   // a 240 l wheelie bin; a wall mailbox
   waste_bin: [0.58, 0.73, 1.07],
   mailbox: [0.38, 0.14, 0.34],
+  // a neon sign on its dark acrylic plate
+  neon_sign: [0.9, 0.03, 0.32],
   // a single plate; more gangs make it wider (gangPlateWidth)
   wall_switch: [0.085, 0.012, 0.085],
   wall_socket: [0.085, 0.014, 0.085],
@@ -2006,6 +2025,13 @@ export function signedArea(points: readonly Vec2[]): number {
 
 export function polygonArea(points: readonly Vec2[]): number {
   return Math.abs(signedArea(points));
+}
+
+/** Where a room's name stands: its middle, moved by its own offset (idea: Banhammer1919). */
+export function labelPoint(room: Pick<Room, "points" | "label_offset">): Vec2 {
+  const [x, z] = centroid(room.points);
+  const o = room.label_offset;
+  return o && Number.isFinite(o[0]) && Number.isFinite(o[1]) ? [x + o[0], z + o[1]] : [x, z];
 }
 
 /** Area-weighted centroid; falls back to the vertex average for degenerate polygons. */

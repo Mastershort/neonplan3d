@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { emptyBuilding, newFloor, type Building, type RoofSection, type SolarField } from "./model.ts";
-import { bestFace, clampField, proposeWindow, roofWindowsOver, faceAt, faceCompass, fieldFace, fieldModules, fieldPlan, fieldCenter, groundFace, groundFloor, moveField, proposeField, proposeGroundField, proposeWallField, roofFaces, turnGroundField, wallFaces } from "./solar.ts";
+import { bestFace, clampField, proposeWindow, roofWindowsOver, faceAt, faceCompass, fieldFace, fieldModules, fieldPlan, fieldCenter, groundFace, groundFloor, moveField, proposeField, proposeGroundField, proposeWallField, roofFaces, turnGroundField, wallFaces, windowCorners } from "./solar.ts";
 
 /** A 10 × 8 m house of one floor (walls 2.5 m high) with the given roof. */
 function house(roof: Building["settings"]["roof"]): Building {
@@ -280,4 +280,14 @@ test("a roof footprint kept in the settings wins over the rooms present: a card 
   const kept = roofFaces(b)[1];
   near(kept.lu, whole.lu);
   near(kept.ls, whole.ls);
+});
+
+test("a roof window on a flat roof lies flush, not tilted on a frame like a module (#1078)", () => {
+  const b = house({ type: "flat", pitch: 0, overhang: 0.2 });
+  const face = roofFaces(b).find((f) => f.flat);
+  assert.ok(face);
+  const c = windowCorners(face, { id: "w", face: face.key, u: 2, v: 2, w: 1.2, h: 1.5 });
+  assert.ok(c);
+  const ys = c.map((p) => p[1]);
+  near(Math.max(...ys) - Math.min(...ys), 0);
 });

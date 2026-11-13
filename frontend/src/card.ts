@@ -520,6 +520,9 @@ clearTimeout(this.cleanTimer);
               .buttons=${this._config?.buttons?.map((b, i) => ({ id: `card_${i}`, ...b })) ?? null}
               .heatMode=${heat}
               .theme=${this._config?.theme ?? "neon"}
+              .zoomStyle=${this._config?.zoom_style ?? null}
+              .zoomLate=${this._config?.zoom_late ?? null}
+              .zoomScope=${this._config?.zoom_scope ?? null}
               .themeEvening=${this._config?.theme_evening ?? null}
               .themeNight=${this._config?.theme_night ?? null}
               .styleEntity=${this._config?.style_entity ?? null}

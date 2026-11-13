@@ -2,7 +2,7 @@
 // look, so switching is instant and nothing has to be rebuilt. Signal colours (lit lamps, open windows,
 // glowing screens) are bright and saturated and stay as they are in every look.
 
-import { AdditiveBlending, NormalBlending, Vector3, type Material } from "three";
+import { AdditiveBlending, NormalBlending, Vector2, Vector3, type Material } from "three";
 import { THEMES, type Theme } from "../themes.ts";
 import type { StyleDef } from "../looks.ts";
 
@@ -12,6 +12,85 @@ export interface ThemeUniform {
   value: number;
   /** The style's shader numbers of this view (several views on a page each keep their own). */
   style?: StyleUniforms;
+  /**
+   * Zoom style (test): 0 = the look in `value`, 1 = the style in `style` with the natural colours of the second colour
+   * attribute (fp3dColor2), in between a blend. Only materials with the FP3D_MORPH define read it.
+   */
+  morph?: { value: number };
+  /** Zoom style, "only the room": where the blend applies (no points: everywhere). */
+  mask?: MorphMask;
+}
+
+/** Most corners of the room the zoom style is limited to (the shader walks them; more are thinned out). */
+export const MORPH_POLY_MAX = 32;
+
+/**
+ * Zoom style, "only the room": the room's outline (closed: the first point again at the end), how many edges it has
+ * (0: no limit, the whole house blends) and the heights of its floor (world y, from – to).
+ */
+export interface MorphMask {
+  uMorphN: { value: number };
+  uMorphPoly: { value: Vector2[] };
+  uMorphY: { value: Vector2 };
+  /** 1 when the near style has natural materials: the neon floor pattern fades in the room. */
+  uMorphNatural: { value: number };
+}
+
+export function makeMorphMask(): MorphMask {
+  return {
+    uMorphN: { value: 0 },
+    uMorphPoly: { value: Array.from({ length: MORPH_POLY_MAX + 1 }, () => new Vector2()) },
+    uMorphY: { value: new Vector2(-1e9, 1e9) },
+    uMorphNatural: { value: 0 },
+  };
+}
+
+const NO_MASK = makeMorphMask();
+
+/**
+ * GLSL: the blend at a world point – uMorph everywhere, or with a room outline only inside it (and on the faces of its
+ * walls, which lie on the outline) and on its floor; 0 elsewhere. Needs uMorph declared before it.
+ */
+export const MORPH_MASK_GLSL = `
+uniform int uMorphN;
+uniform vec2 uMorphPoly[${MORPH_POLY_MAX + 1}];
+uniform vec2 uMorphY;
+uniform float uMorphNatural;
+float fp3dMorphAt(vec3 w) {
+  if (uMorphN <= 0) return uMorph;
+  if (uMorph <= 0.0 || w.y < uMorphY.x || w.y > uMorphY.y) return 0.0;
+  vec2 p = w.xz;
+  bool inside = false;
+  float d = 1e9;
+  vec2 a = uMorphPoly[0];
+  for (int i = 1; i <= ${MORPH_POLY_MAX}; i++) {
+    if (i > uMorphN) break;
+    vec2 b = uMorphPoly[i];
+    if ((a.y > p.y) != (b.y > p.y) && p.x < (b.x - a.x) * (p.y - a.y) / (b.y - a.y) + a.x) inside = !inside;
+    vec2 ab = b - a;
+    float t = clamp(dot(p - a, ab) / max(dot(ab, ab), 1e-6), 0.0, 1.0);
+    d = min(d, length(p - a - ab * t));
+    a = b;
+  }
+  return inside || d < 0.03 ? uMorph : 0.0;
+}
+`;
+
+/** Gives a material the mask's uniforms (for a material of its own that reads fp3dMorphAt). */
+export function morphMaskUniforms(uniform: ThemeUniform): MorphMask {
+  return uniform.mask ?? NO_MASK;
+}
+
+/** The second colour of every vertex for the zoom style: the colour the natural palette gives it. */
+export const MORPH_ATTRIBUTE = "fp3dColor2";
+
+/** Switches a themed material between one look and the zoom blend (recompiles it once). */
+export function setMorphDefine(material: Material, on: boolean): void {
+  const d = (material.defines ??= {});
+  if (!!("FP3D_MORPH" in d) === on) return;
+  if (on) d.FP3D_MORPH = "";
+  else delete d.FP3D_MORPH;
+  material.needsUpdate = true;
 }
 
 export function themeIndex(theme: Theme): number {
@@ -89,6 +168,7 @@ export function parseAccent(hex: string | null | undefined): [number, number, nu
 
 const GLSL = `
 uniform int uTheme;
+uniform float uMorph;
 uniform vec3 uAccent;
 uniform int uAccentOn;
 uniform vec3 uStLine;
@@ -149,11 +229,11 @@ float fp3dStyleFloor(vec3 c, vec3 n) {
   }
   return mix(1.0, k, fade);
 }
-vec3 fp3dThemed(vec3 c, bool line, bool accent) {
+vec3 fp3dThemedAs(vec3 c, bool line, bool accent, int look) {
   float mx = max(c.r, max(c.g, c.b));
   float mn = min(c.r, min(c.g, c.b));
   float sat = mx > 0.0 ? (mx - mn) / mx : 0.0;
-  if (uTheme == ${STYLE_LOOK}) {
+  if (look == ${STYLE_LOOK}) {
     if (line) return uStLine * clamp(mx * 1.4, 0.55, 1.0);
     // lit lamps, screens, open windows keep their colour – but not the green of plants, which only looks like one
     bool signal = mx > 0.45 && sat > 0.45 && !(c.g > c.r * 1.25 && c.g > c.b * 1.25);
@@ -175,7 +255,7 @@ vec3 fp3dThemed(vec3 c, bool line, bool accent) {
     vec3 g = mix(uStDark, uStLight, clamp(uStLift + ll * uStContrast, 0.0, 1.0));
     return mix(g, g * (c / max(mx, 0.001)), uStHue) * fp3dStyleLight(n);
   }
-  if (uTheme == 0) {
+  if (look == 0) {
     // an own accent: every line and every cyan surface takes it, as bright as it was
     if (accent && uAccentOn == 1 && (line || (sat > 0.35 && c.r < c.g * 0.8 && c.b > c.g * 0.85 && c.g > c.b * 0.6))) return uAccent * mx;
     return c;
@@ -183,7 +263,7 @@ vec3 fp3dThemed(vec3 c, bool line, bool accent) {
   // signal colours keep their colour
   if (!line && mx > 0.45 && sat > 0.45) return c;
   float l = dot(c, vec3(0.299, 0.587, 0.114));
-  if (uTheme == 1) {
+  if (look == 1) {
     // blueprint: white lines on shades of blue
     if (line) return vec3(0.8, 0.9, 1.0) * min(1.0, mx * 1.15);
     return mix(vec3(0.04, 0.13, 0.3), vec3(0.2, 0.42, 0.75), clamp(l * 5.0, 0.0, 1.0));
@@ -194,6 +274,7 @@ vec3 fp3dThemed(vec3 c, bool line, bool accent) {
   vec3 g = vec3(clamp(0.28 + l * 3.6, 0.0, 0.92));
   return mix(g, g * (c / max(mx, 0.001)), 0.3);
 }
+vec3 fp3dThemed(vec3 c, bool line, bool accent) { return fp3dThemedAs(c, line, accent, uTheme); }
 `;
 
 /**
@@ -211,19 +292,37 @@ export function themed<T extends Material>(material: T, uniform: ThemeUniform, l
     shader.uniforms.uAccentOn = accentOnUniform;
     Object.assign(shader.uniforms, uniform.style ?? styleUniforms);
     shader.uniforms.uFloorY = floorLevelUniform(material);
+    shader.uniforms.uMorph = uniform.morph ?? NO_MORPH;
+    Object.assign(shader.uniforms, morphMaskUniforms(uniform));
     shader.vertexShader = shader.vertexShader
-      .replace("#include <common>", `#include <common>\nvarying vec3 vFp3dWorld;\n#ifdef FP3D_LIT\nattribute float ${LIT_ATTRIBUTE};\nvarying float vFp3dLit;\n#endif`)
+      .replace("#include <common>", `#include <common>\nvarying vec3 vFp3dWorld;\n#ifdef FP3D_MORPH\nattribute vec3 ${MORPH_ATTRIBUTE};\nvarying vec3 vFp3dColor2;\n#endif\n#ifdef FP3D_LIT\nattribute float ${LIT_ATTRIBUTE};\nvarying float vFp3dLit;\n#endif`)
       .replace(
         "#include <project_vertex>",
-        `#include <project_vertex>\nvFp3dWorld = (modelMatrix * vec4(transformed, 1.0)).xyz;\n#ifdef FP3D_LIT\nvFp3dLit = ${LIT_ATTRIBUTE};\n#endif`,
+        `#include <project_vertex>\nvFp3dWorld = (modelMatrix * vec4(transformed, 1.0)).xyz;\n#ifdef FP3D_MORPH\nvFp3dColor2 = ${MORPH_ATTRIBUTE};\n#endif\n#ifdef FP3D_LIT\nvFp3dLit = ${LIT_ATTRIBUTE};\n#endif`,
       );
+    // the zoom style: the far look from the neon colours, the near style from the natural ones, blended by uMorph
+    // (a uniform: the GPU takes one branch for the whole frame, both only while the blend runs)
+    const morph = `
+  #ifdef FP3D_MORPH
+  float fp3dM = fp3dMorphAt(vFp3dWorld);
+  if (fp3dM <= 0.0) diffuseColor.rgb = fp3dThemedAs(diffuseColor.rgb, ${line}, ${accent}, uTheme);
+  else {
+    vec3 fp3dNear = fp3dThemedAs(fp3dBase * vFp3dColor2, ${line}, ${accent}, ${STYLE_LOOK});
+    diffuseColor.rgb = fp3dM >= 1.0 ? fp3dNear : mix(fp3dThemedAs(diffuseColor.rgb, ${line}, ${accent}, uTheme), fp3dNear, fp3dM);
+  }
+  #else
+  diffuseColor.rgb = fp3dThemed(diffuseColor.rgb, ${line}, ${accent});
+  #endif`;
     shader.fragmentShader = shader.fragmentShader
-      .replace("#include <common>", `#include <common>\n${GLSL}`)
-      .replace("#include <color_fragment>", `#include <color_fragment>\n  diffuseColor.rgb = fp3dThemed(diffuseColor.rgb, ${line}, ${accent});`);
+      .replace("#include <common>", `#include <common>\n${GLSL}\n#ifdef FP3D_MORPH\nvarying vec3 vFp3dColor2;\n${MORPH_MASK_GLSL}\n#endif`)
+      .replace("#include <color_fragment>", `vec3 fp3dBase = diffuseColor.rgb;\n#include <color_fragment>\n${morph}`);
   };
+  material.userData.fp3dThemed = true;
   material.customProgramCacheKey = () => `${key()}-themed-${line ? "l" : "s"}${accent ? "" : "-na"}`;
   return material;
 }
+
+const NO_MORPH = { value: 0 };
 
 /**
  * Lamps: 1 per vertex of a lit shade, 0 elsewhere. A material with the FP3D_LIT define reads it, so natural styles

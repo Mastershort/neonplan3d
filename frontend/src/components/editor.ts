@@ -1,5 +1,6 @@
 // 2D editor: floors, rooms (rectangles and free shapes), snapping, undo, background template.
 
+import { SIGN_DEFAULT } from "../neon-sign.ts";
 import { isStyleChoice, styleOptions } from "../style-select.ts";
 import { allStyles, newStyleId, setCustomStyles, styleById, type CustomStyle, type StyleDef } from "../looks.ts";
 import { css, html, LitElement, nothing, svg, type PropertyValues, type TemplateResult } from "lit";
@@ -64,6 +65,7 @@ import { pipePlanner } from "../pipe-planner.ts";
 import {
   bounds,
   centroid,
+  labelPoint,
   FLOOR_MATERIALS,
   FURNITURE_GROUPS,
   ENERGY_DEVICES,
@@ -202,6 +204,7 @@ type Drag =
   | { kind: "roofvertex"; id: string; index: number; base: Building; moved: boolean }
   | { kind: "cablept"; id: string; index: number; base: Building; moved: boolean }
   | { kind: "holopt"; base: Building; moved: boolean }
+  | { kind: "roomlabel"; roomId: string; grab: Vec2; base: Building; moved: boolean }
   | { kind: "bgmove"; start: Vec2; bx: number; bz: number; base: Building; moved: boolean }
   | { kind: "bgscale"; base: Building; moved: boolean }
   | { kind: "bgrotate"; base: Building; moved: boolean; start: number; rot: number }
@@ -217,7 +220,7 @@ interface Guides {
 }
 
 /** Drags that change the document live (restored when cancelled, recorded in the history when done). */
-const EDIT_DRAGS = new Set(["vertex", "room", "device", "opening", "furniture", "furnset", "rotate", "resize", "outdoor", "roofmove", "roofcorner", "roofvertex", "outvertex", "outbox", "pipept", "poolport", "pooldev", "pooljoint", "solarmove", "solarturn", "cablept", "holopt", "bgmove", "bgscale", "bgrotate"]);
+const EDIT_DRAGS = new Set(["vertex", "room", "device", "opening", "furniture", "furnset", "rotate", "resize", "outdoor", "roofmove", "roofcorner", "roofvertex", "outvertex", "outbox", "pipept", "poolport", "pooldev", "pooljoint", "solarmove", "solarturn", "cablept", "holopt", "roomlabel", "bgmove", "bgscale", "bgrotate"]);
 
 const HISTORY = 100;
 /** An angle turned on by `d` degrees, kept between -180 and 180. */
@@ -390,6 +393,7 @@ export class Fp3dEditor extends LitElement {
     _supporter: { state: true },
     _wall3d: { state: true },
     _fx3d: { state: true },
+    _names3d: { state: true },
     _style3d: { state: true },
     _styleSel: { state: true },
     _sidePinned: { state: true },
@@ -508,6 +512,8 @@ export class Fp3dEditor extends LitElement {
   private declare _wall3d: WallMode;
   /** Weather, sun, pets and ghost in the 3D pane beside the plan (off: a quiet pane for drawing, #1033). */
   private declare _fx3d: boolean;
+  /** Room names in the 3D pane (on unless switched off on this device; Bernd's wish: many small rooms cover each other). */
+  private declare _names3d: boolean;
   /** The style of the 3D pane beside the plan (and the wall view), kept per device. */
   private declare _style3d: string;
   /** The style shown in the styles dialog (its preview and, for an own one, its settings). */
@@ -826,9 +832,11 @@ export class Fp3dEditor extends LitElement {
     // the 3D pane's wall view stays as it was last set on this device (#309)
     this._wall3d = "cut";
     this._style3d = "neon";
+    this._names3d = true;
     try {
       if (localStorage.getItem("neonplan3d.walls3d") === "auto") this._wall3d = "auto";
       this._fx3d = localStorage.getItem("neonplan3d.editor_fx") !== "0";
+      this._names3d = localStorage.getItem("neonplan3d.editor_names") !== "0";
       const st = localStorage.getItem("neonplan3d.editor_style");
       this._style3d = isStyleChoice(st) ? st : "neon";
     } catch {
@@ -1211,6 +1219,15 @@ export class Fp3dEditor extends LitElement {
     }
   }
 
+  private setNames3d(on: boolean): void {
+    this._names3d = on;
+    try {
+      localStorage.setItem("neonplan3d.editor_names", on ? "1" : "0");
+    } catch {
+      /* no storage */
+    }
+  }
+
   private setFx3d(on: boolean): void {
     this._fx3d = on;
     try {
@@ -1229,6 +1246,7 @@ export class Fp3dEditor extends LitElement {
             <button aria-pressed=${this._wall3d === "auto"} @click=${() => this.setWall3d("auto")}>${this.t("walls_auto")}</button>
             <button aria-pressed=${this._wall3d === "cut"} @click=${() => this.setWall3d("cut")}>${this.t("walls_cut")}</button>
             <button class="fp3d-fx3d" aria-pressed=${this._fx3d} title=${this.t("fx3d_hint")} @click=${() => this.setFx3d(!this._fx3d)}>${this.t("fx3d")}</button>
+            <button class="fp3d-fx3d" aria-pressed=${this._names3d} title=${this.t("names3d_hint")} @click=${() => this.setNames3d(!this._names3d)}>${this.t("names3d")}</button>
             <select class="fp3d-style3d" title=${this.t("style")} aria-label=${this.t("style")} @change=${(e: Event) => this.setStyle3d((e.target as HTMLSelectElement).value)}>
               ${styleOptions((k) => this.t(k), this._style3d, { auto: true, house: true })}
             </select>
@@ -1262,7 +1280,7 @@ export class Fp3dEditor extends LitElement {
         .selectedDevice=${this._deviceId}
         .quality=${"auto"}
         .floorThumbs=${false}
-        .roomLabels=${true}
+        .roomLabels=${this._names3d}
         .floorStack=${this.houseTool ? "stacked" : "single"}
         .panelOpen=${false}
         .alerts=${false}
@@ -1850,6 +1868,22 @@ export class Fp3dEditor extends LitElement {
       } else this.drag = { kind: "marquee", start: world, end: world, add: true };
       return;
     }
+    // the selected room's name, by its handle: moved where it covers no other name (a double tap puts it back); found
+    // by its place, since furniture under the name (a rug) lies above it
+    const labelRoom = this.labelGripAt(local) ?? null;
+    if (labelRoom) {
+      if (this.doubleTap(e, `label:${labelRoom.id}`)) {
+        this.change((_, floor) => {
+          const r = floor.rooms.find((x) => x.id === labelRoom.id);
+          if (r) delete r.label_offset;
+        });
+        this.drag = { kind: "pan", last: local };
+        return;
+      }
+      const [lx, lz] = labelPoint(labelRoom);
+      this.drag = { kind: "roomlabel", roomId: labelRoom.id, grab: [world[0] - lx, world[1] - lz], base: this._doc, moved: false };
+      return;
+    }
     const deviceEl = target.closest("[data-device]");
     if (deviceEl && this.isAdmin) {
       this.drag = { kind: "device", entityId: deviceEl.getAttribute("data-device")!, start: world, startScreen: local, base: this._doc, moved: false };
@@ -2361,6 +2395,20 @@ export class Fp3dEditor extends LitElement {
         );
         break;
       }
+      case "roomlabel": {
+        drag.moved = true;
+        this.change(
+          (_, floor) => {
+            const r = floor.rooms.find((x) => x.id === drag.roomId);
+            if (!r) return;
+            const [cx, cz] = centroid(r.points);
+            r.label_offset = [round(world[0] - drag.grab[0] - cx), round(world[1] - drag.grab[1] - cz)];
+          },
+          drag.base,
+          false,
+        );
+        break;
+      }
       case "holopt": {
         drag.moved = true;
         const p = this.snap(world, undefined, e.altKey);
@@ -2657,6 +2705,7 @@ export class Fp3dEditor extends LitElement {
         else if (drag.kind === "poolport" || drag.kind === "pooljoint") this.openCard(drag.pool, `${drag.kind === "poolport" ? "port" : "joint"}:${drag.id}`);
         break;
       case "holopt":
+      case "roomlabel":
       case "bgmove":
       case "bgscale":
       case "bgrotate":
@@ -10354,11 +10403,31 @@ export class Fp3dEditor extends LitElement {
       })}</g>
       ${this.renderEdgeHighlight()}
       <g pointer-events="none">${floor.rooms.map((r) => {
-        const [cx, cy] = this.toScreen(centroid(r.points));
+        const [cx, cy] = this.toScreen(labelPoint(r));
+        // the selected room's name gets a handle to move it (idea: Banhammer1919)
+        const g = r.id === this._roomId && this.isAdmin && this._tool === "select" ? this.labelGrip(r) : null;
+        const grip = g
+          ? svg`<g class="fp3d-label-grip" data-room-label=${r.id} pointer-events="all"><title>${this.t("room_label_move")}</title><circle class="fp3d-hit" cx=${g[0]} cy=${g[1]} r="14" /><circle cx=${g[0]} cy=${g[1]} r="7" /><path d=${`M${g[0] - 4} ${g[1]}h8M${g[0]} ${g[1] - 4}v8`} /></g>`
+          : nothing;
         return svg`<text class="fp3d-room-name" x=${cx} y=${cy - 2}>${r.name}</text>
-          <text class="fp3d-room-area" x=${cx} y=${cy + 14}>${this.area(polygonArea(r.points))}</text>`;
+          <text class="fp3d-room-area" x=${cx} y=${cy + 14}>${this.area(polygonArea(r.points))}</text>${grip}`;
       })}</g>
     `;
+  }
+
+  /** Where the handle of a room's name sits on screen: left of the name. */
+  private labelGrip(r: Room): [number, number] {
+    const [cx, cy] = this.toScreen(labelPoint(r));
+    return [cx - r.name.length * 3.9 - 14, cy - 6];
+  }
+
+  /** The selected room whose name handle lies under a screen point (admin, selection tool). */
+  private labelGripAt(local: [number, number]): Room | null {
+    if (!this.isAdmin || this._tool !== "select" || !this._roomId) return null;
+    const r = this.floor?.rooms.find((x) => x.id === this._roomId);
+    if (!r) return null;
+    const [gx, gy] = this.labelGrip(r);
+    return Math.hypot(local[0] - gx, local[1] - gy) <= 15 ? r : null;
   }
 
   /** The wall of the selected room whose row in the wall height list is hovered. */
@@ -11115,6 +11184,9 @@ export class Fp3dEditor extends LitElement {
           >${this.t("room_name")}
           <input .value=${room.name} ?disabled=${!admin} @change=${(e: Event) => this.updateRoom({ name: (e.target as HTMLInputElement).value })}
         /></label>
+        ${room.label_offset && admin
+          ? html`<button class="fp3d-btn fp3d-wide" title=${this.t("room_label_move")} @click=${() => this.updateRoom({ label_offset: null })}>⌖ ${this.t("room_label_reset")}</button>`
+          : nothing}
         <label class="fp3d-field fp3d-wide" title=${this.t("aliases_hint")}
           >${this.t("aliases")}
           <input type="text" maxlength="240" .value=${(room.aliases ?? []).join(", ")} ?disabled=${!admin} placeholder=${this.t("aliases_placeholder")} @change=${(e: Event) => this.updateRoom({ aliases: splitAliases((e.target as HTMLInputElement).value) })}
@@ -11524,7 +11596,15 @@ export class Fp3dEditor extends LitElement {
               </button>
             </div>`
           : nothing}
-        ${garage ? nothing : this.renderStyleSelect(o)}
+        ${garage
+          ? html`<label class="fp3d-field fp3d-wide"
+              >${this.t("garage_kind")}
+              <select ?disabled=${!admin} @change=${(e: Event) => this.updateOpening({ garage_kind: (e.target as HTMLSelectElement).value === "tilt" ? "tilt" : null })}>
+                <option value="sectional" ?selected=${o.garage_kind !== "tilt"}>${this.t("garage_sectional")}</option>
+                <option value="tilt" ?selected=${o.garage_kind === "tilt"}>${this.t("garage_tilt")}</option>
+              </select></label
+            >`
+          : this.renderStyleSelect(o)}
         ${window
           ? html`<label class="fp3d-field fp3d-wide" title=${this.t("sill_board_hint")}
               >${this.t("sill_board")}
@@ -11782,7 +11862,7 @@ export class Fp3dEditor extends LitElement {
             >
           </div>`
         : nothing}
-      ${isElectric(f.type) ? this.renderFurnitureLinks(f) : !NO_STATE_TYPES.has(f.type) ? html`<div class="fp3d-form fp3d-links">${this.renderStateLinks(f)}</div>` : nothing} ${GANG_TYPES.has(f.type) ? this.renderGangsForm(f) : nothing} ${TECH_TYPES.has(f.type) ? this.renderTechForm(f) : nothing} ${f.type === "parking" ? this.renderParkingForm(f) : nothing} ${f.type === "waste_bin" || f.type === "mailbox" ? this.renderHouseholdForm(f) : this.renderHouseholdExtras(f)}
+      ${isElectric(f.type) ? this.renderFurnitureLinks(f) : !NO_STATE_TYPES.has(f.type) ? html`<div class="fp3d-form fp3d-links">${this.renderStateLinks(f)}</div>` : nothing} ${GANG_TYPES.has(f.type) ? this.renderGangsForm(f) : nothing} ${TECH_TYPES.has(f.type) ? this.renderTechForm(f) : nothing} ${f.type === "parking" ? this.renderParkingForm(f) : nothing} ${f.type === "neon_sign" ? this.renderSignForm(f) : nothing} ${f.type === "waste_bin" || f.type === "mailbox" ? this.renderHouseholdForm(f) : this.renderHouseholdExtras(f)}
       ${this.renderShowIf(f)}
       ${this.renderModuleFurnitureFields(f)}
       ${f.type.startsWith("pack:mastershort.vehicles:") && this.isAdmin
@@ -12383,6 +12463,22 @@ export class Fp3dEditor extends LitElement {
     const next = structuredClone(this._doc);
     next.settings.household = { ...(next.settings.household ?? {}), ...patch };
     this.setDoc(next);
+  }
+
+  /** Neon sign (idea: ProvUK): its text and the colour of its tubes (a coloured light gives its own). */
+  private renderSignForm(f: Furniture) {
+    const admin = this.isAdmin;
+    return html`<div class="fp3d-form">
+      <label class="fp3d-field fp3d-wide"
+        >${this.t("sign_text")}
+        <input type="text" maxlength="80" .value=${f.sign_text ?? ""} placeholder="Neon" ?disabled=${!admin}
+          @change=${(e: Event) => this.updateFurniture({ sign_text: (e.target as HTMLInputElement).value.trim() || null })} /></label>
+      <label class="fp3d-field"
+        >${this.t("sign_color")}
+        <input type="color" .value=${f.sign_color ?? SIGN_DEFAULT} ?disabled=${!admin} @change=${(e: Event) => this.updateFurniture({ sign_color: (e.target as HTMLInputElement).value })}
+      /></label>
+      <p class="fp3d-sub fp3d-wide">${this.t("sign_hint")}</p>
+    </div>`;
   }
 
   /**
@@ -14225,9 +14321,40 @@ export class Fp3dEditor extends LitElement {
         >
         ${this.entitySelect(this.t("hh_notes"), s.household?.notes ?? null, undefined, this.entityOptions((id) => /^(input_text|text|sensor)\./.test(id)), (v) => this.setHousehold({ notes: v === "none" ? null : v }))}
         <p class="fp3d-sub fp3d-wide">${this.t("hh_notes_hint")}</p>
+        ${this.renderHouseholdCalendars()}
+        <label class="fp3d-field fp3d-wide" title=${this.t("label_scale_hint")}
+          >${this.t("label_scale")} · ${Math.round((s.label_scale ?? 1) * 100)} %
+          <input type="range" min="50" max="200" step="10" .value=${String(Math.round((s.label_scale ?? 1) * 100))} ?disabled=${!this.isAdmin}
+            @change=${(e: Event) => {
+              const v = Number((e.target as HTMLInputElement).value) / 100;
+              set({ label_scale: Math.abs(v - 1) < 0.01 ? null : Math.min(2, Math.max(0.5, v)) });
+            }}
+        /></label>
       </div>
       <p class="fp3d-sub">${this.t("north_hint")}</p>
     </details>`;
+  }
+
+  /** Haushalt Pro: the calendars whose entries of today stand in "Today in the household" (idea: T-Eberle). */
+  private renderHouseholdCalendars() {
+    const all = Object.keys(this.hass?.states ?? {}).filter((id) => id.startsWith("calendar.")).sort();
+    if (!all.length) return nothing;
+    const chosen = this._doc.settings.household?.calendars ?? [];
+    const toggle = (id: string, on: boolean) => {
+      const next = on ? [...new Set([...chosen, id])] : chosen.filter((c) => c !== id);
+      this.setHousehold({ calendars: next.length ? next.slice(0, 10) : null });
+    };
+    return html`<fieldset class="fp3d-field fp3d-wide fp3d-hh-cals">
+        <legend>${this.t("hh_calendars")}</legend>
+        ${all.map(
+          (id) =>
+            html`<label class="fp3d-check"
+              ><input type="checkbox" .checked=${chosen.includes(id)} ?disabled=${!this.isAdmin} @change=${(e: Event) => toggle(id, (e.target as HTMLInputElement).checked)} />
+              ${entityName(this.hass, id)}</label
+            >`,
+        )}
+      </fieldset>
+      <p class="fp3d-sub fp3d-wide">${this.t("hh_calendars_hint")}</p>`;
   }
 
   /** The roof's basics – its kind, ridge, pitch and overhang – in the roof tool (sections and windows live there too). */
@@ -14808,6 +14935,17 @@ export class Fp3dEditor extends LitElement {
         fill: var(--fp3d-text);
         font: 600 13px var(--fp3d-title-font);
         text-anchor: middle;
+      }
+      .fp3d-label-grip {
+        cursor: move;
+      }
+      .fp3d-label-grip circle:not(.fp3d-hit) {
+        fill: var(--fp3d-accent);
+        stroke: none;
+      }
+      .fp3d-label-grip path {
+        stroke: var(--fp3d-accent-text, #001);
+        stroke-width: 1.6;
       }
       .fp3d-room-area {
         fill: var(--fp3d-muted);

@@ -93,6 +93,9 @@ export class Floorplan3dPanel extends LitElement {
     _pinSize: { state: true },
     _heat: { state: true },
     _theme: { state: true },
+    _zoomStyle: { state: true },
+    _zoomLate: { state: true },
+    _zoomScope: { state: true },
     _clock: { state: true },
     _furnish: { state: true },
     _selFurniture: { state: true },
@@ -166,6 +169,12 @@ export class Floorplan3dPanel extends LitElement {
   private declare _heat: HeatMode;
   /** The style of this device: a style, "auto" (Day/Neon by the sun) or "house" (the house's plan). */
   private declare _theme: string;
+  /** Zoom style (test): the style the house turns into when zoomed in (empty: off). */
+  private declare _zoomStyle: string;
+  /** How late it sets in, 0 (early) … 100 (late). */
+  private declare _zoomLate: number;
+  /** Only the room zoomed into turns ("room") or all rooms ("all"). */
+  private declare _zoomScope: string;
   private declare _clock: ClockPos;
   private declare _furnish: boolean;
   private declare _selFurniture: string | null;
@@ -244,6 +253,10 @@ export class Floorplan3dPanel extends LitElement {
     this._heat = heat === "temperature" || heat === "humidity" || heat === "co2" || heat === "values" ? heat : "none";
     const theme = prefs.get("theme");
     this._theme = isStyleChoice(theme) ? theme : "neon";
+    this._zoomStyle = prefs.get("zoom_style") ?? "";
+    const late = Number(prefs.get("zoom_late"));
+    this._zoomLate = Number.isFinite(late) && prefs.get("zoom_late") !== null ? Math.min(100, Math.max(0, late)) : 50;
+    this._zoomScope = prefs.get("zoom_scope") === "room" ? "room" : "all";
     const clock = prefs.get("clock");
     this._clock = clock === "tl" || clock === "tr" || clock === "bl" || clock === "br" ? clock : "off";
     const accent = prefs.get("accent");
@@ -811,6 +824,49 @@ export class Floorplan3dPanel extends LitElement {
                     ${styleOptions((k) => this.t(k), this._theme, { auto: true, house: true })}
                   </select>
                 </label>
+                <label class="fp3d-style-pick" title=${this.t("zoom_style_hint")}>
+                  <span aria-hidden="true">🔍</span>
+                  <select
+                    aria-label=${this.t("zoom_style")}
+                    @change=${(e: Event) => {
+                      this._zoomStyle = (e.target as HTMLSelectElement).value;
+                      prefs.set("zoom_style", this._zoomStyle);
+                    }}
+                  >
+                    <option value="" ?selected=${!this._zoomStyle}>${this.t("zoom_style_off")}</option>
+                    ${styleOptions((k) => this.t(k), this._zoomStyle, {})}
+                  </select>
+                </label>
+                ${this._zoomStyle
+                  ? html`<label class="fp3d-style-pick fp3d-zoom-late" title=${this.t("zoom_late_hint")}>
+                      <span>${this.t("zoom_late_early")}</span>
+                      <input
+                        type="range"
+                        min="0"
+                        max="100"
+                        step="5"
+                        aria-label=${this.t("zoom_late_hint")}
+                        .value=${String(this._zoomLate)}
+                        @input=${(e: Event) => {
+                          this._zoomLate = Number((e.target as HTMLInputElement).value);
+                          prefs.set("zoom_late", String(this._zoomLate));
+                        }}
+                      />
+                      <span>${this.t("zoom_late_late")}</span>
+                    </label>
+                    <label class="fp3d-style-pick" title=${this.t("zoom_scope_hint")}>
+                      <select
+                        aria-label=${this.t("zoom_scope_hint")}
+                        @change=${(e: Event) => {
+                          this._zoomScope = (e.target as HTMLSelectElement).value;
+                          prefs.set("zoom_scope", this._zoomScope);
+                        }}
+                      >
+                        <option value="all" ?selected=${this._zoomScope !== "room"}>${this.t("zoom_scope_all")}</option>
+                        <option value="room" ?selected=${this._zoomScope === "room"}>${this.t("zoom_scope_room")}</option>
+                      </select>
+                    </label>`
+                  : nothing}
                 <label class="fp3d-accent-pick" title=${this.t("accent_hint")}>
                   <input
                     type="color"
@@ -1223,6 +1279,9 @@ export class Floorplan3dPanel extends LitElement {
           .pinSize=${this._pinSize}
           .heatMode=${this._heat}
           .theme=${this._theme}
+          .zoomStyle=${this._zoomStyle}
+          .zoomLate=${this._zoomLate}
+          .zoomScope=${this._zoomScope}
           .clock=${this._clock}
           .accent=${this._accent}
           ?furnish=${this._furnish && !tt}
@@ -1659,6 +1718,13 @@ export class Floorplan3dPanel extends LitElement {
         align-items: center;
         gap: 6px;
         padding: 0 6px;
+      }
+      .fp3d-zoom-late {
+        font-size: 12px;
+        color: var(--fp3d-muted, var(--fp3d-text));
+      }
+      .fp3d-zoom-late input {
+        width: 110px;
       }
       .fp3d-style-pick select {
         background: var(--fp3d-chrome-solid);

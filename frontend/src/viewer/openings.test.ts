@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { Opening } from "../model.ts";
 import type { OpeningInfo } from "./build.ts";
-import { blindInside, buildOpeningParts, lightCover, sillBoards, stackedOnOpening } from "./openings.ts";
+import { blindInside, buildOpeningParts, lightCover, sillBoards, stackedOnOpening, tiltLeaf } from "./openings.ts";
 
 /** A window (or door) on the wall along x from (sx, sz), as the floor builder describes it. */
 function info(id: string, sx: number, width: number, sill: number, top: number, extra: Partial<Opening> & { axis?: [number, number]; exterior?: boolean; sz?: number } = {}): OpeningInfo {
@@ -154,4 +154,17 @@ test("a blind set to hang inside is a roller shade on the room's side of the wal
   assert.equal(blindInside({ type: "garage", blind_side: "inside" }), false);
   assert.equal(blindInside({ type: "door", blind_side: "inside" }), true);
   assert.equal(blindInside({ type: "window" }), false);
+});
+
+test("up-and-over garage door: stands in the opening closed, lies under the ceiling open with a third outside", () => {
+  const [t0, b0] = tiltLeaf(0, 2.2, 2.1, 0);
+  assert.deepEqual(t0, [0, 2.2]);
+  assert.ok(Math.abs(b0[0]) < 1e-9 && Math.abs(b0[1] - 0.1) < 1e-9);
+  const [t1, b1] = tiltLeaf(0, 2.2, 2.1, 1);
+  assert.ok(Math.abs(t1[0] - 1.4) < 1e-9 && Math.abs(b1[0] + 0.7) < 1e-9);
+  assert.ok(Math.abs(b1[1] - 2.2) < 1e-9);
+  // half open: the bottom has come out and up, the top runs on its track
+  const [th, bh] = tiltLeaf(0, 2.2, 2.1, 0.5);
+  assert.equal(th[1], 2.2);
+  assert.ok(bh[0] < 0 && bh[1] > 0.1 && bh[1] < 2.2);
 });

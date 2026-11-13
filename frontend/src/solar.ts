@@ -543,9 +543,12 @@ function cross(a: V3, b: V3): V3 {
 export const ROOF_WINDOW_W = 0.78;
 export const ROOF_WINDOW_H = 1.18;
 
-/** A roof window seen as a field of one module of its size (so placing, moving and keeping it on the face work alike). */
+/**
+ * A roof window seen as a field of one module of its size (so placing, moving and keeping it on the face work alike).
+ * It lies in its face: on a flat roof flush like a rooflight, not raised on a frame like a solar module (#1078).
+ */
 export function windowAsField(w: RoofWindow): SolarField {
-  return { id: w.id, face: w.face, u: w.u, v: w.v, rows: 1, cols: 1, portrait: true, module_w: w.w || ROOF_WINDOW_W, module_h: w.h || ROOF_WINDOW_H };
+  return { id: w.id, face: w.face, u: w.u, v: w.v, rows: 1, cols: 1, portrait: true, tilt: 0, module_w: w.w || ROOF_WINDOW_W, module_h: w.h || ROOF_WINDOW_H };
 }
 
 /** The four corners of a roof window, a little above the roof (lower left, lower right, upper right, upper left); null off the face. */

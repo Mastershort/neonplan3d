@@ -6,9 +6,9 @@
 // animated independently.
 
 import { AdditiveBlending, CustomBlending, DstColorFactor, NormalBlending, OneFactor, OneMinusSrcAlphaFactor, SrcAlphaFactor, ZeroFactor, RingGeometry, Fog, CircleGeometry, Box3, CanvasTexture, ClampToEdgeWrapping, Color, BackSide, DoubleSide, FrontSide, Group, LineBasicMaterial, LineSegments, Mesh, MeshBasicMaterial, MultiplyBlending, OrthographicCamera, PerspectiveCamera, Points, PointsMaterial, PlaneGeometry, Raycaster, RepeatWrapping, Scene, SRGBColorSpace, TextureLoader, type Texture, Float32BufferAttribute, Uint32BufferAttribute, DynamicDrawUsage, BufferGeometry as Geometry, Vector2, Vector3, WebGLRenderer, WebGLRenderTarget, type Material, BufferGeometry } from "three";
-import type { Building, Floor, Furniture, Room, StartView } from "../model.ts";
+import type { Building, Floor, Furniture, Room, StartView, Vec2 } from "../model.ts";
 import { markLit, recolorLamps, SHADE_SENTINEL, shadeFactors } from "./lamp-colors.ts";
-import { centroid, GANG_TYPES, gateSpans, outdoorSurface, outdoorTopAt, outdoorZones, pointInPolygon, openingStyle, setTerrain, WALL_LAMP_Y, zonesOf } from "../model.ts";
+import { centroid, GANG_TYPES, labelPoint, gateSpans, outdoorSurface, outdoorTopAt, outdoorZones, pointInPolygon, openingStyle, setTerrain, WALL_LAMP_Y, zonesOf } from "../model.ts";
 import { placeWallPlate } from "../geometry/walls.ts";
 import { buildEarth } from "./earth.ts";
 import { clampIntoRoom } from "../geometry/snap.ts";
@@ -40,7 +40,7 @@ import { buildSolarLive, solarLiveMaterial, writeSolarLevels, type SolarLive } f
 import { dotTexture, roofLightPoints, roofSnowGeometry } from "./snow.ts";
 import { Firework } from "./firework.ts";
 import { buildPools, disposePools, type PoolPiece } from "./pool-water.ts";
-import { accentOnUniform, accentUniform, applyStyleUniforms, floorLevelUniform, LIT_ATTRIBUTE, makeStyleUniforms, parseAccent, lineBlending, STYLE_LOOK, themed, themeIndex, type Theme, type ThemeUniform } from "./theme.ts";
+import { accentOnUniform, accentUniform, applyStyleUniforms, floorLevelUniform, LIT_ATTRIBUTE, makeMorphMask, makeStyleUniforms, MORPH_ATTRIBUTE, MORPH_MASK_GLSL, MORPH_POLY_MAX, morphMaskUniforms, parseAccent, lineBlending, setMorphDefine, STYLE_LOOK, themed, themeIndex, type Theme, type ThemeUniform } from "./theme.ts";
 import { styleById, type StyleDef } from "../looks.ts";
 import { hexColor, setNaturalPalette } from "./palette.ts";
 
@@ -63,6 +63,8 @@ export type WallMode = "auto" | "cut";
 
 export interface ViewerOptions {
   quality?: Quality;
+  /** Zoom style (test): how far the blend from the far look to the near style has come (0–1), for the page's background. */
+  onMorph?: (m: number) => void;
   /** Pull floors apart in the house view (default true). */
   explode?: boolean;
   /**
@@ -742,7 +744,22 @@ export class FloorplanViewer {
   private lightLookOn = false;
   /** Per floor: the shader uniforms that learn where the floor lies (wall feet, floor structure). */
   private floorLevels = new Map<string, { value: number }[]>();
-  private readonly themeUniform: ThemeUniform = { value: 0, style: makeStyleUniforms() };
+  private readonly themeUniform: ThemeUniform = { value: 0, style: makeStyleUniforms(), morph: { value: 0 }, mask: makeMorphMask() };
+  /** Zoom style (test): the style the house turns into when zoomed in (null: off), and the blend shown now. */
+  private zoomStyle: StyleDef | null = null;
+  /** The zoom style asked for (used while the own look is a plain one). */
+  private zoomWanted: StyleDef | null = null;
+  private morphShown = -1;
+  /** The blend now, gliding after the one the camera's distance asks for. */
+  private morphNow = 0;
+  /** How late the zoom style sets in (0 early … 1 late). */
+  private zoomLate = 0.5;
+  /** Where the zoom style applies: the whole house, or only the room zoomed into (opened or under the view's centre). */
+  private zoomScope: ZoomScope = "all";
+  /** "Only the room": the room the blend shows on now ("floorId/roomId"; null: none). */
+  private maskRoom: string | null = null;
+  /** The parts outside the shader (background, ground, pattern, light, lines) show the near style. */
+  private nearOn = false;
   /** This view's palette (natural materials, cut tops, facade): set before it builds anything, as views share the palette module. */
   private palette = { natural: false, cutTop: null as number | null, facade: null as number | null };
   private sun: SunState | null = null;
@@ -1499,6 +1516,191 @@ export class FloorplanViewer {
     this.invalidate();
   }
 
+  /**
+   * Zoom style (test): far away the house shows the view's own look, zoomed in it turns into `style` – blended by the
+   * camera's distance, without a rebuild while zooming. Works when the own look is a plain one (Neon, Blueprint, Day):
+   * the style's shader numbers are free then. Null switches it off.
+   */
+  setZoomStyle(style: StyleDef | null): void {
+    this.zoomWanted = style;
+    const usable = style && !this.style.palette && !this.style.natural ? style : null;
+    if (JSON.stringify(usable) === JSON.stringify(this.zoomStyle)) return;
+    this.zoomStyle = usable;
+    this.morphShown = -1;
+    this.nearOn = false;
+    this.morphNow = 0;
+    if (usable) applyStyleUniforms(usable, this.themeUniform.style);
+    else {
+      applyStyleUniforms(this.style, this.themeUniform.style);
+      this.themeUniform.morph!.value = 0;
+      this.options.onMorph?.(0);
+    }
+    this.rebuild();
+    this.invalidate();
+  }
+
+  /** How late the zoom style sets in: 0 early (from an opened floor on) … 1 late (only close up in a room). */
+  setZoomLate(late: number): void {
+    const v = Math.min(1, Math.max(0, late));
+    if (v === this.zoomLate) return;
+    this.zoomLate = v;
+    this.invalidate();
+  }
+
+  /** Where the zoom style applies: "all" rooms at once, or only the "room" zoomed into (the rest of the house keeps its look). */
+  setZoomScope(scope: ZoomScope): void {
+    if (scope === this.zoomScope) return;
+    this.zoomScope = scope;
+    // start again from the far look, the parts outside the shader follow the new scope
+    this.morphNow = 0;
+    this.morphShown = -1;
+    this.nearOn = false;
+    this.maskRoom = null;
+    this.themeUniform.mask!.uMorphN.value = 0;
+    this.invalidate();
+  }
+
+  /**
+   * "Only the room": the room zoomed into – the opened one, else the room under the view's centre on the floor it
+   * stands on (an opened floor, or the highest shown floor at or below the centre). Null when the centre is outside.
+   */
+  private zoomRoom(): { key: string; fv: FloorView; points: Vec2[] } | null {
+    const at = (fv: FloorView, r: { id: string; points: Vec2[] }) => ({ key: `${fv.floor.id}/${r.id}`, fv, points: r.points });
+    if (this.roomId !== null) {
+      for (const fv of this.floors) {
+        const r = zonesOf(fv.floor).find((z) => z.id === this.roomId);
+        if (r) return at(fv, r);
+      }
+    }
+    const t = this.controls.view.target;
+    const shown = this.floors.filter((fv) => fv.o > 0.5 && (this.floorId === null || fv.floor.id === this.floorId));
+    let best: FloorView | null = null;
+    for (const fv of shown) {
+      const y = fv.floor.elevation + fv.y;
+      if (y <= t.y + 0.3 && (!best || y > best.floor.elevation + best.y)) best = fv;
+    }
+    best ??= shown[0] ?? null;
+    if (!best) return null;
+    const r = best.floor.rooms.find((z) => pointInPolygon([t.x, t.z], z.points));
+    return r ? at(best, r) : null;
+  }
+
+  /** Puts the room's outline and its floor's heights into the shader (thinned to the most corners the shader walks). */
+  private setMask(room: { fv: FloorView; points: Vec2[] } | null): void {
+    const mask = this.themeUniform.mask!;
+    if (!room) {
+      mask.uMorphN.value = 0;
+      return;
+    }
+    let pts = room.points;
+    if (pts.length > MORPH_POLY_MAX) {
+      const step = pts.length / MORPH_POLY_MAX;
+      pts = Array.from({ length: MORPH_POLY_MAX }, (_, i) => pts[Math.floor(i * step)]);
+    }
+    pts.forEach((p, i) => mask.uMorphPoly.value[i].set(p[0], p[1]));
+    mask.uMorphPoly.value[pts.length].set(pts[0][0], pts[0][1]);
+    mask.uMorphN.value = pts.length;
+    this.stepMask(room.fv);
+  }
+
+  /** Every frame while limited to a room: its floor's heights in the world (floors move when they fan out). */
+  private stepMask(fv: FloorView): void {
+    fv.group.getWorldPosition(this.levelTmp);
+    this.themeUniform.mask!.uMorphY.value.set(this.levelTmp.y - 0.01, this.levelTmp.y + fv.floor.height + 0.01);
+  }
+
+  /**
+   * Builds something twice while a zoom style with natural materials is on: once with the natural palette, once with
+   * the view's own; every geometry of the result gets the natural colours as its second colour (same vertices – the
+   * palette only changes colours). Without a zoom style: built once, as always.
+   */
+  private dual<T>(build: () => T): T {
+    const near = this.zoomStyle;
+    if (!near?.natural) return build();
+    setNaturalPalette(true, { cutTop: near.cutDark ? 0x34373d : null, facade: hexColor(this.building?.settings.facade_color) });
+    setLightLook(true);
+    let nat: T;
+    try {
+      nat = build();
+    } finally {
+      this.usePalette();
+    }
+    const own = build();
+    pairColors(own, nat);
+    return own;
+  }
+
+  /** Every frame: the blend from the camera's distance; the parts that are no shader follow at the middle. */
+  private stepMorph(dt: number): boolean {
+    const near = this.zoomStyle;
+    if (!near) return false;
+    const r = this.controls.view.radius / Math.max(1, this.houseRadius);
+    // the house and an opened floor stay in the far look; zooming towards a room turns it, a room is (nearly) all style
+    const { far, near: close } = zoomRange(this.zoomLate);
+    const k = Math.min(1, Math.max(0, (far - r) / (far - close)));
+    let want = k * k * (3 - 2 * k);
+    const roomOnly = this.zoomScope === "room";
+    if (roomOnly) {
+      this.themeUniform.mask!.uMorphNatural.value = near.natural ? 1 : 0;
+      const room = this.zoomRoom();
+      const key = room?.key ?? null;
+      if (key !== this.maskRoom) {
+        // another room (or none): the one shown fades back first, then the next one turns
+        if (this.maskRoom !== null && this.morphNow > 0.02) want = 0;
+        else {
+          this.maskRoom = key;
+          this.morphNow = 0;
+          this.setMask(room);
+          if (!room) want = 0;
+        }
+      } else if (room) this.stepMask(room.fv);
+      else want = 0;
+    }
+    // the colours glide after the camera: no jump when a flight is quick
+    const d = want - this.morphNow;
+    this.morphNow = Math.abs(d) < 0.003 ? want : this.morphNow + d * (1 - Math.exp(-dt / MORPH_TAU));
+    const m = this.morphNow;
+    const gliding = m !== want;
+    // themed meshes built without a second colour (lamps, roof, earth) take their own colours for it
+    this.scene.traverse((o) => {
+      const mesh = o as Mesh;
+      const mat = mesh.material as Material | undefined;
+      if (!mat || Array.isArray(mat) || !mat.userData?.fp3dThemed) return;
+      setMorphDefine(mat, true);
+      const geo = mesh.geometry as BufferGeometry | undefined;
+      const color = geo?.getAttribute("color");
+      if (geo && color && !geo.getAttribute(MORPH_ATTRIBUTE)) geo.setAttribute(MORPH_ATTRIBUTE, color);
+    });
+    if (Math.abs(m - this.morphShown) < 0.002 && !(m === want && m !== this.morphShown)) return gliding;
+    // only the room: the house around it keeps its look – background, ground, floor pattern, light and lines stay
+    const nearOn = !roomOnly && m >= 0.5;
+    const crossed = nearOn !== this.nearOn;
+    this.nearOn = nearOn;
+    this.morphShown = m;
+    this.themeUniform.morph!.value = m;
+    this.options.onMorph?.(roomOnly ? 0 : m);
+    for (const fv of this.floors) {
+      fv.patternMesh.visible = !this.lowQuality && !(nearOn && near.natural);
+      const shadows = fv.group.getObjectByName("fp3d-contact-shadows");
+      if (shadows && !this.style.shadows) shadows.visible = nearOn;
+      lightOnSurfaces(fv.glowMesh.material as MeshBasicMaterial, nearOn && !!near.natural);
+      // window glass and device displays follow like the light (#1070, #1071)
+      const dimNear = nearOn && near.natural ? (near.dim ?? 0) : 0;
+      glassLook(fv.materials.glass, nearOn && !!near.natural, dimNear, fv.o);
+      screenLook(fv.materials.screens, nearOn && !!near.natural, dimNear);
+    }
+    if (crossed) {
+      const blending = lineBlending(nearOn ? near.base : this.theme);
+      for (const mat of [...this.floors.map((f) => f.materials.lines), ...(this.roof ? [this.roof.lines] : [])]) {
+        mat.blending = blending;
+        mat.needsUpdate = true;
+      }
+      this.placeGround();
+    }
+    this.invalidate();
+    return gliding;
+  }
+
   setTheme(theme: Theme): void {
     if (theme === this.theme) return;
     this.theme = theme;
@@ -1543,6 +1745,17 @@ export class FloorplanViewer {
     const plain = !style.palette && !style.natural;
     this.themeUniform.value = plain ? themeIndex(style.base) : STYLE_LOOK;
     applyStyleUniforms(style, this.themeUniform.style);
+    // a zoom style keeps the style numbers for its near look; a style of its own as the far look ends it
+    const zoomUsable = this.zoomWanted && !style.palette && !style.natural ? this.zoomWanted : null;
+    if (JSON.stringify(zoomUsable) !== JSON.stringify(this.zoomStyle)) {
+      this.zoomStyle = zoomUsable;
+      this.morphShown = -1;
+      this.nearOn = false;
+      this.themeUniform.morph!.value = 0;
+      this.options.onMorph?.(0);
+      this.rebuild();
+    }
+    if (this.zoomStyle) applyStyleUniforms(this.zoomStyle, this.themeUniform.style);
     const fixedColours = this.lightLookOn !== lightBefore && !!this.building?.floors.some((f) => f.furniture.some((m) => m.type === "waste_bin" || hasFixedColors(m.type)));
     if (rebuild || fixedColours) this.rebuild();
     else this.styleFloors();
@@ -1562,16 +1775,20 @@ export class FloorplanViewer {
       fv.patternMesh.visible = !this.style.natural;
       lightOnSurfaces(fv.glowMesh.material as MeshBasicMaterial, !!this.style.natural);
       const dim = this.style.natural ? (this.style.dim ?? 0) : 0;
-      glassLook(fv.materials.glass, !!this.style.natural, dim);
+      glassLook(fv.materials.glass, !!this.style.natural, dim, fv.o);
       screenLook(fv.materials.screens, !!this.style.natural, dim);
       const old = fv.group.getObjectByName("fp3d-contact-shadows");
       if (old) {
         fv.group.remove(old);
         (old as Mesh).geometry.dispose();
       }
-      if (this.style.shadows) {
+      if (this.style.shadows || this.zoomStyle?.shadows) {
         const mesh = contactShadows(fv.floor);
-        if (mesh) fv.group.add(mesh);
+        if (mesh) {
+          // under a zoom style they come with the near style
+          if (!this.style.shadows) mesh.visible = this.nearOn;
+          fv.group.add(mesh);
+        }
       }
       const levels: { value: number }[] = [];
       for (const m of Object.values(fv.materials)) if (m && (m as Material).isMaterial) levels.push(floorLevelUniform(m as Material));
@@ -2751,7 +2968,7 @@ export class FloorplanViewer {
     return {
       // a floor is never cyan of its own: an own accent colour turned the heatmap's cool rooms into it (#558)
       floor: themed(new MeshBasicMaterial({ vertexColors: true }), this.themeUniform, false, false),
-      pattern: patternMaterial(this.patternTexture),
+      pattern: patternMaterial(this.patternTexture, this.themeUniform),
       // the walls sit a hair behind their glowing edges in depth: lines lying on a wall's top or face no longer
       // flicker in and out at corners and joints as the view turns (#417)
       wall: themed(makeFoldable(new MeshBasicMaterial({ vertexColors: true, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1 }), mask, "solid"), this.themeUniform),
@@ -2853,7 +3070,7 @@ export class FloorplanViewer {
             return y === null ? null : y - floor.elevation;
           }
         : undefined;
-      const geo = buildFloorGeometry(withVehicles(floor, this.parked), b.settings.wall_exterior, b.settings.wall_interior, stairHoleParts(b.floors, floor), garden, roofUnder);
+      const geo = this.dual(() => buildFloorGeometry(withVehicles(floor, this.parked), b.settings.wall_exterior, b.settings.wall_interior, stairHoleParts(b.floors, floor), garden, roofUnder));
       const mask: FoldMasks = { standing: { value: 0xffff }, glass: { value: 0 } };
       const materials = this.makeMaterials(mask);
       const group = new Group();
@@ -2988,7 +3205,7 @@ export class FloorplanViewer {
         this.fillRoomPin(pin, room.name, this.roomInfo.get(room.id));
         pin.addEventListener("click", () => this.options.onRoomTap?.(floor.id, room.id));
         this.labels.append(pin);
-        const [cx, cz] = centroid(room.points);
+        const [cx, cz] = labelPoint(room);
         roomPins.push({ pin, room, cx, cz });
         if (room.outdoor) continue;
         for (const [x, z] of room.points) {
@@ -3350,7 +3567,8 @@ export class FloorplanViewer {
     m.pattern.opacity = fv.o;
     m.glow.opacity = fv.o;
     m.lines.opacity = fv.o;
-    m.glass.opacity = fv.o;
+    // a natural style's glass is a light tint (glassLook): fading keeps its own opacity (#1081)
+    m.glass.opacity = fv.o * glassOpacity(m.glass);
     m.glassWall.opacity = fv.o;
     m.flow.opacity = fv.o;
     m.solarLive.opacity = fv.o;
@@ -4383,7 +4601,7 @@ export class FloorplanViewer {
 
   private buildOpenings(fv: FloorView): void {
     this.usePalette();
-    const parts = buildOpeningParts(fv.geo.openings, fv.openings, Math.min(fv.floor.cut_height, fv.floor.height));
+    const parts = this.dual(() => buildOpeningParts(fv.geo.openings, fv.openings, Math.min(fv.floor.cut_height, fv.floor.height)));
     fv.frameTris = parts.frameTris;
     fv.glassTris = parts.glassTris;
     fv.blindTris = parts.blindTris;
@@ -4482,7 +4700,7 @@ export class FloorplanViewer {
       for (const a of fv.floor.outdoor ?? []) for (const [x, z] of a.points) box.expandByPoint(new Vector3(x, 0, z));
     }
     // the neon grid belongs to the neon looks: not under the light looks, nor under real materials
-    this.ground.visible = !box.isEmpty() && !this.lowQuality && this.theme !== "day" && !this.style.natural;
+    this.ground.visible = !box.isEmpty() && !this.lowQuality && this.theme !== "day" && !this.style.natural && !this.nearOn;
     if (box.isEmpty()) return;
     if (this.ground.visible && !this.groundTexture) {
       this.groundTexture = makeGroundTexture();
@@ -5367,6 +5585,7 @@ export class FloorplanViewer {
       orbiting = true;
     } else this.orbitLast = 0;
     const cameraMoving = this.controls.update(now);
+    const morphMoving = this.stepMorph(dt);
     const floorsMoving = this.stepFloors(dt) || this.stepFov(dt);
     this.stepFloorLevels();
     const openingsMoving = this.stepOpenings(dt) || this.stepFridges(dt);
@@ -5386,7 +5605,7 @@ export class FloorplanViewer {
     const robotsMoving = this.stepRobots(now);
     const fansTurning = this.stepFans(now);
     const weatherMoving = this.stepWeather(now);
-    const moving = cameraMoving || floorsMoving || openingsMoving || flashing || roofMoving;
+    const moving = cameraMoving || floorsMoving || openingsMoving || flashing || roofMoving || morphMoving;
     const busy: string[] = [];
     // a finger or the mouse turning the view draws frames too, though no inertia runs yet
     if (cameraMoving || this.controls.busy) busy.push("camera");
@@ -5867,7 +6086,7 @@ function makePatternTexture(): CanvasTexture {
 }
 
 /** Additive floor pattern: picks the atlas tile per vertex and repeats it every metre. */
-function patternMaterial(texture: CanvasTexture): MeshBasicMaterial {
+function patternMaterial(texture: CanvasTexture, theme: ThemeUniform): MeshBasicMaterial {
   const m = new MeshBasicMaterial({
     map: texture,
     transparent: true,
@@ -5877,19 +6096,26 @@ function patternMaterial(texture: CanvasTexture): MeshBasicMaterial {
     polygonOffsetFactor: -2,
   });
   m.onBeforeCompile = (shader) => {
+    shader.uniforms.uMorph = theme.morph ?? { value: 0 };
+    Object.assign(shader.uniforms, morphMaskUniforms(theme));
     shader.vertexShader = shader.vertexShader
-      .replace("#include <common>", "#include <common>\nattribute vec2 tile;\nvarying vec2 vFp3dTile;")
-      .replace("#include <begin_vertex>", "#include <begin_vertex>\nvFp3dTile = tile;");
-    shader.fragmentShader = shader.fragmentShader.replace("#include <common>", "#include <common>\nvarying vec2 vFp3dTile;").replace(
-      "#include <map_fragment>",
-      `#ifdef USE_MAP
+      .replace("#include <common>", "#include <common>\nattribute vec2 tile;\nvarying vec2 vFp3dTile;\nvarying vec3 vFp3dWorld;")
+      .replace("#include <begin_vertex>", "#include <begin_vertex>\nvFp3dTile = tile;")
+      .replace("#include <project_vertex>", "#include <project_vertex>\nvFp3dWorld = (modelMatrix * vec4(transformed, 1.0)).xyz;");
+    shader.fragmentShader = shader.fragmentShader
+      .replace("#include <common>", `#include <common>\nvarying vec2 vFp3dTile;\nvarying vec3 vFp3dWorld;\nuniform float uMorph;\n${MORPH_MASK_GLSL}`)
+      .replace(
+        "#include <map_fragment>",
+        `#ifdef USE_MAP
         vec2 fp3dCell = fract(vMapUv);
         vec2 fp3dUv = (vFp3dTile + 0.004 + fp3dCell * 0.992) / vec2(3.0, 2.0);
         // gradients of the unwrapped coordinates avoid mip seams at the tile borders
         vec4 sampledDiffuseColor = textureGrad(map, fp3dUv, dFdx(vMapUv) / vec2(3.0, 2.0), dFdy(vMapUv) / vec2(3.0, 2.0));
         diffuseColor *= sampledDiffuseColor;
-      #endif`,
-    );
+      #endif
+      // zoom style "only the room": the neon pattern fades where the room turns into natural materials
+      if (uMorphN > 0 && uMorphNatural > 0.5) diffuseColor *= 1.0 - fp3dMorphAt(vFp3dWorld);`,
+      );
   };
   m.customProgramCacheKey = () => "fp3d-pattern";
   return m;
@@ -5905,14 +6131,21 @@ function patternMaterial(texture: CanvasTexture): MeshBasicMaterial {
  * Window glass: neon adds a faint cyan sheen to the dark behind it; on the light walls and the sky of the natural
  * styles that sum was always white (#1070). There it is a light tint laid over what lies behind, dimmed in the evening.
  */
-function glassLook(m: MeshBasicMaterial, natural: boolean, dim: number): void {
+function glassLook(m: MeshBasicMaterial, natural: boolean, dim: number, fade = 1): void {
   const blending = natural ? NormalBlending : AdditiveBlending;
   if (m.blending !== blending) {
     m.blending = blending;
     m.needsUpdate = true;
   }
-  m.opacity = natural ? 0.28 : 1;
+  m.userData.glassOpacity = natural ? 0.28 : 1;
+  m.opacity = fade * m.userData.glassOpacity;
   m.color.setScalar(natural ? 1 - 0.55 * dim : 1);
+}
+
+/** The opacity of a floor's window glass in the look it has now (glassLook), before the floor fades. */
+function glassOpacity(m: MeshBasicMaterial): number {
+  const v = m.userData.glassOpacity;
+  return typeof v === "number" ? v : 1;
 }
 
 /**
@@ -5961,6 +6194,51 @@ function lightOnSurfaces(m: MeshBasicMaterial, natural: boolean): void {
 
 /** The 3D view's vertical field of view (degrees). */
 const BASE_FOV = 38;
+
+/**
+ * Zoom style: camera distance in house radii where the blend starts and ends, from how late it should set in (0 = early:
+ * from about an opened floor on; 1 = late: only close up in a room). The house view stands at 1, a floor at about 0.9,
+ * a room at 0.25–0.45.
+ */
+/** Where the zoom style applies: every room at once, or only the room zoomed into. */
+export type ZoomScope = "all" | "room";
+
+export function zoomRange(late: number): { far: number; near: number } {
+  const s = Math.min(1, Math.max(0, late));
+  const far = 0.9 - 0.5 * s;
+  return { far, near: Math.max(0.12, far - 0.4) };
+}
+/** How slowly the colours follow the camera (ms): a quick flight into a room still turns the house over a second or two. */
+const MORPH_TAU = 450;
+
+/**
+ * Gives every geometry in `own` the colours of its twin in `nat` as the second colour (found by the same key, or
+ * the same place in a list), when both have as many vertices; a geometry without a twin keeps its own colours.
+ */
+function pairColors(own: unknown, nat: unknown, depth = 0): void {
+  if (!own || !nat || typeof own !== "object" || typeof nat !== "object" || depth > 3) return;
+  if (own instanceof BufferGeometry && nat instanceof BufferGeometry) {
+    const a = own.getAttribute("color");
+    const b = nat.getAttribute("color");
+    const pa = own.getAttribute("position");
+    const pb = nat.getAttribute("position");
+    if (a && b && pa && pb && pa.count === pb.count && a.itemSize === b.itemSize) {
+      if (b.itemSize === 3) own.setAttribute(MORPH_ATTRIBUTE, b);
+      else {
+        const src = b.array as ArrayLike<number>;
+        const out = new Float32Array(b.count * 3);
+        for (let i = 0; i < b.count; i++) for (let k = 0; k < 3; k++) out[i * 3 + k] = src[i * b.itemSize + k];
+        own.setAttribute(MORPH_ATTRIBUTE, new Float32BufferAttribute(out, 3));
+      }
+    }
+    return;
+  }
+  if (Array.isArray(own) && Array.isArray(nat)) {
+    own.forEach((x, i) => pairColors(x, nat[i], depth + 1));
+    return;
+  }
+  for (const key of Object.keys(own)) pairColors((own as Record<string, unknown>)[key], (nat as Record<string, unknown>)[key], depth + 1);
+}
 
 function makeBlindTexture(): CanvasTexture {
   const canvas = document.createElement("canvas");
