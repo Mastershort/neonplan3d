@@ -24,6 +24,13 @@
       try {
         localStorage.setItem("neonplan3d.flows", params.has("flows") ? "1" : "0");
       } catch {}
+      // the demo always opens in Neon, whatever style a visitor picked last time (?style=<id> opens another one)
+      const DEMO_STYLES = ["neon", "blueprint", "day", "focus", "synth", "cozy", "evening", "winter", "model", "pastel", "warm"];
+      try {
+        const wanted = params.get("style");
+        localStorage.setItem("neonplan3d.theme", DEMO_STYLES.includes(wanted) ? wanted : "neon");
+        localStorage.removeItem("neonplan3d.zoom_style");
+      } catch {}
       // the shop connection of the demo: connected when ?shop is given, with one pack to install and one update;
       // ?supporter alone: a connected Supporter-Pass holder with nothing waiting (the NeonPlan Print dot shows on the tab)
       const supporterOnly = params.has("supporter") && !params.has("shop");
@@ -422,6 +429,53 @@
         close.onclick = () => bar.remove();
         bar.append(close);
         document.body.append(bar);
+        // the styles, big and right at the top: visitors should see that NeonPlan is not only neon
+        const names = de
+          ? { neon: "Neon", blueprint: "Blueprint", day: "Tag", focus: "Nacht / Fokus", synth: "Synthwave", cozy: "Wohnlich", evening: "Wohnlich Abend", winter: "Winterabend", model: "Architekturmodell", pastel: "Pastell", warm: "Holz & Papier" }
+          : { neon: "Neon", blueprint: "Blueprint", day: "Day", focus: "Night / Focus", synth: "Synthwave", cozy: "Homely", evening: "Homely evening", winter: "Winter evening", model: "Architect's model", pastel: "Pastel", warm: "Wood & paper" };
+        const looks = document.createElement("div");
+        looks.style.cssText =
+          (narrow ? "top:292px;width:calc(100vw - 32px);box-sizing:border-box;" : "top:178px;") +
+          "position:fixed;left:50%;transform:translateX(-50%);z-index:10;display:grid;gap:8px;justify-items:center;max-width:calc(100vw - 32px);padding:10px 14px 12px;border-radius:18px;background:rgba(7,11,20,.88);border:1px solid rgba(0,229,255,.45);color:#fff;font:15px/1.3 Figtree,Roboto,sans-serif;box-shadow:0 0 18px rgba(0,229,255,.25)";
+        const head = document.createElement("div");
+        head.style.cssText = "display:flex;gap:10px;align-items:center;font-weight:700;font-size:" + (narrow ? "14px" : "17px");
+        head.textContent = narrow ? (de ? "🎨 Designs ansehen" : "🎨 See the designs") : de ? "🎨 Schau dir die verschiedenen Designs an" : "🎨 Have a look at the different designs";
+        const hide = document.createElement("button");
+        hide.textContent = "×";
+        hide.setAttribute("aria-label", de ? "Schließen" : "Close");
+        hide.style.cssText = "background:none;border:0;color:#cfe9ff;font-size:18px;cursor:pointer;padding:0 2px";
+        hide.onclick = () => looks.remove();
+        head.append(hide);
+        const row = document.createElement("div");
+        row.style.cssText = "display:flex;gap:8px;max-width:100%;overflow-x:auto;padding-bottom:2px;" + (narrow ? "flex-wrap:nowrap" : "flex-wrap:wrap;justify-content:center");
+        const panel = document.querySelector("neonplan3d-panel");
+        const chips = DEMO_STYLES.map((id) => {
+          const b = document.createElement("button");
+          b.textContent = names[id];
+          b.dataset.style = id;
+          b.onclick = () => pick(id);
+          return b;
+        });
+        const paint = (id) => {
+          for (const b of chips) {
+            const on = b.dataset.style === id;
+            b.style.cssText = `flex:none;padding:${narrow ? "7px 12px" : "9px 16px"};border-radius:999px;font:600 ${narrow ? "13px" : "15px"} Figtree,Roboto,sans-serif;cursor:pointer;white-space:nowrap;${on ? "background:#00e5ff;color:#06101c;border:1px solid #00e5ff;box-shadow:0 0 14px rgba(0,229,255,.55)" : "background:rgba(255,255,255,.06);color:#e6f6ff;border:1px solid rgba(0,229,255,.4)"}`;
+          }
+        };
+        const pick = (id) => {
+          if (panel) {
+            panel._theme = id;
+            panel.requestUpdate?.();
+          }
+          try {
+            localStorage.setItem("neonplan3d.theme", id);
+          } catch {}
+          paint(id);
+        };
+        paint(panel?._theme && DEMO_STYLES.includes(panel._theme) ? panel._theme : "neon");
+        row.append(...chips);
+        looks.append(head, row);
+        document.body.append(looks);
         // phones: many visitors open the demo there and wonder about all the buttons – say once what it is
         // made for and offer the clean view (only the house) or the way to a PC
         let seen = false;
