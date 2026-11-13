@@ -27,7 +27,7 @@ function buildModel(item: PreviewItem, rotation = 0): { buf: GeoBuffer; lines: L
   const lines = new LineBuffer();
   const packed = packItem(item.type);
   if (packed?.light) {
-    pushPackLamp(buf, packed, { x: 0, z: 0, rotation, w: item.w, d: item.d, h: item.h }, 0, 0xffb547);
+    pushPackLamp(buf, packed, { x: 0, z: 0, rotation, w: item.w, d: item.d, h: item.h }, 0, 0xffb547, true);
   } else if (item.lamp) {
     // hanging lamps hang from a ceiling just above them
     pushLampModel(buf, { x: 0, z: 0, size: [item.w, item.d, item.h], base: 0, rotation, variant: item.variant ?? null, lamp: item.lamp }, Math.max(item.h + 0.15, 0.6), 0xffb547);

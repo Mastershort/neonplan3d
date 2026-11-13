@@ -3,7 +3,7 @@ import { test } from "node:test";
 import type { Furniture } from "../model.ts";
 import { mountBase, setPacks, type FurniturePack } from "../packs.ts";
 import { newFloor } from "../model.ts";
-import { hasFixedColors, packGlowCentre, packMotionParts, pushFurniture, screenPictureSize, setLightLook } from "./furniture.ts";
+import { hasFixedColors, packGlowCentre, packMotionParts, pushFurniture, pushPackSpin, screenPictureSize, setLightLook } from "./furniture.ts";
 import { packMotion, type PackItem } from "../packs.ts";
 import { GeoBuffer, LineBuffer } from "./geo.ts";
 
@@ -291,4 +291,33 @@ test("a cover fills a small smart display, not just a sliver; a TV keeps its 4 c
   // a 55″ TV with a 16:9 picture: 4 cm off its height
   const tv = screenPictureSize(1.21, 0.68, 16 / 9);
   assert.ok(Math.abs(tv.h - 0.64) < 1e-9);
+});
+
+test("fan blades of a pack turn as a model of their own about their middle (#1084)", () => {
+  const blade = (x: number, z: number, rot: number) => ({ shape: "box" as const, x, z, w: 0.38, d: 0.09, y: 0.375, h: 0.04, color: "wood", rot, spin: "y" as const });
+  const item: PackItem = {
+    id: "fan",
+    name: { en: "Fan" },
+    size: [1.3, 1.3, 0.4],
+    mount: "ceiling",
+    parts: [{ shape: "cyl", x: 0, z: 0, w: 0.17, d: 0.17, y: 0.3, h: 0.2, color: "dark" }, blade(0.28, 0, 0), blade(-0.14, 0.24, 120), blade(-0.14, -0.24, 240)],
+  } as PackItem;
+  setPacks([{ id: "t", name: "T", items: [item] } as unknown as FurniturePack]);
+  const buf = new GeoBuffer();
+  const spin = pushPackSpin(buf, item, 1.3, 1.3, 0.4);
+  assert.ok(spin);
+  assert.equal(spin.axis, "y");
+  // the pivot is the hub: the blades' middle, at their height
+  assert.ok(Math.abs(spin.pivot[0]) < 1e-9 && Math.abs(spin.pivot[2]) < 1e-9);
+  assert.ok(Math.abs(spin.pivot[1] - (0.375 + 0.02) * 0.4) < 1e-9);
+  assert.ok(buf.count > 0);
+  // the item itself leaves the blades out; its picture keeps them
+  const f: Furniture = { id: "f", type: "pack:t:fan", x: 0, z: 0, rotation: 0, w: 1.3, d: 1.3, h: 0.4, variant: null, entity: null, power: null };
+  const count = (still: boolean) => {
+    const b = new GeoBuffer();
+    pushFurniture(b, new LineBuffer(), new GeoBuffer(), f, 0, still);
+    return b.count;
+  };
+  assert.ok(count(true) > count(false));
+  setPacks([]);
 });

@@ -17,7 +17,7 @@ import { buildFloorGeometry, SLAB, stairHoleParts, type FloorGeometry } from "./
 import { OrbitControls, type OrbitView } from "./controls.ts";
 import { makeFoldable, type FoldMasks } from "./fold.ts";
 import { CameraProjections, PROJECTION_LAYER, type ProjectionSurface, type ProjectorPose } from "./projection.ts";
-import { packGlowCentre, packGlowCentres, pushAwning, pushCameraModel, pushPackGlow, pushPackRobot, pushPackLamp, pushPackMotion, screenRect, screenPictureSize, pushFridgeDoors, setLightLook, hasFixedColors } from "./furniture.ts";
+import { packGlowCentre, packGlowCentres, pushAwning, pushCameraModel, pushPackGlow, pushPackRobot, pushPackLamp, pushPackMotion, pushPackSpin, screenRect, screenPictureSize, pushFridgeDoors, setLightLook, hasFixedColors } from "./furniture.ts";
 import { pushPipeTube, type PipeTube } from "./pipes.ts";
 import { pushGate } from "./outdoor.ts";
 import { pinKey } from "./pin-key.ts";
@@ -28,7 +28,7 @@ export { FloorMap, WalkCamera, type WalkState } from "./walk.ts";
 export const funLib = { Group, Mesh, MeshBasicMaterial, CanvasTexture, Color, PlaneGeometry, BufferGeometry: Geometry, Float32BufferAttribute, DoubleSide };
 
 export type { PipeTube };
-import { groundUnder, isCooktopZone, mountBase, packItem, packMotion, setPacks, type FurniturePack } from "../packs.ts";
+import { groundUnder, isCooktopZone, mountBase, packItem, packMotion, packSpinAxis, setPacks, type FurniturePack } from "../packs.ts";
 import { withVehicles } from "../parking.ts";
 import { buildRoof, type RoofGeometry, type RoofWindowState } from "./roof.ts";
 import { SunFx } from "./sun-fx.ts";
@@ -687,6 +687,13 @@ export class FloorplanViewer {
   /** Ceiling fans (D606): their blades in a group of their own, turning with the fan's speed. */
   private fans = new Map<string, { group: Group; mesh: Mesh; r: number; speed: number; floorId: string; y: number }>();
   private fanMat: MeshBasicMaterial | null = null;
+  /**
+   * Fan blades of pack items (#1084): each item's turning parts in a group of their own at their pivot, turning about
+   * their axis with the speed the view reports (setSpinSpeeds).
+   */
+  private packSpins = new Map<string, { group: Group; spinner: Group; mesh: Mesh; axis: "y" | "z"; speed: number; floorId: string; y: number; sig: string }>();
+  private spinSpeeds = new Map<string, number>();
+  private spinMat: MeshBasicMaterial | null = null;
   private fanLast = 0;
   private fanTimer: ReturnType<typeof setTimeout> | undefined;
   private floorStack: FloorStack = "dim";
@@ -2576,6 +2583,9 @@ export class FloorplanViewer {
     for (const f of this.fans.values()) f.mesh.geometry.dispose();
     this.fans.clear();
     this.fanMat?.dispose();
+    for (const f of this.packSpins.values()) f.mesh.geometry.dispose();
+    this.packSpins.clear();
+    this.spinMat?.dispose();
     this.firework?.dispose();
     this.snowMat?.dispose();
     this.lightsMat?.dispose();
@@ -2661,6 +2671,7 @@ export class FloorplanViewer {
     // robots share one geometry: keep them out of the floor groups while those are disposed
     for (const r of this.robots.values()) r.group.removeFromParent();
     for (const f of this.fans.values()) f.group.removeFromParent();
+    for (const f of this.packSpins.values()) f.group.removeFromParent();
     for (const fv of this.floors) {
       for (const pic of fv.screenPics.values()) {
         (pic.mesh.material as Material).dispose();
@@ -5404,9 +5415,64 @@ export class FloorplanViewer {
     this.fanLast = 0;
   }
 
+  /** How fast the blades of pack fans turn (0–1 by furniture id, #1084): their models follow the plan. */
+  setSpinSpeeds(speeds: Map<string, number>): void {
+    this.spinSpeeds = speeds;
+    this.syncPackSpins();
+    this.invalidate();
+  }
+
+  /** The pack items with turning parts: a model each at its pivot, rebuilt when the item or the look changes. */
+  private syncPackSpins(): void {
+    const seen = new Set<string>();
+    for (const fv of this.floors) {
+      for (const f of fv.floor.furniture) {
+        const item = packItem(f.type);
+        if (!item || !packSpinAxis(item)) continue;
+        seen.add(f.id);
+        const base = mountBase(fv.floor, f);
+        const sig = [f.x, f.z, f.rotation, f.w, f.d, f.h, f.mirror ? 1 : 0, base, fv.floor.id, this.style.id].join("|");
+        let spin = this.packSpins.get(f.id);
+        if (spin && spin.sig !== sig) {
+          spin.group.removeFromParent();
+          spin.mesh.geometry.dispose();
+          this.packSpins.delete(f.id);
+          spin = undefined;
+        }
+        if (!spin) {
+          this.usePalette();
+          const buf = new GeoBuffer();
+          const made = pushPackSpin(buf, item, f.w, f.d, f.h);
+          if (!made) continue;
+          // mirrored items turn their model inside out: both faces are drawn
+          this.spinMat ??= new MeshBasicMaterial({ vertexColors: true, side: DoubleSide });
+          const mesh = new Mesh(buf.geometry(), this.spinMat);
+          const spinner = new Group();
+          spinner.add(mesh);
+          spinner.position.set(made.pivot[0], made.pivot[1], made.pivot[2]);
+          const group = new Group();
+          group.add(spinner);
+          group.position.set(f.x, base, f.z);
+          group.rotation.y = -(f.rotation * DEG);
+          if (f.mirror) group.scale.x = -1;
+          spin = { group, spinner, mesh, axis: made.axis, speed: 0, floorId: fv.floor.id, y: base + made.pivot[1], sig };
+          this.packSpins.set(f.id, spin);
+        }
+        spin.speed = Math.max(0, Math.min(1, this.spinSpeeds.get(f.id) ?? 0));
+      }
+    }
+    for (const [key, f] of this.packSpins) {
+      if (seen.has(key)) continue;
+      f.group.removeFromParent();
+      f.mesh.geometry.dispose();
+      this.packSpins.delete(key);
+    }
+    this.fanLast = 0;
+  }
+
   /** Turn the fans' blades; true while one of them runs. */
   private stepFans(now: number): boolean {
-    if (!this.fans.size) return false;
+    if (!this.fans.size && !this.packSpins.size) return false;
     const dt = this.fanLast ? Math.min(0.2, (now - this.fanLast) / 1000) : 0;
     this.fanLast = now;
     let turning = false;
@@ -5420,6 +5486,18 @@ export class FloorplanViewer {
       turning = true;
       // up to about one turn a second at full speed
       f.group.rotation.y -= f.speed * Math.PI * 2 * dt;
+    }
+    for (const f of this.packSpins.values()) {
+      const fv = this.floorMap.get(f.floorId);
+      if (!fv) continue;
+      if (f.group.parent !== fv.group) fv.group.add(f.group);
+      f.group.visible = !(this.wallMode === "cut" && f.y > Math.min(fv.floor.cut_height, fv.floor.height));
+      if (f.speed <= 0) continue;
+      turning = true;
+      // a pedestal fan's blades turn faster than a ceiling fan's
+      const turn = f.speed * Math.PI * 2 * dt * (f.axis === "z" ? 2.5 : 1);
+      if (f.axis === "z") f.spinner.rotation.z -= turn;
+      else f.spinner.rotation.y -= turn;
     }
     if (!turning) this.fanLast = 0;
     return turning;
