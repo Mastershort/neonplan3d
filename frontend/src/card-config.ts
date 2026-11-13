@@ -75,7 +75,7 @@ export interface CardConfig {
   theme_night?: string;
   /** An input_select / input_text whose state names the style; it wins while it names one. */
   style_entity?: string;
-  /** Zoom style (test): the style the house turns into when zoomed in. */
+  /** Zoom style: the style the house turns into when zoomed in. */
   zoom_style?: string;
   /** How late the zoom style sets in, 0 (early) … 100 (late). */
   zoom_late?: number;

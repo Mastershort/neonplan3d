@@ -154,6 +154,7 @@ On the far left of the toolbar is **Floor: Ground floor ▾** – the floor you 
 A selected room shows on the right:
 
 - **Name** and **Area**: The link to a Home Assistant area matters most. Through it NeonPlan 3D finds the room's lights, covers, sensors and scenes.
+- **Move the name (since 3.2):** a small handle ✥ stands left of the selected room's name in the plan. Drag it and the name stands elsewhere – in the plan and in 3D, e.g. where the names of many small rooms cover each other. It moves along when you move the room. A double tap on the handle or **Name back to the middle of the room** puts it back. How big the names are in 3D is set under **⚙ Settings → House → Size of the room names in 3D** (50–200 %).
 - **Floor**: wood, oak, tiles, carpet, stone or concrete show as a subtle pattern in 3D.
 - **View as this room's start**: turn on **3D beside**, turn and zoom the room the way it should show, then tap the button. When you tap the room in 3D later, the camera flies right there – angle, zoom and framing. ↺ removes it, and the room is shown from above again.
 - The room's **ID** for the card option `room:` (a tap copies it).
@@ -256,7 +257,7 @@ Doors and windows can also be tapped in a wide band around the opening in the pl
 | **Tilt contact** | A second sensor that reports "tilted" |
 | **Tilt angle sensor** | Optional: a sensor reporting the tilt angle in degrees (e.g. the "Rotation" of a Shelly BLU Door/Window). The sash tilts exactly that far in 3D; **Angle that counts as fully tilted** (15° by default), an **Offset** for the value while closed and **counts the other way round** adapt it to the mounting. Above a small angle the window counts as tilted, also for the rain warning |
 | **Contact second leaf** | For double windows and doors |
-| **Garage door** | A garage door follows a cover entity or a contact (on = open; sensors reporting “open”/“closed” work too). A **switch or input_boolean** that drives the door works as the contact too: on = open, a tap in 3D switches it. If your opener only takes a short pulse, choose the **switch, button or `input_button` under Drive** and the real door contact under Contact: a tap on the door switches the switch on or presses the button (asking first with *Ask before switching*), and open or closed comes from the contact. Its open part lies under the ceiling. A gate or garage-door cover on a **door** (e.g. a sliding gate) moves the door leaf instead of a roller shutter |
+| **Garage door** | A garage door follows a cover entity or a contact (on = open; sensors reporting “open”/“closed” work too). A **switch or input_boolean** that drives the door works as the contact too: on = open, a tap in 3D switches it. If your opener only takes a short pulse, choose the **switch, button or `input_button` under Drive** and the real door contact under Contact: a tap on the door switches the switch on or presses the button (asking first with *Ask before switching*), and open or closed comes from the contact. Its open part lies under the ceiling. **Kind of door (since 3.2):** **Sectional door** (as before: runs in sections under the ceiling) or **Up-and-over door** – one leaf whose bottom edge swings out and up; open, it lies under the ceiling with a part sticking out like a canopy. A gate or garage-door cover on a **door** (e.g. a sliding gate) moves the door leaf instead of a roller shutter |
 
 NeonPlan 3D matches covers and contacts through the area automatically. You can change them by hand at any time.
 
@@ -305,6 +306,8 @@ The **Worktop** (Kitchen) is a free top without a base, for gaps in the kitchen 
 - **Onto the wall** (side bar on the left of the wall view): a few symbols instead of a long list – base cabinets & boards, hanging, tall cabinets, seating & beds, lights, your packs (and energy with Energie Pro) – plus a search and **Recently used**. **Tap a free spot on the wall:** NeonPlan measures the gap (low: standing, high: hanging) and shows only what fits – what fills it best first. Cabinets built to measure (kitchen unit, wall cabinet, tall cabinet, sideboard, shelf …) take the gap's width (↔), anything else goes to the gap's left end in its own size. Every piece shows a small picture. **Resize** in *Wall from the front*: on the chosen piece the handles **left and right** change its width, the **top** one its height and, for hanging pieces, the **bottom** one its lower edge – the other side stays put, edges snap to neighbours, the wall's ends, doors and windows (**Alt** freely), and the size shows live above it. Below, **Width** and **Height** can be typed in too (in *3D in the room* as well). Delete a chosen part (or several) with **Delete** at the bottom or the **Del** key.
 
 ![A furniture block: the kitchen](images/editor-block.jpg)
+
+**Neon sign (since 3.2, under Decoration):** an own text in glowing tubes on a dark plate on the wall. Its form has **Text** (split two lines with `|`) and **Colour of the tubes**. Linked to a light or switch it only glows while that is on; a coloured light sets its colour. With nothing linked it always glows.
 
 ### 4.9 Furnishing rooms
 
@@ -430,7 +433,7 @@ With **Outside → Outdoor** you draw lawn, terrace, path, driveway, flower bed,
 **3D beside** shows the 3D view to the right of the plan. Every change appears there a moment later.
 
 - Drag the **divider between plan and 3D** to change the ratio. The browser remembers it.
-- At the top of the 3D half you switch between **Tall walls** and **Cut**. Beside them sits **Effects**: off = no weather, no sun, no pets and no ghost in the 3D half, a quiet pane for drawing. The device remembers the switch; the 3D view itself is not affected.
+- At the top of the 3D half you switch between **Tall walls** and **Cut**. Beside them sits **Effects**: off = no weather, no sun, no pets and no ghost in the 3D half, a quiet pane for drawing. **Names** (since 3.2) hides the room names in the 3D half where many rooms make them crowd the view. The device remembers both switches; the 3D view itself is not affected.
 - You can also tap and drag an item or device in the 3D half. A bar with width, depth, height, height above the floor, rotation and delete appears at the bottom.
 - Without the pin, the sidebar folds away beside the 3D view as soon as you tap something there, and opens over the 3D half; **‹** at the right edge brings it back. With **📌 Pinned** it stays beside it and only folds with **Collapse**.
 
@@ -917,6 +920,8 @@ Lights, open windows and active devices keep their signal colour in every style,
 
 **Times of day (house plan).** Under **🕒 Times of day (house plan)** you set which style applies **during the day**, **in the evening** and **at night**, for example Homely, Homely evening and Night / Focus. **Switch by the sun**: day while the sun is up, then evening until **Night from**. **By the clock**: the three times **Day from**, **Evening from** and **Night from**. The plan applies to every screen whose style is **House plan** – above all the panel on the wall tablet.
 
+**When zooming in (since 3.2).** Right below the style choice you pick a second style the house flows into as you zoom in – neon from afar, homely close up in a room, without reloading. The slider **early … late** sets when it begins (early: with a floor opened, late: only close in a room). **All rooms** or **Only the room**: with *Only the room* only the room you zoom into or tap turns homely; the rest of the house keeps the set look. It works while Neon, Blueprint or Day is chosen above. In the card via YAML: `zoom_style: cozy`, `zoom_late: 50`, `zoom_scope: room`.
+
 **Dashboard card.** In the card dialog you pick any style, **Auto** or **House plan** under **Style**. With a fixed style the card can also have a **Style in the evening** and a **Style at night**; it switches by the house plan (sun or clock). In YAML: `theme`, `theme_evening`, `theme_night` (see [8.2](#82-all-options-in-yaml)). Card templates take the style the same way.
 
 **By voice.** "NeonPlan style homely", "House to synthwave", "Style winter evening" – the style applies at once on the screen you speak to. "Style back" (or "style normal") brings the set style back. Through Assist this works with the sentence starting "NeonPlan …" or "House …".
@@ -1183,6 +1188,7 @@ Household Pro shows what is due in the household, right where it happens. The wa
 - **Washer, dryer, dishwasher, oven** (the built-in appliances of the kitchen pack too): with a **time-left sensor** the pin shows "23 min left"; afterwards "Done!" until the door opens (**door sensor**) or it runs again. NeonPlan tells "done" from the appliance's state (finished, done …) or from it having stopped running. The time left shows only while the appliance runs: when its state says off, ready or standby, or its power is at standby, NeonPlan shows no time left – even if the time-left sensor still reports minutes (after a power cut, say).
 - **Service and consumables:** any electric item can have a sensor for a filter, salt or rinse aid – a binary sensor (on = due), a number (percent or days left, due at the set value) or a date. When due the item glows yellow. Once a sensor is chosen there is a **Second service** with its own threshold – a robot vacuum's brush and its dock's dust bag, say. Each one due is a line of its own in "Today in the household".
 - **Fridge:** when a door stands open longer than set (default 2 minutes), NeonPlan warns at the top of the view. The **smart fridge** (side-by-side with moving doors) in the furniture library comes with it.
+- **Calendars (since 3.2):** under **⚙ Settings → House → Calendars in "Today in the household"** tick calendars. Their entries of today stand on the card, all-day ones first, then by time ("14:30 Dentist"). Ended ones drop off; one starting within the hour stands in amber. A tap opens the calendar.
 - **Today in the household:** a glass card at the top right lists what is due – bins today and tomorrow, post, finished appliances, thirsty plants, services due, open fridge doors. A tap opens the device, its header folds it. In the dashboard card `household_card: false` switches it off.
 
 ### 6.9 Digital picture frames

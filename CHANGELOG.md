@@ -4,6 +4,24 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 [releases page](https://github.com/Mastershort/neonplan3d/releases). Ideas and votes:
 [Discussions → Ideas](https://github.com/Mastershort/neonplan3d/discussions/categories/ideas).
 
+## 3.2.0
+
+### Added
+- **The house turns homely as you zoom in:** a second style below the style choice – **When zooming in** – the house flows into as you come closer: neon from afar, for example homely close up in a room, without reloading. **early … late** sets when it begins, **Only the room** turns just the room you zoom into or tap and keeps the rest of the house in its look. It works while Neon, Blueprint or Day is chosen; in the card `zoom_style`, `zoom_late`, `zoom_scope`. Nothing changes until a zoom style is chosen.
+- **Today's calendar entries in "Today in the household"** (Household Pro): tick calendars under ⚙ Settings → House; all-day entries first, then by time, ended ones drop off, one starting within the hour glows amber (thanks T-Eberle for the idea in their fork).
+- **Room names where you want them:** the selected room's name has a handle in the plan – drag it where it covers no other name, in the plan and in 3D; a double tap puts it back. ⚙ Settings → House sets the size of the room names in 3D (50–200 %), and **Names** next to Effects hides them in the editor's 3D pane (thanks Banhammer1919 for the idea in their fork, and a user for the wish).
+- **Up-and-over garage door:** a garage door's **Kind of door** – sectional as before, or one leaf that swings out and up and lies under the ceiling with a part sticking out like a canopy (thanks ProvUK for the idea in their fork).
+- **Neon sign:** an own text (one or two lines) in glowing tubes on a dark plate on the wall, under Decoration. It glows with its light or switch – in the light's colour when it shows colours – or always when nothing is linked (thanks ProvUK for the idea).
+
+### Changed
+- **Every language** has the texts of several plans and room cards; they were in English until now.
+
+### Fixed
+- **Window panes turned opaque in the homely styles** after a floor was opened and the view went back to all floors: the floors that had faded out came back with solid glass. The glass keeps its light tint now (#1081, thanks abgestumpft).
+- **Roof windows on a flat roof stood tilted like solar modules:** they lie flush in the roof now, like a rooflight (#1078, thanks michaelbell1981).
+- **Own styles were missing in the card dialog on a dashboard:** the card editor fetched the plan but took the own styles only from a plan handed over by NeonPlan's editor. It now offers them everywhere (#1077, thanks RobertSorgenfrei).
+- **Hologram cards over the roof were cut off at the top:** cards move in from the sides and, where there is no room above, hang below their anchor – inside the view and clear of the energy tiles (#1088, thanks abgestumpft).
+
 ## 3.1.2
 
 ### Fixed
