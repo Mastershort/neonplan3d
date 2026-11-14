@@ -2494,5 +2494,12 @@
  "surround_pick_hide": "Atinge pentru a ascunde",
  "surround_pick_show": "Ascunsă – atinge pentru a arăta",
  "pro_name_frames": "Rame foto digitale",
- "pro_feature_frames": "Rame foto digitale: ramele de pe perete arată o prezentare, calendarul, un panou, liste sau imaginea unei camere – o atingere o deschide mare"
+ "pro_feature_frames": "Rame foto digitale: ramele de pe perete arată o prezentare, calendarul, un panou, liste sau imaginea unei camere – o atingere o deschide mare",
+ "hint_fit": "Se potrivește casei tale",
+ "hint_bundles": "Cel mai avantajos este totul deodată: un pachet sau Supporter Pass.",
+ "hint_account_title": "Cont de client gratuit",
+ "hint_account_text": "Cu un cont gratuit pe mastershort.de primești gratuit pachetele distractive {winter} și {pets}, două module gratuite și, cu newsletterul, patru pachete de probă cu mobilier. Totul se actualizează singur – nu trebuie să cumperi nimic.",
+ "hint_account_button": "Creează un cont gratuit",
+ "hint_account_have": "Ai deja un cont? Introdu mai jos cheia de licență și pachetele tale gratuite apar aici.",
+ "hint_start_gift": "Gratuit în plus: un cont de client gratuit aduce pachete distractive și pachete de probă (la ✦ Extensii)."
 }

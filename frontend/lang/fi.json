@@ -2494,5 +2494,12 @@
  "surround_pick_hide": "Napauta piilottaaksesi",
  "surround_pick_show": "Piilotettu – napauta näyttääksesi",
  "pro_name_frames": "Digitaaliset kuvakehykset",
- "pro_feature_frames": "Digitaaliset kuvakehykset: seinän kehykset näyttävät diaesityksen, kalenterin, ilmoitustaulun, listat tai kamerakuvan – napautus avaa sen isona"
+ "pro_feature_frames": "Digitaaliset kuvakehykset: seinän kehykset näyttävät diaesityksen, kalenterin, ilmoitustaulun, listat tai kamerakuvan – napautus avaa sen isona",
+ "hint_fit": "Sopii kotiisi",
+ "hint_bundles": "Edullisinta on kaikki kerralla: paketti tai Supporter Pass.",
+ "hint_account_title": "Ilmainen asiakastili",
+ "hint_account_text": "Ilmaisella tilillä mastershort.de-sivustolla saat ilmaiseksi hauskat paketit {winter} ja {pets}, kaksi ilmaista moduulia ja uutiskirjeen kanssa neljä huonekalujen maistiaispakettia. Kaikki päivittyy itsestään – mitään ei tarvitse ostaa.",
+ "hint_account_button": "Luo ilmainen tili",
+ "hint_account_have": "Onko sinulla jo tili? Syötä lisenssiavaimesi alle, niin ilmaiset pakettisi näkyvät tässä.",
+ "hint_start_gift": "Ilmaiseksi lisäksi: ilmainen asiakastili tuo hauskoja paketteja ja maistiaispaketteja (kohdassa ✦ Laajennukset)."
 }

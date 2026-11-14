@@ -2494,5 +2494,12 @@
  "surround_pick_hide": "Toca para ocultar",
  "surround_pick_show": "Oculta – toca para mostrar",
  "pro_name_frames": "Marcos de fotos digitales",
- "pro_feature_frames": "Marcos de fotos digitales: marcos en la pared muestran una presentación, el calendario, un tablón, listas o la imagen de una cámara; al tocar se abre en grande"
+ "pro_feature_frames": "Marcos de fotos digitales: marcos en la pared muestran una presentación, el calendario, un tablón, listas o la imagen de una cámara; al tocar se abre en grande",
+ "hint_fit": "Encaja con tu casa",
+ "hint_bundles": "Lo más económico es todo de una vez: un paquete o el Supporter Pass.",
+ "hint_account_title": "Cuenta de cliente gratuita",
+ "hint_account_text": "Con una cuenta gratuita en mastershort.de recibes gratis los packs divertidos {winter} y {pets}, dos módulos gratuitos y, con el boletín, cuatro packs de muestra de muebles. Todo se actualiza solo; no tienes que comprar nada.",
+ "hint_account_button": "Crear una cuenta gratuita",
+ "hint_account_have": "¿Ya tienes cuenta? Introduce abajo tu clave de licencia y tus packs gratuitos aparecerán aquí.",
+ "hint_start_gift": "Gratis además: una cuenta de cliente gratuita trae packs divertidos y packs de muestra (en ✦ Extensiones)."
 }

@@ -186,6 +186,8 @@ Plus **Auto** (day while the sun is up, neon after sunset), an accent colour of 
 
 **Safety is always free. Everything you need day to day stays free.**
 
+🎁 **Free customer account (optional):** an account at [mastershort.de](https://mastershort.de/my-account/) costs nothing and needs no purchase. It brings the fun packs, the modules Window watch and The house answers and – with the newsletter – four taster packs of furniture. Enter its key under ✦ Extensions → Shop connection; they update by themselves.
+
 ---
 
 ## ⭐ Optional extras

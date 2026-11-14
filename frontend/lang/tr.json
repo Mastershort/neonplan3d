@@ -2493,5 +2493,12 @@
  "surround_pick_hide": "Gizlemek için dokun",
  "surround_pick_show": "Gizli – göstermek için dokun",
  "pro_name_frames": "Dijital fotoğraf çerçeveleri",
- "pro_feature_frames": "Dijital fotoğraf çerçeveleri: duvardaki çerçeveler slayt gösterisi, takvim, pano, listeler ya da kamera görüntüsü gösterir – dokununca büyük açılır"
+ "pro_feature_frames": "Dijital fotoğraf çerçeveleri: duvardaki çerçeveler slayt gösterisi, takvim, pano, listeler ya da kamera görüntüsü gösterir – dokununca büyük açılır",
+ "hint_fit": "Evine uygun",
+ "hint_bundles": "En avantajlısı hepsi bir arada: bir paket ya da Supporter Pass.",
+ "hint_account_title": "Ücretsiz müşteri hesabı",
+ "hint_account_text": "mastershort.de'de ücretsiz bir hesapla {winter} ve {pets} eğlence paketlerini, iki ücretsiz modülü ve bültenle dört mobilya deneme paketini ücretsiz alırsın. Her şey kendiliğinden güncellenir – hiçbir şey satın alman gerekmez.",
+ "hint_account_button": "Ücretsiz hesap oluştur",
+ "hint_account_have": "Zaten hesabın var mı? Lisans anahtarını aşağıya gir, ücretsiz paketlerin burada görünür.",
+ "hint_start_gift": "Üstüne ücretsiz: ücretsiz bir müşteri hesabı eğlence ve deneme paketleri getirir (✦ Uzantılar altında)."
 }

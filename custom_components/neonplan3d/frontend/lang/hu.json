@@ -2494,5 +2494,12 @@
  "surround_pick_hide": "Koppints az elrejtéshez",
  "surround_pick_show": "Elrejtve – koppints a megjelenítéshez",
  "pro_name_frames": "Digitális képkeretek",
- "pro_feature_frames": "Digitális képkeretek: a falon lévő keretek diavetítést, naptárt, faliújságot, listákat vagy kameraképet mutatnak – koppintásra nagyban nyílik meg"
+ "pro_feature_frames": "Digitális képkeretek: a falon lévő keretek diavetítést, naptárt, faliújságot, listákat vagy kameraképet mutatnak – koppintásra nagyban nyílik meg",
+ "hint_fit": "Illik az otthonodhoz",
+ "hint_bundles": "A legolcsóbb mindent egyszerre: egy csomag vagy a Supporter Pass.",
+ "hint_account_title": "Ingyenes ügyfélfiók",
+ "hint_account_text": "Egy ingyenes fiókkal a mastershort.de oldalon ingyen megkapod a(z) {winter} és {pets} szórakoztató csomagokat, két ingyenes modult, a hírlevéllel pedig négy bútor-kóstolócsomagot. Minden magától frissül – semmit sem kell vásárolnod.",
+ "hint_account_button": "Ingyenes fiók létrehozása",
+ "hint_account_have": "Már van fiókod? Add meg lent a licenckulcsodat, és az ingyenes csomagjaid itt megjelennek.",
+ "hint_start_gift": "Ingyen ráadásként: egy ingyenes ügyfélfiók szórakoztató és kóstolócsomagokat hoz (a ✦ Bővítmények alatt)."
 }

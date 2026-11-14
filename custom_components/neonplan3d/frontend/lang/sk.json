@@ -2494,5 +2494,12 @@
  "surround_pick_hide": "Ťuknutím skryť",
  "surround_pick_show": "Skryté – ťuknutím zobraziť",
  "pro_name_frames": "Digitálne fotorámčeky",
- "pro_feature_frames": "Digitálne fotorámčeky: rámčeky na stene ukazujú prezentáciu fotiek, kalendár, nástenku, zoznamy alebo obraz z kamery – ťuknutím sa otvoria vo veľkom"
+ "pro_feature_frames": "Digitálne fotorámčeky: rámčeky na stene ukazujú prezentáciu fotiek, kalendár, nástenku, zoznamy alebo obraz z kamery – ťuknutím sa otvoria vo veľkom",
+ "hint_fit": "Hodí sa k tvojej domácnosti",
+ "hint_bundles": "Najvýhodnejšie je všetko naraz: balík alebo Supporter Pass.",
+ "hint_account_title": "Bezplatný zákaznícky účet",
+ "hint_account_text": "S bezplatným účtom na mastershort.de dostaneš zadarmo zábavné balíky {winter} a {pets}, dva bezplatné moduly a s newsletterom štyri ukážkové balíky nábytku. Všetko sa aktualizuje samo – nič kupovať nemusíš.",
+ "hint_account_button": "Založiť bezplatný účet",
+ "hint_account_have": "Už máš účet? Zadaj nižšie svoj licenčný kľúč a tvoje bezplatné balíky sa objavia tu.",
+ "hint_start_gift": "Zadarmo navyše: bezplatný zákaznícky účet prináša zábavné a ukážkové balíky (v ✦ Rozšírenia)."
 }

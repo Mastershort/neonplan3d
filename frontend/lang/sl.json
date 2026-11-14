@@ -2494,5 +2494,12 @@
  "surround_pick_hide": "Tapni za skritje",
  "surround_pick_show": "Skrito – tapni za prikaz",
  "pro_name_frames": "Digitalni foto okvirji",
- "pro_feature_frames": "Digitalni foto okvirji: okvirji na steni prikazujejo diaprojekcijo, koledar, oglasno desko, sezname ali sliko kamere – dotik jo odpre v velikem"
+ "pro_feature_frames": "Digitalni foto okvirji: okvirji na steni prikazujejo diaprojekcijo, koledar, oglasno desko, sezname ali sliko kamere – dotik jo odpre v velikem",
+ "hint_fit": "Se ujema s tvojim domom",
+ "hint_bundles": "Najugodneje je vse naenkrat: paket ali Supporter Pass.",
+ "hint_account_title": "Brezplačen uporabniški račun",
+ "hint_account_text": "Z brezplačnim računom na mastershort.de dobiš brezplačno zabavna paketa {winter} in {pets}, dva brezplačna modula in z e-novicami štiri poskusne pakete pohištva. Vse se posodablja samo – ničesar ti ni treba kupiti.",
+ "hint_account_button": "Ustvari brezplačen račun",
+ "hint_account_have": "Že imaš račun? Spodaj vnesi licenčni ključ in tvoji brezplačni paketi se prikažejo tukaj.",
+ "hint_start_gift": "Brezplačno zraven: brezplačen uporabniški račun prinese zabavne in poskusne pakete (pod ✦ Razširitve)."
 }

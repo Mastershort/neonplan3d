@@ -2494,5 +2494,12 @@
  "surround_pick_hide": "Trykk for å gøyme",
  "surround_pick_show": "Gøymt – trykk for å vise",
  "pro_name_frames": "Digitale biletrammer",
- "pro_feature_frames": "Digitale biletrammer: rammer på veggen viser ei biletframsyning, kalenderen, ei oppslagstavle, lister eller eit kamerabilete – eit trykk opnar det stort"
+ "pro_feature_frames": "Digitale biletrammer: rammer på veggen viser ei biletframsyning, kalenderen, ei oppslagstavle, lister eller eit kamerabilete – eit trykk opnar det stort",
+ "hint_fit": "Passar til heimen din",
+ "hint_bundles": "Billegast er alt på ein gong: ei pakke eller Supporter Pass.",
+ "hint_account_title": "Gratis kundekonto",
+ "hint_account_text": "Med ein gratis konto på mastershort.de får du gratis morosame pakkar {winter} og {pets}, to gratis modular og med nyheitsbrevet fire smakebitpakkar med møblar. Alt oppdaterer seg sjølv – du treng ikkje kjøpe noko.",
+ "hint_account_button": "Opprett ein gratis konto",
+ "hint_account_have": "Har du alt ein konto? Skriv inn lisensnøkkelen din nedanfor, så dukkar gratispakkane dine opp her.",
+ "hint_start_gift": "Gratis i tillegg: ein gratis kundekonto gjev morosame pakkar og smakebitpakkar (under ✦ Utvidingar)."
 }

@@ -51,9 +51,10 @@ test("a Pro add-on's offer is found by the shop's pack id, a key's purchase tell
   assert.equal(boughtAnything([{ id: "fun_pets" }, { id: "living" }]), true);
 });
 
-test("the two lines in German, English, a further language and English for an unknown one", () => {
+test("the lines in German, English, and English while a further language is not fetched or unknown", () => {
   assert.equal(fitText("de-DE", "fit"), "Passt zu deinem Zuhause");
   assert.equal(fitText("en-GB", "fit"), "Fits your home");
-  assert.equal(fitText("nl", "fit"), "Past bij je huis");
+  // further languages come from their lang file; not fetched here, so English
+  assert.equal(fitText("nl", "fit"), "Fits your home");
   assert.equal(fitText("ja", "fit"), "Fits your home");
 });

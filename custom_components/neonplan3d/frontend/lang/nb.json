@@ -2494,5 +2494,12 @@
  "surround_pick_hide": "Trykk for å skjule",
  "surround_pick_show": "Skjult – trykk for å vise",
  "pro_name_frames": "Digitale bilderammer",
- "pro_feature_frames": "Digitale bilderammer: rammer på veggen viser en lysbildefremvisning, kalenderen, en oppslagstavle, lister eller et kamerabilde – et trykk åpner det stort"
+ "pro_feature_frames": "Digitale bilderammer: rammer på veggen viser en lysbildefremvisning, kalenderen, en oppslagstavle, lister eller et kamerabilde – et trykk åpner det stort",
+ "hint_fit": "Passer til hjemmet ditt",
+ "hint_bundles": "Billigst er alt på én gang: en pakke eller Supporter Pass.",
+ "hint_account_title": "Gratis kundekonto",
+ "hint_account_text": "Med en gratis konto på mastershort.de får du gratis morsomme pakker {winter} og {pets}, to gratis moduler og med nyhetsbrevet fire smakebitpakker med møbler. Alt oppdaterer seg selv – du trenger ikke kjøpe noe.",
+ "hint_account_button": "Opprett en gratis konto",
+ "hint_account_have": "Har du allerede en konto? Skriv inn lisensnøkkelen din nedenfor, så dukker gratispakkene dine opp her.",
+ "hint_start_gift": "Gratis i tillegg: en gratis kundekonto gir morsomme pakker og smakebitpakker (under ✦ Utvidelser)."
 }

@@ -2494,5 +2494,12 @@
  "surround_pick_hide": "Tryck för att dölja",
  "surround_pick_show": "Dold – tryck för att visa",
  "pro_name_frames": "Digitala fotoramar",
- "pro_feature_frames": "Digitala fotoramar: ramar på väggen visar ett bildspel, kalendern, en anslagstavla, listor eller en kamerabild – ett tryck öppnar den stort"
+ "pro_feature_frames": "Digitala fotoramar: ramar på väggen visar ett bildspel, kalendern, en anslagstavla, listor eller en kamerabild – ett tryck öppnar den stort",
+ "hint_fit": "Passar ditt hem",
+ "hint_bundles": "Billigast är allt på en gång: ett paket eller Supporter Pass.",
+ "hint_account_title": "Gratis kundkonto",
+ "hint_account_text": "Med ett gratis konto på mastershort.de får du gratis de roliga paketen {winter} och {pets}, två gratis moduler och med nyhetsbrevet fyra smakprovspaket med möbler. Allt uppdateras av sig självt – du behöver inte köpa något.",
+ "hint_account_button": "Skapa ett gratis konto",
+ "hint_account_have": "Har du redan ett konto? Ange din licensnyckel nedan så visas dina gratispaket här.",
+ "hint_start_gift": "Gratis på köpet: ett gratis kundkonto ger roliga paket och smakprovspaket (under ✦ Tillägg)."
 }

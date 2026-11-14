@@ -22,7 +22,7 @@ import {
 } from "../api.ts";
 import { DISCORD_URL, isBeta, supporterUrl } from "../beta.ts";
 import { copyText, PRINT_URL } from "../print.ts";
-import { FEATURES, FUN, knownFeature, manualUrl, released, shopUrl, unlockedFeatures, type Feature, packLacksModule } from "../features.ts";
+import { FEATURES, FUN, knownFeature, manualUrl, registerUrl, released, shopUrl, unlockedFeatures, type Feature, packLacksModule } from "../features.ts";
 import type { Building } from "../model.ts";
 import { translate, type I18nKey } from "../i18n.ts";
 import { packName, type FurniturePack } from "../packs.ts";
@@ -186,7 +186,7 @@ export class Extensions extends LitElement {
           <a class="fp3d-btn" href=${manualUrl(this.hass?.language, "extensions")} target="_blank" rel="noopener">📖 ${this.t("manual")}</a>
         </div>
       </header>
-      ${this.renderUpdates()} ${this.renderSupporter()} ${this.renderNewsletter()} ${this.renderOffers()} ${this.renderShop()}
+      ${this.renderUpdates()} ${this.renderAccount()} ${this.renderSupporter()} ${this.renderNewsletter()} ${this.renderOffers()} ${this.renderShop()}
       <section class="fp3d-ext-card">
         <h3>${this.t("ext_pro")}</h3>
         <div class="fp3d-ext-pro">
@@ -212,6 +212,24 @@ export class Extensions extends LitElement {
       </section>
       ${this.renderFun(unlocked)} ${this.renderPacks()} ${this.renderModules()}
     </div>`;
+  }
+
+  /**
+   * No key here yet: what a free customer account brings (the fun packs, the free modules, the taster packs with the
+   * newsletter) and the way to one – about two in three installations have none. Gone once a key is entered.
+   */
+  private renderAccount() {
+    if (!this.isAdmin || !this._license || this._license.active) return nothing;
+    const lang = this.hass?.language;
+    const text = fitText(lang, "account_text").replace("{winter}", this.t("fun_name_winter")).replace("{pets}", this.t("fun_name_pets"));
+    return html`<section class="fp3d-ext-card fp3d-offers">
+      <h3>🎁 ${fitText(lang, "account_title")}</h3>
+      <p class="fp3d-sub">${text}</p>
+      <div class="fp3d-actions">
+        <a class="fp3d-btn fp3d-primary" style="text-decoration:none" href=${registerUrl(lang)} target="_blank" rel="noopener">${fitText(lang, "account_button")}</a>
+      </div>
+      <p class="fp3d-sub">${fitText(lang, "account_have")}</p>
+    </section>`;
   }
 
   /** The way to a locked add-on: its own page in the shop with its price when the catalog offers it, else the shop. */

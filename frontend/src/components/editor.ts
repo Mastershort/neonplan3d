@@ -22,7 +22,8 @@ import { holeInRoom } from "../geometry/holes.ts";
 import { weatherEntity, isRainSource } from "../weather.ts";
 import { isOutageSource } from "../outage.ts";
 import { SHOW_PRESENCE } from "../flags.ts";
-import { hasFeature, labOn, manualUrl, released, shopUrl, UNRELEASED } from "../features.ts";
+import { hasFeature, labOn, manualUrl, registerUrl, released, shopUrl, UNRELEASED } from "../features.ts";
+import { fitText } from "../fit-hints.ts";
 import { loadLocate } from "../load-locate.ts";
 import { isBeta, supporterUrl } from "../beta.ts";
 import { openPrint } from "../print.ts";
@@ -6298,6 +6299,9 @@ export class Fp3dEditor extends LitElement {
   private renderMapStart(floor: Floor | undefined) {
     if (!this.isAdmin || !floor || floor.rooms.length || floor.id !== surroundFloorId(this._doc) || this._mapStartOff || this._diagInvite) return nothing;
     const ready = !!ownOutline(this._doc);
+    // the very first start of a plan: one line on the free customer account, unless packs from the shop are here
+    // (they come with a key) – it goes with this note, never to come back
+    const account = (this.packs ?? []).some((p) => !!p.instance || !!p.licensee);
     const off = () => {
       this._mapStartOff = true;
       try {
@@ -6307,9 +6311,11 @@ export class Fp3dEditor extends LitElement {
       }
     };
     return html`<div class="fp3d-diag-invite" role="note">
-      <span><b>🗺 ${this.t("map_start_title")}</b> ${this.t(ready ? "map_start_ready" : "map_start_text")}</span>
+      <span><b>🗺 ${this.t("map_start_title")}</b> ${this.t(ready ? "map_start_ready" : "map_start_text")}
+        ${account ? nothing : html`<br />🎁 ${fitText(this.hass?.language, "start_gift")}`}</span>
       <span class="fp3d-diag-invite-buttons">
         ${ready ? nothing : html`<button class="fp3d-btn primary" @click=${() => (this._settingsDialog = "surroundings")}>${this.t("map_start_load")}</button>`}
+        ${account ? nothing : html`<a class="fp3d-btn" style="text-decoration:none" href=${registerUrl(this.hass?.language)} target="_blank" rel="noopener">${fitText(this.hass?.language, "account_button")}</a>`}
         <button class="fp3d-btn" @click=${off}>${this.t(ready ? "map_start_ok" : "diag_invite_later")}</button>
       </span>
     </div>`;

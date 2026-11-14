@@ -2494,5 +2494,12 @@
  "surround_pick_hide": "Toucher pour masquer",
  "surround_pick_show": "Masquée – toucher pour afficher",
  "pro_name_frames": "Cadres photo numériques",
- "pro_feature_frames": "Cadres photo numériques : des cadres au mur affichent un diaporama, le calendrier, un tableau, des listes ou l'image d'une caméra – un appui l'ouvre en grand"
+ "pro_feature_frames": "Cadres photo numériques : des cadres au mur affichent un diaporama, le calendrier, un tableau, des listes ou l'image d'une caméra – un appui l'ouvre en grand",
+ "hint_fit": "Convient à ta maison",
+ "hint_bundles": "Le plus avantageux : tout d'un coup, avec un pack groupé ou le Supporter Pass.",
+ "hint_account_title": "Compte client gratuit",
+ "hint_account_text": "Avec un compte gratuit sur mastershort.de, tu reçois gratuitement les packs fun {winter} et {pets}, deux modules gratuits et, avec la newsletter, quatre packs découverte de meubles. Tout se met à jour tout seul – tu n'as rien à acheter.",
+ "hint_account_button": "Créer un compte gratuit",
+ "hint_account_have": "Tu as déjà un compte ? Saisis ta clé de licence ci-dessous et tes packs gratuits apparaîtront ici.",
+ "hint_start_gift": "En plus, gratuit : un compte client gratuit apporte des packs fun et des packs découverte (sous ✦ Extensions)."
 }

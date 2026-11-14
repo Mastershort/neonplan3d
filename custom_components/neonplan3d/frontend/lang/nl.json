@@ -2494,5 +2494,12 @@
  "surround_pick_hide": "Tik om te verbergen",
  "surround_pick_show": "Verborgen – tik om te tonen",
  "pro_name_frames": "Digitale fotolijsten",
- "pro_feature_frames": "Digitale fotolijsten: lijsten aan de muur tonen een diavoorstelling, de agenda, een prikbord, lijsten of een camerabeeld – tikken opent het groot"
+ "pro_feature_frames": "Digitale fotolijsten: lijsten aan de muur tonen een diavoorstelling, de agenda, een prikbord, lijsten of een camerabeeld – tikken opent het groot",
+ "hint_fit": "Past bij je huis",
+ "hint_bundles": "Het voordeligst is alles in één keer: een bundel of de Supporter Pass.",
+ "hint_account_title": "Gratis klantaccount",
+ "hint_account_text": "Met een gratis account op mastershort.de krijg je gratis de funpacks {winter} en {pets}, twee gratis modules en met de nieuwsbrief vier proefpacks met meubels. Alles werkt zichzelf bij – je hoeft niets te kopen.",
+ "hint_account_button": "Gratis account aanmaken",
+ "hint_account_have": "Heb je al een account? Vul hieronder je licentiesleutel in, dan verschijnen je gratis packs hier.",
+ "hint_start_gift": "Gratis erbij: een gratis klantaccount brengt funpacks en proefpacks (onder ✦ Uitbreidingen)."
 }

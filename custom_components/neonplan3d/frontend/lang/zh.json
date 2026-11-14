@@ -2494,5 +2494,12 @@
  "surround_pick_hide": "点按隐藏",
  "surround_pick_show": "已隐藏 – 点按显示",
  "pro_name_frames": "数码相框",
- "pro_feature_frames": "数码相框: 墙上的相框显示幻灯片、日历、留言板、清单或摄像头画面——轻点即可放大查看"
+ "pro_feature_frames": "数码相框: 墙上的相框显示幻灯片、日历、留言板、清单或摄像头画面——轻点即可放大查看",
+ "hint_fit": "适合你的家",
+ "hint_bundles": "最划算的是一次全部拥有：套装或支持者通行证。",
+ "hint_account_title": "免费客户账户",
+ "hint_account_text": "在 mastershort.de 上注册免费账户，即可免费获得趣味包 {winter} 和 {pets}、两个免费模块，订阅新闻通讯还可获得四个家具体验包。一切自动更新——无需购买任何东西。",
+ "hint_account_button": "创建免费账户",
+ "hint_account_have": "已有账户？在下方输入你的许可证密钥，免费包就会显示在这里。",
+ "hint_start_gift": "额外免费：免费客户账户可获得趣味包和体验包（在 ✦ 扩展 中）。"
 }

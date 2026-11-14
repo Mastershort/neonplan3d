@@ -2494,5 +2494,12 @@
  "surround_pick_hide": "Tocca per nascondere",
  "surround_pick_show": "Nascosta – tocca per mostrare",
  "pro_name_frames": "Cornici digitali",
- "pro_feature_frames": "Cornici digitali: cornici alla parete mostrano una presentazione, il calendario, una bacheca, liste o l'immagine di una telecamera – un tocco la apre in grande"
+ "pro_feature_frames": "Cornici digitali: cornici alla parete mostrano una presentazione, il calendario, una bacheca, liste o l'immagine di una telecamera – un tocco la apre in grande",
+ "hint_fit": "Adatto alla tua casa",
+ "hint_bundles": "La scelta più conveniente è tutto insieme: un bundle o il Supporter Pass.",
+ "hint_account_title": "Account cliente gratuito",
+ "hint_account_text": "Con un account gratuito su mastershort.de ricevi gratis i pack divertenti {winter} e {pets}, due moduli gratuiti e, con la newsletter, quattro pack assaggio di mobili. Tutto si aggiorna da solo: non devi comprare nulla.",
+ "hint_account_button": "Crea un account gratuito",
+ "hint_account_have": "Hai già un account? Inserisci qui sotto la tua chiave di licenza e i tuoi pack gratuiti compariranno qui.",
+ "hint_start_gift": "Gratis in più: un account cliente gratuito porta pack divertenti e pack assaggio (in ✦ Estensioni)."
 }

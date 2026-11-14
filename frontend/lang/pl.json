@@ -2494,5 +2494,12 @@
  "surround_pick_hide": "Dotknij, aby ukryć",
  "surround_pick_show": "Ukryty – dotknij, aby pokazać",
  "pro_name_frames": "Cyfrowe ramki na zdjęcia",
- "pro_feature_frames": "Cyfrowe ramki na zdjęcia: ramki na ścianie pokazują pokaz slajdów, kalendarz, tablicę, listy albo obraz z kamery – dotknięcie otwiera je w dużym widoku"
+ "pro_feature_frames": "Cyfrowe ramki na zdjęcia: ramki na ścianie pokazują pokaz slajdów, kalendarz, tablicę, listy albo obraz z kamery – dotknięcie otwiera je w dużym widoku",
+ "hint_fit": "Pasuje do twojego domu",
+ "hint_bundles": "Najtaniej jest wszystko naraz: pakiet albo Supporter Pass.",
+ "hint_account_title": "Darmowe konto klienta",
+ "hint_account_text": "Z darmowym kontem na mastershort.de dostajesz za darmo zabawne pakiety {winter} i {pets}, dwa darmowe moduły, a z newsletterem cztery próbne pakiety mebli. Wszystko aktualizuje się samo – nie musisz nic kupować.",
+ "hint_account_button": "Załóż darmowe konto",
+ "hint_account_have": "Masz już konto? Wpisz poniżej swój klucz licencyjny, a twoje darmowe pakiety pojawią się tutaj.",
+ "hint_start_gift": "Gratis w dodatku: darmowe konto klienta daje zabawne i próbne pakiety (w ✦ Rozszerzenia)."
 }

@@ -2494,5 +2494,12 @@
  "surround_pick_hide": "Toca para ocultar",
  "surround_pick_show": "Oculta – toca para mostrar",
  "pro_name_frames": "Molduras digitais",
- "pro_feature_frames": "Molduras digitais: molduras na parede mostram uma apresentação, o calendário, um quadro, listas ou a imagem de uma câmara – um toque abre-a em grande"
+ "pro_feature_frames": "Molduras digitais: molduras na parede mostram uma apresentação, o calendário, um quadro, listas ou a imagem de uma câmara – um toque abre-a em grande",
+ "hint_fit": "Combina com a sua casa",
+ "hint_bundles": "O mais vantajoso é tudo de uma vez: um pacote ou o Supporter Pass.",
+ "hint_account_title": "Conta de cliente gratuita",
+ "hint_account_text": "Com uma conta gratuita em mastershort.de recebe gratuitamente os pacotes divertidos {winter} e {pets}, dois módulos gratuitos e, com a newsletter, quatro pacotes de amostra de mobiliário. Tudo se atualiza sozinho – não tem de comprar nada.",
+ "hint_account_button": "Criar uma conta gratuita",
+ "hint_account_have": "Já tem conta? Introduza abaixo a sua chave de licença e os seus pacotes gratuitos aparecem aqui.",
+ "hint_start_gift": "Grátis a mais: uma conta de cliente gratuita traz pacotes divertidos e pacotes de amostra (em ✦ Extensões)."
 }

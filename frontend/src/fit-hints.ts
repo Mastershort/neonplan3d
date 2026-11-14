@@ -1,11 +1,12 @@
 /**
  * Which Pro add-ons fit this home: read from Home Assistant's entities and the plan, in the browser only (nothing is
  * sent anywhere). The extensions page lists the fitting ones first with a small sign of why (📷 3 = three cameras).
- * Lives in the editor bundle with the extensions page; its two lines carry their own texts in every language, so the
- * main bundle stays as it is.
+ * Lives in the editor bundle with the extensions page; its texts are German and English here and in the lang files
+ * for the further languages, so the main bundle stays as it is.
  */
 import type { Feature } from "./features.ts";
-import { languageCode } from "./i18n.ts";
+import { languageCode, translate, type I18nKey } from "./i18n.ts";
+import type { HomeAssistant } from "./types.ts";
 import type { Building } from "./model.ts";
 
 type States = Record<string, { entity_id: string; attributes?: Record<string, unknown> }>;
@@ -64,32 +65,24 @@ export function boughtAnything(packs: readonly { id: string }[] | undefined): bo
   return (packs ?? []).some((p) => !/^(mastershort\.)?fun_|_sample$/.test(p.id));
 }
 
-const TEXTS: Record<string, { fit: string; bundles: string }> = {
-  de: { fit: "Passt zu deinem Zuhause", bundles: "Am günstigsten ist alles auf einmal: ein Bundle oder der Supporter-Pass." },
-  en: { fit: "Fits your home", bundles: "The best value is everything at once: a bundle or the Supporter Pass." },
-  cs: { fit: "Hodí se k tvé domácnosti", bundles: "Nejvýhodnější je všechno najednou: balíček nebo Supporter Pass." },
-  da: { fit: "Passer til dit hjem", bundles: "Billigst er det hele på én gang: en pakke eller Supporter Pass." },
-  es: { fit: "Encaja con tu casa", bundles: "Lo más económico es todo de una vez: un paquete o el Supporter Pass." },
-  fi: { fit: "Sopii kotiisi", bundles: "Edullisinta on kaikki kerralla: paketti tai Supporter Pass." },
-  fr: { fit: "Convient à ta maison", bundles: "Le plus avantageux : tout d'un coup, avec un pack groupé ou le Supporter Pass." },
-  hu: { fit: "Illik az otthonodhoz", bundles: "A legolcsóbb mindent egyszerre: egy csomag vagy a Supporter Pass." },
-  it: { fit: "Adatto alla tua casa", bundles: "La scelta più conveniente è tutto insieme: un bundle o il Supporter Pass." },
-  nb: { fit: "Passer til hjemmet ditt", bundles: "Billigst er alt på én gang: en pakke eller Supporter Pass." },
-  nl: { fit: "Past bij je huis", bundles: "Het voordeligst is alles in één keer: een bundel of de Supporter Pass." },
-  nn: { fit: "Passar til heimen din", bundles: "Billegast er alt på ein gong: ei pakke eller Supporter Pass." },
-  pl: { fit: "Pasuje do twojego domu", bundles: "Najtaniej jest wszystko naraz: pakiet albo Supporter Pass." },
-  pt: { fit: "Combina com a sua casa", bundles: "O mais vantajoso é tudo de uma vez: um pacote ou o Supporter Pass." },
-  ro: { fit: "Se potrivește casei tale", bundles: "Cel mai avantajos este totul deodată: un pachet sau Supporter Pass." },
-  sk: { fit: "Hodí sa k tvojej domácnosti", bundles: "Najvýhodnejšie je všetko naraz: balík alebo Supporter Pass." },
-  sl: { fit: "Se ujema s tvojim domom", bundles: "Najugodneje je vse naenkrat: paket ali Supporter Pass." },
-  sv: { fit: "Passar ditt hem", bundles: "Billigast är allt på en gång: ett paket eller Supporter Pass." },
-  tr: { fit: "Evine uygun", bundles: "En avantajlısı hepsi bir arada: bir paket ya da Supporter Pass." },
-  zh: { fit: "适合你的家", bundles: "最划算的是一次全部拥有：套装或支持者通行证。" },
+type HintKey = "fit" | "bundles" | "account_title" | "account_text" | "account_button" | "account_have" | "start_gift";
+
+const TEXTS: Record<"de" | "en", Record<HintKey, string>> = {
+  de: { fit: "Passt zu deinem Zuhause", bundles: "Am günstigsten ist alles auf einmal: ein Bundle oder der Supporter-Pass.", account_title: "Kostenloses Kundenkonto", account_text: "Mit einem kostenlosen Konto auf mastershort.de bekommst du gratis die Fun-Packs {winter} und {pets}, die Module Fenster-Wächter und „Das Haus antwortet“ und mit dem Newsletter vier Schnupper-Packs mit Möbeln. Alles aktualisiert sich von selbst – kaufen musst du nichts.", account_button: "Kostenloses Konto anlegen", account_have: "Schon ein Konto? Trag unten deinen Lizenzschlüssel ein, dann erscheinen deine Gratis-Packs hier.", start_gift: "Gratis dazu: Mit einem kostenlosen Kundenkonto bekommst du Fun-Packs und Schnupper-Packs (unter ✦ Erweiterungen)." },
+  en: { fit: "Fits your home", bundles: "The best value is everything at once: a bundle or the Supporter Pass.", account_title: "Free customer account", account_text: "A free account at mastershort.de brings the fun packs {winter} and {pets}, the modules Window watch and “The house answers” and, with the newsletter, four taster packs of furniture – all free. Everything updates by itself; you don't have to buy anything.", account_button: "Create a free account", account_have: "Already have an account? Enter your licence key below and your free packs appear here.", start_gift: "Free on top: a free customer account brings fun packs and taster packs (under ✦ Extensions)." },
 };
 
-/** One of the two lines in the viewer's language (German, English or one of the further languages). */
-export function fitText(lang: string | undefined, key: "fit" | "bundles"): string {
+/**
+ * A line in the viewer's language: German and English here, the further languages from their lang file (keys
+ * "hint_…", fetched with the other texts), English when one is missing.
+ */
+export function fitText(lang: string | undefined, key: HintKey): string {
   const raw = (lang ?? navigator.language).toLowerCase();
-  const code = raw.startsWith("de") ? "de" : (languageCode(raw) ?? "en");
-  return (TEXTS[code] ?? TEXTS.en)[key];
+  if (raw.startsWith("de")) return TEXTS.de[key];
+  if (languageCode(raw)) {
+    const k = `hint_${key}`;
+    const s = translate({ language: raw } as HomeAssistant, k as I18nKey);
+    if (s !== k) return s;
+  }
+  return TEXTS.en[key];
 }
