@@ -286,3 +286,40 @@ async def test_a_pack_bound_elsewhere_is_refused_on_import(hass: HomeAssistant, 
     )
     result = await client.receive_json()
     assert not result["success"] and result["error"]["code"] == "wrong_instance"
+
+
+def test_previews_are_checked() -> None:
+    """The shop's preview list: only https links, known packs, plain ids and sizes that make sense."""
+    raw = {
+        "base": "https://mastershort.de/np-previews/",
+        "packs": [
+            {
+                "id": "mastershort.living",
+                "name": {"de": "Wohnzimmer"},
+                "price": {"de": "5,90 €"},
+                "url": {"de": "https://mastershort.de/?p=1273", "en": "http://x"},
+            },
+            {"id": "bad id!", "name": {"de": "x"}},
+        ],
+        "items": [
+            {
+                "p": "mastershort.living",
+                "id": "sofa_3",
+                "name": {"de": "Sofa", "en": "Sofa"},
+                "size": [2.1, 0.9, 0.8],
+                "room": ["living"],
+                "electric": 1,
+            },
+            {"p": "mastershort.living", "id": "huge", "name": {"de": "x"}, "size": [500, 1, 1]},
+            {"p": "other", "id": "x", "name": {"de": "x"}, "size": [1, 1, 1]},
+        ],
+        "bundle": {"name": {"de": "Alles-Bundle"}, "price": {"de": "54,90 €"}, "url": {"de": "javascript:alert(1)"}},
+    }
+    out = lic.clean_previews(raw)
+    assert [p["id"] for p in out["packs"]] == ["mastershort.living"]
+    assert out["packs"][0]["url"] == {"de": "https://mastershort.de/?p=1273"}
+    assert [i["id"] for i in out["items"]] == ["sofa_3"]
+    assert out["items"][0]["electric"] is True
+    assert out["bundle"] is None
+    with pytest.raises(lic.LicenseError):
+        lic.clean_previews([])

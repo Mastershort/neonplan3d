@@ -84,6 +84,18 @@ PART_SCHEMA = vol.Schema(
         vol.Optional("advent"): vol.All(vol.Coerce(int), vol.Range(min=1, max=4)),
         # fan blades (3.2.1, #1084): turn while the item's fan runs, about the upright ("y") or the front axis ("z")
         vol.Optional("spin"): vol.In(["y", "z"]),
+        # a live part (3.4): moves or lights with the entity of one of the item's slots - a door opens ("open",
+        # turning about an edge by `amount` degrees), a drawer slides out ("slide", a share of the depth), a drum
+        # turns ("spin"), a tank fills ("level"), a status light shows ok / off / a fault ("blink"), a part glows
+        vol.Optional("bind"): vol.Schema(
+            {
+                vol.Required("slot"): vol.All(str, vol.Match(r"^[a-z0-9_]{1,24}$")),
+                vol.Required("kind"): vol.In(["open", "slide", "spin", "level", "blink", "glow"]),
+                vol.Optional("hinge"): vol.In(["left", "right", "top", "bottom"]),
+                vol.Optional("axis"): vol.In(["x", "y", "z"]),
+                vol.Optional("amount"): vol.All(vol.Coerce(float), vol.Range(min=0, max=180)),
+            }
+        ),
     }
 )
 
@@ -146,6 +158,23 @@ ITEM_SCHEMA = vol.Schema(
         vol.Optional("tags"): vol.All([vol.All(str, vol.Length(min=1, max=30))], vol.Length(max=12)),
         vol.Optional("family"): _ID,
         vol.Optional("variant"): vol.All({vol.All(str, vol.Length(min=2, max=5)): _TEXT}, vol.Length(min=1, max=10)),
+        # slots of the live parts (3.4): the editor links an entity to each (names by language, fitting domains)
+        vol.Optional("slots"): vol.All(
+            [
+                vol.Schema(
+                    {
+                        vol.Required("id"): vol.All(str, vol.Match(r"^[a-z0-9_]{1,24}$")),
+                        vol.Required("name"): vol.All(
+                            {vol.All(str, vol.Length(min=2, max=5)): _TEXT}, vol.Length(min=1, max=24)
+                        ),
+                        vol.Optional("domains"): vol.All(
+                            [vol.All(str, vol.Match(r"^[a-z_]{2,30}$"))], vol.Length(max=8)
+                        ),
+                    }
+                )
+            ],
+            vol.Length(max=8),
+        ),
     }
 )
 

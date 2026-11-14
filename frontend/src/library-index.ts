@@ -65,6 +65,42 @@ export interface LibraryEntry {
   /** Variants of one thing share a family within their pack; the variant names the chip. */
   family: string | null;
   variant: string | null;
+  /** An item of a pack not owned yet, from the shop's previews: its picture, price and shop page (shown with a lock). */
+  locked?: LockedInfo;
+}
+
+export interface LockedInfo {
+  pic: string | null;
+  price: string | null;
+  url: string | null;
+  /** A free pack (fun packs): it comes with a free customer account. */
+  free: boolean;
+}
+
+/** The shop's previews (pictures and names of every pack's furniture, never the models), as the integration gives them. */
+export interface Previews {
+  base: string | null;
+  packs: { id: string; name: Record<string, string>; price: Record<string, string>; url: Record<string, string>; free: boolean }[];
+  items: {
+    p: string;
+    id: string;
+    name: Record<string, string>;
+    size: [number, number, number];
+    group: string | null;
+    room: string[];
+    tags: string[];
+    family: string | null;
+    variant: Record<string, string> | null;
+    electric: boolean;
+    light: boolean;
+  }[];
+  bundle: { name: Record<string, string>; price: Record<string, string>; url: Record<string, string> } | null;
+}
+
+/** A text of the shop in the viewer's language, else English, else German. */
+export function shopText(texts: Record<string, string> | undefined, language: string): string | null {
+  if (!texts) return null;
+  return texts[language.split("-")[0]] ?? texts.en ?? texts.de ?? null;
 }
 
 /** One card of the library: an item, or a family with its variants (the first is the card's picture). */
@@ -332,6 +368,8 @@ export interface IndexSource {
   basicNameEn: (type: string) => string;
   kindName: (kind: Kind) => string;
   size: (type: string) => [number, number, number];
+  /** The shop's previews: items of packs not installed here join the index locked (after the own ones). */
+  previews?: Previews | null;
 }
 
 const OUTDOOR_ROOMS = new Set<Room>(["garden"]);
@@ -415,12 +453,53 @@ export function buildIndex(src: IndexSource): LibraryEntry[] {
       });
     }
   }
+  // the shop's furniture not owned yet: locked, after everything that can be placed
+  const owned = new Set(src.packs.map((p) => p.id.replace(/^mastershort\./, "")));
+  const pv = src.previews;
+  if (pv?.items.length) {
+    const lang = src.language.split("-")[0];
+    const packs = new Map(pv.packs.map((p) => [p.id, p]));
+    const placed = new Set(out.map((e) => e.type));
+    for (const it of pv.items) {
+      const pack = packs.get(it.p);
+      if (!pack || owned.has(it.p.replace(/^mastershort\./, ""))) continue;
+      const type = packType(it.p, it.id);
+      if (placed.has(type)) continue;
+      const item = { id: it.id, name: it.name, size: it.size, group: it.group ?? undefined, room: it.room, tags: it.tags, family: it.family ?? undefined, variant: it.variant ?? undefined, parts: [] } as unknown as PackItem;
+      const { kind, rooms } = classify(it.p, item);
+      const label = packItemName(item, src.language);
+      const packLabel = shopText(pack.name, lang) ?? packName({ id: it.p, name: it.p }, src.language);
+      out.push({
+        type,
+        key: type,
+        label,
+        search: `${Object.values(it.name).join(" ")} ${it.id.replace(/_/g, " ")} ${Object.values(pack.name).join(" ")} ${src.kindName(kind)} ${KIND_WORDS[kind]} ${it.tags.join(" ")}`,
+        kind,
+        rooms,
+        electric: it.electric || it.light,
+        light: it.light,
+        outdoor: rooms.length > 0 && rooms.every((r) => OUTDOOR_ROOMS.has(r)),
+        size: it.size,
+        pack: it.p,
+        packLabel,
+        packRelease: 0,
+        family: familyOf(item),
+        variant: it.variant ? (it.variant[lang] ?? it.variant.en ?? Object.values(it.variant)[0] ?? null) : variantLabel(label),
+        locked: {
+          pic: pv.base ? `${pv.base}${encodeURIComponent(it.p)}/${encodeURIComponent(it.id)}.webp` : null,
+          price: pack.free ? null : shopText(pack.price, lang),
+          url: shopText(pack.url, lang),
+          free: pack.free,
+        },
+      });
+    }
+  }
   // an item that comes for one side only gets a twin for the other side, placed mirrored (#645: a left corner
   // sofa or cabinet must also exist as a right one)
   const byType = new Map(out.map((e) => [e.type, e]));
   for (const e of [...out]) {
     const side = sideOf(e.label);
-    if (!side || e.mirror) continue;
+    if (!side || e.mirror || e.locked) continue;
     const twinType = e.type.replace(/(_|\b)(left|right|links|rechts)(?=$|[_\s)])/i, (_m: string, sep: string, w: string) => sep + (({ left: "right", right: "left", links: "rechts", rechts: "links" } as Record<string, string>)[w.toLowerCase()] ?? w));
     if (twinType !== e.type && byType.has(twinType)) continue;
     const label = otherSideName(e.label);
@@ -445,6 +524,8 @@ export interface LibraryFilter {
   electric: boolean;
   light: boolean;
   outdoor: boolean;
+  /** Also the shop's furniture not owned yet (locked cards); on unless switched off. */
+  locked?: boolean;
 }
 
 /** The entries a filter leaves: every word of the query somewhere, the room fitting (items for any room always fit). */
@@ -455,6 +536,7 @@ export function filterEntries(entries: readonly LibraryEntry[], f: LibraryFilter
     if (f.electric && !e.electric) return false;
     if (f.light && !e.light) return false;
     if (f.outdoor && !e.outdoor) return false;
+    if (e.locked && f.locked === false) return false;
     if (!words.length) return true;
     const hay = fold(e.search);
     return words.every((w) => hay.includes(w));

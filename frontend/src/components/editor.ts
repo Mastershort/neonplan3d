@@ -23,7 +23,9 @@ import { weatherEntity, isRainSource } from "../weather.ts";
 import { isOutageSource } from "../outage.ts";
 import { SHOW_PRESENCE } from "../flags.ts";
 import { hasFeature, labOn, manualUrl, registerUrl, released, shopUrl, UNRELEASED } from "../features.ts";
-import { fitText } from "../fit-hints.ts";
+import { fitText, type HintKey } from "../fit-hints.ts";
+import { FINISH_ROLES, FINISH_SWATCHES, finishHex, finishRolesOf, type FinishRole } from "../finishes.ts";
+import { hasLiveParts, type PackSlot } from "../live-parts.ts";
 import { loadLocate } from "../load-locate.ts";
 import { isBeta, supporterUrl } from "../beta.ts";
 import { openPrint } from "../print.ts";
@@ -165,7 +167,8 @@ import { planLabel } from "./plan-picker.ts";
 import { deleteDiagnostics, getDiagnostics, setDiagnostics, type DiagnosticsStatus } from "../api.ts";
 import { load3d } from "../load3d.ts";
 import "./library.ts";
-import { basicTypes, buildIndex, roomKindOf, type LibraryEntry } from "../library-index.ts";
+import { basicTypes, buildIndex, roomKindOf, shopText, type LibraryEntry, type Previews } from "../library-index.ts";
+import { getPreviews } from "../api.ts";
 import { packsVersion as libPacksVersion } from "../packs.ts";
 import type { WallMode } from "../viewer/viewer3d.ts";
 import { furnitureName } from "../furniture-names.ts";
@@ -11873,6 +11876,78 @@ export class Fp3dEditor extends LitElement {
     </div>`;
   }
 
+  /**
+   * 🎨 Finish: own colours for wood, fabric and fronts (homely styles), as swatches for the roles the item is built
+   * from; "for all the same" gives every item of this kind in the plan the same finish.
+   */
+  private renderFinish(f: Furniture) {
+    const roles = finishRolesOf(f.type, packItem(f.type) ?? null);
+    if (!roles.length) return nothing;
+    const admin = this.isAdmin;
+    const lang = this.hass?.language;
+    const set = (role: FinishRole, hex: string | null) => {
+      const next = { ...(f.finish ?? {}), [role]: hex };
+      for (const k of FINISH_ROLES) if (!next[k]) delete next[k];
+      this.updateFurniture({ finish: Object.keys(next).length ? next : null });
+    };
+    const all = () =>
+      this.change((d) => {
+        for (const fl of d.floors) for (const m of fl.furniture) if (m.type === f.type) m.finish = f.finish ? { ...f.finish } : null;
+      });
+    const same = this._doc.floors.reduce((n, fl) => n + fl.furniture.filter((m) => m.type === f.type).length, 0);
+    return html`<details class="fp3d-finish" ?open=${!!f.finish}>
+      <summary>🎨 ${fitText(lang, "finish_title")}</summary>
+      <p class="fp3d-sub">${fitText(lang, "finish_hint")}</p>
+      ${roles.map((role) => {
+        const cur = finishHex(f, role);
+        return html`<div class="fp3d-finish-row">
+          <span class="fp3d-finish-label">${fitText(lang, `finish_${role}` as HintKey)}</span>
+          <button class="fp3d-swatch fp3d-swatch-own ${cur ? "" : "on"}" title=${fitText(lang, "finish_own")} aria-label=${fitText(lang, "finish_own")} ?disabled=${!admin} @click=${() => set(role, null)}></button>
+          ${FINISH_SWATCHES[role].map(
+            (sw) => html`<button class="fp3d-swatch ${cur?.toLowerCase() === sw.hex ? "on" : ""}" style="background:${sw.hex}" title=${sw.hex} aria-label=${sw.id} ?disabled=${!admin} @click=${() => set(role, sw.hex)}></button>`,
+          )}
+          <input class="fp3d-swatch-pick" type="color" .value=${cur ?? FINISH_SWATCHES[role][0].hex} ?disabled=${!admin} title="#" @change=${(e: Event) => set(role, (e.target as HTMLInputElement).value)} />
+        </div>`;
+      })}
+      ${same > 1 && admin ? html`<button class="fp3d-btn" @click=${all}>${fitText(lang, "finish_all")} (${same})</button>` : nothing}
+    </details>`;
+  }
+
+  /** Entity filters per slot (kept, so the options list is built once per slot kind). */
+  private slotFilters = new Map<string, (id: string) => boolean>();
+
+  /**
+   * ⚡ Live parts (3.4): an entity for each slot of a pack item whose parts move or light with Home Assistant
+   * (a door with its contact, a tank with its level, a status light with its sensor).
+   */
+  private renderLiveSlots(f: Furniture) {
+    const item = packItem(f.type);
+    if (!item || !hasLiveParts(item)) return nothing;
+    const lang = this.hass?.language ?? "en";
+    const ids = [...new Set(item.parts.flatMap((p) => (p.bind ? [p.bind.slot] : [])))];
+    const slots: PackSlot[] = item.slots?.length ? item.slots : ids.map((id) => ({ id, name: { en: id } as Record<string, string> }));
+    return html`<details class="fp3d-finish" open>
+      <summary>⚡ ${fitText(lang, "live_title")}</summary>
+      <p class="fp3d-sub">${fitText(lang, "live_hint")}${slots.length <= 1 ? ` ${fitText(lang, "live_own")}` : ""}</p>
+      ${slots.map((slot) => {
+        const doms = slot.domains?.length ? slot.domains : null;
+        const fkey = doms ? doms.join(",") : "*";
+        let filter = this.slotFilters.get(fkey);
+        if (!filter) {
+          filter = doms ? (id: string) => doms.includes(id.split(".")[0]) : () => true;
+          this.slotFilters.set(fkey, filter);
+        }
+        const label = slot.name[lang.split("-")[0]] ?? slot.name.en ?? Object.values(slot.name)[0] ?? slot.id;
+        return this.entitySelect(label, f.binds?.[slot.id] ?? null, undefined, this.entityOptions(filter), (v) => {
+          const next = { ...(f.binds ?? {}) };
+          if (v && v !== "none") next[slot.id] = v;
+          else delete next[slot.id];
+          this.updateFurniture({ binds: Object.keys(next).length ? next : null });
+        });
+      })}
+    </details>`;
+  }
+
   private renderFurnitureForm(f: Furniture) {
     if (this.selection().length > 1) return this.renderBlockForm();
     const admin = this.isAdmin;
@@ -11943,6 +12018,7 @@ export class Fp3dEditor extends LitElement {
               ${f.mount_y != null ? html`<button class="fp3d-btn fp3d-field-btn" ?disabled=${!admin} @click=${() => this.updateFurniture({ mount_y: null })}>${this.t("height_auto")}</button>` : nothing}`
           : nothing}
       </div>
+      ${this.renderFinish(f)} ${this.renderLiveSlots(f)}
       ${f.type === "stairs" ? html`<p class="fp3d-sub">${this.t("stairs_hint")}</p>` : nothing}
       ${f.type === "stairs_u" ? html`<p class="fp3d-sub">${this.t("stairs_u_hint")}</p>` : nothing}
       ${f.type === "stairwell"
@@ -13406,12 +13482,40 @@ export class Fp3dEditor extends LitElement {
   }
 
   private libIndex: { key: string; entries: LibraryEntry[] } | null = null;
+  /** The shop's furniture previews (asked once when the library is first shown; null until then or without the shop). */
+  private libPreviews: Previews | null = null;
+  private libPreviewsAsked = false;
+
+  private askPreviews(): void {
+    if (this.libPreviewsAsked || !this.hass || !this.isAdmin) return;
+    this.libPreviewsAsked = true;
+    getPreviews(this.hass)
+      .then((p) => {
+        if (!p.items.length) return;
+        this.libPreviews = p;
+        this.libIndex = null;
+        this.requestUpdate();
+      })
+      .catch(() => {
+        // an older integration or no shop: the library stays as it is
+      });
+  }
+
+  /** The shop's bundle for the locked cards (name, price, page in the viewer's language). */
+  private libBundle(lang: string): { name: string; price: string; url: string } | null {
+    const b = this.libPreviews?.bundle;
+    if (!b) return null;
+    const name = shopText(b.name, lang);
+    const price = shopText(b.price, lang);
+    const url = shopText(b.url, lang);
+    return name && price && url ? { name, price, url } : null;
+  }
 
   /** The library's index, built once per language and pack state. */
   private libraryEntries(lang: string): LibraryEntry[] {
     // the smart fridge is exclusive: an installed pack with the feature "fridge_smart", or Haushalt Pro, offers it
     const extra = hasFeature("fridge_smart") || hasFeature("household") ? ["fridge_smart"] : [];
-    const key = `${lang}|${libPacksVersion()}|${this.packs?.length ?? 0}|${extra.length}`;
+    const key = `${lang}|${libPacksVersion()}|${this.packs?.length ?? 0}|${extra.length}|${this.libPreviews?.items.length ?? 0}`;
     if (this.libIndex?.key === key) return this.libIndex.entries;
     const entries = buildIndex({
       packs: this.packs ?? [],
@@ -13421,6 +13525,7 @@ export class Fp3dEditor extends LitElement {
       basicNameEn: (t) => translate(EN_HASS, `furn_${t}` as I18nKey),
       kindName: (k) => this.t(`lib_kind_${k}` as I18nKey),
       size: furnitureSize,
+      previews: this.libPreviews,
     });
     this.libIndex = { key, entries };
     return entries;
@@ -13436,6 +13541,7 @@ export class Fp3dEditor extends LitElement {
   private renderFurnitureLibrary() {
     const room = this.room;
     const lang = this.hass?.language ?? "en";
+    this.askPreviews();
     return html`<section>
       <h3>${this.t("furniture_add")}</h3>
       <p class="fp3d-sub">${room ? this.t("furniture_into", { room: room.name }) : this.t("furniture_pick_room")}</p>
@@ -13446,6 +13552,7 @@ export class Fp3dEditor extends LitElement {
         .admin=${this.isAdmin}
         .t=${(k: string, v?: Record<string, string | number>) => this.t(k as I18nKey, v)}
         .thumb=${this.libraryThumb}
+        .bundle=${this.libBundle(lang)}
         @library-add=${(e: CustomEvent<{ type: string; mirror?: boolean }>) => this.addFurniture(e.detail.type, !!e.detail.mirror)}
         @library-preview=${(e: CustomEvent<{ type: string | null; element: HTMLElement | null }>) => {
           if (e.detail.type && e.detail.element) void this.showPreview(e.detail.type, e.detail.element);
@@ -15414,6 +15521,47 @@ export class Fp3dEditor extends LitElement {
       }
       .fp3d-row:hover {
         color: var(--fp3d-accent);
+      }
+      .fp3d-finish {
+        margin: 6px 0;
+      }
+      .fp3d-finish summary {
+        cursor: pointer;
+        font-weight: 600;
+      }
+      .fp3d-finish-row {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 5px;
+        margin: 6px 0;
+      }
+      .fp3d-finish-label {
+        width: 64px;
+        font-size: 12px;
+        color: var(--fp3d-muted);
+      }
+      .fp3d-swatch {
+        width: 22px;
+        height: 22px;
+        padding: 0;
+        border-radius: 50%;
+        border: 2px solid rgba(255, 255, 255, 0.18);
+        cursor: pointer;
+      }
+      .fp3d-swatch.on {
+        border-color: var(--fp3d-accent);
+        box-shadow: 0 0 0 2px rgba(55, 224, 255, 0.35);
+      }
+      .fp3d-swatch-own {
+        background: conic-gradient(#8e97a5 0 25%, #a67a52 0 50%, #edebe7 0 75%, #4a4f58 0);
+      }
+      .fp3d-swatch-pick {
+        width: 26px;
+        height: 24px;
+        padding: 0;
+        border: 0;
+        background: none;
       }
       .fp3d-check {
         display: flex;
