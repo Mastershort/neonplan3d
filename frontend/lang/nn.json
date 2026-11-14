@@ -2492,5 +2492,7 @@
  "surround_pick": "Vis og gøym hus",
  "surround_pick_hint": "Trykk på eit hus for å gøyme det eller vise det att. Gul stipla = gøymt: NeonPlan gøymer sjølv huset ditt og kartbygningar som står på planen din (til dømes ein garasje).",
  "surround_pick_hide": "Trykk for å gøyme",
- "surround_pick_show": "Gøymt – trykk for å vise"
+ "surround_pick_show": "Gøymt – trykk for å vise",
+ "pro_name_frames": "Digitale biletrammer",
+ "pro_feature_frames": "Digitale biletrammer: rammer på veggen viser ei biletframsyning, kalenderen, ei oppslagstavle, lister eller eit kamerabilete – eit trykk opnar det stort"
 }

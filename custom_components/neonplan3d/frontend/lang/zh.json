@@ -2492,5 +2492,7 @@
  "surround_pick": "显示和隐藏房屋",
  "surround_pick_hint": "点按一栋房子即可隐藏或重新显示。黄色虚线 = 已隐藏：你的房子以及地图上位于你平面图上的建筑（例如车库）会由 NeonPlan 自动隐藏。",
  "surround_pick_hide": "点按隐藏",
- "surround_pick_show": "已隐藏 – 点按显示"
+ "surround_pick_show": "已隐藏 – 点按显示",
+ "pro_name_frames": "数码相框",
+ "pro_feature_frames": "数码相框: 墙上的相框显示幻灯片、日历、留言板、清单或摄像头画面——轻点即可放大查看"
 }

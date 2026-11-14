@@ -2492,5 +2492,7 @@
  "surround_pick": "Mostrar y ocultar casas",
  "surround_pick_hint": "Toca una casa para ocultarla o volver a mostrarla. Discontinua amarilla = oculta: NeonPlan oculta por sí mismo tu casa y los edificios del mapa que están sobre tu plano (un garaje, por ejemplo).",
  "surround_pick_hide": "Toca para ocultar",
- "surround_pick_show": "Oculta – toca para mostrar"
+ "surround_pick_show": "Oculta – toca para mostrar",
+ "pro_name_frames": "Marcos de fotos digitales",
+ "pro_feature_frames": "Marcos de fotos digitales: marcos en la pared muestran una presentación, el calendario, un tablón, listas o la imagen de una cámara; al tocar se abre en grande"
 }

@@ -2492,5 +2492,7 @@
  "surround_pick": "Vis og skjul hus",
  "surround_pick_hint": "Trykk på et hus for å skjule det eller vise det igjen. Gul stiplet = skjult: NeonPlan skjuler selv huset ditt og kartbygninger som står på planen din (for eksempel en garasje).",
  "surround_pick_hide": "Trykk for å skjule",
- "surround_pick_show": "Skjult – trykk for å vise"
+ "surround_pick_show": "Skjult – trykk for å vise",
+ "pro_name_frames": "Digitale bilderammer",
+ "pro_feature_frames": "Digitale bilderammer: rammer på veggen viser en lysbildefremvisning, kalenderen, en oppslagstavle, lister eller et kamerabilde – et trykk åpner det stort"
 }

@@ -2492,5 +2492,7 @@
  "surround_pick": "Vis og skjul huse",
  "surround_pick_hint": "Tryk på et hus for at skjule det eller vise det igen. Gul stiplet = skjult: NeonPlan skjuler selv dit hus og kortets bygninger, der står på din plan (f.eks. en garage).",
  "surround_pick_hide": "Tryk for at skjule",
- "surround_pick_show": "Skjult – tryk for at vise"
+ "surround_pick_show": "Skjult – tryk for at vise",
+ "pro_name_frames": "Digitale billedrammer",
+ "pro_feature_frames": "Digitale billedrammer: rammer på væggen viser et diasshow, kalenderen, en opslagstavle, lister eller et kamerabillede – et tryk åbner det stort"
 }

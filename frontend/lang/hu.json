@@ -2492,5 +2492,7 @@
  "surround_pick": "Házak megjelenítése és elrejtése",
  "surround_pick_hint": "Koppints egy házra, hogy elrejtsd vagy újra megjelenítsd. Sárga szaggatott = elrejtve: a házadat és a térkép olyan épületeit, amelyek a tervedre esnek (pl. egy garázs), a NeonPlan magától elrejti.",
  "surround_pick_hide": "Koppints az elrejtéshez",
- "surround_pick_show": "Elrejtve – koppints a megjelenítéshez"
+ "surround_pick_show": "Elrejtve – koppints a megjelenítéshez",
+ "pro_name_frames": "Digitális képkeretek",
+ "pro_feature_frames": "Digitális képkeretek: a falon lévő keretek diavetítést, naptárt, faliújságot, listákat vagy kameraképet mutatnak – koppintásra nagyban nyílik meg"
 }

@@ -2492,5 +2492,7 @@
  "surround_pick": "Pokaż i ukryj domy",
  "surround_pick_hint": "Dotknij domu, aby go ukryć lub ponownie pokazać. Żółta przerywana linia = ukryty: Twój dom i budynki z mapy stojące na Twoim planie (np. garaż) NeonPlan ukrywa sam.",
  "surround_pick_hide": "Dotknij, aby ukryć",
- "surround_pick_show": "Ukryty – dotknij, aby pokazać"
+ "surround_pick_show": "Ukryty – dotknij, aby pokazać",
+ "pro_name_frames": "Cyfrowe ramki na zdjęcia",
+ "pro_feature_frames": "Cyfrowe ramki na zdjęcia: ramki na ścianie pokazują pokaz slajdów, kalendarz, tablicę, listy albo obraz z kamery – dotknięcie otwiera je w dużym widoku"
 }

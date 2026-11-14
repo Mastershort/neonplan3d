@@ -2492,5 +2492,7 @@
  "surround_pick": "Mostrar e ocultar casas",
  "surround_pick_hint": "Toca numa casa para a ocultar ou voltar a mostrar. Tracejado amarelo = oculta: o NeonPlan oculta sozinho a tua casa e os edifícios do mapa que estão sobre a tua planta (uma garagem, por exemplo).",
  "surround_pick_hide": "Toca para ocultar",
- "surround_pick_show": "Oculta – toca para mostrar"
+ "surround_pick_show": "Oculta – toca para mostrar",
+ "pro_name_frames": "Molduras digitais",
+ "pro_feature_frames": "Molduras digitais: molduras na parede mostram uma apresentação, o calendário, um quadro, listas ou a imagem de uma câmara – um toque abre-a em grande"
 }

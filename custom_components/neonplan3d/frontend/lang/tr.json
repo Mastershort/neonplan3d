@@ -2491,5 +2491,7 @@
  "surround_pick": "Evleri göster ve gizle",
  "surround_pick_hint": "Bir evi gizlemek ya da yeniden göstermek için ona dokun. Sarı kesikli = gizli: NeonPlan senin evini ve planının üzerinde duran harita binalarını (örneğin bir garajı) kendisi gizler.",
  "surround_pick_hide": "Gizlemek için dokun",
- "surround_pick_show": "Gizli – göstermek için dokun"
+ "surround_pick_show": "Gizli – göstermek için dokun",
+ "pro_name_frames": "Dijital fotoğraf çerçeveleri",
+ "pro_feature_frames": "Dijital fotoğraf çerçeveleri: duvardaki çerçeveler slayt gösterisi, takvim, pano, listeler ya da kamera görüntüsü gösterir – dokununca büyük açılır"
 }

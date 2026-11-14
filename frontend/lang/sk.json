@@ -2492,5 +2492,7 @@
  "surround_pick": "Zobraziť a skryť domy",
  "surround_pick_hint": "Ťuknutím na dom ho skryješ alebo znova zobrazíš. Žltá prerušovaná = skryté: tvoj dom a budovy z mapy, ktoré stoja na tvojom pláne (napríklad garáž), skrýva NeonPlan sám.",
  "surround_pick_hide": "Ťuknutím skryť",
- "surround_pick_show": "Skryté – ťuknutím zobraziť"
+ "surround_pick_show": "Skryté – ťuknutím zobraziť",
+ "pro_name_frames": "Digitálne fotorámčeky",
+ "pro_feature_frames": "Digitálne fotorámčeky: rámčeky na stene ukazujú prezentáciu fotiek, kalendár, nástenku, zoznamy alebo obraz z kamery – ťuknutím sa otvoria vo veľkom"
 }

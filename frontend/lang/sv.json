@@ -2492,5 +2492,7 @@
  "surround_pick": "Visa och dölj hus",
  "surround_pick_hint": "Tryck på ett hus för att dölja det eller visa det igen. Gul streckad = dold: NeonPlan döljer själv ditt hus och kartans byggnader som står på din planritning (till exempel ett garage).",
  "surround_pick_hide": "Tryck för att dölja",
- "surround_pick_show": "Dold – tryck för att visa"
+ "surround_pick_show": "Dold – tryck för att visa",
+ "pro_name_frames": "Digitala fotoramar",
+ "pro_feature_frames": "Digitala fotoramar: ramar på väggen visar ett bildspel, kalendern, en anslagstavla, listor eller en kamerabild – ett tryck öppnar den stort"
 }

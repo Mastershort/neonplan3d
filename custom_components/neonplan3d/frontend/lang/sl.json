@@ -2492,5 +2492,7 @@
  "surround_pick": "Prikaži in skrij hiše",
  "surround_pick_hint": "Tapni hišo, da jo skriješ ali znova prikažeš. Rumeno črtkano = skrito: tvojo hišo in stavbe z zemljevida, ki stojijo na tvojem načrtu (npr. garažo), NeonPlan skrije sam.",
  "surround_pick_hide": "Tapni za skritje",
- "surround_pick_show": "Skrito – tapni za prikaz"
+ "surround_pick_show": "Skrito – tapni za prikaz",
+ "pro_name_frames": "Digitalni foto okvirji",
+ "pro_feature_frames": "Digitalni foto okvirji: okvirji na steni prikazujejo diaprojekcijo, koledar, oglasno desko, sezname ali sliko kamere – dotik jo odpre v velikem"
 }

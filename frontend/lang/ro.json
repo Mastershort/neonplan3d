@@ -2492,5 +2492,7 @@
  "surround_pick": "Arată și ascunde case",
  "surround_pick_hint": "Atinge o casă ca să o ascunzi sau să o arăți din nou. Galben punctat = ascunsă: casa ta și clădirile hărții care stau pe planul tău (de exemplu un garaj) le ascunde NeonPlan singur.",
  "surround_pick_hide": "Atinge pentru a ascunde",
- "surround_pick_show": "Ascunsă – atinge pentru a arăta"
+ "surround_pick_show": "Ascunsă – atinge pentru a arăta",
+ "pro_name_frames": "Rame foto digitale",
+ "pro_feature_frames": "Rame foto digitale: ramele de pe perete arată o prezentare, calendarul, un panou, liste sau imaginea unei camere – o atingere o deschide mare"
 }
