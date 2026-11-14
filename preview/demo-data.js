@@ -567,9 +567,11 @@ EG.furniture = [
   item("pack:mastershort.garden:tree_oak", -1.5, -11.0, 5.0, 5.0, 7.0),
   item("pack:mastershort.garden:tree_birch", 21.0, -1.5, 3.2, 3.2, 7.5),
   item("pack:mastershort.garden:shrub", 7.0, -5.2, 1.3, 1.3, 1.2),
-  item("pack:mastershort.garden:shrub_flowering", -2.6, 1.5, 1.3, 1.3, 1.4),
+  item("pack:mastershort.garden:shrub", -2.6, 1.5, 1.3, 1.3, 1.4),
   item("pack:mastershort.garden:tree_fruit", 2.4, 13.8, 3.2, 3.2, 3.6),
-  item("pack:mastershort.garden:brush", 5.0, 14.4, 2.6, 2.6, 0.8),
+  item("pack:mastershort.garden:shrub", 5.0, 14.4, 1.6, 1.6, 1.1),
+  item("pack:mastershort.garden:shrub", 12.9, -12.6, 1.4, 1.4, 1.2),
+  item("pack:mastershort.garden:tree_birch", -2.4, 6.0, 2.8, 2.8, 6.5),
 ];
 OG.furniture = [
   // children's room: a ceiling fan with light, a bunk bed
