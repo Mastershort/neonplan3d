@@ -4,6 +4,17 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 [releases page](https://github.com/Mastershort/neonplan3d/releases). Ideas and votes:
 [Discussions → Ideas](https://github.com/Mastershort/neonplan3d/discussions/categories/ideas).
 
+## 3.4.0
+
+### Added
+- **The shop's furniture in the library:** the items of packs you don't have yet stand after your own with a lock – the search finds them too; a tap shows the picture large with the pack, its price and the way to the shop. Pictures only, loaded from the shop at most once a day when the library opens; a chip hides them.
+- **Finishes:** own colours for wood, fabric and fronts of every item in the homely styles – built-in and pack furniture – as swatches in the furniture form, also for all the same items in the plan at once.
+- **Live parts of pack items:** parts move or light with an entity – doors and flaps open, drawers slide out, prints grow with their progress, tanks and batteries fill, status lights show green, off or a pulsing red, fans turn, parts glow. An entity per part in the furniture form; without one everything stands as drawn. First packs with live parts: the new "Homelab & Workshop" pack and updates of Office & Gaming, Smart Home & Tech and Utility & Building Services.
+- **Extensions page:** the Pro add-ons that fit your home (cameras, a solar or grid sensor, media players, a wallbox, weather, waste collection – checked in the browser only) come first with a small sign; locked add-ons show their price with a shop connection; without a key the page says what a free customer account brings.
+
+### Fixed
+- **The picture frames' card on the extensions page** showed raw text keys instead of its name and description.
+
 ## 3.3.1
 
 ### Added

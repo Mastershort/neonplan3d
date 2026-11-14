@@ -2154,7 +2154,7 @@ export function pushPackLamp(buf: GeoBuffer, item: PackItem, f: Pick<Furniture, 
  * drawer or a status light about its middle, a filling tank from its bottom. Status lights and glowing parts are
  * drawn white: the viewer tints them. Null when the item has no such parts.
  */
-export function pushPackLive(buf: GeoBuffer, item: PackItem, w: number, d: number, h: number, key: string): { pivot: [number, number, number]; bind: PartBind; depth: number } | null {
+export function pushPackLive(buf: GeoBuffer, item: PackItem, w: number, d: number, h: number, key: string): { pivot: [number, number, number]; bind: PartBind; depth: number; rest: number } | null {
   const W = Math.max(0.05, w);
   const D = Math.max(0.05, d);
   const H = Math.max(0.005, h);
@@ -2178,7 +2178,8 @@ export function pushPackLive(buf: GeoBuffer, item: PackItem, w: number, d: numbe
   const lit = bind.kind === "blink" || bind.kind === "glow";
   const b = new Builder(buf, new LineBuffer(), (x, z) => [x - pivot[0], z - pivot[2]]);
   packModel(b, { ...item, size: [W, D, H], parts: lit ? parts.map((p) => ({ ...p, glow: true })) : parts }, W, D, H, -pivot[1], lit ? 0xffffff : null);
-  return { pivot, bind, depth: D };
+  // its own colour: what a status light or a glowing part shows while no entity is linked
+  return { pivot, bind, depth: D, rest: packColor(parts[0].color, false) ?? 0xffffff };
 }
 
 /**

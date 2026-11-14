@@ -274,6 +274,7 @@ The **Furniture** tool opens the library: the 80 built-in models and everything 
 - **★ Favourites** and **🕘 Recently used** stand at the top as soon as there are any – the star on every card marks them, both stay in the browser.
 - The **search field** finds English and German names, the pack name and everyday words ("lamp" finds all lights, "cabinet" all cabinets), several words in any order ("corner sofa"); Escape clears it. While searching, every section is open.
 - Long sections show 24 cards first and **"Show … more"** below.
+- **🔒 From packs** (new in 3.4): after your own furniture come the items of packs you don't have yet, with a lock – the search finds them too. A tap shows the picture large with the pack, its price and **See in the shop**. It is only a picture; the item comes with the pack and is then placed like any other. NeonPlan loads the list from the shop at most once a day when you open the library; nothing about you is sent. The **🔒 From packs** chip hides them (remembered in this browser).
 
 The **Worktop** (Kitchen) is a free top without a base, for gaps in the kitchen or a self-built desk; its **height** is the top edge, 91 cm by default. Under Sofas, next to the sofa, there are a **Corner sofa (L-shaped)** and a **U-shaped sofa**; **Mirror** puts the corner sofa's side section on the other side. On devices that show the cards without pictures, hovering shows the bigger 3D preview as before.
 
@@ -294,6 +295,8 @@ The **Worktop** (Kitchen) is a free top without a base, for gaps in the kitchen 
 
 - **State from:** any piece of furniture can show an entity that reports on, occupied or home – its top then glows: the bed with an occupancy mat, the armchair, the sauna. A second entity lights the other half (left/right, bottom/top for a bunk bed); set the first one to *none* and the second moves up into its place. Lamps, energy devices and screens have fields of their own for this.
 - **Only show while …** (new): the piece stands in 3D only while an entity is in a state – the Christmas tree while `input_boolean.christmas` is on, the garden decoration only while a season sensor says "summer". Separate several states with commas, `<20` or `>80` compares a number, a `!` in front turns it round; empty means "on". Hidden, its light and its marker go too. The editor always shows the piece; while it is missing in 3D it is faint in the plan. So you place decoration once and switch it on every year with a switch or an automation.
+- **🎨 Finish** (new in 3.4): own colours for **wood**, **fabric** and **fronts** – a sofa in blue, a table in walnut, a kitchen in sage. Shown in the homely styles; the neon looks colour every item themselves. It works for the built-in furniture and every pack item made of these parts; **Standard** goes back to the style's colours. **For all the same in the plan** gives every item of this kind the same finish.
+- **⚡ Live parts** (new in 3.4, on pack items that have them): parts move with Home Assistant – the server rack's door opens with its contact, the print in the 3D printer grows with its progress, the home battery fills with its charge, status lights show green, off or a pulsing red, fans turn, parts glow. Pick the fitting entity for each part; an item with only one takes the item's entity without a choice. Without an entity everything stands as drawn.
 - **Duplicate** and **Delete** are there too.
 
 ![A selected item](images/editor-furniture.jpg)
@@ -1256,7 +1259,11 @@ After that:
 
 ### 7.2 Pro add-ons
 
-The middle row of tiles shows the Pro add-ons. Active ones carry a ✓, locked ones a 🔒 and the link "See in the shop".
+The middle row of tiles shows the Pro add-ons. Active ones carry a ✓, locked ones a 🔒 and the link "See in the shop" – with a shop connection with the price.
+
+**Fits your home** (new in 3.4): add-ons that fit your Home Assistant come first with a small sign – Camera Cockpit with cameras ("📷 3"), Energy Pro with a solar or grid sensor, Sound & Cinema with media players, Car Pro with a wallbox or a parking spot, Weather Outside with a weather entity, Household Pro with waste collection sensors. Only your browser checks this; nothing is sent.
+
+**Without a licence key** the page shows at the top what a **free customer account** brings (the fun packs, the free modules and, with the newsletter, four taster packs), with a button to create one. You don't have to buy anything.
 
 ### 7.3 Furniture packs
 

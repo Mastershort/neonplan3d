@@ -699,7 +699,7 @@ export class FloorplanViewer {
   private spinSpeeds = new Map<string, number>();
   private spinMat: MeshBasicMaterial | null = null;
   /** Live parts of pack items (3.4): a model per item and group (slot + kind) at its pivot, moved to its value. */
-  private packLive = new Map<string, { group: Group; inner: Group; mesh: Mesh; mat: MeshBasicMaterial | null; bind: PartBind; depth: number; floorId: string; y: number; sig: string; target: number; value: number }>();
+  private packLive = new Map<string, { group: Group; inner: Group; mesh: Mesh; mat: MeshBasicMaterial | null; bind: PartBind; depth: number; rest: number; floorId: string; y: number; sig: string; target: number; value: number }>();
   private liveValues = new Map<string, number>();
   private liveLast = 0;
   private fanLast = 0;
@@ -5507,7 +5507,7 @@ export class FloorplanViewer {
         if (!item || !hasLiveParts(item)) continue;
         for (const [key, g] of liveGroups(item.parts)) {
           const ent = slotEntity(f.binds, g.bind.slot, item.slots?.length ?? 0, own(f.id));
-          values.set(`${f.id}|${key}`, bindValue(g.bind.kind, ent ? states[ent] : undefined));
+          values.set(`${f.id}|${key}`, ent ? bindValue(g.bind.kind, states[ent]) : NaN);
         }
       }
     }
@@ -5553,11 +5553,11 @@ export class FloorplanViewer {
             group.position.set(f.x, base, f.z);
             group.rotation.y = -(f.rotation * DEG);
             if (f.mirror) group.scale.x = -1;
-            live = { group, inner, mesh, mat, bind: made.bind, depth: made.depth, floorId: fv.floor.id, y: base + made.pivot[1], sig, target: 0, value: 0 };
+            live = { group, inner, mesh, mat, bind: made.bind, depth: made.depth, rest: made.rest, floorId: fv.floor.id, y: base + made.pivot[1], sig, target: NaN, value: NaN };
             this.packLive.set(id, live);
             this.poseLive(live, 0);
           }
-          live.target = this.liveValues.get(id) ?? 0;
+          live.target = this.liveValues.get(id) ?? NaN;
         }
       }
     }
@@ -5572,9 +5572,17 @@ export class FloorplanViewer {
   }
 
   /** A live part at its value: turned open, slid out, filled, tinted. */
-  private poseLive(l: { inner: Group; mesh: Mesh; mat: MeshBasicMaterial | null; bind: PartBind; depth: number; value: number }, now: number): void {
-    const v = l.value;
+  private poseLive(l: { inner: Group; mesh: Mesh; mat: MeshBasicMaterial | null; bind: PartBind; depth: number; rest: number; value: number }, now: number): void {
     const b = l.bind;
+    // no entity linked: the part as the item was drawn before (closed, full, in its own colour)
+    if (Number.isNaN(l.value)) {
+      l.mesh.rotation.set(0, 0, 0);
+      l.mesh.position.z = 0;
+      l.mesh.scale.y = 1;
+      l.mat?.color.setHex(l.rest);
+      return;
+    }
+    const v = l.value;
     switch (b.kind) {
       case "open": {
         const a = (b.amount ?? 95) * DEG * Math.max(0, v);
@@ -5599,7 +5607,8 @@ export class FloorplanViewer {
         break;
       }
       case "glow":
-        l.mat?.color.setRGB(0.22 + 0.78 * Math.max(0, v), 0.24 + 0.76 * Math.max(0, v), 0.3 + 0.7 * Math.max(0, v));
+        // its own colour, dim while off and full while on
+        l.mat?.color.setHex(l.rest).multiplyScalar(0.22 + 0.78 * Math.max(0, Math.min(1, v)));
         break;
       case "spin":
         break;
@@ -5620,6 +5629,7 @@ export class FloorplanViewer {
       if (l.bind.kind === "spin") {
         if (l.target > 0) {
           moving = true;
+          l.value = l.target;
           const turn = l.target * Math.PI * 2 * dt * (l.bind.amount ? l.bind.amount / 60 : 1);
           const axis = l.bind.axis ?? "y";
           if (axis === "x") l.mesh.rotation.x -= turn;
@@ -5628,7 +5638,13 @@ export class FloorplanViewer {
         }
         continue;
       }
-      if (l.value !== l.target) {
+      if (Number.isNaN(l.target) || Number.isNaN(l.value)) {
+        if (!Object.is(l.value, l.target)) {
+          l.value = Number.isNaN(l.target) ? NaN : l.bind.kind === "level" ? 1 : 0;
+          moving = true;
+        }
+      }
+      if (!Number.isNaN(l.target) && l.value !== l.target) {
         // about a second from closed to open
         const step = dt * 1.6;
         l.value = Math.abs(l.target - l.value) <= step || l.bind.kind === "blink" ? l.target : l.value + Math.sign(l.target - l.value) * step;
