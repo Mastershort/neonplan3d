@@ -785,6 +785,8 @@ FREE_WALL_SCHEMA = vol.Schema(
             None,
             vol.All([vol.All(vol.Coerce(float), vol.Range(min=0.05, max=20))], vol.Length(min=2, max=2)),
         ),
+        # colour of both sides (#1101, homely styles; None = the room's wall or the facade)
+        vol.Optional("color"): vol.Any(None, vol.All(str, vol.Length(max=16))),
     },
     extra=vol.ALLOW_EXTRA,
 )
