@@ -152,6 +152,17 @@ test("the own building and buildings standing in the plan's rooms are not drawn"
   assert.equal(flat.buildings.length, 1);
 });
 
+test("nothing drawn yet: the map's house is turned square to the screen with its corner at the plan's origin", () => {
+  const b = house([], 0);
+  b.floors[0].rooms = [];
+  const t = (20 * Math.PI) / 180;
+  const sq: Vec2[] = ([[-6, -4], [6, -4], [6, 4], [-6, 4]] as Vec2[]).map(([e, n]) => [e * Math.cos(t) - n * Math.sin(t) + 3, e * Math.sin(t) + n * Math.cos(t) - 2]);
+  const placed = placeUnderPlan(base([{ p: sq, h: 7 }]), 0, b);
+  assert.equal(placed.north, 20, "of the four square turns, the one closest to north up");
+  const corners = sq.map((p) => mapToPlan(placed, placed.north, p));
+  for (const want of [[0, 0], [12, 0], [12, 8], [0, 8]] as Vec2[]) assert.ok(corners.some(([x, z]) => Math.hypot(x - want[0], z - want[1]) < 0.05), `a corner at ${want} (got ${JSON.stringify(corners)})`);
+});
+
 test("a garage mapped as a building of its own turns the map the right way round and is hidden too", () => {
   // the plan: a house of two rooms, a garage beside it that reaches further up, a shed apart in the garden
   const b = house(

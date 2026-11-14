@@ -191,6 +191,29 @@ export function placedSurroundings(b: Building | null | undefined): PlacedSurrou
   };
 }
 
+/** The floor the map lies on: the one closest to the ground. */
+export function surroundFloorId(b: Building): string | undefined {
+  return [...b.floors].sort((p, q) => Math.abs(p.elevation) - Math.abs(q.elevation))[0]?.id;
+}
+
+/** The house's own building on the map in plan coordinates (the template to draw on), null without one. */
+export function ownOutline(b: Building): Vec2[] | null {
+  const s = b.settings.surroundings;
+  const own = typeof s?.own === "number" ? s.buildings[s.own] : undefined;
+  return s?.on && own ? own.p.map((p) => mapToPlan(s, b.settings.north ?? 0, p)) : null;
+}
+
+let cornerCache: { key: string; out: Vec2[] } | null = null;
+
+/** The corners of the map's buildings in plan coordinates, for walls to snap to (none while the map is off). */
+export function mapCorners(b: Building): Vec2[] {
+  const s = b.settings.surroundings;
+  if (!s?.on) return [];
+  const key = `${surroundKey(b)},${b.settings.north ?? 0}`;
+  if (cornerCache?.key !== key) cornerCache = { key, out: s.buildings.flatMap((bd) => bd.p.map((p) => mapToPlan(s, b.settings.north ?? 0, p))) };
+  return cornerCache.out;
+}
+
 /** A short key that changes whenever what is drawn of the neighbourhood changes (for redrawing shadows). */
 export function surroundKey(b: Building | null | undefined): string {
   const s = b?.settings.surroundings;

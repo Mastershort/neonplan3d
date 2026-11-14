@@ -66,9 +66,17 @@ export function placeUnderPlan(s: Pick<Surroundings, "buildings">, own: number |
   const rooms = mainRooms(b);
   const home = own !== null ? s.buildings[own] : undefined;
   const mid = rooms.length ? boxMiddle(rooms.flat()) : null;
-  if (!mid || !home) return { north, x: mid?.[0] ?? 0, z: mid?.[1] ?? 0 };
   // the map's longest wall, in the plan's own way of measuring (x east, z down = south): (e, -n)
-  const mapDir = mainDirection(ringEdges(home.p.map(([e, n]) => [e, -n] as Vec2)));
+  const mapDir = home ? mainDirection(ringEdges(home.p.map(([e, n]) => [e, -n] as Vec2))) : 0;
+  if (home && !mid) {
+    // nothing drawn yet: the map is the template – turned so the house's walls run square to the screen (of the four
+    // ways, the one closest to the north so far), the house's corner at the plan's origin, ready to draw on
+    const t = Math.round([0, 90, 180, 270].map((k) => (wrap(k - mapDir) + 360) % 360).sort((p, q) => Math.abs(wrap(p - north)) - Math.abs(wrap(q - north)))[0] * 10) / 10;
+    const parts = [home.p, ...s.buildings.filter((bd) => bd !== home && polygonGap(bd.p, home.p) < 0.5).map((bd) => bd.p)];
+    const pts = parts.flat().map((p) => mapToPlan({ x: 0, z: 0 }, t, p));
+    return { north: t, x: -Math.round(Math.min(...pts.map((p) => p[0])) * 100) / 100, z: -Math.round(Math.min(...pts.map((p) => p[1])) * 100) / 100 };
+  }
+  if (!mid || !home) return { north, x: mid?.[0] ?? 0, z: mid?.[1] ?? 0 };
   const planDir = mainDirection(outerEdges(rooms));
   // turning the map by t turns its directions by t (clockwise in the plan)
   const base = planDir - mapDir;

@@ -33,7 +33,7 @@ import { screenName, setScreenName, setVoiceArea, setVoiceHere, setVoicePipeline
 import { doorbellCamera, doorbellEntities, directorOnHere, HOLD_DEFAULT, HOLD_MAX, HOLD_MIN, setDirectorHere, type DirectorSettings } from "../director.ts";
 import { deviceSensors, energySummary, flowSegments, gridPoint, hubPoint, inverterToGrid, powerSensorFor, proposeEnergySensors, type EnergyPrefs, type FlowSegment, proposeMeters } from "../energy.ts";
 import { CLIMATE_ATTRS, isPulseDrive, isStatusSensor, robotRoomSensor, slatTilt, TOGGLE_KINDS } from "../devices.ts";
-import { homeBuilding, OSM_COPYRIGHT, planMiddle, mapToPlan, SURROUND_RADII, turnMap, hiddenBuildings } from "../surroundings.ts";
+import { homeBuilding, OSM_COPYRIGHT, planMiddle, mapToPlan, SURROUND_RADII, turnMap, hiddenBuildings, mapCorners, ownOutline, surroundFloorId } from "../surroundings.ts";
 import { loadOsm } from "../load-osm.ts";
 import { activeSections, sectionFloor, sectionOverhang, dormerParent, effectiveDormer, proposeDormer, sectionGeometry, floorOutline, polygonBox, headroomLines, ridgeHeight, sectionAbove, sectionCutsBelow, roofSectionsFromRooms, sectionFrame, sectionTurn, turnPoint, turnSectionAbout, wallTopUnder } from "../roof-sections.ts";
 import { bestFace, clampField, faceAt, faceCompass, fieldFace, fieldModules, GROUND, moveField, pointOnFace, proposeField, proposeGroundField, proposeWindow, proposeWallField, roofFaces, rowCounts, turnGroundField, fieldCenter, wallFaces, windowAsField, windowCorners, onFace, onField, rayOnFace, type RoofFace } from "../solar.ts";
@@ -377,6 +377,8 @@ export class Fp3dEditor extends LitElement {
     _bgRuler: { state: true },
     _bgRulerLen: { state: true },
     _bgLevel: { state: true },
+    _bgMap: { state: true },
+    _mapStartOff: { state: true },
     _bgOpen: { state: true },
     _shiftZ: { state: true },
     hass: { attribute: false },
@@ -674,6 +676,10 @@ export class Fp3dEditor extends LitElement {
   private declare _bgRulerLen: number;
   /** Straighten the background: two taps along a wall that should run straight (null = off). */
   private declare _bgLevel: Vec2[] | null;
+  /** Fitting the picture to the map: two corners in the picture, then the same two on the house from the map. */
+  private declare _bgMap: Vec2[] | null;
+  /** The note to start with the map on an empty plan was put away. */
+  private declare _mapStartOff: boolean;
   /** The background section is open: the picture has handles like a piece of furniture (move, scale, turn). */
   private declare _bgOpen: boolean;
   private declare _shiftZ: number;
@@ -812,14 +818,17 @@ export class Fp3dEditor extends LitElement {
     this._bgRuler = null;
     this._bgRulerLen = 0;
     this._bgLevel = null;
+    this._bgMap = null;
     this._bgOpen = false;
     this._shiftZ = 0;
     this._floorMenu = false;
     this._openingPreset = "door";
     this._phoneHint = true;
     this._diagInvite = false;
+    this._mapStartOff = false;
     try {
       this._phoneHint = localStorage.getItem("neonplan3d.phoneHint") !== "0";
+      this._mapStartOff = localStorage.getItem("neonplan3d.mapStart") === "0";
     } catch {
       // no storage: shown until closed
     }
@@ -1471,6 +1480,8 @@ export class Fp3dEditor extends LitElement {
     if (this._tool === "outdoor" || this._tool === "pool") for (const a of this.floor?.outdoor ?? []) pts.push(...a.points);
     // the roof tool shows the roof sections too, which reach past the rooms
     if (this._tool === "roof") for (const s of this._doc.settings.roof.sections ?? []) pts.push([s.x0, s.z0], [s.x1, s.z1]);
+    // an empty ground floor shows the house on the map (the template to draw on)
+    if (!pts.length && this.floor?.id === surroundFloorId(this._doc)) pts.push(...(ownOutline(this._doc) ?? []));
     const b = pts.length ? bounds(pts) : { x0: 0, z0: 0, x1: 10, z1: 8 };
     const margin = 1.5;
     const w = b.x1 - b.x0 + 2 * margin;
@@ -1511,6 +1522,8 @@ export class Fp3dEditor extends LitElement {
         others.push(q);
       });
     }
+    // the corners of the houses on the map (the template on the ground floor)
+    if (this.floor && this.floor.id === surroundFloorId(this._doc)) others.push(...mapCorners(this._doc));
     // 1. corners of rooms
     let best: Vec2 | null = null;
     let bestD = thr;
@@ -1651,6 +1664,13 @@ export class Fp3dEditor extends LitElement {
       const pts = [...this._bgLevel, world];
       if (pts.length < 2) this._bgLevel = pts;
       else this.applyBgLevel(pts[0], pts[1]);
+      return;
+    }
+    if (this._bgMap && this.isAdmin && this.floor?.background) {
+      // the third and fourth tap land on the map's corners
+      const pts = [...this._bgMap, this._bgMap.length < 2 ? world : this.nearMapCorner(world)];
+      if (pts.length < 4) this._bgMap = pts;
+      else this.applyBgMap(pts);
       return;
     }
     if (this.bgHandles() && this.floor.background && target.closest("[data-bg-rotate]")) {
@@ -6192,6 +6212,7 @@ export class Fp3dEditor extends LitElement {
                   </span>
                 </div>`
               : nothing}
+            ${this.renderMapStart(floor)}
             ${this.houseTool ? html`<div class="fp3d-tool-note">${this.t(this._tool === "energy" ? "energy_only_note" : "roof_only_note")}</div>` : nothing}
             <svg
               class="fp3d-plan fp3d-tool-${this._tool}"
@@ -6217,7 +6238,7 @@ export class Fp3dEditor extends LitElement {
               ${this._tool === "roof" ? svg`${this.renderRoofSections()}${this.renderRoofWindows()}` : this._tool === "energy" ? svg`${this.renderRoofSections()}${this.renderSolarFields()}${this.renderCables()}${this.renderEnergyMarkers()}` : this._tool === "pool" && floor && this.pipeRules ? this.renderPoolPlan(floor) : nothing} ${this.renderDraft()} ${this.renderGuides()}
             </svg>
             ${this.renderContext()}
-            <p class="fp3d-hint ${this._fixedHint ? "fp3d-hint-fixed" : ""}">${!floor ? this.t("hint_empty") : this._wallPick ? this.t("hint_wall_pick") : this._fixedHint ? this.t("fixed_drag_hint") : this._tool === "outdoor" && this._outdoorFree ? this.t("hint_outdoor_free") : this._tool === "pool" && this._jointPlace ? this.t("hint_joint_place") : this._tool === "pool" && this._pipeMode ? this.t(!this.poolArea ? "hint_pipe_pool" : this._pipeDraft ? "hint_pipe_next" : "hint_pipe_start") : this._tool === "pool" && released("pool") ? this.t("hint_pool_tech") : this.t(`hint_${this._tool}` as I18nKey)}</p>
+            <p class="fp3d-hint ${this._fixedHint ? "fp3d-hint-fixed" : ""}">${!floor ? this.t("hint_empty") : this._bgMap ? this.t(`bg_map_${this._bgMap.length + 1}` as I18nKey) : this._wallPick ? this.t("hint_wall_pick") : this._fixedHint ? this.t("fixed_drag_hint") : this._tool === "outdoor" && this._outdoorFree ? this.t("hint_outdoor_free") : this._tool === "pool" && this._jointPlace ? this.t("hint_joint_place") : this._tool === "pool" && this._pipeMode ? this.t(!this.poolArea ? "hint_pipe_pool" : this._pipeDraft ? "hint_pipe_next" : "hint_pipe_start") : this._tool === "pool" && released("pool") ? this.t("hint_pool_tech") : this.t(`hint_${this._tool}` as I18nKey)}</p>
           </div>
           ${this._split && !this.narrow
             ? html`<div class="fp3d-split-handle" title=${this.t("split_handle_hint")} @pointerdown=${this.onSplitDown}></div>`
@@ -6260,13 +6281,37 @@ export class Fp3dEditor extends LitElement {
     return !!this.floor?.background && this.isAdmin && this._tool === "select" && this._bgEdit;
   }
 
+  /**
+   * An empty ground floor: start with the map - the house's outline from OpenStreetMap as the template (position,
+   * size and north right from the start); once loaded, how to draw on it or lay the floor-plan picture onto it.
+   */
+  private renderMapStart(floor: Floor | undefined) {
+    if (!this.isAdmin || !floor || floor.rooms.length || floor.id !== surroundFloorId(this._doc) || this._mapStartOff || this._diagInvite) return nothing;
+    const ready = !!ownOutline(this._doc);
+    const off = () => {
+      this._mapStartOff = true;
+      try {
+        localStorage.setItem("neonplan3d.mapStart", "0");
+      } catch {
+        // no storage: gone for this visit
+      }
+    };
+    return html`<div class="fp3d-diag-invite" role="note">
+      <span><b>🗺 ${this.t("map_start_title")}</b> ${this.t(ready ? "map_start_ready" : "map_start_text")}</span>
+      <span class="fp3d-diag-invite-buttons">
+        ${ready ? nothing : html`<button class="fp3d-btn primary" @click=${() => (this._settingsDialog = "surroundings")}>${this.t("map_start_load")}</button>`}
+        <button class="fp3d-btn" @click=${off}>${this.t(ready ? "map_start_ok" : "diag_invite_later")}</button>
+      </span>
+    </div>`;
+  }
+
   /** The ruler's points and line over the background (#183), or the straighten line. */
   private renderBgRuler() {
-    const pts = this._bgLevel?.length ? this._bgLevel : this._bgRuler;
+    const pts = this._bgMap?.length ? this._bgMap : this._bgLevel?.length ? this._bgLevel : this._bgRuler;
     if (!pts?.length) return nothing;
     const s = pts.map((p) => this.toScreen(p));
     return svg`<g class="fp3d-bg-ruler">
-      ${s.length === 2 ? svg`<line x1=${s[0][0]} y1=${s[0][1]} x2=${s[1][0]} y2=${s[1][1]} />` : nothing}
+      ${[0, 2].map((i) => (s[i + 1] ? svg`<line x1=${s[i][0]} y1=${s[i][1]} x2=${s[i + 1][0]} y2=${s[i + 1][1]} />` : nothing))}
       ${s.map(([x, y]) => svg`<circle cx=${x} cy=${y} r="6" />`)}
     </g>`;
   }
@@ -6289,6 +6334,44 @@ export class Fp3dEditor extends LitElement {
     let rot = (bg.rotation ?? 0) + (delta * 180) / Math.PI;
     rot = Math.round((((((rot + 180) % 360) + 360) % 360) - 180) * 100) / 100;
     this.updateFloor({ background: { ...bg, rotation: rot, x: round(c2[0] - bg.width / 2), z: round(c2[1] - h / 2) } });
+  }
+
+  /** The corner of a house on the map nearest to a tap (within 2 m), else the tap itself. */
+  private nearMapCorner(p: Vec2): Vec2 {
+    let best = p;
+    let d = Math.max(2, (SNAP_PX * 2) / this._view.scale);
+    for (const q of mapCorners(this._doc)) {
+      const e = Math.hypot(q[0] - p[0], q[1] - p[1]);
+      if (e < d) {
+        d = e;
+        best = q;
+      }
+    }
+    return best;
+  }
+
+  /**
+   * Lay the picture onto the map: the stretch between the first two taps (two corners in the picture) lands on the
+   * stretch between the last two (the same corners on the house from the map) – scaled, turned and moved at once.
+   */
+  private applyBgMap([a1, a2, b1, b2]: Vec2[]): void {
+    const bg = this.floor?.background;
+    const img = bg ? this._images[bg.image_id] : undefined;
+    this._bgMap = null;
+    const la = Math.hypot(a2[0] - a1[0], a2[1] - a1[1]);
+    const lb = Math.hypot(b2[0] - b1[0], b2[1] - b1[1]);
+    if (!bg || !img || la < 0.05 || lb < 0.05) return;
+    const k = lb / la;
+    const t = Math.atan2(b2[1] - b1[1], b2[0] - b1[0]) - Math.atan2(a2[1] - a1[1], a2[0] - a1[0]);
+    // the picture's middle goes along: c' = b1 + k R(t) (c - a1)
+    const h = bg.width * img.aspect;
+    const dx = bg.x + bg.width / 2 - a1[0];
+    const dz = bg.z + h / 2 - a1[1];
+    const cx = b1[0] + k * (dx * Math.cos(t) - dz * Math.sin(t));
+    const cz = b1[1] + k * (dx * Math.sin(t) + dz * Math.cos(t));
+    const rot = (bg.rotation ?? 0) + (t * 180) / Math.PI;
+    const w2 = bg.width * k;
+    this.updateFloor({ background: { ...bg, width: round(w2), rotation: Math.round((((((rot + 180) % 360) + 360) % 360) - 180) * 100) / 100, x: round(cx - w2 / 2), z: round(cz - (h * k) / 2) } });
   }
 
   /** Scale the background about the ruler's first point so the measured stretch gets its real length (#183). */
@@ -13743,8 +13826,18 @@ export class Fp3dEditor extends LitElement {
                       ${this.t(this._bgEdit ? "background_edit_done" : "background_edit")}
                     </button>
                     <p class="fp3d-sub fp3d-wide">${this.t(this._bgEdit ? "background_handles_hint" : "background_fixed_hint")}</p>
+                  ${ownOutline(this._doc) && floor.id === surroundFloorId(this._doc)
+                    ? html`<button class="fp3d-btn fp3d-wide ${this._bgMap ? "fp3d-primary" : ""}" aria-pressed=${!!this._bgMap} @click=${() => {
+                          this._bgMap = this._bgMap ? null : [];
+                          this._bgLevel = null;
+                          this._bgRuler = null;
+                          this._bgEdit = false;
+                        }}>🗺 ${this.t(this._bgMap ? "bg_map_cancel" : "bg_map")}</button>
+                        <p class="fp3d-sub fp3d-wide">${this.t(this._bgMap ? (`bg_map_${this._bgMap.length + 1}` as I18nKey) : "bg_map_hint")}</p>`
+                    : nothing}
                   <button class="fp3d-btn fp3d-wide ${this._bgLevel ? "fp3d-primary" : ""}" aria-pressed=${!!this._bgLevel} @click=${() => {
                     this._bgLevel = this._bgLevel ? null : [];
+                    this._bgMap = null;
                     this._bgRuler = null;
                     this._bgEdit = false;
                   }}>📐 ${this.t(this._bgLevel ? "bg_level_cancel" : "bg_level")}</button>
@@ -13752,6 +13845,7 @@ export class Fp3dEditor extends LitElement {
                   <button class="fp3d-btn fp3d-wide ${this._bgRuler ? "fp3d-primary" : ""}" aria-pressed=${!!this._bgRuler} @click=${() => {
                     this._bgRuler = this._bgRuler ? null : [];
                     this._bgLevel = null;
+                    this._bgMap = null;
                     this._bgEdit = false;
                   }}>📏 ${this.t(this._bgRuler ? "bg_ruler_cancel" : "bg_ruler")}</button>
                   ${this._bgRuler
@@ -14320,6 +14414,8 @@ export class Fp3dEditor extends LitElement {
           d.settings.surroundings = { on: true, at: Math.round(Date.now() / 1000), own, x: place.x, z: place.z, ...data };
           d.settings.north = place.north;
         });
+        // nothing drawn yet: show the house on the map, ready to draw on
+        if (!this.floor?.rooms.length) this.fit();
       } catch (e) {
         // the map bundle's own error class is not this bundle's: its kind tells what happened
         const kind = (e as { kind?: string } | null)?.kind;
