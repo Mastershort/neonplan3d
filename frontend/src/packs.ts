@@ -50,6 +50,17 @@ export interface PackPart {
   rot?: number;
   /** An Advent candle's flame: drawn only from the n-th Sunday of Advent (1–4) until 6 January. */
   advent?: number;
+  /**
+   * Turns while the item's fan runs (#1084): fan blades around the upright axis ("y", a ceiling fan) or the front axis
+   * ("z", a pedestal fan), about the middle of all the item's turning parts.
+   */
+  spin?: "y" | "z";
+}
+
+/** The axis an item's turning parts (fan blades) turn about, null without such parts. */
+export function packSpinAxis(item: Pick<PackItem, "parts"> | null | undefined): "y" | "z" | null {
+  const p = item?.parts.find((x) => x.spin === "y" || x.spin === "z");
+  return p ? (p.spin as "y" | "z") : null;
 }
 
 /**

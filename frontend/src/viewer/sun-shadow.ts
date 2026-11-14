@@ -79,3 +79,29 @@ export function sunEdge(d: number, len: number, soft = 0.3): number {
   const k = Math.min(1, d / s, (len - d) / s);
   return k > 0 ? k : 0;
 }
+
+/**
+ * The shadows of plain blocks (the neighbours' houses from the map): each stands on the ground and is `h` tall,
+ * and is laid down along the sun's rays like the house (same triangles, so overlaps do not darken twice).
+ */
+export function blockShadows(blocks: readonly { p: readonly [number, number][]; h: number }[], toSun: [number, number], elevation: number): number[] {
+  const out: number[] = [];
+  if (elevation <= 0) return out;
+  const reach = 1 / Math.tan((elevation * Math.PI) / 180);
+  for (const b of blocks) {
+    if (b.p.length < 3) continue;
+    const d = Math.min(SHADOW_REACH, b.h * reach);
+    const hi = b.p.map(([x, z]) => [x - toSun[0] * d, z - toSun[1] * d] as [number, number]);
+    const ring = b.p as [number, number][];
+    for (const [i, j, k] of triangulate(ring)) {
+      out.push(ring[i][0], ring[i][1], ring[j][0], ring[j][1], ring[k][0], ring[k][1]);
+      out.push(hi[i][0], hi[i][1], hi[j][0], hi[j][1], hi[k][0], hi[k][1]);
+    }
+    for (let i = 0; i < ring.length; i++) {
+      const j = (i + 1) % ring.length;
+      out.push(ring[i][0], ring[i][1], ring[j][0], ring[j][1], hi[j][0], hi[j][1]);
+      out.push(ring[i][0], ring[i][1], hi[j][0], hi[j][1], hi[i][0], hi[i][1]);
+    }
+  }
+  return out;
+}

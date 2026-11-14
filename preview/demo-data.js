@@ -524,7 +524,7 @@ EG.furniture = [
   { ...item("neon_sign", 9.62, 6.6, 2.0, 0.03, 0.6, 270), entity: "light.neon_schild", sign_text: "Game Room", sign_color: "#ff3fb4" },
   // garage and carport
   {
-    ...item("parking", 15.8, 3.0, 2.6, 5.0, 0.02, 0),
+    ...item("parking", 15.8, 3.4, 2.6, 5.0, 0.02, 0),
     entity: "binary_sensor.garage_auto",
     car: { soc: "sensor.van_ladestand", range: "sensor.van_reichweite", charging: "sensor.van_ladeleistung", lock: "lock.van", climate: "switch.van_klima" },
     vehicle: "pack:mastershort.vehicles:van",
@@ -696,6 +696,11 @@ EG.outdoor = [
   { ...area("a12", "wild", 1.0, -12.5, 5.0, -9.5), cut: true },
   { ...area("a13", "pergola", 16.4, -5.4, 20.0, -2.4), height: 2.3, bracing: true },
 ];
+// free walls: a partition in the garage closes off a niche for the technique (with a door), a parapet on the
+// gallery runs along the stair opening
+EG.walls = [{ id: "wall_garage", a: [14, 0.85], b: [16.6, 0.85], thickness: null, height: null }];
+EG.openings.push(hole("door", "garage", 0, 1.2, 0.9, { wall: "wall_garage" }));
+OG.walls = [{ id: "wall_gallery", a: [8.1, 5.3], b: [8.1, 8.5], thickness: 0.1, height: 1.0 }];
 OG.outdoor = [
   // the bedroom balcony over the terrace and the roof terrace on the garage (railings only where no wall is)
   { ...area("b1", "balcony", 7.0, -1.6, 9.8, -0.24), name: "Balkon" },

@@ -33,6 +33,8 @@ import { screenName, setScreenName, setVoiceArea, setVoiceHere, setVoicePipeline
 import { doorbellCamera, doorbellEntities, directorOnHere, HOLD_DEFAULT, HOLD_MAX, HOLD_MIN, setDirectorHere, type DirectorSettings } from "../director.ts";
 import { deviceSensors, energySummary, flowSegments, gridPoint, hubPoint, inverterToGrid, powerSensorFor, proposeEnergySensors, type EnergyPrefs, type FlowSegment, proposeMeters } from "../energy.ts";
 import { CLIMATE_ATTRS, isPulseDrive, isStatusSensor, robotRoomSensor, slatTilt, TOGGLE_KINDS } from "../devices.ts";
+import { homeBuilding, OSM_COPYRIGHT, planMiddle, mapToPlan, SURROUND_RADII, turnMap, hiddenBuildings, mapCorners, ownOutline, surroundFloorId } from "../surroundings.ts";
+import { loadOsm } from "../load-osm.ts";
 import { activeSections, sectionFloor, sectionOverhang, dormerParent, effectiveDormer, proposeDormer, sectionGeometry, floorOutline, polygonBox, headroomLines, ridgeHeight, sectionAbove, sectionCutsBelow, roofSectionsFromRooms, sectionFrame, sectionTurn, turnPoint, turnSectionAbout, wallTopUnder } from "../roof-sections.ts";
 import { bestFace, clampField, faceAt, faceCompass, fieldFace, fieldModules, GROUND, moveField, pointOnFace, proposeField, proposeGroundField, proposeWindow, proposeWallField, roofFaces, rowCounts, turnGroundField, fieldCenter, wallFaces, windowAsField, windowCorners, onFace, onField, rayOnFace, type RoofFace } from "../solar.ts";
 import type { SurfaceGrab, SurfaceRay } from "../viewer/viewer3d.ts";
@@ -138,6 +140,7 @@ import {
   type OpeningType,
   type Room,
   type Vec2,
+  type Surroundings,
   DOOR_STYLES,
   WINDOW_STYLES,
   SILL_BOARDS,
@@ -166,7 +169,7 @@ import { packsVersion as libPacksVersion } from "../packs.ts";
 import type { WallMode } from "../viewer/viewer3d.ts";
 import { furnitureName } from "../furniture-names.ts";
 import { furnitureShown } from "../show-if.ts";
-import { furnitureSize, isElectric, isPackHeater, isPackSensor, isPackType, isRobotVacuum, mountBase, packDisplay, packItem, packItemName, packMotion, packName, packType, setPacks, type FurniturePack } from "../packs.ts";
+import { furnitureSize, isElectric, isPackHeater, isPackSensor, isPackType, isRobotVacuum, mountBase, packDisplay, packItem, packItemName, packMotion, packName, packSpinAxis, packType, setPacks, type FurniturePack } from "../packs.ts";
 
 /** Items that can be fixed against moving. */
 type FixKind = "room" | "opening" | "furniture" | "device" | "wall" | "outdoor";
@@ -230,7 +233,7 @@ const turnBy = (a: number, d: number): number => {
 };
 
 /** Topics of the ⚙ settings menu (everything that belongs to the whole plan). */
-type SettingsTopic = "plans" | "house" | "weather" | "director" | "voice" | "locate" | "favorites" | "styles" | "backdrop" | "terrain" | "backup" | "modules" | "fun" | "cards" | "diagnostics";
+type SettingsTopic = "plans" | "house" | "weather" | "director" | "voice" | "locate" | "favorites" | "styles" | "backdrop" | "terrain" | "surroundings" | "backup" | "modules" | "fun" | "cards" | "diagnostics";
 
 /** Wall view side bar: what stands or hangs at a wall, by kind. */
 const WALL_CATS: Record<string, string[]> = {
@@ -374,6 +377,8 @@ export class Fp3dEditor extends LitElement {
     _bgRuler: { state: true },
     _bgRulerLen: { state: true },
     _bgLevel: { state: true },
+    _bgMap: { state: true },
+    _mapStartOff: { state: true },
     _bgOpen: { state: true },
     _shiftZ: { state: true },
     hass: { attribute: false },
@@ -396,6 +401,9 @@ export class Fp3dEditor extends LitElement {
     _names3d: { state: true },
     _style3d: { state: true },
     _styleSel: { state: true },
+    _surrBusy: { state: true },
+    _surrError: { state: true },
+    _surrRadius: { state: true },
     _sidePinned: { state: true },
     _sideMin: { state: true },
     _sideOpen: { state: true },
@@ -518,6 +526,10 @@ export class Fp3dEditor extends LitElement {
   private declare _style3d: string;
   /** The style shown in the styles dialog (its preview and, for an own one, its settings). */
   private declare _styleSel: string | null;
+  /** The neighbourhood from the map: being fetched, the last error (an i18n key), the radius chosen. */
+  private declare _surrBusy: boolean;
+  private declare _surrError: string | null;
+  private declare _surrRadius: number;
   /** Sidebar beside the 3D pane: pinned open always, or folded to a strip while nothing is selected. */
   private declare _sidePinned: boolean;
   /** The sidebar folded to a narrow strip beside the plan (more room to move furniture); remembered per browser. */
@@ -664,6 +676,10 @@ export class Fp3dEditor extends LitElement {
   private declare _bgRulerLen: number;
   /** Straighten the background: two taps along a wall that should run straight (null = off). */
   private declare _bgLevel: Vec2[] | null;
+  /** Fitting the picture to the map: two corners in the picture, then the same two on the house from the map. */
+  private declare _bgMap: Vec2[] | null;
+  /** The note to start with the map on an empty plan was put away. */
+  private declare _mapStartOff: boolean;
   /** The background section is open: the picture has handles like a piece of furniture (move, scale, turn). */
   private declare _bgOpen: boolean;
   private declare _shiftZ: number;
@@ -802,14 +818,17 @@ export class Fp3dEditor extends LitElement {
     this._bgRuler = null;
     this._bgRulerLen = 0;
     this._bgLevel = null;
+    this._bgMap = null;
     this._bgOpen = false;
     this._shiftZ = 0;
     this._floorMenu = false;
     this._openingPreset = "door";
     this._phoneHint = true;
     this._diagInvite = false;
+    this._mapStartOff = false;
     try {
       this._phoneHint = localStorage.getItem("neonplan3d.phoneHint") !== "0";
+      this._mapStartOff = localStorage.getItem("neonplan3d.mapStart") === "0";
     } catch {
       // no storage: shown until closed
     }
@@ -1461,6 +1480,8 @@ export class Fp3dEditor extends LitElement {
     if (this._tool === "outdoor" || this._tool === "pool") for (const a of this.floor?.outdoor ?? []) pts.push(...a.points);
     // the roof tool shows the roof sections too, which reach past the rooms
     if (this._tool === "roof") for (const s of this._doc.settings.roof.sections ?? []) pts.push([s.x0, s.z0], [s.x1, s.z1]);
+    // an empty ground floor shows the house on the map (the template to draw on)
+    if (!pts.length && this.floor?.id === surroundFloorId(this._doc)) pts.push(...(ownOutline(this._doc) ?? []));
     const b = pts.length ? bounds(pts) : { x0: 0, z0: 0, x1: 10, z1: 8 };
     const margin = 1.5;
     const w = b.x1 - b.x0 + 2 * margin;
@@ -1501,6 +1522,8 @@ export class Fp3dEditor extends LitElement {
         others.push(q);
       });
     }
+    // the corners of the houses on the map (the template on the ground floor)
+    if (this.floor && this.floor.id === surroundFloorId(this._doc)) others.push(...mapCorners(this._doc));
     // 1. corners of rooms
     let best: Vec2 | null = null;
     let bestD = thr;
@@ -1641,6 +1664,13 @@ export class Fp3dEditor extends LitElement {
       const pts = [...this._bgLevel, world];
       if (pts.length < 2) this._bgLevel = pts;
       else this.applyBgLevel(pts[0], pts[1]);
+      return;
+    }
+    if (this._bgMap && this.isAdmin && this.floor?.background) {
+      // the third and fourth tap land on the map's corners
+      const pts = [...this._bgMap, this._bgMap.length < 2 ? world : this.nearMapCorner(world)];
+      if (pts.length < 4) this._bgMap = pts;
+      else this.applyBgMap(pts);
       return;
     }
     if (this.bgHandles() && this.floor.background && target.closest("[data-bg-rotate]")) {
@@ -5946,6 +5976,7 @@ export class Fp3dEditor extends LitElement {
       { key: "styles", icon: "🎨", label: this.t("styles_title"), admin: true },
       { key: "backdrop", icon: "🖼", label: this.t("backdrop"), admin: true },
       { key: "terrain", icon: "⛰", label: this.t("terrain"), admin: true },
+      { key: "surroundings", icon: "🗺", label: this.t("surround"), admin: true },
       { key: "backup", icon: "💾", label: this.t("backup"), admin: true },
       { key: "modules", icon: "🧩", label: this.t("settings_modules"), admin: true },
       { key: "fun", icon: "🎈", label: this.t("fun_title"), admin: true },
@@ -6021,6 +6052,7 @@ export class Fp3dEditor extends LitElement {
       styles: this.t("styles_title"),
       backdrop: this.t("backdrop"),
       terrain: this.t("terrain"),
+      surroundings: this.t("surround"),
       backup: this.t("backup"),
       modules: this.t("settings_modules"),
       fun: this.t("fun_title"),
@@ -6051,6 +6083,8 @@ export class Fp3dEditor extends LitElement {
                   ? this.renderStyleSettings()
                 : topic === "backdrop"
                   ? this.renderBackdrop()
+                  : topic === "surroundings"
+                    ? this.renderSurroundings()
                   : topic === "terrain"
                     ? this.renderTerrain()
                     : topic === "backup"
@@ -6178,6 +6212,7 @@ export class Fp3dEditor extends LitElement {
                   </span>
                 </div>`
               : nothing}
+            ${this.renderMapStart(floor)}
             ${this.houseTool ? html`<div class="fp3d-tool-note">${this.t(this._tool === "energy" ? "energy_only_note" : "roof_only_note")}</div>` : nothing}
             <svg
               class="fp3d-plan fp3d-tool-${this._tool}"
@@ -6192,7 +6227,7 @@ export class Fp3dEditor extends LitElement {
               @contextmenu=${this.onContextMenu}
             >
               ${this.renderBackground(floor)} ${this.renderGrid()} ${this.renderGhost()} ${walls ? this.renderWalls(walls.walls) : nothing}
-              ${floor ? this.renderOutdoor(floor) : nothing} ${floor ? this.renderRooms(floor) : nothing} ${floor ? this.renderFurniture(floor) : nothing}
+              ${floor ? this.renderSurroundPlan(floor) : nothing} ${floor ? this.renderOutdoor(floor) : nothing} ${floor ? this.renderRooms(floor) : nothing} ${floor ? this.renderFurniture(floor) : nothing}
               ${floor ? this.renderFreeWalls(floor) : nothing}
               ${floor && walls ? this.renderOpenings(floor, walls.walls) : nothing} ${floor ? this.renderMeter(floor) : nothing}
               ${floor && this._tool === "select" ? this.renderDevices(floor) : nothing}
@@ -6203,7 +6238,7 @@ export class Fp3dEditor extends LitElement {
               ${this._tool === "roof" ? svg`${this.renderRoofSections()}${this.renderRoofWindows()}` : this._tool === "energy" ? svg`${this.renderRoofSections()}${this.renderSolarFields()}${this.renderCables()}${this.renderEnergyMarkers()}` : this._tool === "pool" && floor && this.pipeRules ? this.renderPoolPlan(floor) : nothing} ${this.renderDraft()} ${this.renderGuides()}
             </svg>
             ${this.renderContext()}
-            <p class="fp3d-hint ${this._fixedHint ? "fp3d-hint-fixed" : ""}">${!floor ? this.t("hint_empty") : this._wallPick ? this.t("hint_wall_pick") : this._fixedHint ? this.t("fixed_drag_hint") : this._tool === "outdoor" && this._outdoorFree ? this.t("hint_outdoor_free") : this._tool === "pool" && this._jointPlace ? this.t("hint_joint_place") : this._tool === "pool" && this._pipeMode ? this.t(!this.poolArea ? "hint_pipe_pool" : this._pipeDraft ? "hint_pipe_next" : "hint_pipe_start") : this._tool === "pool" && released("pool") ? this.t("hint_pool_tech") : this.t(`hint_${this._tool}` as I18nKey)}</p>
+            <p class="fp3d-hint ${this._fixedHint ? "fp3d-hint-fixed" : ""}">${!floor ? this.t("hint_empty") : this._bgMap ? this.t(`bg_map_${this._bgMap.length + 1}` as I18nKey) : this._wallPick ? this.t("hint_wall_pick") : this._fixedHint ? this.t("fixed_drag_hint") : this._tool === "outdoor" && this._outdoorFree ? this.t("hint_outdoor_free") : this._tool === "pool" && this._jointPlace ? this.t("hint_joint_place") : this._tool === "pool" && this._pipeMode ? this.t(!this.poolArea ? "hint_pipe_pool" : this._pipeDraft ? "hint_pipe_next" : "hint_pipe_start") : this._tool === "pool" && released("pool") ? this.t("hint_pool_tech") : this.t(`hint_${this._tool}` as I18nKey)}</p>
           </div>
           ${this._split && !this.narrow
             ? html`<div class="fp3d-split-handle" title=${this.t("split_handle_hint")} @pointerdown=${this.onSplitDown}></div>`
@@ -6246,13 +6281,37 @@ export class Fp3dEditor extends LitElement {
     return !!this.floor?.background && this.isAdmin && this._tool === "select" && this._bgEdit;
   }
 
+  /**
+   * An empty ground floor: start with the map - the house's outline from OpenStreetMap as the template (position,
+   * size and north right from the start); once loaded, how to draw on it or lay the floor-plan picture onto it.
+   */
+  private renderMapStart(floor: Floor | undefined) {
+    if (!this.isAdmin || !floor || floor.rooms.length || floor.id !== surroundFloorId(this._doc) || this._mapStartOff || this._diagInvite) return nothing;
+    const ready = !!ownOutline(this._doc);
+    const off = () => {
+      this._mapStartOff = true;
+      try {
+        localStorage.setItem("neonplan3d.mapStart", "0");
+      } catch {
+        // no storage: gone for this visit
+      }
+    };
+    return html`<div class="fp3d-diag-invite" role="note">
+      <span><b>🗺 ${this.t("map_start_title")}</b> ${this.t(ready ? "map_start_ready" : "map_start_text")}</span>
+      <span class="fp3d-diag-invite-buttons">
+        ${ready ? nothing : html`<button class="fp3d-btn primary" @click=${() => (this._settingsDialog = "surroundings")}>${this.t("map_start_load")}</button>`}
+        <button class="fp3d-btn" @click=${off}>${this.t(ready ? "map_start_ok" : "diag_invite_later")}</button>
+      </span>
+    </div>`;
+  }
+
   /** The ruler's points and line over the background (#183), or the straighten line. */
   private renderBgRuler() {
-    const pts = this._bgLevel?.length ? this._bgLevel : this._bgRuler;
+    const pts = this._bgMap?.length ? this._bgMap : this._bgLevel?.length ? this._bgLevel : this._bgRuler;
     if (!pts?.length) return nothing;
     const s = pts.map((p) => this.toScreen(p));
     return svg`<g class="fp3d-bg-ruler">
-      ${s.length === 2 ? svg`<line x1=${s[0][0]} y1=${s[0][1]} x2=${s[1][0]} y2=${s[1][1]} />` : nothing}
+      ${[0, 2].map((i) => (s[i + 1] ? svg`<line x1=${s[i][0]} y1=${s[i][1]} x2=${s[i + 1][0]} y2=${s[i + 1][1]} />` : nothing))}
       ${s.map(([x, y]) => svg`<circle cx=${x} cy=${y} r="6" />`)}
     </g>`;
   }
@@ -6275,6 +6334,44 @@ export class Fp3dEditor extends LitElement {
     let rot = (bg.rotation ?? 0) + (delta * 180) / Math.PI;
     rot = Math.round((((((rot + 180) % 360) + 360) % 360) - 180) * 100) / 100;
     this.updateFloor({ background: { ...bg, rotation: rot, x: round(c2[0] - bg.width / 2), z: round(c2[1] - h / 2) } });
+  }
+
+  /** The corner of a house on the map nearest to a tap (within 2 m), else the tap itself. */
+  private nearMapCorner(p: Vec2): Vec2 {
+    let best = p;
+    let d = Math.max(2, (SNAP_PX * 2) / this._view.scale);
+    for (const q of mapCorners(this._doc)) {
+      const e = Math.hypot(q[0] - p[0], q[1] - p[1]);
+      if (e < d) {
+        d = e;
+        best = q;
+      }
+    }
+    return best;
+  }
+
+  /**
+   * Lay the picture onto the map: the stretch between the first two taps (two corners in the picture) lands on the
+   * stretch between the last two (the same corners on the house from the map) – scaled, turned and moved at once.
+   */
+  private applyBgMap([a1, a2, b1, b2]: Vec2[]): void {
+    const bg = this.floor?.background;
+    const img = bg ? this._images[bg.image_id] : undefined;
+    this._bgMap = null;
+    const la = Math.hypot(a2[0] - a1[0], a2[1] - a1[1]);
+    const lb = Math.hypot(b2[0] - b1[0], b2[1] - b1[1]);
+    if (!bg || !img || la < 0.05 || lb < 0.05) return;
+    const k = lb / la;
+    const t = Math.atan2(b2[1] - b1[1], b2[0] - b1[0]) - Math.atan2(a2[1] - a1[1], a2[0] - a1[0]);
+    // the picture's middle goes along: c' = b1 + k R(t) (c - a1)
+    const h = bg.width * img.aspect;
+    const dx = bg.x + bg.width / 2 - a1[0];
+    const dz = bg.z + h / 2 - a1[1];
+    const cx = b1[0] + k * (dx * Math.cos(t) - dz * Math.sin(t));
+    const cz = b1[1] + k * (dx * Math.sin(t) + dz * Math.cos(t));
+    const rot = (bg.rotation ?? 0) + (t * 180) / Math.PI;
+    const w2 = bg.width * k;
+    this.updateFloor({ background: { ...bg, width: round(w2), rotation: Math.round((((((rot + 180) % 360) + 360) % 360) - 180) * 100) / 100, x: round(cx - w2 / 2), z: round(cz - (h * k) / 2) } });
   }
 
   /** Scale the background about the ruler's first point so the measured stretch gets its real length (#183). */
@@ -12848,7 +12945,7 @@ export class Fp3dEditor extends LitElement {
           : this.entitySelect(this.t(lamp ? "furn_entity_light" : packMotion(f.type) ? "motor_cover" : tvLike ? "furn_entity_tv" : f.type === "awning" ? "awning_cover" : f.type === "radiator" || f.type === "ac_unit" ? "furn_entity_climate" : isRobotVacuum(f.type) ? "furn_entity_vacuum" : "furn_entity"), f.entity ?? null, autoPick("entity"), entities, (v) =>
               this.updateFurniture({ entity: v }),
             )}
-        ${f.type === "lamp_fan"
+        ${f.type === "lamp_fan" || (lamp && packSpinAxis(packItem(f.type)))
           ? html`${this.entitySelect(this.t("fan_entity"), f.fan ?? null, undefined, this.entityOptions((id) => id.startsWith("fan.")), (v) => this.updateFurniture({ fan: v && v !== "none" ? v : null }))}
               <p class="fp3d-sub fp3d-wide">${this.t("fan_hint")}</p>`
           : nothing}
@@ -13729,8 +13826,18 @@ export class Fp3dEditor extends LitElement {
                       ${this.t(this._bgEdit ? "background_edit_done" : "background_edit")}
                     </button>
                     <p class="fp3d-sub fp3d-wide">${this.t(this._bgEdit ? "background_handles_hint" : "background_fixed_hint")}</p>
+                  ${ownOutline(this._doc) && floor.id === surroundFloorId(this._doc)
+                    ? html`<button class="fp3d-btn fp3d-wide ${this._bgMap ? "fp3d-primary" : ""}" aria-pressed=${!!this._bgMap} @click=${() => {
+                          this._bgMap = this._bgMap ? null : [];
+                          this._bgLevel = null;
+                          this._bgRuler = null;
+                          this._bgEdit = false;
+                        }}>🗺 ${this.t(this._bgMap ? "bg_map_cancel" : "bg_map")}</button>
+                        <p class="fp3d-sub fp3d-wide">${this.t(this._bgMap ? (`bg_map_${this._bgMap.length + 1}` as I18nKey) : "bg_map_hint")}</p>`
+                    : nothing}
                   <button class="fp3d-btn fp3d-wide ${this._bgLevel ? "fp3d-primary" : ""}" aria-pressed=${!!this._bgLevel} @click=${() => {
                     this._bgLevel = this._bgLevel ? null : [];
+                    this._bgMap = null;
                     this._bgRuler = null;
                     this._bgEdit = false;
                   }}>📐 ${this.t(this._bgLevel ? "bg_level_cancel" : "bg_level")}</button>
@@ -13738,6 +13845,7 @@ export class Fp3dEditor extends LitElement {
                   <button class="fp3d-btn fp3d-wide ${this._bgRuler ? "fp3d-primary" : ""}" aria-pressed=${!!this._bgRuler} @click=${() => {
                     this._bgRuler = this._bgRuler ? null : [];
                     this._bgLevel = null;
+                    this._bgMap = null;
                     this._bgEdit = false;
                   }}>📏 ${this.t(this._bgRuler ? "bg_ruler_cancel" : "bg_ruler")}</button>
                   ${this._bgRuler
@@ -14282,6 +14390,186 @@ export class Fp3dEditor extends LitElement {
         ? html`<div class="fp3d-actions"><button class="fp3d-btn" @click=${() => set({ level: null })}>${this.t("terrain_reset")}</button></div>`
         : nothing}
     </details>`;
+  }
+
+  /** ⚙ Surroundings: the neighbourhood from OpenStreetMap – fetch it once, lay it under the house, show or hide it. */
+  private renderSurroundings() {
+    const s = this._doc.settings.surroundings ?? null;
+    const lat = this.hass?.config?.latitude;
+    const lon = this.hass?.config?.longitude;
+    const located = typeof lat === "number" && typeof lon === "number" && !(lat === 0 && lon === 0);
+    const radius = this._surrRadius ?? s?.radius ?? 150;
+    const north = this._doc.settings.north ?? 0;
+    const mid = planMiddle(this._doc) ?? [0, 0];
+    const fetchIt = async () => {
+      if (!located || this._surrBusy) return;
+      this._surrBusy = true;
+      this._surrError = null;
+      try {
+        const osm = await loadOsm();
+        const data = await osm.fetchSurroundings(lat, lon, radius);
+        const own = homeBuilding(data);
+        const place = osm.placeUnderPlan(data, own, this._doc);
+        this.change((d) => {
+          d.settings.surroundings = { on: true, at: Math.round(Date.now() / 1000), own, x: place.x, z: place.z, ...data };
+          d.settings.north = place.north;
+        });
+        // nothing drawn yet: show the house on the map, ready to draw on
+        if (!this.floor?.rooms.length) this.fit();
+      } catch (e) {
+        // the map bundle's own error class is not this bundle's: its kind tells what happened
+        const kind = (e as { kind?: string } | null)?.kind;
+        this._surrError = kind === "busy" || kind === "empty" ? `surround_err_${kind}` : "surround_err_offline";
+      } finally {
+        this._surrBusy = false;
+      }
+    };
+    const edit = (fn: (sur: NonNullable<typeof s>, d: Building) => void) =>
+      this.change((d) => {
+        if (d.settings.surroundings) fn(d.settings.surroundings, d);
+      });
+    const turn = (delta: number) =>
+      edit((sur, d) => {
+        const t = turnMap(sur, d.settings.north ?? 0, delta, mid);
+        sur.x = t.x;
+        sur.z = t.z;
+        d.settings.north = t.north;
+      });
+    // a step on the screen's axes: right/left and up/down in the plan
+    const shift = (dx: number, dz: number) =>
+      edit((sur) => {
+        sur.x = Math.round((sur.x + dx) * 100) / 100;
+        sur.z = Math.round((sur.z + dz) * 100) / 100;
+      });
+    // the aligning lives in the map bundle (loaded once, then at hand)
+    const realign = async () => {
+      const osm = await loadOsm();
+      edit((sur, d) => {
+        const own = sur.own ?? homeBuilding(sur);
+        const place = osm.placeUnderPlan(sur, own, d);
+        sur.own = own;
+        sur.x = place.x;
+        sur.z = place.z;
+        d.settings.north = place.north;
+      });
+    };
+    const when = s ? new Date(s.at * 1000).toLocaleDateString(this.hass?.language) : "";
+    const hidden = s ? hiddenBuildings(s, this._doc).size : 0;
+    return html`<details class="fp3d-section" open>
+      <summary>🗺 ${this.t("surround")}</summary>
+      <p class="fp3d-sub">${this.t("surround_hint")}</p>
+      <p class="fp3d-sub">${this.t("surround_privacy")}</p>
+      ${located
+        ? nothing
+        : html`<p class="fp3d-warn">${this.t("surround_no_location")}</p>`}
+      <div class="fp3d-form">
+        <label class="fp3d-field"
+          >${this.t("surround_radius")}
+          <select ?disabled=${!this.isAdmin || this._surrBusy} @change=${(e: Event) => (this._surrRadius = Number((e.target as HTMLSelectElement).value))}>
+            ${SURROUND_RADII.map((r) => html`<option value=${r} ?selected=${r === radius}>${this.m(r, 0)}</option>`)}
+          </select></label
+        >
+        ${s
+          ? html`<label class="fp3d-check fp3d-wide"
+              ><input type="checkbox" .checked=${s.on} ?disabled=${!this.isAdmin} @change=${(e: Event) => edit((sur) => (sur.on = (e.target as HTMLInputElement).checked))} />
+              ${this.t("surround_show")}</label
+            >
+            <label class="fp3d-check fp3d-wide"
+              ><input type="checkbox" .checked=${s.flat === true} ?disabled=${!this.isAdmin} @change=${(e: Event) => edit((sur) => (sur.flat = (e.target as HTMLInputElement).checked))} />
+              ${this.t("surround_flat")}</label
+            >`
+          : nothing}
+      </div>
+      <div class="fp3d-actions">
+        <button class="fp3d-btn fp3d-primary" ?disabled=${!this.isAdmin || !located || this._surrBusy} @click=${fetchIt}>
+          ${this._surrBusy ? this.t("surround_loading") : s ? `🗺 ${this.t("surround_reload")}` : `🗺 ${this.t("surround_load")}`}
+        </button>
+        ${s ? html`<button class="fp3d-btn" ?disabled=${!this.isAdmin} @click=${() => this.change((d) => (d.settings.surroundings = null))}>${this.t("surround_remove")}</button>` : nothing}
+      </div>
+      ${this._surrError ? html`<p class="fp3d-warn">${this.t(this._surrError as I18nKey)}</p>` : nothing}
+      ${s
+        ? html`<p class="fp3d-sub">
+              ${this.t("surround_stats", { buildings: s.buildings.length - hidden, ways: s.ways.length, trees: s.trees.length, date: when })}
+            </p>
+            <h4>${this.t("surround_align")}</h4>
+            <p class="fp3d-sub">${this.t(typeof s.own === "number" ? "surround_align_hint" : "surround_no_own")}</p>
+            <div class="fp3d-actions fp3d-surr-pad">
+              <button class="fp3d-btn" title=${this.t("surround_turn_left")} ?disabled=${!this.isAdmin} @click=${() => turn(-90)}>↺ 90°</button>
+              <button class="fp3d-btn" ?disabled=${!this.isAdmin} @click=${() => turn(-1)}>↺ 1°</button>
+              <button class="fp3d-btn" ?disabled=${!this.isAdmin} @click=${() => turn(1)}>↻ 1°</button>
+              <button class="fp3d-btn" title=${this.t("surround_turn_right")} ?disabled=${!this.isAdmin} @click=${() => turn(90)}>↻ 90°</button>
+            </div>
+            <div class="fp3d-actions fp3d-surr-pad">
+              <button class="fp3d-btn" ?disabled=${!this.isAdmin} @click=${() => shift(-0.5, 0)}>←</button>
+              <button class="fp3d-btn" ?disabled=${!this.isAdmin} @click=${() => shift(0, -0.5)}>↑</button>
+              <button class="fp3d-btn" ?disabled=${!this.isAdmin} @click=${() => shift(0, 0.5)}>↓</button>
+              <button class="fp3d-btn" ?disabled=${!this.isAdmin} @click=${() => shift(0.5, 0)}>→</button>
+              <button class="fp3d-btn" ?disabled=${!this.isAdmin} @click=${realign}>${this.t("surround_realign")}</button>
+            </div>
+            <p class="fp3d-sub">${this.t("surround_north", { deg: Math.round(north) })}</p>
+            <h4>${this.t("surround_pick")}</h4>
+            <p class="fp3d-sub">${this.t("surround_pick_hint")}</p>
+            ${this.renderSurroundPick(s)}`
+        : nothing}
+      <p class="fp3d-sub fp3d-osm-credit"><a href=${OSM_COPYRIGHT} target="_blank" rel="noopener">${this.t("surround_credit")}</a></p>
+    </details>`;
+  }
+
+  /**
+   * A small map of the house and the houses next to it: tapping one hides or shows it (a building the map has where
+   * the plan already has the house, or one that is simply in the way). Hidden ones are dashed yellow.
+   */
+  private renderSurroundPick(s: Surroundings) {
+    const mid = planMiddle(this._doc);
+    if (!mid) return nothing;
+    const north = this._doc.settings.north ?? 0;
+    const span = 70;
+    const [x0, z0] = [mid[0] - span / 2, mid[1] - span / 2];
+    // whether a line or outline reaches into the picture (a long street has its ends far outside)
+    const near = (ring: Vec2[]) => {
+      const q = ring.map((p) => mapToPlan(s, north, p));
+      return !(q.every((p) => p[0] < x0) || q.every((p) => p[0] > x0 + span) || q.every((p) => p[1] < z0) || q.every((p) => p[1] > z0 + span));
+    };
+    const hidden = hiddenBuildings(s, this._doc);
+    const pts = (ring: Vec2[]) => ring.map((q) => mapToPlan(s, north, q).join(",")).join(" ");
+    const gf = [...this._doc.floors].sort((p, q) => Math.abs(p.elevation) - Math.abs(q.elevation))[0];
+    const toggle = (i: number) =>
+      this.change((d) => {
+        const sur = d.settings.surroundings;
+        if (!sur) return;
+        const wantHidden = !hiddenBuildings(sur, d).has(i);
+        const auto = hiddenBuildings({ ...sur, hide: [], show: [] }, d).has(i);
+        sur.hide = (sur.hide ?? []).filter((k) => k !== i);
+        sur.show = (sur.show ?? []).filter((k) => k !== i);
+        if (wantHidden !== auto) (wantHidden ? sur.hide : sur.show).push(i);
+        if (!sur.hide.length) delete sur.hide;
+        if (!sur.show.length) delete sur.show;
+      });
+    return html`<svg class="fp3d-osm-pick" viewBox="${x0} ${z0} ${span} ${span}" role="img" aria-label=${this.t("surround_pick")}>
+      ${s.ways.filter((w) => near(w.p)).map((w) => svg`<polyline class=${`fp3d-osm-w fp3d-osm-${w.k}`} points=${pts(w.p)} stroke-width=${Math.max(0.6, w.w)} />`)}
+      ${(gf?.rooms ?? []).filter((r) => !r.outdoor).map((r) => svg`<polygon class="fp3d-osm-room" points=${r.points.map((q) => q.join(",")).join(" ")} />`)}
+      ${s.buildings.map((b, i) =>
+        near(b.p)
+          ? svg`<polygon class=${hidden.has(i) ? "fp3d-osm-own" : "fp3d-osm-b"} points=${pts(b.p)} @click=${() => this.isAdmin && toggle(i)}><title>${this.t(hidden.has(i) ? "surround_pick_show" : "surround_pick_hide")}</title></polygon>`
+          : nothing,
+      )}
+    </svg>`;
+  }
+
+  /** The neighbourhood in the plan: the neighbours' houses and streets faint, the house's own one on the map dashed. */
+  private renderSurroundPlan(floor: Floor) {
+    const s = this._doc.settings.surroundings;
+    const gf = [...this._doc.floors].sort((p, q) => Math.abs(p.elevation) - Math.abs(q.elevation))[0];
+    if (!s?.on || floor.id !== gf?.id) return nothing;
+    const north = this._doc.settings.north ?? 0;
+    const hidden = hiddenBuildings(s, this._doc);
+    const pts = (ring: Vec2[]) => ring.map((q) => this.toScreen(mapToPlan(s, north, q)).join(",")).join(" ");
+    const k = this._view.scale;
+    return svg`<g class="fp3d-osm">
+      ${s.areas.map((a) => svg`<polygon class=${`fp3d-osm-a fp3d-osm-${a.k}`} points=${pts(a.p)} />`)}
+      ${s.ways.map((w) => svg`<polyline class=${`fp3d-osm-w fp3d-osm-${w.k}`} points=${pts(w.p)} stroke-width=${Math.max(1, w.w * k)} />`)}
+      ${s.buildings.map((b, i) => svg`<polygon class=${hidden.has(i) ? "fp3d-osm-own" : "fp3d-osm-b"} points=${pts(b.p)} />`)}
+    </g>`;
   }
 
   private setSettings(patch: Partial<Building["settings"]>): void {
@@ -16991,6 +17279,61 @@ export class Fp3dEditor extends LitElement {
         stroke: var(--fp3d-accent);
         stroke-width: 2;
         stroke-dasharray: none;
+      }
+      .fp3d-osm {
+        pointer-events: none;
+      }
+      .fp3d-osm-b {
+        fill: rgba(91, 124, 255, 0.08);
+        stroke: rgba(91, 124, 255, 0.45);
+        stroke-width: 1;
+      }
+      .fp3d-osm-own {
+        fill: none;
+        stroke: #ffd166;
+        stroke-width: 2;
+        stroke-dasharray: 6 4;
+      }
+      .fp3d-osm-w {
+        fill: none;
+        stroke: rgba(150, 160, 190, 0.16);
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+      .fp3d-osm-w.fp3d-osm-water,
+      .fp3d-osm-a.fp3d-osm-water {
+        stroke: rgba(55, 160, 255, 0.25);
+        fill: rgba(55, 160, 255, 0.12);
+      }
+      .fp3d-osm-w.fp3d-osm-water {
+        fill: none;
+      }
+      .fp3d-osm-a {
+        fill: rgba(61, 224, 160, 0.06);
+        stroke: none;
+      }
+      .fp3d-surr-pad {
+        flex-wrap: wrap;
+      }
+      .fp3d-osm-pick {
+        display: block;
+        width: 100%;
+        max-width: 360px;
+        aspect-ratio: 1;
+        border-radius: 8px;
+        background: #0a0e1c;
+      }
+      .fp3d-osm-pick polygon {
+        vector-effect: non-scaling-stroke;
+        cursor: pointer;
+      }
+      .fp3d-osm-pick .fp3d-osm-b {
+        stroke: #5b7cff;
+      }
+      .fp3d-osm-room {
+        fill: rgba(55, 224, 255, 0.25);
+        stroke: #37e0ff;
+        pointer-events: none;
       }
       .fp3d-gate {
         stroke: #ffd166;
