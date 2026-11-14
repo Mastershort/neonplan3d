@@ -33,7 +33,7 @@ import { screenName, setScreenName, setVoiceArea, setVoiceHere, setVoicePipeline
 import { doorbellCamera, doorbellEntities, directorOnHere, HOLD_DEFAULT, HOLD_MAX, HOLD_MIN, setDirectorHere, type DirectorSettings } from "../director.ts";
 import { deviceSensors, energySummary, flowSegments, gridPoint, hubPoint, inverterToGrid, powerSensorFor, proposeEnergySensors, type EnergyPrefs, type FlowSegment, proposeMeters } from "../energy.ts";
 import { CLIMATE_ATTRS, isPulseDrive, isStatusSensor, robotRoomSensor, slatTilt, TOGGLE_KINDS } from "../devices.ts";
-import { homeBuilding, OSM_COPYRIGHT, planMiddle, mapToPlan, SURROUND_RADII, turnMap, hiddenBuildings, mapCorners, ownOutline, surroundFloorId, atGroundLevel } from "../surroundings.ts";
+import { homeBuilding, OSM_COPYRIGHT, planMiddle, mapToPlan, SURROUND_RADII, turnMap, hiddenBuildings, mapCorners, ownOutline, surroundFloorId, atGroundLevel, ownUnderPlan } from "../surroundings.ts";
 import { loadOsm } from "../load-osm.ts";
 import { activeSections, sectionFloor, sectionOverhang, dormerParent, effectiveDormer, proposeDormer, sectionGeometry, floorOutline, polygonBox, headroomLines, ridgeHeight, sectionAbove, sectionCutsBelow, roofSectionsFromRooms, sectionFrame, sectionTurn, turnPoint, turnSectionAbout, wallTopUnder } from "../roof-sections.ts";
 import { bestFace, clampField, faceAt, faceCompass, fieldFace, fieldModules, GROUND, moveField, pointOnFace, proposeField, proposeGroundField, proposeWindow, proposeWallField, roofFaces, rowCounts, turnGroundField, fieldCenter, wallFaces, windowAsField, windowCorners, onFace, onField, rayOnFace, type RoofFace } from "../solar.ts";
@@ -14438,24 +14438,33 @@ export class Fp3dEditor extends LitElement {
       this.change((d) => {
         if (d.settings.surroundings) fn(d.settings.surroundings, d);
       });
+    // moved by hand: the own house is the one the plan now stands on (#1110)
+    const follow = (sur: NonNullable<typeof s>, d: Building) => {
+      const own = ownUnderPlan(sur, d);
+      if (own !== undefined) sur.own = own;
+    };
     const turn = (delta: number) =>
       edit((sur, d) => {
         const t = turnMap(sur, d.settings.north ?? 0, delta, mid);
         sur.x = t.x;
         sur.z = t.z;
         d.settings.north = t.north;
+        follow(sur, d);
       });
     // a step on the screen's axes: right/left and up/down in the plan
     const shift = (dx: number, dz: number) =>
-      edit((sur) => {
+      edit((sur, d) => {
         sur.x = Math.round((sur.x + dx) * 100) / 100;
         sur.z = Math.round((sur.z + dz) * 100) / 100;
+        follow(sur, d);
       });
     // the aligning lives in the map bundle (loaded once, then at hand)
     const realign = async () => {
       const osm = await loadOsm();
       edit((sur, d) => {
-        const own = sur.own ?? homeBuilding(sur);
+        // null: no house of the map under the plan (moved away from a wrong one by hand) – the home's location then
+        // goes to the plan's middle
+        const own = sur.own === undefined ? homeBuilding(sur) : sur.own;
         const place = osm.placeUnderPlan(sur, own, d);
         sur.own = own;
         sur.x = place.x;

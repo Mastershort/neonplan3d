@@ -4,6 +4,11 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 [releases page](https://github.com/Mastershort/neonplan3d/releases). Ideas and votes:
 [Discussions → Ideas](https://github.com/Mastershort/neonplan3d/discussions/categories/ideas).
 
+## 3.3.2
+
+### Fixed
+- **A neighbour's house stayed hidden** after moving the map by hand: when the location set in Home Assistant lies on no house of the map, NeonPlan takes the nearest house within 30 m for yours and lays the plan onto it. Moving or turning the map now makes the map's house under the plan your house – the neighbour shows again, and Align again keeps to it (#1110, thanks RkcCorian).
+
 ## 3.3.1
 
 ### Added

@@ -4,7 +4,7 @@ import type { Building, Surroundings, Vec2 } from "./model.ts";
 import { emptyBuilding, newFloor } from "./model.ts";
 import { buildingHeight, fetchSurroundings, parseHeight, parseOverpass, simplify, SurroundError, toMetres, wayKind } from "./surround-fetch.ts";
 import { placeUnderPlan } from "./surround-align.ts";
-import { hiddenBuildings, homeBuilding, mapToPlan, placedSurroundings, turnMap } from "./surroundings.ts";
+import { hiddenBuildings, homeBuilding, mapToPlan, ownUnderPlan, placedSurroundings, turnMap } from "./surroundings.ts";
 
 const LAT = 48.137;
 const LON = 11.575;
@@ -213,6 +213,24 @@ test("map buildings over a carport, a shed on a garden floor and a pergola are h
     z: 0,
   };
   assert.deepEqual([...hiddenBuildings(s, b)].sort(), [0, 1, 2, 3]);
+});
+
+test("moved by hand off a neighbour taken as the own house: it shows again, the house under the plan is the own one (#1110)", () => {
+  const b = house([[0, 0, 10, 8]]);
+  // map metres (north up): a neighbour 25 m east of the home's location, the own house not mapped yet
+  const box = (x0: number, z0: number, x1: number, z1: number): Vec2[] => [[x0, -z0], [x1, -z0], [x1, -z1], [x0, -z1]];
+  const s: Surroundings = { ...base([{ p: box(25, 0, 35, 8), h: 7 }, { p: box(-30, 0, -20, 8), h: 7 }]), own: 0, x: -25, z: 0 };
+  assert.deepEqual([...hiddenBuildings(s, b)], [0], "first laid onto the neighbour");
+  // moved back to where it belongs: no map house under the plan
+  const back = { ...s, x: 0, z: 0 };
+  assert.equal(ownUnderPlan(back, b), null);
+  assert.deepEqual([...hiddenBuildings({ ...back, own: null }, b)], []);
+  // moved onto the other house: that one is the own house now
+  assert.equal(ownUnderPlan({ ...s, x: 30, z: 0 }, b), 1);
+  // nothing drawn yet: the own house stays as it is
+  const empty = house([]);
+  empty.floors[0].rooms = [];
+  assert.equal(ownUnderPlan(back, empty), undefined);
 });
 
 test("a busy server is asked again after a pause, then the answer is read", async () => {
