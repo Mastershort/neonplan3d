@@ -349,8 +349,8 @@ const shots = [
   { name: "editor-preview-kitchen", query: "", width: 1280, height: 800, editor: true, editorState: { _tool: "furniture" }, hover: "Küchenzeile" },
   { name: "editor-preview-pack", query: "", width: 1280, height: 800, editor: true, editorState: { _tool: "furniture" }, hover: "Kamin" },
   { name: "view-pack-mounts", query: "", width: 1280, height: 800, editor: true, editorScript: PACK_MOUNT_SCRIPT, then3d: "Küche" },
-  { name: "editor-package", query: "", width: 1280, height: 900, editor: true, editorScript: "const f = e._doc.floors[1]; e._floorId = f.id; e.applyPackage(f.rooms.find((r) => r.id === 'gast'), 'bedroom'); e.applyPackage(f.rooms.find((r) => r.id === 'kind'), 'kids');" },
-  { name: "view-package", query: "", width: 1280, height: 800, editor: true, editorScript: "const f = e._doc.floors[1]; e.applyPackage(f.rooms.find((r) => r.id === 'gast'), 'bedroom');", then3d: "Obergeschoss" },
+  { name: "editor-package", query: "", width: 1280, height: 900, editor: true, editorScript: "const f = e._doc.floors[1]; e._floorId = f.id; e.applyPackage(f.rooms.find((r) => r.id === 'jugend'), 'bedroom'); e.applyPackage(f.rooms.find((r) => r.id === 'kind'), 'kids');" },
+  { name: "view-package", query: "", width: 1280, height: 800, editor: true, editorScript: "const f = e._doc.floors[1]; e.applyPackage(f.rooms.find((r) => r.id === 'jugend'), 'bedroom');", then3d: "Obergeschoss" },
   // a tap on the camera's wedge (1.2 m in front of it) selects the camera in the furnish bar
   { name: "save-failed", query: "?savefail", width: 1280, height: 800, editor: true, editRoomName: "Wohnen", reload: true },
   { name: "tablet", query: "", width: 800, height: 1280, click: "Obergeschoss" },
