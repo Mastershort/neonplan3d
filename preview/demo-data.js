@@ -721,6 +721,8 @@ DEMO_BUILDING.settings = {
   north: 0,
   // the house opens from the garden side: the living wing, the terrace, the pool
   start_view: { theta: 2.75, phi: 0.9, radius: 44, target: { x: 8, y: 1, z: -2 } },
+  // the Halloween pack stays unlocked (so the demo offers no gift pop-up), its ghost is switched off – Halloween is over
+  halloween: { ghost: false },
   favorites: ["scene.wohnzimmer_film", "scene.wohnzimmer_lesen", "script.gute_nacht"],
   buttons: [
     { id: "b1", label: "Rollos", icon: "window-shutter", action: "fire_dom_event", data: { browser_mod: { service: "browser_mod.popup", data: { title: "Rollos" } } } },
