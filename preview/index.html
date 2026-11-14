@@ -64,7 +64,8 @@
       let building = params.has("empty") ? { version: 1, floors: [], settings: { wall_exterior: 0.24, wall_interior: 0.12, grid: 0.05 } } : DEMO_BUILDING;
       // add-ons not out yet (Pool Pro) only on a local preview or with ?pool: the public demo shows neither the pool's
       // technical room (pump, sand filter, valves, heat pump) nor its pipes (#1063)
-      const unreleasedDemo = params.has("pool") || ["localhost", "127.0.0.1"].includes(location.hostname);
+      // ?public shows a local preview exactly like the online demo (for pictures of the manual)
+      const unreleasedDemo = !params.has("public") && (params.has("pool") || ["localhost", "127.0.0.1"].includes(location.hostname));
       if (!unreleasedDemo) {
         building = structuredClone(building);
         for (const floor of building.floors) {
