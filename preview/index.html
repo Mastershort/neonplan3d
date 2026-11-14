@@ -71,6 +71,12 @@
           for (const area of floor.outdoor ?? []) delete area.pool;
         }
       }
+      // the demo's start view is framed for a wide screen: a phone held upright needs it from further away
+      const portrait = innerWidth / innerHeight;
+      if (building.settings.start_view && portrait < 0.85) {
+        building = structuredClone(building);
+        building.settings.start_view.radius *= Math.min(1.9, 0.85 / portrait);
+      }
       let revision = 1;
       // ?plans: further floor plans (the garden house, a holiday flat); the main plan is `building` above
       const EN_PLAN = { Gartenhaus: "Garden house", Ferienwohnung: "Holiday flat" };

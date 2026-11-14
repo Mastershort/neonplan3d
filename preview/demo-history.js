@@ -139,7 +139,7 @@ function buildEvents() {
     // the robot at ten, the washing machine from eleven to twenty to one, home office upstairs
     // the robot reports the room it cleans (the trail through the rooms follows it)
     const v0 = at(day, 10.0, 1, r);
-    ["Wohnzimmer", "Küche", "Flur", "Bad"].forEach((room, i) => add("vacuum.saugi", v0 + i * 690000, "cleaning", { current_room: room }));
+    ["Wohnzimmer", "Essen", "Küche", "Flur"].forEach((room, i) => add("vacuum.saugi", v0 + i * 690000, "cleaning", { current_room: room }));
     add("vacuum.saugi", at(day, 10.8, 2, r), "returning");
     add("vacuum.saugi", at(day, 10.87, 2, r), "docked");
     span("binary_sensor.wohnzimmer_kamera_bewegung", at(day, 10.1, 1, r), at(day, 10.7, 1, r));
