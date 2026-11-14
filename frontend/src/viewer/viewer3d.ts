@@ -32,7 +32,8 @@ import { groundUnder, isCooktopZone, mountBase, packItem, packMotion, packSpinAx
 import { withVehicles } from "../parking.ts";
 import { buildRoof, type RoofGeometry, type RoofWindowState } from "./roof.ts";
 import { SunFx } from "./sun-fx.ts";
-import { houseShadow, shadowBox, sunEdge } from "./sun-shadow.ts";
+import { blockShadows, houseShadow, shadowBox, sunEdge } from "./sun-shadow.ts";
+import { placedSurroundings, surroundKey } from "../surroundings.ts";
 import type { SunPath } from "../sun-path.ts";
 import { sunArcFrame, type SunArcFrame } from "./sun-arc.ts";
 import { GROUND, groundFace, groundFloor, roofFaces, roofWindowRoom, wallFaces } from "../solar.ts";
@@ -2053,7 +2054,7 @@ export class FloorplanViewer {
     const north = (b?.settings.north ?? 0) * DEG;
     const cloud = this.weather?.cloud ?? 0;
     const shade = on && !this.lowQuality && sun.elevation > 1 && cloud < 0.9 && !this.roomTint;
-    const sig = shade ? `${sun.elevation.toFixed(1)},${sun.azimuth.toFixed(1)},${north},${cloud.toFixed(1)},${this.theme},${this.roofGeos.length}` : "";
+    const sig = shade ? `${sun.elevation.toFixed(1)},${sun.azimuth.toFixed(1)},${north},${cloud.toFixed(1)},${this.theme},${this.roofGeos.length},${surroundKey(b)}` : "";
     if (sig !== this.shadowSig) {
       this.shadowSig = sig;
       if (shade) this.drawShadow(b, sun, north, cloud);
@@ -2251,9 +2252,24 @@ export class FloorplanViewer {
     // the lawn beside the house (by default 20 cm below the floor)
     const lawn = gf.elevation + groundUnder(gf, { x: Math.min(...xs) - 1, z: (Math.min(...zs) + Math.max(...zs)) / 2 });
     const az = sun.azimuth * DEG;
-    const tris = houseShadow(b, this.roofGeos, [Math.sin(north + az), -Math.cos(north + az)], sun.elevation, lawn);
-    const box = shadowBox(tris);
+    const toSun: [number, number] = [Math.sin(north + az), -Math.cos(north + az)];
+    const tris = houseShadow(b, this.roofGeos, toSun, sun.elevation, lawn);
+    let box = shadowBox(tris);
     if (!box) return this.sunFx.hideShadow();
+    // the neighbours' houses from the map throw their shadows onto the garden too – only near the house, where the
+    // shadow texture is (it keeps its sharpness for the house's own shadow)
+    const around = placedSurroundings(b);
+    if (around?.buildings.length) {
+      const reach = 30;
+      const region: [number, number, number, number] = [box[0] - reach, box[1] - reach, box[2] + reach, box[3] + reach];
+      const nearBy = around.buildings.filter((bd) => bd.p.some(([x, z]) => x > region[0] - reach && x < region[2] + reach && z > region[1] - reach && z < region[3] + reach));
+      const extra = blockShadows(nearBy, toSun, sun.elevation);
+      if (extra.length) {
+        tris.push(...extra);
+        const all = shadowBox(tris)!;
+        box = [Math.max(all[0], region[0]), Math.max(all[1], region[1]), Math.min(all[2], region[2]), Math.min(all[3], region[3])];
+      }
+    }
     // on a lawn just below the floor the shadow lies at the floor's height, so it falls over the terrace too; the
     // house's own floor stays clear of it
     const y = gf.elevation - lawn <= 0.35 ? gf.elevation + 0.012 : lawn + 0.012;
@@ -3059,6 +3075,9 @@ export class FloorplanViewer {
     const b = this.building;
     if (!b) return;
     const ordered = [...b.floors].sort((p, q) => p.elevation - q.elevation);
+    // the neighbourhood from the map lies on the ground floor's ground
+    const around = placedSurroundings(b);
+    const groundId = groundFloor(b)?.id;
     for (const floor of b.floors) {
       // solar fields in the garden stand on the ground floor, wall fields hang on their floor's walls
       const fields = b.settings.roof?.solar ?? [];
@@ -3081,7 +3100,7 @@ export class FloorplanViewer {
             return y === null ? null : y - floor.elevation;
           }
         : undefined;
-      const geo = this.dual(() => buildFloorGeometry(withVehicles(floor, this.parked), b.settings.wall_exterior, b.settings.wall_interior, stairHoleParts(b.floors, floor), garden, roofUnder));
+      const geo = this.dual(() => buildFloorGeometry(withVehicles(floor, this.parked), b.settings.wall_exterior, b.settings.wall_interior, stairHoleParts(b.floors, floor), garden, roofUnder, floor.id === groundId ? around : null));
       const mask: FoldMasks = { standing: { value: 0xffff }, glass: { value: 0 } };
       const materials = this.makeMaterials(mask);
       const group = new Group();
@@ -4709,6 +4728,13 @@ export class FloorplanViewer {
       y = Math.min(y, fv.floor.elevation + Math.min(0, fv.ty));
       for (const room of fv.floor.rooms) for (const [x, z] of room.points) box.expandByPoint(new Vector3(x, 0, z));
       for (const a of fv.floor.outdoor ?? []) for (const [x, z] of a.points) box.expandByPoint(new Vector3(x, 0, z));
+    }
+    // the neighbourhood from the map: the ground reaches under the neighbours close by (not the whole map – the
+    // grid's cells grow with the ground)
+    const around = placedSurroundings(this.building);
+    if (around && !box.isEmpty()) {
+      const mid = box.getCenter(new Vector3());
+      for (const bd of around.buildings) for (const [x, z] of bd.p) if (Math.hypot(x - mid.x, z - mid.z) < 50) box.expandByPoint(new Vector3(x, 0, z));
     }
     // the neon grid belongs to the neon looks: not under the light looks, nor under real materials
     this.ground.visible = !box.isEmpty() && !this.lowQuality && this.theme !== "day" && !this.style.natural && !this.nearOn;

@@ -402,3 +402,28 @@ def test_card_templates_keep_the_card_options() -> None:
 def test_room_keeps_its_cleaning() -> None:
     assert ROOM_SCHEMA({**ROOM, "cleaning": "script.saug_bad"})["cleaning"] == "script.saug_bad"
     assert "cleaning" not in ROOM_SCHEMA(ROOM)
+
+
+def test_surroundings_from_the_map_are_kept_and_checked() -> None:
+    """The neighbourhood from OpenStreetMap: kept as sent, absent in old plans, a wrong kind of way is refused."""
+    base = {"wall_exterior": 0.3, "wall_interior": 0.12, "grid": 0.05}
+    surroundings = {
+        "on": True,
+        "lat": 48.137,
+        "lon": 11.575,
+        "at": 1763090000,
+        "radius": 150,
+        "x": 6.5,
+        "z": 4.0,
+        "own": 0,
+        "buildings": [{"p": [[-5, -4], [5, -4], [5, 4], [-5, 4]], "h": 7.5}],
+        "ways": [{"p": [[-50, -15], [50, -15]], "w": 6, "k": "road"}],
+        "areas": [{"p": [[-60, 20], [-30, 20], [-30, 50]], "k": "green"}],
+        "trees": [[10, 10]],
+    }
+    out = SETTINGS_SCHEMA({**base, "surroundings": surroundings})["surroundings"]
+    assert out["buildings"][0]["h"] == 7.5 and out["ways"][0]["k"] == "road" and out["own"] == 0
+    assert "surroundings" not in SETTINGS_SCHEMA(base)
+    with pytest.raises(vol.Invalid):
+        wrong = {**surroundings, "ways": [{"p": [[0, 0], [1, 1]], "w": 3, "k": "highway"}]}
+        SETTINGS_SCHEMA({**base, "surroundings": wrong})

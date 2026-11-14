@@ -12,7 +12,7 @@
 
 import { Color, type BufferGeometry } from "three";
 import type { Floor, Furniture, Opening, Room, SolarField, Vec2 } from "../model.ts";
-import { furnitureFootprint, GANG_TYPES, isLamp, pointInPolygon, polygonArea, STAIR_TYPES, stairsULayout } from "../model.ts";
+import { furnitureFootprint, GANG_TYPES, groundLevel, isLamp, pointInPolygon, polygonArea, STAIR_TYPES, stairsULayout } from "../model.ts";
 import { freeWallRoomLeft, generateWalls, locateOpening, openingHost, placeWallPlate, slopeTop, wallContinuation, type Wall } from "../geometry/walls.ts";
 import { clipConvex, isConvex } from "../geometry/area.ts";
 import { holeInRoom, insetHole, mergeHoles } from "../geometry/holes.ts";
@@ -20,6 +20,8 @@ import { pushFurniture } from "./furniture.ts";
 import { mountBase, packItem, type PackItem } from "../packs.ts";
 import { fitParts } from "../pack-scale.ts";
 import { pushOutdoor } from "./outdoor.ts";
+import { pushSurroundings } from "./surroundings.ts";
+import type { PlacedSurroundings } from "../surroundings.ts";
 import { pushModules } from "./roof.ts";
 import type { RoofFace } from "../solar.ts";
 import { cutAbove, cutLinesAbove, FURN_OFFSET, ALWAYS, CAP_OFFSET, CUT_OFFSET, EDGE_BASE, EDGE_CUT, EDGE_SOFT, EDGE_TOP, GeoBuffer, LineBuffer, LOWER_OFFSET, pushPrism, triangulate } from "./geo.ts";
@@ -166,6 +168,8 @@ export function buildFloorGeometry(
    * there: knee walls at the eaves, gables up to the ridge, inner walls cut by the slope.
    */
   roofUnder?: (x: number, z: number) => number | null,
+  /** The neighbourhood from the map, in plan coordinates (only the ground floor carries it). */
+  surroundings: PlacedSurroundings | null = null,
 ): FloorGeometry {
   const { walls, open: openRooms } = generateWalls(floor.rooms, { exterior: wallExterior, interior: wallInterior }, floor.walls ?? []);
   // the top of a wall at a point: its own height (a sloping wall's at that point), or the roof above when lower
@@ -546,6 +550,7 @@ export function buildFloorGeometry(
   const shadow = buildShadow(outline.edges, floor.rooms, spans);
   const waterBuf = new GeoBuffer();
   pushOutdoor(wallBuf, lines, floor, waterBuf);
+  if (surroundings) pushSurroundings(wallBuf, lines, surroundings, groundLevel(floor));
   for (const s of solar) pushModules(wallBuf, lines, s.face, s.field, floor.elevation);
 
   // lamps are drawn live by the viewer (they glow with their light)

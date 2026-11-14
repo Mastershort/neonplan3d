@@ -197,6 +197,7 @@ Alles, was zum ganzen Plan gehört und nicht zu einer Etage, einem Raum oder ein
 | **🎨 Stile** | Stile, eigene Stile, Tageszeiten und Fassade, siehe [5.12](#512-stile-neu-in-31) |
 | **🖼 Hintergrund** | was hinter dem 3D-Haus liegt (unten) |
 | **⛰ Gelände** | siehe [4.21](#421-keller-und-gelände) |
+| **🗺 Umgebung** | die Nachbarschaft aus der Karte, siehe [4.26](#426-die-umgebung-aus-der-karte-neu) |
 | **💾 Sicherung** | Export, Import, Wiederherstellen, siehe Kapitel 9 |
 | **🧩 Module** | die eingespielten Module (Code aus dem Shop, etwa „Das Haus antwortet“) und **Modul einspielen …** für die .fp3dpack-Datei |
 | **🖥 Karten-Vorlagen** | fertige Dashboard-Karten für die Wandtablets, siehe [8.1](#81-karten-vorlagen) |
@@ -567,6 +568,18 @@ Eine Installation kann mehrere Grundrisse haben: das Haus, die Garage, das Garte
 ![Das Grundstück in 3D](images/plans-site.jpg)
 
 ---
+
+### 4.26 Die Umgebung aus der Karte (neu)
+
+Unter **⚙ Einstellungen → 🗺 Umgebung** holt NeonPlan die Nachbarschaft deines Hauses aus der freien Karte **OpenStreetMap**: die Häuser der Nachbarn als Blöcke in ihrer Höhe, Straßen, Wege, Bahngleise, Bäche, Teiche, Parks, Wälder und einzelne Bäume. Das funktioniert weltweit; wie viele Häuser die Karte kennt, hängt von der Gegend ab.
+
+- **Umgebung laden** holt alles im gewählten **Umkreis** (100, 150 oder 250 m) um den Standort, der in Home Assistant eingetragen ist (Einstellungen → System → Allgemein). Dazu wird dieser Standort **einmal** an den öffentlichen OpenStreetMap-Dienst Overpass geschickt. Danach liegt die Umgebung im Plan; neu geholt wird sie nur, wenn du **Neu laden** antippst. Sind die Kartenserver gerade ausgelastet, kann das Laden eine Minute dauern oder um einen späteren Versuch bitten.
+- NeonPlan sucht auf der Karte **dein Haus** (das Gebäude an deinem Standort), legt es auf deinen Grundriss und dreht den **Norden** so, dass die Wände übereinanderliegen. Damit stimmen auch Sonnenbahn und Schatten. Dein Haus von der Karte steht im Grundriss **gelb gestrichelt**; Häuser der Karte, die in deinen Räumen stehen (etwa eine Garage, die du selbst gezeichnet hast), werden nicht doppelt gezeichnet.
+- Passt es nicht ganz, drehst du die Karte unter **Ausrichten** in Schritten von 90° oder 1° und schiebst sie mit den Pfeilen um 50 cm. Das Haus bleibt dabei stehen, die Karte dreht sich darum. **Neu ausrichten** legt sie wieder automatisch an.
+- Die **Nachbarhäuser werfen ihre Schatten** in deinen Garten, solange **Sonnenbahn und Hausschatten** an ist (siehe 5.7), in der Ansicht **Alle Etagen** und nicht auf der Stufe **Tablet**.
+- **In 3D zeigen** blendet die Umgebung aus und ein, **Entfernen** löscht sie aus dem Plan. Raumkarten zeigen nur ihre Räume, ohne Umgebung.
+
+Unten rechts in der 3D-Ansicht steht „© OpenStreetMap“: Die Kartendaten stammen von den OpenStreetMap-Mitwirkenden und stehen unter der Open Database Licence.
 
 ## 5. Die 3D-Ansicht
 
