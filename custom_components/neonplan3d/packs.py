@@ -82,6 +82,8 @@ PART_SCHEMA = vol.Schema(
         vol.Optional("fix"): vol.All(str, vol.Match(r"^[wdh]{1,3}$")),
         # an Advent candle's flame (2.3): drawn only from the n-th Sunday of Advent until 6 January
         vol.Optional("advent"): vol.All(vol.Coerce(int), vol.Range(min=1, max=4)),
+        # fan blades (3.2.1, #1084): turn while the item's fan runs, about the upright ("y") or the front axis ("z")
+        vol.Optional("spin"): vol.In(["y", "z"]),
     }
 )
 
@@ -244,7 +246,13 @@ def _unknown_value(err: vol.Invalid) -> bool:
     """Whether a value outside a known list failed: voluptuous says so in its message; Probatio, which checks
     schemas since Home Assistant 2026.9, gives it the code "not_in_list" (pointed out by hohoanganh)."""
     found = getattr(err, "errors", None) or [err]
-    return any(getattr(e, "code", None) == "not_in_list" or "value must be one of" in str(e) for e in found)
+    # a field this version does not know yet (a part property of a newer pack release) counts the same
+    return any(
+        getattr(e, "code", None) in ("not_in_list", "extra_key", "extra_keys_not_allowed")
+        or "value must be one of" in str(e)
+        or "extra keys not allowed" in str(e)
+        for e in found
+    )
 
 
 def validate_payload(payload: Any) -> dict[str, Any]:

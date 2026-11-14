@@ -133,7 +133,7 @@ Ganz links in der Werkzeugleiste steht **Etage: Erdgeschoss ▾** – die Etage,
 
 - **Grundriss sperren** sperrt alle Räume, Wände, Türen, Fenster und Außenflächen, siehe [4.1](#41-werkzeuge).
 - **Name**, **Höhe über Boden** und **Raumhöhe** bestimmen, wo die Etage im 3D-Haus liegt und wie hoch ihre Wände sind. **90° drehen** dreht alles auf der Etage um die Mitte der Räume, wenn eine Etage verdreht gezeichnet wurde. **Etage verschieben** rückt alles auf der Etage (Räume, Möbel, Geräte, Außenflächen, freie Wände, Hintergrundbild) um X und Z, wenn eine Etage gegenüber den anderen versetzt sitzt; Dachflächen und Leitungen bleiben. Mit dem Haken **Alle Etagen mitnehmen** wirken Verschieben und Drehen auf das ganze Haus: alle Etagen samt Dachflächen, Außenflächen, Leitungen, Zähler und Hologramm. **Ansicht als Start der Etage** merkt sich, wie die 3D-Ansicht daneben gerade steht – diese Etage öffnet sich dann von dieser Seite und mit diesem Zoom und Bildausschnitt, etwa das Erdgeschoss von vorn und das Obergeschoss von hinten; ↺ nimmt das zurück.
-- **Hintergrundbild:** Im Abschnitt **Hintergrund** lädst du ein Foto oder einen Scan deines Grundrisses als Vorlage unter den Plan (Deckkraft einstellbar). Mit **Verschieben, skalieren und drehen** bekommt das Bild im Plan Griffe wie ein Möbel: ziehen verschiebt es, die Ecke unten rechts macht es größer oder kleiner, der runde Griff oben dreht es (mit Umschalt in 15°-Schritten). **Fertig** legt es wieder fest, dann zeichnest du ungestört darüber. **Drehung (°)** dreht es auf den Zehntelgrad genau. Am einfachsten geht der Maßstab mit **📏 Maßstab mit Lineal**: Anfang und Ende einer Strecke im Bild antippen, deren Länge du kennst (eine bemaßte Wand), die echte Länge eingeben – das Bild wird passend skaliert, der erste Punkt bleibt stehen. Ein schiefer Scan wird mit **📐 Gerade ausrichten** gerade: zwei Punkte auf eine Wand im Bild tippen, die waagerecht oder senkrecht sein soll – das Bild dreht sich passend. Reihenfolge: erst gerade ausrichten, dann den Maßstab, dann die Räume darüber zeichnen.
+- **Hintergrundbild:** Im Abschnitt **Hintergrund** lädst du ein Foto oder einen Scan deines Grundrisses als Vorlage unter den Plan (Deckkraft einstellbar). Mit **Verschieben, skalieren und drehen** bekommt das Bild im Plan Griffe wie ein Möbel: ziehen verschiebt es, die Ecke unten rechts macht es größer oder kleiner, der runde Griff oben dreht es (mit Umschalt in 15°-Schritten). **Fertig** legt es wieder fest, dann zeichnest du ungestört darüber. **Drehung (°)** dreht es auf den Zehntelgrad genau. Am einfachsten geht der Maßstab mit **📏 Maßstab mit Lineal**: Anfang und Ende einer Strecke im Bild antippen, deren Länge du kennst (eine bemaßte Wand), die echte Länge eingeben – das Bild wird passend skaliert, der erste Punkt bleibt stehen. Ein schiefer Scan wird mit **📐 Gerade ausrichten** gerade: zwei Punkte auf eine Wand im Bild tippen, die waagerecht oder senkrecht sein soll – das Bild dreht sich passend. Reihenfolge: erst gerade ausrichten, dann den Maßstab, dann die Räume darüber zeichnen. Ist die Umgebung aus der Karte geladen ([4.26](#426-die-umgebung-aus-der-karte-neu)), geht alles auf einmal mit **🗺 An der Karte ausrichten**: zwei Außenecken des Hauses im Bild antippen, dann dieselben zwei Ecken am gelben Umriss der Karte – das Bild wird gedreht, skaliert und verschoben, sodass es genau auf deinem Haus liegt.
 - **Etage in Home Assistant** verknüpft die Etage mit einer HA-Etage. Dann bietet **„… Räume aus HA-Bereichen anlegen“** die Bereiche dieser Etage als Räume an.
 - **Nach oben** und **Nach unten** ändern die Reihenfolge, **Etage löschen** entfernt sie samt Räumen.
 - **Etage duplizieren** (seit 3.0.1) legt die Etage noch einmal oben aufs Haus: Räume, Wände, Fenster, Türen und Möbel – für Häuser, deren Etagen gleich geschnitten sind. Die Kopie hat keine Verknüpfungen zu Home Assistant (die Geräte oben sind andere): Bereiche, Lichter und Sensoren wählst du dort neu.
@@ -197,6 +197,7 @@ Alles, was zum ganzen Plan gehört und nicht zu einer Etage, einem Raum oder ein
 | **🎨 Stile** | Stile, eigene Stile, Tageszeiten und Fassade, siehe [5.12](#512-stile-neu-in-31) |
 | **🖼 Hintergrund** | was hinter dem 3D-Haus liegt (unten) |
 | **⛰ Gelände** | siehe [4.21](#421-keller-und-gelände) |
+| **🗺 Umgebung** | die Nachbarschaft aus der Karte, siehe [4.26](#426-die-umgebung-aus-der-karte-neu) |
 | **💾 Sicherung** | Export, Import, Wiederherstellen, siehe Kapitel 9 |
 | **🧩 Module** | die eingespielten Module (Code aus dem Shop, etwa „Das Haus antwortet“) und **Modul einspielen …** für die .fp3dpack-Datei |
 | **🖥 Karten-Vorlagen** | fertige Dashboard-Karten für die Wandtablets, siehe [8.1](#81-karten-vorlagen) |
@@ -567,6 +568,24 @@ Eine Installation kann mehrere Grundrisse haben: das Haus, die Garage, das Garte
 ![Das Grundstück in 3D](images/plans-site.jpg)
 
 ---
+
+### 4.26 Die Umgebung aus der Karte (neu)
+
+![Die Umgebung aus der Karte](images/surroundings-wide.jpg)
+
+**Mit der Karte starten:** Ist das Erdgeschoss noch leer, schlägt NeonPlan vor, mit der Karte anzufangen. **Karte laden** holt die Umgebung; dein Haus von der Karte steht dann gelb gestrichelt im Plan, gerade zum Raster gedreht und mit einer Ecke am Nullpunkt, der Norden ist schon richtig gesetzt. Zeichne die Außenwände darauf (die Ecken des Umrisses rasten ein) oder lade dein Grundriss-Bild und lege es mit **🗺 An der Karte ausrichten** genau darauf (siehe [4.2](#42-etagen)). Wie genau der Umriss ist, hängt von der Gegend ab; prüfe eine Wandlänge mit dem Zollstock.
+
+Unter **⚙ Einstellungen → 🗺 Umgebung** holt NeonPlan die Nachbarschaft deines Hauses aus der freien Karte **OpenStreetMap**: die Häuser der Nachbarn als Blöcke in ihrer Höhe, Straßen, Wege, Bahngleise, Bäche, Teiche, Parks, Wälder und einzelne Bäume. Das funktioniert weltweit; wie viele Häuser die Karte kennt, hängt von der Gegend ab.
+
+- **Umgebung laden** holt alles im gewählten **Umkreis** (100, 150 oder 250 m) um den Standort, der in Home Assistant eingetragen ist (Einstellungen → System → Allgemein). Dazu wird dieser Standort **einmal** an den öffentlichen OpenStreetMap-Dienst Overpass geschickt. Danach liegt die Umgebung im Plan; neu geholt wird sie nur, wenn du **Neu laden** antippst. Sind die Kartenserver gerade ausgelastet, kann das Laden eine Minute dauern oder um einen späteren Versuch bitten.
+- NeonPlan sucht auf der Karte **dein Haus** (das Gebäude an deinem Standort), legt es auf deinen Grundriss und dreht den **Norden** so, dass Haus und Räume am besten übereinanderliegen (auch mit einer angebauten Garage; ein Gartenhaus abseits zählt nicht mit). Damit stimmen auch Sonnenbahn und Schatten. Dein Haus von der Karte steht im Grundriss **gelb gestrichelt**; Häuser der Karte, die in deinen Räumen stehen (etwa eine Garage, die du selbst gezeichnet hast), werden nicht doppelt gezeichnet.
+- Passt es nicht ganz, drehst du die Karte unter **Ausrichten** in Schritten von 90° oder 1° und schiebst sie mit den Pfeilen um 50 cm. Das Haus bleibt dabei stehen, die Karte dreht sich darum. **Neu ausrichten** legt sie wieder automatisch an.
+- Die **Nachbarhäuser werfen ihre Schatten** in deinen Garten, solange **Sonnenbahn und Hausschatten** an ist (siehe 5.7), in der Ansicht **Alle Etagen** und nicht auf der Stufe **Tablet**.
+- **In 3D zeigen** blendet die Umgebung aus und ein, **Entfernen** löscht sie aus dem Plan. Raumkarten zeigen nur ihre Räume, ohne Umgebung.
+- Unter **Häuser ein- und ausblenden** zeigt eine kleine Karte dein Haus und die Häuser drumherum. Tippst du ein Haus an, wird es aus- oder wieder eingeblendet (gelb gestrichelt = ausgeblendet). Gebäude der Karte, die zum größten Teil auf deinen Räumen stehen, etwa eine Garage, die auf der Karte ein eigenes Gebäude ist, blendet NeonPlan selbst aus.
+- **Nachbarhäuser nur als Grundriss** zeigt die Häuser der Nachbarn flach als Umriss auf dem Boden statt als Block; sie werfen dann keine Schatten.
+
+Unten rechts in der 3D-Ansicht steht „© OpenStreetMap“: Die Kartendaten stammen von den OpenStreetMap-Mitwirkenden und stehen unter der Open Database Licence.
 
 ## 5. Die 3D-Ansicht
 

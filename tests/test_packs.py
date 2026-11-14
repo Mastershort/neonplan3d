@@ -307,6 +307,22 @@ def test_a_newer_part_shape_asks_for_an_update() -> None:
     assert err.value.code == "invalid_content"
 
 
+def test_fan_blades_spin_and_an_unknown_part_field_asks_for_an_update() -> None:
+    """Turning parts (#1084) are known; a part field of a newer pack release asks for an update, not "invalid"."""
+    item = copy.deepcopy(PAYLOAD["items"][0])
+    item["parts"][0]["spin"] = "y"
+    assert packs.validate_payload({**PAYLOAD, "items": [item]})["items"][0]["parts"][0]["spin"] == "y"
+    item["parts"][0]["spin"] = "x"
+    with pytest.raises(packs.PackError) as err:
+        packs.validate_payload({**PAYLOAD, "items": [item]})
+    assert err.value.code == "needs_update"
+    del item["parts"][0]["spin"]
+    item["parts"][0]["some_future_field"] = 1
+    with pytest.raises(packs.PackError) as err:
+        packs.validate_payload({**PAYLOAD, "items": [item]})
+    assert err.value.code == "needs_update"
+
+
 def test_probatio_marks_an_unknown_value_by_its_code() -> None:
     """Probatio (Home Assistant 2026.9+) words its errors its own way but gives the code "not_in_list"."""
     probatio = SimpleNamespace(errors=[SimpleNamespace(code="not_in_list")])

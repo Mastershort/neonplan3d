@@ -114,7 +114,7 @@ import { roomsOnly, shownRoomIds } from "../rooms-filter.ts";
 import { formatNumber, translate, type I18nKey } from "../i18n.ts";
 import { furnitureShown, showIfSignature } from "../show-if.ts";
 import { fireworkNow, lawnSnow, roofLightsOn, snowLevel, winterOf } from "../winter.ts";
-import { getPacks, isPackCooktop, isPackHeater, isPackType, isRobotVacuum, mountBase, packItem, packRobotCentre, packMotion, packName, packsVersion } from "../packs.ts";
+import { getPacks, isPackCooktop, isPackHeater, isPackType, isRobotVacuum, mountBase, packItem, packRobotCentre, packMotion, packName, packSpinAxis, packsVersion } from "../packs.ts";
 import { parkedVehicle, PRESENT_STATES, parkedVehicles, vehicleFurniture } from "../parking.ts";
 import { TRAIL_ICON, TRAIL_WINDOW_MS, trailEvents, trailPoints, trailSources, trailTime, type HistoryRow } from "../trail.ts";
 import { limitEffects, weatherEntity, weatherState } from "../weather.ts";
@@ -126,6 +126,7 @@ import { anyModule, moduleAlerts, moduleCards, moduleMenuSheets, modulePools, mo
 import { lineFlows, majorOnly, markerEmoji, markerPath, sparkPoints } from "../module-scene.ts";
 import { generateWalls, openingHost, placeWallPlate, pointOnRoomEdge, type Wall } from "../geometry/walls.ts";
 import { signedArea } from "../model.ts";
+import { OSM_COPYRIGHT } from "../surroundings.ts";
 import { coverPositionable, lightAbilities } from "./quick-menu.ts";
 import "./quick-menu.ts";
 import { load3d } from "../load3d.ts";
@@ -2929,7 +2930,8 @@ export class Fp3dView3d extends LitElement {
           const lamp = this.lampMarker(hass, floor, f, linked?.entity ?? null);
           markers.push(lamp);
           // a ceiling fan with light: its fan gets a pin of its own beside the light (tap: on/off, hold: speed)
-          const fan = f.type === "lamp_fan" && f.fan && f.fan !== "none" ? f.fan : null;
+          // a pack lamp with fan blades too (#1084)
+          const fan = (f.type === "lamp_fan" || packSpinAxis(packItem(f.type))) && f.fan && f.fan !== "none" ? f.fan : null;
           if (fan && !taken.has(fan)) {
             taken.add(fan);
             const st = hass.states[fan];
@@ -3221,6 +3223,19 @@ export class Fp3dView3d extends LitElement {
         screens.set(f.id, { color: [0.015, 0.015, 0.03], level: 1, picture, plain: true });
       }
     }
+    // fan blades of pack items turn with their fan (#1084): the fan entity of a lamp with a fan, else its own entity –
+    // a fan with its speed, a switch at a medium pace; a light alone drives no blades
+    const spins = new Map<string, number>();
+    for (const floor of b.floors) {
+      for (const f of floor.furniture) {
+        if (!packSpinAxis(packItem(f.type))) continue;
+        const src = f.fan && f.fan !== "none" ? f.fan : (this.furnitureLinks.get(f.id)?.entity ?? null);
+        const st = src ? hass.states[src] : undefined;
+        const domain = src?.split(".")[0];
+        spins.set(f.id, domain === "fan" ? fanSpeed(st) : domain !== "light" && st && isActive(st) ? 0.6 : 0);
+      }
+    }
+    this.viewer?.setSpinSpeeds(spins);
     // a module's band of light round an item, or its layers (a tank warm above, cool below): on any item, over its own glow
     for (const g of glows.values()) {
       if (g.top) screens.set(g.furnitureId, { color: g.color, level: g.level, faces: [{ part: "strata", color: g.color, top: g.top, level: g.level }] });
@@ -6323,7 +6338,7 @@ export class Fp3dView3d extends LitElement {
       ${this.renderZoomBackground()}
       ${this._error ? html`<p class="fp3d-error">${this._error}</p>` : nothing} ${this.clean ? nothing : this.renderEnergy()} ${this.renderHologram()} ${this.clean ? nothing : this.renderLegend()}
       ${this.renderClock()} ${this.renderAlerts()} ${this.clean || this._walk ? nothing : html`${this.renderHousehold()} ${this.renderThumbs()} ${this.renderScenes()} ${this.renderFind()} ${this.renderCentral()}`} ${this.clean ? nothing : this.renderWalk()} ${this.renderSwipe()} ${this.renderInfo()} ${this.renderBinInfo()} ${this.renderGangMenu()} ${this.renderThrough()} ${this.renderCamPop()} ${this.renderCameraWall()} ${this.renderSheet()} ${this.renderModulePopup()} ${this.renderSettings()} ${this.renderNote()}
-      ${this.clean ? nothing : this.renderProHint()} ${this.renderMenu()} ${this.renderEye()}
+      ${this.clean ? nothing : this.renderProHint()} ${this.renderMenu()} ${this.renderEye()} ${this.building?.settings.surroundings?.on ? html`<a class="fp3d-osm-credit" href=${OSM_COPYRIGHT} target="_blank" rel="noopener">© OpenStreetMap</a>` : nothing}
       ${this.renderMic()}
       ${this._announce ? html`<div class="fp3d-announce" role="status" @click=${() => (this._announce = null)}>📢 ${this._announce}</div>` : nothing}
       ${this.pivotMark && !this._walk ? html`<span class="fp3d-pivot" aria-hidden="true"></span>` : nothing}
@@ -7192,6 +7207,16 @@ export class Fp3dView3d extends LitElement {
         backdrop-filter: none;
       }
       /* the eye sits beside the search button; alone in the corner once the view is clean */
+      .fp3d-osm-credit {
+        position: absolute;
+        right: 8px;
+        bottom: 4px;
+        z-index: 3;
+        font-size: 10px;
+        color: var(--fp3d-muted, rgba(200, 210, 230, 0.7));
+        opacity: 0.75;
+        text-decoration: none;
+      }
       .fp3d-eye {
         position: absolute;
         left: 56px;

@@ -829,6 +829,52 @@ _STYLE_TEXTS: dict[Any, Any] = {
 }
 
 
+# the neighbourhood from OpenStreetMap (surroundings.ts): map metres around the home, fetched once in the browser
+_SURROUND_POLY = vol.All([_POINT], vol.Length(min=2, max=MAX_POINTS))
+SURROUNDINGS_SCHEMA = vol.Schema(
+    {
+        vol.Required("on"): bool,
+        vol.Required("lat"): vol.All(vol.Coerce(float), vol.Range(min=-90, max=90)),
+        vol.Required("lon"): vol.All(vol.Coerce(float), vol.Range(min=-180, max=180)),
+        vol.Required("at"): vol.All(vol.Coerce(float), vol.Range(min=0)),
+        vol.Required("radius"): vol.All(vol.Coerce(float), vol.Range(min=20, max=600)),
+        vol.Required("x"): _COORD,
+        vol.Required("z"): _COORD,
+        vol.Optional("own"): vol.Any(None, vol.All(int, vol.Range(min=0))),
+        vol.Optional("hide"): vol.All([vol.All(int, vol.Range(min=0))], vol.Length(max=3000)),
+        vol.Optional("show"): vol.All([vol.All(int, vol.Range(min=0))], vol.Length(max=3000)),
+        vol.Optional("flat"): bool,
+        vol.Required("buildings"): vol.All(
+            [
+                vol.Schema(
+                    {
+                        vol.Required("p"): _SURROUND_POLY,
+                        vol.Required("h"): vol.All(vol.Coerce(float), vol.Range(min=0, max=400)),
+                    }
+                )
+            ],
+            vol.Length(max=3000),
+        ),
+        vol.Required("ways"): vol.All(
+            [
+                vol.Schema(
+                    {
+                        vol.Required("p"): _SURROUND_POLY,
+                        vol.Required("w"): vol.All(vol.Coerce(float), vol.Range(min=0, max=60)),
+                        vol.Required("k"): vol.In(["road", "path", "rail", "water"]),
+                    }
+                )
+            ],
+            vol.Length(max=3000),
+        ),
+        vol.Required("areas"): vol.All(
+            [vol.Schema({vol.Required("p"): _SURROUND_POLY, vol.Required("k"): vol.In(["water", "green", "wood"])})],
+            vol.Length(max=500),
+        ),
+        vol.Required("trees"): vol.All([_POINT], vol.Length(max=3000)),
+    }
+)
+
 SETTINGS_SCHEMA = vol.Schema(
     {
         vol.Required("wall_exterior"): vol.All(vol.Coerce(float), vol.Range(min=0.02, max=1)),
@@ -844,6 +890,7 @@ SETTINGS_SCHEMA = vol.Schema(
         vol.Optional("lock_plan", default=False): bool,
         # size of the room names in 3D (1 = as before)
         vol.Optional("label_scale"): vol.Any(None, vol.All(vol.Coerce(float), vol.Range(min=0.5, max=2))),
+        vol.Optional("surroundings"): vol.Any(None, SURROUNDINGS_SCHEMA),
         # stations and playlists for the speakers' quick menu (media_player.play_media type + content id)
         vol.Optional("media_presets", default=list): vol.All(
             [

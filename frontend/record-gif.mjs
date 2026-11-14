@@ -24,7 +24,8 @@ const server = createServer((req, res) => {
   res.writeHead(200, { "content-type": TYPES[extname(file)] ?? "application/octet-stream" }).end(readFileSync(file));
 });
 await new Promise((ok) => server.listen(0, "127.0.0.1", ok));
-const url = `http://127.0.0.1:${server.address().port}/preview/index.html?lang=en`;
+// ?public: only what the online demo shows (no Pool Pro)
+const url = `http://127.0.0.1:${server.address().port}/preview/index.html?lang=en&public`;
 
 const executablePath = [process.env.CHROME_PATH, "C:/Program Files/Google/Chrome/Application/chrome.exe", "/usr/bin/google-chrome"].filter(Boolean).find((p) => existsSync(p));
 const browser = await puppeteer.launch({ executablePath, headless: true, args: ["--use-angle=swiftshader", "--enable-unsafe-swiftshader", "--ignore-gpu-blocklist"] });

@@ -168,3 +168,22 @@ test("up-and-over garage door: stands in the opening closed, lies under the ceil
   assert.equal(th[1], 2.2);
   assert.ok(bh[0] < 0 && bh[1] > 0.1 && bh[1] < 2.2);
 });
+
+test("a garage door is the door only: no roller shutter or shutter box in front of it (#1094)", () => {
+  const gate = info("g", 1, 2.5, 0, 2.1, { type: "garage" });
+  const ys = (parts: ReturnType<typeof buildOpeningParts>) => {
+    const out: number[] = [];
+    for (const g of [parts.frames, parts.blinds]) {
+      const pos = g.getAttribute("position");
+      for (let i = 0; i < pos.count; i++) out.push(pos.getY(i));
+    }
+    return out;
+  };
+  for (const cover of [1, 0.5, 0]) {
+    const parts = buildOpeningParts([gate], new Map([["g", { open: 0, tilt: 0, cover }]]), 99);
+    assert.ok(Math.max(...ys(parts)) < 2.1 + 0.05, `no shutter box above the door (closed ${cover})`);
+  }
+  // a window with a cover still gets its shutter and box
+  const w = info("w", 1, 1.2, 0.9, 2.2, { cover: "cover.w" });
+  assert.ok(Math.max(...ys(buildOpeningParts([w], new Map([["w", { open: 0, tilt: 0, cover: 1 }]]), 99))) > 2.3);
+});

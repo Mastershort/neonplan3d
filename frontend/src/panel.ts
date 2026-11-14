@@ -1020,13 +1020,14 @@ export class Floorplan3dPanel extends LitElement {
   }
 
   /**
-   * A gift for everyone (the fun pack "Halloween"), once per admin until "don't show again": connected to the shop,
+   * A gift for everyone (the fun packs "Winter & Christmas" and "Pets"), once per admin until "don't show again": connected to the shop,
    * it is waiting under Extensions; not connected, a free customer account brings it (and connects the app).
    */
   private renderGift() {
-    const id = "fun_gifts_2026";
+    // a new id for the winter gift: who dismissed the Halloween one sees this one once
+    const id = "fun_gifts_winter_2026";
     // only once the installed packs are known, so it never flashes up for whoever has both
-    if (!this.isAdmin || this._giftLater || this._shopConnected === null || !this.data.packsLoaded || UNRELEASED.includes("fun_halloween") || (hasFeature("fun_halloween") && hasFeature("fun_pets"))) return nothing;
+    if (!this.isAdmin || this._giftLater || this._shopConnected === null || !this.data.packsLoaded || UNRELEASED.includes("fun_winter") || (hasFeature("fun_winter") && hasFeature("fun_pets"))) return nothing;
     try {
       if (localStorage.getItem(`neonplan3d.news.${id}`) === "never") return nothing;
     } catch {
@@ -1043,7 +1044,7 @@ export class Floorplan3dPanel extends LitElement {
     const connected = this._shopConnected;
     return html`<div class="fp3d-gift-veil" @click=${(e: Event) => e.target === e.currentTarget && (this._giftLater = true)}>
       <div class="fp3d-gift" role="dialog" aria-label=${this.t(connected ? "gift_title" : "gift_title_free")}>
-        <div class="fp3d-gift-pic">🎃 👻 🐱 🐶</div>
+        <div class="fp3d-gift-pic">🎄 ❄️ 🐱 🐶</div>
         <h3>${this.t(connected ? "gift_title" : "gift_title_free")}</h3>
         <p>${this.t(connected ? "gift_text" : "gift_text_free")}</p>
         <div class="fp3d-gift-actions">

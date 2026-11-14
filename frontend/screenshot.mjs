@@ -202,7 +202,7 @@ const shots = [
   { name: "editor-split-3d-de", query: "", width: 1440, height: 900, editor: true, editorScript: "setTimeout(() => (e._diagInvite = false), 400); e._split = true; e._furnitureId = 'm2';", afterWait: 1500 },
   { name: "editor-free-wall", query: "", width: 1280, height: 800, editor: true, editorState: { _floorId: "og", _tool: "select" } },
   { name: "editor-room-wall-heights", query: "", width: 1280, height: 1000, editor: true, editorState: { _floorId: "og", _tool: "select", _roomId: "kind", _edgeHi: 1 }, scrollSide: true },
-  { name: "view-free-wall", query: "", width: 1280, height: 800, click: "Obergeschoss", then: "Gästezimmer" },
+  { name: "view-free-wall", query: "", width: 1280, height: 800, click: "Obergeschoss", then: "Galerie" },
   { name: "editor-free-wall-door", query: "", width: 1280, height: 800, editor: true, editorScript: "const o = e._doc.floors[0].openings.find((x) => x.wall); e._floorId = e._doc.floors[0].id; e._tool = 'select'; e._openingId = o.id;" },
   { name: "view-free-wall-door", query: "", width: 1280, height: 800, click: "Erdgeschoss", then: "Garage" },
   { name: "editor-garage-devices", query: "", width: 1280, height: 1000, editor: true, editorState: { _roomId: "garage" }, scrollSide: true },
@@ -315,7 +315,7 @@ const shots = [
   { name: "editor-ha-floors", query: "", width: 1280, height: 900, editor: true, editorScript: "e._doc.floors[0].ha_floor = 'erdgeschoss'; e._doc.floors[1].ha_floor = 'obergeschoss'; e._floorMenu = true;" },
   { name: "editor-area-rooms", query: "", width: 1280, height: 900, editor: true, editorScript: "e._doc.floors[0].ha_floor = 'erdgeschoss'; e._doc.floors[1].ha_floor = 'obergeschoss'; e.addFloor(e.freeHaFloors[0]); e.addAreaRooms(e.floor);" },
   { name: "editor-resize", query: "", width: 1280, height: 800, editor: true, editorState: { _furnitureId: "m2" } },
-  { name: "editor-door", query: "", width: 1280, height: 900, editor: true, editorState: { _openingId: "o5", _roomId: "wohnen" }, scrollSide: true },
+  { name: "editor-door", query: "", width: 1280, height: 900, editor: true, editorState: { _openingId: "o9", _roomId: "essen" }, scrollSide: true },
   { name: "editor-opening-kinds", query: "", width: 1280, height: 900, editor: true, editorState: { _openingId: "o2", _roomId: "wohnen" } },
   { name: "view-double-door", query: "", width: 1280, height: 800, click: "Wohnzimmer" },
   { name: "editor-packs", query: "", width: 1280, height: 1000, editor: true, editorState: { _tool: "furniture", _roomId: "wohnen" }, scrollSide: true },
@@ -442,7 +442,7 @@ const shots = [
   { name: "view-accent", query: "", width: 1280, height: 800, click: "Erdgeschoss", viewScript: "const p = v.getRootNode().host; p._accent = '#ff8a00';", wait: 1500 },
   { name: "view-bed-state", query: "", width: 1280, height: 800, editor: true, editorScript: "e.fit();", then3d: "Erdgeschoss", camera: { theta: 3.6, phi: 0.55, radius: 6, target: { x: 2.2, y: 0.5, z: 6.9 } } },
   { name: "view-cut-furniture", query: "", width: 1280, height: 800, editor: true, editorScript: "e.fit();", then3d: "Erdgeschoss", then3dAlso: ["Schnitt"], camera: { theta: 2.4, phi: 1.1, radius: 8, target: { x: 8.6, y: 0.6, z: 6.2 } } },
-  { name: "editor-sidelight", query: "", width: 1280, height: 900, editor: true, editorState: { _openingId: "o14", _roomId: "flur" }, scrollSide: true },
+  { name: "editor-sidelight", query: "", width: 1280, height: 900, editor: true, editorState: { _openingId: "o19", _roomId: "flur" }, scrollSide: true },
   { name: "view-mirror", query: "", width: 1280, height: 800, editor: true, editorScript: "e.change((d) => { for (const m of d.floors[0].furniture) if (m.type === 'sofa' || m.type === 'tv_board') m.mirror = true; });", then3d: "Erdgeschoss", camera: { theta: 0.9, phi: 1.15, radius: 6, target: { x: 2.4, y: 0.8, z: 2.2 } } },
   { name: "view-nav-wrap", query: "", width: 760, height: 700, click: "Alle Etagen", viewScript: "v.getRootNode().host._navWrap = true;", wait: 1200 },
   // the online demo on a phone: a one-time hint what it is made for, with "only the house" (the eye)
@@ -518,8 +518,14 @@ for (const shot of shots.filter((s) => !only || only.includes(s.name))) {
     if (sessionStorage.getItem("fp3d-shot")) return;
     sessionStorage.setItem("fp3d-shot", "1");
     localStorage.clear();
+    // the invitation to the opt-in reports would stand in every editor picture
+    localStorage.setItem("neonplan3d.diagInvite", "0");
+    // and the gift hint in every picture without the fun packs
+    localStorage.setItem("neonplan3d.news.fun_gifts_winter_2026", "never");
   });
-  await page.goto(base + shot.query, { waitUntil: "networkidle0", timeout: 120000 });
+  // pictures for the manual show what is released only (PUBLIC=1: like the online demo, no Pool Pro)
+  const query = process.env.PUBLIC ? (shot.query ? `${shot.query}&public` : "?public") : shot.query;
+  await page.goto(base + query, { waitUntil: "networkidle0", timeout: 120000 });
   await new Promise((r) => setTimeout(r, 1200));
   const clickText = async (text) => {
     await page.evaluate((t) => {

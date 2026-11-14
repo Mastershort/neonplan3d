@@ -6,7 +6,7 @@
 import { Color } from "three";
 import type { Furniture, Vec2 } from "../model.ts";
 import { builtinBase, gangsOf, stairsULayout, POOL_VALVE_Y } from "../model.ts";
-import { adventCandles, isRobotVacuum, mountBase, packItem, packMotion, packMovingPart, packRobotCentre, packRobotPart, packScreen, type PackItem, type PackMotion, type PackPart } from "../packs.ts";
+import { adventCandles, isRobotVacuum, mountBase, packItem, packMotion, packMovingPart, packRobotCentre, packRobotPart, packScreen, packSpinAxis, type PackItem, type PackMotion, type PackPart } from "../packs.ts";
 import { fitParts } from "../pack-scale.ts";
 import { binColors, binShape, householdCountry, mailboxShape, type BinShape, type MailboxShape } from "../household.ts";
 import type { Floor } from "../model.ts";
@@ -1866,7 +1866,9 @@ function buildFurniture(buf: GeoBuffer, lines: LineBuffer, shadow: GeoBuffer, f:
         // a motorised curtain's fabric or a roll-down screen's cloth is drawn with its cover's state (pushPackMotion);
         // a pack's robot vacuum drives around as the viewer's robot (pushPackRobot), only its dock stays here (#645)
         const motion = packMotion(f.type);
-        const skip = motion ? (p: PackPart) => packMovingPart(motion, p) : isRobotVacuum(f.type) && !still ? packRobotPart : null;
+        const own = motion ? (p: PackPart) => packMovingPart(motion, p) : isRobotVacuum(f.type) && !still ? packRobotPart : null;
+        // turning fan blades are a model of their own the viewer turns (pushPackSpin, #1084); a picture keeps them
+        const skip = !still && packSpinAxis(item) ? (p: PackPart) => !!p.spin || !!own?.(p) : own;
         packModel(b, item, w, d, h, base, null, null, skip);
         // items on furniture, walls or ceilings cast no shadow on the floor
         if (base > 0.05) return;
@@ -2101,13 +2103,35 @@ export function packGlowCentres(item: PackItem, f: Pick<Furniture, "x" | "z" | "
   return pts.map((p) => [f.x + mx * p.x * c - p.z * s, base + p.y, f.z + mx * p.x * s + p.z * c]);
 }
 
-export function pushPackLamp(buf: GeoBuffer, item: PackItem, f: Pick<Furniture, "x" | "z" | "rotation" | "w" | "d" | "h" | "mirror">, base: number, glow: number): void {
+export function pushPackLamp(buf: GeoBuffer, item: PackItem, f: Pick<Furniture, "x" | "z" | "rotation" | "w" | "d" | "h" | "mirror">, base: number, glow: number, still = false): void {
   const a = f.rotation * DEG;
   const c = Math.cos(a);
   const s = Math.sin(a);
   // mirrored: the item's own x runs the other way (the builder rewinds what needs it)
   const mx = f.mirror ? -1 : 1;
   const tf: Tf = (x, z) => [f.x + mx * x * c - z * s, f.z + mx * x * s + z * c];
-  // lamps have no outlines: their edges are dropped
-  packModel(new Builder(buf, new LineBuffer(), tf), item, Math.max(0.05, f.w), Math.max(0.05, f.d), Math.max(0.005, f.h), base, glow);
+  // lamps have no outlines: their edges are dropped; a ceiling fan's turning blades are drawn by pushPackSpin
+  const skip = !still && packSpinAxis(item) ? (p: PackPart) => !!p.spin : null;
+  packModel(new Builder(buf, new LineBuffer(), tf), item, Math.max(0.05, f.w), Math.max(0.05, f.d), Math.max(0.005, f.h), base, glow, null, skip);
+}
+
+/**
+ * The turning parts of a pack item (fan blades, #1084) as a model of their own around their pivot – the middle of
+ * those parts – in the item's own coordinates (not turned, not mirrored, standing on y = 0). The viewer places it at
+ * the pivot and turns it about `axis`. Null for an item without such parts.
+ */
+export function pushPackSpin(buf: GeoBuffer, item: PackItem, w: number, d: number, h: number): { pivot: [number, number, number]; axis: "y" | "z" } | null {
+  const W = Math.max(0.05, w);
+  const D = Math.max(0.05, d);
+  const H = Math.max(0.005, h);
+  const parts = fitParts(item, W, D, H).filter((p) => p.spin === "y" || p.spin === "z");
+  if (!parts.length) return null;
+  const mean = (f: (p: PackPart) => number) => parts.reduce((s, p) => s + f(p), 0) / parts.length;
+  const px = mean((p) => p.x) * W;
+  const pz = mean((p) => p.z) * D;
+  const py = mean((p) => p.y + p.h / 2) * H;
+  const b = new Builder(buf, new LineBuffer(), (x, z) => [x - px, z - pz]);
+  // the parts are fitted already: drawn at the size they were fitted to
+  packModel(b, { ...item, size: [W, D, H], parts }, W, D, H, -py, null);
+  return { pivot: [px, py, pz], axis: parts[0].spin as "y" | "z" };
 }

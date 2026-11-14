@@ -827,6 +827,8 @@ export interface BuildingSettings extends StylePlan {
   winter?: { roof_lights?: boolean; roof_entity?: string | null; roof_color?: boolean; roof_outline?: boolean; snow?: boolean; firework?: boolean } | null;
   /** Size of the room names in 3D (null = 1, as before). */
   label_scale?: number | null;
+  /** The neighbourhood from OpenStreetMap around the house (surroundings.ts), fetched once and kept in the plan. */
+  surroundings?: Surroundings | null;
   /** Plan lock: rooms, walls, doors, windows and outdoor areas cannot be moved by accident. */
   lock_plan?: boolean;
   /** The camera the house view opens with (3D view, card, kiosk); null = fitted from the front left. */
@@ -836,6 +838,55 @@ export interface BuildingSettings extends StylePlan {
 }
 
 /** A camera position around the house: azimuth and polar angle (radians) and the distance (m). */
+/** A building of the neighbourhood: its footprint in map metres (east, north from the origin) and its height. */
+export interface SurroundBuilding {
+  p: Vec2[];
+  h: number;
+}
+
+/** A street, path, railway or stream as a centre line in map metres, with its width. */
+export interface SurroundWay {
+  p: Vec2[];
+  w: number;
+  k: "road" | "path" | "rail" | "water";
+}
+
+/** A flat area of the neighbourhood: water, a green (park, meadow) or a wood. */
+export interface SurroundArea {
+  p: Vec2[];
+  k: "water" | "green" | "wood";
+}
+
+/**
+ * The neighbourhood around the house from OpenStreetMap (© OpenStreetMap contributors, ODbL): fetched once at the
+ * home's location and kept in the plan. Coordinates are map metres from the origin (east, north); the plan turns
+ * them by its north and puts the origin at (x, z).
+ */
+export interface Surroundings {
+  /** Shown in 3D (the data stays when it is switched off). */
+  on: boolean;
+  /** Where it was fetched (degrees) and when (unix seconds), and the radius in metres. */
+  lat: number;
+  lon: number;
+  at: number;
+  radius: number;
+  /** The plan point the origin lies on. */
+  x: number;
+  z: number;
+  /** The map building that is the house itself (not drawn: the plan stands there); null = none picked. */
+  own?: number | null;
+  /** Map buildings hidden by hand, and ones shown although they stand where the plan has the house (indices). */
+  hide?: number[];
+  show?: number[];
+  /** The neighbours' houses only as their outline on the ground instead of blocks. */
+  flat?: boolean;
+  buildings: SurroundBuilding[];
+  ways: SurroundWay[];
+  areas: SurroundArea[];
+  /** Single trees (map metres). */
+  trees: Vec2[];
+}
+
 export interface StartView {
   theta: number;
   phi: number;

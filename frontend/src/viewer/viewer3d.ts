@@ -17,7 +17,7 @@ import { buildFloorGeometry, SLAB, stairHoleParts, type FloorGeometry } from "./
 import { OrbitControls, type OrbitView } from "./controls.ts";
 import { makeFoldable, type FoldMasks } from "./fold.ts";
 import { CameraProjections, PROJECTION_LAYER, type ProjectionSurface, type ProjectorPose } from "./projection.ts";
-import { packGlowCentre, packGlowCentres, pushAwning, pushCameraModel, pushPackGlow, pushPackRobot, pushPackLamp, pushPackMotion, screenRect, screenPictureSize, pushFridgeDoors, setLightLook, hasFixedColors } from "./furniture.ts";
+import { packGlowCentre, packGlowCentres, pushAwning, pushCameraModel, pushPackGlow, pushPackRobot, pushPackLamp, pushPackMotion, pushPackSpin, screenRect, screenPictureSize, pushFridgeDoors, setLightLook, hasFixedColors } from "./furniture.ts";
 import { pushPipeTube, type PipeTube } from "./pipes.ts";
 import { pushGate } from "./outdoor.ts";
 import { pinKey } from "./pin-key.ts";
@@ -28,11 +28,12 @@ export { FloorMap, WalkCamera, type WalkState } from "./walk.ts";
 export const funLib = { Group, Mesh, MeshBasicMaterial, CanvasTexture, Color, PlaneGeometry, BufferGeometry: Geometry, Float32BufferAttribute, DoubleSide };
 
 export type { PipeTube };
-import { groundUnder, isCooktopZone, mountBase, packItem, packMotion, setPacks, type FurniturePack } from "../packs.ts";
+import { groundUnder, isCooktopZone, mountBase, packItem, packMotion, packSpinAxis, setPacks, type FurniturePack } from "../packs.ts";
 import { withVehicles } from "../parking.ts";
 import { buildRoof, type RoofGeometry, type RoofWindowState } from "./roof.ts";
 import { SunFx } from "./sun-fx.ts";
-import { houseShadow, shadowBox, sunEdge } from "./sun-shadow.ts";
+import { blockShadows, houseShadow, shadowBox, sunEdge } from "./sun-shadow.ts";
+import { placedSurroundings, surroundKey } from "../surroundings.ts";
 import type { SunPath } from "../sun-path.ts";
 import { sunArcFrame, type SunArcFrame } from "./sun-arc.ts";
 import { GROUND, groundFace, groundFloor, roofFaces, roofWindowRoom, wallFaces } from "../solar.ts";
@@ -687,6 +688,13 @@ export class FloorplanViewer {
   /** Ceiling fans (D606): their blades in a group of their own, turning with the fan's speed. */
   private fans = new Map<string, { group: Group; mesh: Mesh; r: number; speed: number; floorId: string; y: number }>();
   private fanMat: MeshBasicMaterial | null = null;
+  /**
+   * Fan blades of pack items (#1084): each item's turning parts in a group of their own at their pivot, turning about
+   * their axis with the speed the view reports (setSpinSpeeds).
+   */
+  private packSpins = new Map<string, { group: Group; spinner: Group; mesh: Mesh; axis: "y" | "z"; speed: number; floorId: string; y: number; sig: string }>();
+  private spinSpeeds = new Map<string, number>();
+  private spinMat: MeshBasicMaterial | null = null;
   private fanLast = 0;
   private fanTimer: ReturnType<typeof setTimeout> | undefined;
   private floorStack: FloorStack = "dim";
@@ -2046,7 +2054,7 @@ export class FloorplanViewer {
     const north = (b?.settings.north ?? 0) * DEG;
     const cloud = this.weather?.cloud ?? 0;
     const shade = on && !this.lowQuality && sun.elevation > 1 && cloud < 0.9 && !this.roomTint;
-    const sig = shade ? `${sun.elevation.toFixed(1)},${sun.azimuth.toFixed(1)},${north},${cloud.toFixed(1)},${this.theme},${this.roofGeos.length}` : "";
+    const sig = shade ? `${sun.elevation.toFixed(1)},${sun.azimuth.toFixed(1)},${north},${cloud.toFixed(1)},${this.theme},${this.roofGeos.length},${surroundKey(b)}` : "";
     if (sig !== this.shadowSig) {
       this.shadowSig = sig;
       if (shade) this.drawShadow(b, sun, north, cloud);
@@ -2244,9 +2252,24 @@ export class FloorplanViewer {
     // the lawn beside the house (by default 20 cm below the floor)
     const lawn = gf.elevation + groundUnder(gf, { x: Math.min(...xs) - 1, z: (Math.min(...zs) + Math.max(...zs)) / 2 });
     const az = sun.azimuth * DEG;
-    const tris = houseShadow(b, this.roofGeos, [Math.sin(north + az), -Math.cos(north + az)], sun.elevation, lawn);
-    const box = shadowBox(tris);
+    const toSun: [number, number] = [Math.sin(north + az), -Math.cos(north + az)];
+    const tris = houseShadow(b, this.roofGeos, toSun, sun.elevation, lawn);
+    let box = shadowBox(tris);
     if (!box) return this.sunFx.hideShadow();
+    // the neighbours' houses from the map throw their shadows onto the garden too – only near the house, where the
+    // shadow texture is (it keeps its sharpness for the house's own shadow)
+    const around = placedSurroundings(b);
+    if (around?.buildings.length && !around.flat) {
+      const reach = 30;
+      const region: [number, number, number, number] = [box[0] - reach, box[1] - reach, box[2] + reach, box[3] + reach];
+      const nearBy = around.buildings.filter((bd) => bd.p.some(([x, z]) => x > region[0] - reach && x < region[2] + reach && z > region[1] - reach && z < region[3] + reach));
+      const extra = blockShadows(nearBy, toSun, sun.elevation);
+      if (extra.length) {
+        tris.push(...extra);
+        const all = shadowBox(tris)!;
+        box = [Math.max(all[0], region[0]), Math.max(all[1], region[1]), Math.min(all[2], region[2]), Math.min(all[3], region[3])];
+      }
+    }
     // on a lawn just below the floor the shadow lies at the floor's height, so it falls over the terrace too; the
     // house's own floor stays clear of it
     const y = gf.elevation - lawn <= 0.35 ? gf.elevation + 0.012 : lawn + 0.012;
@@ -2576,6 +2599,9 @@ export class FloorplanViewer {
     for (const f of this.fans.values()) f.mesh.geometry.dispose();
     this.fans.clear();
     this.fanMat?.dispose();
+    for (const f of this.packSpins.values()) f.mesh.geometry.dispose();
+    this.packSpins.clear();
+    this.spinMat?.dispose();
     this.firework?.dispose();
     this.snowMat?.dispose();
     this.lightsMat?.dispose();
@@ -2661,6 +2687,7 @@ export class FloorplanViewer {
     // robots share one geometry: keep them out of the floor groups while those are disposed
     for (const r of this.robots.values()) r.group.removeFromParent();
     for (const f of this.fans.values()) f.group.removeFromParent();
+    for (const f of this.packSpins.values()) f.group.removeFromParent();
     for (const fv of this.floors) {
       for (const pic of fv.screenPics.values()) {
         (pic.mesh.material as Material).dispose();
@@ -3048,6 +3075,9 @@ export class FloorplanViewer {
     const b = this.building;
     if (!b) return;
     const ordered = [...b.floors].sort((p, q) => p.elevation - q.elevation);
+    // the neighbourhood from the map lies on the ground floor's ground
+    const around = placedSurroundings(b);
+    const groundId = groundFloor(b)?.id;
     for (const floor of b.floors) {
       // solar fields in the garden stand on the ground floor, wall fields hang on their floor's walls
       const fields = b.settings.roof?.solar ?? [];
@@ -3070,7 +3100,7 @@ export class FloorplanViewer {
             return y === null ? null : y - floor.elevation;
           }
         : undefined;
-      const geo = this.dual(() => buildFloorGeometry(withVehicles(floor, this.parked), b.settings.wall_exterior, b.settings.wall_interior, stairHoleParts(b.floors, floor), garden, roofUnder));
+      const geo = this.dual(() => buildFloorGeometry(withVehicles(floor, this.parked), b.settings.wall_exterior, b.settings.wall_interior, stairHoleParts(b.floors, floor), garden, roofUnder, floor.id === groundId ? around : null));
       const mask: FoldMasks = { standing: { value: 0xffff }, glass: { value: 0 } };
       const materials = this.makeMaterials(mask);
       const group = new Group();
@@ -4699,6 +4729,13 @@ export class FloorplanViewer {
       for (const room of fv.floor.rooms) for (const [x, z] of room.points) box.expandByPoint(new Vector3(x, 0, z));
       for (const a of fv.floor.outdoor ?? []) for (const [x, z] of a.points) box.expandByPoint(new Vector3(x, 0, z));
     }
+    // the neighbourhood from the map: the ground reaches under the neighbours close by (not the whole map – the
+    // grid's cells grow with the ground)
+    const around = placedSurroundings(this.building);
+    if (around && !box.isEmpty()) {
+      const mid = box.getCenter(new Vector3());
+      for (const bd of around.buildings) for (const [x, z] of bd.p) if (Math.hypot(x - mid.x, z - mid.z) < 50) box.expandByPoint(new Vector3(x, 0, z));
+    }
     // the neon grid belongs to the neon looks: not under the light looks, nor under real materials
     this.ground.visible = !box.isEmpty() && !this.lowQuality && this.theme !== "day" && !this.style.natural && !this.nearOn;
     if (box.isEmpty()) return;
@@ -5404,9 +5441,64 @@ export class FloorplanViewer {
     this.fanLast = 0;
   }
 
+  /** How fast the blades of pack fans turn (0–1 by furniture id, #1084): their models follow the plan. */
+  setSpinSpeeds(speeds: Map<string, number>): void {
+    this.spinSpeeds = speeds;
+    this.syncPackSpins();
+    this.invalidate();
+  }
+
+  /** The pack items with turning parts: a model each at its pivot, rebuilt when the item or the look changes. */
+  private syncPackSpins(): void {
+    const seen = new Set<string>();
+    for (const fv of this.floors) {
+      for (const f of fv.floor.furniture) {
+        const item = packItem(f.type);
+        if (!item || !packSpinAxis(item)) continue;
+        seen.add(f.id);
+        const base = mountBase(fv.floor, f);
+        const sig = [f.x, f.z, f.rotation, f.w, f.d, f.h, f.mirror ? 1 : 0, base, fv.floor.id, this.style.id].join("|");
+        let spin = this.packSpins.get(f.id);
+        if (spin && spin.sig !== sig) {
+          spin.group.removeFromParent();
+          spin.mesh.geometry.dispose();
+          this.packSpins.delete(f.id);
+          spin = undefined;
+        }
+        if (!spin) {
+          this.usePalette();
+          const buf = new GeoBuffer();
+          const made = pushPackSpin(buf, item, f.w, f.d, f.h);
+          if (!made) continue;
+          // mirrored items turn their model inside out: both faces are drawn
+          this.spinMat ??= new MeshBasicMaterial({ vertexColors: true, side: DoubleSide });
+          const mesh = new Mesh(buf.geometry(), this.spinMat);
+          const spinner = new Group();
+          spinner.add(mesh);
+          spinner.position.set(made.pivot[0], made.pivot[1], made.pivot[2]);
+          const group = new Group();
+          group.add(spinner);
+          group.position.set(f.x, base, f.z);
+          group.rotation.y = -(f.rotation * DEG);
+          if (f.mirror) group.scale.x = -1;
+          spin = { group, spinner, mesh, axis: made.axis, speed: 0, floorId: fv.floor.id, y: base + made.pivot[1], sig };
+          this.packSpins.set(f.id, spin);
+        }
+        spin.speed = Math.max(0, Math.min(1, this.spinSpeeds.get(f.id) ?? 0));
+      }
+    }
+    for (const [key, f] of this.packSpins) {
+      if (seen.has(key)) continue;
+      f.group.removeFromParent();
+      f.mesh.geometry.dispose();
+      this.packSpins.delete(key);
+    }
+    this.fanLast = 0;
+  }
+
   /** Turn the fans' blades; true while one of them runs. */
   private stepFans(now: number): boolean {
-    if (!this.fans.size) return false;
+    if (!this.fans.size && !this.packSpins.size) return false;
     const dt = this.fanLast ? Math.min(0.2, (now - this.fanLast) / 1000) : 0;
     this.fanLast = now;
     let turning = false;
@@ -5420,6 +5512,18 @@ export class FloorplanViewer {
       turning = true;
       // up to about one turn a second at full speed
       f.group.rotation.y -= f.speed * Math.PI * 2 * dt;
+    }
+    for (const f of this.packSpins.values()) {
+      const fv = this.floorMap.get(f.floorId);
+      if (!fv) continue;
+      if (f.group.parent !== fv.group) fv.group.add(f.group);
+      f.group.visible = !(this.wallMode === "cut" && f.y > Math.min(fv.floor.cut_height, fv.floor.height));
+      if (f.speed <= 0) continue;
+      turning = true;
+      // a pedestal fan's blades turn faster than a ceiling fan's
+      const turn = f.speed * Math.PI * 2 * dt * (f.axis === "z" ? 2.5 : 1);
+      if (f.axis === "z") f.spinner.rotation.z -= turn;
+      else f.spinner.rotation.y -= turn;
     }
     if (!turning) this.fanLast = 0;
     return turning;

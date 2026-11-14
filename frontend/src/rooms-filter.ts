@@ -42,6 +42,8 @@ export function shownRoomIds(b: Building | null | undefined, ids: readonly strin
 
 /** The building with only these rooms and outdoor areas (by id), their furniture, devices, doors and windows. */
 export function roomsOnly(b: Building, ids: readonly string[]): Building {
+  // a card of some rooms shows them alone: not in the neighbourhood from the map (that belongs to the whole house)
+  if (b.settings.surroundings) b = { ...b, settings: { ...b.settings, surroundings: null } };
   const want = new Set(ids);
   const inner = b.settings.wall_interior ?? 0.12;
   const floors: Floor[] = [];

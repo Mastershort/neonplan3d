@@ -133,7 +133,7 @@ On the far left of the toolbar is **Floor: Ground floor ▾** – the floor you 
 
 - **Add floor** creates a floor. Home Assistant floors that are still missing are offered.
 - **Name**, **height above the ground** and **ceiling height** set where the floor sits in the 3D house and how tall its walls are. **Turn 90°** turns everything on the floor about the middle of its rooms when a floor was drawn the wrong way round. **Shift the floor** moves everything on the floor (rooms, furniture, devices, outdoor areas, free walls, background image) by X and Z when a floor sits offset against the others; roof sections and cables stay. With **Take every floor along** ticked, shift and turn act on the whole house: every floor with the roof sections, outdoor areas, cables, meter and hologram. **View as this floor's start** remembers how the 3D pane beside stands right now – this floor then opens from that side, with that zoom and framing, e.g. the ground floor from the front and the upper floor from the back; ↺ removes it.
-- **Background picture:** in the **Background** section you load a photo or scan of your floor plan as a template under the plan (opacity adjustable). **Move, scale and turn** gives the picture handles in the plan like a piece of furniture: drag moves it, the lower right corner scales it, the round handle on top turns it (Shift for 15° steps). **Done** fixes it again, so you can draw over it undisturbed. **Rotation (°)** turns it to a tenth of a degree. The easiest way to the scale is **📏 Scale with a ruler**: tap the start and end of a stretch of known length in the picture (a dimensioned wall), enter the real length – the picture is scaled to fit and the first point stays put. A skewed scan is put straight with **📐 Straighten**: tap two points on a wall in the picture that should run horizontally or vertically – the picture turns to fit. Order: straighten first, then the scale, then draw the rooms over it.
+- **Background picture:** in the **Background** section you load a photo or scan of your floor plan as a template under the plan (opacity adjustable). **Move, scale and turn** gives the picture handles in the plan like a piece of furniture: drag moves it, the lower right corner scales it, the round handle on top turns it (Shift for 15° steps). **Done** fixes it again, so you can draw over it undisturbed. **Rotation (°)** turns it to a tenth of a degree. The easiest way to the scale is **📏 Scale with a ruler**: tap the start and end of a stretch of known length in the picture (a dimensioned wall), enter the real length – the picture is scaled to fit and the first point stays put. A skewed scan is put straight with **📐 Straighten**: tap two points on a wall in the picture that should run horizontally or vertically – the picture turns to fit. Order: straighten first, then the scale, then draw the rooms over it. With the surroundings from the map loaded ([4.26](#426-the-surroundings-from-the-map-new)), **🗺 Align to the map** does it all at once: tap two outer corners of the house in the picture, then the same two corners on the map's yellow outline – the picture is turned, scaled and moved to lie exactly on your house.
 - **Floor in Home Assistant** links the floor to an HA floor. Then **"Add … rooms from HA areas"** offers the areas of that floor as rooms.
 - **Move up** and **Move down** change the order, **Delete floor** removes it with its rooms.
 - **Duplicate floor** (since 3.0.1) puts the floor once more on top of the house: rooms, walls, windows, doors and furniture – for houses whose floors are laid out alike. The copy has no links to Home Assistant (the devices up there are other ones): choose areas, lights and sensors there anew.
@@ -197,6 +197,7 @@ Everything that belongs to the whole plan rather than to a floor, a room or an i
 | **🎨 Styles** | styles, own styles, times of day and facade, see [5.12](#512-styles-new-in-31) |
 | **🖼 Background** | what lies behind the 3D house (below) |
 | **⛰ Ground** | see [4.21](#421-cellar-and-ground) |
+| **🗺 Surroundings** | the neighbourhood from the map, see [4.26](#426-the-surroundings-from-the-map-new) |
 | **💾 Backup** | export, import, restore, see chapter 9 |
 | **🧩 Modules** | the modules installed (code from the shop, e.g. "The house answers") and **Import a module …** for the .fp3dpack file |
 | **🖥 Card templates** | ready-made dashboard cards for the wall tablets, see [8.1](#81-card-templates) |
@@ -567,6 +568,24 @@ One installation can hold several floor plans: the house, the garage, the garden
 ![The property in 3D](images/plans-site.jpg)
 
 ---
+
+### 4.26 The surroundings from the map (new)
+
+![The surroundings from the map](images/surroundings-wide.jpg)
+
+**Start with the map:** while the ground floor is still empty, NeonPlan offers to start with the map. **Load the map** fetches the surroundings; your house from the map then stands dashed yellow in the plan, turned square to the grid with a corner at the origin, and north is already set. Draw the outer walls on it (the outline's corners snap) or load your floor-plan picture and lay it exactly onto it with **🗺 Align to the map** (see [4.2](#42-floors)). How exact the outline is depends on the area; check one wall's length with a tape measure.
+
+Under **⚙ Settings → 🗺 Surroundings** NeonPlan brings in your house's neighbourhood from the free map **OpenStreetMap**: the neighbours' houses as blocks at their height, streets, paths, railways, streams, ponds, parks, woods and single trees. It works worldwide; how many houses the map knows depends on the area.
+
+- **Load surroundings** fetches everything within the chosen **radius** (100, 150 or 250 m) around the location set in Home Assistant (Settings → System → General). For this, that location is sent **once** to the public OpenStreetMap service Overpass. The neighbourhood then stays in the plan; it is only fetched again when you tap **Load again**. When the map servers are busy, loading can take a minute or ask you to try again later.
+- NeonPlan finds **your house** on the map (the building at your location), lays it onto your plan and turns **north** so that house and rooms lie on top of each other best (an attached garage included; a garden shed apart does not count). That puts the sun's path and the shadows right too. Your house from the map is **dashed yellow** in the plan; map buildings standing in your rooms (a garage you drew yourself, say) are not drawn twice.
+- If it does not fit quite, turn the map under **Align** in steps of 90° or 1° and move it by 50 cm with the arrows. The house stays where it is, the map turns around it. **Align again** places it automatically once more.
+- **The neighbours' houses cast their shadows** into your garden while **Sun arc and house shadow** is on (see 5.7), in the **All floors** view and not at the **Tablet** level.
+- **Show in 3D** hides and shows the surroundings, **Remove** deletes them from the plan. Room cards show only their rooms, without surroundings.
+- Under **Show and hide houses** a small map shows your house and the houses around it. Tap a house to hide it or show it again (dashed yellow = hidden). Map buildings standing mostly on your rooms, such as a garage the map keeps as a building of its own, are hidden by NeonPlan itself.
+- **Neighbours' houses as outlines only** shows the neighbours' houses flat as an outline on the ground instead of as blocks; they then cast no shadows.
+
+Bottom right in the 3D view it says "© OpenStreetMap": the map data comes from the OpenStreetMap contributors under the Open Database Licence.
 
 ## 5. The 3D view
 
