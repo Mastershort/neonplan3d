@@ -1,5 +1,7 @@
 // 2D editor: floors, rooms (rectangles and free shapes), snapping, undo, background template.
 
+// the texts only the editor needs come with its bundle (added to the translations on load)
+import "../i18n-editor.ts";
 import { SIGN_DEFAULT } from "../neon-sign.ts";
 import { isStyleChoice, styleOptions } from "../style-select.ts";
 import { allStyles, newStyleId, setCustomStyles, styleById, type CustomStyle, type StyleDef } from "../looks.ts";
