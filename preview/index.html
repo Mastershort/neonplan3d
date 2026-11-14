@@ -17,6 +17,7 @@
     <script type="module">
       // Mock of the Home Assistant frontend object with invented demo data.
       import { DEMO_AREAS, DEMO_BUILDING, DEMO_FLOORS, DEMO_PACK, DEMO_ENTITIES, DEMO_STATES, DEMO_PICTURES, DEMO_PLANS } from "./demo-data.js";
+      import { DEMO_SHOP_PACKS } from "./demo-packs.js";
       import { demoHistory } from "./demo-history.js";
 
       const params = new URLSearchParams(location.search);
@@ -70,6 +71,12 @@
           floor.furniture = floor.furniture.filter((f) => !/^pool_/.test(f.type));
           for (const area of floor.outdoor ?? []) delete area.pool;
         }
+      }
+      // the demo's start view is framed for a wide screen: a phone held upright needs it from further away
+      const portrait = innerWidth / innerHeight;
+      if (building.settings.start_view && portrait < 0.85) {
+        building = structuredClone(building);
+        building.settings.start_view.radius *= Math.min(1.9, 0.85 / portrait);
       }
       let revision = 1;
       // ?plans: further floor plans (the garden house, a holiday flat); the main plan is `building` above
@@ -126,6 +133,8 @@
           } catch {
             // no local packs
           }
+          // the online demo has no private/ packs: five models of the garden and vehicle packs stand in for them
+          for (const pack of DEMO_SHOP_PACKS) if (!importedPacks.some((p) => p.id === pack.id)) importedPacks.push(pack);
         }
         // ?nopro also drops local feature packs, so the locked look can be seen
         return params.has("nopro") ? importedPacks.filter((p) => !p.features?.length) : importedPacks;
