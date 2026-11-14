@@ -571,6 +571,8 @@ One installation can hold several floor plans: the house, the garage, the garden
 
 ### 4.26 The surroundings from the map (new)
 
+![The surroundings from the map](images/surroundings-wide.jpg)
+
 **Start with the map:** while the ground floor is still empty, NeonPlan offers to start with the map. **Load the map** fetches the surroundings; your house from the map then stands dashed yellow in the plan, turned square to the grid with a corner at the origin, and north is already set. Draw the outer walls on it (the outline's corners snap) or load your floor-plan picture and lay it exactly onto it with **🗺 Align to the map** (see [4.2](#42-floors)). How exact the outline is depends on the area; check one wall's length with a tape measure.
 
 Under **⚙ Settings → 🗺 Surroundings** NeonPlan brings in your house's neighbourhood from the free map **OpenStreetMap**: the neighbours' houses as blocks at their height, streets, paths, railways, streams, ponds, parks, woods and single trees. It works worldwide; how many houses the map knows depends on the area.

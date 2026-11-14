@@ -80,14 +80,17 @@ function ribbon(buf: GeoBuffer, pts: Vec2[], w: number, y: number, color: Color)
 
 /**
  * Pushes the neighbourhood (in plan coordinates) into a floor's buffers, standing on `ground` (floor coordinates).
- * Areas lie lowest, then water, paths and streets just above them – all below the lawn of the plot, so the garden
- * drawn in the plan covers whatever the map has there.
+ * The flat layers lie a little below the ground, a couple of centimetres apart – areas lowest, then wood, water,
+ * paths, streets: millimetres apart they flickered against each other from afar (the depth buffer cannot tell them
+ * apart at 100 m). Below the ground nothing covers them, and the garden drawn in the plan lies above them all.
  */
 export function pushSurroundings(buf: GeoBuffer, lines: LineBuffer, s: PlacedSurroundings, ground: number): void {
   const L = LOOK;
-  for (const a of s.areas) flat(buf, a.p, ground + (a.k === "water" ? 0.004 : 0.002), new Color(L[a.k]));
+  const AREA_Y = { green: -0.12, wood: -0.1, water: -0.08 } as const;
+  const WAY_Y = { water: -0.065, path: -0.05, rail: -0.04, road: -0.025 } as const;
+  for (const a of s.areas) flat(buf, a.p, ground + AREA_Y[a.k], new Color(L[a.k]));
   for (const w of s.ways) {
-    const y = ground + (w.k === "road" ? 0.008 : w.k === "water" ? 0.005 : 0.006);
+    const y = ground + WAY_Y[w.k];
     ribbon(buf, w.p, Math.max(0.6, w.w), y, new Color(L[w.k]));
   }
   const edge = shade(L.edge, L.edgeAlpha);
@@ -97,11 +100,11 @@ export function pushSurroundings(buf: GeoBuffer, lines: LineBuffer, s: PlacedSur
     for (const b of s.buildings) {
       if (b.p.length < 3) continue;
       const poly = ccw(b.p);
-      flat(buf, poly, ground + 0.01, new Color(L.top));
+      flat(buf, poly, ground - 0.012, new Color(L.top));
       for (let i = 0; i < poly.length; i++) {
         const p = poly[i];
         const q = poly[(i + 1) % poly.length];
-        lines.seg([p[0], ground + 0.02, p[1]], [q[0], ground + 0.02, q[1]], outline, ALWAYS);
+        lines.seg([p[0], ground - 0.005, p[1]], [q[0], ground - 0.005, q[1]], outline, ALWAYS);
       }
     }
   }

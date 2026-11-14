@@ -508,8 +508,11 @@ export function buildOpeningParts(infos: readonly OpeningInfo[], states: Readonl
         }
       }
     }
-    // blind on the outside: box above the opening, slats down to the closed fraction
-    if (st.cover !== null && blindInside(info.opening)) {
+    // blind on the outside: box above the opening, slats down to the closed fraction. A garage door's closed
+    // fraction is the door itself (drawn above): it never gets a roller shutter in front of it (#1094)
+    if (info.opening.type === "garage") {
+      // nothing more
+    } else if (st.cover !== null && blindInside(info.opening)) {
       // a roller shade inside the room: a slim cassette on the wall above the window, the cloth runs down in
       // front of the reveal and ends on the window board, a bar along its lower edge
       const face = info.faceRoom;

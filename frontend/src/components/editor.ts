@@ -14525,7 +14525,11 @@ export class Fp3dEditor extends LitElement {
     const north = this._doc.settings.north ?? 0;
     const span = 70;
     const [x0, z0] = [mid[0] - span / 2, mid[1] - span / 2];
-    const near = (p: Vec2) => Math.abs(p[0] - mid[0]) < span * 0.75 && Math.abs(p[1] - mid[1]) < span * 0.75;
+    // whether a line or outline reaches into the picture (a long street has its ends far outside)
+    const near = (ring: Vec2[]) => {
+      const q = ring.map((p) => mapToPlan(s, north, p));
+      return !(q.every((p) => p[0] < x0) || q.every((p) => p[0] > x0 + span) || q.every((p) => p[1] < z0) || q.every((p) => p[1] > z0 + span));
+    };
     const hidden = hiddenBuildings(s, this._doc);
     const pts = (ring: Vec2[]) => ring.map((q) => mapToPlan(s, north, q).join(",")).join(" ");
     const gf = [...this._doc.floors].sort((p, q) => Math.abs(p.elevation) - Math.abs(q.elevation))[0];
@@ -14542,10 +14546,10 @@ export class Fp3dEditor extends LitElement {
         if (!sur.show.length) delete sur.show;
       });
     return html`<svg class="fp3d-osm-pick" viewBox="${x0} ${z0} ${span} ${span}" role="img" aria-label=${this.t("surround_pick")}>
-      ${s.ways.filter((w) => w.p.some((q) => near(mapToPlan(s, north, q)))).map((w) => svg`<polyline class=${`fp3d-osm-w fp3d-osm-${w.k}`} points=${pts(w.p)} stroke-width=${Math.max(0.6, w.w)} />`)}
+      ${s.ways.filter((w) => near(w.p)).map((w) => svg`<polyline class=${`fp3d-osm-w fp3d-osm-${w.k}`} points=${pts(w.p)} stroke-width=${Math.max(0.6, w.w)} />`)}
       ${(gf?.rooms ?? []).filter((r) => !r.outdoor).map((r) => svg`<polygon class="fp3d-osm-room" points=${r.points.map((q) => q.join(",")).join(" ")} />`)}
       ${s.buildings.map((b, i) =>
-        b.p.some((q) => near(mapToPlan(s, north, q)))
+        near(b.p)
           ? svg`<polygon class=${hidden.has(i) ? "fp3d-osm-own" : "fp3d-osm-b"} points=${pts(b.p)} @click=${() => this.isAdmin && toggle(i)}><title>${this.t(hidden.has(i) ? "surround_pick_show" : "surround_pick_hide")}</title></polygon>`
           : nothing,
       )}

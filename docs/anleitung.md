@@ -571,6 +571,8 @@ Eine Installation kann mehrere Grundrisse haben: das Haus, die Garage, das Garte
 
 ### 4.26 Die Umgebung aus der Karte (neu)
 
+![Die Umgebung aus der Karte](images/surroundings-wide.jpg)
+
 **Mit der Karte starten:** Ist das Erdgeschoss noch leer, schlägt NeonPlan vor, mit der Karte anzufangen. **Karte laden** holt die Umgebung; dein Haus von der Karte steht dann gelb gestrichelt im Plan, gerade zum Raster gedreht und mit einer Ecke am Nullpunkt, der Norden ist schon richtig gesetzt. Zeichne die Außenwände darauf (die Ecken des Umrisses rasten ein) oder lade dein Grundriss-Bild und lege es mit **🗺 An der Karte ausrichten** genau darauf (siehe [4.2](#42-etagen)). Wie genau der Umriss ist, hängt von der Gegend ab; prüfe eine Wandlänge mit dem Zollstock.
 
 Unter **⚙ Einstellungen → 🗺 Umgebung** holt NeonPlan die Nachbarschaft deines Hauses aus der freien Karte **OpenStreetMap**: die Häuser der Nachbarn als Blöcke in ihrer Höhe, Straßen, Wege, Bahngleise, Bäche, Teiche, Parks, Wälder und einzelne Bäume. Das funktioniert weltweit; wie viele Häuser die Karte kennt, hängt von der Gegend ab.
