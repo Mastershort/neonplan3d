@@ -459,6 +459,8 @@ export interface FreeWall {
   height?: number | null;
   /** A sloping top (#834): the height at end a and at end b, straight in between; null = the plain height. */
   slope?: [number, number] | null;
+  /** Colour of both sides ("#rrggbb"; null = the room's wall, or the facade outside the rooms), shown in the homely styles (#1101). */
+  color?: string | null;
 }
 
 /** "custom": the roof is made of sections (wings of an L- or T-shaped house, a barn, a lean-to …). */

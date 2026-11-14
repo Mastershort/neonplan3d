@@ -5,6 +5,7 @@ import type { Floor, Furniture, Opening, Room, Vec2 } from "../model.ts";
 import { newFloor, pointInPolygon, stairsULayout } from "../model.ts";
 import { generateWalls } from "../geometry/walls.ts";
 import { buildFloorGeometry, clipAlong, packStairHole, stairHoles, stairHoleParts, wallHeight } from "./build.ts";
+import { setNaturalPalette } from "./palette.ts";
 import type { PackItem } from "../packs.ts";
 
 const EXT = 0.24;
@@ -352,4 +353,37 @@ test("a pack L-stair opens the floor above only where it stands, not in the empt
   // turned a quarter: the corner turns with it
   const turned = packStairHole({ ...stair, rotation: 90 }, item);
   assert.ok(!inside([-0.5, -0.5], turned) && inside([0.5, 0.5], turned));
+});
+
+test("a free wall's own colour shows on both its sides in the homely styles, in a room and outside (#1101)", () => {
+  setNaturalPalette(true);
+  try {
+    const reds = (color: string | null) => {
+      const walls = [
+        { id: "inside", a: [4, 0.5] as Vec2, b: [4, 2.5] as Vec2, thickness: 0.1, height: 1.2, color },
+        { id: "outside", a: [10, 0] as Vec2, b: [12, 0] as Vec2, thickness: null, height: null, color },
+      ];
+      const g = buildFloorGeometry({ ...floorWith([rect("a", 0, 0, 8, 3)]), walls }, EXT, INT).walls;
+      const pos = g.getAttribute("position");
+      const col = g.getAttribute("color");
+      // triangles of each wall's two long faces, told by their middle
+      const red = { inside: 0, outside: 0, other: 0 };
+      for (let i = 0; i < pos.count; i += 3) {
+        const m = [0, 1, 2].reduce((s, k) => [s[0] + pos.getX(i + k) / 3, s[1] + pos.getY(i + k) / 3, s[2] + pos.getZ(i + k) / 3], [0, 0, 0]);
+        if (m[1] < 0.1) continue;
+        const isRed = col.getX(i) > 0.3 && col.getY(i) < 0.05 && col.getZ(i) < 0.05;
+        const which = Math.abs(m[0] - 4) < 0.1 && m[2] > 0.45 && m[2] < 2.55 ? "inside" : m[0] > 9.95 && m[0] < 12.05 && Math.abs(m[2]) < 0.1 ? "outside" : "other";
+        if (isRed) red[which]++;
+      }
+      return red;
+    };
+    const plain = reds(null);
+    assert.deepEqual(plain, { inside: 0, outside: 0, other: 0 });
+    const own = reds("#ff0000");
+    assert.ok(own.inside >= 4 && own.outside >= 4, JSON.stringify(own));
+    // the room's own walls keep their colour
+    assert.equal(own.other, 0);
+  } finally {
+    setNaturalPalette(false);
+  }
 });

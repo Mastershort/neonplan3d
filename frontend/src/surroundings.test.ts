@@ -194,6 +194,27 @@ test("a garage mapped as a building of its own turns the map the right way round
   assert.deepEqual([...hiddenBuildings(sur, moved)].sort(), [0, 1], "the house and its garage, not the neighbour");
 });
 
+test("map buildings over a carport, a shed on a garden floor and a pergola are hidden, the neighbours stay (#1099)", () => {
+  const b = house([[0, 0, 10, 8]]);
+  // the garden on a floor of its own at ground level, with a shed as a room and a pergola
+  b.floors.push({
+    ...newFloor("garden", "Garden", 0),
+    rooms: [{ id: "shed", name: "Shed", area_id: null, floor_material: "wood", points: [[-6, 12], [-3, 12], [-3, 15], [-6, 15]] as Vec2[] }],
+    outdoor: [{ id: "p", type: "pergola", points: [[2, 12], [6, 12], [6, 15], [2, 15]] as Vec2[] }],
+  });
+  // a carport as an open roof section beside the house
+  b.settings.roof = { ...b.settings.roof, sections: [{ id: "carport", x0: 11, z0: 0, x1: 14, z1: 5, shape: "pent", axis: "x", eave_a: 2.4, eave_b: 2.4, pitch_a: 4, pitch_b: 4, base: 2.4, open: true }] };
+  // the map in plan coordinates (north up, origin at the plan's origin): house, carport, shed, pergola, a neighbour
+  const box = (x0: number, z0: number, x1: number, z1: number): Vec2[] => [[x0, -z0], [x1, -z0], [x1, -z1], [x0, -z1]];
+  const s: Surroundings = {
+    ...base([{ p: box(0, 0, 10, 8), h: 7 }, { p: box(11.2, 0.3, 13.8, 4.8), h: 3 }, { p: box(-6.2, 11.8, -2.8, 15.2), h: 3 }, { p: box(2.2, 12.2, 5.8, 14.8), h: 3 }, { p: box(20, 0, 30, 8), h: 7 }]),
+    own: 0,
+    x: 0,
+    z: 0,
+  };
+  assert.deepEqual([...hiddenBuildings(s, b)].sort(), [0, 1, 2, 3]);
+});
+
 test("a busy server is asked again after a pause, then the answer is read", async () => {
   const answers = [new Response("busy", { status: 504 }), new Response(JSON.stringify({ elements: [{ type: "way", tags: { highway: "residential" }, geometry: [ll(-10, 0), ll(10, 0)] }] }), { status: 200 })];
   const pauses: number[] = [];

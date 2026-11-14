@@ -8,6 +8,7 @@
 
 import type { Building, Floor, SurroundArea, Surroundings, SurroundWay, Vec2 } from "./model.ts";
 import { centroid, pointInPolygon } from "./model.ts";
+import { sectionPolygon } from "./roof-sections.ts";
 
 /** The radii offered (metres). */
 export const SURROUND_RADII = [100, 150, 250] as const;
@@ -132,12 +133,27 @@ export function ringEdges(poly: readonly Vec2[]): [Vec2, Vec2][] {
 }
 
 /**
+ * What the plan builds itself, where a map building would stand in the way: the rooms of every floor (a shed on a
+ * floor of its own for the garden, #1099), the roof sections (a carport, a garden house) and pergolas.
+ */
+export function ownStructures(b: Building): Vec2[][] {
+  const out: Vec2[][] = [];
+  for (const f of b.floors) {
+    for (const r of f.rooms) if (!r.outdoor && r.points.length >= 3) out.push(r.points);
+    for (const a of f.outdoor ?? []) if (a.type === "pergola" && a.points.length >= 3) out.push(a.points);
+  }
+  for (const sec of b.settings.roof.sections ?? []) if (!sec.dormer) out.push(sectionPolygon(sec, 0));
+  return out;
+}
+
+/**
  * Which map buildings stand where the plan already has the house, so they are not drawn: the own one, and any other
- * that lies for the most part (or with its middle) on the rooms of the ground floor – an annex or garage mapped as a
- * building of its own. Then the user's own choice: buildings hidden by hand, and ones shown although they stand there.
+ * that lies for the most part (or with its middle) on what the plan builds itself – an annex or garage mapped as a
+ * building of its own, a carport, a shed. Then the user's own choice: buildings hidden by hand, and ones shown
+ * although they stand there.
  */
 export function hiddenBuildings(s: Surroundings, b: Building): Set<number> {
-  const rooms = footprint(b);
+  const rooms = ownStructures(b);
   const north = b.settings.north ?? 0;
   const key = `${s.at},${s.x},${s.z},${north},${s.own},${s.hide?.join(".")},${s.show?.join(".")},${s.buildings.length},${JSON.stringify(rooms)}`;
   if (hiddenCache?.key === key) return new Set(hiddenCache.out);
@@ -194,6 +210,12 @@ export function placedSurroundings(b: Building | null | undefined): PlacedSurrou
 /** The floor the map lies on: the one closest to the ground. */
 export function surroundFloorId(b: Building): string | undefined {
   return [...b.floors].sort((p, q) => Math.abs(p.elevation) - Math.abs(q.elevation))[0]?.id;
+}
+
+/** A floor at the ground floor's level (the ground floor, or a floor of its own for the garden, #1099): the plan shows the map there. */
+export function atGroundLevel(b: Building, floor: Floor): boolean {
+  const gf = b.floors.find((f) => f.id === surroundFloorId(b));
+  return !!gf && Math.abs(floor.elevation - gf.elevation) < 0.5;
 }
 
 /** The house's own building on the map in plan coordinates (the template to draw on), null without one. */

@@ -33,7 +33,7 @@ import { screenName, setScreenName, setVoiceArea, setVoiceHere, setVoicePipeline
 import { doorbellCamera, doorbellEntities, directorOnHere, HOLD_DEFAULT, HOLD_MAX, HOLD_MIN, setDirectorHere, type DirectorSettings } from "../director.ts";
 import { deviceSensors, energySummary, flowSegments, gridPoint, hubPoint, inverterToGrid, powerSensorFor, proposeEnergySensors, type EnergyPrefs, type FlowSegment, proposeMeters } from "../energy.ts";
 import { CLIMATE_ATTRS, isPulseDrive, isStatusSensor, robotRoomSensor, slatTilt, TOGGLE_KINDS } from "../devices.ts";
-import { homeBuilding, OSM_COPYRIGHT, planMiddle, mapToPlan, SURROUND_RADII, turnMap, hiddenBuildings, mapCorners, ownOutline, surroundFloorId } from "../surroundings.ts";
+import { homeBuilding, OSM_COPYRIGHT, planMiddle, mapToPlan, SURROUND_RADII, turnMap, hiddenBuildings, mapCorners, ownOutline, surroundFloorId, atGroundLevel } from "../surroundings.ts";
 import { loadOsm } from "../load-osm.ts";
 import { activeSections, sectionFloor, sectionOverhang, dormerParent, effectiveDormer, proposeDormer, sectionGeometry, floorOutline, polygonBox, headroomLines, ridgeHeight, sectionAbove, sectionCutsBelow, roofSectionsFromRooms, sectionFrame, sectionTurn, turnPoint, turnSectionAbout, wallTopUnder } from "../roof-sections.ts";
 import { bestFace, clampField, faceAt, faceCompass, fieldFace, fieldModules, GROUND, moveField, pointOnFace, proposeField, proposeGroundField, proposeWindow, proposeWallField, roofFaces, rowCounts, turnGroundField, fieldCenter, wallFaces, windowAsField, windowCorners, onFace, onField, rayOnFace, type RoofFace } from "../solar.ts";
@@ -1523,7 +1523,7 @@ export class Fp3dEditor extends LitElement {
       });
     }
     // the corners of the houses on the map (the template on the ground floor)
-    if (this.floor && this.floor.id === surroundFloorId(this._doc)) others.push(...mapCorners(this._doc));
+    if (this.floor && atGroundLevel(this._doc, this.floor)) others.push(...mapCorners(this._doc));
     // 1. corners of rooms
     let best: Vec2 | null = null;
     let bestD = thr;
@@ -3006,6 +3006,11 @@ export class Fp3dEditor extends LitElement {
     const H = this.floor?.height ?? 2.5;
     const slope = w.slope ?? null;
     const setSlope = (s: [number, number] | null) => this.updateFreeWall({ slope: s ? [Math.round(Math.max(0.05, s[0]) * 1000) / 1000, Math.round(Math.max(0.05, s[1]) * 1000) / 1000] : null });
+    // its own colour on both sides (#1101): the homely styles show it, like a room's wall colours
+    const setColour = (hex: string | null) => {
+      this.updateFreeWall({ color: hex });
+      if (hex) this.showWallColours();
+    };
     return html`<section>
       <div class="fp3d-h3row"><h3>${this.t("free_wall")}</h3>${this.fixButton("wall", w.id)}</div>
       <div class="fp3d-form">
@@ -3020,6 +3025,11 @@ export class Fp3dEditor extends LitElement {
         ${admin
           ? html`<button class="fp3d-btn" aria-pressed=${!!slope} title=${this.t("wall_slope_hint")} @click=${() => setSlope(slope ? null : [w.height ?? H, w.height ?? H])}>◢ ${this.t("wall_slope")}</button>`
           : nothing}
+      </div>
+      <div class="fp3d-wall-all">
+        <span>🎨 ${this.t("color")}</span>
+        <input type="color" title=${this.t("color")} ?disabled=${!admin} .value=${w.color ?? "#f0ede8"} @change=${(e: Event) => setColour((e.target as HTMLInputElement).value)} />
+        ${admin && w.color ? html`<button class="fp3d-btn" title=${this.t("color_reset")} @click=${() => setColour(null)}>↺</button>` : nothing}
       </div>
       ${admin
         ? html`<div class="fp3d-actions">
@@ -14559,8 +14569,7 @@ export class Fp3dEditor extends LitElement {
   /** The neighbourhood in the plan: the neighbours' houses and streets faint, the house's own one on the map dashed. */
   private renderSurroundPlan(floor: Floor) {
     const s = this._doc.settings.surroundings;
-    const gf = [...this._doc.floors].sort((p, q) => Math.abs(p.elevation) - Math.abs(q.elevation))[0];
-    if (!s?.on || floor.id !== gf?.id) return nothing;
+    if (!s?.on || !atGroundLevel(this._doc, floor)) return nothing;
     const north = this._doc.settings.north ?? 0;
     const hidden = hiddenBuildings(s, this._doc);
     const pts = (ring: Vec2[]) => ring.map((q) => this.toScreen(mapToPlan(s, north, q)).join(",")).join(" ");

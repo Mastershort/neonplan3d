@@ -972,6 +972,8 @@ export class Fp3dView3d extends LitElement {
     this.pickupKey = "";
     // back in the page (another dashboard view and back), the day curves are fetched and kept fresh again (#527)
     this.holoIds = "";
+    // the room tint goes to the next viewer again (#1105)
+    this.tintSig = "";
     clearTimeout(this.flashTimer);
     this.flashTimer = undefined;
     clearTimeout(this.infoTimer);

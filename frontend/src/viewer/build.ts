@@ -137,7 +137,7 @@ export function wallColors(floor: Floor): ((a: Vec2, b: Vec2, nx: number, nz: nu
   if (!naturalPalette()) return undefined;
   const facade = facadeColor();
   const rooms = floor.rooms.filter((r) => r.points.length >= 3);
-  if (facade === null && !rooms.some((r) => r.wall_color || r.wall_colors?.some(Boolean))) return undefined;
+  if (facade === null && !rooms.some((r) => r.wall_color || r.wall_colors?.some(Boolean)) && !floor.walls?.some((w) => w.color)) return undefined;
   return (a, b, nx, nz) => {
     // a probe 5 cm in front of the side tells which room it faces
     const p: Vec2 = [(a[0] + b[0]) / 2 + nx * 0.05, (a[1] + b[1]) / 2 + nz * 0.05];
@@ -380,11 +380,14 @@ export function buildFloorGeometry(
   // ---------------------------------------------------------------- wall solids
   const cut = Math.min(floor.cut_height, floor.height);
   const wallBuf = new GeoBuffer();
-  const sideColor = wallColors(floor);
+  const floorSide = wallColors(floor);
   for (const wall of walls) {
     const b = wallBucket.get(wall)!;
     const ax = unit([wall.b[0] - wall.a[0], wall.b[1] - wall.a[1]]);
     const list = (spans.get(wall) ?? []).sort((p, q) => p.s0 - q.s0);
+    // a wall drawn on its own may have a colour of its own, on both sides (#1101)
+    const own = wall.free && floorSide ? hexColor(floor.walls?.find((w) => w.id === wall.free)?.color) : null;
+    const sideColor = own !== null ? () => own : floorSide;
     const H = wallHeight(wall, floor.height);
     // pieces along the axis, cut at every opening edge: each piece leaves out all the openings above it
     // (two windows one above the other, a window over a door), the wall fills what remains
