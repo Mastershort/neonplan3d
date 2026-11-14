@@ -2475,5 +2475,10 @@
  "surround_turn_right": "Tourner la carte dans le sens horaire",
  "surround_realign": "Réaligner",
  "surround_north": "Nord : {deg}°",
- "surround_credit": "Données cartographiques © les contributeurs d'OpenStreetMap"
+ "surround_credit": "Données cartographiques © les contributeurs d'OpenStreetMap",
+ "surround_flat": "Maisons voisines en simple contour (à plat au lieu de blocs)",
+ "surround_pick": "Afficher et masquer des maisons",
+ "surround_pick_hint": "Touche une maison pour la masquer ou l'afficher à nouveau. Tirets jaunes = masquée : NeonPlan masque de lui-même ta maison et les bâtiments de la carte posés sur ton plan (un garage, par exemple).",
+ "surround_pick_hide": "Toucher pour masquer",
+ "surround_pick_show": "Masquée – toucher pour afficher"
 }

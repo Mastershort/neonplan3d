@@ -2475,5 +2475,10 @@
  "surround_turn_right": "Otočiť mapu v smere hodinových ručičiek",
  "surround_realign": "Zarovnať znova",
  "surround_north": "Sever: {deg}°",
- "surround_credit": "Mapové údaje © prispievatelia OpenStreetMap"
+ "surround_credit": "Mapové údaje © prispievatelia OpenStreetMap",
+ "surround_flat": "Susedné domy len ako pôdorys (ploché namiesto blokov)",
+ "surround_pick": "Zobraziť a skryť domy",
+ "surround_pick_hint": "Ťuknutím na dom ho skryješ alebo znova zobrazíš. Žltá prerušovaná = skryté: tvoj dom a budovy z mapy, ktoré stoja na tvojom pláne (napríklad garáž), skrýva NeonPlan sám.",
+ "surround_pick_hide": "Ťuknutím skryť",
+ "surround_pick_show": "Skryté – ťuknutím zobraziť"
 }

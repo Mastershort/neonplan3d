@@ -2475,5 +2475,10 @@
  "surround_turn_right": "Rodar o mapa no sentido horário",
  "surround_realign": "Alinhar novamente",
  "surround_north": "Norte: {deg}°",
- "surround_credit": "Dados do mapa © contribuidores do OpenStreetMap"
+ "surround_credit": "Dados do mapa © contribuidores do OpenStreetMap",
+ "surround_flat": "Casas vizinhas só como planta (planas em vez de blocos)",
+ "surround_pick": "Mostrar e ocultar casas",
+ "surround_pick_hint": "Toca numa casa para a ocultar ou voltar a mostrar. Tracejado amarelo = oculta: o NeonPlan oculta sozinho a tua casa e os edifícios do mapa que estão sobre a tua planta (uma garagem, por exemplo).",
+ "surround_pick_hide": "Toca para ocultar",
+ "surround_pick_show": "Oculta – toca para mostrar"
 }

@@ -574,10 +574,12 @@ One installation can hold several floor plans: the house, the garage, the garden
 Under **⚙ Settings → 🗺 Surroundings** NeonPlan brings in your house's neighbourhood from the free map **OpenStreetMap**: the neighbours' houses as blocks at their height, streets, paths, railways, streams, ponds, parks, woods and single trees. It works worldwide; how many houses the map knows depends on the area.
 
 - **Load surroundings** fetches everything within the chosen **radius** (100, 150 or 250 m) around the location set in Home Assistant (Settings → System → General). For this, that location is sent **once** to the public OpenStreetMap service Overpass. The neighbourhood then stays in the plan; it is only fetched again when you tap **Load again**. When the map servers are busy, loading can take a minute or ask you to try again later.
-- NeonPlan finds **your house** on the map (the building at your location), lays it onto your plan and turns **north** so the walls lie on top of each other. That puts the sun's path and the shadows right too. Your house from the map is **dashed yellow** in the plan; map buildings standing in your rooms (a garage you drew yourself, say) are not drawn twice.
+- NeonPlan finds **your house** on the map (the building at your location), lays it onto your plan and turns **north** so that house and rooms lie on top of each other best (an attached garage included; a garden shed apart does not count). That puts the sun's path and the shadows right too. Your house from the map is **dashed yellow** in the plan; map buildings standing in your rooms (a garage you drew yourself, say) are not drawn twice.
 - If it does not fit quite, turn the map under **Align** in steps of 90° or 1° and move it by 50 cm with the arrows. The house stays where it is, the map turns around it. **Align again** places it automatically once more.
 - **The neighbours' houses cast their shadows** into your garden while **Sun arc and house shadow** is on (see 5.7), in the **All floors** view and not at the **Tablet** level.
 - **Show in 3D** hides and shows the surroundings, **Remove** deletes them from the plan. Room cards show only their rooms, without surroundings.
+- Under **Show and hide houses** a small map shows your house and the houses around it. Tap a house to hide it or show it again (dashed yellow = hidden). Map buildings standing mostly on your rooms, such as a garage the map keeps as a building of its own, are hidden by NeonPlan itself.
+- **Neighbours' houses as outlines only** shows the neighbours' houses flat as an outline on the ground instead of as blocks; they then cast no shadows.
 
 Bottom right in the 3D view it says "© OpenStreetMap": the map data comes from the OpenStreetMap contributors under the Open Database Licence.
 

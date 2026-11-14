@@ -2475,5 +2475,10 @@
  "surround_turn_right": "Kaart rechtsom draaien",
  "surround_realign": "Opnieuw uitlijnen",
  "surround_north": "Noorden: {deg}°",
- "surround_credit": "Kaartgegevens © OpenStreetMap-bijdragers"
+ "surround_credit": "Kaartgegevens © OpenStreetMap-bijdragers",
+ "surround_flat": "Huizen van de buren alleen als plattegrond (plat in plaats van blokken)",
+ "surround_pick": "Huizen tonen en verbergen",
+ "surround_pick_hint": "Tik op een huis om het te verbergen of weer te tonen. Geel gestreept = verborgen: je eigen huis en gebouwen van de kaart die op je plattegrond staan (een garage bijvoorbeeld) verbergt NeonPlan zelf.",
+ "surround_pick_hide": "Tik om te verbergen",
+ "surround_pick_show": "Verborgen – tik om te tonen"
 }

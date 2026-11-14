@@ -2475,5 +2475,10 @@
  "surround_turn_right": "Zasukaj zemljevid v smeri urinega kazalca",
  "surround_realign": "Poravnaj znova",
  "surround_north": "Sever: {deg}°",
- "surround_credit": "Podatki zemljevida © sodelavci OpenStreetMap"
+ "surround_credit": "Podatki zemljevida © sodelavci OpenStreetMap",
+ "surround_flat": "Sosednje hiše samo kot tloris (ploske namesto blokov)",
+ "surround_pick": "Prikaži in skrij hiše",
+ "surround_pick_hint": "Tapni hišo, da jo skriješ ali znova prikažeš. Rumeno črtkano = skrito: tvojo hišo in stavbe z zemljevida, ki stojijo na tvojem načrtu (npr. garažo), NeonPlan skrije sam.",
+ "surround_pick_hide": "Tapni za skritje",
+ "surround_pick_show": "Skrito – tapni za prikaz"
 }

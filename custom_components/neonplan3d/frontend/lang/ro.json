@@ -2475,5 +2475,10 @@
  "surround_turn_right": "Rotește harta în sens orar",
  "surround_realign": "Aliniază din nou",
  "surround_north": "Nord: {deg}°",
- "surround_credit": "Date hartă © contribuitorii OpenStreetMap"
+ "surround_credit": "Date hartă © contribuitorii OpenStreetMap",
+ "surround_flat": "Casele vecinilor doar ca plan (plate în loc de blocuri)",
+ "surround_pick": "Arată și ascunde case",
+ "surround_pick_hint": "Atinge o casă ca să o ascunzi sau să o arăți din nou. Galben punctat = ascunsă: casa ta și clădirile hărții care stau pe planul tău (de exemplu un garaj) le ascunde NeonPlan singur.",
+ "surround_pick_hide": "Atinge pentru a ascunde",
+ "surround_pick_show": "Ascunsă – atinge pentru a arăta"
 }

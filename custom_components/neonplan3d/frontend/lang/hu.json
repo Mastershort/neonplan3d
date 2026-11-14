@@ -2475,5 +2475,10 @@
  "surround_turn_right": "Térkép forgatása az óramutató járásával megegyezően",
  "surround_realign": "Újraigazítás",
  "surround_north": "Észak: {deg}°",
- "surround_credit": "Térképadatok © OpenStreetMap közreműködők"
+ "surround_credit": "Térképadatok © OpenStreetMap közreműködők",
+ "surround_flat": "Szomszéd házak csak alaprajzként (laposan, tömbök helyett)",
+ "surround_pick": "Házak megjelenítése és elrejtése",
+ "surround_pick_hint": "Koppints egy házra, hogy elrejtsd vagy újra megjelenítsd. Sárga szaggatott = elrejtve: a házadat és a térkép olyan épületeit, amelyek a tervedre esnek (pl. egy garázs), a NeonPlan magától elrejti.",
+ "surround_pick_hide": "Koppints az elrejtéshez",
+ "surround_pick_show": "Elrejtve – koppints a megjelenítéshez"
 }

@@ -875,6 +875,11 @@ export interface Surroundings {
   z: number;
   /** The map building that is the house itself (not drawn: the plan stands there); null = none picked. */
   own?: number | null;
+  /** Map buildings hidden by hand, and ones shown although they stand where the plan has the house (indices). */
+  hide?: number[];
+  show?: number[];
+  /** The neighbours' houses only as their outline on the ground instead of blocks. */
+  flat?: boolean;
   buildings: SurroundBuilding[];
   ways: SurroundWay[];
   areas: SurroundArea[];

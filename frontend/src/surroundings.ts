@@ -23,19 +23,86 @@ export function mapToPlan(s: Pick<Surroundings, "x" | "z">, north: number, p: Ve
 }
 
 /** The ground floor's rooms (the house's footprint on the map). */
-function footprint(b: Building): Vec2[][] {
+export function footprint(b: Building): Vec2[][] {
   const floors = [...b.floors].sort((p, q) => Math.abs(p.elevation) - Math.abs(q.elevation));
   const gf: Floor | undefined = floors[0];
   return (gf?.rooms ?? []).filter((r) => !r.outdoor && r.points.length >= 3).map((r) => r.points);
 }
 
-/** The house's middle in the plan (the middle of the ground floor's box), null without rooms. */
-export function planMiddle(b: Building): Vec2 | null {
-  const pts = footprint(b).flat();
-  if (!pts.length) return null;
+/** Distance of a point to a segment. */
+export function segDist(p: Vec2, a: Vec2, b: Vec2): number {
+  const dx = b[0] - a[0];
+  const dz = b[1] - a[1];
+  const l = dx * dx + dz * dz;
+  const t = l ? Math.max(0, Math.min(1, ((p[0] - a[0]) * dx + (p[1] - a[1]) * dz) / l)) : 0;
+  return Math.hypot(p[0] - a[0] - t * dx, p[1] - a[1] - t * dz);
+}
+
+/** The middle of a set of points' box. */
+export function boxMiddle(pts: readonly Vec2[]): Vec2 {
   const xs = pts.map((p) => p[0]);
   const zs = pts.map((p) => p[1]);
   return [(Math.min(...xs) + Math.max(...xs)) / 2, (Math.min(...zs) + Math.max(...zs)) / 2];
+}
+
+/** The house's middle in the plan (the middle of the ground floor's box), null without rooms. */
+export function planMiddle(b: Building): Vec2 | null {
+  const pts = footprint(b).flat();
+  return pts.length ? boxMiddle(pts) : null;
+}
+
+/** Grid points inside polygons, each point once (step in metres). */
+export function gridPoints(polys: readonly (readonly Vec2[])[], step: number): Vec2[] {
+  const out: Vec2[] = [];
+  polys.forEach((poly, k) => {
+    const x0 = Math.min(...poly.map((p) => p[0]));
+    const z0 = Math.min(...poly.map((p) => p[1]));
+    const x1 = Math.max(...poly.map((p) => p[0]));
+    const z1 = Math.max(...poly.map((p) => p[1]));
+    for (let x = Math.floor(x0 / step) * step + step / 2; x < x1; x += step)
+      for (let z = Math.floor(z0 / step) * step + step / 2; z < z1; z += step) {
+        const p: Vec2 = [x, z];
+        if (pointInPolygon(p, poly) && !polys.slice(0, k).some((q) => pointInPolygon(p, q))) out.push(p);
+      }
+  });
+  return out;
+}
+
+/**
+ * The house's rooms as a grid of cells: a cell counts when it lies in a room or within a wall's thickness of one
+ * (the map draws a house with its walls, the plan its rooms).
+ */
+export class PlanGrid {
+  readonly x0: number;
+  readonly z0: number;
+  readonly w: number;
+  readonly h: number;
+  readonly step: number;
+  readonly cells: Uint8Array;
+  count = 0;
+  constructor(rooms: readonly Vec2[][], step: number, wall = 0.3) {
+    const pts = rooms.flat();
+    this.step = step;
+    this.x0 = Math.min(...pts.map((p) => p[0])) - wall - step;
+    this.z0 = Math.min(...pts.map((p) => p[1])) - wall - step;
+    this.w = Math.ceil((Math.max(...pts.map((p) => p[0])) + wall + step - this.x0) / step);
+    this.h = Math.ceil((Math.max(...pts.map((p) => p[1])) + wall + step - this.z0) / step);
+    this.cells = new Uint8Array(this.w * this.h);
+    const edges = rooms.flatMap((r) => ringEdges(r));
+    for (let i = 0; i < this.w; i++)
+      for (let j = 0; j < this.h; j++) {
+        const p: Vec2 = [this.x0 + (i + 0.5) * step, this.z0 + (j + 0.5) * step];
+        if (rooms.some((r) => pointInPolygon(p, r)) || edges.some(([a, b]) => segDist(p, a, b) < wall)) {
+          this.cells[i + j * this.w] = 1;
+          this.count++;
+        }
+      }
+  }
+  has(x: number, z: number): boolean {
+    const i = Math.floor((x - this.x0) / this.step);
+    const j = Math.floor((z - this.z0) / this.step);
+    return i >= 0 && j >= 0 && i < this.w && j < this.h && this.cells[i + j * this.w] === 1;
+  }
 }
 
 /** The map building at the home's location: the one around the origin, else the nearest within 30 m. */
@@ -64,81 +131,40 @@ export function ringEdges(poly: readonly Vec2[]): [Vec2, Vec2][] {
   return poly.map((p, i) => [p, poly[(i + 1) % poly.length]] as [Vec2, Vec2]);
 }
 
-/** Direction of the longest edge in degrees (0 … 180), measured as atan2(dz, dx) of its coordinates. */
-export function mainDirection(edges: readonly [Vec2, Vec2][]): number {
-  let best = 0;
-  let angle = 0;
-  for (const [[ax, az], [bx, bz]] of edges) {
-    const len = Math.hypot(bx - ax, bz - az);
-    if (len > best) {
-      best = len;
-      angle = (Math.atan2(bz - az, bx - ax) * 180) / Math.PI;
-    }
-  }
-  return ((angle % 180) + 180) % 180;
-}
-
-/** An angle brought into (-180, 180]. */
-const wrap = (a: number) => {
-  const r = (((a + 180) % 360) + 360) % 360;
-  return r === 0 ? 180 : r - 180;
-};
-
 /**
- * Lays the map under the plan: the house's own building on the map onto the plan's ground floor. The north is turned
- * so that the building's walls run along the plan's walls; of the four ways that fit, the one closest to the north
- * set so far wins (a plan drawn with north up keeps it). Returns the north and the origin's plan point.
- */
-export function placeUnderPlan(s: Pick<Surroundings, "buildings">, own: number | null, b: Building): { north: number; x: number; z: number } {
-  const north = b.settings.north ?? 0;
-  const mid = planMiddle(b);
-  const home = own !== null ? s.buildings[own] : undefined;
-  if (!mid || !home) return { north, x: mid?.[0] ?? 0, z: mid?.[1] ?? 0 };
-  // the map's longest wall, in the plan's own way of measuring (x east, z down = south): (e, -n)
-  const mapDir = mainDirection(ringEdges(home.p.map(([e, n]) => [e, -n] as Vec2)));
-  const planDir = mainDirection(outerEdges(footprint(b)));
-  // turning the map by t turns its directions by t (clockwise in the plan)
-  const base = planDir - mapDir;
-  let bestNorth = north;
-  let diff = Infinity;
-  for (let k = 0; k < 4; k++) {
-    const t = wrap(base + k * 90);
-    const d = Math.abs(wrap(t - north));
-    if (d < diff) {
-      diff = d;
-      bestNorth = Math.round((((t % 360) + 360) % 360) * 10) / 10;
-    }
-  }
-  const [cx, cz] = centroid(home.p);
-  const at = mapToPlan({ x: 0, z: 0 }, bestNorth, [cx, cz]);
-  return { north: bestNorth, x: Math.round((mid[0] - at[0]) * 100) / 100, z: Math.round((mid[1] - at[1]) * 100) / 100 };
-}
-
-/** The edges on the outside of a set of rooms: the ones no other room shares. */
-export function outerEdges(rooms: Vec2[][]): [Vec2, Vec2][] {
-  const key = (p: Vec2) => `${p[0].toFixed(2)},${p[1].toFixed(2)}`;
-  const id = ([a, b]: [Vec2, Vec2]) => [key(a), key(b)].sort().join("|");
-  const edges = rooms.flatMap((r) => ringEdges(r));
-  const count = new Map<string, number>();
-  for (const e of edges) count.set(id(e), (count.get(id(e)) ?? 0) + 1);
-  return edges.filter((e) => count.get(id(e)) === 1);
-}
-
-/**
- * Which map buildings stand where the plan already has the house (the own one, and any other whose middle lies in
- * a room of the ground floor – an annex drawn in the plan): they are not drawn.
+ * Which map buildings stand where the plan already has the house, so they are not drawn: the own one, and any other
+ * that lies for the most part (or with its middle) on the rooms of the ground floor – an annex or garage mapped as a
+ * building of its own. Then the user's own choice: buildings hidden by hand, and ones shown although they stand there.
  */
 export function hiddenBuildings(s: Surroundings, b: Building): Set<number> {
-  const out = new Set<number>();
-  if (typeof s.own === "number") out.add(s.own);
   const rooms = footprint(b);
   const north = b.settings.north ?? 0;
-  s.buildings.forEach((bd, i) => {
-    const mid = mapToPlan(s, north, centroid(bd.p));
-    if (rooms.some((r) => pointInPolygon(mid, r))) out.add(i);
-  });
-  return out;
+  const key = `${s.at},${s.x},${s.z},${north},${s.own},${s.hide?.join(".")},${s.show?.join(".")},${s.buildings.length},${JSON.stringify(rooms)}`;
+  if (hiddenCache?.key === key) return new Set(hiddenCache.out);
+  const out = new Set<number>();
+  if (typeof s.own === "number") out.add(s.own);
+  if (rooms.length) {
+    const step = 0.5;
+    const grid = new PlanGrid(rooms, step);
+    const pts = rooms.flat();
+    const [x0, x1] = [Math.min(...pts.map((p) => p[0])) - 1, Math.max(...pts.map((p) => p[0])) + 1];
+    const [z0, z1] = [Math.min(...pts.map((p) => p[1])) - 1, Math.max(...pts.map((p) => p[1])) + 1];
+    s.buildings.forEach((bd, i) => {
+      if (out.has(i)) return;
+      const poly = bd.p.map((p) => mapToPlan(s, north, p));
+      if (poly.every(([x]) => x < x0) || poly.every(([x]) => x > x1) || poly.every(([, z]) => z < z0) || poly.every(([, z]) => z > z1)) return;
+      if (rooms.some((r) => pointInPolygon(centroid(poly), r))) return out.add(i);
+      const samples = gridPoints([poly], step);
+      if (samples.length && samples.filter(([x, z]) => grid.has(x, z)).length >= samples.length * 0.4) out.add(i);
+    });
+  }
+  for (const i of s.hide ?? []) out.add(i);
+  for (const i of s.show ?? []) out.delete(i);
+  hiddenCache = { key, out };
+  return new Set(out);
 }
+
+let hiddenCache: { key: string; out: Set<number> } | null = null;
 
 /** The neighbourhood in plan coordinates, ready to draw (nothing when it is switched off or empty). */
 export interface PlacedSurroundings {
@@ -146,6 +172,8 @@ export interface PlacedSurroundings {
   ways: { p: Vec2[]; w: number; k: SurroundWay["k"] }[];
   areas: { p: Vec2[]; k: SurroundArea["k"] }[];
   trees: Vec2[];
+  /** The neighbours' houses only as outlines on the ground. */
+  flat: boolean;
 }
 
 export function placedSurroundings(b: Building | null | undefined): PlacedSurroundings | null {
@@ -159,13 +187,14 @@ export function placedSurroundings(b: Building | null | undefined): PlacedSurrou
     ways: s.ways.map((w) => ({ p: w.p.map(at), w: w.w, k: w.k })),
     areas: s.areas.map((a) => ({ p: a.p.map(at), k: a.k })),
     trees: s.trees.map(at),
+    flat: s.flat === true,
   };
 }
 
 /** A short key that changes whenever what is drawn of the neighbourhood changes (for redrawing shadows). */
 export function surroundKey(b: Building | null | undefined): string {
   const s = b?.settings.surroundings;
-  return s?.on ? `${s.at},${s.x},${s.z},${s.own ?? ""},${s.buildings.length}` : "";
+  return s?.on ? `${s.at},${s.x},${s.z},${s.own ?? ""},${s.buildings.length},${s.hide?.join(".") ?? ""},${s.show?.join(".") ?? ""},${s.flat ? 1 : 0}` : "";
 }
 
 /**

@@ -2475,5 +2475,10 @@
  "surround_turn_right": "Obróć mapę zgodnie z ruchem wskazówek zegara",
  "surround_realign": "Dopasuj ponownie",
  "surround_north": "Północ: {deg}°",
- "surround_credit": "Dane mapy © współtwórcy OpenStreetMap"
+ "surround_credit": "Dane mapy © współtwórcy OpenStreetMap",
+ "surround_flat": "Domy sąsiadów tylko jako obrys (płasko zamiast brył)",
+ "surround_pick": "Pokaż i ukryj domy",
+ "surround_pick_hint": "Dotknij domu, aby go ukryć lub ponownie pokazać. Żółta przerywana linia = ukryty: Twój dom i budynki z mapy stojące na Twoim planie (np. garaż) NeonPlan ukrywa sam.",
+ "surround_pick_hide": "Dotknij, aby ukryć",
+ "surround_pick_show": "Ukryty – dotknij, aby pokazać"
 }

@@ -427,3 +427,9 @@ def test_surroundings_from_the_map_are_kept_and_checked() -> None:
     with pytest.raises(vol.Invalid):
         wrong = {**surroundings, "ways": [{"p": [[0, 0], [1, 1]], "w": 3, "k": "highway"}]}
         SETTINGS_SCHEMA({**base, "surroundings": wrong})
+    # buildings hidden or shown by hand, and flat outlines instead of blocks
+    by_hand = {**surroundings, "hide": [0], "show": [], "flat": True}
+    picked = SETTINGS_SCHEMA({**base, "surroundings": by_hand})["surroundings"]
+    assert picked["hide"] == [0] and picked["flat"] is True
+    with pytest.raises(vol.Invalid):
+        SETTINGS_SCHEMA({**base, "surroundings": {**surroundings, "hide": [-1]}})

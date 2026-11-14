@@ -841,6 +841,9 @@ SURROUNDINGS_SCHEMA = vol.Schema(
         vol.Required("x"): _COORD,
         vol.Required("z"): _COORD,
         vol.Optional("own"): vol.Any(None, vol.All(int, vol.Range(min=0))),
+        vol.Optional("hide"): vol.All([vol.All(int, vol.Range(min=0))], vol.Length(max=3000)),
+        vol.Optional("show"): vol.All([vol.All(int, vol.Range(min=0))], vol.Length(max=3000)),
+        vol.Optional("flat"): bool,
         vol.Required("buildings"): vol.All(
             [
                 vol.Schema(

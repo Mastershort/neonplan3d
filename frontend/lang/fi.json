@@ -2475,5 +2475,10 @@
  "surround_turn_right": "Käännä karttaa myötäpäivään",
  "surround_realign": "Kohdista uudelleen",
  "surround_north": "Pohjoinen: {deg}°",
- "surround_credit": "Karttatiedot © OpenStreetMapin tekijät"
+ "surround_credit": "Karttatiedot © OpenStreetMapin tekijät",
+ "surround_flat": "Naapuritalot vain pohjapiirroksena (litteinä eikä kuutioina)",
+ "surround_pick": "Näytä ja piilota taloja",
+ "surround_pick_hint": "Napauta taloa piilottaaksesi sen tai näyttääksesi sen taas. Keltainen katkoviiva = piilotettu: NeonPlan piilottaa itse talosi ja kartan rakennukset, jotka ovat pohjapiirroksesi päällä (esim. autotalli).",
+ "surround_pick_hide": "Napauta piilottaaksesi",
+ "surround_pick_show": "Piilotettu – napauta näyttääksesi"
 }

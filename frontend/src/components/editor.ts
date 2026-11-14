@@ -33,7 +33,7 @@ import { screenName, setScreenName, setVoiceArea, setVoiceHere, setVoicePipeline
 import { doorbellCamera, doorbellEntities, directorOnHere, HOLD_DEFAULT, HOLD_MAX, HOLD_MIN, setDirectorHere, type DirectorSettings } from "../director.ts";
 import { deviceSensors, energySummary, flowSegments, gridPoint, hubPoint, inverterToGrid, powerSensorFor, proposeEnergySensors, type EnergyPrefs, type FlowSegment, proposeMeters } from "../energy.ts";
 import { CLIMATE_ATTRS, isPulseDrive, isStatusSensor, robotRoomSensor, slatTilt, TOGGLE_KINDS } from "../devices.ts";
-import { homeBuilding, OSM_COPYRIGHT, placeUnderPlan, planMiddle, mapToPlan, SURROUND_RADII, turnMap, hiddenBuildings } from "../surroundings.ts";
+import { homeBuilding, OSM_COPYRIGHT, planMiddle, mapToPlan, SURROUND_RADII, turnMap, hiddenBuildings } from "../surroundings.ts";
 import { loadOsm } from "../load-osm.ts";
 import { activeSections, sectionFloor, sectionOverhang, dormerParent, effectiveDormer, proposeDormer, sectionGeometry, floorOutline, polygonBox, headroomLines, ridgeHeight, sectionAbove, sectionCutsBelow, roofSectionsFromRooms, sectionFrame, sectionTurn, turnPoint, turnSectionAbout, wallTopUnder } from "../roof-sections.ts";
 import { bestFace, clampField, faceAt, faceCompass, fieldFace, fieldModules, GROUND, moveField, pointOnFace, proposeField, proposeGroundField, proposeWindow, proposeWallField, roofFaces, rowCounts, turnGroundField, fieldCenter, wallFaces, windowAsField, windowCorners, onFace, onField, rayOnFace, type RoofFace } from "../solar.ts";
@@ -140,6 +140,7 @@ import {
   type OpeningType,
   type Room,
   type Vec2,
+  type Surroundings,
   DOOR_STYLES,
   WINDOW_STYLES,
   SILL_BOARDS,
@@ -14311,9 +14312,10 @@ export class Fp3dEditor extends LitElement {
       this._surrBusy = true;
       this._surrError = null;
       try {
-        const data = await (await loadOsm()).fetchSurroundings(lat, lon, radius);
+        const osm = await loadOsm();
+        const data = await osm.fetchSurroundings(lat, lon, radius);
         const own = homeBuilding(data);
-        const place = placeUnderPlan(data, own, this._doc);
+        const place = osm.placeUnderPlan(data, own, this._doc);
         this.change((d) => {
           d.settings.surroundings = { on: true, at: Math.round(Date.now() / 1000), own, x: place.x, z: place.z, ...data };
           d.settings.north = place.north;
@@ -14343,15 +14345,18 @@ export class Fp3dEditor extends LitElement {
         sur.x = Math.round((sur.x + dx) * 100) / 100;
         sur.z = Math.round((sur.z + dz) * 100) / 100;
       });
-    const realign = () =>
+    // the aligning lives in the map bundle (loaded once, then at hand)
+    const realign = async () => {
+      const osm = await loadOsm();
       edit((sur, d) => {
         const own = sur.own ?? homeBuilding(sur);
-        const place = placeUnderPlan(sur, own, d);
+        const place = osm.placeUnderPlan(sur, own, d);
         sur.own = own;
         sur.x = place.x;
         sur.z = place.z;
         d.settings.north = place.north;
       });
+    };
     const when = s ? new Date(s.at * 1000).toLocaleDateString(this.hass?.language) : "";
     const hidden = s ? hiddenBuildings(s, this._doc).size : 0;
     return html`<details class="fp3d-section" open>
@@ -14372,6 +14377,10 @@ export class Fp3dEditor extends LitElement {
           ? html`<label class="fp3d-check fp3d-wide"
               ><input type="checkbox" .checked=${s.on} ?disabled=${!this.isAdmin} @change=${(e: Event) => edit((sur) => (sur.on = (e.target as HTMLInputElement).checked))} />
               ${this.t("surround_show")}</label
+            >
+            <label class="fp3d-check fp3d-wide"
+              ><input type="checkbox" .checked=${s.flat === true} ?disabled=${!this.isAdmin} @change=${(e: Event) => edit((sur) => (sur.flat = (e.target as HTMLInputElement).checked))} />
+              ${this.t("surround_flat")}</label
             >`
           : nothing}
       </div>
@@ -14401,10 +14410,50 @@ export class Fp3dEditor extends LitElement {
               <button class="fp3d-btn" ?disabled=${!this.isAdmin} @click=${() => shift(0.5, 0)}>→</button>
               <button class="fp3d-btn" ?disabled=${!this.isAdmin} @click=${realign}>${this.t("surround_realign")}</button>
             </div>
-            <p class="fp3d-sub">${this.t("surround_north", { deg: Math.round(north) })}</p>`
+            <p class="fp3d-sub">${this.t("surround_north", { deg: Math.round(north) })}</p>
+            <h4>${this.t("surround_pick")}</h4>
+            <p class="fp3d-sub">${this.t("surround_pick_hint")}</p>
+            ${this.renderSurroundPick(s)}`
         : nothing}
       <p class="fp3d-sub fp3d-osm-credit"><a href=${OSM_COPYRIGHT} target="_blank" rel="noopener">${this.t("surround_credit")}</a></p>
     </details>`;
+  }
+
+  /**
+   * A small map of the house and the houses next to it: tapping one hides or shows it (a building the map has where
+   * the plan already has the house, or one that is simply in the way). Hidden ones are dashed yellow.
+   */
+  private renderSurroundPick(s: Surroundings) {
+    const mid = planMiddle(this._doc);
+    if (!mid) return nothing;
+    const north = this._doc.settings.north ?? 0;
+    const span = 70;
+    const [x0, z0] = [mid[0] - span / 2, mid[1] - span / 2];
+    const near = (p: Vec2) => Math.abs(p[0] - mid[0]) < span * 0.75 && Math.abs(p[1] - mid[1]) < span * 0.75;
+    const hidden = hiddenBuildings(s, this._doc);
+    const pts = (ring: Vec2[]) => ring.map((q) => mapToPlan(s, north, q).join(",")).join(" ");
+    const gf = [...this._doc.floors].sort((p, q) => Math.abs(p.elevation) - Math.abs(q.elevation))[0];
+    const toggle = (i: number) =>
+      this.change((d) => {
+        const sur = d.settings.surroundings;
+        if (!sur) return;
+        const wantHidden = !hiddenBuildings(sur, d).has(i);
+        const auto = hiddenBuildings({ ...sur, hide: [], show: [] }, d).has(i);
+        sur.hide = (sur.hide ?? []).filter((k) => k !== i);
+        sur.show = (sur.show ?? []).filter((k) => k !== i);
+        if (wantHidden !== auto) (wantHidden ? sur.hide : sur.show).push(i);
+        if (!sur.hide.length) delete sur.hide;
+        if (!sur.show.length) delete sur.show;
+      });
+    return html`<svg class="fp3d-osm-pick" viewBox="${x0} ${z0} ${span} ${span}" role="img" aria-label=${this.t("surround_pick")}>
+      ${s.ways.filter((w) => w.p.some((q) => near(mapToPlan(s, north, q)))).map((w) => svg`<polyline class=${`fp3d-osm-w fp3d-osm-${w.k}`} points=${pts(w.p)} stroke-width=${Math.max(0.6, w.w)} />`)}
+      ${(gf?.rooms ?? []).filter((r) => !r.outdoor).map((r) => svg`<polygon class="fp3d-osm-room" points=${r.points.map((q) => q.join(",")).join(" ")} />`)}
+      ${s.buildings.map((b, i) =>
+        b.p.some((q) => near(mapToPlan(s, north, q)))
+          ? svg`<polygon class=${hidden.has(i) ? "fp3d-osm-own" : "fp3d-osm-b"} points=${pts(b.p)} @click=${() => this.isAdmin && toggle(i)}><title>${this.t(hidden.has(i) ? "surround_pick_show" : "surround_pick_hide")}</title></polygon>`
+          : nothing,
+      )}
+    </svg>`;
   }
 
   /** The neighbourhood in the plan: the neighbours' houses and streets faint, the house's own one on the map dashed. */
@@ -14413,12 +14462,13 @@ export class Fp3dEditor extends LitElement {
     const gf = [...this._doc.floors].sort((p, q) => Math.abs(p.elevation) - Math.abs(q.elevation))[0];
     if (!s?.on || floor.id !== gf?.id) return nothing;
     const north = this._doc.settings.north ?? 0;
+    const hidden = hiddenBuildings(s, this._doc);
     const pts = (ring: Vec2[]) => ring.map((q) => this.toScreen(mapToPlan(s, north, q)).join(",")).join(" ");
     const k = this._view.scale;
     return svg`<g class="fp3d-osm">
       ${s.areas.map((a) => svg`<polygon class=${`fp3d-osm-a fp3d-osm-${a.k}`} points=${pts(a.p)} />`)}
       ${s.ways.map((w) => svg`<polyline class=${`fp3d-osm-w fp3d-osm-${w.k}`} points=${pts(w.p)} stroke-width=${Math.max(1, w.w * k)} />`)}
-      ${s.buildings.map((b, i) => svg`<polygon class=${i === s.own ? "fp3d-osm-own" : "fp3d-osm-b"} points=${pts(b.p)} />`)}
+      ${s.buildings.map((b, i) => svg`<polygon class=${hidden.has(i) ? "fp3d-osm-own" : "fp3d-osm-b"} points=${pts(b.p)} />`)}
     </g>`;
   }
 
@@ -17164,6 +17214,26 @@ export class Fp3dEditor extends LitElement {
       }
       .fp3d-surr-pad {
         flex-wrap: wrap;
+      }
+      .fp3d-osm-pick {
+        display: block;
+        width: 100%;
+        max-width: 360px;
+        aspect-ratio: 1;
+        border-radius: 8px;
+        background: #0a0e1c;
+      }
+      .fp3d-osm-pick polygon {
+        vector-effect: non-scaling-stroke;
+        cursor: pointer;
+      }
+      .fp3d-osm-pick .fp3d-osm-b {
+        stroke: #5b7cff;
+      }
+      .fp3d-osm-room {
+        fill: rgba(55, 224, 255, 0.25);
+        stroke: #37e0ff;
+        pointer-events: none;
       }
       .fp3d-gate {
         stroke: #ffd166;

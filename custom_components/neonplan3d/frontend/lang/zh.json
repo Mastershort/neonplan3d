@@ -2475,5 +2475,10 @@
  "surround_turn_right": "顺时针旋转地图",
  "surround_realign": "重新对齐",
  "surround_north": "北向：{deg}°",
- "surround_credit": "地图数据 © OpenStreetMap 贡献者"
+ "surround_credit": "地图数据 © OpenStreetMap 贡献者",
+ "surround_flat": "邻居的房子只显示轮廓（平面而非方块）",
+ "surround_pick": "显示和隐藏房屋",
+ "surround_pick_hint": "点按一栋房子即可隐藏或重新显示。黄色虚线 = 已隐藏：你的房子以及地图上位于你平面图上的建筑（例如车库）会由 NeonPlan 自动隐藏。",
+ "surround_pick_hide": "点按隐藏",
+ "surround_pick_show": "已隐藏 – 点按显示"
 }

@@ -2475,5 +2475,10 @@
  "surround_turn_right": "Drej kortet med uret",
  "surround_realign": "Justér igen",
  "surround_north": "Nord: {deg}°",
- "surround_credit": "Kortdata © OpenStreetMap-bidragydere"
+ "surround_credit": "Kortdata © OpenStreetMap-bidragydere",
+ "surround_flat": "Naboernes huse kun som omrids (flade i stedet for blokke)",
+ "surround_pick": "Vis og skjul huse",
+ "surround_pick_hint": "Tryk på et hus for at skjule det eller vise det igen. Gul stiplet = skjult: NeonPlan skjuler selv dit hus og kortets bygninger, der står på din plan (f.eks. en garage).",
+ "surround_pick_hide": "Tryk for at skjule",
+ "surround_pick_show": "Skjult – tryk for at vise"
 }

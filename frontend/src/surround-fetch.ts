@@ -2,6 +2,7 @@
 // map metres, and asking the public servers again when they are busy. A bundle of its own (neonplan3d-osm.js) that
 // only loads when an admin fetches the map. Map data © OpenStreetMap contributors, under the Open Database Licence.
 
+export { placeUnderPlan } from "./surround-align.ts";
 import type { SurroundArea, SurroundBuilding, Surroundings, SurroundWay, Vec2 } from "./model.ts";
 
 /** Public Overpass servers, tried in this order. */

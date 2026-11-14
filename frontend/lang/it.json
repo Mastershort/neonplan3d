@@ -2475,5 +2475,10 @@
  "surround_turn_right": "Ruota la mappa in senso orario",
  "surround_realign": "Allinea di nuovo",
  "surround_north": "Nord: {deg}°",
- "surround_credit": "Dati mappa © contributori di OpenStreetMap"
+ "surround_credit": "Dati mappa © contributori di OpenStreetMap",
+ "surround_flat": "Case vicine solo come pianta (piatte invece che blocchi)",
+ "surround_pick": "Mostra e nascondi case",
+ "surround_pick_hint": "Tocca una casa per nasconderla o mostrarla di nuovo. Tratteggio giallo = nascosta: NeonPlan nasconde da sé la tua casa e gli edifici della mappa che stanno sulla tua planimetria (un garage, per esempio).",
+ "surround_pick_hide": "Tocca per nascondere",
+ "surround_pick_show": "Nascosta – tocca per mostrare"
 }

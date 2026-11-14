@@ -91,7 +91,21 @@ export function pushSurroundings(buf: GeoBuffer, lines: LineBuffer, s: PlacedSur
     ribbon(buf, w.p, Math.max(0.6, w.w), y, new Color(L[w.k]));
   }
   const edge = shade(L.edge, L.edgeAlpha);
-  for (const b of s.buildings) {
+  if (s.flat) {
+    // only the outline on the ground: a faint floor and a brighter edge (no blocks, no shadows)
+    const outline = shade(L.edge, Math.min(1, L.edgeAlpha * 1.8));
+    for (const b of s.buildings) {
+      if (b.p.length < 3) continue;
+      const poly = ccw(b.p);
+      flat(buf, poly, ground + 0.01, new Color(L.top));
+      for (let i = 0; i < poly.length; i++) {
+        const p = poly[i];
+        const q = poly[(i + 1) % poly.length];
+        lines.seg([p[0], ground + 0.02, p[1]], [q[0], ground + 0.02, q[1]], outline, ALWAYS);
+      }
+    }
+  }
+  for (const b of s.flat ? [] : s.buildings) {
     if (b.p.length < 3) continue;
     const poly = ccw(b.p);
     const top = ground + Math.max(1, b.h);

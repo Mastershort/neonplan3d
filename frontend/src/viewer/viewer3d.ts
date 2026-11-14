@@ -2259,7 +2259,7 @@ export class FloorplanViewer {
     // the neighbours' houses from the map throw their shadows onto the garden too – only near the house, where the
     // shadow texture is (it keeps its sharpness for the house's own shadow)
     const around = placedSurroundings(b);
-    if (around?.buildings.length) {
+    if (around?.buildings.length && !around.flat) {
       const reach = 30;
       const region: [number, number, number, number] = [box[0] - reach, box[1] - reach, box[2] + reach, box[3] + reach];
       const nearBy = around.buildings.filter((bd) => bd.p.some(([x, z]) => x > region[0] - reach && x < region[2] + reach && z > region[1] - reach && z < region[3] + reach));

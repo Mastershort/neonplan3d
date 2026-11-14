@@ -3,7 +3,8 @@ import { test } from "node:test";
 import type { Building, Surroundings, Vec2 } from "./model.ts";
 import { emptyBuilding, newFloor } from "./model.ts";
 import { buildingHeight, fetchSurroundings, parseHeight, parseOverpass, simplify, SurroundError, toMetres, wayKind } from "./surround-fetch.ts";
-import { hiddenBuildings, homeBuilding, mapToPlan, placedSurroundings, placeUnderPlan, turnMap } from "./surroundings.ts";
+import { placeUnderPlan } from "./surround-align.ts";
+import { hiddenBuildings, homeBuilding, mapToPlan, placedSurroundings, turnMap } from "./surroundings.ts";
 
 const LAT = 48.137;
 const LON = 11.575;
@@ -143,6 +144,43 @@ test("the own building and buildings standing in the plan's rooms are not drawn"
   assert.equal(placed.buildings.length, 1);
   assert.deepEqual(placed.buildings[0].p[0], [26, 4]);
   assert.equal(placedSurroundings({ ...b, settings: { ...b.settings, surroundings: { ...s, on: false } } }), null);
+  // by hand: one more hidden, one shown although it stands in a room; and the houses only as outlines
+  const picked = { ...s, hide: [1], show: [2], flat: true };
+  assert.deepEqual([...hiddenBuildings(picked, b)].sort(), [0, 1]);
+  const flat = placedSurroundings({ ...b, settings: { ...b.settings, surroundings: picked } })!;
+  assert.equal(flat.flat, true);
+  assert.equal(flat.buildings.length, 1);
+});
+
+test("a garage mapped as a building of its own turns the map the right way round and is hidden too", () => {
+  // the plan: a house of two rooms, a garage beside it that reaches further up, a shed apart in the garden
+  const b = house(
+    [
+      [0, 0, 5, 8],
+      [5.2, 0, 10, 8],
+      [10.5, -4, 14.5, 4.5],
+      [11, -10, 14, -7.5],
+    ],
+    210,
+  );
+  // the map, as it really is: north 120°, the house and the garage with their walls, the origin in the house
+  const truth = { north: 120, x: 5, z: 4 };
+  const t = (truth.north * Math.PI) / 180;
+  const toMap = ([x, z]: Vec2): Vec2 => {
+    const dx = x - truth.x;
+    const dz = z - truth.z;
+    return [dx * Math.cos(t) + dz * Math.sin(t), dx * Math.sin(t) - dz * Math.cos(t)];
+  };
+  const box = (x0: number, z0: number, x1: number, z1: number): Vec2[] => ([[x0, z0], [x1, z0], [x1, z1], [x0, z1]] as Vec2[]).map(toMap);
+  const s = base([{ p: box(-0.3, -0.3, 10.3, 8.3), h: 7 }, { p: box(10.3, -4.3, 14.8, 4.8), h: 3 }, { p: box(30, 0, 40, 10), h: 7 }]);
+  const own = homeBuilding(s);
+  assert.equal(own, 0);
+  const placed = placeUnderPlan(s, own, b);
+  assert.equal(placed.north, 120, "not the turn closest to the old north (210°), the one where house and garage fit");
+  assert.ok(Math.hypot(placed.x - truth.x, placed.z - truth.z) < 0.3, JSON.stringify(placed));
+  const sur: Surroundings = { ...s, own, x: placed.x, z: placed.z };
+  const moved = { ...b, settings: { ...b.settings, north: placed.north } };
+  assert.deepEqual([...hiddenBuildings(sur, moved)].sort(), [0, 1], "the house and its garage, not the neighbour");
 });
 
 test("a busy server is asked again after a pause, then the answer is read", async () => {
