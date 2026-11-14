@@ -2519,5 +2519,7 @@
  "hint_finish_all": "Za vse enake v načrtu",
  "hint_live_title": "Živi deli",
  "hint_live_hint": "Ti deli se premikajo s Home Assistantom: vrata in lopute se odpirajo, predali se izvlečejo, nivoji rastejo, statusne lučke kažejo zeleno, ugasnjeno ali rdeče. Za vsakega izberi ustrezno entiteto.",
- "hint_live_own": "Brez izbire uporabi entiteto pohištva."
+ "hint_live_own": "Brez izbire uporabi entiteto pohištva.",
+ "hint_lib_live": "Živo",
+ "hint_lib_live_hint": "✨ = se premika s Home Assistantom: vrata, predali, nivoji, statusne lučke, ventilatorji"
 }

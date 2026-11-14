@@ -2519,5 +2519,7 @@
  "hint_finish_all": "Para todos los iguales del plano",
  "hint_live_title": "Piezas vivas",
  "hint_live_hint": "Estas piezas se mueven con Home Assistant: puertas y tapas se abren, los cajones salen, los niveles suben, las luces de estado se ven en verde, apagadas o en rojo. Elige la entidad adecuada para cada una.",
- "hint_live_own": "Sin elegir, usa la entidad del mueble."
+ "hint_live_own": "Sin elegir, usa la entidad del mueble.",
+ "hint_lib_live": "Vivo",
+ "hint_lib_live_hint": "✨ = se mueve con Home Assistant: puertas, cajones, niveles, luces de estado, ventiladores"
 }

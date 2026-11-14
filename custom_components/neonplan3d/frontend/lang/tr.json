@@ -2518,5 +2518,7 @@
  "hint_finish_all": "Plandaki tüm aynılarına",
  "hint_live_title": "Canlı parçalar",
  "hint_live_hint": "Bu parçalar Home Assistant ile hareket eder: kapılar ve kapaklar açılır, çekmeceler dışarı kayar, seviyeler yükselir, durum ışıkları yeşil, kapalı ya da kırmızı yanar. Her biri için uygun varlığı seç.",
- "hint_live_own": "Seçim yoksa mobilyanın varlığını kullanır."
+ "hint_live_own": "Seçim yoksa mobilyanın varlığını kullanır.",
+ "hint_lib_live": "Canlı",
+ "hint_lib_live_hint": "✨ = Home Assistant ile hareket eder: kapılar, çekmeceler, seviyeler, durum ışıkları, fanlar"
 }

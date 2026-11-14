@@ -2519,5 +2519,7 @@
  "hint_finish_all": "För alla likadana i planen",
  "hint_live_title": "Levande delar",
  "hint_live_hint": "De här delarna rör sig med Home Assistant: dörrar och luckor öppnas, lådor glider ut, nivåer stiger, statuslampor visar grönt, av eller rött. Välj rätt entitet för var och en.",
- "hint_live_own": "Utan val används möbelns entitet."
+ "hint_live_own": "Utan val används möbelns entitet.",
+ "hint_lib_live": "Levande",
+ "hint_lib_live_hint": "✨ = rör sig med Home Assistant: dörrar, lådor, nivåer, statuslampor, fläktar"
 }

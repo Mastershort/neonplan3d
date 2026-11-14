@@ -293,6 +293,7 @@ def clean_previews(raw: Any) -> dict[str, Any]:
                 "variant": _texts(it.get("variant"), 40) or None,
                 "electric": bool(it.get("electric")),
                 "light": bool(it.get("light")),
+                "live": bool(it.get("live")),
             }
         )
     bundle = raw.get("bundle") if isinstance(raw.get("bundle"), dict) else {}

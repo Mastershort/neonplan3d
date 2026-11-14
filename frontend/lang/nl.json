@@ -2519,5 +2519,7 @@
  "hint_finish_all": "Voor alle gelijke in het plan",
  "hint_live_title": "Levende onderdelen",
  "hint_live_hint": "Deze onderdelen bewegen mee met Home Assistant: deuren en kleppen gaan open, laden schuiven uit, niveaus stijgen, statuslampjes tonen groen, uit of rood. Kies voor elk de passende entiteit.",
- "hint_live_own": "Zonder keuze neemt het de entiteit van het meubel."
+ "hint_live_own": "Zonder keuze neemt het de entiteit van het meubel.",
+ "hint_lib_live": "Levend",
+ "hint_lib_live_hint": "✨ = beweegt mee met Home Assistant: deuren, laden, niveaus, statuslampjes, ventilatoren"
 }

@@ -2519,5 +2519,7 @@
  "hint_finish_all": "Pour tous les identiques du plan",
  "hint_live_title": "Parties vivantes",
  "hint_live_hint": "Ces parties bougent avec Home Assistant : portes et abattants s'ouvrent, tiroirs sortent, niveaux montent, voyants d'état en vert, éteints ou rouges. Choisis l'entité qui convient pour chacune.",
- "hint_live_own": "Sans choix, c'est l'entité du meuble qui sert."
+ "hint_live_own": "Sans choix, c'est l'entité du meuble qui sert.",
+ "hint_lib_live": "Vivant",
+ "hint_lib_live_hint": "✨ = bouge avec Home Assistant : portes, tiroirs, niveaux, voyants, ventilateurs"
 }

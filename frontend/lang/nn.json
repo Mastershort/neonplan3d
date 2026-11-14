@@ -2519,5 +2519,7 @@
  "hint_finish_all": "For alle like i planen",
  "hint_live_title": "Levande delar",
  "hint_live_hint": "Desse delane rører seg med Home Assistant: dører og luker opnar seg, skuffer glir ut, nivå stig, statuslys viser grønt, av eller raudt. Vel passande entitet for kvar.",
- "hint_live_own": "Utan val vert entiteten til møbelet brukt."
+ "hint_live_own": "Utan val vert entiteten til møbelet brukt.",
+ "hint_lib_live": "Levande",
+ "hint_lib_live_hint": "✨ = rører seg med Home Assistant: dører, skuffer, nivå, statuslys, vifter"
 }

@@ -2519,5 +2519,7 @@
  "hint_finish_all": "Pentru toate la fel din plan",
  "hint_live_title": "Părți vii",
  "hint_live_hint": "Aceste părți se mișcă odată cu Home Assistant: ușile și clapetele se deschid, sertarele ies, nivelurile cresc, ledurile de stare arată verde, stins sau roșu. Alege entitatea potrivită pentru fiecare.",
- "hint_live_own": "Fără alegere, folosește entitatea mobilei."
+ "hint_live_own": "Fără alegere, folosește entitatea mobilei.",
+ "hint_lib_live": "Viu",
+ "hint_lib_live_hint": "✨ = se mișcă odată cu Home Assistant: uși, sertare, niveluri, leduri de stare, ventilatoare"
 }

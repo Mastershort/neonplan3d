@@ -2519,5 +2519,7 @@
  "hint_finish_all": "应用于平面图中所有相同家具",
  "hint_live_title": "动态部件",
  "hint_live_hint": "这些部件随 Home Assistant 而动：门和翻盖打开、抽屉滑出、液位上升、状态灯显示绿色、熄灭或红色。为每个部件选择合适的实体。",
- "hint_live_own": "未选择时使用该家具的实体。"
+ "hint_live_own": "未选择时使用该家具的实体。",
+ "hint_lib_live": "动态",
+ "hint_lib_live_hint": "✨ = 随 Home Assistant 而动：门、抽屉、液位、状态灯、风扇"
 }

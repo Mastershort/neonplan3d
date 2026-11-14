@@ -52,6 +52,7 @@ export class FurnitureLibrary extends LitElement {
     _electric: { state: true },
     _light: { state: true },
     _outdoor: { state: true },
+    _live: { state: true },
     _open: { state: true },
     _fav: { state: true },
     _recent: { state: true },
@@ -79,6 +80,8 @@ export class FurnitureLibrary extends LitElement {
   private declare _electric: boolean;
   private declare _light: boolean;
   private declare _outdoor: boolean;
+  /** Only items with live parts (✨). */
+  private declare _live: boolean;
   private declare _open: Set<string>;
   private declare _fav: string[];
   private declare _recent: string[];
@@ -113,6 +116,7 @@ export class FurnitureLibrary extends LitElement {
     this._electric = false;
     this._light = false;
     this._outdoor = false;
+    this._live = false;
     this._open = new Set(load<string[]>(STORE_OPEN, ["sofa", "lamp"]));
     this._fav = load<string[]>(STORE_FAV, []);
     this._recent = load<string[]>(STORE_RECENT, []);
@@ -258,7 +262,7 @@ export class FurnitureLibrary extends LitElement {
   }
 
   private get hits(): LibraryEntry[] {
-    return filterEntries(this.entries, { query: this._query, room: this._room, electric: this._electric, light: this._light, outdoor: this._outdoor, locked: this._locked });
+    return filterEntries(this.entries, { query: this._query, room: this._room, electric: this._electric, light: this._light, outdoor: this._outdoor, live: this._live, locked: this._locked });
   }
 
   render() {
@@ -292,6 +296,9 @@ export class FurnitureLibrary extends LitElement {
         <button class="fp3d-chip fp3d-chip-f ${this._electric ? "on" : ""}" @click=${() => (this._electric = !this._electric)}>⚡ ${t("lib_chip_electric")}</button>
         <button class="fp3d-chip fp3d-chip-f ${this._light ? "on" : ""}" @click=${() => (this._light = !this._light)}>💡 ${t("lib_chip_light")}</button>
         <button class="fp3d-chip fp3d-chip-f ${this._outdoor ? "on" : ""}" @click=${() => (this._outdoor = !this._outdoor)}>🌳 ${t("lib_chip_outdoor")}</button>
+        ${this.entries.some((e) => e.live)
+          ? html`<button class="fp3d-chip fp3d-chip-f ${this._live ? "on" : ""}" title=${this.x("lib_live_hint")} @click=${() => (this._live = !this._live)}>✨ ${this.x("lib_live")}</button>`
+          : nothing}
         ${anyLocked
           ? html`<button
               class="fp3d-chip fp3d-chip-f ${this._locked ? "on" : ""}"
@@ -340,7 +347,7 @@ export class FurnitureLibrary extends LitElement {
     const shown = (shownKey && c.entries.find((e) => e.key === shownKey)) || first;
     const locked = first.locked;
     const pic = locked ? (shown.locked?.pic ?? locked.pic) : (this._thumbs.get(shown.type) ?? this._thumbs.get(first.type));
-    const badge = first.light ? "💡" : first.electric ? "⚡" : "";
+    const badge = `${c.entries.some((e) => e.live) ? "✨" : ""}${first.light ? "💡" : first.electric ? "⚡" : ""}`;
     return html`<div class="fp3d-lc ${family ? "fp3d-lc-family" : ""} ${locked ? "fp3d-lc-locked" : ""}" title=${shown.label} @mouseleave=${() => family && this.showVariant(first.key, null, null)}>
       <button
         class="fp3d-lc-main"

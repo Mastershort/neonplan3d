@@ -2519,5 +2519,7 @@
  "hint_finish_all": "Pro všechny stejné v plánu",
  "hint_live_title": "Živé části",
  "hint_live_hint": "Tyto části se hýbou s Home Assistantem: dvířka a klapky se otevírají, šuplíky vyjíždějí, hladiny stoupají, stavové kontrolky svítí zeleně, nesvítí nebo červeně. Ke každé vyber vhodnou entitu.",
- "hint_live_own": "Bez volby použije entitu nábytku."
+ "hint_live_own": "Bez volby použije entitu nábytku.",
+ "hint_lib_live": "Živé",
+ "hint_lib_live_hint": "✨ = hýbe se s Home Assistantem: dvířka, šuplíky, hladiny, stavové kontrolky, ventilátory"
 }

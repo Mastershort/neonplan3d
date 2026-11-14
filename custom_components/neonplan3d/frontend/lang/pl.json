@@ -2519,5 +2519,7 @@
  "hint_finish_all": "Dla wszystkich takich samych w planie",
  "hint_live_title": "Żywe części",
  "hint_live_hint": "Te części poruszają się razem z Home Assistantem: drzwiczki i klapy się otwierają, szuflady wysuwają, poziomy rosną, lampki stanu świecą na zielono, gasną lub świecą na czerwono. Wybierz dla każdej odpowiednią encję.",
- "hint_live_own": "Bez wyboru używa encji mebla."
+ "hint_live_own": "Bez wyboru używa encji mebla.",
+ "hint_lib_live": "Żywe",
+ "hint_lib_live_hint": "✨ = porusza się z Home Assistantem: drzwiczki, szuflady, poziomy, lampki stanu, wentylatory"
 }

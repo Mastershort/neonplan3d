@@ -2519,5 +2519,7 @@
  "hint_finish_all": "Per tutti quelli uguali nella pianta",
  "hint_live_title": "Parti vive",
  "hint_live_hint": "Queste parti si muovono con Home Assistant: ante e sportelli si aprono, i cassetti escono, i livelli salgono, le spie di stato sono verdi, spente o rosse. Scegli l'entità adatta per ciascuna.",
- "hint_live_own": "Senza scelta usa l'entità del mobile."
+ "hint_live_own": "Senza scelta usa l'entità del mobile.",
+ "hint_lib_live": "Vivo",
+ "hint_lib_live_hint": "✨ = si muove con Home Assistant: ante, cassetti, livelli, spie di stato, ventole"
 }

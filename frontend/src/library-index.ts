@@ -5,6 +5,7 @@
 // classified here by their ids and names. Pure logic, no DOM: see library-index.test.ts.
 
 import { FURNITURE_GROUPS, LAMP_TYPES } from "./model.ts";
+import { hasLiveParts } from "./live-parts.ts";
 import { isElectric, packItemName, packName, packType, type FurniturePack, type PackItem } from "./packs.ts";
 
 /** What an item is; the library's sections, in this order. */
@@ -55,6 +56,8 @@ export interface LibraryEntry {
   /** Links an entity (a power sensor, a switch, a light). */
   electric: boolean;
   light: boolean;
+  /** Has live parts (3.4): doors, drawers, levels or status lights that move with Home Assistant. */
+  live?: boolean;
   outdoor: boolean;
   /** Metres: width, depth, height. */
   size: [number, number, number];
@@ -93,6 +96,7 @@ export interface Previews {
     variant: Record<string, string> | null;
     electric: boolean;
     light: boolean;
+    live?: boolean;
   }[];
   bundle: { name: Record<string, string>; price: Record<string, string>; url: Record<string, string> } | null;
 }
@@ -442,6 +446,7 @@ export function buildIndex(src: IndexSource): LibraryEntry[] {
         kind,
         rooms,
         electric: !!it.electric || !!it.light,
+        live: hasLiveParts(it),
         light: !!it.light,
         outdoor: rooms.length > 0 && rooms.every((r) => OUTDOOR_ROOMS.has(r)),
         size: it.size,
@@ -477,6 +482,7 @@ export function buildIndex(src: IndexSource): LibraryEntry[] {
         kind,
         rooms,
         electric: it.electric || it.light,
+        live: !!it.live,
         light: it.light,
         outdoor: rooms.length > 0 && rooms.every((r) => OUTDOOR_ROOMS.has(r)),
         size: it.size,
@@ -524,6 +530,8 @@ export interface LibraryFilter {
   electric: boolean;
   light: boolean;
   outdoor: boolean;
+  /** Only items with live parts. */
+  live?: boolean;
   /** Also the shop's furniture not owned yet (locked cards); on unless switched off. */
   locked?: boolean;
 }
@@ -536,6 +544,7 @@ export function filterEntries(entries: readonly LibraryEntry[], f: LibraryFilter
     if (f.electric && !e.electric) return false;
     if (f.light && !e.light) return false;
     if (f.outdoor && !e.outdoor) return false;
+    if (f.live && !e.live) return false;
     if (e.locked && f.locked === false) return false;
     if (!words.length) return true;
     const hay = fold(e.search);

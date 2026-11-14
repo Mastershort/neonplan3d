@@ -282,6 +282,7 @@ Die **Arbeitsplatte** (Küche) ist eine freie Platte ohne Unterbau, für Lücken
 
 - 💡 Eine **Leuchte**: Sie lässt sich mit einem Licht verknüpfen und in 3D schalten.
 - ⚡ Ein **elektrisches Möbel**: Es nimmt eine Entität und einen Leistungssensor, etwa ein Fernseher, eine Waschmaschine oder ein Thermostat.
+- ✨ **Lebt** (neu in 3.4): Teile bewegen sich mit Home Assistant – Türen, Schubladen, Füllstände, Status-Lämpchen, Lüfter. Der Chip **✨ Lebt** zeigt nur diese Möbel.
 
 **Platzieren und bearbeiten:**
 

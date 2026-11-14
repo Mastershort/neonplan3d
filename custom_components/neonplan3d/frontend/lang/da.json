@@ -2519,5 +2519,7 @@
  "hint_finish_all": "Til alle ens i planen",
  "hint_live_title": "Levende dele",
  "hint_live_hint": "Disse dele bevæger sig med Home Assistant: døre og klapper åbner, skuffer kører ud, niveauer stiger, statuslys viser grønt, slukket eller rødt. Vælg den passende entitet til hver.",
- "hint_live_own": "Uden valg bruges møblets entitet."
+ "hint_live_own": "Uden valg bruges møblets entitet.",
+ "hint_lib_live": "Levende",
+ "hint_lib_live_hint": "✨ = bevæger sig med Home Assistant: døre, skuffer, niveauer, statuslys, blæsere"
 }

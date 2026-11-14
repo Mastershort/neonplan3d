@@ -2519,5 +2519,7 @@
  "hint_finish_all": "Kaikille samanlaisille suunnitelmassa",
  "hint_live_title": "Elävät osat",
  "hint_live_hint": "Nämä osat liikkuvat Home Assistantin mukaan: ovet ja luukut aukeavat, laatikot liukuvat ulos, pinnat nousevat, tilavalot näyttävät vihreää, pois tai punaista. Valitse kullekin sopiva entiteetti.",
- "hint_live_own": "Ilman valintaa käytetään huonekalun entiteettiä."
+ "hint_live_own": "Ilman valintaa käytetään huonekalun entiteettiä.",
+ "hint_lib_live": "Elävä",
+ "hint_lib_live_hint": "✨ = liikkuu Home Assistantin mukaan: ovet, laatikot, pinnat, tilavalot, tuulettimet"
 }

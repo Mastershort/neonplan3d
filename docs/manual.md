@@ -282,6 +282,7 @@ The **Worktop** (Kitchen) is a free top without a base, for gaps in the kitchen 
 
 - 💡 A **lamp**: it links to a light and switches in 3D.
 - ⚡ An **electric item**: it takes an entity and a power sensor, e.g. a TV, a washing machine or a thermostat.
+- ✨ **Live** (new in 3.4): parts move with Home Assistant – doors, drawers, levels, status lights, fans. The **✨ Live** chip shows only these items.
 
 **Placing and editing:**
 

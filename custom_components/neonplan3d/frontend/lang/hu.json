@@ -2519,5 +2519,7 @@
  "hint_finish_all": "Az összes egyformára a tervben",
  "hint_live_title": "Élő részek",
  "hint_live_hint": "Ezek a részek a Home Assistanttal mozognak: ajtók és fedelek nyílnak, fiókok csúsznak ki, szintek emelkednek, állapotjelzők zölden, kikapcsolva vagy pirosan világítanak. Válaszd ki mindegyikhez a megfelelő entitást.",
- "hint_live_own": "Választás nélkül a bútor entitását használja."
+ "hint_live_own": "Választás nélkül a bútor entitását használja.",
+ "hint_lib_live": "Élő",
+ "hint_lib_live_hint": "✨ = a Home Assistanttal mozog: ajtók, fiókok, szintek, állapotjelzők, ventilátorok"
 }
