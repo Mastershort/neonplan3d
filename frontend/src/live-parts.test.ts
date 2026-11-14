@@ -42,6 +42,9 @@ test("live parts are grouped by slot and kind; one slot takes the item's own ent
   assert.equal(slotEntity(null, "door", 1, "binary_sensor.own"), "binary_sensor.own");
   assert.equal(slotEntity(null, "door", 2, "binary_sensor.own"), null);
   assert.equal(slotEntity({ door: "binary_sensor.x" }, "door", 2, null), "binary_sensor.x");
+  // an oven's power switch does not open its door: the slot takes contacts only
+  assert.equal(slotEntity(null, "door", 1, "switch.oven", ["binary_sensor"]), null);
+  assert.equal(slotEntity(null, "door", 1, "binary_sensor.oven_door", ["binary_sensor"]), "binary_sensor.oven_door");
 });
 
 test("finishes: the roles a built-in or a pack item is drawn with, and a placed item's colour", () => {

@@ -87,9 +87,13 @@ export function bindValue(kind: BindKind, st: HassEntity | undefined): number {
   return 0;
 }
 
-/** The entity a slot of a placed item shows: its own link, else the item's entity when the item has one slot only. */
-export function slotEntity(binds: Record<string, string> | null | undefined, slot: string, slots: number, own: string | null): string | null {
+/**
+ * The entity a slot of a placed item shows: its own link, else the item's entity when the item has one slot only and
+ * that entity is of a kind the slot takes (an oven's power switch does not open its door).
+ */
+export function slotEntity(binds: Record<string, string> | null | undefined, slot: string, slots: number, own: string | null, domains?: readonly string[]): string | null {
   const e = binds?.[slot];
   if (e) return e;
-  return slots <= 1 ? own : null;
+  if (slots > 1 || !own) return null;
+  return !domains?.length || domains.includes(own.split(".")[0]) ? own : null;
 }

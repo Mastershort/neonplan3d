@@ -5506,7 +5506,7 @@ export class FloorplanViewer {
         const item = packItem(f.type);
         if (!item || !hasLiveParts(item)) continue;
         for (const [key, g] of liveGroups(item.parts)) {
-          const ent = slotEntity(f.binds, g.bind.slot, item.slots?.length ?? 0, own(f.id));
+          const ent = slotEntity(f.binds, g.bind.slot, item.slots?.length ?? 0, own(f.id), item.slots?.find((sl) => sl.id === g.bind.slot)?.domains);
           values.set(`${f.id}|${key}`, ent ? bindValue(g.bind.kind, states[ent]) : NaN);
         }
       }
