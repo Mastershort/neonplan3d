@@ -4,6 +4,18 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 [releases page](https://github.com/Mastershort/neonplan3d/releases). Ideas and votes:
 [Discussions → Ideas](https://github.com/Mastershort/neonplan3d/discussions/categories/ideas).
 
+## 3.3.1
+
+### Added
+- **A colour for a single wall:** a wall drawn on its own has 🎨 Colour in its form – both sides, shown in the homely styles, like a room's wall colours. A half-height wall in the bathroom no longer takes the colour of the room wall behind it, and the walls of a carport or a shed outside the rooms no longer stay white (#1101, thanks frops83).
+
+### Fixed
+- **Map buildings over the carport and the shed:** buildings of the map standing for the most part on what the plan draws itself are hidden – rooms on every floor (a floor of its own for the garden too), roof sections such as a carport or a garden house, and pergolas; before, only the ground floor's rooms counted. The plan shows the map on every floor at the ground floor's level (#1099, thanks frops83).
+- **Cameras outside the rooms could not be tapped** with "Switch devices only in the opened room": a device that lies in no room has no room to open – on its own floor a tap now acts on it, in the All floors view it opens its floor. A device in an outdoor area acting as a room opens that area (#1103, thanks frops83).
+- **Heatmap colours were gone after switching dashboard views** and coming back; the legend stayed. The room tint goes to the new 3D view again (#1105, thanks moilolon).
+- **A white ground under an own homely style based on Neon** at quality High: switching the quality showed the neon grid again without its texture. It follows the same rule as when the house is built (#1106, thanks moilolon).
+- **Split-level houses:** a roof section sits on the floor under it, not on the highest floor beside it at another level – in the 3D view (walls and gables under the roof) and in the editor's choice of floor (#1097, thanks abgestumpft).
+
 ## 3.3.0
 
 ### Added

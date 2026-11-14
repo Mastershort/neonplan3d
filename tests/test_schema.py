@@ -238,6 +238,16 @@ def test_free_wall_keeps_its_slope() -> None:
         FREE_WALL_SCHEMA({**wall, "slope": [2.4, 0]})
 
 
+def test_free_wall_keeps_its_colour() -> None:
+    """A wall drawn on its own has a colour of its own (#1101); without one it stays as it was."""
+    wall = {"id": "w1", "a": [0, 0], "b": [2, 0]}
+    assert "color" not in FREE_WALL_SCHEMA(wall)
+    assert FREE_WALL_SCHEMA({**wall, "color": "#c27b5a"})["color"] == "#c27b5a"
+    assert FREE_WALL_SCHEMA({**wall, "color": None})["color"] is None
+    with pytest.raises(vol.Invalid):
+        FREE_WALL_SCHEMA({**wall, "color": "x" * 40})
+
+
 def test_live_director_triggers_and_live_picture() -> None:
     """Own triggers with a camera each (D615) and the live picture switch (D589)."""
     base = {"wall_exterior": 0.3, "wall_interior": 0.12, "grid": 0.05}

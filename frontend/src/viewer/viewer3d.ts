@@ -2758,9 +2758,9 @@ export class FloorplanViewer {
       const r = pin.getBoundingClientRect();
       const h = this.host.getBoundingClientRect();
       // outside an opened room the pin's tap opens the room (or floor) under it, if that is set
-      if (this.tapOpens) {
-        const d = this.devices.find((m) => m.id === entityId);
-        if (d) return this.options.onRoomTap?.(d.floorId, d.roomId ?? null);
+      if (this.tapOpens && this.roomless(entityId) !== "device") {
+        const at = this.placesOf(entityId)[0];
+        if (at) return this.options.onRoomTap?.(at.floorId, at.roomId);
         return this.onTap(r.left + r.width / 2 - h.left, r.bottom - h.top);
       }
       const other = this.elsewhere(entityId);
@@ -3516,7 +3516,8 @@ export class FloorplanViewer {
    */
   private applyTierFlags(): void {
     const low = this.lowQuality;
-    this.ground.visible = !low && this.theme !== "day" && this.floors.some((f) => f.floor.rooms.length > 0);
+    // the same rule as when the house is built (not under real materials either: #1106), with its texture
+    this.placeGround();
     for (const fv of this.floors) {
       fv.patternMesh.visible = !low;
       fv.shadowMesh.visible = !low && fv.o > 0.98;
@@ -4846,20 +4847,46 @@ export class FloorplanViewer {
    */
   private elsewhere(entity: string): { floorId: string; roomId: string | null } | null {
     if (!this.building?.settings.tap_in_room || this.roomId === null || this.furnish) return null;
+    const found = this.placesOf(entity);
+    return !found.length || found.some((r) => r.roomId === this.roomId) ? null : found[0];
+  }
+
+  /**
+   * With "switch devices only in the opened room", outside a room: a device that lies in no room (a camera on the
+   * outer wall) has no room to open – on its own floor the tap is for the device itself, in the house view it
+   * opens that floor (#1103). Undefined for a device in a room: the tap opens it as before.
+   */
+  private roomless(entity: string): { floorId: string } | "device" | undefined {
+    const found = this.placesOf(entity);
+    if (!found.length || found.some((r) => r.roomId !== null)) return undefined;
+    return found.some((r) => r.floorId === this.floorId) ? "device" : { floorId: found[0].floorId };
+  }
+
+  /** Where an entity lies in the plan: its device markers, and the openings and furniture linked to it. */
+  private placesOf(entity: string): { floorId: string; roomId: string | null }[] {
     const found: { floorId: string; roomId: string | null }[] = [];
-    for (const m of this.devices) if (m.id === entity) found.push({ floorId: m.floorId, roomId: m.roomId ?? null });
     for (const fv of this.floors) {
       const zones = [...fv.floor.rooms, ...outdoorZones(fv.floor)].filter((r) => r.points.length >= 3);
+      // a device outside the rooms may stand in an outdoor area acting as a room
+      for (const m of this.devices) {
+        if (m.id === entity && m.floorId === fv.floor.id) found.push({ floorId: m.floorId, roomId: m.roomId ?? zones.find((r) => pointInPolygon([m.x, m.z], r.points))?.id ?? null });
+      }
       for (const o of fv.floor.openings) if (this.pickOpenings.get(o.id) === entity) found.push({ floorId: fv.floor.id, roomId: o.room_id || null });
       for (const f of fv.floor.furniture) {
         if (this.pickFurniture.get(f.id) === entity) found.push({ floorId: fv.floor.id, roomId: zones.find((r) => pointInPolygon([f.x, f.z], r.points))?.id ?? null });
       }
     }
-    return !found.length || found.some((r) => r.roomId === this.roomId) ? null : found[0];
+    return found;
   }
 
   private onTap(x: number, y: number): void {
-    const hit = this.pick(x, y, !this.tapOpens);
+    let hit = this.pick(x, y, !this.tapOpens);
+    if (this.tapOpens) {
+      const device = this.pick(x, y, true);
+      const roomless = device && "entity" in device ? this.roomless(device.entity) : undefined;
+      if (roomless === "device") hit = device;
+      else if (roomless) return void this.options.onRoomTap?.(roomless.floorId, null);
+    }
     if (hit && "entity" in hit && this.furnish) {
       this.selectDevice(hit.entity);
       this.options.onDeviceSelect?.(hit.entity);
