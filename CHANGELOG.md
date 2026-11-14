@@ -4,6 +4,15 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 [releases page](https://github.com/Mastershort/neonplan3d/releases). Ideas and votes:
 [Discussions → Ideas](https://github.com/Mastershort/neonplan3d/discussions/categories/ideas).
 
+## 3.2.1
+
+### Added
+- **Pack fans turn:** parts of a pack model marked to spin turn about their middle while the item's fan runs – at its speed, a switch at a medium pace; a pack lamp with fan blades takes a fan entity and gets its pin like the built-in one (#1084, thanks to the reporter). A part field of a newer pack now asks for an update instead of being refused as invalid.
+
+### Changed
+- **The gift for everyone is now winter and pets:** the hint offers the free fun packs Winter & Christmas and Pets instead of Halloween, which is over. It shows once again, also for who dismissed the Halloween one.
+- **A new demo house** in the online demo: an L of a main house with a studio under the roof and a lower living wing with its own gable – dormers, a bay window, a balcony, a roof terrace, a carport, a terrace, a pool and a garden.
+
 ## 3.2.0
 
 ### Added
