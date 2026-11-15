@@ -4,6 +4,19 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 [releases page](https://github.com/Mastershort/neonplan3d/releases). Ideas and votes:
 [Discussions → Ideas](https://github.com/Mastershort/neonplan3d/discussions/categories/ideas).
 
+## 3.4.1
+
+### Security
+- **"People to admins only" now holds on the server:** other users get no person's whereabouts from questions ("Who is home?", "Where is …?") and their views no longer receive the rooms to fly to (#1129, thanks mariomurrent-softwaresolutions).
+- **Ringing a phone:** only for its own person or an admin, sent with the caller's context, at most once in 30 seconds (#1130).
+- **Time travel history:** returns only entities the user may read; statistics that belong to no entity only to admins (#1131).
+
+### Fixed
+- **Energy Pro glass cards** are readable in the bright styles (Day, Homely, Architect's model, Pastel, Wood & paper): they get the darker glass of the module cards (#1126, thanks abgestumpft).
+- **Window light at night** shows outside the house in desktop Chrome with a homely style (#1114, thanks moilolon); **camera view cones** no longer burn a light terrace to white in the homely styles (#1115).
+- **Surroundings from the map:** streams, roads and fields reaching far beyond the chosen radius are cut at the neighbourhood (#1121, thanks Habi01H).
+- **Turning the whole house by 90°** turns the roof sections with it – ridges, roof windows and solar fields stay on their roofs (#1124, thanks RkcCorian).
+
 ## 3.4.0
 
 ### Added
