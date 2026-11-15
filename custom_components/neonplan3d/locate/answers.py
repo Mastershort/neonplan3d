@@ -8,7 +8,7 @@ import re
 import time
 from typing import Any, NamedTuple
 
-from homeassistant.core import HomeAssistant
+from homeassistant.core import Context, HomeAssistant
 from homeassistant.util.location import distance as location_distance
 
 from .service import LocateService
@@ -95,6 +95,9 @@ _TEXT = {
         "home": "Zu Hause: {list}.",
         "ring": "{who} klingelt jetzt.",
         "no_ring": "Für {who} ist keine App zum Klingeln eingestellt.",
+        "private": "Wo jemand ist, sagt NeonPlan hier nur Admins.",
+        "not_yours": "Du kannst nur deine eigenen Geräte klingeln lassen.",
+        "ring_wait": "{who} hat gerade erst geklingelt.",
     },
     "en": {
         "in": "{who} is in the {room}.",
@@ -105,6 +108,9 @@ _TEXT = {
         "home": "At home: {list}.",
         "ring": "{who} is ringing now.",
         "no_ring": "No app to ring is set for {who}.",
+        "private": "NeonPlan tells only admins here where people are.",
+        "not_yours": "You can only ring your own devices.",
+        "ring_wait": "{who} rang just now.",
     },
 }
 
@@ -234,21 +240,43 @@ async def async_answer(
     return located.text if located else None
 
 
+# a phone rings at most once in this many seconds, whoever asks
+RING_COOLDOWN = 30.0
+_rung: dict[str, float] = {}
+
+
+async def _admin(hass: HomeAssistant, user_id: str | None) -> bool:
+    """Whether the caller may see everyone: an admin, or Home Assistant itself (an automation, a voice satellite -
+    no user). A user id that names no user is no admin."""
+    if user_id is None:
+        return True
+    user = await hass.auth.async_get_user(user_id)
+    return user is not None and user.is_admin
+
+
 async def async_locate(
     hass: HomeAssistant, service: LocateService | None, text: str, language: str, user_id: str | None = None
 ) -> Located | None:
-    """The answer to a locating question with the rooms it names, or None when the sentence is no such question."""
+    """The answer to a locating question with the rooms it names, or None when the sentence is no such question.
+    With "people to admins only" another user hears no person's whereabouts (#1129); a phone rings only for its
+    own person or an admin (#1130)."""
     if service is None or not service.devices:
         return None
     lang = language if language in _TEXT else "en"
     sentence = _norm(text)
     t = _TEXT[lang]
+    admin = await _admin(hass, user_id)
+    hide_people = service.admins_only and not admin
     if _WHO[lang].match(sentence):
         names: list[str] = []
         rooms: list[str] = []
         done: set[str] = set()
+        hidden = False
         for device in service.devices:
             person = device.get("person")
+            if person and hide_people:
+                hidden = True
+                continue
             if person:
                 if person in done:
                     continue
@@ -263,28 +291,38 @@ async def async_locate(
             if st["room"] not in rooms:
                 rooms.append(st["room"])
         if not names:
-            return Located(t["nobody"], [], True)
+            return Located(t["private"] if hidden else t["nobody"], [], True)
         return Located(t["home"].format(list=", ".join(names)), rooms, True)
     if m := _RING[lang].match(sentence):
         found = _match(hass, service, m["what"], (m["art"] or "") in MINE, user_id)
         if found is None:
             return None
         who, devices = found
+        speaker = _speaker(hass, user_id)
+        if not admin and any(d.get("person") and d.get("person") != speaker for d in devices):
+            return Located(t["not_yours"], [], False)
         notify = next((d.get("notify") for d in devices if d.get("notify")), None)
         if not notify:
             return Located(t["no_ring"].format(who=who), [], False)
-        await ring(hass, notify, lang)
+        now = time.monotonic()
+        if now - _rung.get(notify, -RING_COOLDOWN) < RING_COOLDOWN:
+            return Located(t["ring_wait"].format(who=who), [], False)
+        _rung[notify] = now
+        await ring(hass, notify, lang, user_id)
         return Located(t["ring"].format(who=who), [], False)
     if m := _WHERE[lang].match(sentence):
         found = _match(hass, service, m["what"], (m["art"] or "") in MINE, user_id)
         if found is None:
             return None
         who, devices = found
-        return _where(hass, service, who, devices, lang)
+        located = _where(hass, service, who, devices, lang)
+        if located.persons and hide_people:
+            return Located(t["private"], [], True)
+        return located
     return None
 
 
-async def ring(hass: HomeAssistant, notify: str, lang: str) -> None:
+async def ring(hass: HomeAssistant, notify: str, lang: str, user_id: str | None = None) -> None:
     """A loud notification through the Home Assistant app (critical on iPhone, alarm channel on Android)."""
     service = notify.removeprefix("notify.")
     message = "NeonPlan sucht dich 🔔" if lang == "de" else "NeonPlan is looking for you 🔔"
@@ -302,4 +340,6 @@ async def ring(hass: HomeAssistant, notify: str, lang: str) -> None:
             },
         },
         blocking=False,
+        # the asking user's context: Home Assistant checks and logs the call as theirs
+        context=Context(user_id=user_id),
     )

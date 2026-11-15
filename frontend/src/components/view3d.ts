@@ -6336,7 +6336,7 @@ export class Fp3dView3d extends LitElement {
       @touchstart=${this.keepTouch}
       @touchmove=${this.keepTouch}
       @touchend=${this.keepTouch}
-      class="fp3d-stage ${this.roomLabels ? "" : "fp3d-no-room-names"} ${this._low ? "fp3d-low" : ""} ${this.panelOpen ? "fp3d-panel-open" : ""} ${this.controlsRight ? "fp3d-side-right" : ""} ${this._alerts.length ? "fp3d-has-alerts" : ""} ${this._through ? "fp3d-through-on" : ""} ${this._flash ? "fp3d-flash" : ""} ${this.replay ? "fp3d-replay" : ""}"
+      class="fp3d-stage ${this.effectiveTheme() === "day" ? "fp3d-bright" : ""} ${this.roomLabels ? "" : "fp3d-no-room-names"} ${this._low ? "fp3d-low" : ""} ${this.panelOpen ? "fp3d-panel-open" : ""} ${this.controlsRight ? "fp3d-side-right" : ""} ${this._alerts.length ? "fp3d-has-alerts" : ""} ${this._through ? "fp3d-through-on" : ""} ${this._flash ? "fp3d-flash" : ""} ${this.replay ? "fp3d-replay" : ""}"
       style=${style}
     >
       ${this.renderZoomBackground()}
@@ -8391,6 +8391,11 @@ export class Fp3dView3d extends LitElement {
         margin-top: 5px;
         font-size: 12px;
         opacity: 0.85;
+      }
+      /* a bright style (Day, Homely, Architect's model, Pastel, Wood & paper): the darker glass of the module cards,
+         so the light text stays readable over a light house and sky (#1126) */
+      .fp3d-bright .fp3d-holo:not(.fp3d-holo-plain) {
+        background: linear-gradient(140deg, rgba(40, 80, 130, 0.62) 0%, rgba(12, 28, 58, 0.78) 55%, rgba(8, 18, 40, 0.82) 100%);
       }
       /* a module's richer card: a state line, a second big value, a chain, cells, a hint */
       .fp3d-holo.fp3d-holo-mod-wide {

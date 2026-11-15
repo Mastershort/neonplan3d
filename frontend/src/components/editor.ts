@@ -5580,9 +5580,22 @@ export class Fp3dEditor extends LitElement {
     this._shiftZ = 0;
   }
 
-  /** What belongs to the house as a whole and moves with "all floors": roof sections, cables, meter, hologram. */
-  private moveHouseExtras(doc: Building, mv: (p: Vec2) => Vec2): void {
+  /**
+   * What belongs to the house as a whole and moves with "all floors": roof sections, cables, meter, hologram. With
+   * `turn` (90° steps of the whole house) a section turns about its own pivot as well: its ridge, its roof windows and
+   * solar fields (placed on its faces) stay where they belong (#1124).
+   */
+  private moveHouseExtras(doc: Building, mv: (p: Vec2) => Vec2, turn = 0): void {
     for (const s of doc.settings.roof.sections ?? []) {
+      if (turn && !(s.points && s.points.length >= 3)) {
+        const pivot: Vec2 = s.pivot ?? [(s.x0 + s.x1) / 2, (s.z0 + s.z1) / 2];
+        const [px, pz] = mv(pivot);
+        const [dx, dz] = [px - pivot[0], pz - pivot[1]];
+        [s.x0, s.x1, s.z0, s.z1] = [round(s.x0 + dx), round(s.x1 + dx), round(s.z0 + dz), round(s.z1 + dz)];
+        if (s.pivot) s.pivot = [px, pz];
+        s.rotation = (((s.rotation ?? 0) + turn) % 360) || null;
+        continue;
+      }
       const corners = [mv([s.x0, s.z0]), mv([s.x1, s.z0]), mv([s.x1, s.z1]), mv([s.x0, s.z1])];
       s.x0 = Math.min(...corners.map((c) => c[0]));
       s.x1 = Math.max(...corners.map((c) => c[0]));
@@ -5632,7 +5645,7 @@ export class Fp3dEditor extends LitElement {
     if (this._shiftAll) {
       this.change((doc) => {
         for (const f of doc.floors) one(f);
-        this.moveHouseExtras(doc, mv);
+        this.moveHouseExtras(doc, mv, 90);
       });
     } else this.change((_, f) => one(f));
   }

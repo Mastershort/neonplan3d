@@ -418,3 +418,19 @@ async def test_history_leaves_places_and_carried_devices_out(hass: HomeAssistant
     assert "sensor.car_place" not in str(asked)
     assert "sensor.wifi_ssid" not in str(asked)
     assert "light.kitchen" in asked["states"]
+
+
+def test_history_returns_only_what_the_user_may_read() -> None:
+    """#1131: a restricted user gets the entities their permissions allow; statistics that are no entity only admins."""
+    from types import SimpleNamespace
+
+    from custom_components.neonplan3d.timetravel import readable
+
+    allowed = {"sensor.flur_temperature"}
+    restricted = SimpleNamespace(
+        is_admin=False, permissions=SimpleNamespace(check_entity=lambda eid, _policy: eid in allowed)
+    )
+    admin = SimpleNamespace(is_admin=True, permissions=None)
+    ids = ["sensor.flur_temperature", "sensor.secret", "sensor:imported_costs"]
+    assert readable(restricted, ids) == ["sensor.flur_temperature"]
+    assert readable(admin, ids) == ids

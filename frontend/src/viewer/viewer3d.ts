@@ -6,7 +6,7 @@
 // animated independently.
 
 import type { HassEntity } from "../types.ts";
-import { AdditiveBlending, CustomBlending, DstColorFactor, NormalBlending, OneFactor, OneMinusSrcAlphaFactor, SrcAlphaFactor, ZeroFactor, RingGeometry, Fog, CircleGeometry, Box3, CanvasTexture, ClampToEdgeWrapping, Color, BackSide, DoubleSide, FrontSide, Group, LineBasicMaterial, LineSegments, Mesh, MeshBasicMaterial, MultiplyBlending, OrthographicCamera, PerspectiveCamera, Points, PointsMaterial, PlaneGeometry, Raycaster, RepeatWrapping, Scene, SRGBColorSpace, TextureLoader, type Texture, Float32BufferAttribute, Uint32BufferAttribute, DynamicDrawUsage, BufferGeometry as Geometry, Vector2, Vector3, WebGLRenderer, WebGLRenderTarget, type Material, BufferGeometry } from "three";
+import { AdditiveBlending, CustomBlending, DstColorFactor, OneMinusDstColorFactor, NormalBlending, OneFactor, OneMinusSrcAlphaFactor, RingGeometry, Fog, CircleGeometry, Box3, CanvasTexture, ClampToEdgeWrapping, Color, BackSide, DoubleSide, FrontSide, Group, LineBasicMaterial, LineSegments, Mesh, MeshBasicMaterial, MultiplyBlending, OrthographicCamera, PerspectiveCamera, Points, PointsMaterial, PlaneGeometry, Raycaster, RepeatWrapping, Scene, SRGBColorSpace, TextureLoader, type Texture, Float32BufferAttribute, Uint32BufferAttribute, DynamicDrawUsage, BufferGeometry as Geometry, Vector2, Vector3, WebGLRenderer, WebGLRenderTarget, type Material, BufferGeometry } from "three";
 import type { Building, Floor, Furniture, Room, StartView, Vec2 } from "../model.ts";
 import { markLit, recolorLamps, SHADE_SENTINEL, shadeFactors } from "./lamp-colors.ts";
 import { centroid, GANG_TYPES, labelPoint, gateSpans, outdoorSurface, outdoorTopAt, outdoorZones, pointInPolygon, openingStyle, setTerrain, WALL_LAMP_Y, zonesOf } from "../model.ts";
@@ -3072,7 +3072,7 @@ export class FloorplanViewer {
       }),
       // adds its colour but never covers: over the empty, see-through background a wedge fading to black stays
       // see-through instead of drawing a black half-circle (the Day look, #955)
-      cones: new MeshBasicMaterial({ vertexColors: true, transparent: true, blending: CustomBlending, blendSrc: SrcAlphaFactor, blendDst: OneFactor, blendSrcAlpha: ZeroFactor, blendDstAlpha: OneFactor, depthWrite: false, side: DoubleSide, forceSinglePass: true }),
+      cones: coneMaterial(this.palette.natural),
       screens: screenMaterial(),
       earth: themed(new MeshBasicMaterial({ vertexColors: true }), this.themeUniform),
       earthWell: themed(new MeshBasicMaterial({ vertexColors: true, side: DoubleSide }), this.themeUniform),
@@ -6476,6 +6476,21 @@ function glassOpacity(m: MeshBasicMaterial): number {
  * (their colour over it, the halo fading out), a little softer, and dim with the house in the evening – less than it,
  * so a running device still shows.
  */
+/**
+ * Light cones, window light and camera view cones: light added to what lies below. It writes premultiplied colour and
+ * an alpha as strong as its brightest channel, so where it lies on nothing (a homely style hides the ground) the
+ * canvas still shows it in every browser (#1114: desktop Chrome dropped colour with alpha 0). In the homely styles it
+ * brightens like a screen instead of adding, so a light floor does not burn out to white (#1115).
+ */
+function coneMaterial(natural: boolean): MeshBasicMaterial {
+  const m = new MeshBasicMaterial({ vertexColors: true, transparent: true, blending: CustomBlending, blendSrc: natural ? OneMinusDstColorFactor : OneFactor, blendDst: OneFactor, blendSrcAlpha: OneFactor, blendDstAlpha: OneFactor, depthWrite: false, side: DoubleSide, forceSinglePass: true });
+  m.onBeforeCompile = (shader) => {
+    shader.fragmentShader = shader.fragmentShader.replace("#include <dithering_fragment>", "#include <dithering_fragment>\n  gl_FragColor = vec4(gl_FragColor.rgb * gl_FragColor.a, max(max(gl_FragColor.r, gl_FragColor.g), gl_FragColor.b) * gl_FragColor.a);");
+  };
+  m.customProgramCacheKey = () => "fp3d-cone";
+  return m;
+}
+
 function screenMaterial(): MeshBasicMaterial {
   const m = new MeshBasicMaterial({ vertexColors: true, transparent: true, blending: AdditiveBlending, depthWrite: false, side: DoubleSide, forceSinglePass: true });
   m.onBeforeCompile = (shader) => {
@@ -6920,7 +6935,9 @@ function contactShadowTexture(): CanvasTexture {
   g.filter = "blur(9px)";
   g.fillStyle = "rgba(0,0,0,0.55)";
   g.beginPath();
-  g.roundRect(128 + 22, 22, 84, 84, 14);
+  // no roundRect on old Fire-tablet WebViews and old Safari: a plain box there (blurred, it hardly shows)
+  if (typeof g.roundRect === "function") g.roundRect(128 + 22, 22, 84, 84, 14);
+  else g.rect(128 + 22, 22, 84, 84);
   g.fill();
   contactTexture = new CanvasTexture(c);
   return contactTexture;

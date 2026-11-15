@@ -815,6 +815,11 @@ def ws_voice_subscribe(hass: HomeAssistant, connection: websocket_api.ActiveConn
 
     @callback
     def forward(ask: dict[str, Any]) -> None:
+        # where people are, while shown to admins only: never sent to another user's view (#1129)
+        if ask.get("admins_only") and ask.get("show_rooms") and not connection.user.is_admin:
+            if not ask.get("ask_id"):
+                return
+            ask = {**ask, "show_rooms": []}
         connection.send_message(websocket_api.event_message(msg["id"], ask))
 
     @callback

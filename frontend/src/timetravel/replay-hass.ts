@@ -77,7 +77,9 @@ export function readOnlyHass(live: HomeAssistant, states: Record<string, HassEnt
   out.callWS = <T>(msg: Record<string, unknown>): Promise<T> => (WS_ALLOWED.has(String(msg.type)) ? live.callWS<T>(msg) : refuse(String(msg.type)));
   out.connection = {
     subscribeMessage: <T>(cb: (msg: T) => void, msg: Record<string, unknown>) =>
-      SUBSCRIBE_ALLOWED.has(String(msg.type)) ? live.connection.subscribeMessage<T>(cb, msg) : refuse(String(msg.type)),
+      // a subscription is refused quietly and as a rejected promise: the views listen for voice and announcements in
+      // the background and catch it; thrown at once it escaped them and filled the error reports
+      SUBSCRIBE_ALLOWED.has(String(msg.type)) ? live.connection.subscribeMessage<T>(cb, msg) : Promise.reject(new ReplayReadOnly(String(msg.type))),
   };
   // Home Assistant's own cards may use the REST API: reading only
   for (const name of ["callApi", "callApiRaw"]) {

@@ -187,7 +187,7 @@ test("replay: nothing can be switched – service calls throw and never reach Ho
   assert.throws(() => h.callWS({ type: "neonplan3d/building/save", building: {} }), ReplayReadOnly);
   assert.throws(() => h.callWS({ type: "call_service", domain: "light", service: "turn_on" }), ReplayReadOnly);
   assert.throws(() => h.callWS({ type: "execute_script", sequence: [] }), ReplayReadOnly);
-  assert.throws(() => h.connection.subscribeMessage(() => undefined, { type: "subscribe_trigger" }), ReplayReadOnly);
+  await assert.rejects(h.connection.subscribeMessage(() => undefined, { type: "subscribe_trigger" }), ReplayReadOnly);
   // reading is allowed
   await h.callWS({ type: "neonplan3d/building/get" });
   await h.callWS({ type: "history/history_during_period" });

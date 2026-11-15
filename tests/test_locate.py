@@ -325,3 +325,63 @@ async def test_a_view_asks_locating_first(hass: HomeAssistant, hass_ws_client) -
     assert res == {"text": "Zu Hause: Torsten Apple Watch (Kitchen).", "rooms": ["kitchen"], "admins_only": False}
     await client.send_json_auto_id({"type": "neonplan3d/locate/ask", "text": "Zeig die Küche", "language": "de"})
     assert (await client.receive_json())["result"] is None
+
+
+async def test_people_stay_private_and_phones_ring_for_their_own(hass: HomeAssistant, hass_admin_user) -> None:
+    """#1129: with "people to admins only" another user hears nobody's whereabouts; #1130: a phone rings only for
+    its own person or an admin, and not twice within the cooldown."""
+    from pytest_homeassistant_custom_component.common import MockUser, async_mock_service
+
+    from custom_components.neonplan3d.locate import answers
+    from custom_components.neonplan3d.locate.answers import async_locate
+
+    await _setup(hass)
+    service: LocateService = hass.data[DATA_LOCATE]
+    owner = MockUser().add_to_hass(hass)
+    other = MockUser().add_to_hass(hass)
+    admin = hass_admin_user
+    hass.states.async_set("person.torsten", "home", {"friendly_name": "Torsten", "user_id": owner.id})
+    rings = async_mock_service(hass, "notify", "mobile_app_phone")
+    phone = {**WATCH, "name": "Phone", "person": "person.torsten", "notify": "notify.mobile_app_phone"}
+    service.devices = [phone]
+    service.rooms = ROOMS
+    kitchen = {"room": "kitchen", "room_name": "Kitchen", "probability": 0.9, "last_seen": time.time()}
+    service.state = {"irk_watch": kitchen}
+    answers._rung.clear()
+
+    async def say(text: str, user: str | None):
+        return await async_locate(hass, service, text, "en", user)
+
+    assert (await say("where is Torsten", other.id)).rooms == ["kitchen"], "not private: everyone may ask"
+    service.admins_only = True
+    hidden = await say("where is Torsten", other.id)
+    assert (hidden.text, hidden.rooms) == ("NeonPlan tells only admins here where people are.", [])
+    assert (await say("who is home", other.id)).text == "NeonPlan tells only admins here where people are."
+    assert (await say("where is Torsten", admin.id)).rooms == ["kitchen"]
+    assert (await say("where is Torsten", None)).rooms == ["kitchen"], "Home Assistant itself (a satellite) may"
+
+    assert (await say("ring the phone", other.id)).text == "You can only ring your own devices."
+    await hass.async_block_till_done()
+    assert not rings
+    assert (await say("ring my phone", owner.id)).text == "Phone is ringing now."
+    assert (await say("ring the phone", admin.id)).text == "Phone rang just now."
+    await hass.async_block_till_done()
+    assert len(rings) == 1
+    assert rings[0].context.user_id == owner.id
+
+
+async def test_a_view_of_another_user_gets_no_admin_only_rooms(
+    hass: HomeAssistant, hass_ws_client, hass_read_only_access_token
+) -> None:
+    """#1129: the rooms of people shown to admins only never reach a view signed in as another user."""
+    from custom_components.neonplan3d.const import SIGNAL_ASK
+
+    await _setup(hass)
+    client = await hass_ws_client(hass, hass_read_only_access_token)
+    await client.send_json_auto_id({"type": "neonplan3d/voice/subscribe"})
+    assert (await client.receive_json())["success"]
+    common = {"ask_id": "", "text": "", "screen": None, "speak": False}
+    async_dispatcher_send(hass, SIGNAL_ASK, {**common, "show_rooms": ["kitchen"], "admins_only": True})
+    async_dispatcher_send(hass, SIGNAL_ASK, {**common, "show_rooms": ["hall"], "admins_only": False})
+    msg = await client.receive_json()
+    assert msg["event"]["show_rooms"] == ["hall"]

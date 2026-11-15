@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { Building, Surroundings, Vec2 } from "./model.ts";
 import { emptyBuilding, newFloor } from "./model.ts";
-import { buildingHeight, fetchSurroundings, parseHeight, parseOverpass, simplify, SurroundError, toMetres, wayKind } from "./surround-fetch.ts";
+import { buildingHeight, clipLine, fetchSurroundings, parseHeight, parseOverpass, simplify, SurroundError, toMetres, wayKind } from "./surround-fetch.ts";
 import { placeUnderPlan } from "./surround-align.ts";
 import { hiddenBuildings, homeBuilding, mapToPlan, ownUnderPlan, placedSurroundings, turnMap } from "./surroundings.ts";
 
@@ -262,4 +262,27 @@ test("turning the map about the house keeps every map point at the same distance
   // a quarter turn clockwise: what lay to the right of the middle lies below it
   const right = turnMap({ x: 16, z: 4 }, 0, 90, mid);
   assert.ok(Math.abs(right.x - 6) < 0.01 && Math.abs(right.z - 14) < 0.01);
+});
+
+test("a stream reaching kilometres away is cut at the neighbourhood; a far field is cut at its square (#1121)", () => {
+  const data = {
+    elements: [
+      { type: "way", tags: { waterway: "stream" }, geometry: [{ lat: 0, lon: 0 }, { lat: 0, lon: 0.02 }] },
+      { type: "way", tags: { landuse: "forest" }, geometry: [{ lat: -0.001, lon: -0.001 }, { lat: -0.001, lon: 0.03 }, { lat: 0.001, lon: 0.03 }, { lat: 0.001, lon: -0.001 }] },
+    ],
+  };
+  const s = parseOverpass(data as unknown as Parameters<typeof parseOverpass>[0], 0, 0, 150);
+  const far = (pts: number[][]) => Math.max(...pts.map((p) => Math.hypot(p[0], p[1])));
+  assert.equal(s.ways.length, 1);
+  assert.ok(far(s.ways[0].p) <= 150 * 1.15 + 0.01, "the stream ends at the circle");
+  assert.ok(far(s.ways[0].p) > 150, "and reaches it");
+  for (const a of s.areas) for (const p of a.p) assert.ok(Math.abs(p[0]) <= 225.01 && Math.abs(p[1]) <= 225.01);
+  assert.equal(s.areas.length, 1, "the field stays, cut");
+});
+
+test("cutting a line at a circle keeps the parts inside, each crossing cut at the rim", () => {
+  const parts = clipLine([[-300, 0], [300, 0], [300, 10], [0, 10]], 100);
+  assert.equal(parts.length, 2);
+  assert.deepEqual(parts[0].map((p) => p.map((v) => Math.round(v))), [[-100, 0], [100, 0]]);
+  assert.equal(Math.round(parts[1][0][0]), 99);
 });

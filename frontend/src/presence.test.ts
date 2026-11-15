@@ -222,3 +222,13 @@ test("a located person whose Home Assistant person has no tracker (state unknown
   hass.states["person.tom"] = st("person.tom", "Arbeit", { friendly_name: "Tom" });
   assert.ok(!locatedPersons(hass, building, new Set(), now).some((p) => p.id === "person.tom"));
 });
+
+test("a located person stands inside an L-shaped room, not at its middle in the hall next to it (#900)", async () => {
+  const { innerPoint, pointInPolygon } = await import("./model.ts");
+  // an L: the middle of its bounding box and its centroid lie near the inner corner, outside the room
+  const L: [number, number][] = [[0, 0], [6, 0], [6, 1.5], [1.5, 1.5], [1.5, 6], [0, 6]];
+  const p = innerPoint(L);
+  assert.ok(pointInPolygon(p, L));
+  // a plain rectangle keeps its middle
+  assert.deepEqual(innerPoint([[0, 0], [4, 0], [4, 3], [0, 3]]), [2, 1.5]);
+});
