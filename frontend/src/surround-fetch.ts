@@ -170,16 +170,82 @@ function chunks(points: Vec2[], max = 200): Vec2[][] {
   return out;
 }
 
+/** The parts of a line inside the circle of radius `r` around the origin, each segment cut at the circle (#1121). */
+export function clipLine(points: Vec2[], r: number): Vec2[][] {
+  const out: Vec2[][] = [];
+  let run: Vec2[] = [];
+  const inside = (p: Vec2) => Math.hypot(p[0], p[1]) <= r;
+  for (let i = 0; i < points.length - 1; i++) {
+    const a = points[i];
+    const b = points[i + 1];
+    // the segment a + t (b - a) inside the circle: |a + t d|² <= r² for t in [t0, t1]
+    const d: Vec2 = [b[0] - a[0], b[1] - a[1]];
+    const A = d[0] * d[0] + d[1] * d[1];
+    const B = 2 * (a[0] * d[0] + a[1] * d[1]);
+    const C = a[0] * a[0] + a[1] * a[1] - r * r;
+    const disc = B * B - 4 * A * C;
+    if (A === 0 || disc <= 0) {
+      if (run.length >= 2) out.push(run);
+      run = [];
+      continue;
+    }
+    const t0 = Math.max(0, (-B - Math.sqrt(disc)) / (2 * A));
+    const t1 = Math.min(1, (-B + Math.sqrt(disc)) / (2 * A));
+    if (t0 >= t1) {
+      if (run.length >= 2) out.push(run);
+      run = [];
+      continue;
+    }
+    const at = (t: number): Vec2 => [a[0] + t * d[0], a[1] + t * d[1]];
+    if (!run.length) run.push(t0 > 0 ? at(t0) : a);
+    run.push(t1 < 1 ? at(t1) : b);
+    if (t1 < 1 || !inside(b)) {
+      if (run.length >= 2) out.push(run);
+      run = [];
+    }
+  }
+  if (run.length >= 2) out.push(run);
+  return out;
+}
+
+/** A polygon cut to the square |x|, |z| <= h (Sutherland–Hodgman): far-reaching woods and fields stay near (#1121). */
+export function clipSquare(points: Vec2[], h: number): Vec2[] {
+  let poly = points;
+  const edges: [number, number][] = [[0, 1], [0, -1], [1, 1], [1, -1]];
+  for (const [axis, sign] of edges) {
+    const keep = (p: Vec2) => sign * p[axis] <= h;
+    const next: Vec2[] = [];
+    for (let i = 0; i < poly.length; i++) {
+      const a = poly[i];
+      const b = poly[(i + 1) % poly.length];
+      const ka = keep(a);
+      const kb = keep(b);
+      if (ka) next.push(a);
+      if (ka !== kb) {
+        const t = (sign * h - a[axis]) / (b[axis] - a[axis]);
+        next.push([a[0] + t * (b[0] - a[0]), a[1] + t * (b[1] - a[1])]);
+      }
+    }
+    poly = next;
+    if (poly.length < 3) return [];
+  }
+  return poly;
+}
+
 /**
  * The neighbourhood from an Overpass answer (`out tags geom`), in map metres around (lat, lon). Only what lies at
- * least partly within `radius` is kept; buildings and areas are simplified a little.
+ * least partly within `radius` is kept; buildings and areas are simplified a little. Lines are cut at the circle a
+ * little beyond the radius, areas and buildings at a square around it, so nothing reaches kilometres away (#1121).
  */
 export function parseOverpass(data: { elements?: OsmElement[] }, lat: number, lon: number, radius: number): Omit<Surroundings, "on" | "at" | "x" | "z" | "own"> {
   const buildings: SurroundBuilding[] = [];
   const ways: SurroundWay[] = [];
   const areas: SurroundArea[] = [];
   const trees: Vec2[] = [];
-  const near = (p: Vec2) => Math.hypot(p[0], p[1]) <= radius * 1.15;
+  const reach = radius * 1.15;
+  const near = (p: Vec2) => Math.hypot(p[0], p[1]) <= reach;
+  // areas and buildings: cut at a square a bit wider than the circle (a field reaching out is cut, not dropped)
+  const box = radius * 1.5;
   const line = (g: (OsmLatLon | null)[] | undefined): Vec2[] => (g ?? []).filter((q): q is OsmLatLon => !!q).map((q) => toMetres(lat, lon, q.lat, q.lon));
   for (const el of data.elements ?? []) {
     const tags = el.tags ?? {};
@@ -195,7 +261,7 @@ export function parseOverpass(data: { elements?: OsmElement[] }, lat: number, lo
       // a building as a multipolygon: each outer ring is a block (courtyards stay filled – a block from afar)
       const rings = el.type === "relation" ? (el.members ?? []).filter((m) => m.role === "outer").map((m) => line(m.geometry)) : [line(el.geometry)];
       for (const r of rings) {
-        const ring = simplify(openRing(r), 0.1);
+        const ring = clipSquare(simplify(openRing(r), 0.1), box);
         if (ring.length >= 3 && ring.length <= 200 && ring.some(near)) buildings.push({ p: ring, h: Math.round(h * 10) / 10 });
       }
       continue;
@@ -205,12 +271,12 @@ export function parseOverpass(data: { elements?: OsmElement[] }, lat: number, lo
     if (pts.length < 2 || !pts.some(near)) continue;
     const kind = wayKind(tags);
     if (kind) {
-      for (const part of chunks(simplify(pts, 0.3))) if (part.length >= 2) ways.push({ p: part, w: kind.w, k: kind.k });
+      for (const piece of clipLine(simplify(pts, 0.3), reach)) for (const part of chunks(piece)) if (part.length >= 2) ways.push({ p: part, w: kind.w, k: kind.k });
       continue;
     }
     const ak = areaKind(tags);
     if (ak) {
-      const ring = simplify(openRing(pts), 0.3);
+      const ring = clipSquare(simplify(openRing(pts), 0.3), box);
       if (ring.length >= 3 && ring.length <= 200) areas.push({ p: ring, k: ak });
     }
   }
