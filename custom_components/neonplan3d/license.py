@@ -285,7 +285,7 @@ def clean_previews(raw: Any) -> dict[str, Any]:
                 "p": it["p"],
                 "id": it["id"],
                 "name": _texts(it.get("name"), 80),
-                "size": [float(v) for v in size],
+                "size": [float(v) for v in sizes],
                 "group": str(it.get("group") or "")[:20] or None,
                 "room": _words(it.get("room"), 12, 20),
                 "tags": _words(it.get("tags"), 20, 30),
@@ -296,7 +296,8 @@ def clean_previews(raw: Any) -> dict[str, Any]:
                 "live": bool(it.get("live")),
             }
         )
-    bundle = raw.get("bundle") if isinstance(raw.get("bundle"), dict) else {}
+    found = raw.get("bundle")
+    bundle: dict[str, Any] = found if isinstance(found, dict) else {}
     burls = {k: v for k, v in _texts(bundle.get("url"), 300).items() if v.startswith("https://")}
     return {
         "base": base,
