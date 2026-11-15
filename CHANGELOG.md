@@ -16,6 +16,7 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 - **Window light at night** shows outside the house in desktop Chrome with a homely style (#1114, thanks moilolon); **camera view cones** no longer burn a light terrace to white in the homely styles (#1115).
 - **Surroundings from the map:** streams, roads and fields reaching far beyond the chosen radius are cut at the neighbourhood (#1121, thanks Habi01H).
 - **Turning the whole house by 90°** turns the roof sections with it – ridges, roof windows and solar fields stay on their roofs (#1124, thanks RkcCorian).
+- **Old wall tablets and old Safari:** the 3D view no longer stops at the contact shadows where the browser has no `roundRect`; time travel no longer floods the error reports while it replays.
 
 ## 3.4.0
 
