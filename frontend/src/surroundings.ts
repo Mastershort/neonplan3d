@@ -182,6 +182,33 @@ export function hiddenBuildings(s: Surroundings, b: Building): Set<number> {
 
 let hiddenCache: { key: string; out: Set<number> } | null = null;
 
+/**
+ * The map building the plan stands on after the map was moved or turned by hand: the one covered the most by what the
+ * plan builds itself (its middle in a room, or at least 40 % of it on the plan), else none – so a neighbour's house,
+ * taken as the own one because the home's location lies on no building, shows again once the map is moved (#1110).
+ * Undefined when nothing is drawn yet (then the house is still to be drawn on the map's own one).
+ */
+export function ownUnderPlan(s: Surroundings, b: Building): number | null | undefined {
+  const rooms = ownStructures(b);
+  if (!rooms.length) return undefined;
+  const north = b.settings.north ?? 0;
+  const step = 0.5;
+  const grid = new PlanGrid(rooms, step);
+  let best: number | null = null;
+  let most = 0;
+  s.buildings.forEach((bd, i) => {
+    const poly = bd.p.map((p) => mapToPlan(s, north, p));
+    const samples = gridPoints([poly], step);
+    const hit = samples.filter(([x, z]) => grid.has(x, z)).length;
+    const middle = rooms.some((r) => pointInPolygon(centroid(poly), r));
+    if ((middle || (samples.length && hit >= samples.length * 0.4)) && hit > most) {
+      most = hit;
+      best = i;
+    }
+  });
+  return best;
+}
+
 /** The neighbourhood in plan coordinates, ready to draw (nothing when it is switched off or empty). */
 export interface PlacedSurroundings {
   buildings: { p: Vec2[]; h: number }[];
