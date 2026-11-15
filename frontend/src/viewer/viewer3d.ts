@@ -6935,7 +6935,9 @@ function contactShadowTexture(): CanvasTexture {
   g.filter = "blur(9px)";
   g.fillStyle = "rgba(0,0,0,0.55)";
   g.beginPath();
-  g.roundRect(128 + 22, 22, 84, 84, 14);
+  // no roundRect on old Fire-tablet WebViews and old Safari: a plain box there (blurred, it hardly shows)
+  if (typeof g.roundRect === "function") g.roundRect(128 + 22, 22, 84, 84, 14);
+  else g.rect(128 + 22, 22, 84, 84);
   g.fill();
   contactTexture = new CanvasTexture(c);
   return contactTexture;
