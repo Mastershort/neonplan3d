@@ -1281,6 +1281,7 @@ The middle row of tiles shows the Pro add-ons. Active ones carry a ✓, locked o
 | Home cinema & hi-fi | Screen, projector, speakers, subwoofer, AV receiver, turntable, cinema seats, smart speakers and smart displays – devices glow while playing; the roll-down screen goes up and down with its motor's cover (run time, position sensor and reverse direction as for the curtain) |
 | Utility & building services | Boiler, heat pump, buffer tank, ventilation, meter cabinet, water softener, chest freezer, ironing station |
 | Pets | Cat tree, dog bed, feeder, water fountain, litter box, cages, aquarium and terrarium with light |
+| Homelab & Workshop | Smart home server, single-board computer cluster, rack switch, UPS, server tower, 10-inch mini rack, radio stick, printer shelf with three 3D printers, filament dryer, laser engraver, soldering station, workbench with pegboard, tool battery charger – with live parts (from 3.4, see 4.8) |
 | Architecture & fit-out | Columns, beams, chimney, fireplace, glass partition, sliding wall, light cove, LED niche, platform, motorised curtain (opens with its cover, to both sides or, under **Opens to**, only to the left or right; under **Motor (cover)** also run time, a live position sensor as for blinds and **Reverse direction**) |
 
 Devices in packs have a small glowing part (display, status LED): linked to a media player, a switch or a light it lights up while the device runs; an aquarium glows in its light's colour.
