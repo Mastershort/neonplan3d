@@ -105,6 +105,7 @@ def async_register_commands(hass: HomeAssistant) -> None:
         ws_voice_settings_set,
         ws_voice_converse,
         ws_locate_rec,
+        ws_previews_get,
     ):
         websocket_api.async_register_command(hass, command)
     for command in LOCATE_COMMANDS:
@@ -574,6 +575,14 @@ async def ws_license_refresh(
 ) -> None:
     """Ask the shop again now (new purchases, updates of installed packs)."""
     await _license_call(hass, connection, msg, lambda data: lic.async_refresh(hass, data))
+
+
+@websocket_api.websocket_command({vol.Required("type"): "neonplan3d/previews/get"})
+@websocket_api.require_admin
+@websocket_api.async_response
+async def ws_previews_get(hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]) -> None:
+    """Pictures and names of the shop's furniture (for the library's locked cards); empty while the shop is away."""
+    connection.send_result(msg["id"], await lic.async_fetch_previews(hass))
 
 
 @websocket_api.websocket_command(

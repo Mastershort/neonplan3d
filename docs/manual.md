@@ -274,6 +274,7 @@ The **Furniture** tool opens the library: the 80 built-in models and everything 
 - **★ Favourites** and **🕘 Recently used** stand at the top as soon as there are any – the star on every card marks them, both stay in the browser.
 - The **search field** finds English and German names, the pack name and everyday words ("lamp" finds all lights, "cabinet" all cabinets), several words in any order ("corner sofa"); Escape clears it. While searching, every section is open.
 - Long sections show 24 cards first and **"Show … more"** below.
+- **🔒 From packs** (new in 3.4): after your own furniture come the items of packs you don't have yet, with a lock – the search finds them too. A tap shows the picture large with the pack, its price and **See in the shop**. It is only a picture; the item comes with the pack and is then placed like any other. NeonPlan loads the list from the shop at most once a day when you open the library; nothing about you is sent. The **🔒 From packs** chip hides them (remembered in this browser).
 
 The **Worktop** (Kitchen) is a free top without a base, for gaps in the kitchen or a self-built desk; its **height** is the top edge, 91 cm by default. Under Sofas, next to the sofa, there are a **Corner sofa (L-shaped)** and a **U-shaped sofa**; **Mirror** puts the corner sofa's side section on the other side. On devices that show the cards without pictures, hovering shows the bigger 3D preview as before.
 
@@ -281,6 +282,7 @@ The **Worktop** (Kitchen) is a free top without a base, for gaps in the kitchen 
 
 - 💡 A **lamp**: it links to a light and switches in 3D.
 - ⚡ An **electric item**: it takes an entity and a power sensor, e.g. a TV, a washing machine or a thermostat.
+- ✨ **Live** (new in 3.4): parts move with Home Assistant – doors, drawers, levels, status lights, fans. The **✨ Live** chip shows only these items.
 
 **Placing and editing:**
 
@@ -294,6 +296,8 @@ The **Worktop** (Kitchen) is a free top without a base, for gaps in the kitchen 
 
 - **State from:** any piece of furniture can show an entity that reports on, occupied or home – its top then glows: the bed with an occupancy mat, the armchair, the sauna. A second entity lights the other half (left/right, bottom/top for a bunk bed); set the first one to *none* and the second moves up into its place. Lamps, energy devices and screens have fields of their own for this.
 - **Only show while …** (new): the piece stands in 3D only while an entity is in a state – the Christmas tree while `input_boolean.christmas` is on, the garden decoration only while a season sensor says "summer". Separate several states with commas, `<20` or `>80` compares a number, a `!` in front turns it round; empty means "on". Hidden, its light and its marker go too. The editor always shows the piece; while it is missing in 3D it is faint in the plan. So you place decoration once and switch it on every year with a switch or an automation.
+- **🎨 Finish** (new in 3.4): own colours for **wood**, **fabric** and **fronts** – a sofa in blue, a table in walnut, a kitchen in sage. Shown in the homely styles; the neon looks colour every item themselves. It works for the built-in furniture and every pack item made of these parts; **Standard** goes back to the style's colours. **For all the same in the plan** gives every item of this kind the same finish.
+- **⚡ Live parts** (new in 3.4, on pack items that have them): parts move with Home Assistant – the server rack's door opens with its contact, the print in the 3D printer grows with its progress, the home battery fills with its charge, status lights show green, off or a pulsing red, fans turn, parts glow. Pick the fitting entity for each part; an item with only one takes the item's entity without a choice. Without an entity everything stands as drawn.
 - **Duplicate** and **Delete** are there too.
 
 ![A selected item](images/editor-furniture.jpg)
@@ -579,7 +583,7 @@ Under **⚙ Settings → 🗺 Surroundings** NeonPlan brings in your house's nei
 
 - **Load surroundings** fetches everything within the chosen **radius** (100, 150 or 250 m) around the location set in Home Assistant (Settings → System → General). For this, that location is sent **once** to the public OpenStreetMap service Overpass. The neighbourhood then stays in the plan; it is only fetched again when you tap **Load again**. When the map servers are busy, loading can take a minute or ask you to try again later.
 - NeonPlan finds **your house** on the map (the building at your location), lays it onto your plan and turns **north** so that house and rooms lie on top of each other best (an attached garage included; a garden shed apart does not count). That puts the sun's path and the shadows right too. Your house from the map is **dashed yellow** in the plan; map buildings standing in your rooms (a garage you drew yourself, say) are not drawn twice.
-- If it does not fit quite, turn the map under **Align** in steps of 90° or 1° and move it by 50 cm with the arrows. The house stays where it is, the map turns around it. **Align again** places it automatically once more.
+- If it does not fit quite, turn the map under **Align** in steps of 90° or 1° and move it by 50 cm with the arrows. The house stays where it is, the map turns around it. Your house is then the map's house under your plan; if NeonPlan took a neighbour's house for yours (your location lies on no house of the map), it shows again as soon as you move the map off it. **Align again** places it automatically once more.
 - **The neighbours' houses cast their shadows** into your garden while **Sun arc and house shadow** is on (see 5.7), in the **All floors** view and not at the **Tablet** level.
 - **Show in 3D** hides and shows the surroundings, **Remove** deletes them from the plan. Room cards show only their rooms, without surroundings.
 - Under **Show and hide houses** a small map shows your house and the houses around it. Tap a house to hide it or show it again (dashed yellow = hidden). Map buildings standing mostly on what you drew yourself are hidden by NeonPlan itself: on your rooms (on a floor of its own for the garden too), under your roof sections (a carport, a garden house) or on a pergola – such as a garage the map keeps as a building of its own. Since 3.3.1 the plan shows the map on every floor at the ground floor's level.
@@ -1256,7 +1260,11 @@ After that:
 
 ### 7.2 Pro add-ons
 
-The middle row of tiles shows the Pro add-ons. Active ones carry a ✓, locked ones a 🔒 and the link "See in the shop".
+The middle row of tiles shows the Pro add-ons. Active ones carry a ✓, locked ones a 🔒 and the link "See in the shop" – with a shop connection with the price.
+
+**Fits your home** (new in 3.4): add-ons that fit your Home Assistant come first with a small sign – Camera Cockpit with cameras ("📷 3"), Energy Pro with a solar or grid sensor, Sound & Cinema with media players, Car Pro with a wallbox or a parking spot, Weather Outside with a weather entity, Household Pro with waste collection sensors. Only your browser checks this; nothing is sent.
+
+**Without a licence key** the page shows at the top what a **free customer account** brings (the fun packs, the free modules and, with the newsletter, four taster packs), with a button to create one. You don't have to buy anything.
 
 ### 7.3 Furniture packs
 

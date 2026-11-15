@@ -241,6 +241,10 @@ export interface Furniture {
   bin_kind?: "rest" | "bio" | "paper" | "plastic" | "glass" | "garden" | "recycling" | "other" | null;
   /** Waste bin: its body colour ("#rrggbb"; null = the usual one of its kind in the country). */
   bin_color?: string | null;
+  /** Own colours in the homely styles (finishes.ts): wood, fabric (and cushions) and fronts, "#rrggbb" each; missing = the look's own. */
+  finish?: { wood?: string | null; fabric?: string | null; front?: string | null } | null;
+  /** Live parts of a pack item (3.4): the entity of each of its slots (slot id -> entity id). */
+  binds?: Record<string, string> | null;
   /** Neon sign: its own text (one or two lines, split with |) and the colour of its tubes while no light gives one. */
   sign_text?: string | null;
   sign_color?: string | null;

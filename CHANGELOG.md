@@ -4,6 +4,19 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 [releases page](https://github.com/Mastershort/neonplan3d/releases). Ideas and votes:
 [Discussions → Ideas](https://github.com/Mastershort/neonplan3d/discussions/categories/ideas).
 
+## 3.4.0
+
+### Added
+- **The shop's furniture in the library:** the items of packs you don't have yet stand after your own with a lock – the search finds them too; a tap shows the picture large with the pack, its price and the way to the shop. Pictures only, loaded from the shop at most once a day when the library opens; a chip hides them.
+- **Finishes:** own colours for wood, fabric and fronts of every item in the homely styles – built-in and pack furniture – as swatches in the furniture form, also for all the same items in the plan at once.
+- **Live parts of pack items:** parts move or light with an entity – doors and flaps open, drawers slide out, prints grow with their progress, tanks and batteries fill, status lights show green, off or a pulsing red, fans turn, parts glow. An entity per part in the furniture form; without one everything stands as drawn. First packs with live parts: the new "Homelab & Workshop" pack; every cabinet, wardrobe and kitchen unit of the room packs opens its doors with a door contact (drawers slide out, oven and dishwasher doors fold down, fridge and freezer doors open apart), also in the free kitchen and bedroom taster packs; the server rack, 3D printers, NAS, heat pumps, boiler, tanks, batteries and network gear of Office & Gaming, Smart Home & Tech and Utility & Building Services live too. An item's own entity only stands in for a part of a fitting kind (an oven's power switch does not open its door).
+- **Smaller main bundle:** the texts only the editor needs come with the editor – every wall tablet and card loads about 160 KB less.
+- **Extensions page:** the Pro add-ons that fit your home (cameras, a solar or grid sensor, media players, a wallbox, weather, waste collection – checked in the browser only) come first with a small sign; locked add-ons show their price with a shop connection; without a key the page says what a free customer account brings.
+
+### Fixed
+- **The picture frames' card on the extensions page** showed raw text keys instead of its name and description.
+- **A neighbour's house stayed hidden** after moving the map by hand: when the location set in Home Assistant lies on no house of the map, NeonPlan takes the nearest house within 30 m for yours and lays the plan onto it. Moving or turning the map now makes the map's house under the plan your house – the neighbour shows again, and Align again keeps to it (#1110, thanks RkcCorian).
+
 ## 3.3.1
 
 ### Added

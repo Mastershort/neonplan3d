@@ -330,6 +330,18 @@ FURNITURE_SCHEMA = vol.Schema(
         # household: a waste bin's kind and colours, its calendar (Haushalt Pro); a mailbox's emptying door
         vol.Optional("bin_kind"): vol.Any(None, vol.In(WASTE_KINDS)),
         vol.Optional("bin_color"): vol.Any(None, vol.Match(r"^#[0-9a-fA-F]{6}$")),
+        # live parts of a pack item: the entity of each of its slots
+        vol.Optional("binds"): vol.Any(
+            None,
+            vol.All({vol.All(str, vol.Length(min=1, max=40)): vol.All(str, vol.Length(max=255))}, vol.Length(max=16)),
+        ),
+        # own colours in the homely styles: wood, fabric and fronts (each "#rrggbb", missing = the look's own)
+        vol.Optional("finish"): vol.Any(
+            None,
+            vol.Schema(
+                {vol.Optional(k): vol.Any(None, vol.Match(r"^#[0-9a-fA-F]{6}$")) for k in ("wood", "fabric", "front")}
+            ),
+        ),
         # a neon sign: its own text and the colour of its tubes
         vol.Optional("sign_text"): vol.Any(None, vol.All(str, vol.Length(max=80))),
         vol.Optional("sign_color"): vol.Any(None, vol.Match(r"^#[0-9a-fA-F]{6}$")),

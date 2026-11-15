@@ -9,6 +9,7 @@ import { repeat } from "lit/directives/repeat.js";
 import { KINDS, cardsOf, filterEntries, sizeText, type LibraryCard, type LibraryEntry, type Room, ROOMS } from "../library-index.ts";
 import { tokens } from "../styles.ts";
 import { thumbFor } from "../thumbs.ts";
+import { fitText, type HintKey } from "../fit-hints.ts";
 
 const RECENT_MAX = 10;
 const PAGE = 24;
@@ -16,6 +17,7 @@ const THUMB_PX = 96;
 const STORE_OPEN = "neonplan3d.lib.open";
 const STORE_FAV = "neonplan3d.lib.fav";
 const STORE_RECENT = "neonplan3d.lib.recent";
+const STORE_LOCKED = "neonplan3d.lib.locked";
 
 type Translate = (key: string, vars?: Record<string, string | number>) => string;
 
@@ -50,12 +52,16 @@ export class FurnitureLibrary extends LitElement {
     _electric: { state: true },
     _light: { state: true },
     _outdoor: { state: true },
+    _live: { state: true },
     _open: { state: true },
     _fav: { state: true },
     _recent: { state: true },
     _thumbs: { state: true },
     _shown: { state: true },
     _limits: { state: true },
+    _locked: { state: true },
+    _detail: { state: true },
+    bundle: { attribute: false },
   };
 
   /** Everything the library offers (from buildIndex). */
@@ -74,6 +80,8 @@ export class FurnitureLibrary extends LitElement {
   private declare _electric: boolean;
   private declare _light: boolean;
   private declare _outdoor: boolean;
+  /** Only items with live parts (✨). */
+  private declare _live: boolean;
   private declare _open: Set<string>;
   private declare _fav: string[];
   private declare _recent: string[];
@@ -81,6 +89,12 @@ export class FurnitureLibrary extends LitElement {
   /** The variant whose picture a family card shows (its first key -> the variant's key), set by hovering a chip. */
   private declare _shown: Map<string, string>;
   private declare _limits: Map<string, number>;
+  /** The shop's furniture not owned yet shows with a lock (switched off with its chip, remembered per device). */
+  private declare _locked: boolean;
+  /** A locked item opened large (picture, pack, price, the way to the shop). */
+  private declare _detail: LibraryEntry | null;
+  /** All packs at once (the shop's bundle), mentioned under a locked item. */
+  declare bundle: { name: string; price: string; url: string } | null;
   private roomTouched = false;
   private observer: IntersectionObserver | null = null;
   private observed = new WeakSet<Element>();
@@ -102,12 +116,22 @@ export class FurnitureLibrary extends LitElement {
     this._electric = false;
     this._light = false;
     this._outdoor = false;
+    this._live = false;
     this._open = new Set(load<string[]>(STORE_OPEN, ["sofa", "lamp"]));
     this._fav = load<string[]>(STORE_FAV, []);
     this._recent = load<string[]>(STORE_RECENT, []);
     this._thumbs = new Map();
     this._shown = new Map();
     this._limits = new Map();
+    this._locked = load<boolean>(STORE_LOCKED, true);
+    this._detail = null;
+    this.bundle = null;
+  }
+
+  private x(key: HintKey, vars: Record<string, string> = {}): string {
+    let s = fitText(this.language, key);
+    for (const [k, v] of Object.entries(vars)) s = s.replace(`{${k}}`, v);
+    return s;
   }
 
   willUpdate(changed: Map<string, unknown>): void {
@@ -147,7 +171,7 @@ export class FurnitureLibrary extends LitElement {
         this.observer.observe(el);
       }
       const entry = byKey.get(el.dataset.key ?? "");
-      if (!entry || this._thumbs.has(entry.type)) continue;
+      if (!entry || entry.locked || this._thumbs.has(entry.type)) continue;
       const r = el.getBoundingClientRect();
       if (r.bottom >= -200 && r.top <= bottom) this.want(entry);
     }
@@ -175,7 +199,7 @@ export class FurnitureLibrary extends LitElement {
 
   /** Asks for an item's picture once; at most two are drawn at a time so the editor stays smooth. */
   private want(entry: LibraryEntry): void {
-    if (this._thumbs.has(entry.type) || this.wanted.has(entry.type)) return;
+    if (entry.locked || this._thumbs.has(entry.type) || this.wanted.has(entry.type)) return;
     this.wanted.add(entry.type);
     this.queue.push(entry);
     this.drain();
@@ -203,6 +227,10 @@ export class FurnitureLibrary extends LitElement {
   }
 
   private pick(entry: LibraryEntry): void {
+    if (entry.locked) {
+      this._detail = entry;
+      return;
+    }
     if (!this.admin) return;
     this._recent = [entry.key, ...this._recent.filter((k) => k !== entry.key)].slice(0, RECENT_MAX);
     save(STORE_RECENT, this._recent);
@@ -234,7 +262,7 @@ export class FurnitureLibrary extends LitElement {
   }
 
   private get hits(): LibraryEntry[] {
-    return filterEntries(this.entries, { query: this._query, room: this._room, electric: this._electric, light: this._light, outdoor: this._outdoor });
+    return filterEntries(this.entries, { query: this._query, room: this._room, electric: this._electric, light: this._light, outdoor: this._outdoor, live: this._live, locked: this._locked });
   }
 
   render() {
@@ -249,7 +277,8 @@ export class FurnitureLibrary extends LitElement {
     const sections = KINDS.map((kind) => ({ kind, cards: cardsOf(hits, kind) })).filter((s) => s.cards.length);
     // with nothing open among the sections that have hits, the first one opens by itself
     const firstOpen = sections.length && !sections.some((s) => this._open.has(s.kind)) ? sections[0].kind : null;
-    return html`<input
+    const anyLocked = this.entries.some((e) => e.locked);
+    return html`${this.renderDetail()}<input
         class="fp3d-search"
         type="search"
         placeholder=${t("furniture_search")}
@@ -267,6 +296,19 @@ export class FurnitureLibrary extends LitElement {
         <button class="fp3d-chip fp3d-chip-f ${this._electric ? "on" : ""}" @click=${() => (this._electric = !this._electric)}>⚡ ${t("lib_chip_electric")}</button>
         <button class="fp3d-chip fp3d-chip-f ${this._light ? "on" : ""}" @click=${() => (this._light = !this._light)}>💡 ${t("lib_chip_light")}</button>
         <button class="fp3d-chip fp3d-chip-f ${this._outdoor ? "on" : ""}" @click=${() => (this._outdoor = !this._outdoor)}>🌳 ${t("lib_chip_outdoor")}</button>
+        ${this.entries.some((e) => e.live)
+          ? html`<button class="fp3d-chip fp3d-chip-f ${this._live ? "on" : ""}" title=${this.x("lib_live_hint")} @click=${() => (this._live = !this._live)}>✨ ${this.x("lib_live")}</button>`
+          : nothing}
+        ${anyLocked
+          ? html`<button
+              class="fp3d-chip fp3d-chip-f ${this._locked ? "on" : ""}"
+              title=${this.x("lib_locked_hint")}
+              @click=${() => {
+                this._locked = !this._locked;
+                save(STORE_LOCKED, this._locked);
+              }}
+            >🔒 ${this.x("lib_locked")}</button>`
+          : nothing}
       </div>
       ${this.roomHint && this._room === this.roomHint && !this.roomTouched ? html`<p class="fp3d-lib-hint">${t("lib_hint_room")}</p>` : nothing}
       ${!hits.length ? html`<p class="fp3d-lib-hint">${t("furniture_search_none")}</p>` : nothing}
@@ -303,28 +345,29 @@ export class FurnitureLibrary extends LitElement {
     // a family card shows the variant under the pointer (its picture once drawn, the first one meanwhile)
     const shownKey = this._shown.get(first.key);
     const shown = (shownKey && c.entries.find((e) => e.key === shownKey)) || first;
-    const pic = this._thumbs.get(shown.type) ?? this._thumbs.get(first.type);
-    const badge = first.light ? "💡" : first.electric ? "⚡" : "";
-    return html`<div class="fp3d-lc ${family ? "fp3d-lc-family" : ""}" title=${shown.label} @mouseleave=${() => family && this.showVariant(first.key, null, null)}>
+    const locked = first.locked;
+    const pic = locked ? (shown.locked?.pic ?? locked.pic) : (this._thumbs.get(shown.type) ?? this._thumbs.get(first.type));
+    const badge = `${c.entries.some((e) => e.live) ? "✨" : ""}${first.light ? "💡" : first.electric ? "⚡" : ""}`;
+    return html`<div class="fp3d-lc ${family ? "fp3d-lc-family" : ""} ${locked ? "fp3d-lc-locked" : ""}" title=${shown.label} @mouseleave=${() => family && this.showVariant(first.key, null, null)}>
       <button
         class="fp3d-lc-main"
-        ?disabled=${!this.admin}
-        @click=${() => this.pick(first)}
+        ?disabled=${!this.admin && !locked}
+        @click=${() => this.pick(locked ? shown : first)}
         @mouseenter=${(e: Event) => this.preview(first.type, e.currentTarget as HTMLElement)}
         @focus=${(e: Event) => this.preview(first.type, e.currentTarget as HTMLElement)}
         @mouseleave=${() => this.preview(null, null)}
         @blur=${() => this.preview(null, null)}
       >
-        ${this.lite ? nothing : html`<span class="fp3d-lc-pic" data-key=${first.key}>${pic ? html`<img src=${pic} alt="" loading="lazy" class=${(this._thumbs.has(shown.type) ? shown : first).mirror ? "fp3d-lc-mirrored" : ""} />` : html`<span class="fp3d-lc-wait"></span>`}</span>`}
+        ${this.lite && !locked ? nothing : html`<span class="fp3d-lc-pic" data-key=${first.key}>${pic ? html`<img src=${pic} alt="" loading="lazy" referrerpolicy="no-referrer" @error=${(e: Event) => ((e.target as HTMLElement).style.visibility = "hidden")} class=${(this._thumbs.has(shown.type) ? shown : first).mirror ? "fp3d-lc-mirrored" : ""} />` : html`<span class="fp3d-lc-wait"></span>`}</span>`}
         <span class="fp3d-lc-label">${c.label}${badge ? html` <span class="fp3d-lc-badge">${badge}</span>` : nothing}</span>
-        <span class="fp3d-lc-sub">${family ? t("lib_sizes", { n: c.entries.length }) : sizeText(first.size, this.language)}${first.packLabel ? html` · ${first.packLabel}` : html` · ${t("lib_basic")}`}</span>
+        <span class="fp3d-lc-sub">${locked ? html`🔒 ${first.packLabel}${locked.free ? "" : locked.price ? ` · ${locked.price}` : ""}` : html`${family ? t("lib_sizes", { n: c.entries.length }) : sizeText(first.size, this.language)}${first.packLabel ? html` · ${first.packLabel}` : html` · ${t("lib_basic")}`}`}</span>
       </button>
       ${family
         ? html`<div class="fp3d-lc-chips">
             ${c.entries.map(
               (e) => html`<button
                 title="${e.label} · ${sizeText(e.size, this.language)}"
-                ?disabled=${!this.admin}
+                ?disabled=${!this.admin && !locked}
                 class="fp3d-lc-chip ${shown.key === e.key && family && shownKey ? "on" : ""}"
                 @click=${() => this.pick(e)}
                 @mouseenter=${(ev: Event) => this.showVariant(first.key, e, ev.currentTarget as HTMLElement)}
@@ -335,7 +378,29 @@ export class FurnitureLibrary extends LitElement {
             )}
           </div>`
         : nothing}
-      <button class="fp3d-lc-fav ${fav ? "on" : ""}" title=${fav ? t("lib_fav_remove") : t("lib_fav_add")} aria-label=${fav ? t("lib_fav_remove") : t("lib_fav_add")} @click=${() => this.toggleFav(first.key)}>${fav ? "★" : "☆"}</button>
+      ${locked ? html`<span class="fp3d-lc-lock" aria-hidden="true">🔒</span>` : html`<button class="fp3d-lc-fav ${fav ? "on" : ""}" title=${fav ? t("lib_fav_remove") : t("lib_fav_add")} aria-label=${fav ? t("lib_fav_remove") : t("lib_fav_add")} @click=${() => this.toggleFav(first.key)}>${fav ? "★" : "☆"}</button>`}
+    </div>`;
+  }
+
+  /** A locked item large: its picture, its size, the pack it is in with the price, the shop and the bundle. */
+  private renderDetail() {
+    const e = this._detail;
+    const lock = e?.locked;
+    if (!e || !lock) return nothing;
+    const close = () => (this._detail = null);
+    const b = this.bundle;
+    return html`<div class="fp3d-lib-detail-back" @click=${close}>
+      <div class="fp3d-lib-detail" role="dialog" aria-label=${e.label} @click=${(ev: Event) => ev.stopPropagation()}>
+        ${lock.pic ? html`<img src=${lock.pic} alt="" referrerpolicy="no-referrer" />` : nothing}
+        <b>${e.label}</b>
+        <span class="fp3d-lib-detail-sub">${sizeText(e.size, this.language)} · ${this.x("lib_locked_in", { pack: e.packLabel ?? "" })}${lock.free ? ` · ${this.x("lib_locked_free")}` : lock.price ? ` · ${lock.price}` : ""}</span>
+        <span class="fp3d-lib-detail-note">${this.x("lib_locked_note")}</span>
+        <div class="fp3d-lib-detail-actions">
+          ${lock.url ? html`<a class="fp3d-lib-detail-shop" href=${lock.url} target="_blank" rel="noopener">${this.x("lib_locked_shop")}</a>` : nothing}
+          <button class="fp3d-lib-detail-close" @click=${close}>${this.x("lib_locked_close")}</button>
+        </div>
+        ${b && !lock.free ? html`<a class="fp3d-lib-detail-bundle" href=${b.url} target="_blank" rel="noopener">${this.x("lib_locked_bundle", { name: b.name, price: b.price })}</a>` : nothing}
+      </div>
     </div>`;
   }
 
@@ -533,6 +598,89 @@ export class FurnitureLibrary extends LitElement {
       .fp3d-lc-fav.on,
       .fp3d-lc-fav:hover {
         color: #ffd166;
+      }
+      .fp3d-lc-locked .fp3d-lc-pic img {
+        opacity: 0.8;
+        filter: saturate(0.85);
+      }
+      .fp3d-lc-locked .fp3d-lc-label {
+        color: var(--fp3d-muted);
+      }
+      .fp3d-lc-lock {
+        position: absolute;
+        top: 4px;
+        right: 4px;
+        width: 22px;
+        font-size: 12px;
+        line-height: 22px;
+        text-align: center;
+        background: rgba(4, 16, 24, 0.55);
+        border-radius: 50%;
+      }
+      .fp3d-lib-detail-back {
+        position: fixed;
+        inset: 0;
+        z-index: 50;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 16px;
+        background: rgba(2, 6, 14, 0.6);
+      }
+      .fp3d-lib-detail {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        width: min(380px, 100%);
+        padding: 14px;
+        color: var(--fp3d-text);
+        background: var(--fp3d-panel, #0d1424);
+        border: 1px solid var(--fp3d-accent);
+        border-radius: 14px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+      }
+      .fp3d-lib-detail img {
+        width: 100%;
+        aspect-ratio: 4 / 3;
+        object-fit: contain;
+        border-radius: 10px;
+        background: radial-gradient(ellipse at 50% 70%, rgba(80, 200, 255, 0.14), transparent 70%);
+      }
+      .fp3d-lib-detail-sub,
+      .fp3d-lib-detail-note {
+        font-size: 12px;
+        color: var(--fp3d-muted);
+      }
+      .fp3d-lib-detail-actions {
+        display: flex;
+        gap: 8px;
+        margin-top: 4px;
+      }
+      .fp3d-lib-detail-shop,
+      .fp3d-lib-detail-close {
+        flex: 1;
+        font: inherit;
+        font-size: 13px;
+        padding: 8px;
+        border-radius: 8px;
+        text-align: center;
+        text-decoration: none;
+        cursor: pointer;
+      }
+      .fp3d-lib-detail-shop {
+        color: #041018;
+        background: var(--fp3d-accent);
+        border: 1px solid var(--fp3d-accent);
+        font-weight: 600;
+      }
+      .fp3d-lib-detail-close {
+        color: var(--fp3d-text);
+        background: none;
+        border: 1px solid var(--fp3d-line);
+      }
+      .fp3d-lib-detail-bundle {
+        font-size: 12px;
+        color: var(--fp3d-accent);
       }
       .fp3d-lib-more {
         display: block;

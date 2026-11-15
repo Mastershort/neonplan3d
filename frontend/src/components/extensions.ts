@@ -22,11 +22,12 @@ import {
 } from "../api.ts";
 import { DISCORD_URL, isBeta, supporterUrl } from "../beta.ts";
 import { copyText, PRINT_URL } from "../print.ts";
-import { FEATURES, FUN, knownFeature, manualUrl, released, shopUrl, unlockedFeatures, type Feature, packLacksModule } from "../features.ts";
+import { FEATURES, FUN, knownFeature, manualUrl, registerUrl, released, shopUrl, unlockedFeatures, type Feature, packLacksModule } from "../features.ts";
 import type { Building } from "../model.ts";
 import { translate, type I18nKey } from "../i18n.ts";
 import { packName, type FurniturePack } from "../packs.ts";
 import { moduleWaits } from "../modules.ts";
+import { boughtAnything, fitHints, fitText, offerFor } from "../fit-hints.ts";
 import { controls, tokens } from "../styles.ts";
 import type { HomeAssistant } from "../types.ts";
 
@@ -167,6 +168,12 @@ export class Extensions extends LitElement {
 
   protected render() {
     const unlocked = unlockedFeatures(this.packs ?? []);
+    // the add-ons that fit this home (its entities and plan, read here only) come first, each with a sign of why
+    const fits = fitHints(this.hass?.states, this.building);
+    const fitting = (f: Feature) => !unlocked.has(f) && !isBeta(f) && fits.has(f);
+    const shown = FEATURES.filter((f) => released(f));
+    const order = [...shown.filter(fitting), ...shown.filter((f) => !fitting(f))];
+    const lic = this._license?.active ? this._license : null;
     return html`<div class="fp3d-ext">
       <header class="fp3d-ext-head">
         <h2>${this.t("ext_title")}</h2>
@@ -179,13 +186,14 @@ export class Extensions extends LitElement {
           <a class="fp3d-btn" href=${manualUrl(this.hass?.language, "extensions")} target="_blank" rel="noopener">📖 ${this.t("manual")}</a>
         </div>
       </header>
-      ${this.renderUpdates()} ${this.renderSupporter()} ${this.renderNewsletter()} ${this.renderOffers()} ${this.renderShop()}
+      ${this.renderUpdates()} ${this.renderAccount()} ${this.renderSupporter()} ${this.renderNewsletter()} ${this.renderOffers()} ${this.renderShop()}
       <section class="fp3d-ext-card">
         <h3>${this.t("ext_pro")}</h3>
         <div class="fp3d-ext-pro">
-          ${FEATURES.filter((f) => released(f)).map(
+          ${order.map(
             (f) => html`<div class="fp3d-ext-feature ${unlocked.has(f) ? "fp3d-ext-on" : ""} ${isBeta(f) ? "fp3d-ext-beta" : ""}">
               <b>${unlocked.has(f) ? "✓" : "🔒"} ${this.t(`pro_name_${f}` as I18nKey)}</b>
+              ${fitting(f) ? html`<span class="fp3d-ext-fit">${fitText(this.hass?.language, "fit")} · ${fits.get(f)}</span>` : nothing}
               ${isBeta(f) ? html`<span class="fp3d-beta-tag">🧪 ${this.t(unlocked.has(f) ? "beta_yours" : "beta_supporters")}</span>` : nothing}
               <span class="fp3d-sub">${this.t(`pro_feature_${f}` as I18nKey)}</span>
               ${isBeta(f) ? html`<span class="fp3d-sub">${this.t(unlocked.has(f) ? "beta_yours_hint" : "beta_supporters_hint")}</span>` : nothing}
@@ -195,7 +203,7 @@ export class Extensions extends LitElement {
                       ${isBeta(f) ? html`<a class="fp3d-ext-link" href=${DISCORD_URL} target="_blank" rel="noopener">💬 ${this.t("beta_feedback")}</a>` : nothing}`
                   : isBeta(f)
                     ? this.renderBetaLocked(f)
-                    : html`<a class="fp3d-ext-link" href=${shopUrl(this.hass?.language)} target="_blank" rel="noopener">${this.t("ext_get")}</a>`}
+                    : this.renderGet(f, lic)}
                 <a class="fp3d-ext-link" href=${manualUrl(this.hass?.language, f)} target="_blank" rel="noopener">${this.t("manual_more")}</a>
               </span>
             </div>`,
@@ -204,6 +212,31 @@ export class Extensions extends LitElement {
       </section>
       ${this.renderFun(unlocked)} ${this.renderPacks()} ${this.renderModules()}
     </div>`;
+  }
+
+  /**
+   * No key here yet: what a free customer account brings (the fun packs, the free modules, the taster packs with the
+   * newsletter) and the way to one – about two in three installations have none. Gone once a key is entered.
+   */
+  private renderAccount() {
+    if (!this.isAdmin || !this._license || this._license.active) return nothing;
+    const lang = this.hass?.language;
+    const text = fitText(lang, "account_text").replace("{winter}", this.t("fun_name_winter")).replace("{pets}", this.t("fun_name_pets"));
+    return html`<section class="fp3d-ext-card fp3d-offers">
+      <h3>🎁 ${fitText(lang, "account_title")}</h3>
+      <p class="fp3d-sub">${text}</p>
+      <div class="fp3d-actions">
+        <a class="fp3d-btn fp3d-primary" style="text-decoration:none" href=${registerUrl(lang)} target="_blank" rel="noopener">${fitText(lang, "account_button")}</a>
+      </div>
+      <p class="fp3d-sub">${fitText(lang, "account_have")}</p>
+    </section>`;
+  }
+
+  /** The way to a locked add-on: its own page in the shop with its price when the catalog offers it, else the shop. */
+  private renderGet(f: Feature, lic: LicenseStatus | null) {
+    const offer = offerFor(lic?.offers, f);
+    const href = offer ? offerLink(offer.url, lic?.loyalty ?? null) : shopUrl(this.hass?.language);
+    return html`<a class="fp3d-ext-link" href=${href} target="_blank" rel="noopener">${this.t("ext_get")}${offer?.price ? ` · ${offer.price}` : ""}</a>`;
   }
 
   /**
@@ -351,7 +384,10 @@ export class Extensions extends LitElement {
   private renderOffers() {
     const lic = this._license;
     if (!lic?.active) return nothing;
-    const offers = [...(lic.offers ?? [])].sort((a, b) => Number(b.new) - Number(a.new));
+    // a key that has bought nothing yet: the bundles and the pass first, with one quiet line on why
+    const fresh = !boughtAnything(lic.packs);
+    const whole = (o: { kind: string; supporter_pass?: boolean }) => o.kind === "bundle" || !!o.supporter_pass;
+    const offers = [...(lic.offers ?? [])].sort((a, b) => (fresh ? Number(whole(b)) - Number(whole(a)) : 0) || Number(b.new) - Number(a.new));
     const loyalty = lic.loyalty ?? null;
     if (!offers.length && !loyalty) return nothing;
     // opening the page counts as seen: the dot on the tab goes away
@@ -359,6 +395,7 @@ export class Extensions extends LitElement {
     this.dispatchEvent(new CustomEvent("offers-seen", { bubbles: true, composed: true }));
     return html`<section class="fp3d-ext-card fp3d-offers">
       <h3>${this.t("offers_title")}</h3>
+      ${fresh && offers.some(whole) ? html`<p class="fp3d-sub">${fitText(this.hass?.language, "bundles")}</p>` : nothing}
       ${loyalty
         ? html`<div class="fp3d-loyalty">
             <span>🎁 ${this.t("offers_loyalty", { percent: loyalty.percent })}</span>
@@ -887,6 +924,14 @@ export class Extensions extends LitElement {
       .fp3d-pet-row input[type="text"] {
         flex: 1;
         min-width: 110px;
+      }
+      .fp3d-ext-fit {
+        justify-self: start;
+        padding: 2px 8px;
+        border-radius: 999px;
+        font-size: 12px;
+        color: var(--fp3d-accent, #3fd5ff);
+        border: 1px solid color-mix(in srgb, var(--fp3d-accent, #3fd5ff) 45%, transparent);
       }
       .fp3d-ext-feature {
         display: grid;

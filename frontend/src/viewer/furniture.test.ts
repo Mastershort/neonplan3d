@@ -1,9 +1,10 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { Furniture } from "../model.ts";
-import { mountBase, setPacks, type FurniturePack } from "../packs.ts";
+import { mountBase, packItem, setPacks, type FurniturePack } from "../packs.ts";
+import { liveKey } from "../live-parts.ts";
 import { newFloor } from "../model.ts";
-import { hasFixedColors, packGlowCentre, packMotionParts, pushFurniture, pushPackSpin, screenPictureSize, setLightLook } from "./furniture.ts";
+import { hasFixedColors, packGlowCentre, packMotionParts, pushFurniture, pushPackLive, pushPackSpin, screenPictureSize, setLightLook } from "./furniture.ts";
 import { packMotion, type PackItem } from "../packs.ts";
 import { GeoBuffer, LineBuffer } from "./geo.ts";
 
@@ -320,4 +321,50 @@ test("fan blades of a pack turn as a model of their own about their middle (#108
   };
   assert.ok(count(true) > count(false));
   setPacks([]);
+});
+
+test("a finish colours a sofa's fabric in the homely styles only, and live parts are left to the viewer", async () => {
+  const { setNaturalPalette } = await import("./palette.ts");
+  const sofa = (finish: Furniture["finish"]) => {
+    const buf = new GeoBuffer();
+    pushFurniture(buf, new LineBuffer(), new GeoBuffer(), { id: "s", type: "sofa", x: 0, z: 0, rotation: 0, w: 2, d: 0.9, h: 0.8, variant: null, finish } as Furniture);
+    return buf.c;
+  };
+  // blue fabric (#4a6a9a, linear colours): blue far over red somewhere; the natural grey fabric (#8e97a5) is almost even
+  const hasBlue = (c: number[]) => {
+    for (let i = 0; i < c.length; i += 3) if (c[i + 2] > 0.08 && c[i + 2] > c[i] * 2.5) return true;
+    return false;
+  };
+  setNaturalPalette(true);
+  try {
+    assert.equal(hasBlue(sofa({ fabric: "#4a6a9a" })), true);
+    assert.equal(hasBlue(sofa(null)), false);
+  } finally {
+    setNaturalPalette(false);
+  }
+  assert.deepEqual(sofa({ fabric: "#4a6a9a" }), sofa(null), "the neon looks keep their own colours");
+  // a pack item with a live door: the door is not in the item's model while the viewer draws it
+  setPacks([{ id: "t.live", name: "Live", publisher: "t", licensee: null, items: [{ id: "cab", name: { en: "Cab" }, size: [1, 0.5, 1], parts: [{ shape: "box", x: 0, z: 0, w: 1, d: 0.5, y: 0, h: 1, color: "body" }, { shape: "box", x: 0, z: 0.24, w: 0.9, d: 0.02, y: 0.05, h: 0.9, color: "white", edges: "faint", bind: { slot: "door", kind: "open" } }] }] }]);
+  const count = (still: boolean) => {
+    const buf = new GeoBuffer();
+    pushFurniture(buf, new LineBuffer(), new GeoBuffer(), { id: "c", type: "pack:t.live:cab", x: 0, z: 0, rotation: 0, w: 1, d: 0.5, h: 1, variant: null } as Furniture, 0, still);
+    return buf.p.length;
+  };
+  assert.ok(count(true) > count(false), "a picture keeps the door, the house model leaves it to the viewer");
+  // the live door takes the item's finish too (a sage front stays sage when the door is its own model)
+  const door = (finish: Furniture["finish"]) => {
+    const buf = new GeoBuffer();
+    pushPackLive(buf, packItem("pack:t.live:cab")!, 1, 0.5, 1, liveKey({ slot: "door", kind: "open" }), { finish });
+    return buf.c;
+  };
+  setNaturalPalette(true);
+  try {
+    assert.notDeepEqual(door({ front: "#5d7590" }), door(null));
+  } finally {
+    setNaturalPalette(false);
+  }
+  // its edges come along (a neon door keeps its outline when it opens)
+  const lines = new LineBuffer();
+  pushPackLive(new GeoBuffer(), packItem("pack:t.live:cab")!, 1, 0.5, 1, liveKey({ slot: "door", kind: "open" }), {}, lines);
+  assert.ok(lines.p.length > 0);
 });

@@ -5,6 +5,7 @@
 // flight into it). Each floor is a group with its own materials so its height and opacity can be
 // animated independently.
 
+import type { HassEntity } from "../types.ts";
 import { AdditiveBlending, CustomBlending, DstColorFactor, NormalBlending, OneFactor, OneMinusSrcAlphaFactor, SrcAlphaFactor, ZeroFactor, RingGeometry, Fog, CircleGeometry, Box3, CanvasTexture, ClampToEdgeWrapping, Color, BackSide, DoubleSide, FrontSide, Group, LineBasicMaterial, LineSegments, Mesh, MeshBasicMaterial, MultiplyBlending, OrthographicCamera, PerspectiveCamera, Points, PointsMaterial, PlaneGeometry, Raycaster, RepeatWrapping, Scene, SRGBColorSpace, TextureLoader, type Texture, Float32BufferAttribute, Uint32BufferAttribute, DynamicDrawUsage, BufferGeometry as Geometry, Vector2, Vector3, WebGLRenderer, WebGLRenderTarget, type Material, BufferGeometry } from "three";
 import type { Building, Floor, Furniture, Room, StartView, Vec2 } from "../model.ts";
 import { markLit, recolorLamps, SHADE_SENTINEL, shadeFactors } from "./lamp-colors.ts";
@@ -17,6 +18,8 @@ import { buildFloorGeometry, SLAB, stairHoleParts, type FloorGeometry } from "./
 import { OrbitControls, type OrbitView } from "./controls.ts";
 import { makeFoldable, type FoldMasks } from "./fold.ts";
 import { CameraProjections, PROJECTION_LAYER, type ProjectionSurface, type ProjectorPose } from "./projection.ts";
+import { pushPackLive } from "./furniture.ts";
+import { bindValue, hasLiveParts, liveGroups, slotEntity, type PartBind } from "../live-parts.ts";
 import { packGlowCentre, packGlowCentres, pushAwning, pushCameraModel, pushPackGlow, pushPackRobot, pushPackLamp, pushPackMotion, pushPackSpin, screenRect, screenPictureSize, pushFridgeDoors, setLightLook, hasFixedColors } from "./furniture.ts";
 import { pushPipeTube, type PipeTube } from "./pipes.ts";
 import { pushGate } from "./outdoor.ts";
@@ -695,6 +698,10 @@ export class FloorplanViewer {
   private packSpins = new Map<string, { group: Group; spinner: Group; mesh: Mesh; axis: "y" | "z"; speed: number; floorId: string; y: number; sig: string }>();
   private spinSpeeds = new Map<string, number>();
   private spinMat: MeshBasicMaterial | null = null;
+  /** Live parts of pack items (3.4): a model per item and group (slot + kind) at its pivot, moved to its value. */
+  private packLive = new Map<string, { group: Group; inner: Group; mesh: Mesh; edges: LineSegments | null; mat: MeshBasicMaterial | null; bind: PartBind; depth: number; rest: number; floorId: string; y: number; sig: string; target: number; value: number }>();
+  private liveValues = new Map<string, number>();
+  private liveLast = 0;
   private fanLast = 0;
   private fanTimer: ReturnType<typeof setTimeout> | undefined;
   private floorStack: FloorStack = "dim";
@@ -2602,6 +2609,12 @@ export class FloorplanViewer {
     for (const f of this.packSpins.values()) f.mesh.geometry.dispose();
     this.packSpins.clear();
     this.spinMat?.dispose();
+    for (const l of this.packLive.values()) {
+      l.mesh.geometry.dispose();
+      l.edges?.geometry.dispose();
+      l.mat?.dispose();
+    }
+    this.packLive.clear();
     this.firework?.dispose();
     this.snowMat?.dispose();
     this.lightsMat?.dispose();
@@ -2688,6 +2701,7 @@ export class FloorplanViewer {
     for (const r of this.robots.values()) r.group.removeFromParent();
     for (const f of this.fans.values()) f.group.removeFromParent();
     for (const f of this.packSpins.values()) f.group.removeFromParent();
+    for (const l of this.packLive.values()) l.group.removeFromParent();
     for (const fv of this.floors) {
       for (const pic of fv.screenPics.values()) {
         (pic.mesh.material as Material).dispose();
@@ -5475,6 +5489,181 @@ export class FloorplanViewer {
     this.invalidate();
   }
 
+  /**
+   * The values of the live parts of pack items (3.4), by "<furniture id>|<group key>": 0–1 (open, slid out, turning,
+   * filled, glowing) or, for a status light, 1 fine / 0 off / -1 a fault.
+   */
+  setLiveParts(values: Map<string, number>): void {
+    this.liveValues = values;
+    this.syncPackLive();
+    this.invalidate();
+  }
+
+  /** The live parts' values from Home Assistant: each group with its slot's entity (or the item's own with one slot). */
+  setLiveStates(states: Record<string, HassEntity>, own: (furnitureId: string) => string | null): void {
+    const values = new Map<string, number>();
+    for (const fv of this.floors) {
+      for (const f of fv.floor.furniture) {
+        const item = packItem(f.type);
+        if (!item || !hasLiveParts(item)) continue;
+        for (const [key, g] of liveGroups(item.parts)) {
+          const ent = slotEntity(f.binds, g.bind.slot, item.slots?.length ?? 0, own(f.id), item.slots?.find((sl) => sl.id === g.bind.slot)?.domains);
+          values.set(`${f.id}|${key}`, ent ? bindValue(g.bind.kind, states[ent]) : NaN);
+        }
+      }
+    }
+    // nothing live in the plan and nothing shown: no work
+    if (!values.size && !this.packLive.size) return;
+    this.setLiveParts(values);
+  }
+
+  /** The live parts' models: one per item and group at its pivot, rebuilt when the item or the look changes. */
+  private syncPackLive(): void {
+    const seen = new Set<string>();
+    for (const fv of this.floors) {
+      for (const f of fv.floor.furniture) {
+        const item = packItem(f.type);
+        if (!item || !hasLiveParts(item)) continue;
+        const base = mountBase(fv.floor, f);
+        for (const key of liveGroups(item.parts).keys()) {
+          const id = `${f.id}|${key}`;
+          seen.add(id);
+          const sig = [f.x, f.z, f.rotation, f.w, f.d, f.h, f.mirror ? 1 : 0, base, fv.floor.id, this.style.id, f.finish ? JSON.stringify(f.finish) : ""].join("|");
+          let live = this.packLive.get(id);
+          if (live && live.sig !== sig) {
+            live.group.removeFromParent();
+            live.mesh.geometry.dispose();
+            live.edges?.geometry.dispose();
+            live.mat?.dispose();
+            this.packLive.delete(id);
+            live = undefined;
+          }
+          if (!live) {
+            this.usePalette();
+            const buf = new GeoBuffer();
+            const lines = new LineBuffer();
+            const made = pushPackLive(buf, item, f.w, f.d, f.h, key, f, lines);
+            if (!made) continue;
+            const tinted = made.bind.kind === "blink" || made.bind.kind === "glow";
+            this.spinMat ??= new MeshBasicMaterial({ vertexColors: true, side: DoubleSide });
+            const mat = tinted ? new MeshBasicMaterial({ vertexColors: true, side: DoubleSide }) : null;
+            const mesh = new Mesh(buf.geometry(), mat ?? this.spinMat);
+            // the part's edges in the floor's line look, turning and sliding with it
+            const edges = lines.p.length ? new LineSegments(lines.geometry(), fv.materials.lines) : null;
+            if (edges) mesh.add(edges);
+            const inner = new Group();
+            inner.add(mesh);
+            inner.position.set(made.pivot[0], made.pivot[1], made.pivot[2]);
+            const group = new Group();
+            group.add(inner);
+            group.position.set(f.x, base, f.z);
+            group.rotation.y = -(f.rotation * DEG);
+            if (f.mirror) group.scale.x = -1;
+            live = { group, inner, mesh, edges, mat, bind: made.bind, depth: made.depth, rest: made.rest, floorId: fv.floor.id, y: base + made.pivot[1], sig, target: NaN, value: NaN };
+            this.packLive.set(id, live);
+            this.poseLive(live, 0);
+          }
+          live.target = this.liveValues.get(id) ?? NaN;
+        }
+      }
+    }
+    for (const [id, l] of this.packLive) {
+      if (seen.has(id)) continue;
+      l.group.removeFromParent();
+      l.mesh.geometry.dispose();
+      l.edges?.geometry.dispose();
+      l.mat?.dispose();
+      this.packLive.delete(id);
+    }
+    this.liveLast = 0;
+  }
+
+  /** A live part at its value: turned open, slid out, filled, tinted. */
+  private poseLive(l: { inner: Group; mesh: Mesh; mat: MeshBasicMaterial | null; bind: PartBind; depth: number; rest: number; value: number }, now: number): void {
+    const b = l.bind;
+    // no entity linked: the part as the item was drawn before (closed, full, in its own colour)
+    if (Number.isNaN(l.value)) {
+      l.mesh.rotation.set(0, 0, 0);
+      l.mesh.position.z = 0;
+      l.mesh.scale.y = 1;
+      l.mat?.color.setHex(l.rest);
+      return;
+    }
+    const v = l.value;
+    switch (b.kind) {
+      case "open": {
+        const a = (b.amount ?? 95) * DEG * Math.max(0, v);
+        const hinge = b.hinge ?? "left";
+        if (hinge === "left") l.mesh.rotation.set(0, -a, 0);
+        else if (hinge === "right") l.mesh.rotation.set(0, a, 0);
+        else if (hinge === "top") l.mesh.rotation.set(-a, 0, 0);
+        else l.mesh.rotation.set(a, 0, 0);
+        break;
+      }
+      case "slide":
+        l.mesh.position.z = Math.max(0, v) * (b.amount ?? 0.45) * l.depth;
+        break;
+      case "level":
+        l.mesh.scale.y = Math.max(0.02, Math.min(1, v));
+        break;
+      case "blink": {
+        // fine: green; off: a dim grey; a fault: red, pulsing
+        const pulse = 0.55 + 0.45 * Math.abs(Math.sin(now / 350));
+        l.mat?.color.setHex(v > 0.5 ? 0x3dff8a : v < -0.5 ? 0xff3b4f : 0x39414f);
+        if (v < -0.5) l.mat?.color.multiplyScalar(pulse);
+        break;
+      }
+      case "glow":
+        // its own colour, dim while off and full while on
+        l.mat?.color.setHex(l.rest).multiplyScalar(0.22 + 0.78 * Math.max(0, Math.min(1, v)));
+        break;
+      case "spin":
+        break;
+    }
+  }
+
+  /** Move the live parts towards their values (doors swing, drawers slide, tanks fill); true while one moves. */
+  private stepLive(now: number): boolean {
+    if (!this.packLive.size) return false;
+    const dt = this.liveLast ? Math.min(0.2, (now - this.liveLast) / 1000) : 0;
+    this.liveLast = now;
+    let moving = false;
+    for (const l of this.packLive.values()) {
+      const fv = this.floorMap.get(l.floorId);
+      if (!fv) continue;
+      if (l.group.parent !== fv.group) fv.group.add(l.group);
+      l.group.visible = !(this.wallMode === "cut" && l.y > Math.min(fv.floor.cut_height, fv.floor.height));
+      if (l.bind.kind === "spin") {
+        if (l.target > 0) {
+          moving = true;
+          l.value = l.target;
+          const turn = l.target * Math.PI * 2 * dt * (l.bind.amount ? l.bind.amount / 60 : 1);
+          const axis = l.bind.axis ?? "y";
+          if (axis === "x") l.mesh.rotation.x -= turn;
+          else if (axis === "z") l.mesh.rotation.z -= turn;
+          else l.mesh.rotation.y -= turn;
+        }
+        continue;
+      }
+      if (Number.isNaN(l.target) || Number.isNaN(l.value)) {
+        if (!Object.is(l.value, l.target)) {
+          l.value = Number.isNaN(l.target) ? NaN : l.bind.kind === "level" ? 1 : 0;
+          moving = true;
+        }
+      }
+      if (!Number.isNaN(l.target) && l.value !== l.target) {
+        // about a second from closed to open
+        const step = dt * 1.6;
+        l.value = Math.abs(l.target - l.value) <= step || l.bind.kind === "blink" ? l.target : l.value + Math.sign(l.target - l.value) * step;
+        moving = true;
+      }
+      if (l.bind.kind === "blink" && l.value < -0.5) moving = true;
+      this.poseLive(l, now);
+    }
+    if (!moving) this.liveLast = 0;
+    return moving;
+  }
+
   /** The pack items with turning parts: a model each at its pivot, rebuilt when the item or the look changes. */
   private syncPackSpins(): void {
     const seen = new Set<string>();
@@ -5735,6 +5924,7 @@ export class FloorplanViewer {
     const roofMoving = this.placeRoof(dt);
     const robotsMoving = this.stepRobots(now);
     const fansTurning = this.stepFans(now);
+    const liveMoving = this.stepLive(now);
     const weatherMoving = this.stepWeather(now);
     const moving = cameraMoving || floorsMoving || openingsMoving || flashing || roofMoving || morphMoving;
     const busy: string[] = [];
@@ -5751,6 +5941,7 @@ export class FloorplanViewer {
     if (this.effectTick) busy.push("effect");
     if (robotsMoving) busy.push("robot");
     if (fansTurning) busy.push("fan");
+    if (liveMoving) busy.push("live");
     if (orbiting) busy.push("orbit");
     if (this.tintTick) busy.push("tint");
     this.effectTick = this.tintTick = false;

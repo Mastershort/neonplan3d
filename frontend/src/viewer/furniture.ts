@@ -8,12 +8,13 @@ import type { Furniture, Vec2 } from "../model.ts";
 import { builtinBase, gangsOf, stairsULayout, POOL_VALVE_Y } from "../model.ts";
 import { adventCandles, isRobotVacuum, mountBase, packItem, packMotion, packMovingPart, packRobotCentre, packRobotPart, packScreen, packSpinAxis, type PackItem, type PackMotion, type PackPart } from "../packs.ts";
 import { fitParts } from "../pack-scale.ts";
+import { hasLiveParts, liveKey, type PartBind } from "../live-parts.ts";
 import { binColors, binShape, householdCountry, mailboxShape, type BinShape, type MailboxShape } from "../household.ts";
 import type { Floor } from "../model.ts";
 import { ALWAYS, DEG, EDGE_TOP, GeoBuffer, LineBuffer, pushLoft, pushLyingCyl, pushPrism, shade } from "./geo.ts";
-import { palette } from "./palette.ts";
+import { hexColor, naturalPalette, palette } from "./palette.ts";
 
-const C = palette({
+const BASE = palette({
   body: 0x172238,
   bodyTop: 0x1d2b47,
   fabric: 0x1a2644,
@@ -31,6 +32,26 @@ const C = palette({
   pot: 0x1d2640,
   accent: 0x2b8fb3,
 }, { body: 0xe8e3db, bodyTop: 0xf2efe9, fabric: 0x8e97a5, fabricTop: 0xa4acb9, cushion: 0xb4bbc5, wood: 0xa67a52, woodTop: 0xbd9067, white: 0xedebe7, whiteTop: 0xf8f7f4, metal: 0x9da3ab, dark: 0x40454d, glass: 0xa9cfe0, plant: 0x4b8a49, plantTop: 0x66a861, pot: 0xcdbfae, accent: 0x2b8fb3 });
+
+/**
+ * A placed item's own finish (finishes.ts) while it is built: its colours stand in for the palette roles, in the
+ * homely styles only (the neon looks colour every item themselves).
+ */
+let finish: Partial<Record<keyof typeof BASE, number>> | null = null;
+const C = new Proxy(BASE, { get: (t, k) => (finish && typeof k === "string" && k in finish ? finish[k as keyof typeof BASE] : Reflect.get(t, k)) }) as typeof BASE;
+
+/** The role colours a finish gives (tops and cushions a little lighter), null without one or in a neon look. */
+function finishColors(f: Pick<Furniture, "finish">): Partial<Record<keyof typeof BASE, number>> | null {
+  if (!f.finish || !naturalPalette()) return null;
+  const out: Partial<Record<keyof typeof BASE, number>> = {};
+  const wood = hexColor(f.finish.wood);
+  const fabric = hexColor(f.finish.fabric);
+  const front = hexColor(f.finish.front);
+  if (wood !== null) Object.assign(out, { wood, woodTop: shade(wood, 1.12).getHex() });
+  if (fabric !== null) Object.assign(out, { fabric, fabricTop: shade(fabric, 1.12).getHex(), cushion: shade(fabric, 1.28).getHex() });
+  if (front !== null) Object.assign(out, { white: front, whiteTop: shade(front, 1.05).getHex() });
+  return Object.keys(out).length ? out : null;
+}
 
 const EDGE_FURN = shade(0x5b7cff, 0.3);
 const EDGE_FAINT = shade(0x5b7cff, 0.17);
@@ -1607,6 +1628,16 @@ function pushUpright(buf: GeoBuffer, lines: LineBuffer, shadow: GeoBuffer, f: Fu
 }
 
 function buildFurniture(buf: GeoBuffer, lines: LineBuffer, shadow: GeoBuffer, f: Furniture, base: number, still = false): void {
+  const before = finish;
+  finish = finishColors(f);
+  try {
+    buildModel(buf, lines, shadow, f, base, still);
+  } finally {
+    finish = before;
+  }
+}
+
+function buildModel(buf: GeoBuffer, lines: LineBuffer, shadow: GeoBuffer, f: Furniture, base: number, still = false): void {
   const a = f.rotation * DEG;
   const c = Math.cos(a);
   const s = Math.sin(a);
@@ -1868,7 +1899,9 @@ function buildFurniture(buf: GeoBuffer, lines: LineBuffer, shadow: GeoBuffer, f:
         const motion = packMotion(f.type);
         const own = motion ? (p: PackPart) => packMovingPart(motion, p) : isRobotVacuum(f.type) && !still ? packRobotPart : null;
         // turning fan blades are a model of their own the viewer turns (pushPackSpin, #1084); a picture keeps them
-        const skip = !still && packSpinAxis(item) ? (p: PackPart) => !!p.spin || !!own?.(p) : own;
+        // live parts (3.4) are models of their own too, moved by the viewer (pushPackLive); a picture keeps them
+        const live = !still && hasLiveParts(item);
+        const skip = !still && (packSpinAxis(item) || live) ? (p: PackPart) => !!p.spin || !!p.bind || !!own?.(p) : own;
         packModel(b, item, w, d, h, base, null, null, skip);
         // items on furniture, walls or ceilings cast no shadow on the floor
         if (base > 0.05) return;
@@ -2111,8 +2144,50 @@ export function pushPackLamp(buf: GeoBuffer, item: PackItem, f: Pick<Furniture, 
   const mx = f.mirror ? -1 : 1;
   const tf: Tf = (x, z) => [f.x + mx * x * c - z * s, f.z + mx * x * s + z * c];
   // lamps have no outlines: their edges are dropped; a ceiling fan's turning blades are drawn by pushPackSpin
-  const skip = !still && packSpinAxis(item) ? (p: PackPart) => !!p.spin : null;
+  const skip = !still && (packSpinAxis(item) || hasLiveParts(item)) ? (p: PackPart) => !!p.spin || !!p.bind : null;
   packModel(new Builder(buf, new LineBuffer(), tf), item, Math.max(0.05, f.w), Math.max(0.05, f.d), Math.max(0.005, f.h), base, glow, null, skip);
+}
+
+/**
+ * One group of live parts of a pack item (same slot and kind, 3.4) as a model of its own around its pivot, in the
+ * item's own coordinates (not turned, not mirrored, standing on y = 0): a door about its hinge edge at the front, a
+ * drawer or a status light about its middle, a filling tank from its bottom. Status lights and glowing parts are
+ * drawn white: the viewer tints them. Null when the item has no such parts. A placed item's finish colours its doors
+ * and fronts like the rest of it; their edges go to `lines`.
+ */
+export function pushPackLive(buf: GeoBuffer, item: PackItem, w: number, d: number, h: number, key: string, placed: Pick<Furniture, "finish"> = {}, lines: LineBuffer = new LineBuffer()): { pivot: [number, number, number]; bind: PartBind; depth: number; rest: number } | null {
+  const W = Math.max(0.05, w);
+  const D = Math.max(0.05, d);
+  const H = Math.max(0.005, h);
+  const parts = fitParts(item, W, D, H).filter((p) => p.bind && liveKey(p.bind) === key);
+  if (!parts.length) return null;
+  const bind = parts[0].bind!;
+  const x0 = Math.min(...parts.map((p) => (p.x - p.w / 2) * W));
+  const x1 = Math.max(...parts.map((p) => (p.x + p.w / 2) * W));
+  const y0 = Math.min(...parts.map((p) => p.y * H));
+  const y1 = Math.max(...parts.map((p) => Math.min(1, p.y + p.h) * H));
+  const z0 = Math.min(...parts.map((p) => (p.z - p.d / 2) * D));
+  const z1 = Math.max(...parts.map((p) => (p.z + p.d / 2) * D));
+  const cx = (x0 + x1) / 2;
+  const cy = (y0 + y1) / 2;
+  const cz = (z0 + z1) / 2;
+  let pivot: [number, number, number] = [cx, cy, cz];
+  if (bind.kind === "open") {
+    const hinge = bind.hinge ?? "left";
+    pivot = hinge === "left" ? [x0, cy, z1] : hinge === "right" ? [x1, cy, z1] : hinge === "top" ? [cx, y1, z1] : [cx, y0, z1];
+  } else if (bind.kind === "level") pivot = [cx, y0, cz];
+  const lit = bind.kind === "blink" || bind.kind === "glow";
+  // the edges move with the part (a neon door keeps its glowing outline); a status light has none
+  const b = new Builder(buf, lit ? new LineBuffer() : lines, (x, z) => [x - pivot[0], z - pivot[2]]);
+  const before = finish;
+  finish = finishColors(placed);
+  try {
+    packModel(b, { ...item, size: [W, D, H], parts: lit ? parts.map((p) => ({ ...p, glow: true })) : parts }, W, D, H, -pivot[1], lit ? 0xffffff : null);
+  } finally {
+    finish = before;
+  }
+  // its own colour: what a status light or a glowing part shows while no entity is linked
+  return { pivot, bind, depth: D, rest: packColor(parts[0].color, false) ?? 0xffffff };
 }
 
 /**

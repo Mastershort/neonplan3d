@@ -2,6 +2,7 @@
 // furniture has the type "pack:<pack id>:<item id>". Every bundle (main, editor, 3D) keeps its own
 // registry, filled with setPacks() from the packs the backend returns.
 
+import type { PackSlot, PartBind } from "./live-parts.ts";
 import { builtinBase, techBase, ELECTRIC_FURNITURE, FURNITURE_SIZE, LIFT_SPOTS, outdoorGround, pointInPolygon, spotDepth, surfaceHeight, WALL_LAMP_Y, type Floor, type Furniture } from "./model.ts";
 import type { LampModel } from "./viewer/viewer3d.ts";
 
@@ -55,6 +56,8 @@ export interface PackPart {
    * ("z", a pedestal fan), about the middle of all the item's turning parts.
    */
   spin?: "y" | "z";
+  /** A live part (3.4): moves or lights with the entity linked to one of the item's slots (live-parts.ts). */
+  bind?: PartBind;
 }
 
 /** The axis an item's turning parts (fan blades) turn about, null without such parts. */
@@ -116,6 +119,8 @@ export interface PackItem {
   /** Variants of one thing (a table in three lengths) share a family; the variant names the chip, by language. */
   family?: string;
   variant?: Record<string, string>;
+  /** Slots its live parts are tied to (3.4): the editor links an entity to each. */
+  slots?: PackSlot[];
 }
 
 export interface FurniturePack {
@@ -315,6 +320,7 @@ const PACK_NAMES_EN: Record<string, string> = {
   pro_heat: "Pro: Heat Pro",
   pro_household: "Pro: Household Pro",
   frames: "Digital Picture Frames",
+  homelab: "Homelab & Workshop",
   announce: "Module: Announcements",
   voice_answers: "Module: The house answers",
   window_watch: "Module: Window watch",

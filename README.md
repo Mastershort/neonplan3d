@@ -44,6 +44,16 @@ Lights glow in their colours, blinds move, doors open, cameras watch, energy flo
 
 ---
 
+## 🪄 New in 3.4 – furniture that lives
+
+[![The same kitchen with its door contacts closed and open](https://raw.githubusercontent.com/Mastershort/neonplan3d/main/docs/images/live-furniture-hero-en.jpg)](https://github.com/Mastershort/neonplan3d/releases)
+
+- 🚪 **Doors, drawers and flaps move with Home Assistant** – open the fridge and its door opens in 3D, the oven door folds down, a drawer slides out. Status lights glow, fans turn, prints grow with their progress. Try it free with the kitchen and bedroom taster packs.
+- 🎨 **Finishes, free for everyone** – your own colours for wood, fabric and fronts of every piece of furniture in the homely styles.
+- 🔒 **Every piece of furniture at a glance** – the library also shows what the packs hold, with a lock and a picture.
+
+---
+
 ## 🎨 New in 3.1 – your home in every style
 
 You love the neon. But on the living-room wall in the evening, a homely house with wooden floors and warm walls is sometimes just nicer. **Now you choose.** The editor and the controls stay neon – the house wears whatever you like.
@@ -185,6 +195,8 @@ Plus **Auto** (day while the sun is up, neon after sunset), an accent colour of 
 | 🔒 **Privacy** | Everything stays in Home Assistant · voice and locating stay local · reports only if you switch them on, each one viewable and deletable · signed packs, module code runs only after you approve it · open source |
 
 **Safety is always free. Everything you need day to day stays free.**
+
+🎁 **Free customer account (optional):** an account at [mastershort.de](https://mastershort.de/my-account/) costs nothing and needs no purchase. It brings the fun packs, the modules Window watch and The house answers and – with the newsletter – four taster packs of furniture. Enter its key under ✦ Extensions → Shop connection; they update by themselves.
 
 ---
 

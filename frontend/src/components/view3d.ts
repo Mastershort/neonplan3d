@@ -3238,6 +3238,8 @@ export class Fp3dView3d extends LitElement {
       }
     }
     this.viewer?.setSpinSpeeds(spins);
+    // live parts of pack items (3.4): the viewer reads their slots' entities itself
+    this.viewer?.setLiveStates(hass.states, (id) => this.furnitureLinks.get(id)?.entity ?? null);
     // a module's band of light round an item, or its layers (a tank warm above, cool below): on any item, over its own glow
     for (const g of glows.values()) {
       if (g.top) screens.set(g.furnitureId, { color: g.color, level: g.level, faces: [{ part: "strata", color: g.color, top: g.top, level: g.level }] });

@@ -344,6 +344,12 @@
             case "neonplan3d/packs/remove":
               importedPacks = importedPacks.filter((p) => p.id !== msg.pack_id);
               return null;
+            case "neonplan3d/previews/get": {
+              // the shop's furniture previews: a local copy next to the preview if there is one, else none
+              const res = await fetch("./np-previews/index.json").catch(() => null);
+              if (!res?.ok) return { base: null, packs: [], items: [], bundle: null };
+              return { ...(await res.json()), base: new URL("./np-previews/", location.href).href };
+            }
             case "neonplan3d/license/get":
               return license;
             case "neonplan3d/license/activate":

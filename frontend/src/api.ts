@@ -1,5 +1,6 @@
 // Websocket calls to the backend (custom_components/neonplan3d/websocket.py).
 
+import type { Previews } from "./library-index.ts";
 import type { Building } from "./model.ts";
 import type { FurniturePack } from "./packs.ts";
 import type { HomeAssistant } from "./types.ts";
@@ -420,6 +421,12 @@ export interface LicenseStatus {
   newsletter?: { url: string } | null;
   /** Pack updates installed from the shop, newest last. */
   updates?: PackUpdate[];
+}
+
+/** The shop's furniture previews (pictures and names of every pack's items, never the models): the library
+ * shows the ones not owned with a lock. The integration fetches them at most once a day; empty without the shop. */
+export function getPreviews(hass: HomeAssistant): Promise<Previews> {
+  return hass.callWS<Previews>({ type: "neonplan3d/previews/get" });
 }
 
 export function getLicense(hass: HomeAssistant): Promise<LicenseStatus> {
