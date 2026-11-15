@@ -1386,6 +1386,30 @@ export function robotRoom<R extends { name: string; area_id?: string | null }>(h
   return null;
 }
 
+/**
+ * The room a cleaning robot reports, on its dock's floor first, then on the other floors: a robot with
+ * maps of several floors keeps one dock but cleans upstairs and downstairs. A floor with a dock of its
+ * own for the same vacuum is left out, that dock shows the robot there.
+ */
+export function robotRoomOnFloors<F, R extends { name: string; area_id?: string | null }>(
+  hass: HomeAssistant,
+  home: F,
+  floors: readonly F[],
+  roomsOf: (floor: F) => readonly R[],
+  vacuum: string | null,
+  sensor: string | null,
+  ownDock: (floor: F) => boolean = () => false,
+): { floor: F; room: R } | null {
+  const here = robotRoom(hass, roomsOf(home), vacuum, sensor);
+  if (here) return { floor: home, room: here };
+  for (const floor of floors) {
+    if (floor === home || ownDock(floor)) continue;
+    const room = robotRoom(hass, roomsOf(floor), vacuum, sensor);
+    if (room) return { floor, room };
+  }
+  return null;
+}
+
 /** The room a robot's name for it means ("Küche", "kitchen", the area's id). */
 export function roomNamed<R extends { name: string; area_id?: string | null }>(hass: HomeAssistant, rooms: readonly R[], raw: unknown): R | null {
   if (typeof raw !== "string" || !raw || raw === "unknown" || raw === "unavailable") return null;
