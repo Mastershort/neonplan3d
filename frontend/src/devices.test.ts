@@ -13,7 +13,7 @@ test("a lamp switched by a relay takes colour and brightness from its colour ent
   // the bulb unavailable: the relay's own (plain) glow
   assert.deepEqual(lightGlow(relay as never, { ...bulb, state: "unavailable" } as never)!.color, [1, 0.71, 0.28]);
 });
-import { slatTilt, slatsInverted, coverTiltButtons, isPulseDrive, isRelevant, apOnline, fanSpeed, climateModeGlow, cooktopLevel, onlyColor, fixedGlowColor, colorCapable, appColor, carLocked, areaEntities, otherAreaEntities, roomClimateSensors, roomClimateValue, unassignedEntities, autoPlace, entityName, fridgeDoors, furnitureEntities, groupByDevice, isActive, kindOf, lightGlow, openingEntities, openingState, powerSensorsOf, primaryEntities, roomPanelEntities, windowPosition, confirmEntities, robotRoom, robotRoomSensor, roomKey, vacuumCleaning } from "./devices.ts";
+import { slatTilt, slatsInverted, coverTiltButtons, isPulseDrive, isRelevant, apOnline, fanSpeed, climateModeGlow, cooktopLevel, onlyColor, fixedGlowColor, colorCapable, appColor, carLocked, areaEntities, otherAreaEntities, roomClimateSensors, roomClimateValue, unassignedEntities, autoPlace, entityName, fridgeDoors, furnitureEntities, groupByDevice, isActive, kindOf, lightGlow, openingEntities, openingState, powerSensorsOf, primaryEntities, roomPanelEntities, windowPosition, confirmEntities, robotRoom, robotRoomOnFloors, robotRoomSensor, roomKey, vacuumCleaning } from "./devices.ts";
 import type { Floor, Opening, Room } from "./model.ts";
 import { centroid, newFloor, pointInPolygon } from "./model.ts";
 import type { HomeAssistant } from "./types.ts";
@@ -534,6 +534,41 @@ test("a robot vacuum's current room is found on its device and matched by room o
   // integrations that report their own cleaning states
   for (const s of ["cleaning", "room_cleaning", "segment_cleaning", "Sweeping", "mopping"]) assert.equal(vacuumCleaning(s), true, s);
   for (const s of ["docked", "returning", "idle", undefined]) assert.equal(vacuumCleaning(s), false, String(s));
+});
+
+test("a robot with maps of several floors cleans a room of another floor than its dock's", () => {
+  const hass = {
+    language: "hu",
+    areas: {},
+    entities: {},
+    states: {
+      "vacuum.robbi": { entity_id: "vacuum.robbi", state: "cleaning", attributes: {} },
+      "sensor.robbi_room": { entity_id: "sensor.robbi_room", state: "Dolgozó", attributes: {} },
+    },
+  } as unknown as HomeAssistant;
+  type F = { id: string; rooms: { id: string; name: string }[]; dock: boolean };
+  const up: F = { id: "up", rooms: [{ id: "u1", name: "Nappali" }, { id: "u2", name: "Konyha" }], dock: false };
+  const down: F = { id: "down", rooms: [{ id: "d1", name: "Hálószoba" }, { id: "d2", name: "Dolgozó" }], dock: false };
+  const floors = [down, up];
+  const roomsOf = (f: F) => f.rooms;
+  const ownDock = (f: F) => f.dock;
+  // the dock stands upstairs, the robot reports a room downstairs
+  let found = robotRoomOnFloors(hass, up, floors, roomsOf, "vacuum.robbi", "sensor.robbi_room", ownDock);
+  assert.equal(found?.floor.id, "down");
+  assert.equal(found?.room.id, "d2");
+  // a room of its own floor comes first
+  hass.states["sensor.robbi_room"].state = "Konyha";
+  found = robotRoomOnFloors(hass, up, floors, roomsOf, "vacuum.robbi", "sensor.robbi_room", ownDock);
+  assert.equal(found?.floor.id, "up");
+  assert.equal(found?.room.id, "u2");
+  // a floor with its own dock for the same vacuum shows the robot itself
+  hass.states["sensor.robbi_room"].state = "Dolgozó";
+  down.dock = true;
+  assert.equal(robotRoomOnFloors(hass, up, floors, roomsOf, "vacuum.robbi", "sensor.robbi_room", ownDock), null);
+  // no floor has the room
+  down.dock = false;
+  hass.states["sensor.robbi_room"].state = "Pince";
+  assert.equal(robotRoomOnFloors(hass, up, floors, roomsOf, "vacuum.robbi", "sensor.robbi_room", ownDock), null);
 });
 
 test("a window marked 'ask first' puts its blind on the confirm list", () => {
