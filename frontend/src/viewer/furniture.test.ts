@@ -1,9 +1,10 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { Furniture } from "../model.ts";
-import { mountBase, setPacks, type FurniturePack } from "../packs.ts";
+import { mountBase, packItem, setPacks, type FurniturePack } from "../packs.ts";
+import { liveKey } from "../live-parts.ts";
 import { newFloor } from "../model.ts";
-import { hasFixedColors, packGlowCentre, packMotionParts, pushFurniture, pushPackSpin, screenPictureSize, setLightLook } from "./furniture.ts";
+import { hasFixedColors, packGlowCentre, packMotionParts, pushFurniture, pushPackLive, pushPackSpin, screenPictureSize, setLightLook } from "./furniture.ts";
 import { packMotion, type PackItem } from "../packs.ts";
 import { GeoBuffer, LineBuffer } from "./geo.ts";
 
@@ -350,4 +351,16 @@ test("a finish colours a sofa's fabric in the homely styles only, and live parts
     return buf.p.length;
   };
   assert.ok(count(true) > count(false), "a picture keeps the door, the house model leaves it to the viewer");
+  // the live door takes the item's finish too (a sage front stays sage when the door is its own model)
+  const door = (finish: Furniture["finish"]) => {
+    const buf = new GeoBuffer();
+    pushPackLive(buf, packItem("pack:t.live:cab")!, 1, 0.5, 1, liveKey({ slot: "door", kind: "open" }), { finish });
+    return buf.c;
+  };
+  setNaturalPalette(true);
+  try {
+    assert.notDeepEqual(door({ front: "#5d7590" }), door(null));
+  } finally {
+    setNaturalPalette(false);
+  }
 });

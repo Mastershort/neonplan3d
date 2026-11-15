@@ -5539,7 +5539,7 @@ export class FloorplanViewer {
           if (!live) {
             this.usePalette();
             const buf = new GeoBuffer();
-            const made = pushPackLive(buf, item, f.w, f.d, f.h, key);
+            const made = pushPackLive(buf, item, f.w, f.d, f.h, key, f);
             if (!made) continue;
             const tinted = made.bind.kind === "blink" || made.bind.kind === "glow";
             this.spinMat ??= new MeshBasicMaterial({ vertexColors: true, side: DoubleSide });
