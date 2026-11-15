@@ -332,7 +332,10 @@ function buildSections(b: Building, sections: readonly RoofSection[], overhang: 
           wallU: plan.junction ? [sectionFrame(sec).u0, sectionFrame(sec).u1] : null,
         }
       : null;
-    pushSection(part.solid, part.lines, drawn, plan.ov, floor.elevation, part.glass, attic, holes, frontEnd, cut);
+    // a dormer's cheeks and front gable are walls of the room below it: they stay when the roof fades over that
+    // room (the floor view), like its floating roof windows – faded with the roof, the room had holes in its sides
+    const keep = sec.dormer || parent ? (part.win ??= { solid: new GeoBuffer(), lines: new LineBuffer(), glass: new GeoBuffer() }).solid : part.solid;
+    pushSection(part.solid, part.lines, drawn, plan.ov, floor.elevation, part.glass, attic, holes, frontEnd, cut, keep);
   }
   // the closed roofs first: the first part is the one the main roof's solar fields belong to
   return [...parts.values()].sort((p, q) => Number(p.lift === false) - Number(q.lift === false));
@@ -363,6 +366,8 @@ export function pushSection(
   /** A dormer: its gable only at this end (0 = u0, 1 = u1); null for an ordinary section. */
   frontEnd: 0 | 1 | null = null,
   cut: SectionCut | null = null,
+  /** Where its walls (gables, knee walls, a dormer's cheeks) go; the roof's own buffer when not given. */
+  walls: GeoBuffer = solid,
 ): void {
   const fr = sectionFrame(s);
   const pr = sectionProfile(s);
@@ -379,8 +384,8 @@ export function pushSection(
   const top = new Color(RF.ROOF_TOP);
   const under = new Color(RF.ROOF);
   const g = new Color(RF.GABLE);
-  const fan = (pts: number[][], col: Color) => {
-    for (let i = 1; i + 1 < pts.length; i++) solid.tri(pts[0], pts[i], pts[i + 1], col);
+  const fan = (pts: number[][], col: Color, buf: GeoBuffer = solid) => {
+    for (let i = 1; i + 1 < pts.length; i++) buf.tri(pts[0], pts[i], pts[i + 1], col);
   };
   // the roof planes as polygons in (u, v, height), the rim and the ridge lines; a flat roof is a slab
   let faces: Q[][] = [];
@@ -471,18 +476,18 @@ export function pushSection(
     if (!profile || (frontEnd !== null && frontEnd !== end)) continue;
     const poly = above(profile, base - THICK);
     const u = end === 0 ? fr.u0 : fr.u1;
-    if (poly.length >= 3) fan(poly.map(([v, y]) => P(u, v, y)), g);
+    if (poly.length >= 3) fan(poly.map(([v, y]) => P(u, v, y)), g, walls);
   }
   // … and the knee walls along the eaves where the roof starts above the walls (a high back wall of a pent roof)
   if (s.shape !== "flat" && s.shape !== "parapet") {
     const [wu0, wu1] = cut?.wallU ?? [fr.u0, fr.u1];
     for (const v of [0, w]) {
       const y = pr.y(v) - THICK;
-      if (y > base + 0.02) fan([P(wu0, v, base), P(wu1, v, base), P(wu1, v, y), P(wu0, v, y)], g);
+      if (y > base + 0.02) fan([P(wu0, v, base), P(wu1, v, base), P(wu1, v, y), P(wu0, v, y)], g, walls);
     }
   } else if (s.eave_a > base + 0.02) {
     for (const [ua, va, ub, vb] of [[fr.u0, 0, fr.u1, 0], [fr.u1, 0, fr.u1, w], [fr.u1, w, fr.u0, w], [fr.u0, w, fr.u0, 0]])
-      fan([P(ua, va, base), P(ub, vb, base), P(ub, vb, s.eave_a), P(ua, va, s.eave_a)], g);
+      fan([P(ua, va, base), P(ub, vb, base), P(ub, vb, s.eave_a), P(ua, va, s.eave_a)], g, walls);
   }
 }
 
