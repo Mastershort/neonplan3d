@@ -44,6 +44,16 @@ Lights glow in their colours, blinds move, doors open, cameras watch, energy flo
 
 ---
 
+## 🪄 New in 3.4 – furniture that lives
+
+[![The same kitchen with its door contacts closed and open](https://raw.githubusercontent.com/Mastershort/neonplan3d/main/docs/images/live-furniture-hero-en.jpg)](https://github.com/Mastershort/neonplan3d/releases)
+
+- 🚪 **Doors, drawers and flaps move with Home Assistant** – open the fridge and its door opens in 3D, the oven door folds down, a drawer slides out. Status lights glow, fans turn, prints grow with their progress. Try it free with the kitchen and bedroom taster packs.
+- 🎨 **Finishes, free for everyone** – your own colours for wood, fabric and fronts of every piece of furniture in the homely styles.
+- 🔒 **Every piece of furniture at a glance** – the library also shows what the packs hold, with a lock and a picture.
+
+---
+
 ## 🎨 New in 3.1 – your home in every style
 
 You love the neon. But on the living-room wall in the evening, a homely house with wooden floors and warm walls is sometimes just nicer. **Now you choose.** The editor and the controls stay neon – the house wears whatever you like.
