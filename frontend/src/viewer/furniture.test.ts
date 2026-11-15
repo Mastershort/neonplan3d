@@ -344,7 +344,7 @@ test("a finish colours a sofa's fabric in the homely styles only, and live parts
   }
   assert.deepEqual(sofa({ fabric: "#4a6a9a" }), sofa(null), "the neon looks keep their own colours");
   // a pack item with a live door: the door is not in the item's model while the viewer draws it
-  setPacks([{ id: "t.live", name: "Live", publisher: "t", licensee: null, items: [{ id: "cab", name: { en: "Cab" }, size: [1, 0.5, 1], parts: [{ shape: "box", x: 0, z: 0, w: 1, d: 0.5, y: 0, h: 1, color: "body" }, { shape: "box", x: 0, z: 0.24, w: 0.9, d: 0.02, y: 0.05, h: 0.9, color: "white", bind: { slot: "door", kind: "open" } }] }] }]);
+  setPacks([{ id: "t.live", name: "Live", publisher: "t", licensee: null, items: [{ id: "cab", name: { en: "Cab" }, size: [1, 0.5, 1], parts: [{ shape: "box", x: 0, z: 0, w: 1, d: 0.5, y: 0, h: 1, color: "body" }, { shape: "box", x: 0, z: 0.24, w: 0.9, d: 0.02, y: 0.05, h: 0.9, color: "white", edges: "faint", bind: { slot: "door", kind: "open" } }] }] }]);
   const count = (still: boolean) => {
     const buf = new GeoBuffer();
     pushFurniture(buf, new LineBuffer(), new GeoBuffer(), { id: "c", type: "pack:t.live:cab", x: 0, z: 0, rotation: 0, w: 1, d: 0.5, h: 1, variant: null } as Furniture, 0, still);
@@ -363,4 +363,8 @@ test("a finish colours a sofa's fabric in the homely styles only, and live parts
   } finally {
     setNaturalPalette(false);
   }
+  // its edges come along (a neon door keeps its outline when it opens)
+  const lines = new LineBuffer();
+  pushPackLive(new GeoBuffer(), packItem("pack:t.live:cab")!, 1, 0.5, 1, liveKey({ slot: "door", kind: "open" }), {}, lines);
+  assert.ok(lines.p.length > 0);
 });

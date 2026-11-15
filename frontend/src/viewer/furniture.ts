@@ -2153,9 +2153,9 @@ export function pushPackLamp(buf: GeoBuffer, item: PackItem, f: Pick<Furniture, 
  * item's own coordinates (not turned, not mirrored, standing on y = 0): a door about its hinge edge at the front, a
  * drawer or a status light about its middle, a filling tank from its bottom. Status lights and glowing parts are
  * drawn white: the viewer tints them. Null when the item has no such parts. A placed item's finish colours its doors
- * and fronts like the rest of it.
+ * and fronts like the rest of it; their edges go to `lines`.
  */
-export function pushPackLive(buf: GeoBuffer, item: PackItem, w: number, d: number, h: number, key: string, placed: Pick<Furniture, "finish"> = {}): { pivot: [number, number, number]; bind: PartBind; depth: number; rest: number } | null {
+export function pushPackLive(buf: GeoBuffer, item: PackItem, w: number, d: number, h: number, key: string, placed: Pick<Furniture, "finish"> = {}, lines: LineBuffer = new LineBuffer()): { pivot: [number, number, number]; bind: PartBind; depth: number; rest: number } | null {
   const W = Math.max(0.05, w);
   const D = Math.max(0.05, d);
   const H = Math.max(0.005, h);
@@ -2177,7 +2177,8 @@ export function pushPackLive(buf: GeoBuffer, item: PackItem, w: number, d: numbe
     pivot = hinge === "left" ? [x0, cy, z1] : hinge === "right" ? [x1, cy, z1] : hinge === "top" ? [cx, y1, z1] : [cx, y0, z1];
   } else if (bind.kind === "level") pivot = [cx, y0, cz];
   const lit = bind.kind === "blink" || bind.kind === "glow";
-  const b = new Builder(buf, new LineBuffer(), (x, z) => [x - pivot[0], z - pivot[2]]);
+  // the edges move with the part (a neon door keeps its glowing outline); a status light has none
+  const b = new Builder(buf, lit ? new LineBuffer() : lines, (x, z) => [x - pivot[0], z - pivot[2]]);
   const before = finish;
   finish = finishColors(placed);
   try {

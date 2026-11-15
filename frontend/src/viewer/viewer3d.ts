@@ -699,7 +699,7 @@ export class FloorplanViewer {
   private spinSpeeds = new Map<string, number>();
   private spinMat: MeshBasicMaterial | null = null;
   /** Live parts of pack items (3.4): a model per item and group (slot + kind) at its pivot, moved to its value. */
-  private packLive = new Map<string, { group: Group; inner: Group; mesh: Mesh; mat: MeshBasicMaterial | null; bind: PartBind; depth: number; rest: number; floorId: string; y: number; sig: string; target: number; value: number }>();
+  private packLive = new Map<string, { group: Group; inner: Group; mesh: Mesh; edges: LineSegments | null; mat: MeshBasicMaterial | null; bind: PartBind; depth: number; rest: number; floorId: string; y: number; sig: string; target: number; value: number }>();
   private liveValues = new Map<string, number>();
   private liveLast = 0;
   private fanLast = 0;
@@ -2611,6 +2611,7 @@ export class FloorplanViewer {
     this.spinMat?.dispose();
     for (const l of this.packLive.values()) {
       l.mesh.geometry.dispose();
+      l.edges?.geometry.dispose();
       l.mat?.dispose();
     }
     this.packLive.clear();
@@ -5532,6 +5533,7 @@ export class FloorplanViewer {
           if (live && live.sig !== sig) {
             live.group.removeFromParent();
             live.mesh.geometry.dispose();
+            live.edges?.geometry.dispose();
             live.mat?.dispose();
             this.packLive.delete(id);
             live = undefined;
@@ -5539,12 +5541,16 @@ export class FloorplanViewer {
           if (!live) {
             this.usePalette();
             const buf = new GeoBuffer();
-            const made = pushPackLive(buf, item, f.w, f.d, f.h, key, f);
+            const lines = new LineBuffer();
+            const made = pushPackLive(buf, item, f.w, f.d, f.h, key, f, lines);
             if (!made) continue;
             const tinted = made.bind.kind === "blink" || made.bind.kind === "glow";
             this.spinMat ??= new MeshBasicMaterial({ vertexColors: true, side: DoubleSide });
             const mat = tinted ? new MeshBasicMaterial({ vertexColors: true, side: DoubleSide }) : null;
             const mesh = new Mesh(buf.geometry(), mat ?? this.spinMat);
+            // the part's edges in the floor's line look, turning and sliding with it
+            const edges = lines.p.length ? new LineSegments(lines.geometry(), fv.materials.lines) : null;
+            if (edges) mesh.add(edges);
             const inner = new Group();
             inner.add(mesh);
             inner.position.set(made.pivot[0], made.pivot[1], made.pivot[2]);
@@ -5553,7 +5559,7 @@ export class FloorplanViewer {
             group.position.set(f.x, base, f.z);
             group.rotation.y = -(f.rotation * DEG);
             if (f.mirror) group.scale.x = -1;
-            live = { group, inner, mesh, mat, bind: made.bind, depth: made.depth, rest: made.rest, floorId: fv.floor.id, y: base + made.pivot[1], sig, target: NaN, value: NaN };
+            live = { group, inner, mesh, edges, mat, bind: made.bind, depth: made.depth, rest: made.rest, floorId: fv.floor.id, y: base + made.pivot[1], sig, target: NaN, value: NaN };
             this.packLive.set(id, live);
             this.poseLive(live, 0);
           }
@@ -5565,6 +5571,7 @@ export class FloorplanViewer {
       if (seen.has(id)) continue;
       l.group.removeFromParent();
       l.mesh.geometry.dispose();
+      l.edges?.geometry.dispose();
       l.mat?.dispose();
       this.packLive.delete(id);
     }
