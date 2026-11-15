@@ -2091,6 +2091,46 @@ export function labelPoint(room: Pick<Room, "points" | "label_offset">): Vec2 {
   return o && Number.isFinite(o[0]) && Number.isFinite(o[1]) ? [x + o[0], z + o[1]] : [x, z];
 }
 
+/** How far a point lies from a polygon's outline (m). */
+function edgeDistance(p: Vec2, points: readonly Vec2[]): number {
+  let best = Infinity;
+  for (let i = 0; i < points.length; i++) {
+    const a = points[i];
+    const b = points[(i + 1) % points.length];
+    const dx = b[0] - a[0];
+    const dz = b[1] - a[1];
+    const l = dx * dx + dz * dz;
+    const t = l > 0 ? Math.max(0, Math.min(1, ((p[0] - a[0]) * dx + (p[1] - a[1]) * dz) / l)) : 0;
+    best = Math.min(best, Math.hypot(p[0] - a[0] - t * dx, p[1] - a[1] - t * dz));
+  }
+  return best;
+}
+
+/**
+ * A point well inside a room: its middle when that lies inside with some room around it, else the point of a fine
+ * grid farthest from the walls. The middle of an L-shaped room can lie in the room next to it (#900: a person stood
+ * in the hall while located in the L-shaped living room).
+ */
+export function innerPoint(points: readonly Vec2[]): Vec2 {
+  const c = centroid(points);
+  if (points.length < 3 || (pointInPolygon(c, points) && edgeDistance(c, points) >= 0.6)) return c;
+  const xs = points.map((p) => p[0]);
+  const zs = points.map((p) => p[1]);
+  const [x0, x1, z0, z1] = [Math.min(...xs), Math.max(...xs), Math.min(...zs), Math.max(...zs)];
+  const n = 24;
+  let best: Vec2 = c;
+  let far = pointInPolygon(c, points) ? edgeDistance(c, points) : -1;
+  for (let i = 0; i <= n; i++) {
+    for (let j = 0; j <= n; j++) {
+      const q: Vec2 = [x0 + ((x1 - x0) * i) / n, z0 + ((z1 - z0) * j) / n];
+      if (!pointInPolygon(q, points)) continue;
+      const d = edgeDistance(q, points);
+      if (d > far + 1e-9) [best, far] = [q, d];
+    }
+  }
+  return best;
+}
+
 /** Area-weighted centroid; falls back to the vertex average for degenerate polygons. */
 export function centroid(points: readonly Vec2[]): Vec2 {
   const a = signedArea(points);
