@@ -43,7 +43,7 @@ test("the plan counts too: a grid sensor set up, a parking spot", () => {
 test("a Pro add-on's offer is found by the shop's pack id, a key's purchase tells apart from free packs", () => {
   const offers = [
     { id: "mastershort.pro_energy", kind: "pro", price: "7,90 €" },
-    { id: "bundle_all", kind: "bundle", price: "54,90 €" },
+    { id: "bundle_all", kind: "bundle", price: "49,90 €" },
   ];
   assert.equal(offerFor(offers, "energy_pro")?.price, "7,90 €");
   assert.equal(offerFor(offers, "weather"), undefined);
