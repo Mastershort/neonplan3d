@@ -96,6 +96,31 @@ test("a card with some rooms of the top floor keeps the whole house's roof footp
   assert.equal(roomsOnly(b, ["attic"]).settings.roof.frame, undefined);
 });
 
+test("a roof of sections keeps the sections over the floors a card shows: the attic slopes of a middle floor (#997)", () => {
+  const b = house();
+  // a third floor over part of the house; the upper floor's other part has an attic roof of its own
+  const dg = newFloor("dg", "DG", 5.5);
+  dg.rooms = [room("loft", 0, 4)];
+  b.floors[1].rooms = [room("attic", 0, 4), room("studio", 4, 7)];
+  const sec = (id: string, x0: number, x1: number, base: number, extra: object = {}) =>
+    ({ id, x0, z0: 0, x1, z1: 3, shape: "gable", axis: "z", eave_a: base, eave_b: base, pitch_a: 40, pitch_b: 40, base, ...extra }) as never;
+  const studio = sec("studio_roof", 4, 7, 4.5);
+  const loft = sec("loft_roof", 0, 4, 7.5);
+  const dormer = sec("loft_dormer", 1.5, 2.5, 8, { dormer: true });
+  b.floors.push(dg);
+  b.settings = { ...b.settings, roof: { ...b.settings.roof, type: "custom", sections: [studio, loft, dormer] } };
+  // the upper floor alone: its attic roof stays, the loft's roof with its dormer goes
+  const og = roomsOnly(b, ["attic", "studio"]).settings.roof;
+  assert.equal(og.type, "custom");
+  assert.deepEqual(og.sections?.map((s) => s.id), ["studio_roof"]);
+  // the top floor: its roof and dormer, not the one on the floor below
+  assert.deepEqual(roomsOnly(b, ["loft"]).settings.roof.sections?.map((s) => s.id), ["loft_roof", "loft_dormer"]);
+  // every floor: all of it, as it was
+  assert.equal(roomsOnly(b, ["kids", "studio", "loft"]).settings, b.settings);
+  // the ground floor alone: no roof
+  assert.equal(roomsOnly(b, ["kids"]).settings.roof.type, "none");
+});
+
 test("rooms the plan no longer has are left out of a card's list", () => {
   assert.deepEqual(shownRoomIds(house(), ["kids", "gone"]), ["kids"]);
   assert.deepEqual(shownRoomIds(house(), []), []);
