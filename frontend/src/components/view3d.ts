@@ -122,7 +122,7 @@ import { SHOW_PRESENCE } from "../flags.ts";
 import { hasFeature, manualUrl, projectionOn, released, shopUrl, type Feature } from "../features.ts";
 import { searchIndex, searchItems, type SearchItem } from "../search.ts";
 import type { Shown } from "../voice/targets.ts";
-import { anyModule, moduleAlerts, moduleCards, moduleMenuSheets, modulePools, moduleRoomSheets, moduleScene, moduleSettings, modulesWithSettings, moduleVoice, moduleWatched, modulePopups, syncModules, type ModuleCard, type ModuleField, type ModuleHost, type ModuleSheet, type PopupSection, type ScenePiece, type SpokenAlert, type SpokenCar, type SpokenDevice, type SpokenOpening, type VoiceAnswer } from "../modules.ts";
+import { anyModule, moduleAlerts, moduleCards, moduleMenuSheets, modulePools, moduleRoomSheets, moduleScene, moduleSettings, modulesWithSettings, moduleVoice, moduleWatched, modulePopups, syncModules, type ModuleCard, type ModuleField, type ModuleHost, type ModuleSheet, type PlanCamera, type PopupSection, type ScenePiece, type SpokenAlert, type SpokenCar, type SpokenDevice, type SpokenOpening, type VoiceAnswer } from "../modules.ts";
 import { lineFlows, majorOnly, markerEmoji, markerPath, sparkPoints } from "../module-scene.ts";
 import { generateWalls, openingHost, placeWallPlate, pointOnRoomEdge, type Wall } from "../geometry/walls.ts";
 import { signedArea } from "../model.ts";
@@ -145,7 +145,7 @@ import { controls, tokens } from "../styles.ts";
 import type { HassEntity, HomeAssistant } from "../types.ts";
 import { countView, diagnosticsActive, recordFrame, watchDiagnostics } from "../diagnostics.ts";
 import { GUARD_VERSION, gpuSafeMode, noteContextLost } from "../gpu-guard.ts";
-import type { DeviceMarker, FloorplanViewer, FloorStack, RobotInfo, Quality, ScreenState, SoundSource, SurfaceGrab, ViewerStats, WallMode } from "../viewer/viewer3d.ts";
+import type { DeviceMarker, FloorplanViewer, FloorStack, PersonPin, RobotInfo, Quality, ScreenState, SoundSource, SurfaceGrab, ViewerStats, WallMode } from "../viewer/viewer3d.ts";
 import { wallLayout } from "../camera-wall.ts";
 import { watchedEntities } from "../watched.ts";
 import { backdropCss } from "../backdrop.ts";
@@ -1747,7 +1747,7 @@ export class Fp3dView3d extends LitElement {
     const roomSensors = SHOW_PRESENCE ? personsInRooms(hass, b) : [];
     const persons = released("locate") && personsShown(b) ? [...roomSensors, ...locatedPersons(hass, b, new Set(roomSensors.map((p) => p.id)))] : roomSensors;
     v.setPersonLook(personLook(b) === "pin" ? "pin" : "figure");
-    v.setPersons(persons);
+    v.setPersons([...persons, ...this.moduleFigures(b)]);
     this.lastPersons = persons.map((p) => ({ id: p.id, floorId: p.floorId, roomId: p.roomId }));
     const counts = floorCounts(hass, b, this.openingLinks!, persons);
     v.setFloorInfo(new Map([...counts].map(([id, c]) => [id, floorInfoText(hass, c)])));
@@ -5241,8 +5241,58 @@ export class Fp3dView3d extends LitElement {
       },
       occupied: () => this.occupiedRooms(hass, b),
       speakers: () => this.planSpeakers(hass, b),
+      cameras: () => this.planCameras(hass, b),
     };
     return host;
+  }
+
+  /** The plan's cameras with their pose and detection sensors (for modules). */
+  private planCameras(hass: HomeAssistant, b: Building): PlanCamera[] {
+    return b.floors.flatMap((floor) =>
+      floor.placements
+        .filter((p) => p.entity_id.startsWith("camera."))
+        .map((p) => {
+          const dome = p.mount === "ceiling";
+          return {
+            entity: p.entity_id,
+            floorId: floor.id,
+            x: p.x,
+            z: p.z,
+            height: dome ? floor.height - 0.1 : (p.y ?? 2.2),
+            heading: p.rotation ?? 0,
+            tilt: p.tilt ?? (dome ? 65 : 20),
+            fov: p.fov ?? (dome ? 120 : 90),
+            reach: p.reach ?? (dome ? 3 : 4.5),
+            dome,
+            detections: cameraMotionSensors(hass, p.entity_id).map((id) => ({ sensor: id, kind: detectionKind(hass, id), on: hass.states[id]?.state === "on" })),
+          };
+        }),
+    );
+  }
+
+  /** A module's figures as people in the plan: a person as a silhouette, a car or an animal as a pin with its symbol. */
+  private moduleFigures(b: Building): PersonPin[] {
+    const out: PersonPin[] = [];
+    for (const f of this.scene) {
+      if (f.kind !== "figure") continue;
+      const floor = b.floors.find((x) => x.id === f.floorId);
+      if (!floor) continue;
+      const person = f.look === "person";
+      out.push({
+        id: `module:${f.id}`,
+        name: f.name,
+        initials: person ? "" : f.look === "car" ? "🚗" : "🐾",
+        picture: null,
+        floorId: f.floorId,
+        roomId: roomAt(floor, f.at[0], f.at[1]) ?? "",
+        x: f.at[0],
+        z: f.at[1],
+        color: f.color ?? (person ? "#ff5fd2" : "#3ee8ff"),
+        ...(f.entity ? { entity: f.entity } : {}),
+        ...(person ? {} : { thing: true }),
+      });
+    }
+    return out;
   }
 
   /** A short note at the bottom of the view for a few seconds. */

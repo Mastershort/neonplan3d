@@ -188,6 +188,12 @@ export interface ModuleHost {
   look?(): "light" | "dark";
   /** The tablet level (weak devices): a module takes it slower. */
   lowPower?(): boolean;
+  /**
+   * The plan's cameras with where they hang and look: position (floor coordinates), mount height above the floor (m),
+   * heading (degrees, the placement's turn), tilt below the horizon (degrees), opening angle and reach of the wedge,
+   * and their detection sensors with the kind each reports.
+   */
+  cameras?(): PlanCamera[];
 }
 
 /**
@@ -205,6 +211,20 @@ export interface ModuleSheet {
   chips?: { label: string; onTap(): void | Promise<void> }[];
   input?: { placeholder: string; button: string; mic?: boolean; onSubmit(text: string): void | Promise<void> };
   lines?: string[];
+}
+
+export interface PlanCamera {
+  entity: string;
+  floorId: string;
+  x: number;
+  z: number;
+  height: number;
+  heading: number;
+  tilt: number;
+  fov: number;
+  reach: number;
+  dome: boolean;
+  detections: { sensor: string; kind: "person" | "car" | "pet" | "motion"; on: boolean }[];
 }
 
 /** A piece a module adds to the 3D stage; the host draws it with its own means (a module never touches three.js). */
@@ -262,6 +282,21 @@ export type ScenePiece =
        * (hidden in the house view); "all" (default): always. Applies to the "pipe" look.
        */
       views?: "all" | "house" | "floor";
+    }
+  | {
+      /**
+       * A figure standing in the plan (floor coordinates): a person as a neon silhouette, a car or an animal as a round
+       * pin with its symbol. A tap opens `entity` (a camera's picture).
+       */
+      kind: "figure";
+      id: string;
+      floorId: string;
+      at: Vec2;
+      look: "person" | "car" | "pet";
+      name: string;
+      /** "#rrggbb" (default: the people's pink). */
+      color?: string;
+      entity?: string;
     }
   | {
       /**
