@@ -4,7 +4,6 @@
 // tablet stays at 0 B/s).
 
 import { deviceSensors, type DeviceSensors } from "../energy.ts";
-import { isLamp } from "../model.ts";
 import type { HomeAssistant } from "../types.ts";
 import "../components/time-bar.ts";
 import { appliancePower, eventRoles, historyRequest, type Role } from "./classify.ts";
@@ -13,7 +12,7 @@ import { LiveLog } from "./live.ts";
 import { crossedEvent, eventNear, eventsIn, parseMoment, Playback, SPEEDS, tickMs, WEEK_SPEEDS } from "./playback.ts";
 import { Replay } from "./replay-hass.ts";
 import { robotRun } from "./robot.ts";
-import { roomEntities, roomOf, type RoomEntities } from "./rooms.ts";
+import { lampSwitches, roomEntities, roomOf, type RoomEntities } from "./rooms.ts";
 import { isNight, nightBands } from "./sun.ts";
 import { awaySuggestion, awaySummary, dayEnergy, daySummary, energyAt, energyIds, quietStretches, type AwayRow, type DaySummary } from "./summary.ts";
 import { withTexts } from "./texts.ts";
@@ -564,9 +563,8 @@ export class Session implements TimeTravelSession {
     const timeline = this.timeline;
     if (!timeline) return [];
     // lights: light entities, and the switches that drive a lamp of the plan (a Shelly behind the ceiling light, #1032)
-    const links = new Map(this.opts.spec.furniture);
-    const lampSwitches = new Set(this.opts.building.floors.flatMap((f) => f.furniture).filter((f) => isLamp(f.type)).map((f) => links.get(f.id)?.entity).filter((e): e is string => !!e && e.startsWith("switch.")));
-    return awaySummary({ timeline, roles: this.roles, events: this.allEvents, lights: [...timeline.tracks.keys()].filter((id) => id.startsWith("light.") || lampSwitches.has(id)), motion: this.motion(), from, to });
+    const switches = lampSwitches(this.opts.building, this.opts.spec);
+    return awaySummary({ timeline, roles: this.roles, events: this.allEvents, lights: [...timeline.tracks.keys()].filter((id) => id.startsWith("light.") || switches.has(id)), motion: this.motion(), from, to });
   }
 
   /**

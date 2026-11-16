@@ -2,7 +2,7 @@
 // names in the events sheet. Rooms come from Home Assistant's areas, the devices placed in the plan, linked
 // furniture and the windows' sensors.
 
-import { pointInPolygon, zonesOf, type Building } from "../model.ts";
+import { isLamp, pointInPolygon, zonesOf, type Building } from "../model.ts";
 import { entityAreaId } from "../devices.ts";
 import type { HomeAssistant } from "../types.ts";
 import type { HistorySpec } from "./types.ts";
@@ -27,6 +27,13 @@ function areaOf(hass: HomeAssistant, id: string): string | null {
   return entityAreaId(hass, id);
 }
 
+/** The switches that drive a lamp of the plan (a Shelly behind the ceiling light, a plug under the floor lamp): lights too (#1032). */
+export function lampSwitches(building: Building, spec: Pick<HistorySpec, "furniture">): Set<string> {
+  const links = new Map(spec.furniture);
+  const ids = building.floors.flatMap((f) => f.furniture.filter((m) => isLamp(m.type)).map((m) => links.get(m.id)?.entity));
+  return new Set(ids.filter((e): e is string => !!e && e.startsWith("switch.")));
+}
+
 /** The rooms of the plan with their lights, windows, climate devices and temperature sensors. */
 export function roomEntities(hass: HomeAssistant, building: Building, spec: Pick<HistorySpec, "openings" | "furniture">): RoomEntities[] {
   const out: RoomEntities[] = [];
@@ -37,6 +44,7 @@ export function roomEntities(hass: HomeAssistant, building: Building, spec: Pick
   }
   const openings = new Map(spec.openings);
   const furniture = new Map(spec.furniture);
+  const switches = lampSwitches(building, spec);
   for (const floor of building.floors) {
     // the rooms and the outdoor areas with an area of their own (a balcony with its sensor, #974)
     for (const room of zonesOf(floor)) {
@@ -61,7 +69,7 @@ export function roomEntities(hass: HomeAssistant, building: Building, spec: Pick
         floorId: floor.id,
         roomId: room.id,
         name: room.name,
-        lights: all.filter((id) => domainOf(id) === "light"),
+        lights: all.filter((id) => domainOf(id) === "light" || switches.has(id)),
         windows,
         climates: all.filter((id) => domainOf(id) === "climate"),
         // the room's own temperature when one is set (⚙ Room climate); else the temperature sensors of its area without

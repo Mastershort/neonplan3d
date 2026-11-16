@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { emptyBuilding, newFloor } from "../model.ts";
 import type { HomeAssistant } from "../types.ts";
-import { roomEntities } from "./rooms.ts";
+import { lampSwitches, roomEntities } from "./rooms.ts";
 
 test("an outdoor area with an area of its own is a room of the time travel: its sensors replay (#974)", () => {
   const floor = newFloor("eg", "EG", 0);
@@ -24,4 +24,19 @@ test("an outdoor area with an area of its own is a room of the time travel: its 
   assert.deepEqual(rooms.map((r) => r.roomId), ["living", "balcony"]);
   assert.deepEqual(rooms[1].temps, ["sensor.balcony_temp"]);
   assert.equal(rooms[1].name, "Balkon");
+});
+
+test("a switch that drives a lamp of the plan counts as the room's light in the day summary (#1032)", () => {
+  const floor = newFloor("eg", "EG", 0);
+  floor.rooms = [{ id: "living", name: "Wohnen", area_id: "living", floor_material: "wood", points: [[0, 0], [5, 0], [5, 4], [0, 4]] }];
+  floor.furniture = [{ id: "lamp", type: "lamp_floor", x: 1, z: 1, rotation: 0, w: 0.4, d: 0.4, h: 1.6 } as never, { id: "tv", type: "tv", x: 3, z: 1, rotation: 0, w: 1, d: 0.2, h: 0.6 } as never];
+  const b = { ...emptyBuilding(), floors: [floor] };
+  const ids = ["switch.plug_lamp", "switch.plug_tv", "light.ceiling"];
+  const hass = {
+    entities: Object.fromEntries(ids.map((id) => [id, { entity_id: id, area_id: "living" }])),
+    states: Object.fromEntries(ids.map((id) => [id, { entity_id: id, state: "on", attributes: {} }])),
+  } as unknown as HomeAssistant;
+  const rooms = roomEntities(hass, b, { openings: [], furniture: [["lamp", { entity: "switch.plug_lamp" }], ["tv", { entity: "switch.plug_tv" }]] as never });
+  assert.deepEqual(rooms[0].lights.sort(), ["light.ceiling", "switch.plug_lamp"]);
+  assert.deepEqual([...lampSwitches(b, { furniture: [["lamp", { entity: "switch.plug_lamp" }], ["tv", { entity: "switch.plug_tv" }]] as never })], ["switch.plug_lamp"]);
 });
