@@ -65,7 +65,8 @@ export class Fp3dFlyin extends LitElement {
     const canvas = this.renderRoot.querySelector("canvas");
     const ctx = canvas?.getContext("2d");
     if (!canvas || !ctx) return;
-    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    // one pixel per CSS pixel: the globe is soft anyway, and a full high-resolution canvas each frame made it stutter
+    const dpr = 1;
     const w = Math.round(canvas.clientWidth * dpr);
     const h = Math.round(canvas.clientHeight * dpr);
     if (canvas.width !== w || canvas.height !== h) {
@@ -96,12 +97,17 @@ export class Fp3dFlyin extends LitElement {
     // keep the home under the middle while diving in
     const cx = w / 2 - (home ? home[0] * r * d : 0);
     const cy = h / 2 + (home ? home[1] * r * d : 0);
-    // the planet: a dark disc with a cyan rim
-    const glow = ctx.createRadialGradient(cx, cy, r * 0.95, cx, cy, r * 1.25);
-    glow.addColorStop(0, "rgba(62,232,255,0.35)");
-    glow.addColorStop(1, "rgba(62,232,255,0)");
-    ctx.fillStyle = glow;
-    ctx.fillRect(0, 0, w, h);
+    // the planet: a dark disc with a cyan rim (the glow only where it is, not over the whole picture)
+    if (r < Math.max(w, h)) {
+      const glow = ctx.createRadialGradient(cx, cy, r * 0.95, cx, cy, r * 1.25);
+      glow.addColorStop(0, "rgba(62,232,255,0.35)");
+      glow.addColorStop(1, "rgba(62,232,255,0)");
+      ctx.fillStyle = glow;
+      const g = r * 1.25;
+      const x0 = Math.max(0, cx - g);
+      const y0 = Math.max(0, cy - g);
+      ctx.fillRect(x0, y0, Math.min(w, cx + g) - x0, Math.min(h, cy + g) - y0);
+    }
     ctx.fillStyle = "#06101f";
     ctx.beginPath();
     ctx.arc(cx, cy, r, 0, Math.PI * 2);
@@ -126,8 +132,11 @@ export class Fp3dFlyin extends LitElement {
       }
       ctx.stroke();
     };
-    for (let la = -75; la <= 75; la += 15) line(Array.from({ length: 73 }, (_, i) => [la, i * 5 - 180] as [number, number]));
-    for (let lo = -180; lo < 180; lo += 15) line(Array.from({ length: 37 }, (_, i) => [i * 5 - 90, lo] as [number, number]));
+    // the grid fades while diving in; once it is faint it is left out
+    if (d < 0.8) {
+      for (let la = -75; la <= 75; la += 15) line(Array.from({ length: 73 }, (_, i) => [la, i * 5 - 180] as [number, number]));
+      for (let lo = -180; lo < 180; lo += 15) line(Array.from({ length: 37 }, (_, i) => [i * 5 - 90, lo] as [number, number]));
+    }
     // the home: a pulsing point and a beam up into space
     if (home) {
       const x = cx + home[0] * r;

@@ -212,7 +212,8 @@ export class SkyLayer {
       }
     }
     // stars: they come out after sunset and turn with the night (15° an hour)
-    const starsOut = clamp01((0.45 - day) / 0.35) * (1 - input.cloud * 0.85);
+    // between the clouds some stars still show (fully covered, a night sky would be plain black)
+    const starsOut = clamp01((0.45 - day) / 0.35) * (1 - input.cloud * 0.6);
     if (starsOut > 0.02) {
       const turn = ((input.date.getHours() + input.date.getMinutes() / 60) * 15) % 360;
       const still = this.still();
@@ -237,16 +238,17 @@ export class SkyLayer {
       }
     }
     // the moon in its real phase: as far round from the sun as its phase says (full moon opposite it), high in the picture
-    if (input.sun && day < 0.5 && input.cloud < 0.9) {
+    if (input.sun && day < 0.5 && input.cloud < 0.97) {
       const phase = moonPhase(input.date);
       const p = this.onScreen((input.sun.azimuth + phase * 360) % 360, 40 + 0.3 * Math.min(40, Math.max(0, -input.sun.elevation)), w, fr, input.north);
-      if (p) this.drawMoon(ctx, p[0], p[1], 11 * dpr, phase, (1 - day * 1.8) * (1 - input.cloud));
+      if (p) this.drawMoon(ctx, p[0], p[1], 11 * dpr, phase, (1 - day * 1.8) * (1 - input.cloud * 0.6));
     }
     // clouds: soft banks that drift with the wind (only with the weather outside)
     if (input.cloud > 0.04) {
       const n = Math.round(CLOUDS.length * Math.min(1, input.cloud * 1.15));
       const drift = (t * (0.4 + input.wind * 2.5)) % 360;
-      const tone: RGB = mixC([40, 46, 62], [236, 240, 246], day);
+      // by night the clouds are lit faintly by the moon and the town, so they show on the dark sky
+      const tone: RGB = mixC([92, 104, 138], [236, 240, 246], day);
       const lit: RGB = mixC(tone, [255, 176, 120], glow * 0.6);
       for (let i = 0; i < n; i++) {
         const c = CLOUDS[i];
@@ -256,7 +258,7 @@ export class SkyLayer {
         const q = this.onScreen(c.az + drift + c.w / 2, c.el, w, fr, input.north);
         const rx = q ? Math.max(20, Math.abs(q[0] - p[0])) : 60 * dpr;
         const ry = rx * (c.h / c.w) * 1.6;
-        const a = (input.mode === "full" ? 0.55 : 0.32) * Math.min(1, input.cloud * 1.3);
+        const a = (input.mode === "full" ? 0.55 : day < 0.3 ? 0.42 : 0.32) * Math.min(1, input.cloud * 1.3);
         for (let k = -1; k <= 1; k++) {
           const cx = p[0] + k * rx * 0.45;
           const cy = p[1] - Math.abs(k) * ry * -0.15;
