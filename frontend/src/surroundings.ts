@@ -217,6 +217,8 @@ export interface PlacedSurroundings {
   trees: Vec2[];
   /** The neighbours' houses only as outlines on the ground. */
   flat: boolean;
+  /** Up or down from the ground floor's ground (m). */
+  y: number;
 }
 
 export function placedSurroundings(b: Building | null | undefined): PlacedSurroundings | null {
@@ -231,6 +233,7 @@ export function placedSurroundings(b: Building | null | undefined): PlacedSurrou
     areas: s.areas.map((a) => ({ p: a.p.map(at), k: a.k })),
     trees: s.trees.map(at),
     flat: s.flat === true,
+    y: Number.isFinite(s.y) ? (s.y as number) : 0,
   };
 }
 

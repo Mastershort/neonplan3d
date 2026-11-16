@@ -143,6 +143,9 @@ test("the own building and buildings standing in the plan's rooms are not drawn"
   const placed = placedSurroundings({ ...b, settings: { ...b.settings, surroundings: s } })!;
   assert.equal(placed.buildings.length, 1);
   assert.deepEqual(placed.buildings[0].p[0], [26, 4]);
+  // on the ground floor's ground, unless shifted up or down (#1148)
+  assert.equal(placed.y, 0);
+  assert.equal(placedSurroundings({ ...b, settings: { ...b.settings, surroundings: { ...s, y: -1.2 } } })!.y, -1.2);
   assert.equal(placedSurroundings({ ...b, settings: { ...b.settings, surroundings: { ...s, on: false } } }), null);
   // by hand: one more hidden, one shown although it stands in a room; and the houses only as outlines
   const picked = { ...s, hide: [1], show: [2], flat: true };

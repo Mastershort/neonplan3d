@@ -582,7 +582,7 @@ export function buildFloorGeometry(
   const shadow = buildShadow(outline.edges, floor.rooms, spans);
   const waterBuf = new GeoBuffer();
   pushOutdoor(wallBuf, lines, floor, waterBuf);
-  if (surroundings) pushSurroundings(wallBuf, lines, surroundings, groundLevel(floor));
+  if (surroundings) pushSurroundings(wallBuf, lines, surroundings, groundLevel(floor) + surroundings.y);
   for (const s of solar) pushModules(wallBuf, lines, s.face, s.field, floor.elevation);
 
   // lamps are drawn live by the viewer (they glow with their light)

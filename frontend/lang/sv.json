@@ -2489,6 +2489,8 @@
  "surround_north": "Norr: {deg}°",
  "surround_credit": "Kartdata © OpenStreetMap-bidragsgivare",
  "surround_flat": "Grannarnas hus bara som kontur (platta i stället för block)",
+ "surround_y": "Omgivningens höjd (m)",
+ "surround_y_hint": "Ligger gatan högre eller lägre än bottenvåningen (slänt, sluttande uppfart) flyttar detta hela kartan uppåt (+) eller nedåt (−).",
  "surround_pick": "Visa och dölj hus",
  "surround_pick_hint": "Tryck på ett hus för att dölja det eller visa det igen. Gul streckad = dold: NeonPlan döljer själv ditt hus och kartans byggnader som står på din planritning (till exempel ett garage).",
  "surround_pick_hide": "Tryck för att dölja",

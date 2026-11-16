@@ -14654,7 +14654,9 @@ export class Fp3dEditor extends LitElement {
             <label class="fp3d-check fp3d-wide"
               ><input type="checkbox" .checked=${s.flat === true} ?disabled=${!this.isAdmin} @change=${(e: Event) => edit((sur) => (sur.flat = (e.target as HTMLInputElement).checked))} />
               ${this.t("surround_flat")}</label
-            >`
+            >
+            ${this.len(this.t("surround_y"), s.y ?? 0, (v) => edit((sur) => (sur.y = Math.round(Math.max(-30, Math.min(30, v)) * 100) / 100 || undefined)), 0.05, -30)}
+            <p class="fp3d-sub fp3d-wide">${this.t("surround_y_hint")}</p>`
           : nothing}
       </div>
       <div class="fp3d-actions">
