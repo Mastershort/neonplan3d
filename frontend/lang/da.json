@@ -2169,6 +2169,8 @@
  "tap_in_room": "Skift kun enheder i det åbne rum",
  "tap_in_room_hint": "I hus- og etagevisningen åbner et tryk på en enhed dens rum i stedet for at skifte den – så et tryk på etagen ikke ved et uheld flytter et rullegardin. I det åbne rum er alt som før; et langt tryk åbner menuen overalt.",
  "sun_shadow_hint": "En bue over huset viser solens bane i dag med solopgang og solnedgang, og husets skygge ligger på jorden og vandrer med solen. Kræver nordretningen; på niveauet \"Tablet\" kun buen.",
+ "sky": "Ægte himmel",
+ "sky_hint": "En himmel bag huset efter solens rigtige stand: aftenrøde, stjerner der vandrer gennem natten og månen i sin rigtige fase. Med „Vejret udenfor“ driver skyer med vinden. Fra ved egen baggrund og i blåtryk-looket; på niveauet „Tablet“ et roligt stillbillede.",
  "window_glow": "Vinduer lyser udenfor om natten",
  "window_glow_hint": "Når det er mørkt, falder lyset fra oplyste rum ud gennem vinduerne som et varmt skær på græsplæne og terrasse – i rummets lysfarve, svagere bag nedrullede persienner.",
  "gpu_safe_note": "I denne browser er solbuen, husets skygge og vinduernes skær om natten slået fra: grafikken gik tabt lige efter starten. Den næste NeonPlan-version prøver igen.",

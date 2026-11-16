@@ -2169,6 +2169,8 @@
  "tap_in_room": "Spínať zariadenia len v otvorenej miestnosti",
  "tap_in_room_hint": "V pohľade na dom a podlažie otvorí klepnutie na zariadenie jeho miestnosť namiesto toho, aby ho prepol – klepnutie na podlažie tak omylom nepohne roletou. V otvorenej miestnosti sa nič nemení; dlhé podržanie otvorí ponuku všade.",
  "sun_shadow_hint": "Oblúk nad domom ukazuje dnešnú dráhu slnka s východom a západom a tieň domu leží na zemi a putuje so slnkom. Vyžaduje smer severu; na úrovni „Tablet“ len oblúk.",
+ "sky": "Skutočná obloha",
+ "sky_hint": "Za domom obloha podľa skutočnej polohy slnka: červánky, hviezdy putujúce nocou a Mesiac v skutočnej fáze. S „Počasie vonku“ plávajú oblaky s vetrom. Vypnuté s vlastným pozadím a vo vzhľade Plán; na úrovni „Tablet“ pokojný statický obraz.",
  "window_glow": "Okná v noci svietят von",
  "window_glow_hint": "Keď je vonku tma, svetlo rozsvietených miestností preniká oknami na trávnik a terasu ako teplá žiara. Má farbu svetla v miestnosti a je slabšie za zatiahnutými roletami.",
  "gpu_safe_note": "V tomto prehliadači sú dráha slnka, tieň domu a nočná žiara okien vypnuté: grafika zlyhala hneď po spustení. Ďalšia verzia NeonPlanu to skúsi znova.",

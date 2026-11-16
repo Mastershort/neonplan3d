@@ -2169,6 +2169,8 @@
  "tap_in_room": "Comandare i dispositivi solo nella stanza aperta",
  "tap_in_room_hint": "Nella vista della casa e del piano, un tocco su un dispositivo apre la sua stanza invece di comandarlo: così un tocco pensato per il piano non muove per sbaglio una tapparella. Nella stanza aperta non cambia nulla; una pressione lunga apre il menu ovunque.",
  "sun_shadow_hint": "Un arco sopra la casa mostra il percorso del sole oggi con alba e tramonto, e l'ombra della casa si posa a terra e segue il sole. Serve la direzione nord; al livello «Tablet» solo l'arco.",
+ "sky": "Cielo reale",
+ "sky_hint": "Un cielo dietro la casa che segue il sole reale: colori del tramonto, stelle che si muovono con la notte e la luna nella sua fase reale. Con «Meteo esterno» le nuvole scorrono col vento. Spento con uno sfondo proprio e nell’aspetto progetto; un’immagine fissa al livello «Tablet».",
  "window_glow": "Le finestre illuminano fuori di notte",
  "window_glow_hint": "Quando fuori è buio, la luce delle stanze accese esce dalle finestre come un bagliore caldo su prato e terrazza – nel colore della luce della stanza, più debole dietro le tapparelle abbassate.",
  "gpu_safe_note": "In questo browser l'arco del sole, l'ombra della casa e il bagliore delle finestre di notte sono disattivati: la grafica si è persa subito dopo l'avvio. La prossima versione di NeonPlan riproverà.",

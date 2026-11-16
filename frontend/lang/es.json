@@ -2169,6 +2169,8 @@
  "tap_in_room": "Accionar dispositivos solo en la habitación abierta",
  "tap_in_room_hint": "En la vista de la casa y de la planta, un toque en un dispositivo abre su habitación en vez de accionarlo, así un toque pensado para la planta no mueve una persiana por error. En la habitación abierta todo sigue igual; una pulsación larga abre el menú en cualquier sitio.",
  "sun_shadow_hint": "Un arco sobre la casa muestra el recorrido del sol hoy con amanecer y atardecer, y la sombra de la casa se dibuja en el suelo y se mueve con el sol. Necesita la orientación norte; en el nivel «Tableta» solo el arco.",
+ "sky": "Cielo real",
+ "sky_hint": "Un cielo detrás de la casa según la posición real del sol: arreboles, estrellas que se mueven durante la noche y la luna en su fase real. Con «Tiempo exterior» las nubes se mueven con el viento. Desactivado con fondo propio y en el aspecto plano; en el nivel «Tablet» una imagen fija.",
  "window_glow": "Las ventanas iluminan fuera de noche",
  "window_glow_hint": "Cuando está oscuro, la luz de las habitaciones encendidas sale por las ventanas como un brillo cálido sobre el césped y la terraza – en el color de la luz de la habitación, más tenue tras persianas bajadas.",
  "gpu_safe_note": "En este navegador, el arco del sol, la sombra de la casa y el brillo de las ventanas de noche están desactivados: los gráficos se perdieron justo después de arrancar. La próxima versión de NeonPlan lo intentará de nuevo.",

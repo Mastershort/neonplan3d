@@ -2169,6 +2169,8 @@
  "tap_in_room": "Przełączaj urządzenia tylko w otwartym pomieszczeniu",
  "tap_in_room_hint": "W widoku domu i piętra dotknięcie urządzenia otwiera jego pomieszczenie zamiast je przełączać – dzięki temu dotknięcie piętra nie poruszy przypadkiem rolety. W otwartym pomieszczeniu wszystko działa jak dotąd; długie przytrzymanie wszędzie otwiera menu.",
  "sun_shadow_hint": "Łuk nad domem pokazuje dzisiejszą drogę słońca ze wschodem i zachodem, a cień domu leży na ziemi i wędruje za słońcem. Wymaga kierunku północy; na poziomie „Tablet” tylko łuk.",
+ "sky": "Prawdziwe niebo",
+ "sky_hint": "Za domem niebo zgodne z prawdziwym położeniem słońca: zorza wieczorna, gwiazdy wędrujące nocą i Księżyc w prawdziwej fazie. Z „Pogodą na zewnątrz” chmury płyną z wiatrem. Wyłączone przy własnym tle i w wyglądzie planu; na poziomie „Tablet” spokojny nieruchomy obraz.",
  "window_glow": "Okna świecą nocą na zewnątrz",
  "window_glow_hint": "Gdy na zewnątrz jest ciemno, światło oświetlonych pomieszczeń pada przez okna ciepłą poświatą na trawnik i taras – w kolorze światła pomieszczenia, słabiej za opuszczonymi roletami.",
  "gpu_safe_note": "W tej przeglądarce łuk słońca, cień domu i nocna poświata okien są wyłączone: grafika została utracona zaraz po starcie. Następna wersja NeonPlan spróbuje ponownie.",

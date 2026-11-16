@@ -958,6 +958,7 @@ SETTINGS_SCHEMA = vol.Schema(
         # sunlight through the windows as patches on the floor
         vol.Optional("sun_patches", default=True): bool,
         vol.Optional("sun_shadow", default=True): bool,
+        vol.Optional("sky"): bool,
         # what the sun's arc and compass ring stand around: the house (None, default) or the whole plot (#833)
         vol.Optional("sun_arc"): vol.Any(None, vol.In(["house", "plot"])),
         vol.Optional("window_glow", default=True): bool,

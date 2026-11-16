@@ -2169,6 +2169,8 @@
  "tap_in_room": "Commander les appareils seulement dans la pièce ouverte",
  "tap_in_room_hint": "Dans la vue de la maison et de l'étage, un toucher sur un appareil ouvre sa pièce au lieu de le commander : un toucher destiné à l'étage ne fait plus bouger un volet par erreur. Dans la pièce ouverte, rien ne change ; un appui long ouvre le menu partout.",
  "sun_shadow_hint": "Un arc au-dessus de la maison montre la course du soleil aujourd'hui avec lever et coucher, et l'ombre de la maison se pose au sol et suit le soleil. Nécessite l'orientation nord ; au niveau « Tablette », seulement l'arc.",
+ "sky": "Ciel réel",
+ "sky_hint": "Un ciel derrière la maison qui suit le vrai soleil : couleurs du couchant, étoiles qui tournent avec la nuit et la lune dans sa vraie phase. Avec « Météo extérieure », les nuages dérivent avec le vent. Désactivé avec un fond personnel et dans l’aspect plan ; image fixe au niveau « Tablette ».",
  "window_glow": "Les fenêtres éclairent dehors la nuit",
  "window_glow_hint": "Quand il fait nuit, la lumière des pièces éclairées sort par les fenêtres en une lueur chaude sur la pelouse et la terrasse – dans la couleur de la pièce, plus faible derrière les volets baissés.",
  "gpu_safe_note": "Dans ce navigateur, la course du soleil, l'ombre de la maison et la lueur des fenêtres la nuit sont désactivées : le graphisme s'est perdu juste après le démarrage. La prochaine version de NeonPlan réessaiera.",

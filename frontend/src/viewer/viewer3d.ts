@@ -54,6 +54,7 @@ import { buildLightSurface, lightColors, roomIndexAt, shadowed, spillLength, win
 import { buildOpeningParts, CLOSED, lightCover, type OpeningState } from "./openings.ts";
 import { circlePath, cleaningPath, stepRobot, type RobotInfo, type RobotMotion } from "./robot.ts";
 import { decorDelay, lowEndDevice, petDelay, SLOW_KEY, SLOW_SAMPLES, SLOW_WARMUP_MS, slowFrames } from "./pace.ts";
+import { SkyLayer } from "./sky.ts";
 
 export type { RobotInfo } from "./robot.ts";
 
@@ -844,6 +845,9 @@ export class FloorplanViewer {
     this.skyDisc.renderOrder = -1;
     this.scene.add(this.rain, this.snow, this.mist, this.skyDisc, this.sunFx.group);
     this.controls = this.makeControls();
+    // the real sky: a 2D canvas behind the 3D one (first in the host, so the look's own layers stay above it)
+    this.sky = new SkyLayer(this.camera, () => this.lowQuality);
+    host.prepend(this.sky.canvas);
     this.resizeObserver = new ResizeObserver(() => this.resize());
     this.resizeObserver.observe(host);
     document.addEventListener("visibilitychange", this.onVisibility);
@@ -945,6 +949,7 @@ export class FloorplanViewer {
     this.controls.dispose();
     this.controls = this.makeControls();
     this.controls.view = view;
+    this.placeRealSky();
     this.resize();
   }
 
@@ -962,6 +967,7 @@ export class FloorplanViewer {
     this.lastWake = performance.now();
     this.building = building;
     this.controls.rightClickBack = !!building.settings.right_click_back;
+    this.placeRealSky();
     // this bundle's own copy of the ground (outdoor areas, earth around cellars)
     setTerrain(building);
     this.rebuild();
@@ -1775,6 +1781,7 @@ export class FloorplanViewer {
     if (rebuild || fixedColours) this.rebuild();
     else this.styleFloors();
     this.placeGround();
+    this.placeRealSky();
     this.invalidate();
   }
 
@@ -1854,6 +1861,7 @@ export class FloorplanViewer {
       for (const fv of this.floors) this.buildSpill(fv, this.lightSources(fv));
     }
     this.placeSky();
+    this.placeRealSky();
     this.buildSunFx();
     this.invalidate();
   }
@@ -1873,6 +1881,7 @@ export class FloorplanViewer {
     for (const fv of this.floors) this.buildSun(fv);
     this.applyWeather();
     this.placeSky();
+    this.placeRealSky();
     this.buildSunFx();
     this.invalidate();
   }
@@ -2025,7 +2034,8 @@ export class FloorplanViewer {
     const w = this.weather;
     const cloud = w?.cloud ?? 0;
     const night = !sun || sun.elevation < -3;
-    if (!sun || !w || w.disc === false || cloud > 0.85 || (!night && sun.elevation < 1)) {
+    // by night the real sky draws the moon in its phase: no second, flat moon in 3D
+    if (!sun || !w || w.disc === false || cloud > 0.85 || (!night && sun.elevation < 1) || (night && this.realSkyOn())) {
       this.skyDisc.visible = false;
       return;
     }
@@ -2565,6 +2575,7 @@ export class FloorplanViewer {
   }
 
   dispose(): void {
+    this.sky.dispose();
     this.projections.dispose();
     this.disposed = true;
     cancelAnimationFrame(this.frame);
@@ -2684,7 +2695,36 @@ export class FloorplanViewer {
     this.renderer.setSize(w, h, false);
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
+    this.sky.viewChanged();
     this.invalidate();
+  }
+
+  /** The real sky behind the house (free): off with an own background, in the blueprint look or when switched off. */
+  private readonly sky: SkyLayer;
+  private skyKey = "";
+
+  private realSkyOn(): boolean {
+    const b = this.building;
+    return !!b && b.settings.sky !== false && !b.settings.backdrop?.kind && this.style.base !== "blueprint";
+  }
+
+  private placeRealSky(): void {
+    const b = this.building;
+    const style = this.style;
+    const off = !b || !this.realSkyOn();
+    // the homely look by day paints the whole sky; the evening looks and neon keep their own sky and get stars, moon,
+    // the sunset's glow and clouds over it
+    const mode = style.natural && !style.dim ? "full" : "overlay";
+    const w = this.weather;
+    const now = new Date();
+    const input = off
+      ? null
+      : { sun: this.sun, north: b.settings.north ?? 0, cloud: w?.cloud ?? 0, wind: w?.wind ?? 0, mode: mode as "full" | "overlay", date: now };
+    // set again only when something changed (the minute keeps the stars turning and the moon's phase current)
+    const key = input ? JSON.stringify({ ...input, date: Math.floor(now.getTime() / 60_000), q: this.lowQuality }) : "off";
+    if (key === this.skyKey) return;
+    this.skyKey = key;
+    this.sky.set(input);
   }
 
   /** Materials of a previous build, disposed after the next frame (see clear()). */
@@ -5987,6 +6027,7 @@ export class FloorplanViewer {
     if (this.viewChanged() || floorsMoving || this.labelsDirty) {
       this.labelsDirty = false;
       this.updateLabels();
+      this.sky.viewChanged();
     }
     // everything that keeps drawing (also the energy flow, effects, robots) shows in the frame rate
     this.reportStats(now, busy);

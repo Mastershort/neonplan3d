@@ -5570,6 +5570,7 @@ export class Fp3dView3d extends LitElement {
         </header>
         ${admin ? nothing : html`<p class="fp3d-set-note">${t("view_settings_admin")}</p>`}
         <h4>${t("view_settings_look")}</h4>
+        ${check("sky", st.sky !== false, (v) => ({ sky: v }), "sky_hint")}
         ${check("sun_shadow", st.sun_shadow !== false, (v) => ({ sun_shadow: v }), "sun_shadow_hint")}
         ${st.sun_shadow !== false
           ? html`<label class="fp3d-set-field" title=${t("sun_arc_hint")}
@@ -6714,6 +6715,16 @@ export class Fp3dView3d extends LitElement {
       .fp3d-zoom-bg {
         position: absolute;
         inset: 0;
+        z-index: -1;
+        pointer-events: none;
+      }
+      /* the real sky (drawn by the 3D view): first on the stage, so the zoom style's background lies over it */
+      .fp3d-sky {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        display: block;
         z-index: -1;
         pointer-events: none;
       }
