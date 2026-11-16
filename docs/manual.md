@@ -718,6 +718,10 @@ With north set, sunlight from `sun.sun` falls through the windows facing the sun
 
 **Sun arc and house shadow (since 2.0.7):** a dotted arc around the house shows the sun's way today, with the times of sunrise and sunset at its ends. A glowing dot on it is the sun now, a brighter dot marks every full hour. The house's shadow lies on the ground and moves with the sun, so you can see when the terrace gets sun. The shadow shows in the **All floors** view and not on the **Tablet** level, the arc on every level. Both need the north direction and the home's location in Home Assistant; switch them off in the ⭐ central menu under **⚙ Settings** (or in the editor's settings) with **Sun arc and house shadow**. On a large plot, **Sun arc around: the whole plot** (in the same place, since 2.2.0) puts the arc and the compass ring around everything drawn – rooms, outdoor areas, fences and free walls – instead of only the house.
 
+**Real sky (since 3.5.0):** behind the house stands a sky that follows the real sun: sunset colours, the blue hour, at night stars that move through the night and the moon in its real phase. It turns with the view. With **Weather outside** (6.2) clouds drift with the real weather and wind. In the homely day styles it paints the whole sky; in the neon look and the evening styles stars, moon, sunset glow and clouds come over the look's own background. Off with an own background and in the blueprint look; a still picture on the **Tablet** level. Switch it off under **⚙ Settings** with **Real sky**.
+
+**Fly in from space (since 3.5.0, option):** with **Fly in from space** under **⚙ Settings**, a neon globe turns to your home (the location in Home Assistant) when the view opens, a beam marks it, the view dives in and the camera comes down from high above onto the house. Once per page load, a tap skips it. Not in the editor and not on the **Tablet** level; switched on, it plays once right away.
+
 **Windows glow outside at night (since 2.0.7):** when it is dark outside, the light of lit rooms on the ground floor falls out of the windows as a warm glow onto the lawn and terrace in front, in the lamp's colour. Since 3.0.5 the glow is each lamp's cone through the window opening: it lies shifted away from the lamp (a lamp to the left of the window lights the ground to its right), fades with the distance from the lamp, and a lamp around the corner that cannot see the window past a wall throws nothing out. A dimmed lamp glows correspondingly less outside. Lowered blinds dim it. A window over a balcony lights the balcony; the glow ends at its edge. Switch it off in the ⭐ central menu under **⚙ Settings** (or in the editor's settings) with **Windows glow outside at night**.
 
 ### 5.8 Warnings
@@ -1000,6 +1004,8 @@ Pro add-ons are paid extra features, sold singly in the shop. Without an add-on,
 
 Someone using the tablet is only interrupted by the doorbell and by warnings. If you touch the screen while the director shows something, the view stays where it is. Part of the camera cockpit.
 
+**People from cameras (release 2, since NeonPlan 3.5.0):** when a camera sees a person, a car or an animal, a figure stands on the plot – a person as a neon silhouette, a car and an animal as a symbol. With **Frigate** (the Frigate integration) right where it is, and the figure moves along: NeonPlan turns the foot point of Frigate's detection into a spot on the ground using the camera in the plan (place, height, turn, tilt, angle) – set these as exactly as you can. With other cameras (Reolink, UniFi Protect …) the figure stands in the camera's view while its person, vehicle or animal sensor reports. A tap on the figure opens the camera. Switch it off under **⚙ Settings** in the section **People from cameras**. The update comes over the shop connection; the module has to be approved once under **Extensions → Modules**.
+
 ### 6.2 Weather outside
 
 ![Rain](images/view-weather-rain.jpg)
@@ -1116,6 +1122,8 @@ What a player should bring: the state `playing`/`paused`, `media_title` and `med
 
 **Echo devices (Alexa Media Player):** play, pause and track change work. The **volume** cannot be set on some devices and versions of Alexa Media Player, or only with a delay, and the new value often comes back minutes later. This is down to the unofficial Amazon interface, not NeonPlan; Home Assistant's own media player dialog has the same limit. Echos controlled through Music Assistant usually follow the volume more reliably.
 
+**Music follows you (release 2, since NeonPlan 3.5.0):** walk into another room and the music comes along: once the room with the music is empty, it plays on in the new room, and in 3D notes fly from one speaker to the other. It needs **Music Assistant**: the speakers in the plan have to be Music Assistant players, and every room needs a presence or motion sensor in its area. Under **⚙ Settings → Music follows you** NeonPlan shows which rooms are ready, and **Set up** creates the automation "NeonPlan – Music follows you" in Home Assistant – it runs even when no tablet is open. When rooms or speakers change, **Set up again** once. The module has to be approved once under **Extensions → Modules**.
+
 ### 6.6 Car Pro
 
 Car Pro brings the car into the plan the way its integration reports it (Tesla, VW We Connect, BMW, Hyundai/Kia, Renault, Smart, Polestar, Audi, Skoda, Cupra, Ford …). It needs a **parking spot** with a vehicle (4.10) and the car's integration in Home Assistant.
@@ -1214,6 +1222,8 @@ Household Pro shows what is due in the household, right where it happens. The wa
 - **Fridge:** when a door stands open longer than set (default 2 minutes), NeonPlan warns at the top of the view. The **smart fridge** (side-by-side with moving doors) in the furniture library comes with it.
 - **Calendars (since 3.2):** under **⚙ Settings → House → Calendars in "Today in the household"** tick calendars. Their entries of today stand on the card, all-day ones first, then by time ("14:30 Dentist"). Ended ones drop off; one starting within the hour stands in amber. A tap opens the calendar.
 - **Today in the household:** a glass card at the top right lists what is due – bins today and tomorrow, post, finished appliances, thirsty plants, services due, open fridge doors. A tap opens the device, its header folds it. In the dashboard card `household_card: false` switches it off.
+
+**Clean right here (release 2, since NeonPlan 3.5.0):** in the ⭐ central menu, **🧹 Clean right here** sends the robot vacuum to a spot: **📍 Tap the spot** and then tap the crumbs in the plan – it cleans a square round it (1, 1.5, 2 or 3 m). Each robot is measured in once: it stands in its dock – **1 · Tap the dock** and tap the dock in the plan; then it stands somewhere else (at least 2 m away) – **2 · Tap a second spot**. **Test drive** checks that it drives exactly there; if it is mirrored, **Map mirrored** helps. Works with **Roborock**, **Dreame** (Dreame Vacuum) and **Xiaomi** (with the Xiaomi Cloud Map Extractor); other robots keep room cleaning. The module has to be approved once under **Extensions → Modules**.
 
 ### 6.9 Digital picture frames
 

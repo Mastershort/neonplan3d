@@ -4,6 +4,21 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 [releases page](https://github.com/Mastershort/neonplan3d/releases). Ideas and votes:
 [Discussions → Ideas](https://github.com/Mastershort/neonplan3d/discussions/categories/ideas).
 
+## 3.5.0
+
+### New (free)
+- **Real sky:** behind the house a sky that follows the real sun – sunset colours, the blue hour, stars that move through the night and the moon in its real phase; with Weather outside, clouds drift with the real weather. On by default, off in ⚙ Settings; a still picture on the tablet level.
+- **Fly in from space (option):** when the view opens, a neon globe turns to your home, a beam marks it and the camera comes down onto the house. Off by default; a tap skips it.
+
+### New in the Pro add-ons (free updates for their owners)
+- **Kamera-Cockpit – People from cameras:** a person, car or animal a camera sees stands as a figure on the plot; with Frigate right where it is and moving along.
+- **Klang & Kino – Music follows you:** the music walks with you from room to room (Music Assistant); notes fly between the speakers.
+- **Haushalt Pro – Clean right here:** tap a spot in the 3D view and the robot vacuum cleans exactly there (Roborock, Dreame, Xiaomi).
+
+### Fixed
+- **Dormers:** in the house view a dormer's walls lift and fade with the roof again – a box stood in the room below while the roof was lifted (#1167, thanks 1970lexi).
+- **Dashboard card:** the walk button steps aside for a dashboard button with a long label (#1146, thanks Deninho91).
+
 ## 3.4.3
 
 ### Fixed
