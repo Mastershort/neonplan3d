@@ -656,7 +656,7 @@ export class FloorplanViewer {
   /** The roof: one group with a part per floor it sits on (each part follows its floor). */
   private roof: {
     group: Group;
-    parts: { group: Group; floorId: string; rideId: string; base: number; lift: boolean; win: Group | null }[];
+    parts: { group: Group; floorId: string; rideId: string; base: number; lift: boolean; win: Group | null; cheeks: Mesh | null }[];
     /** Roof windows over rooms of a lower floor: they follow that floor (#482). */
     below: { floorId: string; win: Group }[];
     solid: MeshBasicMaterial;
@@ -3503,6 +3503,12 @@ export class FloorplanViewer {
         if (geo.win.glass.count) win.add(new Mesh(geo.win.glass.geometry(), winGlass));
         wins.add(win);
       }
+      // a dormer's cheeks: their own mesh, so the house view can lift them with the roof and the floor view keep them
+      let cheeks: Mesh | null = null;
+      if (geo.cheeks?.count) {
+        cheeks = new Mesh(geo.cheeks.geometry(), winSolid);
+        wins.add(cheeks);
+      }
       for (const [floorId, w] of geo.winBelow ?? []) {
         if (!w.solid.count && !w.glass.count) continue;
         const g = new Group();
@@ -3511,7 +3517,7 @@ export class FloorplanViewer {
         wins.add(g);
         below.push({ floorId, win: g });
       }
-      return { group: part, floorId: geo.floor.id, rideId: roofRider(this.building!, geo.floor, geo.sections ?? []), base: geo.base, lift: geo.lift !== false, win };
+      return { group: part, floorId: geo.floor.id, rideId: roofRider(this.building!, geo.floor, geo.sections ?? []), base: geo.base, lift: geo.lift !== false, win, cheeks };
     });
     group.renderOrder = 8;
     this.scene.add(group);
@@ -3554,6 +3560,12 @@ export class FloorplanViewer {
       if (part.win) {
         part.win.position.y = fv.floor.elevation + ride.y + part.base + (part.lift ? apart * ROOF_GAP : 0);
         part.win.visible = fv.group.visible && fv.o > 0.5 && this.wallMode !== "cut";
+      }
+      // a dormer's cheeks: in the house view they go with the roof (lifted, gone once it has faded – a box stood in
+      // the room below while the roof was lifted, #1167); in the floor view they stay as the room's walls
+      if (part.cheeks) {
+        part.cheeks.position.y = house ? part.group.position.y : fv.floor.elevation + ride.y + part.base + (part.lift ? apart * ROOF_GAP : 0);
+        part.cheeks.visible = fv.group.visible && fv.o > 0.5 && this.wallMode !== "cut" && (!house || this.roofO > ROOF_OPACITY * 0.6);
       }
     }
     // windows in a slope over a lower floor: with that floor, wherever it glides

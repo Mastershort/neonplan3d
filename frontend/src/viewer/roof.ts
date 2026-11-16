@@ -62,6 +62,11 @@ export interface RoofGeometry {
    * room shows its windows in the slope, open or shut, the blind down or up (#482).
    */
   win?: { solid: GeoBuffer; lines: LineBuffer; glass: GeoBuffer };
+  /**
+   * A dormer's cheeks and front gable: walls of the room below it. In the floor view (the roof gone over the opened
+   * floor) they stay like the windows; in the house view they lift and fade with the roof (#1167).
+   */
+  cheeks?: GeoBuffer;
   /** The roof windows that only show in the roof: they fade out with it (the default). */
   winRoof?: { solid: GeoBuffer; lines: LineBuffer; glass: GeoBuffer };
   /**
@@ -338,7 +343,7 @@ function buildSections(b: Building, sections: readonly RoofSection[], overhang: 
       : null;
     // a dormer's cheeks and front gable are walls of the room below it: they stay when the roof fades over that
     // room (the floor view), like its floating roof windows – faded with the roof, the room had holes in its sides
-    const keep = sec.dormer || parent ? (part.win ??= { solid: new GeoBuffer(), lines: new LineBuffer(), glass: new GeoBuffer() }).solid : part.solid;
+    const keep = sec.dormer || parent ? (part.cheeks ??= new GeoBuffer()) : part.solid;
     pushSection(part.solid, part.lines, drawn, plan.ov, floor.elevation, part.glass, attic, holes, frontEnd, cut, keep);
   }
   // the closed roofs first: the first part is the one the main roof's solar fields belong to
