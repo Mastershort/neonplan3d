@@ -170,13 +170,31 @@ export function buildFloorGeometry(
   roofUnder?: (x: number, z: number) => number | null,
   /** The neighbourhood from the map, in plan coordinates (only the ground floor carries it). */
   surroundings: PlacedSurroundings | null = null,
+  /**
+   * Under a dormer: how high a wall whose own top is `top` rises there, relative to this floor (null = not above its
+   * top). The roof above still cuts it (#1156).
+   */
+  roofRise?: (x: number, z: number, top: number) => number | null,
 ): FloorGeometry {
   const { walls, open: openRooms } = generateWalls(floor.rooms, { exterior: wallExterior, interior: wallInterior }, floor.walls ?? []);
-  // the top of a wall at a point: its own height (a sloping wall's at that point), or the roof above when lower
+  // the top of a wall at a point: its own height (a sloping wall's at that point; under a dormer up to where the
+  // dormer's front starts, #1156), or the roof above when lower
   const topAt = (x: number, z: number, H: number, wall?: Wall): number => {
-    const own = wall?.slope ? Math.min(H, slopeTop(wall.slope, x, z)) : H;
+    let own = wall?.slope ? Math.min(H, slopeTop(wall.slope, x, z)) : H;
+    const up = roofRise && roofUnder && !wall?.slope ? roofRise(x, z, H) : null;
+    if (up !== null && up > own) own = up;
     const r = roofUnder ? roofUnder(x, z) : null;
     return r === null ? own : Math.max(0.05, Math.min(own, r));
+  };
+  // the highest a wall rises anywhere under a dormer (#1156): its pieces reach up to there, the roof cuts them
+  const reachOf = (wall: Wall, H: number): number => {
+    if (!roofRise || !roofUnder || wall.slope) return H;
+    const len = Math.hypot(wall.b[0] - wall.a[0], wall.b[1] - wall.a[1]);
+    const n = Math.max(2, Math.ceil(len / 0.1) + 1);
+    const probes: Vec2[] = [...wall.footprint, ...Array.from({ length: n }, (_, i): Vec2 => [wall.a[0] + ((wall.b[0] - wall.a[0]) * i) / (n - 1), wall.a[1] + ((wall.b[1] - wall.a[1]) * i) / (n - 1)])];
+    let top = H;
+    for (const [x, z] of probes) top = Math.max(top, roofRise(x, z, H) ?? H);
+    return top;
   };
   // a wall under a roof that lies below this floor's own level there (the corner of a room beside a hip, #638):
   // even the shortest stub would stand out above the roof's top face, so nothing is built there
@@ -212,7 +230,8 @@ export function buildFloorGeometry(
   // the lowest wall top along a stretch of a wall (sampled), for openings and the top edge line
   const lowestTop = (a: Vec2, ax: Vec2, s0: number, s1: number, H: number, wall?: Wall): number => {
     if (!roofUnder && !wall?.slope) return H;
-    let lo = H;
+    // the samples decide: under a dormer they may lie above the wall's own height (#1156)
+    let lo = Infinity;
     const n = Math.max(2, Math.ceil((s1 - s0) / 0.25) + 1);
     for (let i = 0; i < n; i++) {
       const s = s0 + ((s1 - s0) * i) / (n - 1);
@@ -389,6 +408,8 @@ export function buildFloorGeometry(
     const own = wall.free && floorSide ? hexColor(floor.walls?.find((w) => w.id === wall.free)?.color) : null;
     const sideColor = own !== null ? () => own : floorSide;
     const H = wallHeight(wall, floor.height);
+    // under a dormer it may rise above its own height (#1156)
+    const reach = reachOf(wall, H);
     // pieces along the axis, cut at every opening edge: each piece leaves out all the openings above it
     // (two windows one above the other, a window over a door), the wall fills what remains
     const pieces: { t0: number; t1: number; ranges: [number, number][] }[] = [];
@@ -407,13 +428,13 @@ export function buildFloorGeometry(
         if (a > y + 1e-4) ranges.push([y, a < 1e-4 ? -DOORWAY_DROP : a]);
         y = Math.max(y, b);
       }
-      if (H > y + 1e-4) ranges.push([y, H]);
+      if (reach > y + 1e-4) ranges.push([y, reach]);
       pieces.push({ t0, t1, ranges });
     }
     // under a roof the pieces are cut into short steps, so each step's top lies in one roof plane
     const len = Math.hypot(wall.b[0] - wall.a[0], wall.b[1] - wall.a[1]);
     // under a roof or with a sloping top of its own (D569)
-    const underRoof = (roofUnder || wall.slope) && lowestTop(wall.a, ax, 0, len, H, wall) < H - 1e-3;
+    const underRoof = (roofUnder || wall.slope) && (lowestTop(wall.a, ax, 0, len, H, wall) < H - 1e-3 || reach > H + 1e-3);
     const steps = underRoof
       ? pieces.flatMap((piece) => {
           const t0 = Math.max(piece.t0, -0.5);
@@ -462,7 +483,20 @@ export function buildFloorGeometry(
         { ...piece, t0: t, inner0: true },
       ];
     };
-    for (const piece of underRoof ? steps.flatMap(fine).flatMap(crossing) : steps) {
+    // a step across a jump of the roof (the edge of a dormer's opening) is split where it jumps: built whole, its top
+    // slanted across the step from the low roof to the high one (#1145); the lower side's face at the step lies inside
+    // the taller one's and is left out
+    const jumps = (piece: (typeof steps)[number]): (typeof steps)[number][] => {
+      const topOn = (t: number) => topAt(wall.a[0] + ax[0] * t, wall.a[1] + ax[1] * t, H, wall);
+      const j = roofUnder ? topJump(topOn, Math.max(piece.t0, 0), Math.min(piece.t1, len)) : null;
+      if (!j) return [piece];
+      const lowFirst = topOn(j[0]) < topOn(j[1]);
+      return [
+        { ...piece, t1: j[0], inner1: lowFirst },
+        { ...piece, t0: j[1], inner0: !lowFirst },
+      ];
+    };
+    for (const piece of underRoof ? steps.flatMap(fine).flatMap(jumps).flatMap(crossing) : steps) {
       const poly = underRoof ? unburied(clipAlong(wall.footprint, wall.a, ax, piece.t0, piece.t1)) : clipAlong(wall.footprint, wall.a, ax, piece.t0, piece.t1);
       // an opening starting right at the wall's end leaves a piece of no area there: drawn, it stood as a thin
       // plate in the passage (#1158)
@@ -527,7 +561,14 @@ export function buildFloorGeometry(
     // top line: not where an opening reaches the top; a wall below the cut height keeps its top line;
     // under a roof it follows the slope in short steps
     const H = wallHeight(e.wall, floor.height);
-    for (const [p, q] of subtractSpans(e, spansOf(e.wall, (sp) => sp.top >= H - 0.021))) {
+    // an opening reaches the top unless the wall rises above it under a dormer (#1156)
+    const eAx = unit([e.wall.b[0] - e.wall.a[0], e.wall.b[1] - e.wall.a[1]]);
+    const reachesTop = (sp: Span) => {
+      if (sp.top < H - 0.021) return false;
+      const m = (sp.s0 + sp.s1) / 2;
+      return !roofRise || topAt(e.wall.a[0] + eAx[0] * m, e.wall.a[1] + eAx[1] * m, H, e.wall) <= sp.top + 0.021;
+    };
+    for (const [p, q] of subtractSpans(e, spansOf(e.wall, reachesTop))) {
       if (!roofUnder && !e.wall.slope) {
         lines.seg([p[0], H, p[1]], [q[0], H, q[1]], EDGE_TOP, H <= cut + 1e-6 ? LOWER_OFFSET + b : b);
         continue;
@@ -539,7 +580,20 @@ export function buildFloorGeometry(
         if (buried(a[0], a[1]) && buried(c[0], c[1])) continue;
         const ya = topAt(a[0], a[1], H, e.wall);
         const yc = topAt(c[0], c[1], H, e.wall);
-        lines.seg([a[0], ya, a[1]], [c[0], yc, c[1]], EDGE_TOP, Math.max(ya, yc) <= cut + 1e-6 ? LOWER_OFFSET + b : b);
+        const fold = (y0: number, y1: number) => (Math.max(y0, y1) <= cut + 1e-6 ? LOWER_OFFSET + b : b);
+        // where the roof jumps (the edge of a dormer's opening) the line steps straight up or down (#1145)
+        const pt = (k: number): Vec2 => [a[0] + (c[0] - a[0]) * k, a[1] + (c[1] - a[1]) * k];
+        const top = (k: number) => topAt(pt(k)[0], pt(k)[1], H, e.wall);
+        const j = topJump(top, 0, 1, 0.01, Math.hypot(c[0] - a[0], c[1] - a[1]));
+        if (!j) {
+          lines.seg([a[0], ya, a[1]], [c[0], yc, c[1]], EDGE_TOP, fold(ya, yc));
+          continue;
+        }
+        const [p0, p1] = [pt(j[0]), pt(j[1])];
+        const [y0, y1] = [top(j[0]), top(j[1])];
+        lines.seg([a[0], ya, a[1]], [p0[0], y0, p0[1]], EDGE_TOP, fold(ya, y0));
+        lines.seg([p0[0], y0, p0[1]], [p1[0], y1, p1[1]], EDGE_TOP, fold(y0, y1));
+        lines.seg([p1[0], y1, p1[1]], [c[0], yc, c[1]], EDGE_TOP, fold(y1, yc));
       }
     }
   }
@@ -932,6 +986,33 @@ export function packStairHole(f: Furniture, item: PackItem): Vec2[][] {
 }
 
 /** How tall a wall stands: its own height (a low wall, a counter), never above the floor height. */
+/**
+ * Where a wall's top along its length jumps between `lo` and `hi` (the edge of a dormer's opening in the roof, #1145):
+ * two points a hair apart with the jump between them, or null where the top runs on without a jump of at least `min`
+ * (a ridge or a slope is none). `scale` is the length of the stretch in metres when `lo`…`hi` is not.
+ */
+export function topJump(top: (t: number) => number, lo: number, hi: number, min = 0.01, scale = hi - lo): [number, number] | null {
+  if (hi - lo <= 0 || scale < 1e-3) return null;
+  let a = top(lo);
+  let c = top(hi);
+  // a straight top (one roof plane) has its middle halfway between its ends; a jump puts it half the jump off
+  if (Math.abs(top((lo + hi) / 2) - (a + c) / 2) < min / 4) return null;
+  // halve towards the side that changes most, down to well under a millimetre
+  const steps = Math.ceil(Math.log2(scale / 1e-6));
+  for (let i = 0; i < steps; i++) {
+    const mid = (lo + hi) / 2;
+    const m = top(mid);
+    if (Math.abs(m - a) >= Math.abs(c - m)) {
+      hi = mid;
+      c = m;
+    } else {
+      lo = mid;
+      a = m;
+    }
+  }
+  return Math.abs(c - a) >= min ? [lo, hi] : null;
+}
+
 export function wallHeight(wall: Wall, floorHeight: number): number {
   // a sloping wall may rise above the floor height at its high end (a lean-to's tall side, D569)
   if (wall.slope) return Math.max(wall.slope.h0, wall.slope.h1);

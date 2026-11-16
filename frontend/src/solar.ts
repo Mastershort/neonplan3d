@@ -7,7 +7,7 @@
 import type { Building, Floor, RoofSection, RoofWindow, SolarField, Vec2 } from "./model.ts";
 import { outdoorGround, pointInPolygon } from "./model.ts";
 import { generateWalls } from "./geometry/walls.ts";
-import { endRuns, sectionEnds, sectionFrame, sectionOverhang, sectionProfile } from "./roof-sections.ts";
+import { endRuns, sectionEnds, sectionFrame, sectionOverhang, sectionProfile, sectionTurn, turnPoint, type SectionTurn } from "./roof-sections.ts";
 
 const DEG = Math.PI / 180;
 type V3 = [number, number, number];
@@ -198,9 +198,13 @@ function sectionFaces(s: RoofSection, ov: { u0: number; u1: number; a: number; b
   const U1 = fr.u1 + Math.max(0, ov.u1);
   const lu = U1 - U0;
   if (s.shape === "flat" || s.shape === "parapet") {
-    const a = fr.at(U0, -oa);
-    const c = fr.at(U1, fr.w + ob);
-    return [flatFace(s.id, s.id, Math.min(a[0], c[0]), Math.min(a[1], c[1]), Math.max(a[0], c[0]), Math.max(a[1], c[1]), s.eave_a + FLAT_SLAB)];
+    // a turned section: its face as it lay before the turn, then turned along with it – the corners of the turned
+    // frame made a box square to the plan, and fields, roof windows and fairy lights lay askew to the roof (#1147)
+    const plain = sectionFrame({ ...s, rotation: 0 });
+    const a = plain.at(U0, -oa);
+    const c = plain.at(U1, fr.w + ob);
+    const face = flatFace(s.id, s.id, Math.min(a[0], c[0]), Math.min(a[1], c[1]), Math.max(a[0], c[0]), Math.max(a[1], c[1]), s.eave_a + FLAT_SLAB);
+    return [turnFace(face, sectionTurn(s))];
   }
   if (s.shape === "pent") return [slopeFace(`${s.id}:a`, s.id, "a", P(U0, -oa, pr.y(-oa)), P(U1, -oa, pr.y(-oa)), P(U0, fr.w + ob, pr.y(fr.w + ob)), s.pitch_a, () => [0, lu])];
   // a pyramid is a hip whose ridge has no length; half-hip and mansard place their modules like a gable; a
@@ -271,6 +275,18 @@ function slopeFace(key: string, section: string | null, side: "a" | "b", o: V3, 
   if (n[1] < 0) n = [-n[0], -n[1], -n[2]];
   const down = unit([-es[0], 0, -es[2]]);
   return { key, section, side, flat: false, o, eu, es, n, lu: len(sub(eaveEnd, o)), ls: len(sub(ridge, o)), pitch, span, facing: [down[0], down[2]] };
+}
+
+/** A face turned about a section's turn point (directions turned alike); unchanged without a turn. */
+function turnFace(f: RoofFace, t: SectionTurn | null): RoofFace {
+  if (!t) return f;
+  const dir = (d: V3): V3 => {
+    const [x, z] = turnPoint({ p: [0, 0], c: t.c, s: t.s }, [d[0], d[2]]);
+    return [x, d[1], z];
+  };
+  const [ox, oz] = turnPoint(t, [f.o[0], f.o[2]]);
+  const [fx, fz] = turnPoint({ p: [0, 0], c: t.c, s: t.s }, f.facing);
+  return { ...f, o: [ox, f.o[1], oz], eu: dir(f.eu), es: dir(f.es), n: dir(f.n), facing: [fx, fz] };
 }
 
 function flatFace(id: string, section: string | null, x0: number, z0: number, x1: number, z1: number, y: number): RoofFace {

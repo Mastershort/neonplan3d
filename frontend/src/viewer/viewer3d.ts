@@ -13,7 +13,7 @@ import { centroid, GANG_TYPES, labelPoint, gateSpans, outdoorSurface, outdoorTop
 import { placeWallPlate } from "../geometry/walls.ts";
 import { buildEarth } from "./earth.ts";
 import { clampIntoRoom } from "../geometry/snap.ts";
-import { activeSections, roofRider, roofUnderAt, sectionAbove, sectionCutsBelow } from "../roof-sections.ts";
+import { activeSections, dormerRise, roofRider, roofUnderAt, sectionAbove, sectionCutsBelow } from "../roof-sections.ts";
 import { buildFloorGeometry, SLAB, stairHoleParts, type FloorGeometry } from "./build.ts";
 import { OrbitControls, type OrbitView } from "./controls.ts";
 import { makeFoldable, type FoldMasks } from "./fold.ts";
@@ -3114,7 +3114,15 @@ export class FloorplanViewer {
             return y === null ? null : y - floor.elevation;
           }
         : undefined;
-      const geo = this.dual(() => buildFloorGeometry(withVehicles(floor, this.parked), b.settings.wall_exterior, b.settings.wall_interior, stairHoleParts(b.floors, floor), garden, roofUnder, floor.id === groundId ? around : null));
+      // under a dormer the walls rise to where its front starts (#1156)
+      const rise = sloped ? dormerRise(b, floor.elevation) : null;
+      const roofRise = rise
+        ? (x: number, z: number, top: number) => {
+            const y = rise(x, z, top);
+            return y === null ? null : y - floor.elevation;
+          }
+        : undefined;
+      const geo = this.dual(() => buildFloorGeometry(withVehicles(floor, this.parked), b.settings.wall_exterior, b.settings.wall_interior, stairHoleParts(b.floors, floor), garden, roofUnder, floor.id === groundId ? around : null, roofRise));
       const mask: FoldMasks = { standing: { value: 0xffff }, glass: { value: 0 } };
       const materials = this.makeMaterials(mask);
       const group = new Group();
