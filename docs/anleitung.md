@@ -588,6 +588,7 @@ Unter **⚙ Einstellungen → 🗺 Umgebung** holt NeonPlan die Nachbarschaft de
 - **In 3D zeigen** blendet die Umgebung aus und ein, **Entfernen** löscht sie aus dem Plan. Raumkarten zeigen nur ihre Räume, ohne Umgebung.
 - Unter **Häuser ein- und ausblenden** zeigt eine kleine Karte dein Haus und die Häuser drumherum. Tippst du ein Haus an, wird es aus- oder wieder eingeblendet (gelb gestrichelt = ausgeblendet). Gebäude der Karte, die zum größten Teil auf dem stehen, was du selbst gezeichnet hast, blendet NeonPlan selbst aus: auf deinen Räumen (auch auf einer eigenen Etage für den Garten), unter deinen Dachabschnitten (ein Carport, ein Gartenhaus) oder auf einer Pergola – etwa eine Garage, die auf der Karte ein eigenes Gebäude ist. Seit 3.3.1 zeigt der Grundriss die Karte auf jeder Etage in Höhe des Erdgeschosses.
 - **Nachbarhäuser nur als Grundriss** zeigt die Häuser der Nachbarn flach als Umriss auf dem Boden statt als Block; sie werfen dann keine Schatten.
+- **Höhe der Umgebung (m)** verschiebt die ganze Karte nach oben (+) oder unten (−) – für eine Straße, die höher oder tiefer liegt als das Erdgeschoss (Hanglage, schräge Einfahrt). Standard 0.
 
 Unten rechts in der 3D-Ansicht steht „© OpenStreetMap“: Die Kartendaten stammen von den OpenStreetMap-Mitwirkenden und stehen unter der Open Database Licence.
 
