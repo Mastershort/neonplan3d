@@ -5,7 +5,7 @@
 
 import { Color } from "three";
 import type { Building, Floor, RoofSection, SolarField, Vec2 } from "../model.ts";
-import { polygonArea } from "../model.ts";
+import { pointInPolygon, polygonArea } from "../model.ts";
 import { coversIn, crossAsWing, cutHole, cutUnder, lineOutside, meetLine, sectionCovers, sectionFloor, sectionsCut, dormerHoles, dormerParent, effectiveDormer, turnedDormer, offsetPolygon, sectionGeometry, sectionHeightAt, sectionPolygon, sectionFrame, sectionOverhang, sectionProfile, sectionUV, wingJunction, wingSection, type LocalCover, type Q, type SectionOverhang } from "../roof-sections.ts";
 import { DEG, GeoBuffer, LineBuffer, pushPrism, shade } from "./geo.ts";
 import { fieldModules, roofFaces, roofFootprint, roofWindowRoom, windowCorners, type RoofFace } from "../solar.ts";
@@ -213,7 +213,11 @@ function buildSingleRoof(b: Building): RoofGeometry | null {
   const solid = new GeoBuffer();
   const lines = new LineBuffer();
   if (roof.type === "flat") {
-    pushPrism(solid, [[x0, z0], [x1, z0], [x1, z1], [x0, z1]], 0, 0.25, RF.ROOF, RF.ROOF_TOP, { bottom: true });
+    // opened under its roof windows (#1078)
+    const face = roofFaces(b).find((f) => f.flat && f.section === null);
+    const wins = face ? (roof.windows ?? []).filter((w) => w.face === face.key).map((w) => windowCorners(face, w)) : [];
+    const holes = flatHoles([[x0, z0], [x1, z0], [x1, z1], [x0, z1]], wins.flatMap((c) => (c ? [c.map((p): Vec2 => [p[0], p[2]])] : [])));
+    pushPrism(solid, [[x0, z0], [x1, z0], [x1, z1], [x0, z1]], 0, 0.25, RF.ROOF, RF.ROOF_TOP, { bottom: true, holes });
     const e = 0.252;
     for (const [a, c] of [
       [[x0, z0], [x1, z0]],
@@ -403,7 +407,7 @@ export function pushSection(
         : parapet
           ? [fr.at(fr.u0, 0), fr.at(fr.u1, 0), fr.at(fr.u1, w), fr.at(fr.u0, w)]
           : [fr.at(U0, -oa), fr.at(U1, -oa), fr.at(U1, w + ob), fr.at(U0, w + ob)];
-    pushPrism(solid, poly, y - yOff, y - yOff + 0.25, RF.ROOF, RF.ROOF_TOP, { bottom: true });
+    pushPrism(solid, poly, y - yOff, y - yOff + 0.25, RF.ROOF, RF.ROOF_TOP, { bottom: true, holes: flatHoles(poly, holes.map((h) => [fr.at(h.u0, h.v0), fr.at(h.u1, h.v0), fr.at(h.u1, h.v1), fr.at(h.u0, h.v1)])) });
     for (let i = 0; i < poly.length; i++) {
       const a = poly[i];
       const c = poly[(i + 1) % poly.length];
@@ -555,6 +559,31 @@ function pushCanopyFrame(
     const top = pr.y(v + POST / 2) - 0.03 - BEAM;
     box(u, u + POST, v, v + POST, ground, top);
   }
+}
+
+/**
+ * The openings a flat roof's slab gets under its roof windows (#1078): each a centimetre inside its window, so the
+ * window's curb hides the cut edge and the glass looks into the room below like a window in a slope. Only openings
+ * wholly inside the slab and clear of each other are cut; any other window stays on the closed slab, as before.
+ */
+export function flatHoles(slab: readonly Vec2[], windows: readonly Vec2[][]): Vec2[][] {
+  const out: Vec2[][] = [];
+  const box = (q: readonly Vec2[]) => [Math.min(...q.map((p) => p[0])), Math.min(...q.map((p) => p[1])), Math.max(...q.map((p) => p[0])), Math.max(...q.map((p) => p[1]))];
+  // inside the slab, a few centimetres in from its rim; no corner of the slab inside it
+  const inner = offsetPolygon(slab, -0.03);
+  for (const w of windows) {
+    const hole = offsetPolygon(w, -0.01);
+    if (Math.abs(polygonArea(hole)) < 0.01) continue;
+    if (!hole.every((p) => pointInPolygon(p, inner)) || slab.some((p) => pointInPolygon(p, hole))) continue;
+    const [x0, z0, x1, z1] = box(hole);
+    if (out.some((o) => {
+      const [a0, b0, a1, b1] = box(o);
+      return x0 < a1 + 0.02 && x1 > a0 - 0.02 && z0 < b1 + 0.02 && z1 > b0 - 0.02;
+    }))
+      continue;
+    out.push(hole);
+  }
+  return out;
 }
 
 /** The part of a roof profile (points across, with heights) above a level, as a closed polygon. */
