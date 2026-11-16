@@ -392,11 +392,11 @@ test("a free wall's own colour shows on both its sides in the homely styles, in 
  * Wall triangles standing in the plane x = `x` (all three corners on it), within z0…z1, with a part between the
  * heights `lo` and `hi`.
  */
-function sheetsAtX(g: BufferGeometry, x: number, z0: number, z1: number, lo: number, hi: number): number {
+function sheetsAtX(g: BufferGeometry, x: number, z0: number, z1: number, lo: number, hi: number, eps = 1e-6): number {
   const p = g.getAttribute("position");
   let n = 0;
   for (let i = 0; i < p.count; i += 3) {
-    const onPlane = [0, 1, 2].every((k) => Math.abs(p.getX(i + k) - x) < 1e-6 && p.getZ(i + k) > z0 - 1e-6 && p.getZ(i + k) < z1 + 1e-6);
+    const onPlane = [0, 1, 2].every((k) => Math.abs(p.getX(i + k) - x) < eps && p.getZ(i + k) > z0 - 1e-6 && p.getZ(i + k) < z1 + 1e-6);
     const ys = [p.getY(i), p.getY(i + 1), p.getY(i + 2)];
     if (onPlane && Math.max(...ys) > lo && Math.min(...ys) < hi) n++;
   }
@@ -431,4 +431,8 @@ test("an opening reaching a wall's end leaves no sheet without thickness standin
   const b = { ...rect("b", 4, 0, 7, 3), wall_heights: [null, null, null, 0] };
   const door = buildFloorGeometry(floorWith([a, b], [opening("door", "a", 0, 3.8, 1.2)]), EXT, INT);
   assert.equal(sheetsAtX(door.walls, 4, -EXT, 0, 0.5, 1.9), 0);
+  // the same where the next wall is turned by a hair (half a millimetre on a metre): its end is a sliver, not a line
+  const turned = { ...b, points: [[4, 0], [7, 0.0015], [7, 3], [4, 3]] as Vec2[] };
+  const skew = buildFloorGeometry(floorWith([a, turned], [opening("door", "a", 0, 3.8, 1.2)]), EXT, INT);
+  assert.equal(sheetsAtX(skew.walls, 4, -EXT - 0.01, 0.01, 0.5, 1.9, 1e-3), 0);
 });

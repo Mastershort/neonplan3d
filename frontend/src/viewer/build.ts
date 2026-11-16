@@ -464,9 +464,12 @@ export function buildFloorGeometry(
     };
     for (const piece of underRoof ? steps.flatMap(fine).flatMap(crossing) : steps) {
       const poly = underRoof ? unburied(clipAlong(wall.footprint, wall.a, ax, piece.t0, piece.t1)) : clipAlong(wall.footprint, wall.a, ax, piece.t0, piece.t1);
+      if (poly.length < 3) continue;
       // an opening that starts or ends exactly at the wall's end leaves a piece of no length there: its footprint is
-      // a line, and built as a prism it stood in the opening as a sheet without thickness, as wide as the wall
-      if (poly.length < 3 || Math.abs(polygonArea(poly)) < 1e-9) continue;
+      // a line (or a sliver, where the next wall is turned by a hair), and built as a prism it stood in the opening
+      // as a sheet without thickness, as wide as the wall
+      const reach = poly.map(tOf);
+      if (Math.max(...reach) - Math.min(...reach) < 1e-4) continue;
       // the faces between two steps of one piece are inside the wall: left out, or they show as stripes
       // through the see-through walls (D180)
       const on = (p: Vec2, t: number) => Math.abs(tOf(p) - t) < 1e-4;
