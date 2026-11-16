@@ -134,12 +134,14 @@ export function sectionAbove(s: Parameters<typeof sectionProfile>[0], level: num
  */
 export function roofUnderAt(b: RoofHolder, x: number, z: number, level?: number): number | null {
   let best: number | null = null;
-  // the highest roof that ends a few centimetres beside the point (see below)
-  let beside: number | null = null;
+  // the roofs that end a few centimetres beside the point, and the ones covering it (see below)
+  const besides: { s: RoofSection; y: number }[] = [];
+  const covering: RoofSection[] = [];
   const o = Math.max(0, b.settings.roof.overhang ?? 0);
   // where sections overlap, the higher roof is the ceiling: a dormer or a cross gable over the main
   // slope, a lower annex roof running under a higher one
-  for (const s of activeSections(b)) {
+  const all = activeSections(b);
+  for (const s of all) {
     if (s.open) continue;
     // with a floor level: roofs lying wholly below that floor are left out (#621)
     if (level !== undefined && !sectionAbove(s, level)) continue;
@@ -163,13 +165,54 @@ export function roofUnderAt(b: RoofHolder, x: number, z: number, level?: number)
     const [cu, cv] = [Math.min(u1, Math.max(u0, u)), Math.min(v1, Math.max(v0, v))];
     const planes = flat ? null : sectionHeightAt(sectionGeometry(s, { a: set(0) ?? so, b: set(1) ?? so, u0: set(2) ?? so, u1: set(3) ?? so }), cu, cv);
     const y = (planes ?? sectionProfile(s).y(cv)) - ROOF_THICK;
-    if (off > m) beside = beside === null ? y : Math.max(beside, y);
-    else best = best === null ? y : Math.max(best, y);
+    if (off > m) besides.push({ s, y });
+    else {
+      best = best === null ? y : Math.max(best, y);
+      covering.push(s);
+    }
   }
   // a wall face a few millimetres outside its own roof, over a lower roof (a garage roof whose ridge pokes above
   // this floor): the wall ends under its own roof's edge, not at the lower roof (#1051). Where no roof covers the
-  // point at all, nothing changes.
+  // point at all, nothing changes. A dormer or cross gable beside the point does not count when the roof it sits on
+  // covers the point: the slope opens only within the dormer's rectangle, so a wall meeting the dormer steps up
+  // right at its edge, not 3 cm before it (#1145).
+  let beside: number | null = null;
+  if (best !== null)
+    for (const { s, y } of besides) {
+      if (beside !== null && y <= beside) continue;
+      const parent = dormerParent(all, s);
+      if (parent && covering.includes(parent)) continue;
+      beside = y;
+    }
   return best !== null && beside !== null && beside > best ? beside : best;
+}
+
+/**
+ * How high a wall of the floor at `level` rises under a dormer (or a cross gable) whose own walls start above the
+ * wall's top (#1156): up to where the dormer's front and cheeks begin (its wall top less the roof's thickness), so a
+ * window under the dormer fits and no gap stays between the wall and the dormer's front. Only where the slope the
+ * dormer sits on comes down into this floor (the room reaches up into the dormer there); elsewhere – a loft above a
+ * ceiling, a lower floor – nothing changes. Absolute heights; `top` is the wall's own top above the floor. Null
+ * without dormers.
+ */
+export function dormerRise(b: RoofHolder, level: number): ((x: number, z: number, top: number) => number | null) | null {
+  const all = activeSections(b);
+  const pairs = all.flatMap((d) => {
+    const parent = d.open ? null : dormerParent(all, d);
+    return parent && !parent.open ? [{ d, slope: { settings: { roof: { ...b.settings.roof, sections: [parent] } } }, start: d.base - ROOF_THICK }] : [];
+  });
+  if (!pairs.length) return null;
+  return (x, z, top) => {
+    const wallTop = level + top;
+    let out: number | null = null;
+    for (const { d, slope, start } of pairs) {
+      if (start <= wallTop + 1e-6 || (out !== null && start <= out) || !onSection(d, x, z)) continue;
+      const under = roofUnderAt(slope, x, z, level);
+      if (under === null || under >= wallTop - 1e-6) continue;
+      out = start;
+    }
+    return out;
+  };
 }
 
 /**

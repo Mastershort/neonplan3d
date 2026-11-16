@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { BufferGeometry } from "three";
-import type { Floor, Room, RoofSection } from "./model.ts";
+import type { Floor, Opening, Room, RoofSection } from "./model.ts";
 import { newFloor } from "./model.ts";
-import { activeSections, headroomLines, ROOF_THICK, roofUnderAt, sectionAbove, sectionCutsBelow } from "./roof-sections.ts";
+import { activeSections, dormerRise, headroomLines, proposeDormer, ROOF_THICK, roofUnderAt, sectionAbove, sectionCutsBelow } from "./roof-sections.ts";
 import { buildFloorGeometry } from "./viewer/build.ts";
 
 function rect(id: string, x0: number, z0: number, x1: number, z1: number): Room {
@@ -172,4 +172,77 @@ test("a high attic floor's wall along the eaves is cut where the slope passes th
   assert.ok(worst >= -0.06 - 1e-6, `a wall corner where the roof lies ${worst.toFixed(3)} m below the floor`);
   // the walls along the eaves are still there, cut to the slope
   assert.ok(maxY(geo.walls, (x, z) => z < 2.2 && x > 2 && x < 6) > 0.04, "the eave wall is kept");
+});
+
+/** The wall vertices of a geometry as [x, y, z]. */
+function vertices(g: BufferGeometry): [number, number, number][] {
+  const p = g.getAttribute("position");
+  return Array.from({ length: p.count }, (_, i): [number, number, number] => [p.getX(i), p.getY(i), p.getZ(i)]);
+}
+
+test("the roof opens right at a dormer's edge, and a wall meeting it steps up there instead of slanting (#1145)", () => {
+  const tan40 = Math.tan((40 * Math.PI) / 180);
+  const dormer = proposeDormer(section, "a", "d", 4);
+  const b = { settings: { roof: { ...building.settings.roof, sections: [section, dormer] } } };
+  const main = 3.7 + (0.1 + 0.24) * tan40 - ROOF_THICK;
+  // a centimetre outside the dormer the main slope is the ceiling, a centimetre inside the dormer's roof
+  assert.ok(Math.abs(roofUnderAt(b, dormer.x0 - 0.01, 0.1)! - main) < 1e-9);
+  assert.ok(roofUnderAt(b, dormer.x0 + 0.01, 0.1)! > main + 1);
+  assert.ok(Math.abs(roofUnderAt(b, dormer.x1 + 0.01, 0.1)! - main) < 1e-9);
+  // the #1051 rule still holds for a roof that is not a dormer on the covering slope (see roof-sections.test.ts)
+  const floor: Floor = { ...newFloor("og", "OG", 2.75), height: 2.5, rooms: [rect("a", 0, 0, 8, 6)] };
+  const under = (x: number, z: number) => {
+    const y = roofUnderAt(b, x, z, floor.elevation);
+    return y === null ? null : y - floor.elevation;
+  };
+  const geo = buildFloorGeometry(floor, 0.24, 0.12, [], [], under);
+  // the eave wall (z from -0.24 to 0) left of the dormer's middle: its low top under the slope reaches the dormer's
+  // edge, its high top under the dormer starts there – a straight step, not a top slanting over 30 cm
+  const left = vertices(geo.walls).filter(([x, , z]) => z <= 1e-6 && x > 1 && x < (dormer.x0 + dormer.x1) / 2);
+  const low = left.filter(([, y]) => y > 0.7 && y < 1.05).map(([x]) => x);
+  const high = left.filter(([, y]) => y > 2).map(([x]) => x);
+  assert.ok(low.length && high.length);
+  assert.ok(Math.abs(Math.max(...low) - dormer.x0) < 1e-3, `low top ends at ${Math.max(...low)}, dormer at ${dormer.x0}`);
+  assert.ok(Math.abs(Math.min(...high) - dormer.x0) < 1e-3, `high top starts at ${Math.min(...high)}, dormer at ${dormer.x0}`);
+  // its top edge line steps straight up as well
+  const p = geo.lines.getAttribute("position");
+  let slanted = 0;
+  for (let i = 0; i < p.count; i += 2) {
+    const [x0, y0, x1, y1] = [p.getX(i), p.getY(i), p.getX(i + 1), p.getY(i + 1)];
+    if (p.getZ(i) > 1e-6 || Math.min(x0, x1) < dormer.x0 - 0.35 || Math.max(x0, x1) > dormer.x0 + 0.35) continue;
+    if (Math.abs(y1 - y0) > 0.5 && Math.abs(x1 - x0) > 1e-3) slanted++;
+  }
+  assert.equal(slanted, 0, "no top line slants across the dormer's edge");
+});
+
+test("a wall under a dormer whose front starts above the floor's height rises to it: the window under it fits (#1156)", () => {
+  // the dormer's walls start at 5.6 m, above the floor's walls (2.75 + 2.5 = 5.25 m); its eaves at 6 m
+  const dormer = { ...proposeDormer(section, "a", "d", 4), base: 5.6, eave_a: 6, eave_b: 6 };
+  const b = { settings: { roof: { ...building.settings.roof, sections: [section, dormer] } } };
+  const mid = (dormer.x0 + dormer.x1) / 2;
+  const window: Opening = { id: "w", room_id: "a", edge: 0, offset: mid, width: 0.8, type: "window", sill: 1.6, height: 1, hinge: "left", leaves: 1, swing: "in", cover: null, contact: null, contact2: null, tilt: null };
+  const floor: Floor = { ...newFloor("og", "OG", 2.75), height: 2.5, rooms: [rect("a", 0, 0, 8, 6)], openings: [window] };
+  const under = (x: number, z: number) => {
+    const y = roofUnderAt(b, x, z, floor.elevation);
+    return y === null ? null : y - floor.elevation;
+  };
+  const rise = dormerRise(b, floor.elevation)!;
+  const roofRise = (x: number, z: number, top: number) => {
+    const y = rise(x, z, top);
+    return y === null ? null : y - floor.elevation;
+  };
+  const start = 5.6 - ROOF_THICK - floor.elevation;
+  // before: the wall ended at the floor's height and cut the window's top off
+  const plain = buildFloorGeometry(floor, 0.24, 0.12, [], [], under);
+  assert.ok(plain.openings[0].top < 2.5);
+  const geo = buildFloorGeometry(floor, 0.24, 0.12, [], [], under, null, roofRise);
+  assert.ok(Math.abs(geo.openings[0].top - 2.6) < 1e-9, `window top ${geo.openings[0].top}`);
+  // the wall under the dormer goes up to where the dormer's front starts, beside it the slope still cuts it
+  assert.ok(Math.abs(maxY(geo.walls, (x, z) => z < 0 && Math.abs(x - mid) < 0.5) - start) < 1e-6);
+  assert.ok(maxY(geo.walls, (x, z) => z < 0 && x > 0.5 && x < dormer.x0 - 0.1) < 1.1);
+  // a floor whose walls the slope does not reach there (below the roof), or a point beside the dormer: no rise
+  assert.equal(dormerRise(b, 0)!(mid, -0.1, 2.75), null);
+  assert.equal(rise(dormer.x0 - 0.1, -0.1, 2.5), null);
+  // a dormer whose walls start below the floor's top changes nothing
+  assert.equal(dormerRise({ settings: { roof: { ...b.settings.roof, sections: [section, { ...dormer, base: 3.7 }] } } }, floor.elevation)!(mid, -0.1, 2.5), null);
 });
