@@ -403,7 +403,7 @@ function sheetsAtX(g: BufferGeometry, x: number, z0: number, z1: number, lo: num
   return n;
 }
 
-test("an opening reaching a wall's end leaves no sheet without thickness standing there", () => {
+test("an opening reaching a wall's end leaves no sheet without thickness standing there (#1158)", () => {
   // a free wall with a passage over its whole length: nothing stands at its two ends
   const room = rect("r", 0, 0, 6, 4);
   const fw = { id: "fw", a: [1, 2] as Vec2, b: [5, 2] as Vec2, thickness: 0.3 };
