@@ -1919,6 +1919,9 @@ export function hasFixedColors(type: string): boolean {
   return !!packItem(type)?.parts.some((p) => p.color?.startsWith("#") || p.top?.startsWith("#"));
 }
 
+/** The dark top the packs give their worktops (kitchen units, vanities): a placed item's wood finish replaces it. */
+const WORKTOP_TOP = "#1d2640";
+
 /** Colour of a pack part: a palette role (so packs follow the look) or "#rrggbb". */
 function packColor(value: string | undefined, top: boolean): number | null {
   if (!value) return null;
@@ -1950,8 +1953,11 @@ function packModel(
     const p = onlyGlow ? { ...q, glow: true, w: q.w + 0.006 / w, d: q.d + 0.006 / d, y: Math.max(0, q.y - 0.002 / h), h: q.h + 0.004 / h } : q;
     const lit = p.glow && glow !== null;
     const side = lit ? glow : (packColor(p.color, false) ?? C.body);
+    // a worktop (a wood part with the packs' dark worktop colour on top) takes a wood finish on its top as well, not
+    // only on its front edge (#1143); without a finish it keeps its own top
+    const finishedTop = p.top === WORKTOP_TOP && finish?.[`${p.color}Top` as keyof typeof BASE] !== undefined;
     // without a top colour, the top is the role's top shade or a little lighter
-    const top = lit ? glow : (packColor(p.top, false) ?? packColor(p.color, true) ?? shade(side, 1.25).getHex());
+    const top = lit ? glow : ((finishedTop ? null : packColor(p.top, false)) ?? packColor(p.color, true) ?? shade(side, 1.25).getHex());
     const y0 = base + p.y * h;
     const y1 = base + Math.min(h, (p.y + p.h) * h);
     const c0 = b.colors.length;
@@ -1972,7 +1978,7 @@ function packModel(
     // a part in a colour of its own keeps it in the light looks down to the ground, like a waste bin (#609): the
     // shading towards the floor would push its lower half under the looks' signal-colour threshold (palette roles
     // follow the look and stay as they are)
-    if (lightLook && !lit && !onlyGlow && (p.color?.startsWith("#") || p.top?.startsWith("#"))) keepBright(b.colors, c0);
+    if (lightLook && !lit && !onlyGlow && (p.color?.startsWith("#") || (p.top?.startsWith("#") && !finishedTop))) keepBright(b.colors, c0);
   }
 }
 
