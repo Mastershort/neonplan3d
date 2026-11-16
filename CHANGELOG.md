@@ -4,6 +4,11 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 [releases page](https://github.com/Mastershort/neonplan3d/releases). Ideas and votes:
 [Discussions → Ideas](https://github.com/Mastershort/neonplan3d/discussions/categories/ideas).
 
+## 3.4.3
+
+### Fixed
+- **Klang & Kino:** the now-playing glass card shows in an opened room too – before, a setting of Energy Pro hid every card there, and without Energy Pro it could not be switched on; a speaker's symbol steps aside for its card only while the card can show, so the symbol no longer vanishes with no card in its place (thanks to a report by e-mail, #911).
+
 ## 3.4.2
 
 ### New
