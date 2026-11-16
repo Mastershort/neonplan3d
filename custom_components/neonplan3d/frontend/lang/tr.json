@@ -838,6 +838,8 @@
  "sun_shadow_hint": "Evin üstündeki bir yay, güneşin bugünkü yolunu doğuş ve batışıyla gösterir; evin gölgesi zemine düşer ve güneşle birlikte döner. Kuzey yönü gerekir; „Tablet” seviyesinde yalnızca yay.",
  "sky": "Gerçek gökyüzü",
  "sky_hint": "Evin arkasında gerçek güneş konumuna göre bir gökyüzü: gün batımı renkleri, gece boyunca dönen yıldızlar ve gerçek evresindeki ay. „Dışarıdaki hava“ ile bulutlar rüzgârla süzülür. Kendi arka planınız ve plan görünümünde kapalı; „Tablet“ seviyesinde sakin bir sabit resim.",
+ "flyin": "Uzaydan iniş",
+ "flyin_hint": "Açılışta neon bir küre evine döner ve dalar, kamera da yukarıdan eve iner. Sayfa yüklemesi başına bir kez; bir dokunuş atlar. Düzenleyicide ve „Tablet“ seviyesinde değil.",
  "sun_arc": "Güneş yayı şunun çevresinde",
  "sun_arc_house": "ev",
  "sun_arc_plot": "tüm arsa",

@@ -5893,6 +5893,23 @@ export class FloorplanViewer {
     this.controls.flyTo(view, duration);
   }
 
+  /** "Anflug aus dem All": the camera waits high above the house (hidden behind the globe) … */
+  flyInStart(): void {
+    const v = this.getView();
+    this.flyInTo = v;
+    this.controls.flyTo({ ...v, radius: Math.min(330, Math.max(90, v.radius * 6)), phi: 0.12, theta: v.theta - 1.1 }, 0);
+    this.invalidate();
+  }
+
+  /** … and comes down onto it (fast after a tap that skipped the globe). */
+  flyInLand(fast: boolean): void {
+    if (!this.flyInTo) return;
+    this.controls.flyTo(this.flyInTo, fast ? 700 : 2600, true);
+    this.flyInTo = null;
+    this.invalidate();
+  }
+  private flyInTo: OrbitView | null = null;
+
   /**
    * Look through a placed camera: the view moves to the camera's spot and along its direction (a wall
    * camera looks a little down, a dome straight down). False when the camera is not drawn in 3D.

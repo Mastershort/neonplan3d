@@ -2171,6 +2171,8 @@
  "sun_shadow_hint": "A ház fölötti ív a nap mai útját mutatja napkeltével és napnyugtával, a ház árnyéka a talajon a nappal együtt vándorol. Az északi irány kell hozzá; „Tablet” szinten csak az ív.",
  "sky": "Valódi égbolt",
  "sky_hint": "A ház mögött a valódi napálláshoz igazodó égbolt: alkonypír, az éjjel vándorló csillagok és a Hold a valódi fázisában. A „Kinti időjárással” a felhők a széllel sodródnak. Saját háttérnél és tervrajz-megjelenésnél ki; a „Tablet” szinten nyugodt állókép.",
+ "flyin": "Érkezés az űrből",
+ "flyin_hint": "Megnyitáskor egy neonföldgömb az otthonod felé fordul és belezuhan, a kamera felülről a házra száll. Oldalbetöltésenként egyszer; egy koppintás átugorja. Nem a szerkesztőben és nem a „Tablet” szinten.",
  "window_glow": "Az ablakok éjjel kifelé világítanak",
  "window_glow_hint": "Sötétben a megvilágított szobák fénye meleg derengésként esik ki az ablakokon a gyepre és a teraszra – a szoba fényének színében, leeresztett redőny mögött halványabban.",
  "gpu_safe_note": "Ebben a böngészőben a nap íve, a ház árnyéka és az ablakok éjszakai fénye ki van kapcsolva: a grafika közvetlenül indítás után elveszett. A következő NeonPlan-verzió újra megpróbálja.",

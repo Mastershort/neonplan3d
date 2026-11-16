@@ -2171,6 +2171,8 @@
  "sun_shadow_hint": "Talon yllä kaari näyttää auringon radan tänään nousuineen ja laskuineen, ja talon varjo lepää maassa ja kulkee auringon mukana. Vaatii pohjoissuunnan; ”Tabletti”-tasolla vain kaari.",
  "sky": "Todellinen taivas",
  "sky_hint": "Talon takana taivas todellisen auringon mukaan: iltarusko, yön mukana kulkevat tähdet ja kuu oikeassa vaiheessaan. ”Ulkosään” kanssa pilvet ajelehtivat tuulen mukana. Pois omalla taustalla ja pohjapiirros-ilmeessä; ”Tablet”-tasolla rauhallinen still-kuva.",
+ "flyin": "Lento avaruudesta",
+ "flyin_hint": "Avattaessa neonmaapallo kääntyy kotisi kohdalle ja sukeltaa sisään, kun kamera laskeutuu talon päälle. Kerran sivun latausta kohden; napautus ohittaa sen. Ei editorissa eikä ”Tablet”-tasolla.",
  "window_glow": "Ikkunat hehkuvat ulos yöllä",
  "window_glow_hint": "Pimeällä valaistujen huoneiden valo lankeaa ikkunoista lämpimänä hehkuna nurmikolle ja terassille – huoneen valon värissä, himmeämpänä laskettujen kaihtimien takana.",
  "gpu_safe_note": "Tässä selaimessa auringon kaari, talon varjo ja ikkunoiden hehku yöllä ovat pois päältä: grafiikka katosi heti käynnistyksen jälkeen. Seuraava NeonPlan-versio yrittää uudelleen.",

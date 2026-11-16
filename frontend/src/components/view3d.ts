@@ -160,6 +160,7 @@ import { Director, HOLD_DEFAULT, directorAny, doorbellCamera, doorbellEntities, 
 import type { HistorySpec, ReplayInfo } from "../timetravel/types.ts";
 import { sunPath, type SunPath } from "../sun-path.ts";
 import { hourCycle } from "../units.ts";
+import "./flyin.ts";
 
 /** Which HTML markers are shown: none, only what has no 3D object or shows a value, or all. */
 /** "room": no symbols in the house and floor views, in a room only that room's (D477, D595). */
@@ -368,6 +369,7 @@ export class Fp3dView3d extends LitElement {
     autoOrbit: { attribute: false },
     startView: { attribute: false },
     _low: { state: true },
+    _flyIn: { state: true },
     _micProbe: { state: true },
     _narrowStage: { state: true },
     _alerts: { state: true },
@@ -569,6 +571,7 @@ export class Fp3dView3d extends LitElement {
   private declare _thumbs: { floorId: string; url: string }[];
   /** The viewer runs at the tablet level: heavy CSS effects are left out as well. */
   private declare _low: boolean;
+  private declare _flyIn: { lat: number; lon: number } | null;
   /** A room panel (or sheet) is open next to the view: on small screens the view's own controls hide. */
   declare panelOpen: boolean;
   /** The floor pictures, star, search and eye on the right instead of the left (#285). */
@@ -858,6 +861,7 @@ export class Fp3dView3d extends LitElement {
     this.startView = null;
     this.cameraWall = false;
     this.holograms = null;
+    this._flyIn = null;
     try {
       this._flows = localStorage.getItem("neonplan3d.flows") === "1";
       this._holoShow = localStorage.getItem("neonplan3d.holos") !== "0";
@@ -1089,6 +1093,7 @@ export class Fp3dView3d extends LitElement {
         this.shownStartView = JSON.stringify(this.startViewOf());
         this.viewer.setStartView(this.startViewOf());
         this.viewer.setBuilding(this.shownBuilding()!);
+        this.maybeFlyIn();
       }
       this.scheduleThumbs();
       this.syncDevices(true);
@@ -1153,6 +1158,7 @@ export class Fp3dView3d extends LitElement {
       v.setStartView(this.startViewOf());
       v.setBuilding(this.shownBuilding()!);
       if (startChanged && this.floorId === null) v.resetView();
+      this.maybeFlyIn();
     } else if (((changed.has("plain") && changed.get("plain") !== undefined) || (changed.has("rooms") && changed.get("rooms") !== undefined)) && this.building) {
       v.setBuilding(this.shownBuilding()!);
       if (changed.has("rooms")) {
@@ -4564,6 +4570,34 @@ export class Fp3dView3d extends LitElement {
       </div>`;
   }
 
+  /**
+   * "Anflug aus dem All" (setting, off by default): once per page load, the main view opens with a globe that turns
+   * to the home and dives in while the camera comes down onto the house. Never in the editor, on the tablet level, in
+   * time travel or with reduced motion.
+   */
+  private maybeFlyIn(force = false): void {
+    const v = this.viewer;
+    const lat = this.hass?.config?.latitude;
+    const lon = this.hass?.config?.longitude;
+    if (!v || (!force && (this.flownIn || !this.building?.settings.flyin)) || this.walkable === false || this.ro || this._low) return;
+    if (typeof lat !== "number" || typeof lon !== "number" || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    this.flownIn = true;
+    v.flyInStart();
+    this._flyIn = { lat, lon };
+  }
+  private flownIn = false;
+
+  private renderFlyIn() {
+    const f = this._flyIn;
+    if (!f) return nothing;
+    return html`<fp3d-flyin
+      .lat=${f.lat}
+      .lon=${f.lon}
+      @flyin-dive=${(e: CustomEvent<{ fast: boolean }>) => this.viewer?.flyInLand(e.detail.fast)}
+      @flyin-done=${() => (this._flyIn = null)}
+    ></fp3d-flyin>`;
+  }
+
   /** Whether a media player shows a now-playing card (playing, or paused with something to show, or within its grace time). */
   private mediaCardUp(hass: HomeAssistant, id: string): boolean {
     const st = hass.states[id];
@@ -5571,6 +5605,11 @@ export class Fp3dView3d extends LitElement {
         ${admin ? nothing : html`<p class="fp3d-set-note">${t("view_settings_admin")}</p>`}
         <h4>${t("view_settings_look")}</h4>
         ${check("sky", st.sky !== false, (v) => ({ sky: v }), "sky_hint")}
+        ${check("flyin", !!st.flyin, (v) => {
+          // switched on: show it once right away
+          if (v) setTimeout(() => this.maybeFlyIn(true), 300);
+          return { flyin: v || undefined };
+        }, "flyin_hint")}
         ${check("sun_shadow", st.sun_shadow !== false, (v) => ({ sun_shadow: v }), "sun_shadow_hint")}
         ${st.sun_shadow !== false
           ? html`<label class="fp3d-set-field" title=${t("sun_arc_hint")}
@@ -6355,7 +6394,7 @@ export class Fp3dView3d extends LitElement {
       ${this._error ? html`<p class="fp3d-error">${this._error}</p>` : nothing} ${this.clean ? nothing : this.renderEnergy()} ${this.renderHologram()} ${this.clean ? nothing : this.renderLegend()}
       ${this.renderClock()} ${this.renderAlerts()} ${this.clean || this._walk ? nothing : html`${this.renderHousehold()} ${this.renderThumbs()} ${this.renderScenes()} ${this.renderFind()} ${this.renderCentral()}`} ${this.clean ? nothing : this.renderWalk()} ${this.renderSwipe()} ${this.renderInfo()} ${this.renderBinInfo()} ${this.renderGangMenu()} ${this.renderThrough()} ${this.renderCamPop()} ${this.renderCameraWall()} ${this.renderSheet()} ${this.renderModulePopup()} ${this.renderSettings()} ${this.renderNote()}
       ${this.clean ? nothing : this.renderProHint()} ${this.renderMenu()} ${this.renderEye()} ${this.building?.settings.surroundings?.on ? html`<a class="fp3d-osm-credit" href=${OSM_COPYRIGHT} target="_blank" rel="noopener">© OpenStreetMap</a>` : nothing}
-      ${this.renderMic()}
+      ${this.renderMic()} ${this.renderFlyIn()}
       ${this._announce ? html`<div class="fp3d-announce" role="status" @click=${() => (this._announce = null)}>📢 ${this._announce}</div>` : nothing}
       ${this.pivotMark && !this._walk ? html`<span class="fp3d-pivot" aria-hidden="true"></span>` : nothing}
       ${this._micProbe && this.hass ? html`<fp3d-mic-probe .hass=${this.hass} .building=${this.building} @close=${() => ((this._micProbe = false), micProbeDone())}></fp3d-mic-probe>` : nothing}

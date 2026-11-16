@@ -810,6 +810,8 @@ export interface BuildingSettings extends StylePlan {
   sun_shadow?: boolean;
   /** The real sky behind the house: sunset colours, stars, the moon in its phase, clouds with the weather (default on). */
   sky?: boolean;
+  /** "Anflug aus dem All": the view opens with a globe that dives in onto the house (default off). */
+  flyin?: boolean;
   /** What the sun's arc and its compass ring stand around: the house (null, default) or everything drawn on the plot (#833). */
   sun_arc?: "house" | "plot" | null;
   /** At night lit rooms throw their light out of the windows onto the ground in front (default on). */

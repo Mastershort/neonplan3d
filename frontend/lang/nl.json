@@ -2171,6 +2171,8 @@
  "sun_shadow_hint": "Een boog boven het huis toont de baan van de zon vandaag met op- en ondergang, en de schaduw van het huis ligt op de grond en draait mee met de zon. Heeft de noordrichting nodig; op het niveau „Tablet” alleen de boog.",
  "sky": "Echte lucht",
  "sky_hint": "Een lucht achter het huis volgens de echte zonnestand: avondrood, sterren die met de nacht meedraaien en de maan in haar echte fase. Met „Weer buiten” drijven wolken met de wind mee. Uit bij een eigen achtergrond en in de blauwdruk-look; op het niveau „Tablet” een rustig stilstaand beeld.",
+ "flyin": "Aanvliegen vanuit de ruimte",
+ "flyin_hint": "Bij het openen draait een neonwereldbol naar je huis en duikt erin terwijl de camera op het huis neerdaalt. Eén keer per paginalading; een tik slaat het over. Niet in de editor en niet op het niveau „Tablet”.",
  "window_glow": "Ramen schijnen 's nachts naar buiten",
  "window_glow_hint": "Als het donker is, valt het licht van verlichte kamers door de ramen als warme gloed op het gazon en terras ervoor – in de lichtkleur van de kamer, zwakker achter neergelaten rolluiken.",
  "gpu_safe_note": "In deze browser staan de zonnebaan, de schaduw van het huis en de raamgloed 's nachts uit: de grafische weergave ging direct na het starten verloren. De volgende NeonPlan-versie probeert het opnieuw.",

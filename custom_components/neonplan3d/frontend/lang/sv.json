@@ -2171,6 +2171,8 @@
  "sun_shadow_hint": "En båge över huset visar solens bana i dag med soluppgång och solnedgång, och husets skugga ligger på marken och vandrar med solen. Kräver norrriktningen; på nivån ”Surfplatta” bara bågen.",
  "sky": "Riktig himmel",
  "sky_hint": "En himmel bakom huset efter solens verkliga läge: aftonrodnad, stjärnor som vandrar genom natten och månen i sin verkliga fas. Med ”Vädret ute” driver moln med vinden. Av med egen bakgrund och i ritnings-looken; på nivån ”Surfplatta” en lugn stillbild.",
+ "flyin": "Inflygning från rymden",
+ "flyin_hint": "När vyn öppnas vrider sig en neonglob mot ditt hem och dyker in medan kameran flyger ner mot huset. En gång per sidladdning; ett tryck hoppar över. Inte i redigeraren och inte på nivån ”Surfplatta”.",
  "window_glow": "Fönster lyser ut på natten",
  "window_glow_hint": "När det är mörkt faller ljuset från tända rum ut genom fönstren som ett varmt sken på gräsmatta och terrass – i rummets ljusfärg, svagare bakom nerdragna persienner.",
  "gpu_safe_note": "I den här webbläsaren är solbågen, husets skugga och fönstrens sken på natten avstängda: grafiken förlorades direkt efter starten. Nästa NeonPlan-version försöker igen.",

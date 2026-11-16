@@ -2171,6 +2171,8 @@
  "sun_shadow_hint": "Un arco sobre la casa muestra el recorrido del sol hoy con amanecer y atardecer, y la sombra de la casa se dibuja en el suelo y se mueve con el sol. Necesita la orientación norte; en el nivel «Tableta» solo el arco.",
  "sky": "Cielo real",
  "sky_hint": "Un cielo detrás de la casa según la posición real del sol: arreboles, estrellas que se mueven durante la noche y la luna en su fase real. Con «Tiempo exterior» las nubes se mueven con el viento. Desactivado con fondo propio y en el aspecto plano; en el nivel «Tablet» una imagen fija.",
+ "flyin": "Llegada desde el espacio",
+ "flyin_hint": "Al abrir, un globo de neón gira hacia tu casa y se sumerge mientras la cámara baja hasta la casa. Una vez por carga de página; un toque lo omite. No en el editor ni en el nivel «Tablet».",
  "window_glow": "Las ventanas iluminan fuera de noche",
  "window_glow_hint": "Cuando está oscuro, la luz de las habitaciones encendidas sale por las ventanas como un brillo cálido sobre el césped y la terraza – en el color de la luz de la habitación, más tenue tras persianas bajadas.",
  "gpu_safe_note": "En este navegador, el arco del sol, la sombra de la casa y el brillo de las ventanas de noche están desactivados: los gráficos se perdieron justo después de arrancar. La próxima versión de NeonPlan lo intentará de nuevo.",
