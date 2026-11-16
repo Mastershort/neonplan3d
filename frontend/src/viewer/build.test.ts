@@ -387,3 +387,48 @@ test("a free wall's own colour shows on both its sides in the homely styles, in 
     setNaturalPalette(false);
   }
 });
+
+/**
+ * Wall triangles standing in the plane x = `x` (all three corners on it), within z0…z1, with a part between the
+ * heights `lo` and `hi`.
+ */
+function sheetsAtX(g: BufferGeometry, x: number, z0: number, z1: number, lo: number, hi: number): number {
+  const p = g.getAttribute("position");
+  let n = 0;
+  for (let i = 0; i < p.count; i += 3) {
+    const onPlane = [0, 1, 2].every((k) => Math.abs(p.getX(i + k) - x) < 1e-6 && p.getZ(i + k) > z0 - 1e-6 && p.getZ(i + k) < z1 + 1e-6);
+    const ys = [p.getY(i), p.getY(i + 1), p.getY(i + 2)];
+    if (onPlane && Math.max(...ys) > lo && Math.min(...ys) < hi) n++;
+  }
+  return n;
+}
+
+test("an opening reaching a wall's end leaves no sheet without thickness standing there", () => {
+  // a free wall with a passage over its whole length: nothing stands at its two ends
+  const room = rect("r", 0, 0, 6, 4);
+  const fw = { id: "fw", a: [1, 2] as Vec2, b: [5, 2] as Vec2, thickness: 0.3 };
+  const passage: Opening = { ...opening("door", "r", 0, 2, 4), id: "pass", wall: "fw", style: "passage" };
+  const open = buildFloorGeometry({ ...floorWith([room], [passage]), walls: [fw] }, EXT, INT);
+  // (between 0.5 m and 1.9 m: inside the passage, 2.05 m high – the end face of the wall above it starts higher)
+  assert.equal(sheetsAtX(open.walls, 1, 1.85, 2.15, 0.5, 1.9), 0);
+  assert.equal(sheetsAtX(open.walls, 5, 1.85, 2.15, 0.5, 1.9), 0);
+  // the wall above the passage is still there, with its end faces
+  const pos = open.walls.getAttribute("position");
+  let top = -Infinity;
+  for (let i = 0; i < pos.count; i++) if (Math.abs(pos.getZ(i) - 2) < 0.16 && pos.getX(i) > 0.9 && pos.getX(i) < 5.1) top = Math.max(top, pos.getY(i));
+  assert.ok(top > 2.05);
+  assert.ok(sheetsAtX(open.walls, 1, 1.85, 2.15, 2.1, 9) > 0);
+  // and no lines stand in the passage at the ends: the corner lines start at the lintel, no line across the floor
+  const ends = segments(open.lines).filter((l) => [1, 5].some((x) => Math.abs(l[0] - x) < 1e-6 && Math.abs(l[3] - x) < 1e-6) && Math.abs(l[2] - 2) < 0.16 && Math.abs(l[5] - 2) < 0.16);
+  assert.ok(ends.length > 0);
+  assert.ok(ends.every((l) => Math.min(l[1], l[4]) > 2.05 - 1e-6), "a line stands in the passage at a wall end");
+  near(Math.max(...ends.filter(vertical).map((l) => Math.max(l[1], l[4]))), 2.5, 1e-6);
+  // a wall end without an opening keeps its lines down to the floor
+  const closed = buildFloorGeometry({ ...floorWith([room]), walls: [fw] }, EXT, INT);
+  assert.ok(segments(closed.lines).some((l) => vertical(l) && Math.abs(l[0] - 1) < 1e-6 && Math.abs(l[2] - 2) < 0.16 && Math.min(l[1], l[4]) < 0.01));
+  // a door across a transition without a wall (#624): no sheet across the reveal at the transition
+  const a = rect("a", 0, 0, 4, 3);
+  const b = { ...rect("b", 4, 0, 7, 3), wall_heights: [null, null, null, 0] };
+  const door = buildFloorGeometry(floorWith([a, b], [opening("door", "a", 0, 3.8, 1.2)]), EXT, INT);
+  assert.equal(sheetsAtX(door.walls, 4, -EXT, 0, 0.5, 1.9), 0);
+});

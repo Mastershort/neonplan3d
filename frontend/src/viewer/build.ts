@@ -464,7 +464,9 @@ export function buildFloorGeometry(
     };
     for (const piece of underRoof ? steps.flatMap(fine).flatMap(crossing) : steps) {
       const poly = underRoof ? unburied(clipAlong(wall.footprint, wall.a, ax, piece.t0, piece.t1)) : clipAlong(wall.footprint, wall.a, ax, piece.t0, piece.t1);
-      if (poly.length < 3) continue;
+      // an opening that starts or ends exactly at the wall's end leaves a piece of no length there: its footprint is
+      // a line, and built as a prism it stood in the opening as a sheet without thickness, as wide as the wall
+      if (poly.length < 3 || Math.abs(polygonArea(poly)) < 1e-9) continue;
       // the faces between two steps of one piece are inside the wall: left out, or they show as stripes
       // through the see-through walls (D180)
       const on = (p: Vec2, t: number) => Math.abs(tOf(p) - t) < 1e-4;
@@ -496,16 +498,46 @@ export function buildFloorGeometry(
   lines.c.push(...holeLines.c);
   lines.f.push(...holeLines.f);
   const spansOf = (w: Wall, keep: (sp: Span) => boolean) => (spans.get(w) ?? []).filter(keep);
+  // a wall's free end (the edge across its thickness, with no other wall there): where an opening reaches it, no
+  // wall stands at that end between the opening's sill and its top – its lines there are left out
+  const wallLen = (w: Wall) => Math.hypot(w.b[0] - w.a[0], w.b[1] - w.a[1]);
+  /** The end of its wall a point lies at: 0 at wall.a, 1 at wall.b, null along the wall. */
+  const endAt = (w: Wall, p: Vec2): 0 | 1 | null => {
+    const l = wallLen(w) || 1;
+    const t = ((p[0] - w.a[0]) * (w.b[0] - w.a[0]) + (p[1] - w.a[1]) * (w.b[1] - w.a[1])) / l;
+    return Math.abs(t) < 1e-4 ? 0 : Math.abs(t - l) < 1e-4 ? 1 : null;
+  };
+  const endOfEdge = (e: OutlineEdge): 0 | 1 | null => {
+    const end = endAt(e.wall, e.a);
+    return end !== null && end === endAt(e.wall, e.b) ? end : null;
+  };
+  const freeEnds = new Map<Wall, [boolean, boolean]>();
+  for (const e of outline.edges) {
+    const end = endOfEdge(e);
+    if (end === null) continue;
+    const free = freeEnds.get(e.wall) ?? [false, false];
+    free[end] = true;
+    freeEnds.set(e.wall, free);
+  }
+  /** The openings that reach a wall's free end. */
+  const openEnd = (w: Wall, end: 0 | 1 | null): Span[] => {
+    if (end === null || !freeEnds.get(w)?.[end]) return [];
+    const l = wallLen(w);
+    return (spans.get(w) ?? []).filter((sp) => (end === 0 ? sp.s0 <= 1e-6 : sp.s1 >= l - 1e-6));
+  };
   for (const e of outline.edges) {
     const b = wallBucket.get(e.wall)!;
+    // the edge across a free end takes part in the openings that reach this end
+    const open = openEnd(e.wall, endOfEdge(e));
+    const parts = (keep: (sp: Span) => boolean) => (open.some(keep) ? [] : subtractSpans(e, spansOf(e.wall, keep)));
     // base line along the floor: not across doorways
-    for (const [p, q] of subtractSpans(e, spansOf(e.wall, (sp) => sp.sill <= 0.005))) lines.seg([p[0], 0.004, p[1]], [q[0], 0.004, q[1]], EDGE_BASE);
+    for (const [p, q] of parts((sp) => sp.sill <= 0.005)) lines.seg([p[0], 0.004, p[1]], [q[0], 0.004, q[1]], EDGE_BASE);
     // cut line: not where an opening crosses the cut height
-    for (const [p, q] of subtractSpans(e, spansOf(e.wall, (sp) => sp.sill < cut && sp.top > cut))) lines.seg([p[0], cut, p[1]], [q[0], cut, q[1]], EDGE_CUT, CUT_OFFSET + b);
+    for (const [p, q] of parts((sp) => sp.sill < cut && sp.top > cut)) lines.seg([p[0], cut, p[1]], [q[0], cut, q[1]], EDGE_CUT, CUT_OFFSET + b);
     // top line: not where an opening reaches the top; a wall below the cut height keeps its top line;
     // under a roof it follows the slope in short steps
     const H = wallHeight(e.wall, floor.height);
-    for (const [p, q] of subtractSpans(e, spansOf(e.wall, (sp) => sp.top >= H - 0.021))) {
+    for (const [p, q] of parts((sp) => sp.top >= H - 0.021)) {
       if (!roofUnder && !e.wall.slope) {
         lines.seg([p[0], H, p[1]], [q[0], H, q[1]], EDGE_TOP, H <= cut + 1e-6 ? LOWER_OFFSET + b : b);
         continue;
@@ -527,7 +559,18 @@ export function buildFloorGeometry(
     // the corner line reaches up to the tallest wall meeting there, not to whichever came first (#417)
     const tall = c.walls.reduce((m, w) => (topOfWall(w, c.p) > topOfWall(m, c.p) + 1e-6 ? w : m), c.wall);
     const H = topAt(c.p[0], c.p[1], wallHeight(tall, floor.height), tall);
-    lines.segSplit([c.p[0], 0.004, c.p[1]], [c.p[0], H, c.p[1]], EDGE_SOFT, Math.min(cut, H), wallBucket.get(tall)!);
+    // at a free wall end an opening reaches, the corner line leaves the opening's height out
+    const gaps = c.walls.length === 1 ? openEnd(c.wall, endAt(c.wall, c.p)).map((sp) => [Math.max(sp.sill, 0.004), sp.top]).sort((p, q) => p[0] - q[0]) : [];
+    if (!gaps.length) {
+      lines.segSplit([c.p[0], 0.004, c.p[1]], [c.p[0], H, c.p[1]], EDGE_SOFT, Math.min(cut, H), wallBucket.get(tall)!);
+      continue;
+    }
+    let y = 0.004;
+    for (const [g0, g1] of gaps) {
+      if (g0 > y + 1e-4) lines.segSplit([c.p[0], y, c.p[1]], [c.p[0], Math.min(g0, H), c.p[1]], EDGE_SOFT, Math.min(cut, H), wallBucket.get(tall)!);
+      y = Math.max(y, g1);
+    }
+    if (H > y + 1e-4) lines.segSplit([c.p[0], y, c.p[1]], [c.p[0], H, c.p[1]], EDGE_SOFT, Math.min(cut, H), wallBucket.get(tall)!);
   }
   // a joint between walls of different heights: the taller wall's end stands free above the lower one, so
   // its top edge runs across the joint and its edges come down to the lower wall's top (#417)
@@ -547,10 +590,10 @@ export function buildFloorGeometry(
       if (high - low > 0.01) lines.segSplit([p[0], low, p[1]], [p[0], high, p[1]], EDGE_SOFT, cut, b);
     }
   }
-  for (const list of spans.values()) for (const sp of list) if (!sp.cont) pushOpeningLines(lines, sp, cut);
+  for (const [w, list] of spans) for (const sp of list) if (!sp.cont) pushOpeningLines(lines, sp, cut, [openEnd(w, 0).includes(sp), openEnd(w, 1).includes(sp)]);
 
   // ---------------------------------------------------------------- furniture and shadows
-  const shadow = buildShadow(outline.edges, floor.rooms, spans);
+  const shadow = buildShadow(outline.edges.filter((e) => !openEnd(e.wall, endOfEdge(e)).some((sp) => sp.sill <= 0.005)), floor.rooms, spans);
   const waterBuf = new GeoBuffer();
   pushOutdoor(wallBuf, lines, floor, waterBuf);
   if (surroundings) pushSurroundings(wallBuf, lines, surroundings, groundLevel(floor));
@@ -597,8 +640,11 @@ export function buildFloorGeometry(
   };
 }
 
-/** Jambs, sill and lintel edges of an opening on both wall faces, split at the cut height. */
-function pushOpeningLines(lines: LineBuffer, sp: Span, cut: number): void {
+/**
+ * Jambs, sill and lintel edges of an opening on both wall faces, split at the cut height. `open`: the opening reaches
+ * the wall's free end at its start / at its end – no jamb stands there.
+ */
+function pushOpeningLines(lines: LineBuffer, sp: Span, cut: number, open: [boolean, boolean] = [false, false]): void {
   const { info } = sp;
   const b = info.bucket;
   const at = (s: number, n: number, y: number) => [
@@ -609,16 +655,18 @@ function pushOpeningLines(lines: LineBuffer, sp: Span, cut: number): void {
   const foldAt = (y: number) => (y > cut + 1e-6 ? b : ALWAYS);
   const bottom = Math.max(sp.sill, 0.004);
   for (const n of [info.faceRoom, -info.faceOut]) {
-    for (const s of [sp.s0, sp.s1]) lines.segSplit(at(s, n, bottom), at(s, n, sp.top), EDGE_SOFT, cut, b);
+    [sp.s0, sp.s1].forEach((s, i) => {
+      if (!open[i]) lines.segSplit(at(s, n, bottom), at(s, n, sp.top), EDGE_SOFT, cut, b);
+    });
     lines.seg(at(sp.s0, n, sp.top), at(sp.s1, n, sp.top), EDGE_SOFT, foldAt(sp.top));
     if (sp.sill > 0.01) lines.seg(at(sp.s0, n, sp.sill), at(sp.s1, n, sp.sill), EDGE_SOFT, foldAt(sp.sill));
   }
   // edges across the wall thickness (reveals), and the cut section of the jambs
-  for (const s of [sp.s0, sp.s1]) {
+  [sp.s0, sp.s1].forEach((s, i) => {
     lines.seg(at(s, info.faceRoom, sp.top), at(s, -info.faceOut, sp.top), EDGE_SOFT, foldAt(sp.top));
     if (sp.sill > 0.01) lines.seg(at(s, info.faceRoom, sp.sill), at(s, -info.faceOut, sp.sill), EDGE_SOFT, foldAt(sp.sill));
-    if (sp.sill < cut && sp.top > cut) lines.seg(at(s, info.faceRoom, cut), at(s, -info.faceOut, cut), EDGE_CUT, CUT_OFFSET + b);
-  }
+    if (!open[i] && sp.sill < cut && sp.top > cut) lines.seg(at(s, info.faceRoom, cut), at(s, -info.faceOut, cut), EDGE_CUT, CUT_OFFSET + b);
+  });
 }
 
 /** Part of a polygon between two lines perpendicular to `axis` (t measured from `origin`). */
