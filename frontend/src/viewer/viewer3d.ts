@@ -4957,7 +4957,25 @@ export class FloorplanViewer {
     return found;
   }
 
+  /**
+   * Picking a spot (a module asks "tap where"): the next tap answers with the point on the opened floor (or the lowest
+   * floor in the house view) instead of opening anything; null ends it without a spot.
+   */
+  pickSpot(cb: ((spot: { floorId: string; x: number; z: number } | null) => void) | null): void {
+    this.spotCb?.(null);
+    this.spotCb = cb;
+  }
+  private spotCb: ((spot: { floorId: string; x: number; z: number } | null) => void) | null = null;
+
   private onTap(x: number, y: number): void {
+    if (this.spotCb) {
+      const cb = this.spotCb;
+      this.spotCb = null;
+      const fv = (this.floorId ? this.floorMap.get(this.floorId) : undefined) ?? [...this.activeFloors()].sort((a, b) => a.floor.elevation - b.floor.elevation)[0];
+      const p = fv ? this.floorPoint(fv, x, y) : null;
+      cb(fv && p ? { floorId: fv.floor.id, x: p[0], z: p[1] } : null);
+      return;
+    }
     let hit = this.pick(x, y, !this.tapOpens);
     if (this.tapOpens) {
       const device = this.pick(x, y, true);

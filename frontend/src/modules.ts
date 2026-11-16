@@ -194,6 +194,11 @@ export interface ModuleHost {
    * and their detection sensors with the kind each reports.
    */
   cameras?(): PlanCamera[];
+  /**
+   * Asks the user to tap a spot in the 3D view (`hint` shows meanwhile): the point on the opened floor, or null when
+   * cancelled (a tap on the hint, or a minute without a tap).
+   */
+  pickSpot?(hint: string): Promise<{ floorId: string; x: number; z: number } | null>;
 }
 
 /**

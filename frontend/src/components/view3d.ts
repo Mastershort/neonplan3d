@@ -370,6 +370,7 @@ export class Fp3dView3d extends LitElement {
     startView: { attribute: false },
     _low: { state: true },
     _flyIn: { state: true },
+    _spotHint: { state: true },
     _micProbe: { state: true },
     _narrowStage: { state: true },
     _alerts: { state: true },
@@ -572,6 +573,7 @@ export class Fp3dView3d extends LitElement {
   /** The viewer runs at the tablet level: heavy CSS effects are left out as well. */
   private declare _low: boolean;
   private declare _flyIn: { lat: number; lon: number } | null;
+  private declare _spotHint: string | null;
   /** A room panel (or sheet) is open next to the view: on small screens the view's own controls hide. */
   declare panelOpen: boolean;
   /** The floor pictures, star, search and eye on the right instead of the left (#285). */
@@ -862,6 +864,7 @@ export class Fp3dView3d extends LitElement {
     this.cameraWall = false;
     this.holograms = null;
     this._flyIn = null;
+    this._spotHint = null;
     try {
       this._flows = localStorage.getItem("neonplan3d.flows") === "1";
       this._holoShow = localStorage.getItem("neonplan3d.holos") !== "0";
@@ -5242,9 +5245,29 @@ export class Fp3dView3d extends LitElement {
       occupied: () => this.occupiedRooms(hass, b),
       speakers: () => this.planSpeakers(hass, b),
       cameras: () => this.planCameras(hass, b),
+      pickSpot: (hint) => this.pickSpot(hint),
     };
     return host;
   }
+
+  /** A module asks for a spot: a hint stands over the view until the next tap answers (or a tap on it cancels). */
+  private pickSpot(hint: string): Promise<{ floorId: string; x: number; z: number } | null> {
+    return new Promise((resolve) => {
+      const v = this.viewer;
+      if (!v) return resolve(null);
+      clearTimeout(this.spotTimer);
+      const done = (spot: { floorId: string; x: number; z: number } | null) => {
+        clearTimeout(this.spotTimer);
+        this._spotHint = null;
+        resolve(spot);
+      };
+      // (a spot asked before is answered with null first: its hint goes, this one's stays)
+      v.pickSpot(done);
+      this._spotHint = hint;
+      this.spotTimer = setTimeout(() => v.pickSpot(null), 60_000);
+    });
+  }
+  private spotTimer: ReturnType<typeof setTimeout> | undefined;
 
   /** The plan's cameras with their pose and detection sensors (for modules). */
   private planCameras(hass: HomeAssistant, b: Building): PlanCamera[] {
@@ -6437,7 +6460,7 @@ export class Fp3dView3d extends LitElement {
       @touchstart=${this.keepTouch}
       @touchmove=${this.keepTouch}
       @touchend=${this.keepTouch}
-      class="fp3d-stage ${this.effectiveTheme() === "day" ? "fp3d-bright" : ""} ${this.roomLabels ? "" : "fp3d-no-room-names"} ${this._low ? "fp3d-low" : ""} ${this.panelOpen ? "fp3d-panel-open" : ""} ${this.controlsRight ? "fp3d-side-right" : ""} ${this._alerts.length ? "fp3d-has-alerts" : ""} ${this._through ? "fp3d-through-on" : ""} ${this._flash ? "fp3d-flash" : ""} ${this.replay ? "fp3d-replay" : ""}"
+      class="fp3d-stage ${this.effectiveTheme() === "day" ? "fp3d-bright" : ""} ${this.roomLabels ? "" : "fp3d-no-room-names"} ${this._low ? "fp3d-low" : ""} ${this.panelOpen ? "fp3d-panel-open" : ""} ${this.controlsRight ? "fp3d-side-right" : ""} ${this._alerts.length ? "fp3d-has-alerts" : ""} ${this._through ? "fp3d-through-on" : ""} ${this._flash ? "fp3d-flash" : ""} ${this.replay ? "fp3d-replay" : ""} ${this._spotHint ? "fp3d-picking" : ""}"
       style=${style}
     >
       ${this.renderZoomBackground()}
@@ -6445,6 +6468,7 @@ export class Fp3dView3d extends LitElement {
       ${this.renderClock()} ${this.renderAlerts()} ${this.clean || this._walk ? nothing : html`${this.renderHousehold()} ${this.renderThumbs()} ${this.renderScenes()} ${this.renderFind()} ${this.renderCentral()}`} ${this.clean ? nothing : this.renderWalk()} ${this.renderSwipe()} ${this.renderInfo()} ${this.renderBinInfo()} ${this.renderGangMenu()} ${this.renderThrough()} ${this.renderCamPop()} ${this.renderCameraWall()} ${this.renderSheet()} ${this.renderModulePopup()} ${this.renderSettings()} ${this.renderNote()}
       ${this.clean ? nothing : this.renderProHint()} ${this.renderMenu()} ${this.renderEye()} ${this.building?.settings.surroundings?.on ? html`<a class="fp3d-osm-credit" href=${OSM_COPYRIGHT} target="_blank" rel="noopener">© OpenStreetMap</a>` : nothing}
       ${this.renderMic()} ${this.renderFlyIn()}
+      ${this._spotHint ? html`<button class="fp3d-spot-hint" @click=${() => this.viewer?.pickSpot(null)}>📍 ${this._spotHint} <span aria-hidden="true">✕</span></button>` : nothing}
       ${this._announce ? html`<div class="fp3d-announce" role="status" @click=${() => (this._announce = null)}>📢 ${this._announce}</div>` : nothing}
       ${this.pivotMark && !this._walk ? html`<span class="fp3d-pivot" aria-hidden="true"></span>` : nothing}
       ${this._micProbe && this.hass ? html`<fp3d-mic-probe .hass=${this.hass} .building=${this.building} @close=${() => ((this._micProbe = false), micProbeDone())}></fp3d-mic-probe>` : nothing}
@@ -6806,6 +6830,31 @@ export class Fp3dView3d extends LitElement {
         inset: 0;
         z-index: -1;
         pointer-events: none;
+      }
+      /* while a spot is picked, names and pins on the view let the tap through to the plan */
+      .fp3d-picking .fp3d-labels,
+      .fp3d-picking .fp3d-labels * {
+        pointer-events: none !important;
+      }
+      .fp3d-picking .fp3d-canvas {
+        cursor: crosshair;
+      }
+      /* a module asks for a spot: the hint stands at the top until the tap (a tap on it cancels) */
+      .fp3d-spot-hint {
+        position: absolute;
+        top: calc(12px + env(safe-area-inset-top, 0px));
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 25;
+        padding: 8px 14px;
+        border-radius: 999px;
+        border: 1px solid rgba(62, 232, 255, 0.6);
+        background: rgba(6, 12, 24, 0.85);
+        color: #e6ecff;
+        font: inherit;
+        font-size: 14px;
+        cursor: pointer;
+        box-shadow: 0 0 18px rgba(62, 232, 255, 0.25);
       }
       /* the real sky (drawn by the 3D view): first on the stage, so the zoom style's background lies over it */
       .fp3d-sky {
