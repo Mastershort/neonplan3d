@@ -21,6 +21,7 @@ import { cornerPoint, nearestOnPath, onWall, pipePath, type P3 } from "../geomet
 import { connectionsAt, laidPipe, nearestOnOutline, planConnection, poolNodeAt, runLead, runsOnWall, splitPipe, type Connection, type ConnectVia, type WallRun } from "../pool-runs.ts";
 import { devicePorts, FILTER_VALVES, jointPortAt, jointPorts, nodePart, poolPortFlow, portFlow, splitNode, type PortName } from "../pool-ports.ts";
 import { holeInRoom } from "../geometry/holes.ts";
+import { turnedBackground } from "../geometry/background.ts";
 import { weatherEntity, isRainSource } from "../weather.ts";
 import { isOutageSource } from "../outage.ts";
 import { SHOW_PRESENCE } from "../flags.ts";
@@ -5611,9 +5612,13 @@ export class Fp3dEditor extends LitElement {
   }
 
   /** Turn everything on the floor by 90° (clockwise in the plan) about the middle of its rooms: when a floor was drawn the wrong way round. */
-  private turnFloor(): void {
+  private async turnFloor(): Promise<void> {
+    if (!this.floor || !this.isAdmin) return;
+    // a background picture turns about its middle: its height (from the picture) is needed, also on the other floors
+    const pics = (this._shiftAll ? this._doc.floors : [this.floor]).map((f) => f.background?.image_id).filter((id): id is string => !!id && !this._images[id]);
+    if (pics.length) await Promise.all(pics.map((id) => this.loadImage(id)));
     const floor = this.floor;
-    if (!floor || !this.isAdmin) return;
+    if (!floor) return;
     // with "all floors" the house turns about the middle of every room on every floor
     const pts = (this._shiftAll ? this._doc.floors : [floor]).flatMap((f) => f.rooms.flatMap((r) => r.points));
     if (!pts.length) return;
@@ -5637,10 +5642,7 @@ export class Fp3dEditor extends LitElement {
         w.a = mv(w.a);
         w.b = mv(w.b);
       }
-      if (f.background) {
-        [f.background.x, f.background.z] = mv([f.background.x, f.background.z]);
-        f.background.rotation = ((f.background.rotation ?? 0) + 90) % 360;
-      }
+      if (f.background) f.background = turnedBackground(f.background, this._images[f.background.image_id]?.aspect ?? 1, mv);
     };
     if (this._shiftAll) {
       this.change((doc) => {
@@ -11185,7 +11187,7 @@ export class Fp3dEditor extends LitElement {
                       <input type="number" step="0.05" .value=${String(this._shiftZ)} @change=${(e: Event) => (this._shiftZ = Number((e.target as HTMLInputElement).value) || 0)}
                     /></label>
                     <button class="fp3d-btn" ?disabled=${!this._shiftX && !this._shiftZ} @click=${() => this.shiftFloor(this._shiftX, this._shiftZ)}>${this.t("floor_shift_apply")}</button>
-                    <button class="fp3d-btn" title=${this.t("floor_turn_hint")} @click=${() => this.turnFloor()}>${this.t("floor_turn")}</button>
+                    <button class="fp3d-btn" title=${this.t("floor_turn_hint")} @click=${() => void this.turnFloor()}>${this.t("floor_turn")}</button>
                     <button class="fp3d-btn" title=${this.t("floor_start_view_hint")} @click=${() => this.rememberFloorView()}>${this.t("floor_start_view")}</button>
                     ${floor.start_view ? html`<button class="fp3d-btn" title=${this.t("floor_start_view_reset")} @click=${() => this.updateFloor({ start_view: null })}>↺</button>` : nothing}
                     <label class="fp3d-check fp3d-wide" title=${this.t("floor_shift_all_hint")}
