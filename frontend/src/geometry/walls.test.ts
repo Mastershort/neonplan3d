@@ -339,3 +339,16 @@ test("a door on an inner wall piece left by an extra corner on a straight line r
   near(before, 2, 1e-3);
   near(after, 0);
 });
+
+test("a wall left out by a height of 0 is reported with the room edges of both sides (#1151)", () => {
+  // a long room with a short one beside part of its edge; the long room leaves the shared part out
+  const long: Room = { ...rect("a", 0, 0, 6, 2), wall_heights: [null, null, null, null] };
+  const short = rect("b", 1, 2, 3, 4);
+  const plain = generateWalls([long, short], opts);
+  assert.deepEqual(plain.noWalls, []);
+  // edge 2 of a runs from (6, 2) to (0, 2) and is split by b: part 1 (from 3 m) is the shared one
+  long.wall_heights![2] = [null, 0, null];
+  const res = generateWalls([long, short], opts);
+  assert.equal(res.noWalls.length, 1);
+  assert.deepEqual(res.noWalls[0].map((s) => `${s.room_id}:${s.edge}`).sort(), ["a:2", "b:0"]);
+});
