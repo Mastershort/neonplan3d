@@ -1337,7 +1337,8 @@ export class Fp3dView3d extends LitElement {
         // the own name under the pin: per device, or for every named device (card option marker_names)
         const caption = m.ownName && (m.showName || this.markerNames) ? m.ownName : "";
         // Klang & Kino: while a card floats over the speaker, its pin steps aside (it comes back when the music stops)
-        const carded = (hasFeature("sound") && this.mediaCardUp(hass, m.id)) || (hasFeature("auto_pro") && !!m.furnitureId && carSpots.has(m.furnitureId));
+        // (only while the cards show at all: else the pin stays – it vanished with no card in its place)
+        const carded = this.cardsOn() && ((hasFeature("sound") && this.mediaCardUp(hass, m.id)) || (hasFeature("auto_pro") && !!m.furnitureId && carSpots.has(m.furnitureId)));
         // a lock at its door asks for its text itself (full): the symbol mode does not take that away
         return { ...marker, pin: this.showPin(marker) && !carded, full: m.show === "always" || m.full === true, caption };
       }),
@@ -2261,7 +2262,12 @@ export class Fp3dView3d extends LitElement {
     // a module with a card or a label of its own needs no Pro add-on for them
     const fromModule = this._holos.some((c) => c.kind === "module" || c.tag);
     // the editor keeps the energy bar off but asks for the holograms in its energy tool
-    if (!(fromModule || hasFeature("energy_pro") || hasFeature("sound") || hasFeature("auto_pro") || hasFeature("pool") || hasFeature("household")) || (this.roomId && !(this.building?.settings.roof.hologram ?? DEFAULT_HOLOGRAM).device_room) || !(this.showEnergy || this.holograms) || !this.holoVisible()) return hasFeature("household") || fromModule ? tagsOnly() : nothing;
+    if (!(fromModule || hasFeature("energy_pro") || hasFeature("sound") || hasFeature("auto_pro") || hasFeature("pool") || hasFeature("household")) || !this.cardsOn()) return hasFeature("household") || fromModule ? tagsOnly() : nothing;
+    // in an opened room the energy cards come only when switched on (Energie Pro); the music cards of the room always
+    // (#911 – a Klang & Kino owner without Energie Pro could not switch them on at all)
+    if (this.roomId && !(this.building?.settings.roof.hologram ?? DEFAULT_HOLOGRAM).device_room) {
+      return this._holos.map((card, i) => (card.kind === "media" ? this.renderMediaCard(card, i) : card.kind === "bin" ? this.renderBinCard(card, i) : nothing));
+    }
     // the plants' cards belong to the house view – with a single floor that floor is the house view (#255)
     const house = this.floorId === null || (this.building?.floors.length ?? 0) <= 1;
     const plants = !!e && (e.solar !== null || e.grid !== null || e.battery !== null) && house;
@@ -6223,6 +6229,11 @@ export class Fp3dView3d extends LitElement {
 
   private holoVisible(): boolean {
     return this.holograms ?? this._holoShow;
+  }
+
+  /** Whether the glass cards show at all (the card's options and the holograms switch). */
+  private cardsOn(): boolean {
+    return (this.showEnergy || !!this.holograms) && this.holoVisible();
   }
 
   private toggleFlows(): void {
