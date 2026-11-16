@@ -2489,6 +2489,8 @@
  "surround_north": "Norte: {deg}°",
  "surround_credit": "Datos del mapa © colaboradores de OpenStreetMap",
  "surround_flat": "Casas vecinas solo como planta (planas en vez de bloques)",
+ "surround_y": "Altura del entorno (m)",
+ "surround_y_hint": "Si la calle está más alta o más baja que la planta baja (pendiente, acceso inclinado), esto sube (+) o baja (−) todo el mapa.",
  "surround_pick": "Mostrar y ocultar casas",
  "surround_pick_hint": "Toca una casa para ocultarla o volver a mostrarla. Discontinua amarilla = oculta: NeonPlan oculta por sí mismo tu casa y los edificios del mapa que están sobre tu plano (un garaje, por ejemplo).",
  "surround_pick_hide": "Toca para ocultar",
