@@ -3,6 +3,7 @@
 // A wall the room shared with a hidden one keeps the thickness of an inner wall, and a door or window in it stays:
 // it is filed under the room shown (from that side its hinge and swing are the other way round).
 import { pointInPolygon, type Building, type Floor, type Opening, type Room, type Vec2 } from "./model.ts";
+import { dormerParent, sectionFloor } from "./roof-sections.ts";
 
 /** How far (m) a point may lie off an edge and still be on it. */
 const ON_EDGE = 0.06;
@@ -109,6 +110,17 @@ export function roomsOnly(b: Building, ids: readonly string[]): Building {
   // hung in the air over a floor they do not belong to (#967) – a card without the top floor shows no roof
   const top = roofFloorId(b);
   const roof = b.settings.roof;
+  if (roof?.type === "custom" && roof.sections?.length) {
+    // a roof of sections: each sits on a floor of its own, and the card keeps those over the floors it shows – the
+    // slopes over the upper floor's attic in a card without the floor above (#997); the others would hang in the air
+    // (#967). A dormer goes with the section it sits on.
+    const shown = new Set(floors.map((f) => f.id));
+    const all = roof.sections;
+    const own = new Set(all.filter((s) => shown.has(sectionFloor(b, s)?.id ?? "")));
+    const sections = all.filter((s) => own.has((s.dormer && dormerParent(all, s)) || s));
+    if (sections.length === all.length) return { ...b, floors };
+    return { ...b, floors, settings: { ...b.settings, roof: sections.length ? { ...roof, sections } : { ...roof, type: "none" } } };
+  }
   const keepRoof = !roof || roof.type === "none" || top === null || floors.some((f) => f.id === top);
   if (!keepRoof) return { ...b, floors, settings: { ...b.settings, roof: { ...roof, type: "none" } } };
   // a flat or gable roof spans the top floor's rooms: with only some of them shown it would shrink onto those and
