@@ -2488,6 +2488,8 @@
  "surround_north": "Kuzey: {deg}°",
  "surround_credit": "Harita verileri © OpenStreetMap katkıda bulunanları",
  "surround_flat": "Komşu evler yalnızca taban planı olarak (blok yerine düz)",
+ "surround_y": "Çevrenin yüksekliği (m)",
+ "surround_y_hint": "Sokak zemin kattan daha yüksek veya alçaksa (yamaç, eğimli giriş), bu tüm haritayı yukarı (+) veya aşağı (−) kaydırır.",
  "surround_pick": "Evleri göster ve gizle",
  "surround_pick_hint": "Bir evi gizlemek ya da yeniden göstermek için ona dokun. Sarı kesikli = gizli: NeonPlan senin evini ve planının üzerinde duran harita binalarını (örneğin bir garajı) kendisi gizler.",
  "surround_pick_hide": "Gizlemek için dokun",

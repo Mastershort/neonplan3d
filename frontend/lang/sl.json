@@ -2489,6 +2489,8 @@
  "surround_north": "Sever: {deg}°",
  "surround_credit": "Podatki zemljevida © sodelavci OpenStreetMap",
  "surround_flat": "Sosednje hiše samo kot tloris (ploske namesto blokov)",
+ "surround_y": "Višina okolice (m)",
+ "surround_y_hint": "Če ulica leži višje ali nižje od pritličja (pobočje, nagnjen dovoz), to premakne ves zemljevid navzgor (+) ali navzdol (−).",
  "surround_pick": "Prikaži in skrij hiše",
  "surround_pick_hint": "Tapni hišo, da jo skriješ ali znova prikažeš. Rumeno črtkano = skrito: tvojo hišo in stavbe z zemljevida, ki stojijo na tvojem načrtu (npr. garažo), NeonPlan skrije sam.",
  "surround_pick_hide": "Tapni za skritje",

@@ -886,6 +886,8 @@ export interface Surroundings {
   show?: number[];
   /** The neighbours' houses only as their outline on the ground instead of blocks. */
   flat?: boolean;
+  /** The whole map shifted up or down (m), where the street lies higher or lower than the ground floor (#1148). */
+  y?: number;
   buildings: SurroundBuilding[];
   ways: SurroundWay[];
   areas: SurroundArea[];

@@ -13,7 +13,7 @@ import { centroid, GANG_TYPES, labelPoint, gateSpans, outdoorSurface, outdoorTop
 import { placeWallPlate } from "../geometry/walls.ts";
 import { buildEarth } from "./earth.ts";
 import { clampIntoRoom } from "../geometry/snap.ts";
-import { activeSections, roofRider, roofUnderAt, sectionAbove, sectionCutsBelow } from "../roof-sections.ts";
+import { activeSections, dormerRise, roofRider, roofUnderAt, sectionAbove, sectionCutsBelow } from "../roof-sections.ts";
 import { buildFloorGeometry, SLAB, stairHoleParts, type FloorGeometry } from "./build.ts";
 import { OrbitControls, type OrbitView } from "./controls.ts";
 import { makeFoldable, type FoldMasks } from "./fold.ts";
@@ -3114,7 +3114,15 @@ export class FloorplanViewer {
             return y === null ? null : y - floor.elevation;
           }
         : undefined;
-      const geo = this.dual(() => buildFloorGeometry(withVehicles(floor, this.parked), b.settings.wall_exterior, b.settings.wall_interior, stairHoleParts(b.floors, floor), garden, roofUnder, floor.id === groundId ? around : null));
+      // under a dormer the walls rise to where its front starts (#1156)
+      const rise = sloped ? dormerRise(b, floor.elevation) : null;
+      const roofRise = rise
+        ? (x: number, z: number, top: number) => {
+            const y = rise(x, z, top);
+            return y === null ? null : y - floor.elevation;
+          }
+        : undefined;
+      const geo = this.dual(() => buildFloorGeometry(withVehicles(floor, this.parked), b.settings.wall_exterior, b.settings.wall_interior, stairHoleParts(b.floors, floor), garden, roofUnder, floor.id === groundId ? around : null, roofRise));
       const mask: FoldMasks = { standing: { value: 0xffff }, glass: { value: 0 } };
       const materials = this.makeMaterials(mask);
       const group = new Group();
@@ -3983,6 +3991,8 @@ export class FloorplanViewer {
     const hc: number[] = [];
     const cones = new GeoBuffer();
     const coneTris: FloorView["coneTris"] = [];
+    const rooms = fv.floor.rooms.filter((r) => r.points.length >= 3);
+    const inRoom = (x: number, z: number) => !rooms.length || rooms.some((r) => pointInPolygon([x, z], r.points));
     for (const d of this.devices) {
       if (d.model && d.floorId === fv.floor.id) {
         if (d.model === "camera_ceiling" && this.wallMode === "cut") continue;
@@ -4029,16 +4039,30 @@ export class FloorplanViewer {
         // every point of the wedge lies on the ground it falls on: the floor in a room, the lawn or the terrain
         // outside – a camera of a sunken floor (a basement half in the ground) no longer reaches down to that floor's
         // level outdoors (#802); a camera just inside an outer wall starts on the ground in front of it
-        const groundAt = (x: number, z: number) => y + groundUnder(fv.floor, { x, z });
-        const rim = (t: number) => {
-          const r = reachAt(t);
+        // (outside on the surface seen from above: a terrace drawn on the lawn, not the lawn under it, #1115)
+        const groundAt = (x: number, z: number) => y + (inRoom(x, z) ? 0 : outdoorSurface(fv.floor, x, z));
+        // in rings about half a metre apart, each point on the ground beneath it: from the camera to its far edge in
+        // one piece, the wedge ran under a terrace higher than the lawn and only a patch of it showed (#1115)
+        const rings = Math.min(10, Math.max(1, Math.ceil(reach / 0.5)));
+        const fade = (k: number) => (k < rings ? new Color(near.r * (1 - k / rings), near.g * (1 - k / rings), near.b * (1 - k / rings)) : far);
+        const reaches = Array.from({ length: n + 1 }, (_, i) => reachAt(-half + (2 * half * i) / n));
+        const at = (i: number, k: number) => {
+          const t = -half + (2 * half * i) / n;
+          const r = (reaches[i] * k) / rings;
           const x = d.x + (dir[0] * Math.cos(t) - dir[1] * Math.sin(t)) * r;
           const z = d.z + (dir[1] * Math.cos(t) + dir[0] * Math.sin(t)) * r;
           return [x, groundAt(x, z), z];
         };
         const apex = [d.x, Math.max(groundAt(d.x, d.z), dome ? -Infinity : groundAt(d.x + dir[0] * 0.3, d.z + dir[1] * 0.3)), d.z];
         const start = cones.count;
-        for (let i = 0; i < n; i++) cones.tri(apex, rim(-half + (2 * half * (i + 1)) / n), rim(-half + (2 * half * i) / n), near, far, far);
+        for (let i = 0; i < n; i++) {
+          cones.tri(apex, at(i + 1, 1), at(i, 1), near, fade(1), fade(1));
+          for (let k = 1; k < rings; k++) {
+            const [a, b, c, e] = [at(i + 1, k), at(i + 1, k + 1), at(i, k + 1), at(i, k)];
+            cones.tri(a, b, c, fade(k), fade(k + 1), fade(k + 1));
+            cones.tri(a, c, e, fade(k), fade(k + 1), fade(k));
+          }
+        }
         coneTris.push({ id: d.id, start, end: cones.count });
         continue;
       }

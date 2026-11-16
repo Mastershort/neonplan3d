@@ -387,3 +387,41 @@ test("a free wall's own colour shows on both its sides in the homely styles, in 
     setNaturalPalette(false);
   }
 });
+
+test("a passage the whole length of a free wall leaves nothing standing at its ends (#1158)", () => {
+  // a free wall 4 m long and 0.365 m thick, with a 2 m high passage over its full length
+  const room = rect("r", 0, 0, 6, 6);
+  const wall = { id: "fw", a: [1, 3] as Vec2, b: [5, 3] as Vec2, thickness: 0.365 };
+  const pass: Opening = { ...opening("door", "r", 0, 2, 4), id: "p", wall: "fw", height: 2 };
+  const floor = { ...floorWith([room], [pass]), walls: [wall] };
+  const geo = buildFloorGeometry(floor, EXT, INT);
+  const H = floor.height;
+  // the wall's faces near its ends (x 1 and 5, z within the thickness): only the lintel above 2 m
+  const pos = geo.walls.getAttribute("position");
+  for (let i = 0; i < pos.count; i += 3) {
+    const xs = [0, 1, 2].map((k) => pos.getX(i + k));
+    const zs = [0, 1, 2].map((k) => pos.getZ(i + k));
+    if (!zs.every((z) => Math.abs(z - 3) < 0.19) || !xs.every((x) => x > 0.9 && x < 5.1)) continue;
+    // (the slab under the doorway stays below the floor, #290)
+    if ([0, 1, 2].every((k) => pos.getY(i + k) <= 0)) continue;
+    for (let k = 0; k < 3; k++) assert.ok(pos.getY(i + k) > 2 - 0.03, `wall face below the lintel at ${xs[k].toFixed(2)}, ${pos.getY(i + k).toFixed(2)}`);
+  }
+  // no lines in the passage at the wall's ends: no base or cut line across, no corner or jamb line below 2 m
+  const segs = segments(geo.lines).filter((s) => [s[0], s[3]].every((x) => Math.abs(x - 1) < 1e-4 || Math.abs(x - 5) < 1e-4) && [s[2], s[5]].every((z) => Math.abs(z - 3) < 0.19));
+  assert.ok(!segs.some((s) => Math.min(s[1], s[4]) < 2 - 0.03), "a line stands in the passage");
+  // the lintel above keeps its corner lines up to the top
+  assert.ok(segs.some((s) => vertical(s) && Math.abs(Math.max(s[1], s[4]) - H) < 1e-6), "the lintel's corner line");
+});
+
+test("a door across a transition leaves no plate across its doorway (#1158, #624)", () => {
+  const a = rect("a", 0, 0, 4, 3);
+  const b = { ...rect("b", 4, 0, 7, 3), wall_heights: [null, null, null, 0] };
+  // a door 1 m wide from x = 3.3 to 4.3, across the transition at x = 4 in the front wall (z from -EXT to 0)
+  const geo = buildFloorGeometry(floorWith([a, b], [opening("door", "a", 0, 3.8, 1)]), EXT, INT);
+  const pos = geo.walls.getAttribute("position");
+  for (let i = 0; i < pos.count; i += 3) {
+    const v = [0, 1, 2].map((k) => [pos.getX(i + k), pos.getY(i + k), pos.getZ(i + k)]);
+    const across = v.every((p) => Math.abs(p[0] - 4) < 1e-6 && p[2] < 1e-6) && Math.max(...v.map((p) => p[2])) - Math.min(...v.map((p) => p[2])) > 1e-6;
+    assert.ok(!(across && Math.min(...v.map((p) => p[1])) < 1.9 && Math.max(...v.map((p) => p[1])) > 0.1), "a plate across the doorway at the transition");
+  }
+});

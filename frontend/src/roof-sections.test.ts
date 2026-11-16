@@ -3,6 +3,7 @@ import { test } from "node:test";
 import { emptyBuilding, newFloor, ROOF_SHAPES, type Room, type RoofSection } from "./model.ts";
 import { onSection, sectionTurn, turnPoint, turnSectionAbout, coversIn, crossAsWing, cutHole, cutUnder, dormerHole, dormerHoles, dormerParent, sectionsCut, turnedDormer, floorOutline, lineOutside, sectionCovers, sectionEnds, sectionUV, wingJunction, wingSection, offsetPolygon, polygonBox, proposeDormer, ridgeHeight, roofRider, roofSectionsFromRooms, roofUnderAt, sectionFrame, sectionGeometry, sectionHeightAt, sectionOverhang, sectionPolygon, sectionProfile, wallTopUnder } from "./roof-sections.ts";
 import { buildRoof } from "./viewer/roof.ts";
+import { roofFaces } from "./solar.ts";
 
 const near = (a: number, b: number, eps = 1e-6) => assert.ok(Math.abs(a - b) < eps, `${a} != ${b}`);
 const rect = (id: string, x0: number, z0: number, x1: number, z1: number): Room => ({ id, name: id, area_id: null, points: [[x0, z0], [x1, z0], [x1, z1], [x0, z1]], floor_material: "wood" });
@@ -576,4 +577,52 @@ test("a cross gable as high as a roof with a hipped end meets it like a wing, no
     assert.ok(y >= Math.max(hm, hw) - 0.05, `a face at (${x.toFixed(2)}, ${z.toFixed(2)}) stands ${(Math.max(hm, hw) - y).toFixed(2)} m under the other roof`);
   }
   assert.ok(both >= 4, `faces where both roofs are: ${both}`);
+});
+
+test("a flat roof opens under its roof windows: the glass looks into the room below, not onto the slab (#1078)", () => {
+  const b = emptyBuilding();
+  b.floors = [{ ...newFloor("eg", "EG", 0), rooms: [rect("a", 0, 0, 12, 8)] }];
+  const flat = section({ id: "f", shape: "flat", base: 2.5, eave_a: 2.5, eave_b: 2.5, pitch_a: 0, pitch_b: 0, overhang: 0 });
+  // the slab's faces crossing the vertical line through a plan point (x, z)
+  const hits = (x: number, z: number) => {
+    const p = buildRoof(b)[0].solid.p;
+    let n = 0;
+    for (let i = 0; i < p.length; i += 9) {
+      const [ax, az, bx, bz, cx, cz] = [p[i], p[i + 2], p[i + 3], p[i + 5], p[i + 6], p[i + 8]];
+      const d = (bx - ax) * (cz - az) - (cx - ax) * (bz - az);
+      if (Math.abs(d) < 1e-12) continue;
+      const s = ((x - ax) * (cz - az) - (cx - ax) * (z - az)) / d;
+      const t = ((bx - ax) * (z - az) - (x - ax) * (bz - az)) / d;
+      if (s > 0 && t > 0 && s + t < 1) n++;
+    }
+    return n;
+  };
+  b.settings.roof = { type: "custom", pitch: 40, overhang: 0, sections: [flat] };
+  // the slab: its top and its underside
+  assert.equal(hits(4, 3), 2);
+  const face = roofFaces(b).find((f) => f.flat)!;
+  // a 1 × 1 m window with its lower left corner 3 m along and 2 m across the face
+  b.settings.roof.windows = [{ id: "w", face: face.key, u: 3, v: 2, w: 1, h: 1, cover: null, contact: null, tilt: null }];
+  const at = (u: number, v: number) => [face.o[0] + face.eu[0] * u + face.es[0] * v, face.o[2] + face.eu[2] * u + face.es[2] * v];
+  const [mx, mz] = at(3.5, 2.5);
+  assert.equal(hits(mx, mz), 0, "the slab is open under the window");
+  // beside the window the slab is closed as before
+  const [ox, oz] = at(5, 2.5);
+  assert.equal(hits(ox, oz), 2);
+  // a window reaching past the slab's rim leaves the slab closed (no cut through the edge)
+  b.settings.roof.windows = [{ id: "w", face: face.key, u: face.lu - 0.5, v: 2, w: 1, h: 1, cover: null, contact: null, tilt: null }];
+  const [ex, ez] = at(face.lu - 0.2, 2.5);
+  assert.ok(hits(ex, ez) >= 2);
+});
+
+test("the single flat roof opens under its roof windows too (#1078)", () => {
+  const b = emptyBuilding();
+  b.floors = [{ ...newFloor("eg", "EG", 0), rooms: [rect("a", 0, 0, 12, 8)] }];
+  b.settings.roof = { type: "flat", pitch: 0, overhang: 0.3 };
+  const face = roofFaces(b).find((f) => f.flat)!;
+  const solid = () => buildRoof(b)[0].solid.p.length;
+  const closed = solid();
+  b.settings.roof.windows = [{ id: "w", face: face.key, u: 3, v: 2, w: 1, h: 1, cover: null, contact: null, tilt: null }];
+  // the slab gains the opening's sides and is triangulated round it
+  assert.ok(solid() > closed);
 });

@@ -4,6 +4,23 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 [releases page](https://github.com/Mastershort/neonplan3d/releases). Ideas and votes:
 [Discussions → Ideas](https://github.com/Mastershort/neonplan3d/discussions/categories/ideas).
 
+## 3.4.2
+
+### New
+- **Height of the surroundings:** Editor → Surroundings moves the whole map up or down, for a street that lies higher or lower than the ground floor – a slope, a sloping drive (#1148, thanks daene85 and 1970lexi). Default 0, as before.
+
+### Fixed
+- **Dormers:** a window under a dormer front shows completely – a floor's wall under a dormer rises to where the dormer's front begins (#1156, thanks Sharkelli); the roof opens exactly at the dormer's edge and a wall meeting a dormer steps up straight instead of slanting over 30 cm (#1145, thanks grzegorz914).
+- **Turned flat and parapet roofs:** fairy lights, solar fields and roof windows turn with the roof (#1147, thanks AbortRetry).
+- **Roof windows on a flat roof** show their glass and look into the room below (#1078, thanks michaelbell1981).
+- **An opening at a wall's end** leaves nothing standing in the passage – no thin plate, no lines (#1158, thanks ManuelHecht for the precise analysis); a door across a transition no longer leaves a plate in its doorway (#624).
+- **Shared walls left out ("no wall")** show as left out in both rooms and come back from either; "no wall" on a short stretch no longer takes away the neighbour's whole wall (#1151, thanks vincegre).
+- **Live parts** of pack furniture (a dishwasher's door, drawers, status lights) follow their sensor right away instead of keeping the state from loading (#1143, thanks frops83); a wood finish colours the whole worktop of kitchen units, dishwashers and vanities, not only its front edge.
+- **Camera view cones** lie on a terrace that is higher than the lawn instead of running under it (#1115, thanks RobertSorgenfrei).
+- **Cards of single rooms** keep the roof sections over the floors they show – the attic slopes and roof windows of an upper floor (#997, thanks RkcCorian).
+- **Turning a floor or the whole house** turns its floor-plan picture about its middle, so it stays under the rooms (#1124, thanks RkcCorian).
+- **Time travel → Overview → Day** counts switches that drive a lamp of the plan as light (#1032, thanks abgestumpft).
+
 ## 3.4.1
 
 ### Security

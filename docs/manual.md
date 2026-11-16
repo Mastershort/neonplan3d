@@ -588,6 +588,7 @@ Under **⚙ Settings → 🗺 Surroundings** NeonPlan brings in your house's nei
 - **Show in 3D** hides and shows the surroundings, **Remove** deletes them from the plan. Room cards show only their rooms, without surroundings.
 - Under **Show and hide houses** a small map shows your house and the houses around it. Tap a house to hide it or show it again (dashed yellow = hidden). Map buildings standing mostly on what you drew yourself are hidden by NeonPlan itself: on your rooms (on a floor of its own for the garden too), under your roof sections (a carport, a garden house) or on a pergola – such as a garage the map keeps as a building of its own. Since 3.3.1 the plan shows the map on every floor at the ground floor's level.
 - **Neighbours' houses as outlines only** shows the neighbours' houses flat as an outline on the ground instead of as blocks; they then cast no shadows.
+- **Height of the surroundings (m)** moves the whole map up (+) or down (−) – for a street that lies higher or lower than the ground floor (a slope, a sloping drive). Default 0.
 
 Bottom right in the 3D view it says "© OpenStreetMap": the map data comes from the OpenStreetMap contributors under the Open Database Licence.
 

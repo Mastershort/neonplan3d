@@ -21,6 +21,7 @@ import { cornerPoint, nearestOnPath, onWall, pipePath, type P3 } from "../geomet
 import { connectionsAt, laidPipe, nearestOnOutline, planConnection, poolNodeAt, runLead, runsOnWall, splitPipe, type Connection, type ConnectVia, type WallRun } from "../pool-runs.ts";
 import { devicePorts, FILTER_VALVES, jointPortAt, jointPorts, nodePart, poolPortFlow, portFlow, splitNode, type PortName } from "../pool-ports.ts";
 import { holeInRoom } from "../geometry/holes.ts";
+import { turnedBackground } from "../geometry/background.ts";
 import { weatherEntity, isRainSource } from "../weather.ts";
 import { isOutageSource } from "../outage.ts";
 import { SHOW_PRESENCE } from "../flags.ts";
@@ -64,7 +65,7 @@ import { type CarLinks, type Background, OUTDOOR_TOP, sidelightLayout, DEFAULT_W
   zonesOf,
 } from "../model.ts";
 import { furnishRoom, PACKAGES, type PackageId } from "../packages.ts";
-import { edgeReach, generateWalls, locateOpening, openingHost, pointOnRoomEdge, type Wall } from "../geometry/walls.ts";
+import { edgeReach, generateWalls, locateOpening, openingHost, pointOnRoomEdge, type Wall, type WallSource } from "../geometry/walls.ts";
 import { formatNumber, languageReady, loadLanguage, translate, type I18nKey } from "../i18n.ts";
 import { iconPath } from "../icons.ts";
 import { moduleAreaFields, moduleFurnitureFields, moduleHelp, moduleRoomFields, modulePipeRules, moduleSettings, moduleWaits, syncModules, type ModuleField, type ModuleHost, type PipeRules } from "../modules.ts";
@@ -5611,9 +5612,13 @@ export class Fp3dEditor extends LitElement {
   }
 
   /** Turn everything on the floor by 90° (clockwise in the plan) about the middle of its rooms: when a floor was drawn the wrong way round. */
-  private turnFloor(): void {
+  private async turnFloor(): Promise<void> {
+    if (!this.floor || !this.isAdmin) return;
+    // a background picture turns about its middle: its height (from the picture) is needed, also on the other floors
+    const pics = (this._shiftAll ? this._doc.floors : [this.floor]).map((f) => f.background?.image_id).filter((id): id is string => !!id && !this._images[id]);
+    if (pics.length) await Promise.all(pics.map((id) => this.loadImage(id)));
     const floor = this.floor;
-    if (!floor || !this.isAdmin) return;
+    if (!floor) return;
     // with "all floors" the house turns about the middle of every room on every floor
     const pts = (this._shiftAll ? this._doc.floors : [floor]).flatMap((f) => f.rooms.flatMap((r) => r.points));
     if (!pts.length) return;
@@ -5637,10 +5642,7 @@ export class Fp3dEditor extends LitElement {
         w.a = mv(w.a);
         w.b = mv(w.b);
       }
-      if (f.background) {
-        [f.background.x, f.background.z] = mv([f.background.x, f.background.z]);
-        f.background.rotation = ((f.background.rotation ?? 0) + 90) % 360;
-      }
+      if (f.background) f.background = turnedBackground(f.background, this._images[f.background.image_id]?.aspect ?? 1, mv);
     };
     if (this._shiftAll) {
       this.change((doc) => {
@@ -6488,11 +6490,40 @@ export class Fp3dEditor extends LitElement {
   /** Sets the height of one edge of a room, and of every wall piece shared with it. */
   /** The parts another room splits an edge into (start distances along the edge), in order; one part when whole. */
   private edgeParts(room: Room, edge: number): number[] {
-    const floor = this.floor;
-    if (!floor) return [0];
-    const walls = generateWalls(floor.rooms, { exterior: this._doc.settings.wall_exterior, interior: this._doc.settings.wall_interior }, floor.walls ?? []).walls;
-    const starts = walls.flatMap((w) => w.sources.filter((s) => s.room_id === room.id && s.edge === edge).map((s) => s.t0));
+    const starts = this.edgeGroups().flatMap((g) => g.filter((s) => s.room_id === room.id && s.edge === edge).map((s) => s.t0));
     return starts.length ? [...new Set(starts)].sort((a, b) => a - b) : [0];
+  }
+
+  /** The room edges of every wall on this floor, standing or left out by a height of 0 (shared walls: both rooms). */
+  private edgeGroups(): WallSource[][] {
+    const floor = this.floor;
+    if (!floor) return [];
+    const { wall_exterior: ext, wall_interior: int } = this._doc.settings;
+    // asked for every wall row while the room is drawn: worked out once per state of the plan
+    const c = this._edgeGroupsCache;
+    if (c && c.rooms === floor.rooms && c.walls === floor.walls && c.ext === ext && c.int === int) return c.groups;
+    const res = generateWalls(floor.rooms, { exterior: ext, interior: int }, floor.walls ?? []);
+    const groups = [...res.walls.map((w) => w.sources), ...res.noWalls];
+    this._edgeGroupsCache = { rooms: floor.rooms, walls: floor.walls, ext, int, groups };
+    return groups;
+  }
+  private _edgeGroupsCache: { rooms: Floor["rooms"]; walls: Floor["walls"]; ext: number; int: number; groups: WallSource[][] } | null = null;
+
+  /** The room edges sharing the wall of one part of a room edge (all parts when `part` is left out), itself included. */
+  private edgeSources(room: Room, edge: number, part?: number): WallSource[] {
+    const t0 = part === undefined ? undefined : this.edgeParts(room, edge)[part];
+    const own = (s: WallSource) => s.room_id === room.id && s.edge === edge && (t0 === undefined || Math.abs(s.t0 - t0) < 1e-6);
+    const out = this.edgeGroups().filter((g) => g.some(own)).flat();
+    return out.some(own) ? out : [...out, { room_id: room.id, edge, t0: t0 ?? 0, t1: 0 }];
+  }
+
+  /** The height set on the part of a room edge that starts at `t0` (a split edge may hold one per part). */
+  private sourceHeight(s: WallSource): number | null {
+    const r = this.floor?.rooms.find((x) => x.id === s.room_id);
+    const entry = r?.wall_heights?.[s.edge] ?? null;
+    if (!Array.isArray(entry)) return entry;
+    const k = this.edgeParts(r!, s.edge).findIndex((t) => Math.abs(t - s.t0) < 1e-6);
+    return entry[Math.max(0, k)] ?? null;
   }
 
   /** A sloping wall on a room edge: its heights at the edge's start and end corner, or null for a plain wall (D569). */
@@ -6508,36 +6539,35 @@ export class Fp3dEditor extends LitElement {
     });
   }
 
-  /** Set a wall height on a room edge (and on the rooms sharing it), or on one part of a split edge only. */
+  /**
+   * Set a wall height on a room edge, or on one part of a split edge only – and on the rooms sharing that wall, so a
+   * wall another room left out ("no wall") comes back from either room (#1151).
+   */
   private setEdgeHeight(room: Room, edge: number, height: number | null, part?: number): void {
     const floor = this.floor;
     if (!floor || !this.isAdmin) return;
-    if (part !== undefined) {
-      const n = this.edgeParts(room, edge).length;
-      this.change((_, f) => {
-        const r = f.rooms.find((x) => x.id === room.id);
-        if (!r) return;
-        const list = (r.wall_heights ?? []).slice(0, r.points.length);
-        while (list.length < r.points.length) list.push(null);
-        const cur = list[edge];
-        const parts: (number | null)[] = Array.isArray(cur) ? [...cur] : new Array<number | null>(n).fill(typeof cur === "number" ? cur : null);
-        while (parts.length < n) parts.push(null);
-        parts[part] = height;
-        list[edge] = parts.every((h) => h === parts[0]) ? parts[0] : parts;
-        r.wall_heights = list.every((h) => h === null) ? undefined : list;
-      });
-      return;
-    }
-    const walls = generateWalls(floor.rooms, { exterior: this._doc.settings.wall_exterior, interior: this._doc.settings.wall_interior }, floor.walls ?? []).walls;
-    const sources = walls.filter((w) => w.sources.some((s) => s.room_id === room.id && s.edge === edge)).flatMap((w) => w.sources);
-    if (!sources.some((s) => s.room_id === room.id && s.edge === edge)) sources.push({ room_id: room.id, edge, t0: 0, t1: 0 });
+    const sources = this.edgeSources(room, edge, part);
+    // each source's part index on its own room edge, worked out before the change
+    const targets = sources.map((s) => {
+      const r = floor.rooms.find((x) => x.id === s.room_id);
+      const starts = r ? this.edgeParts(r, s.edge) : [0];
+      const whole = part === undefined && s.room_id === room.id && s.edge === edge;
+      return { s, n: starts.length, k: whole ? -1 : Math.max(0, starts.findIndex((t) => Math.abs(t - s.t0) < 1e-6)) };
+    });
     this.change((_, f) => {
-      for (const s of sources) {
+      for (const { s, n, k } of targets) {
         const r = f.rooms.find((x) => x.id === s.room_id);
         if (!r) continue;
         const list = (r.wall_heights ?? []).slice(0, r.points.length);
         while (list.length < r.points.length) list.push(null);
-        list[s.edge] = height;
+        if (n <= 1 || k < 0) list[s.edge] = height;
+        else {
+          const cur = list[s.edge];
+          const parts: (number | null)[] = Array.isArray(cur) ? [...cur] : new Array<number | null>(n).fill(typeof cur === "number" ? cur : null);
+          while (parts.length < n) parts.push(null);
+          parts[k] = height;
+          list[s.edge] = parts.every((h) => h === parts[0]) ? parts[0] : parts;
+        }
         r.wall_heights = list.every((h) => h === null) ? undefined : list;
       }
     });
@@ -6722,7 +6752,9 @@ export class Fp3dEditor extends LitElement {
         const starts = this.edgeParts(room, i);
         const parts = starts.length > 1 ? starts.map((_, k) => k) : [undefined];
         return parts.map((part) => {
-          const h = part === undefined ? (Array.isArray(entry) ? (entry[0] ?? null) : entry) : Array.isArray(entry) ? (entry[part] ?? null) : entry;
+          const own = part === undefined ? (Array.isArray(entry) ? (entry[0] ?? null) : entry) : Array.isArray(entry) ? (entry[part] ?? null) : entry;
+          // the room on the other side may have left this wall out: then it shows (and comes back) here too (#1151)
+          const h = own !== 0 && this.edgeSources(room, i, part).some((s) => this.sourceHeight(s) === 0) ? 0 : own;
           const partLen = part === undefined ? len : (starts[part + 1] ?? len) - starts[part];
           const set = (v: number | null) => this.setEdgeHeight(room, i, v, part);
           return html`<div
@@ -11185,7 +11217,7 @@ export class Fp3dEditor extends LitElement {
                       <input type="number" step="0.05" .value=${String(this._shiftZ)} @change=${(e: Event) => (this._shiftZ = Number((e.target as HTMLInputElement).value) || 0)}
                     /></label>
                     <button class="fp3d-btn" ?disabled=${!this._shiftX && !this._shiftZ} @click=${() => this.shiftFloor(this._shiftX, this._shiftZ)}>${this.t("floor_shift_apply")}</button>
-                    <button class="fp3d-btn" title=${this.t("floor_turn_hint")} @click=${() => this.turnFloor()}>${this.t("floor_turn")}</button>
+                    <button class="fp3d-btn" title=${this.t("floor_turn_hint")} @click=${() => void this.turnFloor()}>${this.t("floor_turn")}</button>
                     <button class="fp3d-btn" title=${this.t("floor_start_view_hint")} @click=${() => this.rememberFloorView()}>${this.t("floor_start_view")}</button>
                     ${floor.start_view ? html`<button class="fp3d-btn" title=${this.t("floor_start_view_reset")} @click=${() => this.updateFloor({ start_view: null })}>↺</button>` : nothing}
                     <label class="fp3d-check fp3d-wide" title=${this.t("floor_shift_all_hint")}
@@ -14624,7 +14656,9 @@ export class Fp3dEditor extends LitElement {
             <label class="fp3d-check fp3d-wide"
               ><input type="checkbox" .checked=${s.flat === true} ?disabled=${!this.isAdmin} @change=${(e: Event) => edit((sur) => (sur.flat = (e.target as HTMLInputElement).checked))} />
               ${this.t("surround_flat")}</label
-            >`
+            >
+            ${this.len(this.t("surround_y"), s.y ?? 0, (v) => edit((sur) => (sur.y = Math.round(Math.max(-30, Math.min(30, v)) * 100) / 100 || undefined)), 0.05, -30)}
+            <p class="fp3d-sub fp3d-wide">${this.t("surround_y_hint")}</p>`
           : nothing}
       </div>
       <div class="fp3d-actions">

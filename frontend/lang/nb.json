@@ -2489,6 +2489,8 @@
  "surround_north": "Nord: {deg}°",
  "surround_credit": "Kartdata © OpenStreetMap-bidragsytere",
  "surround_flat": "Naboenes hus bare som omriss (flate i stedet for blokker)",
+ "surround_y": "Høyde på omgivelsene (m)",
+ "surround_y_hint": "Ligger gaten høyere eller lavere enn første etasje (skråning, skrå innkjørsel), flytter dette hele kartet opp (+) eller ned (−).",
  "surround_pick": "Vis og skjul hus",
  "surround_pick_hint": "Trykk på et hus for å skjule det eller vise det igjen. Gul stiplet = skjult: NeonPlan skjuler selv huset ditt og kartbygninger som står på planen din (for eksempel en garasje).",
  "surround_pick_hide": "Trykk for å skjule",

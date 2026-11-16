@@ -48,3 +48,10 @@ test("the room sensors are only watched for the heatmap or the room values; a ch
   assert.ok(ids.includes("weather.b"));
   assert.ok(!ids.includes("weather.a"));
 });
+
+test("the entities of a pack item's live parts are watched: a dishwasher's door opens when its contact does (#1143)", () => {
+  const { hass, b, openings, furniture } = setup();
+  b.floors[0].furniture = [{ id: "dw", type: "pack:kitchen:dishwasher_60", x: 1, z: 1, rotation: 0, w: 0.6, d: 0.62, h: 0.91, variant: null, binds: { door: "binary_sensor.spueler_tuer" } }];
+  const ids = watchedEntities(hass, b, { openings, furniture, heat: false, warnings: [], weatherEntityId: null });
+  assert.ok(ids.includes("binary_sensor.spueler_tuer"));
+});
