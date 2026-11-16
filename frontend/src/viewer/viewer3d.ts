@@ -4097,7 +4097,19 @@ export class FloorplanViewer {
         // one piece, the wedge ran under a terrace higher than the lawn and only a patch of it showed (#1115)
         const rings = Math.min(10, Math.max(1, Math.ceil(reach / 0.5)));
         const fade = (k: number) => (k < rings ? new Color(near.r * (1 - k / rings), near.g * (1 - k / rings), near.b * (1 - k / rings)) : far);
-        const reaches = Array.from({ length: n + 1 }, (_, i) => reachAt(-half + (2 * half * i) / n));
+        const baseY = Math.max(groundAt(d.x, d.z), dome ? -Infinity : groundAt(d.x + dir[0] * 0.3, d.z + dir[1] * 0.3));
+        // the wedge ends at the edge of the ground the camera looks along: where the ground drops away more than 40 cm
+        // (a terrace above the drive), it no longer runs down the step and on across the lower ground (#1167)
+        const edgeAt = (t: number, limit: number): number => {
+          const rx = dir[0] * Math.cos(t) - dir[1] * Math.sin(t);
+          const rz = dir[1] * Math.cos(t) + dir[0] * Math.sin(t);
+          for (let r = 0.5; r < limit; r += 0.25) if (groundAt(d.x + rx * r, d.z + rz * r) < baseY - 0.4) return r;
+          return limit;
+        };
+        const reaches = Array.from({ length: n + 1 }, (_, i) => {
+          const t = -half + (2 * half * i) / n;
+          return edgeAt(t, reachAt(t));
+        });
         const at = (i: number, k: number) => {
           const t = -half + (2 * half * i) / n;
           const r = (reaches[i] * k) / rings;
@@ -4105,7 +4117,7 @@ export class FloorplanViewer {
           const z = d.z + (dir[1] * Math.cos(t) + dir[0] * Math.sin(t)) * r;
           return [x, groundAt(x, z), z];
         };
-        const apex = [d.x, Math.max(groundAt(d.x, d.z), dome ? -Infinity : groundAt(d.x + dir[0] * 0.3, d.z + dir[1] * 0.3)), d.z];
+        const apex = [d.x, baseY, d.z];
         const start = cones.count;
         for (let i = 0; i < n; i++) {
           cones.tri(apex, at(i + 1, 1), at(i, 1), near, fade(1), fade(1));
