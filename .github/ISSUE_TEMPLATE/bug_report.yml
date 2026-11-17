@@ -25,7 +25,7 @@ body:
     id: version
     attributes:
       label: NeonPlan 3D version / Version
-      description: HACS → NeonPlan 3D, or Settings → Devices & services → NeonPlan 3D.
+      description: Settings → Marketplace → NeonPlan 3D (HACS before HA 2026.11), or Settings → Devices & services → NeonPlan 3D.
       placeholder: "1.2.0"
     validations:
       required: true

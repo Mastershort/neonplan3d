@@ -7,10 +7,10 @@
 **Draw your home right inside Home Assistant – and live in it as a glowing neon house, or in any style you like.**<br>
 Lights glow in their colours, blinds move, doors open, cameras watch, energy flows through the walls – and you can simply talk to it.
 
-[![Open your Home Assistant instance and open the NeonPlan 3D repository inside HACS.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=Mastershort&repository=neonplan3d&category=integration)
+[![Open your Home Assistant instance and open the NeonPlan 3D repository in the Marketplace.](https://my.home-assistant.io/badges/marketplace_repository.svg)](https://my.home-assistant.io/redirect/marketplace_repository/?owner=Mastershort&repository=neonplan3d&category=integration)
 
 [![Latest release](https://img.shields.io/github/v/release/Mastershort/neonplan3d?label=release&color=00e5ff)](https://github.com/Mastershort/neonplan3d/releases)
-[![HACS default](https://img.shields.io/badge/HACS-default-41BDF5?logo=homeassistantcommunitystore&logoColor=white)](https://hacs.xyz/)
+[![Home Assistant Marketplace](https://img.shields.io/badge/Marketplace-default-41BDF5?logo=homeassistant&logoColor=white)](https://www.home-assistant.io/integrations/marketplace/)
 [![Free & open source](https://img.shields.io/badge/free-open%20source%20(MIT)-2ea44f)](https://github.com/Mastershort/neonplan3d/blob/main/LICENSE)
 [![Runs locally](https://img.shields.io/badge/cloud-none%20needed-8a2be2)](#privacy)
 [![Discord](https://img.shields.io/badge/Discord-community-5865F2?logo=discord&logoColor=white)](https://discord.gg/SSdVVFsev7)
@@ -224,9 +224,9 @@ Bought packs and modules are signed for your installation and update by themselv
 
 ## 📦 Installation
 
-[![Open your Home Assistant instance and open the NeonPlan 3D repository inside HACS.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=Mastershort&repository=neonplan3d&category=integration)
+[![Open your Home Assistant instance and open the NeonPlan 3D repository in the Marketplace.](https://my.home-assistant.io/badges/marketplace_repository.svg)](https://my.home-assistant.io/redirect/marketplace_repository/?owner=Mastershort&repository=neonplan3d&category=integration)
 
-1. Click the button above, or open HACS and search for **NeonPlan 3D** (it is in the HACS default list).
+1. Click the button above, or open **Settings → Marketplace** and search for **NeonPlan 3D** (it is in the default list). On Home Assistant before 2026.11, use HACS the same way.
 2. Install **NeonPlan 3D** and restart Home Assistant.
 3. Add the integration: [![Open your Home Assistant instance and start setting up NeonPlan 3D.](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=neonplan3d) or *Settings → Devices & services → Add integration → NeonPlan 3D*.
 4. Open **NeonPlan 3D** in the sidebar, switch to **Editor** and draw your first floor – or import a plan. More buildings: **＋ New floor plan** at the top.
