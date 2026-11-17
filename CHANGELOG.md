@@ -27,6 +27,8 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 - **Floors pulled apart:** the roof lifts clear of the floor it covers – a loft inside the roof shows its walls under the roof instead of being swallowed by it (#1169, thanks chrisns).
 - **Walls beside windows and doors:** the vertical strips from the floor to the top beside every opening are gone in the see-through walls – only the reveal between sill and lintel is drawn, with fewer triangles than before (#1182, thanks ManuelHecht).
 - **Mansard roof:** the pitch of the upper roof can be set in the roof section (Upper roof pitch, 5–60°); without a value it stays 30° as before (#1183, thanks Vatout57).
+- **Roof sections in one plane:** where two sections continue the same roof face (an L-shaped or stepped lean-to built from pieces), the joint no longer shows an edge, a line or a wall underneath (#1184, thanks ManuelHecht).
+- **Dormer fronts:** a window or door in the floor wall below a dormer's front shows through again – the dormer's front only starts above that wall instead of covering it (#1185, thanks Atomiiik).
 - **Install and update help** names the Home Assistant **Marketplace** (Settings → Marketplace), which took over from HACS in Home Assistant 2026.11; HACS stays described for older versions. Hints in the app point to Settings → System → Updates.
 
 ## 3.4.3
