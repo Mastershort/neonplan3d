@@ -2035,7 +2035,7 @@ export class FloorplanViewer {
     const cloud = w?.cloud ?? 0;
     const night = !sun || sun.elevation < -3;
     // by night the real sky draws the moon in its phase: no second, flat moon in 3D
-    if (!sun || !w || w.disc === false || cloud > 0.85 || (!night && sun.elevation < 1) || (night && this.realSkyOn())) {
+    if (!sun || !w || w.disc === false || cloud > 0.85 || (!night && sun.elevation < 1) || this.realSkyOn()) {
       this.skyDisc.visible = false;
       return;
     }

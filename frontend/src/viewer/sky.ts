@@ -144,13 +144,15 @@ export class SkyLayer {
   /**
    * The dome on the screen. NeonPlan looks down on the house, so the true horizon mostly lies above the picture: the
    * sky is laid behind the house instead – it turns with the camera (azimuth across the width) and the horizon sits in
-   * the lower part of the picture, a little higher the flatter the view.
+   * the lower part of the picture, a little higher the flatter the view. Over a look's own background (overlay) it
+   * sits about the middle, so sun, moon and stars stand above the house rather than over the ground before it.
    */
-  private frame(h: number): { lookAz: number; horizonY: number } {
+  private frame(h: number, overlay: boolean): { lookAz: number; horizonY: number } {
     const d = this.camera.getWorldDirection(this.v);
     const lookAz = Math.atan2(d.x, -d.z) / DEG;
     const down = Math.asin(Math.min(1, Math.max(-1, -d.y)));
-    const horizonY = h * (0.6 + 0.3 * Math.min(1, Math.max(0, down / (Math.PI / 2))));
+    const k = Math.min(1, Math.max(0, down / (Math.PI / 2)));
+    const horizonY = h * (overlay ? 0.42 + 0.2 * k : 0.6 + 0.3 * k);
     return { lookAz, horizonY };
   }
 
@@ -181,7 +183,7 @@ export class SkyLayer {
     const el = input.sun?.elevation ?? null;
     const day = dayLight(el);
     const glow = sunsetGlow(el);
-    const fr = this.frame(h);
+    const fr = this.frame(h, input.mode === "overlay");
     const horizonY = fr.horizonY;
     if (input.mode === "full") {
       const { zenith, horizon } = skyColors(el, input.cloud);
@@ -196,6 +198,37 @@ export class SkyLayer {
       below.addColorStop(1, css(mixC(horizon, [20, 24, 30], 0.55 + 0.25 * (1 - day))));
       ctx.fillStyle = below;
       ctx.fillRect(0, Math.max(0, horizonY), w, h);
+    }
+    // by day over the look's own background: a light haze over the horizon, so the day shows in neon too
+    if (input.mode === "overlay" && day > 0.05) {
+      // daylight from above and a brighter haze along the horizon
+      const end = horizonY + h * 0.08;
+      const g = ctx.createLinearGradient(0, 0, 0, end);
+      const a = day * (1 - input.cloud * 0.4);
+      g.addColorStop(0, `rgba(90,175,255,${0.34 * a})`);
+      g.addColorStop(0.45, `rgba(80,165,255,${0.12 * a})`);
+      g.addColorStop(0.85, `rgba(130,205,255,${0.3 * a})`);
+      g.addColorStop(1, "rgba(130,205,255,0)");
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, w, end);
+    }
+    // the sun by day: a bright core with a wide halo where it really stands (dimmed behind clouds)
+    if (input.sun && el !== null && el > -1 && input.cloud < 0.9) {
+      const p = this.onScreen(input.sun.azimuth, Math.max(1, el), w, fr, input.north);
+      if (p) {
+        const a = Math.min(1, day * 1.4) * (1 - input.cloud * 0.8);
+        const halo = Math.max(w, h) * 0.3;
+        const g = ctx.createRadialGradient(p[0], p[1], 0, p[0], p[1], halo);
+        g.addColorStop(0, `rgba(255,236,180,${0.45 * a})`);
+        g.addColorStop(0.12, `rgba(255,214,140,${0.22 * a})`);
+        g.addColorStop(1, "rgba(255,200,120,0)");
+        ctx.fillStyle = g;
+        ctx.fillRect(p[0] - halo, p[1] - halo, halo * 2, halo * 2);
+        ctx.fillStyle = `rgba(255,248,225,${0.9 * a})`;
+        ctx.beginPath();
+        ctx.arc(p[0], p[1], 9 * dpr, 0, Math.PI * 2);
+        ctx.fill();
+      }
     }
     // the sunset's glow around the sun, low over the horizon
     if (input.sun && glow > 0.02) {
