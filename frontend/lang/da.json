@@ -1252,6 +1252,7 @@
  "roof_axis_z": "Kip ↕",
  "roof_eave": "Tagfod (m)",
  "roof_pitch_short": "Hældning (°)",
+ "roof_pitch_upper": "Hældning øverste tagflade (°)",
  "roof_height": "Højde (m)",
  "roof_base": "Murkrone (m)",
  "roof_on_floor": "Står på etage",

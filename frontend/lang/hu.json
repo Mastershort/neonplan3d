@@ -1252,6 +1252,7 @@
  "roof_axis_z": "Gerinc ↕",
  "roof_eave": "Eresz (m)",
  "roof_pitch_short": "Hajlás (°)",
+ "roof_pitch_upper": "Felső tetőrész hajlása (°)",
  "roof_height": "Magasság (m)",
  "roof_base": "Falak teteje (m)",
  "roof_on_floor": "Ezen a szinten ül",

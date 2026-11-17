@@ -1252,6 +1252,7 @@
  "roof_axis_z": "Nok ↕",
  "roof_eave": "Goot (m)",
  "roof_pitch_short": "Helling (°)",
+ "roof_pitch_upper": "Helling bovendak (°)",
  "roof_height": "Hoogte (m)",
  "roof_base": "Bovenkant muren (m)",
  "roof_on_floor": "Ligt op verdieping",

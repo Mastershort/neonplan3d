@@ -1252,6 +1252,7 @@
  "roof_axis_z": "Harja ↕",
  "roof_eave": "Räystäs (m)",
  "roof_pitch_short": "Kaltevuus (°)",
+ "roof_pitch_upper": "Yläosan kaltevuus (°)",
  "roof_height": "Korkeus (m)",
  "roof_base": "Seinän yläreuna (m)",
  "roof_on_floor": "Kerroksen päällä",

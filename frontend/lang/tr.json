@@ -1571,6 +1571,7 @@
  "roof_axis_z": "Mahya ↕",
  "roof_eave": "Saçak (m)",
  "roof_pitch_short": "Eğim (°)",
+ "roof_pitch_upper": "Üst çatı eğimi (°)",
  "roof_height": "Yükseklik (m)",
  "roof_base": "Duvar üst kotu (m)",
  "roof_on_floor": "Şu katta duruyor",

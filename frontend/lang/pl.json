@@ -1252,6 +1252,7 @@
  "roof_axis_z": "Kalenica ↕",
  "roof_eave": "Okap (m)",
  "roof_pitch_short": "Nachylenie (°)",
+ "roof_pitch_upper": "Nachylenie górnej połaci (°)",
  "roof_height": "Wysokość (m)",
  "roof_base": "Wierzch ścian (m)",
  "roof_on_floor": "Stoi na piętrze",

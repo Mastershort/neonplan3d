@@ -41,7 +41,7 @@ import { deviceSensors, energySummary, flowSegments, gridPoint, hubPoint, invert
 import { CLIMATE_ATTRS, isPulseDrive, isStatusSensor, robotRoomSensor, slatTilt, TOGGLE_KINDS } from "../devices.ts";
 import { homeBuilding, OSM_COPYRIGHT, planMiddle, mapToPlan, SURROUND_RADII, turnMap, hiddenBuildings, mapCorners, ownOutline, surroundFloorId, atGroundLevel, ownUnderPlan } from "../surroundings.ts";
 import { loadOsm } from "../load-osm.ts";
-import { activeSections, sectionFloor, sectionOverhang, dormerParent, effectiveDormer, proposeDormer, sectionGeometry, floorOutline, polygonBox, headroomLines, ridgeHeight, sectionAbove, sectionCutsBelow, roofSectionsFromRooms, sectionFrame, sectionTurn, turnPoint, turnSectionAbout, wallTopUnder } from "../roof-sections.ts";
+import { activeSections, sectionFloor, sectionOverhang, dormerParent, effectiveDormer, proposeDormer, sectionGeometry, floorOutline, polygonBox, headroomLines, ridgeHeight, sectionAbove, sectionCutsBelow, roofSectionsFromRooms, sectionFrame, sectionTurn, turnPoint, turnSectionAbout, wallTopUnder, mansardUpperPitch, MANSARD_UPPER_MIN, MANSARD_UPPER_MAX } from "../roof-sections.ts";
 import { bestFace, clampField, faceAt, faceCompass, fieldFace, fieldModules, GROUND, moveField, pointOnFace, proposeField, proposeGroundField, proposeWindow, proposeWallField, roofFaces, rowCounts, turnGroundField, fieldCenter, wallFaces, windowAsField, windowCorners, onFace, onField, rayOnFace, type RoofFace } from "../solar.ts";
 import type { SurfaceGrab, SurfaceRay } from "../viewer/viewer3d.ts";
 import { storedImageIds } from "../transfer.ts";
@@ -4741,7 +4741,10 @@ export class Fp3dEditor extends LitElement {
             : html`${num(`${this.t("roof_eave")} ${pent ? "" : sideA}`, sec.eave_a, (v) => set({ eave_a: v }))}
               ${pent ? nothing : num(`${this.t("roof_eave")} ${sideB}`, sec.eave_b, (v) => set({ eave_b: v }))}
               ${deg(`${this.t("roof_pitch_short")} ${pent ? "" : sideA}`, sec.pitch_a, (v) => set({ pitch_a: Math.min(75, v) }))}
-              ${pent ? nothing : deg(`${this.t("roof_pitch_short")} ${sideB}`, sec.pitch_b, (v) => set({ pitch_b: Math.min(75, v) }))}`}
+              ${pent ? nothing : deg(`${this.t("roof_pitch_short")} ${sideB}`, sec.pitch_b, (v) => set({ pitch_b: Math.min(75, v) }))}
+              ${sec.shape === "mansard"
+                ? this.num(this.t("roof_pitch_upper"), mansardUpperPitch(sec), (v) => set({ pitch_upper: Math.min(MANSARD_UPPER_MAX, Math.max(MANSARD_UPPER_MIN, round(v))) }), 1, MANSARD_UPPER_MIN)
+                : nothing}`}
           ${num(this.t("roof_base"), sec.base, (v) => set({ base: v }))}
           <label class="fp3d-field" title=${this.t("roof_on_floor_hint")}
             >${this.t("roof_on_floor")}

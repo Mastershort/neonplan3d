@@ -498,6 +498,11 @@ export interface RoofSection {
   /** Slopes in degrees. */
   pitch_a: number;
   pitch_b: number;
+  /**
+   * Mansard only: the slope of the upper, flatter part up to the ridge in degrees (5 … 60); pitch_a and pitch_b
+   * set the steep lower part. Null or missing = 30°, as every mansard drawn before (#1183).
+   */
+  pitch_upper?: number | null;
   /** Top of the walls below: gable and knee walls are built from here up to the roof. */
   base: number;
   /** Overhang beyond the walls (null = the roof setting). */

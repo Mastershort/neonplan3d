@@ -1252,6 +1252,7 @@
  "roof_axis_z": "Sleme ↕",
  "roof_eave": "Kap (m)",
  "roof_pitch_short": "Naklon (°)",
+ "roof_pitch_upper": "Naklon zgornjega dela (°)",
  "roof_height": "Višina (m)",
  "roof_base": "Vrh sten (m)",
  "roof_on_floor": "Stoji na nadstropju",

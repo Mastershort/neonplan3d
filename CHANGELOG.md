@@ -26,6 +26,7 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 - **Editor:** with Space held, dragging with the mouse always pans the plan and never moves the room or furniture under the pointer (#1179, thanks chrisns).
 - **Floors pulled apart:** the roof lifts clear of the floor it covers – a loft inside the roof shows its walls under the roof instead of being swallowed by it (#1169, thanks chrisns).
 - **Walls beside windows and doors:** the vertical strips from the floor to the top beside every opening are gone in the see-through walls – only the reveal between sill and lintel is drawn, with fewer triangles than before (#1182, thanks ManuelHecht).
+- **Mansard roof:** the pitch of the upper roof can be set in the roof section (Upper roof pitch, 5–60°); without a value it stays 30° as before (#1183, thanks Vatout57).
 - **Install and update help** names the Home Assistant **Marketplace** (Settings → Marketplace), which took over from HACS in Home Assistant 2026.11; HACS stays described for older versions. Hints in the app point to Settings → System → Updates.
 
 ## 3.4.3

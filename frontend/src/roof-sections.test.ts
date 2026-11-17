@@ -246,6 +246,47 @@ test("pyramid, half-hip and mansard: apex, shortened ridge and broken slopes; th
   near(sectionProfile(section({ shape: "parapet", eave_a: 3, eave_b: 3 })).y(5), 3);
 });
 
+test("a mansard's upper slope is 30° unless set; a steeper one lifts the ridge, the break stays (#1183)", () => {
+  const ov = { u0: 0, u1: 0, a: 0, b: 0 };
+  const t = (deg: number) => Math.tan((deg * Math.PI) / 180);
+  // 8 m wide, eaves 3 m, 70° below: the break 2.4 m up, 2.4 / tan 70° in from each eave; the ridge in the middle
+  const vl = 2.4 / t(70);
+  const base = sectionProfile(section({ shape: "mansard", pitch_a: 70, pitch_b: 70 }));
+  near(base.vr, 4);
+  near(base.rh, 5.4 + (4 - vl) * t(30));
+  near(base.y(vl), 5.4);
+  // no field, null and an explicit 30° draw the same roof as before
+  for (const pitch_upper of [null, undefined, 30]) {
+    const p = sectionProfile(section({ shape: "mansard", pitch_a: 70, pitch_b: 70, pitch_upper }));
+    near(p.rh, base.rh);
+    for (const v of [0, 0.5, vl, 2, 4, 6, 7.5, 8]) near(p.y(v), base.y(v));
+  }
+  // 45° above: the break stays where it was, the ridge rises
+  const steep = sectionProfile(section({ shape: "mansard", pitch_a: 70, pitch_b: 70, pitch_upper: 45 }));
+  near(steep.vr, 4);
+  near(steep.rh, 5.4 + (4 - vl));
+  assert.ok(steep.rh > base.rh + 1, "a steeper upper slope gives a higher ridge");
+  near(steep.y(vl), 5.4);
+  near(steep.y(8 - vl), 5.4);
+  near(steep.y(0.5), base.y(0.5));
+  // the planes follow: the ridge line and the height in the middle of the roof
+  const g = sectionGeometry(section({ shape: "mansard", pitch_a: 70, pitch_b: 70, pitch_upper: 45 }), ov);
+  near(g.ridges[0][0][2], steep.rh);
+  near(sectionHeightAt(g, 6, 4)!, steep.rh);
+  near(sectionHeightAt(g, 6, 3)!, steep.y(3));
+  assert.ok(g.gable && Math.abs(Math.max(...g.gable.map((q) => q[1])) - steep.rh) < 1e-6, "the gable wall reaches the new ridge");
+  // flatter than before lowers it; out of range is kept in 5 … 60
+  assert.ok(sectionProfile(section({ shape: "mansard", pitch_a: 70, pitch_b: 70, pitch_upper: 15 })).rh < base.rh);
+  near(sectionProfile(section({ shape: "mansard", pitch_a: 70, pitch_b: 70, pitch_upper: 89 })).rh, 5.4 + (4 - vl) * t(60));
+  near(sectionProfile(section({ shape: "mansard", pitch_a: 70, pitch_b: 70, pitch_upper: 0 })).rh, 5.4 + (4 - vl) * t(5));
+  // uneven eaves: the upper slopes still meet at one ridge, at the same height from both sides
+  const uneven = sectionProfile(section({ shape: "mansard", pitch_a: 70, pitch_b: 70, eave_b: 2.5, pitch_upper: 50 }));
+  near(uneven.y(uneven.vr - 1e-9), uneven.y(uneven.vr + 1e-9), 1e-6);
+  near(uneven.y(uneven.vr), uneven.rh);
+  // other shapes ignore the field
+  near(sectionProfile(section({ pitch_upper: 60 })).rh, sectionProfile(section()).rh);
+});
+
 test("a dormer sits on a side of its section, opens the slope under it and lifts the ceiling there", () => {
   // the 12 × 8 gable, ridge along x, eaves 2.5 m, 45°: a dormer on side a (the low-z side)
   const parent = section({ eave_a: 2.5, eave_b: 2.5, base: 2.5 });

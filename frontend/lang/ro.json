@@ -1252,6 +1252,7 @@
  "roof_axis_z": "Coamă ↕",
  "roof_eave": "Streașină (m)",
  "roof_pitch_short": "Înclinare (°)",
+ "roof_pitch_upper": "Înclinarea părții superioare (°)",
  "roof_height": "Înălțime (m)",
  "roof_base": "Coronamentul pereților (m)",
  "roof_on_floor": "Stă pe etaj",

@@ -1252,6 +1252,7 @@
  "roof_axis_z": "Cumbrera ↕",
  "roof_eave": "Alero (m)",
  "roof_pitch_short": "Pendiente (°)",
+ "roof_pitch_upper": "Pendiente del faldón superior (°)",
  "roof_height": "Altura (m)",
  "roof_base": "Parte alta de las paredes (m)",
  "roof_on_floor": "Sobre la planta",

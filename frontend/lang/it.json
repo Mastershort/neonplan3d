@@ -1252,6 +1252,7 @@
  "roof_axis_z": "Colmo ↕",
  "roof_eave": "Gronda (m)",
  "roof_pitch_short": "Pendenza (°)",
+ "roof_pitch_upper": "Pendenza della falda superiore (°)",
  "roof_height": "Altezza (m)",
  "roof_base": "Sommità delle pareti (m)",
  "roof_on_floor": "Poggia sul piano",

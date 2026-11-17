@@ -631,6 +631,8 @@ ROOF_SECTION_SCHEMA = vol.Schema(
         vol.Required("eave_b"): _HEIGHT,
         vol.Optional("pitch_a", default=35): vol.All(vol.Coerce(float), vol.Range(min=0, max=80)),
         vol.Optional("pitch_b", default=35): vol.All(vol.Coerce(float), vol.Range(min=0, max=80)),
+        # mansard: the slope of the upper part (None or missing = 30 degrees, the frontend keeps it in 5 ... 60, #1183)
+        vol.Optional("pitch_upper"): vol.Any(None, vol.All(vol.Coerce(float), vol.Range(min=0, max=80))),
         vol.Required("base"): _HEIGHT,
         vol.Optional("overhang", default=None): vol.Any(None, vol.All(vol.Coerce(float), vol.Range(min=0, max=2))),
         # the overhang per side set by hand (a, b, u0, u1; None = automatic, #863)

@@ -1252,6 +1252,7 @@
  "roof_axis_z": "Faîte ↕",
  "roof_eave": "Égout (m)",
  "roof_pitch_short": "Pente (°)",
+ "roof_pitch_upper": "Pente du terrasson (°)",
  "roof_height": "Hauteur (m)",
  "roof_base": "Haut des murs (m)",
  "roof_on_floor": "Repose sur l'étage",
