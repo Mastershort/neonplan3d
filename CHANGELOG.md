@@ -18,6 +18,9 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 ### Fixed
 - **Dormers:** in the house view a dormer's walls lift and fade with the roof again – a box stood in the room below while the roof was lifted (#1167, thanks 1970lexi).
 - **Dashboard card:** the walk button steps aside for a dashboard button with a long label (#1146, thanks Deninho91).
+- **Camera view cones** end where the ground drops away (more than 40 cm, a terrace above the drive) instead of running down the step (#1167).
+- **Energy Pro:** PV comes from the strings when the inverter's sensor reads nothing or 0 while its strings deliver power (a Deye via Solarman showed 0 W beside glowing fields); the plant card and today's yield follow. The editor says which sensor belongs to the inverter: the modules' PV power, not its output power.
+- **Install and update help** names the Home Assistant **Marketplace** (Settings → Marketplace), which took over from HACS in Home Assistant 2026.11; HACS stays described for older versions. Hints in the app point to Settings → System → Updates.
 
 ## 3.4.3
 

@@ -35,21 +35,23 @@ This manual describes every feature of the current version. What changed in whic
 - A browser with WebGL. That is every current browser, the Home Assistant app and Amazon Fire tablets.
 - An administrator to edit. All other users see and control the plan but do not change it.
 
-### With HACS
+### With the Marketplace
 
-[![Open your Home Assistant instance and open the NeonPlan 3D repository inside HACS.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=Mastershort&repository=neonplan3d&category=integration)
+[![Open your Home Assistant instance and open the NeonPlan 3D repository in the Marketplace.](https://my.home-assistant.io/badges/marketplace_repository.svg)](https://my.home-assistant.io/redirect/marketplace_repository/?owner=Mastershort&repository=neonplan3d&category=integration)
 
-The button opens NeonPlan 3D straight in the HACS of your installation. NeonPlan 3D is in the official HACS list, no custom repository needed. By hand:
+Since Home Assistant 2026.11, HACS is built in as the **Marketplace**. The button opens NeonPlan 3D straight in the Marketplace of your installation. NeonPlan 3D is in the official list, no need to add it from a link. By hand:
 
-1. Open **HACS** in Home Assistant.
-2. Search for **NeonPlan 3D**, install it and restart Home Assistant.
+1. Open **Settings → Marketplace**. The first time, accept the note about community content.
+2. Search for **NeonPlan 3D**, select **Install** and restart Home Assistant.
 3. **Settings → Devices & services → Add integration → NeonPlan 3D**, or straight with this button:
 
    [![Open your Home Assistant instance and start setting up NeonPlan 3D.](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=neonplan3d)
 
 **NeonPlan 3D** now appears in the sidebar. The dashboard card is available right away, no resource needed.
 
-If you added NeonPlan 3D as a custom repository before, there is nothing to do: updates keep coming as usual.
+**Home Assistant before 2026.11:** it works the same with **HACS**: open HACS, search for **NeonPlan 3D**, download it and restart, or [open it straight in HACS](https://my.home-assistant.io/redirect/hacs_repository/?owner=Mastershort&repository=neonplan3d&category=integration).
+
+If you installed NeonPlan 3D with HACS before, also as a custom repository, there is nothing to do: when you update to Home Assistant 2026.11 the Marketplace takes it over, and updates keep coming as usual.
 
 ### By hand
 
@@ -57,7 +59,7 @@ Copy the folder `custom_components/neonplan3d` from the repository into `config/
 
 ### Updates
 
-HACS reports new versions by itself. Restart Home Assistant after every update. Until then NeonPlan 3D shows a note at the top that a restart is pending. Your plan always stays, even if you remove the integration and add it again.
+The Marketplace (or HACS) reports new versions by itself under **Settings → System → Updates**. Restart Home Assistant after every update. Until then NeonPlan 3D shows a note at the top that a restart is pending. Your plan always stays, even if you remove the integration and add it again.
 
 ---
 
@@ -1542,7 +1544,7 @@ Home Assistant's own backup includes NeonPlan 3D completely as well.
 **Help and feedback:** report a bug as an [issue on GitHub](https://github.com/Mastershort/neonplan3d/issues/new/choose) and an idea as a [discussion](https://github.com/Mastershort/neonplan3d/discussions/categories/ideas). Nothing gets lost, everyone sees the state, and you are credited in the release notes once it is built. The two buttons for it are also at the bottom of the editor's sidebar and on the Extensions page.
 
 **How do I get the latest update?**
-Settings → System → Updates. HACS only looks for new versions every few hours, so a fresh update may not show there yet. Then: HACS → NeonPlan 3D → ⋮ → **Update information** → **Download**. Then restart Home Assistant and reload the page (Ctrl+F5; in the Companion app: Settings → Companion app → reset frontend cache).
+Settings → System → Updates. The Marketplace only looks for new versions every few hours, so a fresh update may not show there yet; then look again a little later. With HACS (Home Assistant before 2026.11) it works right away: HACS → NeonPlan 3D → ⋮ → **Update information** → **Download**. Then restart Home Assistant and reload the page (Ctrl+F5; in the Companion app: Settings → Companion app → reset frontend cache).
 
 **Can I use helpers instead of real sensors?**
 Yes. Wherever NeonPlan expects a number (power, charge, range, position …), `input_number` and `number` helpers can be picked too, and wherever it expects on/off (contact, presence …), `input_boolean` as well. For power the helper needs the unit W or kW.
