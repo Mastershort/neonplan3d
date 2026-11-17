@@ -329,6 +329,8 @@ const ACCENT_STOCK: [number, number, number] = [0.22, 0.88, 1];
 const EXPLODE_GAP = 2.4;
 /** How far the roof lifts off the top floor while the floors are pulled apart. */
 const ROOF_GAP = 1.4;
+/** Pulled apart, the roof's eaves stay at least this far above the top of the floor it rides on (#1169). */
+const ROOF_CLEAR = 0.3;
 /** Opacity of the floors below the selected one. */
 const BELOW_OPACITY = 0.22;
 /** Time constant of the floor animation (ms); about 700 ms until settled. */
@@ -656,7 +658,8 @@ export class FloorplanViewer {
   /** The roof: one group with a part per floor it sits on (each part follows its floor). */
   private roof: {
     group: Group;
-    parts: { group: Group; floorId: string; rideId: string; base: number; lift: boolean; win: Group | null; cheeks: Mesh | null }[];
+    /** low: the lowest point of the part's roof body above its base (the eaves). */
+    parts: { group: Group; floorId: string; rideId: string; base: number; low: number; lift: boolean; win: Group | null; cheeks: Mesh | null }[];
     /** Roof windows over rooms of a lower floor: they follow that floor (#482). */
     below: { floorId: string; win: Group }[];
     solid: MeshBasicMaterial;
@@ -3517,7 +3520,14 @@ export class FloorplanViewer {
         wins.add(g);
         below.push({ floorId, win: g });
       }
-      return { group: part, floorId: geo.floor.id, rideId: roofRider(this.building!, geo.floor, geo.sections ?? []), base: geo.base, lift: geo.lift !== false, win, cheeks };
+      let low = Infinity;
+      for (const c of part.children) {
+        if (!(c instanceof Mesh)) continue;
+        c.geometry.computeBoundingBox();
+        const y = c.geometry.boundingBox?.min.y;
+        if (y !== undefined && Number.isFinite(y)) low = Math.min(low, y);
+      }
+      return { group: part, floorId: geo.floor.id, rideId: roofRider(this.building!, geo.floor, geo.sections ?? []), base: geo.base, low: Number.isFinite(low) ? low : 0, lift: geo.lift !== false, win, cheeks };
     });
     group.renderOrder = 8;
     this.scene.add(group);
@@ -3555,16 +3565,19 @@ export class FloorplanViewer {
       // the same slopes, #202) and lifts off it the same way (it follows that floor's own glide)
       const ride = this.floorMap.get(part.rideId) ?? fv;
       const apart = ride.ty > 0 ? Math.min(1, ride.y / ride.ty) : this.explode && this.floorId === null ? 1 : 0;
-      part.group.position.y = fv.floor.elevation + ride.y + part.base + this.roofLift() + (part.lift ? apart * ROOF_GAP : 0);
+      // pulled apart, the roof clears the floor it rides on: a loft inside the roof shows its walls below it (#1169)
+      const clear = ride.floor.elevation + ride.floor.height + ROOF_CLEAR - (fv.floor.elevation + part.base + part.low);
+      const gap = part.lift ? apart * Math.max(ROOF_GAP, Math.min(clear, ride.floor.height + ROOF_CLEAR)) : 0;
+      part.group.position.y = fv.floor.elevation + ride.y + part.base + this.roofLift() + gap;
       // the windows stay in the slope over their floor's rooms while the roof lifts away (not in the cut view)
       if (part.win) {
-        part.win.position.y = fv.floor.elevation + ride.y + part.base + (part.lift ? apart * ROOF_GAP : 0);
+        part.win.position.y = fv.floor.elevation + ride.y + part.base + gap;
         part.win.visible = fv.group.visible && fv.o > 0.5 && this.wallMode !== "cut";
       }
       // a dormer's cheeks: in the house view they go with the roof (lifted, gone once it has faded – a box stood in
       // the room below while the roof was lifted, #1167); in the floor view they stay as the room's walls
       if (part.cheeks) {
-        part.cheeks.position.y = house ? part.group.position.y : fv.floor.elevation + ride.y + part.base + (part.lift ? apart * ROOF_GAP : 0);
+        part.cheeks.position.y = house ? part.group.position.y : fv.floor.elevation + ride.y + part.base + gap;
         part.cheeks.visible = fv.group.visible && fv.o > 0.5 && this.wallMode !== "cut" && (!house || this.roofO > ROOF_OPACITY * 0.6);
       }
     }
