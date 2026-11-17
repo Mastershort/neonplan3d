@@ -1268,6 +1268,9 @@ export class Fp3dView3d extends LitElement {
         weatherEntityId: this.weatherEntityId,
       });
       if (anyModule()) this.watched = [...new Set([...this.watched, ...moduleWatched(this.sceneHost(hass, b))])];
+      // the helper that picks the style: its change alone redraws the house (#1170)
+      const styleHelper = this.styleEntity || b.settings.style_entity;
+      if (styleHelper && !this.watched.includes(styleHelper)) this.watched = [...this.watched, styleHelper];
       // winter: the fairy lights' own switch and the weather that brings the snow
       if (hasFeature("fun_winter")) {
         const extra = [winterOf(b).roof_entity, weatherEntity(hass, this.weatherEntityId ?? b.settings.weather_entity), "sun.sun"].filter((id): id is string => !!id);

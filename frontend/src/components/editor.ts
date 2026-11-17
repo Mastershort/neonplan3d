@@ -557,7 +557,13 @@ export class Fp3dEditor extends LitElement {
   private lastFurnTap: { id: string; t: number } | null = null;
   /** Whether Shift is held (the 3D views report taps without their keys). */
   private shiftHeld = false;
-  private readonly onShift = (e: KeyboardEvent) => (this.shiftHeld = e.shiftKey);
+  private readonly onShift = (e: KeyboardEvent) => {
+    this.shiftHeld = e.shiftKey;
+    if (e.key === " ") this.spaceHeld = false;
+  };
+  /** Space is held down: a mouse drag pans the plan and never grabs an item (#1179). */
+  private spaceHeld = false;
+  private readonly onBlur = () => (this.spaceHeld = false);
   /** Library pictures for the wall view's side bar (type -> image). */
   private kitPics = new Map<string, string>();
   private kitPicsAsked = new Set<string>();
@@ -928,12 +934,14 @@ export class Fp3dEditor extends LitElement {
     super.connectedCallback();
     window.addEventListener("keydown", this.onKey);
     window.addEventListener("keyup", this.onShift);
+    window.addEventListener("blur", this.onBlur);
   }
 
   disconnectedCallback(): void {
     super.disconnectedCallback();
     window.removeEventListener("keydown", this.onKey);
     window.removeEventListener("keyup", this.onShift);
+    window.removeEventListener("blur", this.onBlur);
     this.resizeObserver?.disconnect();
   }
 
@@ -1654,7 +1662,8 @@ export class Fp3dEditor extends LitElement {
       return;
     }
     if (this.pointers.size > 2) return;
-    if (e.button === 1 || e.button === 2 || !this.floor) {
+    // Space held: a drag only pans the plan, whatever lies under the pointer (as in drawing tools, #1179)
+    if (e.button === 1 || e.button === 2 || !this.floor || (this.spaceHeld && e.pointerType === "mouse")) {
       // the right button: dragged it moves the plan, a click without moving opens the item's menu (D518)
       if (e.button === 2) this.rightPress = { at: local, target: e.target as Element, moved: false };
       this.drag = { kind: "pan", last: local };
@@ -3165,6 +3174,12 @@ export class Fp3dEditor extends LitElement {
     const path = e.composedPath();
     if (path.some((el) => el instanceof HTMLInputElement || el instanceof HTMLSelectElement || el instanceof HTMLTextAreaElement)) return;
     if (!this.isConnected || !this.offsetParent) return;
+    if (e.key === " " && !(e.target instanceof HTMLButtonElement) && !path.some((el) => el instanceof HTMLButtonElement)) {
+      // held for panning: the page must not scroll
+      this.spaceHeld = true;
+      e.preventDefault();
+      return;
+    }
     const mod = e.ctrlKey || e.metaKey;
     // the wall view has its own keys: Delete there must never reach what is chosen in the plan behind it
     // (it took the whole pool with every pipe); only undo and redo still work from here

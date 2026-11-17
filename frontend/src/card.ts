@@ -2,7 +2,7 @@
 
 import { zonesOf, type Building } from "./model.ts";
 import { roomsOnly, shownRoomIds } from "./rooms-filter.ts";
-import { confirmEntities } from "./devices.ts";
+import { confirmEntities, haNavigate } from "./devices.ts";
 import { countView } from "./diagnostics.ts";
 import { css, html, LitElement, nothing, type PropertyValues } from "lit";
 import { BuildingController } from "./building-controller.ts";
@@ -196,8 +196,7 @@ export class Floorplan3dCard extends LitElement {
 
   /** Opens another dashboard or view the way Home Assistant's own links do (no page reload). */
   private openDashboard(path: string): void {
-    history.pushState(null, "", path);
-    window.dispatchEvent(new CustomEvent("location-changed", { bubbles: true, composed: true, detail: { replace: false } }));
+    haNavigate(path);
   }
 
   private readonly onFullscreen = () => {

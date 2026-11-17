@@ -20,6 +20,10 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 - **Dashboard card:** the walk button steps aside for a dashboard button with a long label (#1146, thanks Deninho91).
 - **Camera view cones** end where the ground drops away (more than 40 cm, a terrace above the drive) instead of running down the step (#1167).
 - **Energy Pro:** PV comes from the strings when the inverter's sensor reads nothing or 0 while its strings deliver power (a Deye via Solarman showed 0 W beside glowing fields); the plant card and today's yield follow. The editor says which sensor belongs to the inverter: the modules' PV power, not its output power.
+- **Room panel:** on Home Assistant 2026.11 an entity you renamed shows its own name again, without the device name in front of it ("switch_living_a Ceiling light" → "Ceiling light") (#1181, thanks bpaludo).
+- **Style from a helper:** a dashboard card with `style_entity` switches the style as soon as the helper changes, not only at the next change of another device (#1170, thanks bpaludo).
+- **Own buttons with "navigate":** they open the page the way Home Assistant does, so ← in a subview leads back to the plan instead of the dashboard's first view (#1171, thanks bpaludo).
+- **Editor:** with Space held, dragging with the mouse always pans the plan and never moves the room or furniture under the pointer (#1179, thanks chrisns).
 - **Install and update help** names the Home Assistant **Marketplace** (Settings → Marketplace), which took over from HACS in Home Assistant 2026.11; HACS stays described for older versions. Hints in the app point to Settings → System → Updates.
 
 ## 3.4.3
