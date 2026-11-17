@@ -4,6 +4,34 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 [releases page](https://github.com/Mastershort/neonplan3d/releases). Ideas and votes:
 [Discussions → Ideas](https://github.com/Mastershort/neonplan3d/discussions/categories/ideas).
 
+## 3.5.0
+
+### New (free)
+- **Real sky:** behind the house a sky that follows the real sun – sunset colours, the blue hour, stars that move through the night and the moon in its real phase; with Weather outside, clouds drift with the real weather. On by default, off in ⚙ Settings; a still picture on the tablet level.
+- **Fly in from space (option):** when the view opens, a neon globe turns to your home, a beam marks it and the camera comes down onto the house. Off by default; a tap skips it.
+
+### New in the Pro add-ons (free updates for their owners)
+- **Kamera-Cockpit – People from cameras:** a person, car or animal a camera sees stands as a figure on the plot; with Frigate right where it is and moving along.
+- **Klang & Kino – Music follows you:** the music walks with you from room to room (Music Assistant); notes fly between the speakers.
+- **Haushalt Pro – Clean right here:** tap a spot in the 3D view and the robot vacuum cleans exactly there (Roborock, Dreame, Xiaomi).
+
+### Fixed
+- **Dormers:** in the house view a dormer's walls lift and fade with the roof again – a box stood in the room below while the roof was lifted (#1167, thanks 1970lexi).
+- **Dashboard card:** the walk button steps aside for a dashboard button with a long label (#1146, thanks Deninho91).
+- **Camera view cones** end where the ground drops away (more than 40 cm, a terrace above the drive) instead of running down the step (#1167).
+- **Energy Pro:** PV comes from the strings when the inverter's sensor reads nothing or 0 while its strings deliver power (a Deye via Solarman showed 0 W beside glowing fields); the plant card and today's yield follow. The editor says which sensor belongs to the inverter: the modules' PV power, not its output power.
+- **Room panel:** on Home Assistant 2026.11 an entity you renamed shows its own name again, without the device name in front of it ("switch_living_a Ceiling light" → "Ceiling light") (#1181, thanks bpaludo).
+- **Style from a helper:** a dashboard card with `style_entity` switches the style as soon as the helper changes, not only at the next change of another device (#1170, thanks bpaludo).
+- **Own buttons with "navigate":** they open the page the way Home Assistant does, so ← in a subview leads back to the plan instead of the dashboard's first view (#1171, thanks bpaludo).
+- **Editor:** with Space held, dragging with the mouse always pans the plan and never moves the room or furniture under the pointer (#1179, thanks chrisns).
+- **Floors pulled apart:** the roof lifts clear of the floor it covers – a loft inside the roof shows its walls under the roof instead of being swallowed by it (#1169, thanks chrisns).
+- **Walls beside windows and doors:** the vertical strips from the floor to the top beside every opening are gone in the see-through walls – only the reveal between sill and lintel is drawn, with fewer triangles than before (#1182, thanks ManuelHecht).
+- **Mansard roof:** the pitch of the upper roof can be set in the roof section (Upper roof pitch, 5–60°); without a value it stays 30° as before (#1183, thanks Vatout57).
+- **Roof sections in one plane:** where two sections continue the same roof face (an L-shaped or stepped lean-to built from pieces), the joint no longer shows an edge, a line or a wall underneath (#1184, thanks ManuelHecht).
+- **Dormer fronts:** a window or door in the floor wall below a dormer's front shows through again – the dormer's front only starts above that wall instead of covering it (#1185, thanks Atomiiik).
+- **Furniture colours (homely styles):** carcass and fronts can be coloured separately – a new **Carcass** colour next to Fronts (until you pick one, the front colour still colours both, as before). Lamps from packs take their body colour, worktops take the wood colour, and a blue front no longer turns grey on some faces (#1175, #1177, thanks daene85). With the pack updates: the gaming chair's red parts, the extendable dining tables' top and the track spots follow their colour, the standing mirror's stand sits behind the glass (packs need 3.5.0).
+- **Install and update help** names the Home Assistant **Marketplace** (Settings → Marketplace), which took over from HACS in Home Assistant 2026.11; HACS stays described for older versions. Hints in the app point to Settings → System → Updates.
+
 ## 3.4.3
 
 ### Fixed

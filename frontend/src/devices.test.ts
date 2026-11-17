@@ -70,6 +70,17 @@ test("entity names drop the area prefix", () => {
   assert.equal(entityName(hass, "light.stehlampe", "Wohnzimmer"), "Stehlampe");
 });
 
+test("the room panel drops the device name Home Assistant 2026.11 puts in front of a renamed entity (#1181)", () => {
+  const hass = {
+    states: { "light.sw_l1": { entity_id: "light.sw_l1", state: "on", attributes: { friendly_name: "switch_living_a Ceiling light" } } },
+    entities: { "light.sw_l1": { entity_id: "light.sw_l1", name: "Ceiling light", device_id: "d1" } },
+    devices: { d1: { id: "d1", name: "switch_living_a", name_by_user: null } },
+  } as unknown as Parameters<typeof entityName>[0];
+  assert.equal(entityName(hass, "light.sw_l1", undefined, true), "Ceiling light");
+  // elsewhere (editor lists) the full name stays
+  assert.equal(entityName(hass, "light.sw_l1"), "switch_living_a Ceiling light");
+});
+
 test("kinds, active states and light glow", () => {
   const hass = hassWith();
   assert.equal(kindOf("media_player.tv"), "media");

@@ -2,7 +2,7 @@
 
 import { zonesOf, type Building } from "./model.ts";
 import { roomsOnly, shownRoomIds } from "./rooms-filter.ts";
-import { confirmEntities } from "./devices.ts";
+import { confirmEntities, haNavigate } from "./devices.ts";
 import { countView } from "./diagnostics.ts";
 import { css, html, LitElement, nothing, type PropertyValues } from "lit";
 import { BuildingController } from "./building-controller.ts";
@@ -196,8 +196,7 @@ export class Floorplan3dCard extends LitElement {
 
   /** Opens another dashboard or view the way Home Assistant's own links do (no page reload). */
   private openDashboard(path: string): void {
-    history.pushState(null, "", path);
-    window.dispatchEvent(new CustomEvent("location-changed", { bubbles: true, composed: true, detail: { replace: false } }));
+    haNavigate(path);
   }
 
   private readonly onFullscreen = () => {
@@ -442,6 +441,14 @@ clearTimeout(this.cleanTimer);
 
   protected updated(): void {
     if (this.isSite && this.data.plans.length > 1) this.watch.watch(this.hass, this.data);
+    // the walk button steps aside for the card's own buttons at the top right, as wide as they really are: a
+    // dashboard button with a long label ("Zum Energiefluss") reached over it (#1146)
+    const view = this.shadowRoot?.querySelector("fp3d-view3d") as HTMLElement | null;
+    if (view) {
+      const left = Math.min(...[...(this.shadowRoot?.querySelectorAll<HTMLElement>(".fp3d-card-full") ?? [])].map((el) => el.offsetLeft), Infinity);
+      const right = Number.isFinite(left) ? Math.max(104, view.clientWidth - left + 8) : 104;
+      if (view.style.getPropertyValue("--fp3d-walk-right") !== `${right}px`) view.style.setProperty("--fp3d-walk-right", `${right}px`);
+    }
   }
 
   protected render() {

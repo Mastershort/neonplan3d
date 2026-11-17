@@ -241,8 +241,11 @@ export interface Furniture {
   bin_kind?: "rest" | "bio" | "paper" | "plastic" | "glass" | "garden" | "recycling" | "other" | null;
   /** Waste bin: its body colour ("#rrggbb"; null = the usual one of its kind in the country). */
   bin_color?: string | null;
-  /** Own colours in the homely styles (finishes.ts): wood, fabric (and cushions) and fronts, "#rrggbb" each; missing = the look's own. */
-  finish?: { wood?: string | null; fabric?: string | null; front?: string | null } | null;
+  /**
+   * Own colours in the homely styles (finishes.ts): wood, fabric (and cushions), fronts and the carcass ("body"),
+   * "#rrggbb" each; missing = the look's own (the carcass follows the fronts while it has none).
+   */
+  finish?: { wood?: string | null; fabric?: string | null; front?: string | null; body?: string | null } | null;
   /** Live parts of a pack item (3.4): the entity of each of its slots (slot id -> entity id). */
   binds?: Record<string, string> | null;
   /** Neon sign: its own text (one or two lines, split with |) and the colour of its tubes while no light gives one. */
@@ -498,6 +501,11 @@ export interface RoofSection {
   /** Slopes in degrees. */
   pitch_a: number;
   pitch_b: number;
+  /**
+   * Mansard only: the slope of the upper, flatter part up to the ridge in degrees (5 … 60); pitch_a and pitch_b
+   * set the steep lower part. Null or missing = 30°, as every mansard drawn before (#1183).
+   */
+  pitch_upper?: number | null;
   /** Top of the walls below: gable and knee walls are built from here up to the roof. */
   base: number;
   /** Overhang beyond the walls (null = the roof setting). */
@@ -808,6 +816,10 @@ export interface BuildingSettings extends StylePlan {
   sun_patches?: boolean;
   /** The sun's arc over the house and the house's shadow on the ground (default on). */
   sun_shadow?: boolean;
+  /** The real sky behind the house: sunset colours, stars, the moon in its phase, clouds with the weather (default on). */
+  sky?: boolean;
+  /** "Anflug aus dem All": the view opens with a globe that dives in onto the house (default off). */
+  flyin?: boolean;
   /** What the sun's arc and its compass ring stand around: the house (null, default) or everything drawn on the plot (#833). */
   sun_arc?: "house" | "plot" | null;
   /** At night lit rooms throw their light out of the windows onto the ground in front (default on). */

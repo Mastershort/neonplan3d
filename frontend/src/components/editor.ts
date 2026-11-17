@@ -41,7 +41,7 @@ import { deviceSensors, energySummary, flowSegments, gridPoint, hubPoint, invert
 import { CLIMATE_ATTRS, isPulseDrive, isStatusSensor, robotRoomSensor, slatTilt, TOGGLE_KINDS } from "../devices.ts";
 import { homeBuilding, OSM_COPYRIGHT, planMiddle, mapToPlan, SURROUND_RADII, turnMap, hiddenBuildings, mapCorners, ownOutline, surroundFloorId, atGroundLevel, ownUnderPlan } from "../surroundings.ts";
 import { loadOsm } from "../load-osm.ts";
-import { activeSections, sectionFloor, sectionOverhang, dormerParent, effectiveDormer, proposeDormer, sectionGeometry, floorOutline, polygonBox, headroomLines, ridgeHeight, sectionAbove, sectionCutsBelow, roofSectionsFromRooms, sectionFrame, sectionTurn, turnPoint, turnSectionAbout, wallTopUnder } from "../roof-sections.ts";
+import { activeSections, sectionFloor, sectionOverhang, dormerParent, effectiveDormer, proposeDormer, sectionGeometry, floorOutline, polygonBox, headroomLines, ridgeHeight, sectionAbove, sectionCutsBelow, roofSectionsFromRooms, sectionFrame, sectionTurn, turnPoint, turnSectionAbout, wallTopUnder, mansardUpperPitch, MANSARD_UPPER_MIN, MANSARD_UPPER_MAX } from "../roof-sections.ts";
 import { bestFace, clampField, faceAt, faceCompass, fieldFace, fieldModules, GROUND, moveField, pointOnFace, proposeField, proposeGroundField, proposeWindow, proposeWallField, roofFaces, rowCounts, turnGroundField, fieldCenter, wallFaces, windowAsField, windowCorners, onFace, onField, rayOnFace, type RoofFace } from "../solar.ts";
 import type { SurfaceGrab, SurfaceRay } from "../viewer/viewer3d.ts";
 import { storedImageIds } from "../transfer.ts";
@@ -557,7 +557,13 @@ export class Fp3dEditor extends LitElement {
   private lastFurnTap: { id: string; t: number } | null = null;
   /** Whether Shift is held (the 3D views report taps without their keys). */
   private shiftHeld = false;
-  private readonly onShift = (e: KeyboardEvent) => (this.shiftHeld = e.shiftKey);
+  private readonly onShift = (e: KeyboardEvent) => {
+    this.shiftHeld = e.shiftKey;
+    if (e.key === " ") this.spaceHeld = false;
+  };
+  /** Space is held down: a mouse drag pans the plan and never grabs an item (#1179). */
+  private spaceHeld = false;
+  private readonly onBlur = () => (this.spaceHeld = false);
   /** Library pictures for the wall view's side bar (type -> image). */
   private kitPics = new Map<string, string>();
   private kitPicsAsked = new Set<string>();
@@ -928,12 +934,14 @@ export class Fp3dEditor extends LitElement {
     super.connectedCallback();
     window.addEventListener("keydown", this.onKey);
     window.addEventListener("keyup", this.onShift);
+    window.addEventListener("blur", this.onBlur);
   }
 
   disconnectedCallback(): void {
     super.disconnectedCallback();
     window.removeEventListener("keydown", this.onKey);
     window.removeEventListener("keyup", this.onShift);
+    window.removeEventListener("blur", this.onBlur);
     this.resizeObserver?.disconnect();
   }
 
@@ -1654,7 +1662,8 @@ export class Fp3dEditor extends LitElement {
       return;
     }
     if (this.pointers.size > 2) return;
-    if (e.button === 1 || e.button === 2 || !this.floor) {
+    // Space held: a drag only pans the plan, whatever lies under the pointer (as in drawing tools, #1179)
+    if (e.button === 1 || e.button === 2 || !this.floor || (this.spaceHeld && e.pointerType === "mouse")) {
       // the right button: dragged it moves the plan, a click without moving opens the item's menu (D518)
       if (e.button === 2) this.rightPress = { at: local, target: e.target as Element, moved: false };
       this.drag = { kind: "pan", last: local };
@@ -3165,6 +3174,12 @@ export class Fp3dEditor extends LitElement {
     const path = e.composedPath();
     if (path.some((el) => el instanceof HTMLInputElement || el instanceof HTMLSelectElement || el instanceof HTMLTextAreaElement)) return;
     if (!this.isConnected || !this.offsetParent) return;
+    if (e.key === " " && !(e.target instanceof HTMLButtonElement) && !path.some((el) => el instanceof HTMLButtonElement)) {
+      // held for panning: the page must not scroll
+      this.spaceHeld = true;
+      e.preventDefault();
+      return;
+    }
     const mod = e.ctrlKey || e.metaKey;
     // the wall view has its own keys: Delete there must never reach what is chosen in the plan behind it
     // (it took the whole pool with every pipe); only undo and redo still work from here
@@ -4726,7 +4741,10 @@ export class Fp3dEditor extends LitElement {
             : html`${num(`${this.t("roof_eave")} ${pent ? "" : sideA}`, sec.eave_a, (v) => set({ eave_a: v }))}
               ${pent ? nothing : num(`${this.t("roof_eave")} ${sideB}`, sec.eave_b, (v) => set({ eave_b: v }))}
               ${deg(`${this.t("roof_pitch_short")} ${pent ? "" : sideA}`, sec.pitch_a, (v) => set({ pitch_a: Math.min(75, v) }))}
-              ${pent ? nothing : deg(`${this.t("roof_pitch_short")} ${sideB}`, sec.pitch_b, (v) => set({ pitch_b: Math.min(75, v) }))}`}
+              ${pent ? nothing : deg(`${this.t("roof_pitch_short")} ${sideB}`, sec.pitch_b, (v) => set({ pitch_b: Math.min(75, v) }))}
+              ${sec.shape === "mansard"
+                ? this.num(this.t("roof_pitch_upper"), mansardUpperPitch(sec), (v) => set({ pitch_upper: Math.min(MANSARD_UPPER_MAX, Math.max(MANSARD_UPPER_MIN, round(v))) }), 1, MANSARD_UPPER_MIN)
+                : nothing}`}
           ${num(this.t("roof_base"), sec.base, (v) => set({ base: v }))}
           <label class="fp3d-field" title=${this.t("roof_on_floor_hint")}
             >${this.t("roof_on_floor")}
@@ -11928,7 +11946,9 @@ export class Fp3dEditor extends LitElement {
    * from; "for all the same" gives every item of this kind in the plan the same finish.
    */
   private renderFinish(f: Furniture) {
-    const roles = finishRolesOf(f.type, packItem(f.type) ?? null);
+    // a colour the item has keeps its row, so it can be taken back (a lamp's glow no longer offers fronts, #1175)
+    const offered = finishRolesOf(f.type, packItem(f.type) ?? null);
+    const roles = FINISH_ROLES.filter((r) => offered.includes(r) || finishHex(f, r));
     if (!roles.length) return nothing;
     const admin = this.isAdmin;
     const lang = this.hass?.language;
@@ -13146,6 +13166,7 @@ export class Fp3dEditor extends LitElement {
               power,
               (v) => this.updateFurniture({ power: v }),
             )}
+        ${f.type === "inverter" ? html`<p class="fp3d-sub fp3d-wide">${this.t("inverter_power_hint")}</p>` : nothing}
         ${!lamp && f.power && f.power !== "none" && !(ENERGY_DEVICES as readonly string[]).includes(f.type)
           ? html`<label class="fp3d-field" title=${this.t("furn_run_w_hint")}
               >${this.t("furn_run_w")}
@@ -14916,6 +14937,10 @@ export class Fp3dEditor extends LitElement {
         <label class="fp3d-check fp3d-wide" title=${this.t("sun_patches_hint")}
           ><input type="checkbox" .checked=${s.sun_patches !== false} @change=${(ev: Event) => set({ sun_patches: (ev.target as HTMLInputElement).checked })} />
           ${this.t("sun_patches")}</label
+        >
+        <label class="fp3d-check fp3d-wide" title=${this.t("sky_hint")}
+          ><input type="checkbox" .checked=${s.sky !== false} @change=${(ev: Event) => set({ sky: (ev.target as HTMLInputElement).checked })} />
+          ${this.t("sky")}</label
         >
         <label class="fp3d-check fp3d-wide" title=${this.t("sun_shadow_hint")}
           ><input type="checkbox" .checked=${s.sun_shadow !== false} @change=${(ev: Event) => set({ sun_shadow: (ev.target as HTMLInputElement).checked })} />

@@ -29,9 +29,18 @@ export interface PackPart {
   /** Bottom and height in fractions of the item's height. */
   y: number;
   h: number;
-  /** "#rrggbb" or a palette role ("body", "fabric", "wood", …). */
+  /**
+   * "#rrggbb" or a palette role ("body", "fabric", "wood", …; "front" for door and drawer fronts since 3.5, drawn like
+   * "white" until a finish tells fronts and carcass apart, #1177).
+   */
   color: string;
   top?: string;
+  /**
+   * The finish a part follows although its colour is none of that finish's roles (3.5, #1175): it keeps its colour
+   * ("#rrggbb" or a role like "dark") until a placed item gets that finish – a gaming chair's red cover takes the fabric
+   * colour, a table's oak top the wood colour, a track light's dark housing the carcass colour.
+   */
+  finish?: "wood" | "fabric" | "front" | "body";
   /** Outline: true (soft blue), "glow" (cyan like the walls) or "faint". */
   edges?: boolean | "glow" | "faint";
   /** Lamps: shines in the colour and brightness of the linked light. */

@@ -74,7 +74,7 @@ export interface SectionProfile {
   y(v: number): number;
 }
 
-export function sectionProfile(s: Pick<RoofSection, "x0" | "z0" | "x1" | "z1" | "axis" | "flip" | "shape" | "eave_a" | "eave_b" | "pitch_a" | "pitch_b">): SectionProfile {
+export function sectionProfile(s: Pick<RoofSection, "x0" | "z0" | "x1" | "z1" | "axis" | "flip" | "shape" | "eave_a" | "eave_b" | "pitch_a" | "pitch_b"> & Partial<Pick<RoofSection, "pitch_upper">>): SectionProfile {
   const w = sectionFrame(s).w;
   const ea = s.eave_a;
   const eb = s.eave_b;
@@ -83,8 +83,8 @@ export function sectionProfile(s: Pick<RoofSection, "x0" | "z0" | "x1" | "z1" | 
   if (s.shape === "flat" || s.shape === "parapet") return { vr: w / 2, rh: ea, y: () => ea };
   if (s.shape === "pent") return { vr: w, rh: ea + w * ta, y: (v) => ea + v * ta };
   if (s.shape === "mansard") {
-    // two slopes a side: the steep lower one (the pitch set) up to the break, a 30° upper one to the ridge
-    const m = mansardParts(w, ea, eb, ta, tb);
+    // two slopes a side: the steep lower one (the pitch set) up to the break, the upper one (30° unless set) to the ridge
+    const m = mansardParts(w, ea, eb, ta, tb, mansardUpper(s));
     return { vr: m.vr, rh: m.rh, y: m.y };
   }
   // the slopes meet where they are equally high: a lower eave or a flatter slope moves the ridge
@@ -340,18 +340,35 @@ export function floorOutline(rooms: readonly Room[], free: readonly FreeWall[], 
   return clean.length >= 3 ? offsetPolygon(clean, exterior) : null;
 }
 
-const MANSARD_UPPER = Math.tan(30 * DEG);
+/** The upper slope of a mansard roof in degrees when none is set (every mansard drawn before #1183). */
+export const MANSARD_UPPER_DEFAULT = 30;
+/** The range an upper mansard slope is kept in (degrees). */
+export const MANSARD_UPPER_MIN = 5;
+export const MANSARD_UPPER_MAX = 60;
 
-/** A mansard profile: the lower slopes reach their break at 2.4 m of rise or 30 % of the width, the upper ones meet at the ridge. */
-function mansardParts(w: number, ea: number, eb: number, ta: number, tb: number) {
+/** The upper slope of a mansard section in degrees: as set (kept in its range), else 30° (#1183). */
+export function mansardUpperPitch(s: Partial<Pick<RoofSection, "pitch_upper">>): number {
+  const p = s.pitch_upper;
+  return typeof p === "number" && Number.isFinite(p) ? Math.min(MANSARD_UPPER_MAX, Math.max(MANSARD_UPPER_MIN, p)) : MANSARD_UPPER_DEFAULT;
+}
+
+function mansardUpper(s: Partial<Pick<RoofSection, "pitch_upper">>): number {
+  return Math.tan(mansardUpperPitch(s) * DEG);
+}
+
+/**
+ * A mansard profile: the lower slopes (ta, tb) reach their break at 2.4 m of rise or 30 % of the width, the
+ * upper ones (tu) meet at the ridge.
+ */
+function mansardParts(w: number, ea: number, eb: number, ta: number, tb: number, tu: number) {
   const vla = Math.min(w * 0.3, ta > 1e-6 ? 2.4 / ta : w * 0.3);
   const vlb = Math.min(w * 0.3, tb > 1e-6 ? 2.4 / tb : w * 0.3);
   const yla = ea + vla * ta;
   const ylb = eb + vlb * tb;
-  // the upper slopes meet where they are equally high
-  const vr = Math.min(w - vlb, Math.max(vla, (ylb - yla + MANSARD_UPPER * (w - vlb + vla)) / (2 * MANSARD_UPPER)));
-  const rh = yla + (vr - vla) * MANSARD_UPPER;
-  const y = (v: number) => (v <= vla ? ea + v * ta : v <= vr ? yla + (v - vla) * MANSARD_UPPER : v <= w - vlb ? ylb + (w - vlb - v) * MANSARD_UPPER : eb + (w - v) * tb);
+  // the upper slopes meet where they are equally high (kept between the two breaks)
+  const vr = Math.min(w - vlb, Math.max(vla, (ylb - yla + tu * (w - vlb + vla)) / (2 * tu)));
+  const rh = yla + (vr - vla) * tu;
+  const y = (v: number) => (v <= vla ? ea + v * ta : v <= vr ? yla + (v - vla) * tu : v <= w - vlb ? ylb + (w - vlb - v) * tu : eb + (w - v) * tb);
   return { vla, vlb, yla, ylb, vr, rh, y };
 }
 
@@ -398,7 +415,7 @@ export function sectionGeometry(s: RoofSection, ov: SectionOverhang): SectionGeo
     return { faces: [[a0, a1, rs], [a1, b1, rs], [b1, b0, rs], [b0, a0, rs]], rim: [a0, a1, b1, b0], ridges: [[a0, rs], [b0, rs], [a1, rs], [b1, rs]], gable: null, gables: [null, null] };
   }
   if (s.shape === "mansard") {
-    const m = mansardParts(w, s.eave_a, s.eave_b, ta, tb);
+    const m = mansardParts(w, s.eave_a, s.eave_b, ta, tb, mansardUpper(s));
     const mg: [number, number][] = [[0, pr.y(0)], [m.vla, m.yla], [m.vr, m.rh], [w - m.vlb, m.ylb], [w, pr.y(w)]];
     const la0: Q = [U0, m.vla, m.yla];
     const la1: Q = [U1, m.vla, m.yla];

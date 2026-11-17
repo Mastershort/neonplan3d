@@ -335,11 +335,15 @@ FURNITURE_SCHEMA = vol.Schema(
             None,
             vol.All({vol.All(str, vol.Length(min=1, max=40)): vol.All(str, vol.Length(max=255))}, vol.Length(max=16)),
         ),
-        # own colours in the homely styles: wood, fabric and fronts (each "#rrggbb", missing = the look's own)
+        # own colours in the homely styles: wood, fabric, fronts and the carcass ("body", 3.5; each "#rrggbb",
+        # missing = the look's own)
         vol.Optional("finish"): vol.Any(
             None,
             vol.Schema(
-                {vol.Optional(k): vol.Any(None, vol.Match(r"^#[0-9a-fA-F]{6}$")) for k in ("wood", "fabric", "front")}
+                {
+                    vol.Optional(k): vol.Any(None, vol.Match(r"^#[0-9a-fA-F]{6}$"))
+                    for k in ("wood", "fabric", "front", "body")
+                }
             ),
         ),
         # a neon sign: its own text and the colour of its tubes
@@ -631,6 +635,8 @@ ROOF_SECTION_SCHEMA = vol.Schema(
         vol.Required("eave_b"): _HEIGHT,
         vol.Optional("pitch_a", default=35): vol.All(vol.Coerce(float), vol.Range(min=0, max=80)),
         vol.Optional("pitch_b", default=35): vol.All(vol.Coerce(float), vol.Range(min=0, max=80)),
+        # mansard: the slope of the upper part (None or missing = 30 degrees, the frontend keeps it in 5 ... 60, #1183)
+        vol.Optional("pitch_upper"): vol.Any(None, vol.All(vol.Coerce(float), vol.Range(min=0, max=80))),
         vol.Required("base"): _HEIGHT,
         vol.Optional("overhang", default=None): vol.Any(None, vol.All(vol.Coerce(float), vol.Range(min=0, max=2))),
         # the overhang per side set by hand (a, b, u0, u1; None = automatic, #863)
@@ -958,6 +964,8 @@ SETTINGS_SCHEMA = vol.Schema(
         # sunlight through the windows as patches on the floor
         vol.Optional("sun_patches", default=True): bool,
         vol.Optional("sun_shadow", default=True): bool,
+        vol.Optional("sky"): bool,
+        vol.Optional("flyin"): bool,
         # what the sun's arc and compass ring stand around: the house (None, default) or the whole plot (#833)
         vol.Optional("sun_arc"): vol.Any(None, vol.In(["house", "plot"])),
         vol.Optional("window_glow", default=True): bool,
