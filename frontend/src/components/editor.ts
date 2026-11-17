@@ -11946,7 +11946,9 @@ export class Fp3dEditor extends LitElement {
    * from; "for all the same" gives every item of this kind in the plan the same finish.
    */
   private renderFinish(f: Furniture) {
-    const roles = finishRolesOf(f.type, packItem(f.type) ?? null);
+    // a colour the item has keeps its row, so it can be taken back (a lamp's glow no longer offers fronts, #1175)
+    const offered = finishRolesOf(f.type, packItem(f.type) ?? null);
+    const roles = FINISH_ROLES.filter((r) => offered.includes(r) || finishHex(f, r));
     if (!roles.length) return nothing;
     const admin = this.isAdmin;
     const lang = this.hass?.language;

@@ -3890,6 +3890,7 @@ export class Fp3dView3d extends LitElement {
       pickable: !!entity,
       furnitureId: f.id,
       pack: item ? f.type : null,
+      finish: item ? (f.finish ?? null) : null,
       lightY: item ? (item.mount === "ceiling" ? base : base + f.h * 0.85) : undefined,
       // a running colour effect – not a "mode" some integrations report as their effect (LocalTuya: "white",
       // "colour"; others "manual", "default", an empty one), not a mood of a white-only light, and never while the

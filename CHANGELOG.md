@@ -29,6 +29,7 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 - **Mansard roof:** the pitch of the upper roof can be set in the roof section (Upper roof pitch, 5–60°); without a value it stays 30° as before (#1183, thanks Vatout57).
 - **Roof sections in one plane:** where two sections continue the same roof face (an L-shaped or stepped lean-to built from pieces), the joint no longer shows an edge, a line or a wall underneath (#1184, thanks ManuelHecht).
 - **Dormer fronts:** a window or door in the floor wall below a dormer's front shows through again – the dormer's front only starts above that wall instead of covering it (#1185, thanks Atomiiik).
+- **Furniture colours (homely styles):** carcass and fronts can be coloured separately – a new **Carcass** colour next to Fronts (until you pick one, the front colour still colours both, as before). Lamps from packs take their body colour, worktops take the wood colour, and a blue front no longer turns grey on some faces (#1175, #1177, thanks daene85). With the pack updates: the gaming chair's red parts, the extendable dining tables' top and the track spots follow their colour, the standing mirror's stand sits behind the glass (packs need 3.5.0).
 - **Install and update help** names the Home Assistant **Marketplace** (Settings → Marketplace), which took over from HACS in Home Assistant 2026.11; HACS stays described for older versions. Hints in the app point to Settings → System → Updates.
 
 ## 3.4.3

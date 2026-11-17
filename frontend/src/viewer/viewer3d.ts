@@ -164,6 +164,8 @@ export interface DeviceMarker {
   furnitureId?: string;
   /** Lamp from a furniture pack (its type): drawn from the pack's parts. */
   pack?: string | null;
+  /** A pack lamp's own colours in the homely styles (its furniture item's finish, finishes.ts). */
+  finish?: Furniture["finish"];
   /** Height its light comes from (pack lamps). */
   lightY?: number;
   /** A colour effect runs (colour loop …): the colour is animated in 3D. */
@@ -3834,7 +3836,7 @@ export class FloorplanViewer {
     const shapeSig =
       this.wallMode +
       (this.lowQuality ? "L" : this.highQuality ? "H" : "M") +
-      lamps.map((d) => `${d.id},${d.lamp ?? d.model},${d.variant},${d.x},${d.z},${d.y},${d.rotation ?? 0},${d.roll ?? 0},${d.upright ? 1 : 0},${d.rise ?? 0},${d.size?.join("/")},${d.base ?? 0},${d.pack ?? ""},${d.mirror ? 1 : 0},${d.ownLook ? 1 : 0}`).join(";");
+      lamps.map((d) => `${d.id},${d.lamp ?? d.model},${d.variant},${d.x},${d.z},${d.y},${d.rotation ?? 0},${d.roll ?? 0},${d.upright ? 1 : 0},${d.rise ?? 0},${d.size?.join("/")},${d.base ?? 0},${d.pack ?? ""},${d.mirror ? 1 : 0},${d.ownLook ? 1 : 0},${d.finish ? JSON.stringify(d.finish) : ""}`).join(";");
     const glows = lamps.map((d) => this.glowOf(d));
     // a camera's motion is in it too: its wedge on the floor (buildHalos) turns red without any lamp changing (#901)
     const colorSig = lamps.map((d, i) => `${flash(d.id)},${glows[i] ? `${glows[i]!.level.toFixed(3)},${glows[i]!.color.map((c) => c.toFixed(3)).join("/")}` : "off"}${d.motion ? ",m" : ""}`).join(";");
@@ -3857,7 +3859,7 @@ export class FloorplanViewer {
         if (d.model) {
           if (!d.ownLook) pushCameraModel(buf, d.model, d.x, d.model === "camera_ceiling" ? H : d.y, d.z, d.rotation ?? 0);
         }
-        else if (packed) pushPackLamp(buf, packed, { x: d.x, z: d.z, rotation: d.rotation ?? 0, w: pw, d: pd, h: ph, mirror: d.mirror }, d.base ?? 0, SHADE_SENTINEL);
+        else if (packed) pushPackLamp(buf, packed, { x: d.x, z: d.z, rotation: d.rotation ?? 0, w: pw, d: pd, h: ph, mirror: d.mirror, finish: d.finish }, d.base ?? 0, SHADE_SENTINEL);
         // a ceiling fan's blades turn in a group of their own (syncFans)
         else pushLampModel(buf, { ...d, lamp: d.lamp! }, d.top ?? H, SHADE_SENTINEL, d.lamp !== "fan");
         // keyed by the furniture: two lamps may share one light (one switch for two strips)

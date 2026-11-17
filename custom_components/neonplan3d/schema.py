@@ -335,11 +335,15 @@ FURNITURE_SCHEMA = vol.Schema(
             None,
             vol.All({vol.All(str, vol.Length(min=1, max=40)): vol.All(str, vol.Length(max=255))}, vol.Length(max=16)),
         ),
-        # own colours in the homely styles: wood, fabric and fronts (each "#rrggbb", missing = the look's own)
+        # own colours in the homely styles: wood, fabric, fronts and the carcass ("body", 3.5; each "#rrggbb",
+        # missing = the look's own)
         vol.Optional("finish"): vol.Any(
             None,
             vol.Schema(
-                {vol.Optional(k): vol.Any(None, vol.Match(r"^#[0-9a-fA-F]{6}$")) for k in ("wood", "fabric", "front")}
+                {
+                    vol.Optional(k): vol.Any(None, vol.Match(r"^#[0-9a-fA-F]{6}$"))
+                    for k in ("wood", "fabric", "front", "body")
+                }
             ),
         ),
         # a neon sign: its own text and the colour of its tubes

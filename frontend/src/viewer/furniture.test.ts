@@ -4,7 +4,8 @@ import type { Furniture } from "../model.ts";
 import { mountBase, packItem, setPacks, type FurniturePack } from "../packs.ts";
 import { liveKey } from "../live-parts.ts";
 import { newFloor } from "../model.ts";
-import { hasFixedColors, packGlowCentre, packMotionParts, pushFurniture, pushPackLive, pushPackSpin, screenPictureSize, setLightLook } from "./furniture.ts";
+import { Color } from "three";
+import { finishSafe, hasFixedColors, packGlowCentre, packMotionParts, pushFurniture, pushPackLamp, pushPackLive, pushPackSpin, screenPictureSize, setLightLook } from "./furniture.ts";
 import { packMotion, type PackItem } from "../packs.ts";
 import { GeoBuffer, LineBuffer } from "./geo.ts";
 
@@ -392,4 +393,160 @@ test("a wood finish colours a pack worktop's top too, not only its front edge (#
     setNaturalPalette(false);
     setPacks([]);
   }
+});
+
+test("fronts and carcass: a pack's front parts look like white ones until a carcass finish tells them apart (#1177)", async () => {
+  const { setNaturalPalette } = await import("./palette.ts");
+  const parts = (front: string) =>
+    [
+      { shape: "box", x: 0, z: -0.02, w: 1, d: 0.96, y: 0, h: 1, color: "white", edges: true },
+      { shape: "box", x: 0, z: 0.49, w: 0.98, d: 0.02, y: 0.05, h: 0.9, color: front, top: front, edges: "faint" },
+    ] as PackItem["parts"];
+  setPacks([{ id: "t.fr", name: "Fronts", publisher: "t", licensee: null, items: [{ id: "old", name: { en: "Old" }, size: [0.6, 0.6, 0.8], parts: parts("white") }, { id: "new", name: { en: "New" }, size: [0.6, 0.6, 0.8], parts: parts("front") }] }]);
+  const draw = (id: string, finish: Furniture["finish"]) => {
+    const buf = new GeoBuffer();
+    pushFurniture(buf, new LineBuffer(), new GeoBuffer(), { id: "c", type: `pack:t.fr:${id}`, x: 0, z: 0, rotation: 0, w: 0.6, d: 0.6, h: 0.8, variant: null, finish } as Furniture);
+    return buf.c;
+  };
+  // the carcass' colours come first (its sides and its top), the front's after them
+  const split = (c: number[]) => c.length / 2;
+  const carcass = (c: number[]) => c.slice(0, split(c));
+  const front = (c: number[]) => c.slice(split(c));
+  try {
+    for (const natural of [false, true]) {
+      setNaturalPalette(natural);
+      // without a finish, and with a front finish alone (every plan before 3.5), the new role looks like the old one
+      assert.deepEqual(draw("new", null), draw("old", null));
+      assert.deepEqual(draw("new", { front: "#9fae96" }), draw("old", { front: "#9fae96" }));
+    }
+    setNaturalPalette(true);
+    // the front finish colours the carcass too while no carcass finish is set
+    assert.notDeepEqual(carcass(draw("new", { front: "#9fae96" })), carcass(draw("new", null)));
+    // a carcass finish takes the carcass over; the fronts keep the front finish
+    const both = draw("new", { front: "#9fae96", body: "#34363a" });
+    assert.deepEqual(front(both), front(draw("new", { front: "#9fae96" })));
+    assert.deepEqual(carcass(both), carcass(draw("new", { front: "#34363a" })));
+    // a carcass alone leaves the fronts as the look draws them
+    assert.deepEqual(front(draw("new", { body: "#34363a" })), front(draw("new", null)));
+    // an older pack (white fronts) colours fronts and carcass with the carcass finish then: one colour, as before
+    assert.deepEqual(draw("old", { body: "#34363a" }), draw("old", { front: "#34363a" }));
+  } finally {
+    setNaturalPalette(false);
+    setPacks([]);
+  }
+});
+
+test("a part in a colour of its own keeps it until the item gets the finish it follows (#1175)", async () => {
+  const { setNaturalPalette } = await import("./palette.ts");
+  const chair = (finish?: "fabric") =>
+    [
+      { shape: "box", x: 0, z: 0, w: 1, d: 1, y: 0, h: 0.4, color: "dark" },
+      { shape: "box", x: 0, z: 0, w: 0.8, d: 0.8, y: 0.4, h: 0.1, color: "#8a1f2e", top: "#a8283a", ...(finish ? { finish } : {}) },
+    ] as PackItem["parts"];
+  setPacks([{ id: "t.ch", name: "Chairs", publisher: "t", licensee: null, items: [{ id: "old", name: { en: "Old" }, size: [0.7, 0.7, 1], parts: chair() }, { id: "new", name: { en: "New" }, size: [0.7, 0.7, 1], parts: chair("fabric") }] }]);
+  const draw = (id: string, finish: Furniture["finish"]) => {
+    const buf = new GeoBuffer();
+    pushFurniture(buf, new LineBuffer(), new GeoBuffer(), { id: "c", type: `pack:t.ch:${id}`, x: 0, z: 0, rotation: 0, w: 0.7, d: 0.7, h: 1, variant: null, finish } as Furniture);
+    return buf.c;
+  };
+  // the cover's colours: red far over blue while it keeps its own
+  const red = (c: number[]) => {
+    // after the frame: a box on the floor has no bottom face, 10 triangles
+    const cover = c.slice(10 * 9);
+    for (let i = 0; i < cover.length; i += 3) if (!(cover[i] > cover[i + 2] * 3)) return false;
+    return true;
+  };
+  try {
+    for (const natural of [false, true]) {
+      setNaturalPalette(natural);
+      assert.deepEqual(draw("new", null), draw("old", null));
+      // another finish leaves it alone
+      assert.deepEqual(draw("new", { wood: "#6b4a32" }), draw("old", { wood: "#6b4a32" }));
+    }
+    setNaturalPalette(true);
+    assert.equal(red(draw("new", null)), true);
+    assert.equal(red(draw("new", { fabric: "#5d7d5a" })), false);
+    // the old part without its finish stays red
+    assert.equal(red(draw("old", { fabric: "#5d7d5a" })), true);
+    // in the light looks the coloured cover is not lifted like a fixed colour
+    setLightLook(true);
+    assert.equal(red(draw("new", { fabric: "#5d7d5a" })), false);
+  } finally {
+    setLightLook(false);
+    setNaturalPalette(false);
+    setPacks([]);
+  }
+});
+
+test("a pack lamp's body takes the finish, its glowing parts keep the light (#1175)", async () => {
+  const { setNaturalPalette } = await import("./palette.ts");
+  const item = {
+    id: "panel",
+    name: { en: "Panel" },
+    size: [0.5, 0.5, 0.06],
+    mount: "ceiling",
+    light: "panel",
+    parts: [
+      { shape: "cyl", x: 0, z: 0, w: 1, d: 1, y: 0.5, h: 0.5, color: "white", edges: true },
+      { shape: "cyl", x: 0, z: 0, w: 0.88, d: 0.88, y: 0, h: 0.5, color: "white", glow: true },
+    ],
+  } as PackItem;
+  const lamp = (finish: Furniture["finish"]) => {
+    const buf = new GeoBuffer();
+    pushPackLamp(buf, item, { x: 0, z: 0, rotation: 0, w: 0.5, d: 0.5, h: 0.06, finish }, 2.4, 0xff00ff);
+    return buf.c;
+  };
+  // vertices in the glow colour (magenta)
+  const glowing = (c: number[]) => {
+    let n = 0;
+    for (let i = 0; i < c.length; i += 3) if (c[i] > 0.9 && c[i + 1] < 0.05 && c[i + 2] > 0.9) n++;
+    return n;
+  };
+  setNaturalPalette(true);
+  try {
+    const plain = lamp(null);
+    const sage = lamp({ front: "#9fae96" });
+    assert.notDeepEqual(sage, plain);
+    // the glowing disc keeps the glow colour
+    assert.ok(glowing(plain) > 0);
+    assert.equal(glowing(sage), glowing(plain));
+  } finally {
+    setNaturalPalette(false);
+  }
+  assert.deepEqual(lamp({ front: "#9fae96" }), lamp(null), "the neon looks keep their own colours");
+});
+
+test("a finish colour stays out of the homely styles' grey for neon leftovers (#1175)", () => {
+  // the shader turns dark colours with blue far over red and green grey (theme.ts)
+  const greyed = (hex: number, k: number) => {
+    const c = new Color(hex).multiplyScalar(k);
+    return Math.max(c.r, c.g, c.b) < 0.2 && c.b > c.r * 2 && c.b > c.g * 1.5;
+  };
+  // the blue front swatch fell into it on faces shaded towards the floor; now it never does, and barely moves
+  assert.equal(greyed(0x5d7590, 0.6), true);
+  const safe = finishSafe(0x5d7590)!;
+  for (let k = 0.3; k <= 1.3; k += 0.05) assert.equal(greyed(safe, k), false);
+  const hsl = (hex: number) => new Color(hex).getHSL({ h: 0, s: 0, l: 0 });
+  assert.ok(Math.abs(hsl(0x5d7590).h - hsl(safe).h) < 0.02 && Math.abs(hsl(0x5d7590).l - hsl(safe).l) < 0.02);
+  // the blue fabric too
+  for (let k = 0.3; k <= 1.3; k += 0.05) assert.equal(greyed(finishSafe(0x4a6a9a)!, k), false);
+  // every other colour stays exactly as it is
+  for (const hex of [0x6b4a32, 0x9fae96, 0x34363a, 0xedebe7, 0x8e97a5, 0x4a4f58, 0xa5583a, 0x5b8fe0]) assert.equal(finishSafe(hex), hex);
+  assert.equal(finishSafe(null), null);
+});
+
+test("a built-in worktop takes the wood finish, without one it stays as it was (#1175)", async () => {
+  const { setNaturalPalette } = await import("./palette.ts");
+  const draw = (type: string, finish: Furniture["finish"]) => {
+    const buf = new GeoBuffer();
+    pushFurniture(buf, new LineBuffer(), new GeoBuffer(), { id: "w", type, x: 0, z: 0, rotation: 0, w: 1.2, d: 0.6, h: 0.9, variant: null, finish } as Furniture);
+    return buf.c;
+  };
+  setNaturalPalette(true);
+  try {
+    for (const type of ["worktop", "kitchen", "island"]) assert.notDeepEqual(draw(type, { wood: "#6b4a32" }), draw(type, null), type);
+  } finally {
+    setNaturalPalette(false);
+  }
+  assert.deepEqual(draw("worktop", { wood: "#6b4a32" }), draw("worktop", null));
 });
