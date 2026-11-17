@@ -407,3 +407,13 @@ test("an inverter's cable ends at the grid point when told so, else at the meter
   const hand = end();
   assert.deepEqual([hand[0], hand[2]], [10, 1.5]);
 });
+
+test("PV from the strings when the plant's sensor tells nothing or reads 0 while they make power (#Deye/Solarman)", async () => {
+  const { pvWithStrings } = await import("./energy.ts");
+  assert.equal(pvWithStrings(null, 1200), 1200);
+  assert.equal(pvWithStrings(0, 1200), 1200);
+  // a real reading wins; tiny string values (night, standby) do not override 0
+  assert.equal(pvWithStrings(900, 1200), 900);
+  assert.equal(pvWithStrings(0, 20), 0);
+  assert.equal(pvWithStrings(450, null), 450);
+});

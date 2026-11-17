@@ -43,7 +43,7 @@ import { alertColor, alertEntities, alertSources, alertText, findAlerts, isOutag
 import { iconPath, iconSvg, mdiIcon } from "../icons.ts";
 import { neonSignPicture, signLight, signLines } from "../neon-sign.ts";
 import { applianceIdle, applianceOf, type ApplianceKind, binColors, calendarItems, type DayEvent, fetchDayEvents, binDue, binNext, binOut, binOutToggleable, binTagsShown, doorsOf, fetchPickups, FinishedMemory, fridgeOpenTooLong, groupTags, hassCountry, isFinishedState, mailboxPost, nextFridgeCheck, plantThirsty, remainingMinutes, remainingText, servicesDue, setHouseholdCountry, wasteCalendars, isPackPlant, type HouseholdItem, type HouseholdTag, type Pickup } from "../household.ts";
-import { deviceSensors, energySummary, fetchSolarRows, fetchTodayChange, fieldLevels, fieldPowers, findConsumers, flowColor, flowSegments, gridPoint, powerSensorFor, readPower, solarCurvePath, solarDayFromStats, type Consumer, type EnergySummary, type StatRow } from "../energy.ts";
+import { deviceSensors, energySummary, pvWithStrings, stringsPower, fetchSolarRows, fetchTodayChange, fieldLevels, fieldPowers, findConsumers, flowColor, flowSegments, gridPoint, powerSensorFor, readPower, solarCurvePath, solarDayFromStats, type Consumer, type EnergySummary, type StatRow } from "../energy.ts";
 import { fieldFace, fieldSize, roofFaces, roofWindowRoom } from "../solar.ts";
 import { type CustomButton, type EntityRef, DEFAULT_HOLOGRAM, lockAlong, type PoolPipe, type RoofWindow, type SolarField, uid } from "../model.ts";
 
@@ -1444,7 +1444,12 @@ export class Fp3dView3d extends LitElement {
     })();
     const mainAnchor = first ? anchorOn(first, holo.right + sharedRight, holo.up, holo.size) : null;
     const devicePower = this.devicePowers(hass, b);
-    const solarIds = pro && summary.solar !== null ? (b.energy.solar ? [b.energy.solar] : deviceSensors(b, (f) => this.furnitureLinks?.get(f.id)?.power ?? null).solar) : [];
+    const ownSolarIds = b.energy.solar ? [b.energy.solar] : deviceSensors(b, (f) => this.furnitureLinks?.get(f.id)?.power ?? null).solar;
+    // today's yield from the same sensors the "now" comes from: the strings when they stand in for the plant's sensor
+    const ownSolar = ownSolarIds.map((id) => readPower(hass.states[id])).filter((v): v is number => v !== null);
+    const stringIds = (b.settings.roof.strings ?? []).flatMap((st) => (st.entity && st.entity !== "none" ? [st.entity] : []));
+    const byStrings = pvWithStrings(ownSolar.length ? ownSolar.reduce((x, y) => x + y, 0) : null, stringsPower(hass, b)) !== (ownSolar.length ? ownSolar.reduce((x, y) => x + y, 0) : null);
+    const solarIds = pro && summary.solar !== null ? (byStrings ? stringIds : ownSolarIds) : [];
     if (mainAnchor) {
       anchors.push(mainAnchor);
       cards.push({ kind: "main", name: translate(hass, "holo_title"), w: null, dayIds: solarIds, battery: null });
@@ -1506,7 +1511,9 @@ export class Fp3dView3d extends LitElement {
           const field = (first && inv.id === mainInverter ? own.find((f) => f.id !== first.id) : null) ?? own[0];
           const sensor = this.furnitureLinks?.get(inv.id)?.power ?? null;
           const anchor = field ? anchorOn(field, inv.plant_right ?? 0, inv.plant_up ?? 0, holo.size * 0.85) : null;
-          if (!anchor || !sensor) continue;
+          // its PV: its own sensor, or what its strings report when that tells nothing
+          const fromStrings = stringsPower(hass, b, inv.id);
+          if (!anchor || (!sensor && fromStrings === null)) continue;
           // its battery: the nearest one on the same floor
           const bat = floor.furniture.filter((m) => m.type === "home_battery").sort((p, q) => Math.hypot(p.x - inv.x, p.z - inv.z) - Math.hypot(q.x - inv.x, q.z - inv.z))[0];
           const socRaw = bat?.soc && bat.soc !== "none" ? Number(hass.states[bat.soc]?.state) : NaN;
@@ -1514,8 +1521,8 @@ export class Fp3dView3d extends LitElement {
           cards.push({
             kind: "plant",
             name: inv.name || furnitureName(hass, inv.type),
-            w: Math.max(0, readPower(hass.states[sensor]) ?? 0),
-            dayIds: [sensor],
+            w: Math.max(0, pvWithStrings(sensor ? readPower(hass.states[sensor]) : null, fromStrings) ?? 0),
+            dayIds: sensor ? [sensor] : [],
             battery: bat ? { soc: Number.isFinite(socRaw) ? socRaw : null, w: devicePower.get(bat.id) ?? null } : null,
           });
         }
