@@ -1795,6 +1795,7 @@
  "energy_meter": "Mérő",
  "energy_grid": "Hálózat (W, + = vételezés)",
  "energy_solar_sensor": "Napelemes termelés (W)",
+ "inverter_power_hint": "A modulok PV-teljesítménye (pl. „PV Power”), nem az inverter kimenő teljesítménye – az akkutöltés közben 0. Szenzor nélkül a stringek teljesítménye számít.",
  "energy_battery_sensor": "Akkumulátor-teljesítmény (W, + = kisütés)",
  "energy_battery_soc": "Akkumulátor töltöttsége (%)",
  "energy_tariff_sensor": "Tarifa (pl. €/kWh)",

@@ -1795,6 +1795,7 @@
  "energy_meter": "Meter",
  "energy_grid": "Net (W, + = afname)",
  "energy_solar_sensor": "Zonne-opbrengst (W)",
+ "inverter_power_hint": "Het PV-vermogen van de panelen (bijv. „PV Power”), niet het uitgangsvermogen van de omvormer – dat staat op 0 terwijl de accu laadt. Zonder sensor telt het vermogen van de strings.",
  "energy_battery_sensor": "Accuvermogen (W, + = ontladen)",
  "energy_battery_soc": "Acculading (%)",
  "energy_tariff_sensor": "Tarief (bijv. €/kWh)",

@@ -1795,6 +1795,7 @@
  "energy_meter": "Elmätare",
  "energy_grid": "Elnät (W, + = import)",
  "energy_solar_sensor": "Solproduktion (W)",
+ "inverter_power_hint": "Modulernas PV-effekt (t.ex. ”PV Power”), inte växelriktarens uteffekt – den visar 0 medan batteriet laddas. Utan sensor räknas strängarnas effekt.",
  "energy_battery_sensor": "Batterieffekt (W, + = urladdning)",
  "energy_battery_soc": "Batteriets laddnivå (%)",
  "energy_tariff_sensor": "Tariff (t.ex. €/kWh)",

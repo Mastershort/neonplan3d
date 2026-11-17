@@ -1795,6 +1795,7 @@
  "energy_meter": "Contador",
  "energy_grid": "Red (W, + = de la red)",
  "energy_solar_sensor": "Producción solar (W)",
+ "inverter_power_hint": "La potencia FV de los módulos (p. ej. «PV Power»), no la potencia de salida del inversor: esa marca 0 mientras carga la batería. Sin sensor cuenta la potencia de los strings.",
  "energy_battery_sensor": "Potencia de la batería (W, + = descarga)",
  "energy_battery_soc": "Carga de la batería (%)",
  "energy_tariff_sensor": "Tarifa (p. ej. €/kWh)",

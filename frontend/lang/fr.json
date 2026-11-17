@@ -1795,6 +1795,7 @@
  "energy_meter": "Compteur",
  "energy_grid": "Réseau (W, + = soutirage)",
  "energy_solar_sensor": "Production solaire (W)",
+ "inverter_power_hint": "La puissance PV des modules (p. ex. « PV Power »), pas la puissance de sortie de l’onduleur – elle affiche 0 pendant la charge de la batterie. Sans capteur, la puissance des strings compte.",
  "energy_battery_sensor": "Puissance de la batterie (W, + = décharge)",
  "energy_battery_soc": "Charge de la batterie (%)",
  "energy_tariff_sensor": "Tarif (p. ex. €/kWh)",

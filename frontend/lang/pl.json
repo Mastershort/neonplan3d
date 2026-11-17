@@ -1795,6 +1795,7 @@
  "energy_meter": "Licznik",
  "energy_grid": "Sieć (W, + = pobór)",
  "energy_solar_sensor": "Produkcja PV (W)",
+ "inverter_power_hint": "Moc PV modułów (np. „PV Power”), nie moc wyjściowa falownika – ta pokazuje 0 podczas ładowania baterii. Bez czujnika liczy się moc stringów.",
  "energy_battery_sensor": "Moc baterii (W, + = rozładowanie)",
  "energy_battery_soc": "Naładowanie baterii (%)",
  "energy_tariff_sensor": "Taryfa (np. zł/kWh)",

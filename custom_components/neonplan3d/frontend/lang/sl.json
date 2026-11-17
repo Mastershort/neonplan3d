@@ -1795,6 +1795,7 @@
  "energy_meter": "Števec",
  "energy_grid": "Omrežje (W, + = odjem)",
  "energy_solar_sensor": "Sončna proizvodnja (W)",
+ "inverter_power_hint": "Moč PV modulov (npr. »PV Power«), ne izhodna moč razsmernika – ta med polnjenjem baterije kaže 0. Brez senzorja šteje moč nizov.",
  "energy_battery_sensor": "Moč baterije (W, + = praznjenje)",
  "energy_battery_soc": "Napolnjenost baterije (%)",
  "energy_tariff_sensor": "Tarifa (npr. €/kWh)",

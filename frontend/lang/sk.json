@@ -1795,6 +1795,7 @@
  "energy_meter": "Elektromer",
  "energy_grid": "Sieť (W, + = odber)",
  "energy_solar_sensor": "Solárna výroba (W)",
+ "inverter_power_hint": "Výkon FV panelov (napr. „PV Power“), nie výstupný výkon striedača – ten pri nabíjaní batérie ukazuje 0. Bez senzora sa počíta výkon stringov.",
  "energy_battery_sensor": "Výkon batérie (W, + = vybíjanie)",
  "energy_battery_soc": "Nabitie batérie (%)",
  "energy_tariff_sensor": "Tarif (napr. €/kWh)",

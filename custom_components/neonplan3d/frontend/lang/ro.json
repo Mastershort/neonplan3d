@@ -1795,6 +1795,7 @@
  "energy_meter": "Contor",
  "energy_grid": "Rețea (W, + = consum)",
  "energy_solar_sensor": "Producție solară (W)",
+ "inverter_power_hint": "Puterea PV a modulelor (de ex. „PV Power”), nu puterea de ieșire a invertorului – aceasta arată 0 cât timp se încarcă bateria. Fără senzor contează puterea stringurilor.",
  "energy_battery_sensor": "Puterea bateriei (W, + = descărcare)",
  "energy_battery_soc": "Încărcarea bateriei (%)",
  "energy_tariff_sensor": "Tarif (de ex. €/kWh)",

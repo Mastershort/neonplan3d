@@ -1795,6 +1795,7 @@
  "energy_meter": "电表",
  "energy_grid": "电网（W，+ = 取电）",
  "energy_solar_sensor": "太阳能发电 (W)",
+ "inverter_power_hint": "组件的光伏功率（例如“PV Power”），而不是逆变器的输出功率——电池充电时它显示 0。没有传感器时按组串功率计算。",
  "energy_battery_sensor": "电池功率（W，+ = 放电）",
  "energy_battery_soc": "电池电量 (%)",
  "energy_tariff_sensor": "电价（例如 €/kWh）",

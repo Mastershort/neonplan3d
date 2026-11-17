@@ -13146,6 +13146,7 @@ export class Fp3dEditor extends LitElement {
               power,
               (v) => this.updateFurniture({ power: v }),
             )}
+        ${f.type === "inverter" ? html`<p class="fp3d-sub fp3d-wide">${this.t("inverter_power_hint")}</p>` : nothing}
         ${!lamp && f.power && f.power !== "none" && !(ENERGY_DEVICES as readonly string[]).includes(f.type)
           ? html`<label class="fp3d-field" title=${this.t("furn_run_w_hint")}
               >${this.t("furn_run_w")}

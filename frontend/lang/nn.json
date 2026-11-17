@@ -1795,6 +1795,7 @@
  "energy_meter": "Målar",
  "energy_grid": "Nett (W, + = import)",
  "energy_solar_sensor": "Solproduksjon (W)",
+ "inverter_power_hint": "PV-effekten til modulane (t.d. «PV Power»), ikkje utgangseffekten til vekselrettaren – han viser 0 medan batteriet ladar. Utan sensor tel effekten til strengane.",
  "energy_battery_sensor": "Batterieffekt (W, + = utlading)",
  "energy_battery_soc": "Batterinivå (%)",
  "energy_tariff_sensor": "Tariff (t.d. €/kWh)",

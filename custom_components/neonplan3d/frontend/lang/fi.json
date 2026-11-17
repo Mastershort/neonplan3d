@@ -1795,6 +1795,7 @@
  "energy_meter": "Mittari",
  "energy_grid": "Sähköverkko (W, + = otto)",
  "energy_solar_sensor": "Aurinkosähkön tuotanto (W)",
+ "inverter_power_hint": "Paneelien PV-teho (esim. ”PV Power”), ei invertterin lähtöteho – se näyttää 0, kun akkua ladataan. Ilman anturia lasketaan stringien teho.",
  "energy_battery_sensor": "Akun teho (W, + = purku)",
  "energy_battery_soc": "Akun lataustaso (%)",
  "energy_tariff_sensor": "Tariffi (esim. €/kWh)",

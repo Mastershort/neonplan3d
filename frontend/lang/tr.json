@@ -2399,6 +2399,7 @@
  "energy_hub_tap": "Kabloların buluştuğu yere planda dokun.",
  "energy_grid": "Şebeke (W, + = çekiş)",
  "energy_solar_sensor": "Güneş üretimi (W)",
+ "inverter_power_hint": "Modüllerin PV gücü (ör. „PV Power“), invertörün çıkış gücü değil – o, akü şarj olurken 0 gösterir. Sensör yoksa stringlerin gücü sayılır.",
  "energy_battery_sensor": "Batarya gücü (W, + = deşarj)",
  "energy_battery_soc": "Batarya şarjı (%)",
  "energy_tariff_sensor": "Tarife (ör. €/kWh)",
