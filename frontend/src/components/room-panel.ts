@@ -132,7 +132,7 @@ export class Fp3dRoomPanel extends LitElement {
   }
 
   private name(id: string): string {
-    return entityName(this.hass, id, this.areaName);
+    return entityName(this.hass, id, this.areaName, true);
   }
 
   private nameButton(id: string) {

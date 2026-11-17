@@ -391,9 +391,17 @@ export function powerSensorsOf(hass: HomeAssistant, deviceId: string): string[] 
 }
 
 /** Friendly name without a leading area name ("Wohnzimmer Deckenlicht" in the Wohnzimmer -> "Deckenlicht"). */
-export function entityName(hass: HomeAssistant, entityId: string, areaName?: string): string {
+export function entityName(hass: HomeAssistant, entityId: string, areaName?: string, dropDevice = false): string {
   const st = hass.states[entityId];
-  const name = (st?.attributes.friendly_name as string | undefined) ?? hass.entities?.[entityId]?.name ?? entityId;
+  const entry = hass.entities?.[entityId];
+  let name = (st?.attributes.friendly_name as string | undefined) ?? entry?.name ?? entityId;
+  // Home Assistant 2026.11: friendly_name is the legacy "device + entity" name; where the device stands apart
+  // (the room panel), show the entity's own name as Home Assistant's dialogs do ("switch_living_a Ceiling light" -> "Ceiling light")
+  if (dropDevice && entry?.name && entry.device_id) {
+    const dev = hass.devices?.[entry.device_id];
+    const devName = (dev?.name_by_user || dev?.name || "").trim();
+    if (devName && name.toLowerCase() === `${devName} ${entry.name}`.toLowerCase()) name = entry.name;
+  }
   if (areaName && name.length > areaName.length + 1 && name.toLowerCase().startsWith(areaName.toLowerCase() + " ")) {
     const rest = name.slice(areaName.length + 1);
     return rest.charAt(0).toUpperCase() + rest.slice(1);
@@ -1431,14 +1439,23 @@ export function favoriteCall(entityId: string): [domain: string, service: string
 }
 
 /**
+ * Opens a path inside Home Assistant without a reload, the way its own navigate() does: the new history entry
+ * names the page it came from (`from`), so a subview's ← goes back here instead of to the dashboard's first view (#1171).
+ */
+export function haNavigate(path: string): void {
+  if (path === location.pathname + location.search) return;
+  history.pushState({ from: location.pathname }, "", path);
+  window.dispatchEvent(new CustomEvent("location-changed", { bubbles: true, composed: true, detail: { replace: false } }));
+}
+
+/**
  * Run an own button (D143) from an element inside the dashboard: navigate, more-info, a service, or a
  * DOM event – "ll-custom" is what Home Assistant's fire-dom-event sends, and browser_mod listens for it.
  */
 export function runButton(hass: HomeAssistant, from: HTMLElement, b: { action: string; target?: string | null; data?: Record<string, unknown> | null }): void {
   const target = b.target?.trim() ?? "";
   if (b.action === "navigate" && target) {
-    history.pushState(null, "", target);
-    window.dispatchEvent(new CustomEvent("location-changed", { detail: { replace: false } }));
+    haNavigate(target);
   } else if (b.action === "more_info" && target) {
     from.dispatchEvent(new CustomEvent("hass-more-info", { detail: { entityId: target }, bubbles: true, composed: true }));
   } else if (b.action === "service" && target.includes(".")) {

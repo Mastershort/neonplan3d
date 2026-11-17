@@ -496,15 +496,37 @@ export function buildFloorGeometry(
         { ...piece, t0: j[1], inner0: !lowFirst },
       ];
     };
-    for (const piece of underRoof ? steps.flatMap(fine).flatMap(jumps).flatMap(crossing) : steps) {
+    const kept = (underRoof ? steps.flatMap(fine).flatMap(jumps).flatMap(crossing) : steps).flatMap((piece) => {
       const poly = underRoof ? unburied(clipAlong(wall.footprint, wall.a, ax, piece.t0, piece.t1)) : clipAlong(wall.footprint, wall.a, ax, piece.t0, piece.t1);
       // an opening starting right at the wall's end leaves a piece of no area there: drawn, it stood as a thin
-      // plate in the passage (#1158)
-      if (poly.length < 3 || Math.abs(polygonArea(poly)) < 1e-6) continue;
+      // plate in the passage (#1158) – and it is no neighbour that would hide the lintel's end face
+      return poly.length < 3 || Math.abs(polygonArea(poly)) < 1e-6 ? [] : [{ piece, poly }];
+    });
+    // the heights where a piece has no wall (ranges run upwards): only there is its neighbour's end face seen
+    const gaps = (ranges: [number, number][]): [number, number][] => {
+      const out: [number, number][] = [];
+      let y = -Infinity;
+      for (const [a, c] of ranges) {
+        if (a > y + 1e-6) out.push([y, a]);
+        y = Math.max(y, c);
+      }
+      out.push([y, Infinity]);
+      return out;
+    };
+    for (let i = 0; i < kept.length; i++) {
+      const { piece, poly } = kept[i];
       // the faces between two steps of one piece are inside the wall: left out, or they show as stripes
       // through the see-through walls (D180)
       const on = (p: Vec2, t: number) => Math.abs(tOf(p) - t) < 1e-4;
       const skipSide = (p: Vec2, q: Vec2) => (piece.inner0 && on(p, piece.t0) && on(q, piece.t0)) || (piece.inner1 && on(p, piece.t1) && on(q, piece.t1));
+      // at an opening's edge the pieces on both sides stand against each other (steps of one piece share its ranges):
+      // the end faces are drawn only where the other piece has no wall – the reveal between sill and lintel; drawn
+      // whole, they stood as strips from the floor to the top inside the see-through walls (#1182)
+      const prev = i > 0 ? kept[i - 1].piece : null;
+      const next = i + 1 < kept.length ? kept[i + 1].piece : null;
+      const open0 = prev && prev.ranges !== piece.ranges && Math.abs(prev.t1 - piece.t0) < 1e-6 ? gaps(prev.ranges) : null;
+      const open1 = next && next.ranges !== piece.ranges && Math.abs(next.t0 - piece.t1) < 1e-6 ? gaps(next.ranges) : null;
+      const sideBands = open0 || open1 ? (p: Vec2, q: Vec2) => (open0 && on(p, piece.t0) && on(q, piece.t0) ? open0 : open1 && on(p, piece.t1) && on(q, piece.t1) ? open1 : null) : undefined;
       // the roof over this step: the lowest point of its footprint decides what is left of each range
       const roofTop = underRoof ? Math.min(...poly.map(([x, z]) => topAt(x, z, H, wall))) : H;
       for (const [y0, y1raw] of piece.ranges) {
@@ -517,9 +539,9 @@ export function buildFloorGeometry(
           // the top face at the cut height is only seen while the wall is cut
           const topFold = y1 > cut + 1e-6 ? CAP_OFFSET + b : LOWER_OFFSET + b;
           const capped = sloped && roofTop < cut ? (x: number, z: number) => Math.min(cut, topOf(x, z)) : Math.min(y1, cut);
-          pushPrism(wallBuf, poly, y0, capped, NEON.wall, NEON.wallTop, { sideColor, aoFrom: 0, bottom: lintel, fold: LOWER_OFFSET + b, topFold, skipSide });
+          pushPrism(wallBuf, poly, y0, capped, NEON.wall, NEON.wallTop, { sideColor, aoFrom: 0, bottom: lintel, fold: LOWER_OFFSET + b, topFold, skipSide, sideBands });
         }
-        if (y1 > cut + 1e-6 && roofTop > cut - 1e-6) pushPrism(wallBuf, poly, Math.max(y0, cut), sloped ? topOf : y1, NEON.wall, NEON.wallTop, { sideColor, aoFrom: 0, fold: b, bottom: lintel && y0 >= cut, skipSide });
+        if (y1 > cut + 1e-6 && roofTop > cut - 1e-6) pushPrism(wallBuf, poly, Math.max(y0, cut), sloped ? topOf : y1, NEON.wall, NEON.wallTop, { sideColor, aoFrom: 0, fold: b, bottom: lintel && y0 >= cut, skipSide, sideBands });
       }
     }
   }

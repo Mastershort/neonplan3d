@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { emptyBuilding, newFloor, type Room } from "../model.ts";
+import { emptyBuilding, newFloor, type Room, type RoofSection } from "../model.ts";
+import { DEG } from "./geo.ts";
+import { proposeDormer } from "../roof-sections.ts";
 import { roofFaces } from "../solar.ts";
 import { buildRoof, roofFloor } from "./roof.ts";
 
@@ -83,4 +85,94 @@ test("a floating roof window over a room of a lower floor belongs to that floor 
   b.settings.roof.windows = [{ id: "w", face, u: 5, v: 1 }];
   const [plain] = buildRoof(b);
   assert.ok(!plain.winBelow && plain.winRoof?.solid.count);
+});
+
+test("two sections in one plane show no joint where they meet; a step between them keeps its edge (#1184)", () => {
+  // a lean-to roof over an 8 × 6 m room, from two pent sections: the front one (z 3 … 6) runs up to z = 3,
+  // the back one (z 0 … 3) goes on from there at the same pitch – one plane, no overhang at the joint
+  const pent = (id: string, z0: number, z1: number, eave: number, sides: (number | null)[], x1 = 8): RoofSection => ({
+    id,
+    x0: 0,
+    z0,
+    x1,
+    z1,
+    shape: "pent",
+    axis: "x",
+    flip: true,
+    eave_a: eave,
+    eave_b: eave,
+    pitch_a: 20,
+    pitch_b: 20,
+    base: 2.5,
+    overhang_sides: sides,
+  });
+  const rise = 3 * Math.tan(20 * DEG);
+  const roofOf = (back: RoofSection) => {
+    const b = emptyBuilding();
+    b.floors = [{ ...newFloor("eg", "EG", 0), rooms: [rect("a", 8, 6)] }];
+    b.settings.roof = { type: "custom", pitch: 20, overhang: 0.4, sections: [pent("front", 3, 6, 2.5, [null, 0, null, null]), back] };
+    return buildRoof(b)[0];
+  };
+  // what lies at the joint (z = 3): lines along it, triangles in it (the rim's thickness, a knee wall), within x
+  const atJoint = (part: ReturnType<typeof roofOf>, x0 = -1, x1 = 9) => {
+    const on = (p: number[], i: number) => Math.abs(p[i + 2] - 3) < 0.005 && p[i] > x0 - 1e-6 && p[i] < x1 + 1e-6;
+    let lines = 0;
+    for (let i = 0; i < part.lines.p.length; i += 6) if (on(part.lines.p, i) && on(part.lines.p, i + 3) && Math.abs(part.lines.p[i] - part.lines.p[i + 3]) > 1e-3) lines++;
+    let tris = 0;
+    for (let i = 0; i < part.solid.p.length; i += 9) if (on(part.solid.p, i) && on(part.solid.p, i + 3) && on(part.solid.p, i + 6)) tris++;
+    return { lines, tris };
+  };
+  const flush = roofOf(pent("back", 0, 3, 2.5 + rise, [0, null, null, null]));
+  assert.deepEqual(atJoint(flush), { lines: 0, tris: 0 });
+  // the roof's outer edges stay: the eave at the front, the high edge at the back
+  const along = (part: ReturnType<typeof roofOf>, z: number) => {
+    let n = 0;
+    for (let i = 0; i < part.lines.p.length; i += 6) if (Math.abs(part.lines.p[i + 2] - z) < 0.005 && Math.abs(part.lines.p[i + 5] - z) < 0.005) n++;
+    return n;
+  };
+  assert.ok(along(flush, 6.4) > 0 && along(flush, -0.4) > 0);
+  // a few millimetres off still count as one plane
+  assert.deepEqual(atJoint(roofOf(pent("back", 0, 3.004, 2.5 + rise + 0.003, [0, null, null, null]))), { lines: 0, tris: 0 });
+  // a step of 20 cm is a real roof end: its edge and the wall under it stay
+  const step = atJoint(roofOf(pent("back", 0, 3, 2.7 + rise, [0, null, null, null])));
+  assert.ok(step.lines > 0 && step.tris > 0, JSON.stringify(step));
+  // a back section only half as wide: the joint goes over x 0 … 4, beyond it the front's high edge is a roof end
+  const half = roofOf(pent("back", 0, 3, 2.5 + rise, [0, null, null, null], 4));
+  assert.deepEqual(atJoint(half, 0.01, 3.99), { lines: 0, tris: 0 });
+  const rest = atJoint(half, 4.01, 9);
+  assert.ok(rest.lines > 0 && rest.tris > 0, JSON.stringify(rest));
+});
+
+test("a dormer's front over a floor wall in its plane leaves that wall's height to it: its window shows (#1185)", () => {
+  // an attic floor (walls up to 2.75 + 2.5 = 5.25 m) under a gable roof from 3.7 m; the dormer's front lies in the
+  // outer face of the room's eave wall (z = -0.24), its walls start at 3.7 m, its ridge is at about 5.8 m
+  const section: RoofSection = { id: "s", x0: -0.24, z0: -0.24, x1: 8.24, z1: 6.24, shape: "gable", axis: "x", eave_a: 3.7, eave_b: 3.7, pitch_a: 40, pitch_b: 40, base: 3.7 };
+  const front = (dz: number, height = 2.5) => {
+    const d = proposeDormer(section, "a", "d", 4);
+    const b = emptyBuilding();
+    b.settings.wall_exterior = 0.24;
+    b.floors = [{ ...newFloor("og", "OG", 2.75), height, rooms: [{ ...rect("a", 8, 6) }] }];
+    b.settings.roof = { type: "custom", pitch: 40, overhang: 0.4, sections: [section, { ...d, z0: d.z0 + dz, z1: d.z1 + dz }] };
+    const cheeks = buildRoof(b).find((p) => p.cheeks)?.cheeks;
+    assert.ok(cheeks);
+    // the front gable's triangles: all three corners in the dormer's front plane; their lowest point, absolute
+    const z = -0.24 + dz;
+    let n = 0;
+    let low = Infinity;
+    for (let i = 0; i < cheeks.p.length; i += 9) {
+      if (![0, 3, 6].every((k) => Math.abs(cheeks.p[i + k + 2] - z) < 1e-6)) continue;
+      n++;
+      low = Math.min(low, 2.75 + cheeks.p[i + 1], 2.75 + cheeks.p[i + 4], 2.75 + cheeks.p[i + 7]);
+    }
+    return { n, low };
+  };
+  // the floor wall builds the front up to 5.25 m, with its window; the dormer adds only its gable above it
+  const flush = front(0);
+  assert.ok(flush.n > 0 && Math.abs(flush.low - 5.25) < 1e-6, JSON.stringify(flush));
+  // set back 50 cm from the wall: no floor wall there, the dormer's front stays closed from its foot (3.7 − 0.14 m)
+  const back = front(0.5);
+  assert.ok(back.n > 0 && Math.abs(back.low - 3.56) < 1e-6, JSON.stringify(back));
+  // a floor wall that ends below the dormer's front changes nothing (it rises to it, #1156)
+  const low = front(0, 0.7);
+  assert.ok(low.n > 0 && Math.abs(low.low - 3.56) < 1e-6, JSON.stringify(low));
 });

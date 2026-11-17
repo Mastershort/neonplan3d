@@ -425,3 +425,22 @@ test("a door across a transition leaves no plate across its doorway (#1158, #624
     assert.ok(!(across && Math.min(...v.map((p) => p[1])) < 1.9 && Math.max(...v.map((p) => p[1])) > 0.1), "a plate across the doorway at the transition");
   }
 });
+
+test("beside a window only the reveal is drawn: no wall face under the sill or over the lintel at its edge (#1182)", () => {
+  // a room 6 × 4 m, a window in the front wall (z from -EXT to 0): centre 3 m, 1.2 m wide, sill 0.9 m, 1.3 m high
+  const win: Opening = { ...opening("window", "a", 0, 3, 1.2), sill: 0.9, height: 1.3 };
+  const geo = buildFloorGeometry(floorWith([rect("a", 0, 0, 6, 4)], [win]), EXT, INT);
+  near(geo.openings[0].start[0], 2.4);
+  const pos = geo.walls.getAttribute("position");
+  let reveal = 0;
+  for (let i = 0; i < pos.count; i += 3) {
+    const v = [0, 1, 2].map((k) => [pos.getX(i + k), pos.getY(i + k), pos.getZ(i + k)]);
+    // a face across the wall at the window's edge x = 2.4
+    if (!v.every((p) => Math.abs(p[0] - 2.4) < 1e-6 && p[2] < 1e-6 && p[2] > -EXT - 1e-6)) continue;
+    for (const p of v) assert.ok(p[1] > 0.9 - 1e-6 && p[1] < 2.2 + 1e-6, `wall face at the window's edge at y ${p[1].toFixed(3)}`);
+    // the face's area in the y/z plane
+    reveal += Math.abs((v[1][1] - v[0][1]) * (v[2][2] - v[0][2]) - (v[2][1] - v[0][1]) * (v[1][2] - v[0][2])) / 2;
+  }
+  // the reveal itself stays closed: 1.3 m high across the wall's thickness
+  near(reveal, 1.3 * EXT, 1e-5);
+});

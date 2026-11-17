@@ -6,6 +6,7 @@
 import { Color } from "three";
 import type { Building, Floor, RoofSection, SolarField, Vec2 } from "../model.ts";
 import { pointInPolygon, polygonArea } from "../model.ts";
+import { generateWalls, slopeTop } from "../geometry/walls.ts";
 import { coversIn, crossAsWing, cutHole, cutUnder, lineOutside, meetLine, sectionCovers, sectionFloor, sectionsCut, dormerHoles, dormerParent, effectiveDormer, turnedDormer, offsetPolygon, sectionGeometry, sectionHeightAt, sectionPolygon, sectionFrame, sectionOverhang, sectionProfile, sectionUV, wingJunction, wingSection, type LocalCover, type Q, type SectionOverhang } from "../roof-sections.ts";
 import { DEG, GeoBuffer, LineBuffer, pushPrism, shade } from "./geo.ts";
 import { fieldModules, roofFaces, roofFootprint, roofWindowRoom, windowCorners, type RoofFace } from "../solar.ts";
@@ -62,6 +63,11 @@ export interface RoofGeometry {
    * room shows its windows in the slope, open or shut, the blind down or up (#482).
    */
   win?: { solid: GeoBuffer; lines: LineBuffer; glass: GeoBuffer };
+  /**
+   * A dormer's cheeks and front gable: walls of the room below it. In the floor view (the roof gone over the opened
+   * floor) they stay like the windows; in the house view they lift and fade with the roof (#1167).
+   */
+  cheeks?: GeoBuffer;
   /** The roof windows that only show in the roof: they fade out with it (the default). */
   winRoof?: { solid: GeoBuffer; lines: LineBuffer; glass: GeoBuffer };
   /**
@@ -272,6 +278,7 @@ function buildSections(b: Building, sections: readonly RoofSection[], overhang: 
   if (!floors.length) return [];
   const parts = new Map<string, RoofGeometry>();
   const faceMap = new Map(roofFaces(b).map((f) => [f.key, f]));
+  const inWall = floorWallsAlong(b);
   const usable = sections.filter((sec) => Math.abs(sec.x1 - sec.x0) >= 0.1 && Math.abs(sec.z1 - sec.z0) >= 0.1);
   // what each section draws: a dormer only as deep as its ridge meets the slope, a wing running into another
   // roof on to that roof's ridge line without an overhang there (#605) – the other roof's planes cut it off
@@ -338,8 +345,10 @@ function buildSections(b: Building, sections: readonly RoofSection[], overhang: 
       : null;
     // a dormer's cheeks and front gable are walls of the room below it: they stay when the roof fades over that
     // room (the floor view), like its floating roof windows – faded with the roof, the room had holes in its sides
-    const keep = sec.dormer || parent ? (part.win ??= { solid: new GeoBuffer(), lines: new LineBuffer(), glass: new GeoBuffer() }).solid : part.solid;
-    pushSection(part.solid, part.lines, drawn, plan.ov, floor.elevation, part.glass, attic, holes, frontEnd, cut, keep);
+    const keep = sec.dormer || parent ? (part.cheeks ??= new GeoBuffer()) : part.solid;
+    // … and where a floor wall stands in their plane (the room's wall right under the dormer's front), they leave that
+    // wall's height to it: its windows and doors show through (#1185)
+    pushSection(part.solid, part.lines, drawn, plan.ov, floor.elevation, part.glass, attic, holes, frontEnd, cut, keep, sec.dormer || parent ? inWall : null);
   }
   // the closed roofs first: the first part is the one the main roof's solar fields belong to
   return [...parts.values()].sort((p, q) => Number(p.lift === false) - Number(q.lift === false));
@@ -372,6 +381,8 @@ export function pushSection(
   cut: SectionCut | null = null,
   /** Where its walls (gables, knee walls, a dormer's cheeks) go; the roof's own buffer when not given. */
   walls: GeoBuffer = solid,
+  /** Floor walls in the plane of its walls: those end above them (a dormer's front and cheeks, #1185). */
+  inWall: WallsAlong | null = null,
 ): void {
   const fr = sectionFrame(s);
   const pr = sectionProfile(s);
@@ -397,6 +408,8 @@ export function pushSection(
   let ridges: [Q, Q][] = [];
   let gableProfiles: [[number, number][] | null, [number, number][] | null] = [null, null];
   const meets: [Q, Q][] = [];
+  // where a neighbour goes on in the section's own plane (#1184): no edge, line or wall at that joint
+  let joints: ReturnType<typeof flushJoints> = null;
   if (s.shape === "flat" || s.shape === "parapet") {
     const y = s.eave_a;
     const parapet = s.shape === "parapet";
@@ -436,9 +449,12 @@ export function pushSection(
     ridges = geom.ridges;
     gableProfiles = geom.gables;
     if (cut) {
+      joints = flushJoints(geom.faces, cut.covers);
       // where this roof runs into another one: the line where they meet, then only what shows above the other
+      // (a neighbour in the same plane meets it in no line: the planes do not cross, they are one)
       for (const f of faces)
         for (const c of cut.lines) {
+          if (joints && flushPlanes(f, c.poly)) continue;
           const m = meetLine(f, c.poly);
           if (m) for (const [p, q] of lineOutside(m[0], m[1], cut.covers.filter((x) => x !== c))) meets.push([p, q]);
         }
@@ -458,9 +474,34 @@ export function pushSection(
   }
   // the rim: eaves and rakes with the roof's thickness
   // (only where it is not under another section)
-  const outside = (p: Q, q: Q): [Q, Q][] => (cut ? lineOutside(p, q, cut.covers) : [[p, q]]);
-  for (let i = 0; i < rim.length; i++) {
-    for (const [[ua, va, ya], [ub, vb, yb]] of outside(rim[i], rim[(i + 1) % rim.length])) {
+  // (only where it is not under another section, nor where a section in its plane goes on beyond it)
+  const covered = (p: Q, q: Q): [Q, Q][] => (cut ? lineOutside(p, q, cut.covers) : [[p, q]]);
+  const at = (p: Q, q: Q, t: number): Q => [p[0] + (q[0] - p[0]) * t, p[1] + (q[1] - p[1]) * t, p[2] + (q[2] - p[2]) * t];
+  // the rim's outward side: it runs round the section in the plan (u, v) one way or the other
+  const turn = polygonArea(rim.map((q) => [q[0], q[1]] as Vec2)) >= 0 ? 1 : -1;
+  const outward = (p: Q, q: Q): Vec2 => {
+    const len = Math.hypot(q[0] - p[0], q[1] - p[1]) || 1;
+    return [((q[1] - p[1]) * turn) / len, (-(q[0] - p[0]) * turn) / len];
+  };
+  // the parts of a line that show: not under a cover, not at a joint (bits under 5 mm left over at a joint's end go too)
+  const shown = (p: Q, q: Q, out: Vec2 | null): [Q, Q][] => {
+    const parts = covered(p, q);
+    if (!joints || !out) return parts;
+    return parts.flatMap(([a, b]) => {
+      const len = Math.hypot(b[0] - a[0], b[1] - a[1]);
+      if (len < 1e-9) return [];
+      return without(joints([a[0], a[1]], [b[0], b[1]], out), 0.005 / len).map(([t0, t1]): [Q, Q] => [at(a, b, t0), at(a, b, t1)]);
+    });
+  };
+  // the rim's edges with their outward sides; a ridge on the rim (the high edge of a pent roof) goes with its edge
+  const edges = rim.map((p, i): [Q, Q] => [p, rim[(i + 1) % rim.length]]);
+  const same = (a: Q, b: Q) => Math.abs(a[0] - b[0]) < 1e-9 && Math.abs(a[1] - b[1]) < 1e-9;
+  const rimSide = (p: Q, q: Q): Vec2 | null => {
+    const e = edges.find(([a, b]) => (same(a, p) && same(b, q)) || (same(a, q) && same(b, p)));
+    return e ? outward(e[0], e[1]) : null;
+  };
+  for (const [p0, q0] of edges) {
+    for (const [[ua, va, ya], [ub, vb, yb]] of shown(p0, q0, outward(p0, q0))) {
       if (!open) fan([P(ua, va, ya), P(ub, vb, yb), P(ub, vb, yb - THICK), P(ua, va, ya - THICK)], under);
       lines.seg(P(ua, va, ya), P(ub, vb, yb), open ? RIDGE : EAVE);
     }
@@ -469,25 +510,44 @@ export function pushSection(
     pushCanopyFrame(solid, lines, fr, pr, ov, P, yOff);
     return;
   }
-  for (const [p, q] of ridges) for (const [[ua, va, ya], [ub, vb, yb]] of outside(p, q)) lines.seg(P(ua, va, ya + 0.004), P(ub, vb, yb + 0.004), RIDGE);
+  for (const [p, q] of ridges) for (const [[ua, va, ya], [ub, vb, yb]] of shown(p, q, rimSide(p, q))) lines.seg(P(ua, va, ya + 0.004), P(ub, vb, yb + 0.004), RIDGE);
   // the valleys where it meets another section
   for (const [[ua, va, ya], [ub, vb, yb]] of meets) lines.seg(P(ua, va, ya + 0.004), P(ub, vb, yb + 0.004), RIDGE);
   // walls up under the roof, from the section's base: the gable ends (not under a hip) …
   const base = s.base;
   if (attic) return;
+  // the pieces of such a wall along a line (u, v) from its foot, [t0, t1, foot]: none at a joint with a section in
+  // the same plane (#1184) – a gable or knee wall there would stand in the middle of the room below – and only above
+  // a floor wall standing in its plane, so that wall's windows and doors show (#1185)
+  const pieces = (p: Vec2, q: Vec2, out: Vec2, foot: number): [number, number, number][] => {
+    const gone = joints ? joints(p, q, out) : [];
+    const keep: [number, number][] = gone.length ? without(gone, 0.005 / Math.max(1e-9, Math.hypot(q[0] - p[0], q[1] - p[1]))) : [[0, 1]];
+    const under = inWall && keep.length ? inWall(fr.at(p[0], p[1]), fr.at(q[0], q[1]), foot) : [];
+    return under.length ? keep.flatMap(([t0, t1]) => raised(t0, t1, under, foot)) : keep.map(([t0, t1]): [number, number, number] => [t0, t1, foot]);
+  };
   for (const end of [0, 1] as const) {
     const profile = gableProfiles[end];
     if (!profile || (frontEnd !== null && frontEnd !== end)) continue;
-    const poly = above(profile, base - THICK);
     const u = end === 0 ? fr.u0 : fr.u1;
-    if (poly.length >= 3) fan(poly.map(([v, y]) => P(u, v, y)), g, walls);
+    for (const [t0, t1, foot] of pieces([u, 0], [u, w], [end === 0 ? -1 : 1, 0], base - THICK)) {
+      const poly = above(profile, foot);
+      const piece = t0 > 1e-9 || t1 < 1 - 1e-9 ? clipProfileV(poly, t0 * w, t1 * w) : poly;
+      // (a floor wall up to the ridge leaves only the ridge point: nothing)
+      if (piece.length >= 3 && Math.abs(polygonArea(piece)) > 1e-6) fan(piece.map(([v, y]) => P(u, v, y)), g, walls);
+    }
   }
   // … and the knee walls along the eaves where the roof starts above the walls (a high back wall of a pent roof)
   if (s.shape !== "flat" && s.shape !== "parapet") {
     const [wu0, wu1] = cut?.wallU ?? [fr.u0, fr.u1];
     for (const v of [0, w]) {
       const y = pr.y(v) - THICK;
-      if (y > base + 0.02) fan([P(wu0, v, base), P(wu1, v, base), P(wu1, v, y), P(wu0, v, y)], g, walls);
+      if (y <= base + 0.02) continue;
+      for (const [t0, t1, foot] of pieces([wu0, v], [wu1, v], [0, v === 0 ? -1 : 1], base)) {
+        if (y <= foot + 0.02) continue;
+        const ua = wu0 + (wu1 - wu0) * t0;
+        const ub = wu0 + (wu1 - wu0) * t1;
+        fan([P(ua, v, foot), P(ub, v, foot), P(ub, v, y), P(ua, v, y)], g, walls);
+      }
     }
   } else if (s.eave_a > base + 0.02) {
     for (const [ua, va, ub, vb] of [[fr.u0, 0, fr.u1, 0], [fr.u1, 0, fr.u1, w], [fr.u1, w, fr.u0, w], [fr.u0, w, fr.u0, 0]])
@@ -604,5 +664,230 @@ function above(profile: [number, number][], level: number): [number, number][] {
   const last = out[out.length - 1];
   if (last[1] > level) out.push([last[0], level]);
   if (first[1] > level) out.unshift([first[0], level]);
+  return out;
+}
+
+// ---------------------------------------------------------------- joints between sections in one plane (#1184)
+
+/** Two roof planes closer than this count as one: cutUnder and lineOutside cut nothing that close either. */
+const FLUSH = 0.01;
+/** How far past a joint the neighbour's plane has to go on (bridges a gap of a few millimetres). */
+const REACH = 0.02;
+
+/** The plane through a polygon in (u, v, height) as height = α·u + β·v + γ; null when it has no area. */
+function planeUV(poly: readonly Q[]): [number, number, number] | null {
+  // the corner farthest from the first and the one farthest off that line (clipping may repeat a corner)
+  const p0 = poly[0];
+  if (!p0) return null;
+  let p1 = p0;
+  for (const p of poly) if (Math.hypot(p[0] - p0[0], p[1] - p0[1]) > Math.hypot(p1[0] - p0[0], p1[1] - p0[1])) p1 = p;
+  const ux = p1[0] - p0[0];
+  const uz = p1[1] - p0[1];
+  let p2 = p0;
+  let det = 0;
+  for (const p of poly) {
+    const d = ux * (p[1] - p0[1]) - uz * (p[0] - p0[0]);
+    if (Math.abs(d) > Math.abs(det)) {
+      det = d;
+      p2 = p;
+    }
+  }
+  if (Math.abs(det) < 1e-6) return null;
+  const vx = p2[0] - p0[0];
+  const vz = p2[1] - p0[1];
+  const dy1 = p1[2] - p0[2];
+  const dy2 = p2[2] - p0[2];
+  const al = (dy1 * vz - dy2 * uz) / det;
+  const be = (ux * dy2 - vx * dy1) / det;
+  return [al, be, p0[2] - al * p0[0] - be * p0[1]];
+}
+
+/** Whether two roof planes (in one frame) are one plane where they lie: within FLUSH at every corner of both. */
+function flushPlanes(f: readonly Q[], g: readonly Q[]): boolean {
+  const pf = planeUV(f);
+  const pg = planeUV(g);
+  if (!pf || !pg) return false;
+  const gap = (q: Q) => Math.abs((pf[0] - pg[0]) * q[0] + (pf[1] - pg[1]) * q[1] + pf[2] - pg[2]);
+  return f.every((q) => gap(q) < FLUSH) && g.every((q) => gap(q) < FLUSH);
+}
+
+/** The part (t0 … t1 of 0 … 1) of the line p → q (u, v) within a convex polygon, its edges grown by eps; null when none. */
+function clipToPolygon(p: Vec2, q: Vec2, poly: readonly Q[], eps: number): [number, number] | null {
+  const s = polygonArea(poly.map((c) => [c[0], c[1]] as Vec2)) >= 0 ? 1 : -1;
+  let t0 = 0;
+  let t1 = 1;
+  for (let i = 0; i < poly.length; i++) {
+    const a = poly[i];
+    const b = poly[(i + 1) % poly.length];
+    const len = Math.hypot(b[0] - a[0], b[1] - a[1]);
+    if (len < 1e-7) continue;
+    // the inward normal: inside is n·(x − a) + eps ≥ 0
+    const nx = (-(b[1] - a[1]) * s) / len;
+    const nz = ((b[0] - a[0]) * s) / len;
+    const f0 = nx * (p[0] - a[0]) + nz * (p[1] - a[1]) + eps;
+    const df = nx * (q[0] - p[0]) + nz * (q[1] - p[1]);
+    if (Math.abs(df) < 1e-12) {
+      if (f0 < 0) return null;
+      continue;
+    }
+    const t = -f0 / df;
+    if (df > 0) t0 = Math.max(t0, t);
+    else t1 = Math.min(t1, t);
+    if (t1 - t0 <= 1e-9) return null;
+  }
+  return [t0, t1];
+}
+
+/**
+ * Where a section goes on into a neighbour in its own plane: one roof face drawn as several sections (an L, a
+ * lean-to running under a higher roof at both ends). `joints` gives the parts (t of 0 … 1) of a line on the
+ * section – an edge of its rim, the foot of a gable or knee wall – beyond which, `out` (a unit step in u, v), a
+ * neighbour's plane goes on flush with the section's own plane there. Null when no neighbour lies in its plane.
+ */
+function flushJoints(faces: readonly Q[][], covers: readonly LocalCover[]): ((p: Vec2, q: Vec2, out: Vec2) => [number, number][]) | null {
+  const pairs: [Q[], Q[]][] = [];
+  for (const f of faces) for (const c of covers) if (flushPlanes(f, c.poly)) pairs.push([f, c.poly]);
+  if (!pairs.length) return null;
+  return (p, q, out) => {
+    const found: [number, number][] = [];
+    const op: Vec2 = [p[0] + out[0] * REACH, p[1] + out[1] * REACH];
+    const oq: Vec2 = [q[0] + out[0] * REACH, q[1] + out[1] * REACH];
+    for (const [f, c] of pairs) {
+      const on = clipToPolygon(p, q, f, 1e-6);
+      const beyond = on && clipToPolygon(op, oq, c, 1e-6);
+      if (!on || !beyond) continue;
+      const t0 = Math.max(on[0], beyond[0]);
+      const t1 = Math.min(on[1], beyond[1]);
+      if (t1 > t0) found.push([t0, t1]);
+    }
+    return found;
+  };
+}
+
+/** What is left of 0 … 1 without the parts given, leaving out bits shorter than `min` (both as parts of the line). */
+function without(parts: readonly [number, number][], min: number): [number, number][] {
+  let keep: [number, number][] = [[0, 1]];
+  for (const [a, b] of parts)
+    keep = keep.flatMap(([s0, s1]): [number, number][] => [
+      [s0, Math.min(s1, a)],
+      [Math.max(s0, b), s1],
+    ]).filter(([s0, s1]) => s1 - s0 > 1e-9);
+  return keep.filter(([s0, s1]) => s1 - s0 >= min);
+}
+
+/** A wall profile (v, height) cut down to v0 … v1. */
+function clipProfileV(poly: readonly [number, number][], v0: number, v1: number): [number, number][] {
+  const clip = (pts: [number, number][], limit: number, keepBelow: boolean): [number, number][] => {
+    const out: [number, number][] = [];
+    const inside = (p: [number, number]) => (keepBelow ? p[0] <= limit : p[0] >= limit);
+    for (let i = 0; i < pts.length; i++) {
+      const p = pts[i];
+      const q = pts[(i + 1) % pts.length];
+      if (inside(p)) out.push(p);
+      if (inside(p) !== inside(q)) {
+        const t = (limit - p[0]) / (q[0] - p[0]);
+        out.push([limit, p[1] + (q[1] - p[1]) * t]);
+      }
+    }
+    return out;
+  };
+  return clip(clip([...poly], v0, false), v1, true);
+}
+
+// ---------------------------------------------------------------- floor walls in a dormer's front (#1185)
+
+/**
+ * Floor walls standing in the plane of a wall along a plan line a → c: the parts [t0, t1, top] (t of 0 … 1) where a
+ * floor wall that starts at or below `foot` rises above it, with its top there (absolute).
+ */
+type WallsAlong = (a: Vec2, c: Vec2, foot: number) => [number, number, number][];
+
+/** How far off a wall's plane a floor wall's face may lie and still count as standing in it (either side). */
+const IN_WALL = 0.02;
+
+/**
+ * The floors' walls for a dormer's front and cheeks to end on: a room's wall right under the dormer's front (a bump-out
+ * whose outer face is the dormer's front) builds the front up to its own top, with its windows and doors; the dormer
+ * front only adds what lies above (#1185). The walls are worked out once, when a dormer asks first.
+ */
+function floorWallsAlong(b: Building): WallsAlong {
+  let all: { poly: Vec2[]; dir: Vec2; bottom: number; top: (p: Vec2) => number }[] | null = null;
+  const walls = () =>
+    (all ??= b.floors.flatMap((f) =>
+      generateWalls(f.rooms, { exterior: b.settings.wall_exterior, interior: b.settings.wall_interior }, f.walls ?? []).walls.map((w) => ({
+        poly: w.footprint,
+        dir: [w.b[0] - w.a[0], w.b[1] - w.a[1]] as Vec2,
+        bottom: f.elevation,
+        top: (p: Vec2) => f.elevation + (w.slope ? slopeTop(w.slope, p[0], p[1]) : Math.min(f.height, w.height ?? f.height)),
+      })),
+    ));
+  return (a, c, foot) => {
+    const len = Math.hypot(c[0] - a[0], c[1] - a[1]);
+    if (len < 1e-6) return [];
+    // the line moved a little to either side: a wall whose face lies in the plane holds one of them
+    const n: Vec2 = [-(c[1] - a[1]) / len, (c[0] - a[0]) / len];
+    const at = (t: number): Vec2 => [a[0] + (c[0] - a[0]) * t, a[1] + (c[1] - a[1]) * t];
+    const out: [number, number, number][] = [];
+    for (const w of walls()) {
+      // a wall of a floor starting above the foot is no wall under it; one across the line only meets it with its end
+      if (w.bottom > foot + 0.05) continue;
+      const wl = Math.hypot(w.dir[0], w.dir[1]);
+      if (wl < 1e-6 || Math.abs(w.dir[0] * n[0] + w.dir[1] * n[1]) > 0.1 * wl) continue;
+      for (const k of [-IN_WALL, IN_WALL])
+        for (const [t0, t1] of segmentInPolygon([a[0] + n[0] * k, a[1] + n[1] * k], [c[0] + n[0] * k, c[1] + n[1] * k], w.poly)) {
+          const top = Math.min(w.top(at(t0)), w.top(at(t1)));
+          if (top > foot + 0.01) out.push([t0, t1, top]);
+        }
+    }
+    return out;
+  };
+}
+
+/** The parts (t of 0 … 1) of the line a → c inside a polygon. */
+function segmentInPolygon(a: Vec2, c: Vec2, poly: readonly Vec2[]): [number, number][] {
+  const dx = c[0] - a[0];
+  const dz = c[1] - a[1];
+  const ts = [0, 1];
+  for (let i = 0; i < poly.length; i++) {
+    const p = poly[i];
+    const q = poly[(i + 1) % poly.length];
+    const ex = q[0] - p[0];
+    const ez = q[1] - p[1];
+    const den = dx * ez - dz * ex;
+    if (Math.abs(den) < 1e-12) continue;
+    const t = ((p[0] - a[0]) * ez - (p[1] - a[1]) * ex) / den;
+    const s = ((p[0] - a[0]) * dz - (p[1] - a[1]) * dx) / den;
+    if (s >= -1e-9 && s <= 1 + 1e-9 && t > 0 && t < 1) ts.push(t);
+  }
+  ts.sort((x, y) => x - y);
+  const out: [number, number][] = [];
+  for (let i = 0; i + 1 < ts.length; i++) {
+    const t0 = ts[i];
+    const t1 = ts[i + 1];
+    if (t1 - t0 < 1e-9) continue;
+    const m = (t0 + t1) / 2;
+    if (!pointInPolygon([a[0] + dx * m, a[1] + dz * m], poly)) continue;
+    const last = out[out.length - 1];
+    if (last && Math.abs(last[1] - t0) < 1e-9) last[1] = t1;
+    else out.push([t0, t1]);
+  }
+  return out;
+}
+
+/** t0 … t1 split where the floor walls under it begin and end, each piece with its foot: the highest wall top there, at least `foot`. */
+function raised(t0: number, t1: number, under: readonly [number, number, number][], foot: number): [number, number, number][] {
+  const cuts = [t0, t1, ...under.flatMap(([a, c]) => [a, c]).filter((t) => t > t0 && t < t1)].sort((x, y) => x - y);
+  const out: [number, number, number][] = [];
+  for (let i = 0; i + 1 < cuts.length; i++) {
+    const a = cuts[i];
+    const c = cuts[i + 1];
+    if (c - a < 1e-9) continue;
+    const m = (a + c) / 2;
+    let level = foot;
+    for (const [u0, u1, top] of under) if (m > u0 && m < u1) level = Math.max(level, top);
+    const last = out[out.length - 1];
+    if (last && Math.abs(last[2] - level) < 1e-9) last[1] = c;
+    else out.push([a, c, level]);
+  }
   return out;
 }

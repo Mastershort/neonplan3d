@@ -43,7 +43,7 @@ import { alertColor, alertEntities, alertSources, alertText, findAlerts, isOutag
 import { iconPath, iconSvg, mdiIcon } from "../icons.ts";
 import { neonSignPicture, signLight, signLines } from "../neon-sign.ts";
 import { applianceIdle, applianceOf, type ApplianceKind, binColors, calendarItems, type DayEvent, fetchDayEvents, binDue, binNext, binOut, binOutToggleable, binTagsShown, doorsOf, fetchPickups, FinishedMemory, fridgeOpenTooLong, groupTags, hassCountry, isFinishedState, mailboxPost, nextFridgeCheck, plantThirsty, remainingMinutes, remainingText, servicesDue, setHouseholdCountry, wasteCalendars, isPackPlant, type HouseholdItem, type HouseholdTag, type Pickup } from "../household.ts";
-import { deviceSensors, energySummary, fetchSolarRows, fetchTodayChange, fieldLevels, fieldPowers, findConsumers, flowColor, flowSegments, gridPoint, powerSensorFor, readPower, solarCurvePath, solarDayFromStats, type Consumer, type EnergySummary, type StatRow } from "../energy.ts";
+import { deviceSensors, energySummary, pvWithStrings, stringsPower, fetchSolarRows, fetchTodayChange, fieldLevels, fieldPowers, findConsumers, flowColor, flowSegments, gridPoint, powerSensorFor, readPower, solarCurvePath, solarDayFromStats, type Consumer, type EnergySummary, type StatRow } from "../energy.ts";
 import { fieldFace, fieldSize, roofFaces, roofWindowRoom } from "../solar.ts";
 import { type CustomButton, type EntityRef, DEFAULT_HOLOGRAM, lockAlong, type PoolPipe, type RoofWindow, type SolarField, uid } from "../model.ts";
 
@@ -122,7 +122,7 @@ import { SHOW_PRESENCE } from "../flags.ts";
 import { hasFeature, manualUrl, projectionOn, released, shopUrl, type Feature } from "../features.ts";
 import { searchIndex, searchItems, type SearchItem } from "../search.ts";
 import type { Shown } from "../voice/targets.ts";
-import { anyModule, moduleAlerts, moduleCards, moduleMenuSheets, modulePools, moduleRoomSheets, moduleScene, moduleSettings, modulesWithSettings, moduleVoice, moduleWatched, modulePopups, syncModules, type ModuleCard, type ModuleField, type ModuleHost, type ModuleSheet, type PopupSection, type ScenePiece, type SpokenAlert, type SpokenCar, type SpokenDevice, type SpokenOpening, type VoiceAnswer } from "../modules.ts";
+import { anyModule, moduleAlerts, moduleCards, moduleMenuSheets, modulePools, moduleRoomSheets, moduleScene, moduleSettings, modulesWithSettings, moduleVoice, moduleWatched, modulePopups, syncModules, type ModuleCard, type ModuleField, type ModuleHost, type ModuleSheet, type PlanCamera, type PopupSection, type ScenePiece, type SpokenAlert, type SpokenCar, type SpokenDevice, type SpokenOpening, type VoiceAnswer } from "../modules.ts";
 import { lineFlows, majorOnly, markerEmoji, markerPath, sparkPoints } from "../module-scene.ts";
 import { generateWalls, openingHost, placeWallPlate, pointOnRoomEdge, type Wall } from "../geometry/walls.ts";
 import { signedArea } from "../model.ts";
@@ -145,7 +145,7 @@ import { controls, tokens } from "../styles.ts";
 import type { HassEntity, HomeAssistant } from "../types.ts";
 import { countView, diagnosticsActive, recordFrame, watchDiagnostics } from "../diagnostics.ts";
 import { GUARD_VERSION, gpuSafeMode, noteContextLost } from "../gpu-guard.ts";
-import type { DeviceMarker, FloorplanViewer, FloorStack, RobotInfo, Quality, ScreenState, SoundSource, SurfaceGrab, ViewerStats, WallMode } from "../viewer/viewer3d.ts";
+import type { DeviceMarker, FloorplanViewer, FloorStack, PersonPin, RobotInfo, Quality, ScreenState, SoundSource, SurfaceGrab, ViewerStats, WallMode } from "../viewer/viewer3d.ts";
 import { wallLayout } from "../camera-wall.ts";
 import { watchedEntities } from "../watched.ts";
 import { backdropCss } from "../backdrop.ts";
@@ -160,6 +160,7 @@ import { Director, HOLD_DEFAULT, directorAny, doorbellCamera, doorbellEntities, 
 import type { HistorySpec, ReplayInfo } from "../timetravel/types.ts";
 import { sunPath, type SunPath } from "../sun-path.ts";
 import { hourCycle } from "../units.ts";
+import "./flyin.ts";
 
 /** Which HTML markers are shown: none, only what has no 3D object or shows a value, or all. */
 /** "room": no symbols in the house and floor views, in a room only that room's (D477, D595). */
@@ -368,6 +369,8 @@ export class Fp3dView3d extends LitElement {
     autoOrbit: { attribute: false },
     startView: { attribute: false },
     _low: { state: true },
+    _flyIn: { state: true },
+    _spotHint: { state: true },
     _micProbe: { state: true },
     _narrowStage: { state: true },
     _alerts: { state: true },
@@ -569,6 +572,8 @@ export class Fp3dView3d extends LitElement {
   private declare _thumbs: { floorId: string; url: string }[];
   /** The viewer runs at the tablet level: heavy CSS effects are left out as well. */
   private declare _low: boolean;
+  private declare _flyIn: { lat: number; lon: number } | null;
+  private declare _spotHint: string | null;
   /** A room panel (or sheet) is open next to the view: on small screens the view's own controls hide. */
   declare panelOpen: boolean;
   /** The floor pictures, star, search and eye on the right instead of the left (#285). */
@@ -858,6 +863,8 @@ export class Fp3dView3d extends LitElement {
     this.startView = null;
     this.cameraWall = false;
     this.holograms = null;
+    this._flyIn = null;
+    this._spotHint = null;
     try {
       this._flows = localStorage.getItem("neonplan3d.flows") === "1";
       this._holoShow = localStorage.getItem("neonplan3d.holos") !== "0";
@@ -1089,6 +1096,7 @@ export class Fp3dView3d extends LitElement {
         this.shownStartView = JSON.stringify(this.startViewOf());
         this.viewer.setStartView(this.startViewOf());
         this.viewer.setBuilding(this.shownBuilding()!);
+        this.maybeFlyIn();
       }
       this.scheduleThumbs();
       this.syncDevices(true);
@@ -1153,6 +1161,7 @@ export class Fp3dView3d extends LitElement {
       v.setStartView(this.startViewOf());
       v.setBuilding(this.shownBuilding()!);
       if (startChanged && this.floorId === null) v.resetView();
+      this.maybeFlyIn();
     } else if (((changed.has("plain") && changed.get("plain") !== undefined) || (changed.has("rooms") && changed.get("rooms") !== undefined)) && this.building) {
       v.setBuilding(this.shownBuilding()!);
       if (changed.has("rooms")) {
@@ -1259,6 +1268,9 @@ export class Fp3dView3d extends LitElement {
         weatherEntityId: this.weatherEntityId,
       });
       if (anyModule()) this.watched = [...new Set([...this.watched, ...moduleWatched(this.sceneHost(hass, b))])];
+      // the helper that picks the style: its change alone redraws the house (#1170)
+      const styleHelper = this.styleEntity || b.settings.style_entity;
+      if (styleHelper && !this.watched.includes(styleHelper)) this.watched = [...this.watched, styleHelper];
       // winter: the fairy lights' own switch and the weather that brings the snow
       if (hasFeature("fun_winter")) {
         const extra = [winterOf(b).roof_entity, weatherEntity(hass, this.weatherEntityId ?? b.settings.weather_entity), "sun.sun"].filter((id): id is string => !!id);
@@ -1435,7 +1447,12 @@ export class Fp3dView3d extends LitElement {
     })();
     const mainAnchor = first ? anchorOn(first, holo.right + sharedRight, holo.up, holo.size) : null;
     const devicePower = this.devicePowers(hass, b);
-    const solarIds = pro && summary.solar !== null ? (b.energy.solar ? [b.energy.solar] : deviceSensors(b, (f) => this.furnitureLinks?.get(f.id)?.power ?? null).solar) : [];
+    const ownSolarIds = b.energy.solar ? [b.energy.solar] : deviceSensors(b, (f) => this.furnitureLinks?.get(f.id)?.power ?? null).solar;
+    // today's yield from the same sensors the "now" comes from: the strings when they stand in for the plant's sensor
+    const ownSolar = ownSolarIds.map((id) => readPower(hass.states[id])).filter((v): v is number => v !== null);
+    const stringIds = (b.settings.roof.strings ?? []).flatMap((st) => (st.entity && st.entity !== "none" ? [st.entity] : []));
+    const byStrings = pvWithStrings(ownSolar.length ? ownSolar.reduce((x, y) => x + y, 0) : null, stringsPower(hass, b)) !== (ownSolar.length ? ownSolar.reduce((x, y) => x + y, 0) : null);
+    const solarIds = pro && summary.solar !== null ? (byStrings ? stringIds : ownSolarIds) : [];
     if (mainAnchor) {
       anchors.push(mainAnchor);
       cards.push({ kind: "main", name: translate(hass, "holo_title"), w: null, dayIds: solarIds, battery: null });
@@ -1497,7 +1514,9 @@ export class Fp3dView3d extends LitElement {
           const field = (first && inv.id === mainInverter ? own.find((f) => f.id !== first.id) : null) ?? own[0];
           const sensor = this.furnitureLinks?.get(inv.id)?.power ?? null;
           const anchor = field ? anchorOn(field, inv.plant_right ?? 0, inv.plant_up ?? 0, holo.size * 0.85) : null;
-          if (!anchor || !sensor) continue;
+          // its PV: its own sensor, or what its strings report when that tells nothing
+          const fromStrings = stringsPower(hass, b, inv.id);
+          if (!anchor || (!sensor && fromStrings === null)) continue;
           // its battery: the nearest one on the same floor
           const bat = floor.furniture.filter((m) => m.type === "home_battery").sort((p, q) => Math.hypot(p.x - inv.x, p.z - inv.z) - Math.hypot(q.x - inv.x, q.z - inv.z))[0];
           const socRaw = bat?.soc && bat.soc !== "none" ? Number(hass.states[bat.soc]?.state) : NaN;
@@ -1505,8 +1524,8 @@ export class Fp3dView3d extends LitElement {
           cards.push({
             kind: "plant",
             name: inv.name || furnitureName(hass, inv.type),
-            w: Math.max(0, readPower(hass.states[sensor]) ?? 0),
-            dayIds: [sensor],
+            w: Math.max(0, pvWithStrings(sensor ? readPower(hass.states[sensor]) : null, fromStrings) ?? 0),
+            dayIds: sensor ? [sensor] : [],
             battery: bat ? { soc: Number.isFinite(socRaw) ? socRaw : null, w: devicePower.get(bat.id) ?? null } : null,
           });
         }
@@ -1741,7 +1760,7 @@ export class Fp3dView3d extends LitElement {
     const roomSensors = SHOW_PRESENCE ? personsInRooms(hass, b) : [];
     const persons = released("locate") && personsShown(b) ? [...roomSensors, ...locatedPersons(hass, b, new Set(roomSensors.map((p) => p.id)))] : roomSensors;
     v.setPersonLook(personLook(b) === "pin" ? "pin" : "figure");
-    v.setPersons(persons);
+    v.setPersons([...persons, ...this.moduleFigures(b)]);
     this.lastPersons = persons.map((p) => ({ id: p.id, floorId: p.floorId, roomId: p.roomId }));
     const counts = floorCounts(hass, b, this.openingLinks!, persons);
     v.setFloorInfo(new Map([...counts].map(([id, c]) => [id, floorInfoText(hass, c)])));
@@ -3871,6 +3890,7 @@ export class Fp3dView3d extends LitElement {
       pickable: !!entity,
       furnitureId: f.id,
       pack: item ? f.type : null,
+      finish: item ? (f.finish ?? null) : null,
       lightY: item ? (item.mount === "ceiling" ? base : base + f.h * 0.85) : undefined,
       // a running colour effect – not a "mode" some integrations report as their effect (LocalTuya: "white",
       // "colour"; others "manual", "default", an empty one), not a mood of a white-only light, and never while the
@@ -4564,6 +4584,34 @@ export class Fp3dView3d extends LitElement {
       </div>`;
   }
 
+  /**
+   * "Anflug aus dem All" (setting, off by default): once per page load, the main view opens with a globe that turns
+   * to the home and dives in while the camera comes down onto the house. Never in the editor, on the tablet level, in
+   * time travel or with reduced motion.
+   */
+  private maybeFlyIn(force = false): void {
+    const v = this.viewer;
+    const lat = this.hass?.config?.latitude;
+    const lon = this.hass?.config?.longitude;
+    if (!v || (!force && (this.flownIn || !this.building?.settings.flyin)) || this.walkable === false || this.ro || this._low) return;
+    if (typeof lat !== "number" || typeof lon !== "number" || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    this.flownIn = true;
+    v.flyInStart();
+    this._flyIn = { lat, lon };
+  }
+  private flownIn = false;
+
+  private renderFlyIn() {
+    const f = this._flyIn;
+    if (!f) return nothing;
+    return html`<fp3d-flyin
+      .lat=${f.lat}
+      .lon=${f.lon}
+      @flyin-dive=${(e: CustomEvent<{ fast: boolean }>) => this.viewer?.flyInLand(e.detail.fast)}
+      @flyin-done=${() => (this._flyIn = null)}
+    ></fp3d-flyin>`;
+  }
+
   /** Whether a media player shows a now-playing card (playing, or paused with something to show, or within its grace time). */
   private mediaCardUp(hass: HomeAssistant, id: string): boolean {
     const st = hass.states[id];
@@ -5207,8 +5255,78 @@ export class Fp3dView3d extends LitElement {
       },
       occupied: () => this.occupiedRooms(hass, b),
       speakers: () => this.planSpeakers(hass, b),
+      cameras: () => this.planCameras(hass, b),
+      pickSpot: (hint) => this.pickSpot(hint),
     };
     return host;
+  }
+
+  /** A module asks for a spot: a hint stands over the view until the next tap answers (or a tap on it cancels). */
+  private pickSpot(hint: string): Promise<{ floorId: string; x: number; z: number } | null> {
+    return new Promise((resolve) => {
+      const v = this.viewer;
+      if (!v) return resolve(null);
+      clearTimeout(this.spotTimer);
+      const done = (spot: { floorId: string; x: number; z: number } | null) => {
+        clearTimeout(this.spotTimer);
+        this._spotHint = null;
+        resolve(spot);
+      };
+      // (a spot asked before is answered with null first: its hint goes, this one's stays)
+      v.pickSpot(done);
+      this._spotHint = hint;
+      this.spotTimer = setTimeout(() => v.pickSpot(null), 60_000);
+    });
+  }
+  private spotTimer: ReturnType<typeof setTimeout> | undefined;
+
+  /** The plan's cameras with their pose and detection sensors (for modules). */
+  private planCameras(hass: HomeAssistant, b: Building): PlanCamera[] {
+    return b.floors.flatMap((floor) =>
+      floor.placements
+        .filter((p) => p.entity_id.startsWith("camera."))
+        .map((p) => {
+          const dome = p.mount === "ceiling";
+          return {
+            entity: p.entity_id,
+            floorId: floor.id,
+            x: p.x,
+            z: p.z,
+            height: dome ? floor.height - 0.1 : (p.y ?? 2.2),
+            heading: p.rotation ?? 0,
+            tilt: p.tilt ?? (dome ? 65 : 20),
+            fov: p.fov ?? (dome ? 120 : 90),
+            reach: p.reach ?? (dome ? 3 : 4.5),
+            dome,
+            detections: cameraMotionSensors(hass, p.entity_id).map((id) => ({ sensor: id, kind: detectionKind(hass, id), on: hass.states[id]?.state === "on" })),
+          };
+        }),
+    );
+  }
+
+  /** A module's figures as people in the plan: a person as a silhouette, a car or an animal as a pin with its symbol. */
+  private moduleFigures(b: Building): PersonPin[] {
+    const out: PersonPin[] = [];
+    for (const f of this.scene) {
+      if (f.kind !== "figure") continue;
+      const floor = b.floors.find((x) => x.id === f.floorId);
+      if (!floor) continue;
+      const person = f.look === "person";
+      out.push({
+        id: `module:${f.id}`,
+        name: f.name,
+        initials: person ? "" : f.look === "car" ? "🚗" : "🐾",
+        picture: null,
+        floorId: f.floorId,
+        roomId: roomAt(floor, f.at[0], f.at[1]) ?? "",
+        x: f.at[0],
+        z: f.at[1],
+        color: f.color ?? (person ? "#ff5fd2" : "#3ee8ff"),
+        ...(f.entity ? { entity: f.entity } : {}),
+        ...(person ? {} : { thing: true }),
+      });
+    }
+    return out;
   }
 
   /** A short note at the bottom of the view for a few seconds. */
@@ -5570,6 +5688,12 @@ export class Fp3dView3d extends LitElement {
         </header>
         ${admin ? nothing : html`<p class="fp3d-set-note">${t("view_settings_admin")}</p>`}
         <h4>${t("view_settings_look")}</h4>
+        ${check("sky", st.sky !== false, (v) => ({ sky: v }), "sky_hint")}
+        ${check("flyin", !!st.flyin, (v) => {
+          // switched on: show it once right away
+          if (v) setTimeout(() => this.maybeFlyIn(true), 300);
+          return { flyin: v || undefined };
+        }, "flyin_hint")}
         ${check("sun_shadow", st.sun_shadow !== false, (v) => ({ sun_shadow: v }), "sun_shadow_hint")}
         ${st.sun_shadow !== false
           ? html`<label class="fp3d-set-field" title=${t("sun_arc_hint")}
@@ -6347,14 +6471,15 @@ export class Fp3dView3d extends LitElement {
       @touchstart=${this.keepTouch}
       @touchmove=${this.keepTouch}
       @touchend=${this.keepTouch}
-      class="fp3d-stage ${this.effectiveTheme() === "day" ? "fp3d-bright" : ""} ${this.roomLabels ? "" : "fp3d-no-room-names"} ${this._low ? "fp3d-low" : ""} ${this.panelOpen ? "fp3d-panel-open" : ""} ${this.controlsRight ? "fp3d-side-right" : ""} ${this._alerts.length ? "fp3d-has-alerts" : ""} ${this._through ? "fp3d-through-on" : ""} ${this._flash ? "fp3d-flash" : ""} ${this.replay ? "fp3d-replay" : ""}"
+      class="fp3d-stage ${this.effectiveTheme() === "day" ? "fp3d-bright" : ""} ${this.roomLabels ? "" : "fp3d-no-room-names"} ${this._low ? "fp3d-low" : ""} ${this.panelOpen ? "fp3d-panel-open" : ""} ${this.controlsRight ? "fp3d-side-right" : ""} ${this._alerts.length ? "fp3d-has-alerts" : ""} ${this._through ? "fp3d-through-on" : ""} ${this._flash ? "fp3d-flash" : ""} ${this.replay ? "fp3d-replay" : ""} ${this._spotHint ? "fp3d-picking" : ""}"
       style=${style}
     >
       ${this.renderZoomBackground()}
       ${this._error ? html`<p class="fp3d-error">${this._error}</p>` : nothing} ${this.clean ? nothing : this.renderEnergy()} ${this.renderHologram()} ${this.clean ? nothing : this.renderLegend()}
       ${this.renderClock()} ${this.renderAlerts()} ${this.clean || this._walk ? nothing : html`${this.renderHousehold()} ${this.renderThumbs()} ${this.renderScenes()} ${this.renderFind()} ${this.renderCentral()}`} ${this.clean ? nothing : this.renderWalk()} ${this.renderSwipe()} ${this.renderInfo()} ${this.renderBinInfo()} ${this.renderGangMenu()} ${this.renderThrough()} ${this.renderCamPop()} ${this.renderCameraWall()} ${this.renderSheet()} ${this.renderModulePopup()} ${this.renderSettings()} ${this.renderNote()}
       ${this.clean ? nothing : this.renderProHint()} ${this.renderMenu()} ${this.renderEye()} ${this.building?.settings.surroundings?.on ? html`<a class="fp3d-osm-credit" href=${OSM_COPYRIGHT} target="_blank" rel="noopener">© OpenStreetMap</a>` : nothing}
-      ${this.renderMic()}
+      ${this.renderMic()} ${this.renderFlyIn()}
+      ${this._spotHint ? html`<button class="fp3d-spot-hint" @click=${() => this.viewer?.pickSpot(null)}>📍 ${this._spotHint} <span aria-hidden="true">✕</span></button>` : nothing}
       ${this._announce ? html`<div class="fp3d-announce" role="status" @click=${() => (this._announce = null)}>📢 ${this._announce}</div>` : nothing}
       ${this.pivotMark && !this._walk ? html`<span class="fp3d-pivot" aria-hidden="true"></span>` : nothing}
       ${this._micProbe && this.hass ? html`<fp3d-mic-probe .hass=${this.hass} .building=${this.building} @close=${() => ((this._micProbe = false), micProbeDone())}></fp3d-mic-probe>` : nothing}
@@ -6714,6 +6839,41 @@ export class Fp3dView3d extends LitElement {
       .fp3d-zoom-bg {
         position: absolute;
         inset: 0;
+        z-index: -1;
+        pointer-events: none;
+      }
+      /* while a spot is picked, names and pins on the view let the tap through to the plan */
+      .fp3d-picking .fp3d-labels,
+      .fp3d-picking .fp3d-labels * {
+        pointer-events: none !important;
+      }
+      .fp3d-picking .fp3d-canvas {
+        cursor: crosshair;
+      }
+      /* a module asks for a spot: the hint stands at the top until the tap (a tap on it cancels) */
+      .fp3d-spot-hint {
+        position: absolute;
+        top: calc(12px + env(safe-area-inset-top, 0px));
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 25;
+        padding: 8px 14px;
+        border-radius: 999px;
+        border: 1px solid rgba(62, 232, 255, 0.6);
+        background: rgba(6, 12, 24, 0.85);
+        color: #e6ecff;
+        font: inherit;
+        font-size: 14px;
+        cursor: pointer;
+        box-shadow: 0 0 18px rgba(62, 232, 255, 0.25);
+      }
+      /* the real sky (drawn by the 3D view): first on the stage, so the zoom style's background lies over it */
+      .fp3d-sky {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        display: block;
         z-index: -1;
         pointer-events: none;
       }

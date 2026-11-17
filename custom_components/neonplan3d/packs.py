@@ -39,10 +39,11 @@ STUDIO_KEYS = {"bdac241ae58b"}
 
 _ID = vol.All(str, vol.Match(r"^[a-z0-9][a-z0-9_.-]{0,39}$"))
 _TEXT = vol.All(str, vol.Length(min=1, max=80))
-# a colour: "#rrggbb" or a role of the built-in palette (so packs follow the look of the plan)
+# a colour: "#rrggbb" or a role of the built-in palette (so packs follow the look of the plan); "front" (3.5) marks
+# door and drawer fronts, drawn like "white" until a finish tells fronts and carcass apart (#1177)
 _COLOR = vol.Any(
     vol.Match(r"^#[0-9a-fA-F]{6}$"),
-    vol.In(["body", "fabric", "cushion", "wood", "white", "metal", "dark", "glass", "plant", "pot", "accent"]),
+    vol.In(["body", "fabric", "cushion", "wood", "white", "front", "metal", "dark", "glass", "plant", "pot", "accent"]),
 )
 _FRACTION = vol.All(vol.Coerce(float), vol.Range(min=-0.5, max=0.5))
 _SPAN = vol.All(vol.Coerce(float), vol.Range(min=0.001, max=1))
@@ -62,6 +63,9 @@ PART_SCHEMA = vol.Schema(
         vol.Required("h"): _SPAN,
         vol.Required("color"): _COLOR,
         vol.Optional("top"): _COLOR,
+        # the finish a part in a colour of its own follows (3.5, #1175): it keeps its colour until a placed item gets
+        # that finish (a chair's red cover takes the fabric colour, a table's oak top the wood colour)
+        vol.Optional("finish"): vol.In(["wood", "fabric", "front", "body"]),
         # outline: True (soft blue), "glow" (cyan like the walls) or "faint"
         vol.Optional("edges", default=False): vol.Any(bool, vol.In(["glow", "faint"])),
         # lamps: the part shines in the colour and brightness of the linked light
