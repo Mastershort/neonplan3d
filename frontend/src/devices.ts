@@ -424,6 +424,19 @@ export function heatSensorOn(hass: HomeAssistant, ref: EntityRef | undefined): b
   return Number.isFinite(v) ? v > 0 : null;
 }
 
+/**
+ * A charger's status text read as charging and plugged in. Whole words only: "not_charging", "ready_to_charge" and
+ * "charger_free" are no charging, "disconnected" and "unplugged" no car at the cable.
+ */
+export function chargerStatus(raw: string): { charging: boolean; plugged: boolean } {
+  const s = raw.toLowerCase().trim().replace(/[\s-]+/g, "_");
+  const not = /(^|_)(not|no|nicht|kein|keine|un|dis)_?(charging|charge|connected|plugged|verbunden|angesteckt)/.test(s);
+  const free = /charger_free|^available$|^idle$|frei|abgesteckt|no_car|kein_fahrzeug/.test(s);
+  const charging = !not && !/ready_to_charge|charger_|complete|finish|charged|fertig|beendet|voll$|full/.test(s) && /(^|_)(charging|charge|laden|lädt|ladend|lade)($|_)/.test(s);
+  const plugged = charging || (!not && !free && /connect|plug|ready|insert|angesteckt|verbunden|wait|paused|suspend|preparing|complete|finish|charged|fertig|full|voll/.test(s));
+  return { charging, plugged };
+}
+
 export function isUnavailable(st: HassEntity | undefined): boolean {
   return !st || st.state === "unavailable" || st.state === "unknown";
 }
