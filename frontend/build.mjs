@@ -176,7 +176,8 @@ function copyFonts() {
 // editor 1120 KB on 2026-11-14: the extensions page lists the add-ons that fit the home first and shows their prices (two lines in every language)
 // editor 1140 KB, 3D 920 KB on 2026-11-15: furniture 3.4 – the shop's furniture as locked cards in the library, finishes (wood, fabric, fronts) and live parts of pack items (doors, drawers, levels, status lights)
 // main 709.8 KB on 2026-11-15 (was 870.0): the 1130 texts only the editor needs moved to i18n-editor.ts in the editor bundle; card editor 179 KB
-const BUDGET = { "neonplan3d.js": 870 * 1024, "neonplan3d-fun.js": 40 * 1024, "neonplan3d-voice.js": 60 * 1024, "neonplan3d-locate.js": 160 * 1024, "neonplan3d-osm.js": 20 * 1024, "neonplan3d-timetravel.js": 120 * 1024, "neonplan3d-3d.js": 920 * 1024, "neonplan3d-editor.js": 1140 * 1024, "neonplan3d-card-editor.js": 340 * 1024 };
+// 3D 926 KB on 2026-11-18: walls facing their own way (#1189), the sky's horizon beyond the map's far edge (#1203)
+const BUDGET = { "neonplan3d.js": 870 * 1024, "neonplan3d-fun.js": 40 * 1024, "neonplan3d-voice.js": 60 * 1024, "neonplan3d-locate.js": 160 * 1024, "neonplan3d-osm.js": 20 * 1024, "neonplan3d-timetravel.js": 120 * 1024, "neonplan3d-3d.js": 926 * 1024, "neonplan3d-editor.js": 1140 * 1024, "neonplan3d-card-editor.js": 340 * 1024 };
 
 copyFonts();
 if (watch) {

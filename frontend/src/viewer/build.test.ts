@@ -4,7 +4,7 @@ import type { BufferGeometry } from "three";
 import type { Floor, Furniture, Opening, Room, Vec2 } from "../model.ts";
 import { newFloor, pointInPolygon, stairsULayout } from "../model.ts";
 import { generateWalls } from "../geometry/walls.ts";
-import { buildFloorGeometry, clipAlong, packStairHole, stairHoles, stairHoleParts, wallHeight } from "./build.ts";
+import { buildFloorGeometry, clipAlong, facingGroups, packStairHole, stairHoles, stairHoleParts, wallHeight } from "./build.ts";
 import { setNaturalPalette } from "./palette.ts";
 import type { PackItem } from "../packs.ts";
 
@@ -85,6 +85,29 @@ test("walls are grouped into fold buckets: one per exterior direction plus the i
     assert.ok(segs.some((s) => atY(s, 2.5) && s[6] === b));
     assert.ok(segs.some((s) => atY(s, 1.15) && s[6] === 16 + b));
   });
+});
+
+test("a turned room's outer walls get buckets facing exactly their own way (#1189)", () => {
+  // a 6 × 7 m room turned by 30° beside an axis-aligned one
+  const c = Math.cos(Math.PI / 6);
+  const s = Math.sin(Math.PI / 6);
+  const turned: Room = { ...rect("g", 0, 0, 1, 1), points: ([[0, 0], [6, 0], [6, 7], [0, 7]] as Vec2[]).map(([x, z]) => [20 + x * c - z * s, x * s + z * c] as Vec2) };
+  const geo = buildFloorGeometry(floorWith([rect("a", 0, 0, 4, 3), turned]), EXT, INT);
+  const normals = geo.buckets.filter((b): b is Vec2 => !!b);
+  assert.equal(normals.length, 8);
+  for (const [x, z] of normals) {
+    // every normal is a multiple of 30° (0°, 90° … for the house, 30°, 120° … for the turned room)
+    const deg = (((Math.atan2(z, x) * 180) / Math.PI) % 30 + 30) % 30;
+    assert.ok(deg < 1e-6 || deg > 30 - 1e-6, `normal at ${(Math.atan2(z, x) * 180) / Math.PI}°`);
+  }
+});
+
+test("more wall directions than buckets: the closest are merged, at most 16 buckets (#1189)", () => {
+  const ring: Vec2[] = Array.from({ length: 24 }, (_, i) => [5 * Math.cos((i / 24) * 2 * Math.PI), 5 * Math.sin((i / 24) * 2 * Math.PI)]);
+  const geo = buildFloorGeometry(floorWith([{ ...rect("r", 0, 0, 1, 1), points: ring }]), EXT, INT);
+  assert.ok(geo.buckets.length <= 16);
+  assert.equal(facingGroups([{ out: [1, 0], len: 2 }, { out: [Math.cos(0.01), Math.sin(0.01)], len: 2 }, { out: [0, 1], len: 1 }], 15).normals.length, 2);
+  assert.equal(facingGroups(Array.from({ length: 24 }, (_, i) => ({ out: [Math.cos(i / 4), Math.sin(i / 4)] as Vec2, len: 1 })), 15).normals.length, 15);
 });
 
 test("a door leaves the base line and the wall shadow out of the doorway", () => {
