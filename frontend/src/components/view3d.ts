@@ -38,6 +38,7 @@ import { carState, type CarState, heatSensorOn, roomClimateValue,
   apOnline,
   isPulseDrive,
   entityAreaId,
+  chargerStatus,
 } from "../devices.ts";
 import { alertColor, alertEntities, alertSources, alertText, findAlerts, isOutage, type Alert, type AlertSources } from "../alerts.ts";
 import { iconPath, iconSvg, mdiIcon } from "../icons.ts";
@@ -3756,8 +3757,10 @@ export class Fp3dView3d extends LitElement {
   private wallboxText(hass: HomeAssistant, status: string | null, power: number | null): string {
     const st = status ? hass.states[status] : undefined;
     const raw = String(st?.state ?? "").toLowerCase();
-    const charging = (power ?? 0) > 50 || /charg|laden|lädt/.test(raw);
-    const plugged = st?.entity_id.startsWith("binary_sensor.") ? raw === "on" : /connect|plug|ready|angesteckt|verbunden|wait|paused|suspend/.test(raw);
+    // whole words: "not_charging", "ready_to_charge" or "charger_free" read as charging, "disconnected" as plugged in
+    const read = chargerStatus(raw);
+    const charging = (power ?? 0) > 50 || read.charging;
+    const plugged = st?.entity_id.startsWith("binary_sensor.") ? raw === "on" : read.plugged;
     const label = charging ? translate(hass, "wallbox_charging") : plugged ? translate(hass, "wallbox_plugged") : st && !isUnavailable(st) && !st.entity_id.startsWith("binary_sensor.") ? stateText(hass, st) : "";
     const watts = power !== null && power > 50 ? formatPower(hass, power) : "";
     return [label, watts].filter(Boolean).join(" · ");
@@ -4073,14 +4076,16 @@ export class Fp3dView3d extends LitElement {
       // the whole range over about 220 pixels; up = brighter / blind up
       const value = Math.round(Math.min(100, Math.max(0, s.start - (dy / 220) * 100)));
       if (value !== s.value) this._swipe = { ...s, value };
-      // at most a few calls per second while the finger moves
+      // a lamp follows the finger, at most a few calls per second; a blind gets one position when the finger lifts –
+      // its motor cannot follow, every step in between was queued and it kept moving for a long while
       const now = performance.now();
-      if (now - this.swipeSent > 350) {
+      if (s.kind === "light" && now - this.swipeSent > 350) {
         this.swipeSent = now;
         this.applySwipe();
       }
     } else {
-      this.applySwipe();
+      // a pan that only started on a blind (back where it began) sends nothing
+      if (this._swipe && (this._swipe.kind === "light" || this._swipe.value !== this._swipe.start)) this.applySwipe();
       clearTimeout(this.swipeTimer);
       this.swipeTimer = setTimeout(() => (this._swipe = null), 700);
     }

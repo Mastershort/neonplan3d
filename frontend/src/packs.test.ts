@@ -50,7 +50,8 @@ test("pack items stand on the floor, on furniture, on a wall or hang from the ce
   assert.equal(mountBase(floor, { type: "pack:p:box", x: 0, z: 0, h: 0.4 }), 1.1);
   // a wall item hung at another height
   assert.equal(mountBase(floor, { type: "pack:p:box", x: 0, z: 0, h: 0.4, mount_y: 1.6 }), 1.6);
-  assert.equal(mountBase(floor, { type: "pack:p:chandelier", x: 0, z: 0, h: 0.6 }), 1.9);
+  // a ceiling lamp hangs 5 mm under the ceiling, so its top never lies in the floor above (#1191)
+  assert.ok(Math.abs(mountBase(floor, { type: "pack:p:chandelier", x: 0, z: 0, h: 0.6 }) - 1.895) < 1e-9);
   assert.equal(isLamp("pack:p:chandelier"), true);
   assert.equal(isLamp("pack:p:island"), false);
   setPacks([]);

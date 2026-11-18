@@ -104,7 +104,50 @@ export const SLAB = 0.2;
 const BURIED = -0.06;
 /** How far the slab under a doorway stays below the floor. */
 const DOORWAY_DROP = 0.01;
-const BUCKETS = 8;
+/** Fold buckets a floor can have (fold = 16 · kind + bucket, one bit each in the shader's masks). */
+const MAX_BUCKETS = 16;
+/** Outer walls facing within this angle of each other share a bucket (radians, 1°). */
+const SAME_FACING = Math.PI / 180;
+
+const turnBetween = (a: number, b: number) => Math.abs(((((a - b) % (2 * Math.PI)) + 3 * Math.PI) % (2 * Math.PI)) - Math.PI);
+
+/**
+ * Outer walls grouped by the direction they face (#1189): walls within 1° share a group, whose direction is the
+ * length-weighted mean of theirs. More directions than `max` (a round tower): the two closest groups are merged
+ * until they fit. Returns each group's outward unit normal and each wall's group.
+ */
+export function facingGroups(walls: { out: Vec2; len: number }[], max: number): { normals: Vec2[]; of: number[] } {
+  const groups: { x: number; z: number; ang: number; ids: number[] }[] = [];
+  const add = (g: (typeof groups)[number], x: number, z: number) => {
+    g.x += x;
+    g.z += z;
+    g.ang = Math.atan2(g.z, g.x);
+  };
+  walls.forEach((w, i) => {
+    const ang = Math.atan2(w.out[1], w.out[0]);
+    const x = w.out[0] * Math.max(w.len, 1e-3);
+    const z = w.out[1] * Math.max(w.len, 1e-3);
+    const g = groups.find((g) => turnBetween(g.ang, ang) < SAME_FACING);
+    if (g) {
+      add(g, x, z);
+      g.ids.push(i);
+    } else groups.push({ x, z, ang, ids: [i] });
+  });
+  while (groups.length > max) {
+    let [bi, bj, gap] = [0, 1, Infinity];
+    for (let i = 0; i < groups.length; i++)
+      for (let j = i + 1; j < groups.length; j++) {
+        const d = turnBetween(groups[i].ang, groups[j].ang);
+        if (d < gap) [bi, bj, gap] = [i, j, d];
+      }
+    const [gone] = groups.splice(bj, 1);
+    add(groups[bi], gone.x, gone.z);
+    groups[bi].ids.push(...gone.ids);
+  }
+  const of: number[] = [];
+  groups.forEach((g, gi) => g.ids.forEach((i) => (of[i] = gi)));
+  return { normals: groups.map((g) => [g.x / (Math.hypot(g.x, g.z) || 1), g.z / (Math.hypot(g.x, g.z) || 1)] as Vec2), of };
+}
 const SHADOW_WIDTH = 0.42;
 const SHADOW_DARK = 0.42;
 
@@ -309,21 +352,22 @@ export function buildFloorGeometry(
     const left = freeWallRoomLeft(wall, floor.rooms);
     if (left !== null) freeOuter.set(wall, left);
   }
-  for (const wall of walls) {
-    let key = "interior";
-    let normal: Vec2 | null = null;
+  // outer walls are grouped by the direction they really face, so each turns to glass at its own angle (#1189)
+  const outer = walls.flatMap((wall) => {
     const freeLeft = freeOuter.get(wall);
-    if (wall.exterior || freeLeft !== undefined) {
-      const dx = wall.b[0] - wall.a[0];
-      const dz = wall.b[1] - wall.a[1];
-      const l = Math.hypot(dx, dz) || 1;
-      const k = freeLeft === false ? -1 : 1;
-      const out: Vec2 = [(k * dz) / l, (-k * dx) / l]; // right normal: away from the room
-      const sector = ((Math.round((Math.atan2(out[1], out[0]) / (2 * Math.PI)) * BUCKETS) % BUCKETS) + BUCKETS) % BUCKETS;
-      key = `s${sector}`;
-      const ang = (sector / BUCKETS) * 2 * Math.PI;
-      normal = [Math.cos(ang), Math.sin(ang)];
-    }
+    if (!wall.exterior && freeLeft === undefined) return [];
+    const dx = wall.b[0] - wall.a[0];
+    const dz = wall.b[1] - wall.a[1];
+    const l = Math.hypot(dx, dz) || 1;
+    const k = freeLeft === false ? -1 : 1;
+    return [{ wall, out: [(k * dz) / l, (-k * dx) / l] as Vec2, len: l }]; // right normal: away from the room
+  });
+  const faces = facingGroups(outer, MAX_BUCKETS - 1);
+  const groupOf = new Map(outer.map((o, i) => [o.wall, faces.of[i]]));
+  for (const wall of walls) {
+    const g = groupOf.get(wall);
+    const key = g === undefined ? "interior" : `g${g}`;
+    const normal: Vec2 | null = g === undefined ? null : faces.normals[g];
     let b = bucketIndex.get(key);
     if (b === undefined) {
       b = buckets.length;

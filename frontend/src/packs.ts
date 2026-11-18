@@ -346,6 +346,8 @@ export function packName(pack: { id: string; name: string }, language: string): 
   return pack.name.replace(/^Modul:/, "Module:").replace(/^Fun-Pack:/, "Fun Pack:");
 }
 
+const CEILING_GAP = 0.005;
+
 /** Height of the bottom of a pack item, a wall light or an LED strip above the floor (0 for other built-in furniture). */
 export function mountBase(floor: Floor, f: Pick<Furniture, "type" | "x" | "z" | "h"> & { mount_y?: number | null; variant?: string | null }): number {
   const item = packItem(f.type);
@@ -363,7 +365,8 @@ export function mountBase(floor: Floor, f: Pick<Furniture, "type" | "x" | "z" | 
     case "wall":
       return item.wall_y ?? 1;
     case "ceiling":
-      return Math.max(0, floor.height - f.h);
+      // 5 mm under the ceiling: flush with it, its top lay in the floor above and showed through it there (#1191)
+      return Math.max(0, floor.height - f.h - CEILING_GAP);
     default:
       // built-in models: where they are drawn by default (a wall cabinet at 1.45 m)
       if (item) return groundUnder(floor, f);
