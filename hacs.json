@@ -1,5 +1,7 @@
 {
   "name": "NeonPlan 3D",
   "homeassistant": "2025.1.0",
-  "render_readme": true
+  "render_readme": true,
+  "zip_release": true,
+  "filename": "neonplan3d.zip"
 }

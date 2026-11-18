@@ -1,10 +1,10 @@
 name: Release
 
 # On a published GitHub release: check that the tag matches the manifest version, pack the integration
-# as neonplan3d.zip and attach it for manual installs. HACS no longer uses it: since GitHub's release
-# download redirects carry a header over aiohttp's 8 KB limit (hacs/integration#5643, October 2026),
-# hacs.json has no zip_release, so HACS fetches the files of custom_components/neonplan3d one by one.
-# Switch zip_release back on once HACS can download release assets again.
+# as neonplan3d.zip and attach it. HACS and the Marketplace install from this zip (hacs.json zip_release,
+# on again since 18.11.2026 – hacs/integration#5643 was fixed on 25.10.2026), and its downloads are the
+# number the Marketplace shows. The zip is best attached when the release is created (the same files, packed
+# the same way), so no update in the first minute finds a release without it; then this job leaves it alone.
 on:
   release:
     types: [published]
@@ -35,4 +35,10 @@ jobs:
       - name: Attach to the release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release upload "$GITHUB_REF_NAME" neonplan3d.zip --clobber
+        run: |
+          # already attached when the release was created: keep it (replacing it would reset its download count)
+          if gh release view "$GITHUB_REF_NAME" --json assets --jq '.assets[].name' | grep -qx neonplan3d.zip; then
+            echo "neonplan3d.zip already attached"
+          else
+            gh release upload "$GITHUB_REF_NAME" neonplan3d.zip
+          fi
