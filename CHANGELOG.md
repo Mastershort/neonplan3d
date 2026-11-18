@@ -14,6 +14,9 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 - **Turned outer walls** turn to glass at their own angle: walls were grouped in eight directions, so a wall up to 22.5° off its group stayed solid while it faced the camera, or turned to glass too early (#1189, thanks ManuelHecht).
 - **Dormers:** a dormer belongs to the floor of the roof it sits on – one with its front reaching down lower stood as a box over the floor below in that floor's view; in a floor view the dormer's walls only stay over an attic, not over a floor with its own ceiling (#1167, thanks 1970lexi).
 - **Camera view cones** of a camera right at a step (a terrace edge) no longer run down it in their first half metre; for a camera on an outer wall the step is measured from the ground in front of the wall (#1167).
+- **Swiping a blind in the 3D view** sends one position when the finger lifts instead of a new one every third of a second – a blind motor cannot follow, queued every step and kept moving for a long while. A pan that only started on a blind sends nothing; lamps still follow the finger.
+- **Wallbox status:** read by whole words – "not_charging", "ready_to_charge" and "charger_free" no longer show as charging, "disconnected" and "unplugged" no longer as plugged in.
+- **Live Presence:** the room sensors keep the room in Home Assistant's history, no longer every new probability and "last seen" time.
 
 ## 3.5.0
 
