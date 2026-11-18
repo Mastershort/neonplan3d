@@ -95,6 +95,11 @@ export interface CardConfig {
   room_panel?: boolean;
   /** Fill the screen below the dashboard header instead of a fixed height. */
   fill?: boolean;
+  /**
+   * The phone view: a bar at the bottom (Now, the rooms by floor, the blinds, More) with the list "What is going on?"
+   * and the house check; the card's own bars and buttons make way. Best with `fill: true` on a view of its own.
+   */
+  phone?: boolean;
   /** Switches in the card: all (true) or a list of walls, floors, temperature, humidity, co2. */
   controls?: boolean | CardControl[];
   /** Start with every bar and overlay hidden (the eye button brings them back); false shows the eye, hidden by default. */

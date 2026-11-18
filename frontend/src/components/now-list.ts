@@ -35,6 +35,7 @@ export class Fp3dNowList extends LitElement {
     items: { attribute: false },
     stops: { attribute: false },
     labels: { attribute: false },
+    favorites: { attribute: false },
     summary: { attribute: false },
     mode: { reflect: true },
     _open: { state: true },
@@ -46,6 +47,8 @@ export class Fp3dNowList extends LitElement {
   /** The stops of a running house check (taken when it started: switching things off must not reshuffle them). */
   declare stops: NowStop[];
   declare labels: NowLabels;
+  /** The house's favourites: big buttons on top of the page. */
+  declare favorites: { entity: string; name: string }[];
   declare summary: { text: string; level: 0 | 1 | 2 };
   declare mode: NowMode;
   /** The line whose places are listed. */
@@ -58,6 +61,7 @@ export class Fp3dNowList extends LitElement {
     super();
     this.items = [];
     this.stops = [];
+    this.favorites = [];
     this.summary = { text: "", level: 0 };
     this.mode = "bar";
     this._open = null;
@@ -110,6 +114,9 @@ export class Fp3dNowList extends LitElement {
         <b>${this.labels.title}</b>
         <button class="x" aria-label=${this.labels.close} @click=${() => this.fire("now-mode", "bar")}>✕</button>
       </header>
+      ${this.favorites.length
+        ? html`<div class="favs">${this.favorites.map((f) => html`<button @click=${() => this.fire<string>("now-fav", f.entity)}>★ ${f.name}</button>`)}</div>`
+        : nothing}
       <ul>
         ${this.items.map((it, i) => {
           const many = it.targets.length > 1;
@@ -378,6 +385,21 @@ export class Fp3dNowList extends LitElement {
     }
     .check small {
       opacity: 0.75;
+    }
+    .favs {
+      display: flex;
+      gap: 8px;
+      padding: 0 10px 10px;
+      overflow-x: auto;
+    }
+    .favs button {
+      flex: none;
+      min-height: 46px;
+      padding: 8px 16px;
+      border-radius: 14px;
+      border: 1px solid rgba(120, 160, 255, 0.3);
+      background: #16233c;
+      font-weight: 600;
     }
     /* ---- the house check */
     .card {

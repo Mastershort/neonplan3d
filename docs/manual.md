@@ -970,15 +970,34 @@ data:
 
 **What wins?** The newest setting. A style set by voice or an action applies until you reset it, its minutes run out, or you choose a style anew for the screen (device, card or template). After that comes the helper entity, then the style set.
 
-### 5.13 On the phone: "What's going on?" (new)
+### 5.13 On the phone: the phone view (new)
 
-NeonPlan is made for wall tablets and PCs. On a phone there is mostly one question: **is everything all right at home?** That is what the phone view is for.
+NeonPlan is made for wall tablets and PCs. On a phone you want two things: see at a glance whether all is well at home, and reach every room with your thumb. That is what the phone view is for: the house without the header and loose buttons, and a bar at the bottom.
 
-**Switching it on:** on a phone NeonPlan asks once whether you want to try it. You can switch at any time at the top under **⚙ → 📱 Phone view**. The choice counts for this device only; tablets, PCs and the dashboard card stay as they are.
+**Switching it on:** on a phone NeonPlan asks once whether you want to try it. On a PC or tablet you switch it on at the top under **⚙ → 📱 Phone view**; **More → Phone view off** takes you back. The choice counts for this device only.
 
-**The line below the house:** the house stays free, and one line below it says what is going on – "All is well", "2 windows and doors open · 4 lights on" or a warning. The dot in front is green, yellow or red.
+**In the dashboard card:** with `phone: true` the card runs in the phone view – best together with `fill: true` on a dashboard view of its own:
 
-**The list:** a tap on the line opens the list on a page of its own, the urgent first:
+```yaml
+type: custom:neonplan3d-card
+phone: true
+fill: true
+```
+
+**The bar at the bottom:**
+
+| Place | What it opens | The number on it |
+| --- | --- | --- |
+| **Now** | the list "What's going on?" | what needs a look; the dot is green, yellow or red |
+| **Floor** or **Rooms** | the rooms as tiles with temperature, lights, open windows and music. A house with two floors has a place for each, otherwise all share the place **Rooms** | lights that are on |
+| **Blinds** | all blinds by floor, with **All up**, **All down** and ▲ ■ ▼ per blind | blinds that are shut |
+| **More** | house check, whole house, room on its own; in the integration also the show menu, time travel and Home Assistant's menu | – |
+
+When something needs a look, it also stands in a line above the bar ("2 windows and doors open · 4 lights on").
+
+**Jumping into a room:** a tap on a tile flies into the room in the house and opens its room panel ([5.4](#54-the-room-panel)) with lights, blinds, climate and media. **Whole floor** shows the floor. With **More → Room on its own** a room you jump into stands alone in the picture, without the rest of the house.
+
+**The list "What's going on?"** shows the urgent first:
 
 | Line | What it shows |
 | --- | --- |
@@ -990,13 +1009,11 @@ NeonPlan is made for wall tablets and PCs. On a phone there is mostly one questi
 | 💡 Lights | how many lights are on in which rooms, with the button **All off** |
 | 🚗 Car, ⚡ Energy | charge and charging, consumption, solar, grid and battery (with the matching add-ons) |
 
-With nothing to do, the top line says **All is well**. When you are not at home yourself, "Who is in" comes right after the warnings.
+The house's **favourites** stand as buttons on top of the list. With nothing to do, it says **All is well**. When you are not at home yourself, "Who is in" comes right after the warnings. A tap on a line closes the list and shows the place in the house; a line with several places (six open windows) unfolds, and you pick one.
 
-**Flying there:** a tap on a line closes the list and shows the place in the house. A line with several places (six open windows) unfolds, and you pick one.
+**House check:** the button at the bottom of the list (also under **More**) goes through everything open or switched on before you leave or go to bed: first the windows and doors (you shut those by hand), then the locks, then the lights room by room. The house shows each place, with **All off** or **Lock** and **Next** below it. From the first lit room on there is **All lights off** for the rest.
 
-**House check:** the button at the bottom of the list goes through everything open or switched on before you leave or go to bed: first the windows and doors (you shut those by hand), then the locks, then the lights room by room. The house shows each place, with **All off** or **Lock** and **Next** below it. From the first lit room on there is **All lights off** for the rest.
-
-**From a notification straight to the place:** these addresses open NeonPlan in the right spot:
+**From a notification straight to the place:** these addresses open the integration in the right spot:
 
 | Address | Opens |
 | --- | --- |

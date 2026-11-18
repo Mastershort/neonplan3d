@@ -21,6 +21,10 @@ import type { WallMode } from "./viewer/viewer3d.ts";
 import { hasFeature, released, type Feature } from "./features.ts";
 import { TimeTravel } from "./load-timetravel.ts";
 import type { HistorySpec } from "./timetravel/types.ts";
+import "./components/phone-shell.ts";
+import type { Fp3dPhoneShell, PhoneView } from "./components/phone-shell.ts";
+import type { NowMode } from "./components/now-list.ts";
+import { formatPower } from "./components/view3d.ts";
 
 type HeatMode = NonNullable<CardConfig["heatmap"]>;
 
@@ -52,6 +56,8 @@ export class Floorplan3dCard extends LitElement {
     _config: { state: true },
     _roomId: { state: true },
     _walking: { state: true },
+    _phoneMode: { state: true },
+    _solo: { state: true },
     _floorId: { state: true },
     _walls: { state: true },
     _heat: { state: true },
@@ -76,6 +82,9 @@ export class Floorplan3dCard extends LitElement {
   private declare _roomId: string | null;
   /** One walks through the house: the room panel steps aside. */
   private declare _walking: boolean;
+  /** The phone view (card option `phone`): what it shows, and whether a room jumped into stands alone (per device). */
+  private declare _phoneMode: NowMode;
+  private declare _solo: boolean;
   /** The configured start room was applied once the building arrived. */
   private roomApplied = false;
   /** Floor chosen in the card (null: the house; undefined: none chosen, the configured floor applies). */
@@ -115,6 +124,8 @@ export class Floorplan3dCard extends LitElement {
     super();
     this._roomId = null;
     this._walking = false;
+    this._phoneMode = "bar";
+    this._solo = localStorage.getItem("neonplan3d.phone_solo") === "1";
     this._floorId = undefined;
     this._walls = savedWalls();
     this._heat = null;
@@ -488,16 +499,18 @@ clearTimeout(this.cleanTimer);
           ? "100%"
           : `${height}px`;
     // the bar of switches at the bottom (the back button belongs to it)
-    const bar = !!b && !this._clean && (canGoBack || ((!!c?.controls || !!c?.time_travel) && !(this._roomId && c.room_panel !== false)));
+    const bar = !!b && !this._clean && c?.phone !== true && (canGoBack || ((!!c?.controls || !!c?.time_travel) && !(this._roomId && c.room_panel !== false)));
     const tt = this.tt.active;
     // the room bar (room_bar: true): above the switches, it stays when the switches are hidden; not while
     // travelling in time or with a room panel open
-    const roomBar = !!b && !!c?.room_bar && released("room_bar") && !tt && !(this._roomId && c.room_panel !== false);
+    const roomBar = !!b && !!c?.room_bar && c.phone !== true && released("room_bar") && !tt && !(this._roomId && c.room_panel !== false);
     const eye = c?.controls_hidden !== undefined || (c?.controls_hide_after ?? 0) > 0;
+    // the phone view brings its own bar: the card's switches, room bar and buttons make way
+    const phone = c?.phone === true && !!b && !tt && !this._walking;
     const t = (k: Parameters<typeof translate>[1]) => translate(this.hass, k);
     const accent = /^#[0-9a-f]{6}$/i.test(c?.accent ?? "") ? c!.accent : null;
     return html`<ha-card class="${this._night ? "fp3d-night" : ""} ${this._pseudoFull ? "fp3d-pseudo-full" : ""}" style=${accent ? `--fp3d-accent:${accent}` : ""} @pointerdown=${this.touch} @keydown=${this.onKey} @wheel=${this.touch}>
-      <div class="fp3d-card-body ${tt ? "fp3d-tt" : ""}" style="height:${size}">
+      <div class="fp3d-card-body ${tt ? "fp3d-tt" : ""} ${phone ? "fp3d-phone" : ""}" style="height:${size}">
         ${b && b.floors.some((f) => f.rooms.length)
           ? html`<fp3d-view3d
               .hass=${this.tt.hass(this.hass)}
@@ -505,7 +518,7 @@ clearTimeout(this.cleanTimer);
               .building=${b}
               .planId=${this.isSite ? null : this.data.planId}
               .noSave=${this.isSite}
-              .rooms=${rooms.length ? rooms : null}
+              .rooms=${c?.phone === true && this._solo && this._roomId ? [this._roomId] : rooms.length ? rooms : null}
               .packs=${this.data.packs}
               .floorId=${floorId}
               .roomId=${this._roomId}
@@ -560,8 +573,9 @@ clearTimeout(this.cleanTimer);
               .cameraWall=${this._cameraWall && !tt}
               @camera-wall-close=${() => (this._cameraWall = false)}
               @camera-wall-open=${() => (this._cameraWall = true)}
-              .clean=${this._clean}
-              .cleanButton=${eye}
+              .clean=${this._clean || phone}
+              .cleanButton=${eye && !phone}
+              @status-change=${() => phone && setTimeout(() => (this.shadowRoot?.querySelector("fp3d-phone-shell") as Fp3dPhoneShell | null)?.requestUpdate(), 0)}
               @clean-toggle=${() => {
                 this._clean = !this._clean;
                 if (!this._clean) this.armClean();
@@ -616,7 +630,7 @@ clearTimeout(this.cleanTimer);
               }}
             ></fp3d-room-bar>`
           : nothing}
-        ${this._roomId && b && this._config?.room_panel !== false && !this._walking
+        ${this._roomId && b && this._config?.room_panel !== false && !this._walking && !(phone && this._phoneMode === "check")
           ? html`<fp3d-room-panel
               ?walk=${this._config?.walk !== false}
               @walk-here=${() => this.view3d()?.walkHere()}
@@ -632,6 +646,33 @@ clearTimeout(this.cleanTimer);
               @sheet-open=${(e: CustomEvent<{ id: string }>) => this._roomId && this.view3d()?.openRoomSheet(this._roomId, e.detail.id)}
               @close=${() => (this._roomId = null)}
             ></fp3d-room-panel>`
+          : nothing}
+        ${phone && b
+          ? html`<fp3d-phone-shell
+              .hass=${this.hass}
+              .building=${b}
+              .view=${() => this.view3d() as unknown as PhoneView | null}
+              .floorId=${this._floorId ?? null}
+              .roomId=${this._roomId}
+              .solo=${this._solo}
+              .extras=${c?.dashboard ? [{ id: "dash", icon: "⌂", label: c.dashboard_label || c.dashboard }] : []}
+              .watts=${(w: number) => formatPower(this.hass, w)}
+              @phone-mode=${(e: CustomEvent<NowMode>) => (this._phoneMode = e.detail)}
+              @phone-room=${(e: CustomEvent<{ floorId: string | null; roomId: string | null }>) => {
+                if (!this.allowed(e.detail.roomId)) return;
+                this._floorId = b.floors.length > 1 || e.detail.roomId ? e.detail.floorId : null;
+                this._roomId = e.detail.roomId;
+              }}
+              @phone-solo=${(e: CustomEvent<boolean>) => {
+                this._solo = e.detail;
+                try {
+                  localStorage.setItem("neonplan3d.phone_solo", this._solo ? "1" : "0");
+                } catch {
+                  // not remembered
+                }
+              }}
+              @phone-more=${(e: CustomEvent<string>) => e.detail === "dash" && c?.dashboard && haNavigate(c.dashboard)}
+            ></fp3d-phone-shell>`
           : nothing}
         ${bar && b
           ? html`<div class="fp3d-card-controls">
@@ -667,12 +708,12 @@ clearTimeout(this.cleanTimer);
             </div>`
           : nothing}
         ${this.tt.session ? html`<fp3d-time-bar .session=${this.tt.session}></fp3d-time-bar>` : nothing}
-        ${c?.fullscreen_button && !this._clean && !(this._roomId && c.room_panel !== false)
+        ${c?.fullscreen_button && !this._clean && !phone && !(this._roomId && c.room_panel !== false)
           ? html`<button class="fp3d-card-full" title=${t(this._fullscreen ? "fullscreen_exit" : "fullscreen")} aria-label=${t(this._fullscreen ? "fullscreen_exit" : "fullscreen")} @click=${() => this.toggleFullscreen()}>
               ${this._fullscreen ? "✕" : "⛶"}
             </button>`
           : nothing}
-        ${c?.dashboard && !this._clean && !(this._roomId && c.room_panel !== false)
+        ${c?.dashboard && !this._clean && !phone && !(this._roomId && c.room_panel !== false)
           ? html`<button class="fp3d-card-full fp3d-card-dash ${c.fullscreen_button ? "fp3d-card-dash-2" : ""}" title=${c.dashboard_label || c.dashboard} aria-label=${c.dashboard_label || c.dashboard} @click=${() => this.openDashboard(c.dashboard!)}>
               ${c.dashboard_label ? html`<span>${c.dashboard_label}</span>` : "⌂"}
             </button>`
@@ -843,6 +884,14 @@ clearTimeout(this.cleanTimer);
         .fp3d-tt > * {
           --fp3d-tt-h: 100px;
         }
+      }
+      /* the phone view: the view's own things and an open room's panel stand above its bar */
+      .fp3d-phone fp3d-view3d {
+        --fp3d-bottom-inset: 72px;
+      }
+      .fp3d-phone .fp3d-card-panel {
+        bottom: 70px;
+        height: calc(55% - 62px);
       }
     `,
   ];

@@ -970,15 +970,34 @@ data:
 
 **Was gewinnt?** Die neueste Einstellung. Ein Stil per Sprache oder Aktion gilt, bis du ihn zurücksetzt, die Minuten ablaufen oder du für den Bildschirm (Gerät, Karte oder Vorlage) einen Stil neu wählst. Danach kommen die Helfer-Entität und dann der eingestellte Stil.
 
-### 5.13 Am Handy: „Was ist los?“ (neu)
+### 5.13 Am Handy: die Handy-Ansicht (neu)
 
-NeonPlan ist für Wandtablet und PC gebaut. Am Handy stellt man meist nur eine Frage: **Ist zu Hause alles in Ordnung?** Dafür gibt es die Handy-Ansicht.
+NeonPlan ist für Wandtablet und PC gebaut. Am Handy will man zwei Dinge: schnell sehen, ob zu Hause alles in Ordnung ist, und mit dem Daumen in jeden Raum kommen. Dafür gibt es die Handy-Ansicht: das Haus ohne Kopfzeile und lose Knöpfe, unten eine Leiste.
 
-**Einschalten:** Am Handy fragt NeonPlan einmal, ob du sie ausprobieren willst. Jederzeit umschalten kannst du oben unter **⚙ → 📱 Handy-Ansicht**. Die Wahl gilt nur für dieses Gerät; Tablet, PC und die Dashboard-Karte bleiben, wie sie sind.
+**Einschalten:** Am Handy fragt NeonPlan einmal, ob du sie ausprobieren willst. Am PC oder Tablet schaltest du sie oben unter **⚙ → 📱 Handy-Ansicht** ein, zurück geht es mit **Mehr → Handy-Ansicht aus**. Die Wahl gilt nur für dieses Gerät.
 
-**Die Zeile unter dem Haus:** Das Haus bleibt frei, darunter steht in einer Zeile, was los ist – „Alles in Ordnung“, „2 Fenster und Türen offen · 4 Lichter an“ oder eine Warnung. Der Punkt davor ist grün, gelb oder rot.
+**In der Dashboard-Karte:** Mit `phone: true` läuft die Karte in der Handy-Ansicht – am besten zusammen mit `fill: true` auf einer eigenen Ansicht des Dashboards:
 
-**Die Liste:** Ein Tipp auf die Zeile öffnet die Liste auf einer eigenen Seite, das Dringende zuerst:
+```yaml
+type: custom:neonplan3d-card
+phone: true
+fill: true
+```
+
+**Die Leiste unten:**
+
+| Platz | Was er öffnet | Zahl daran |
+| --- | --- | --- |
+| **Jetzt** | Die Liste „Was ist los?“ | Was einen Blick braucht; der Punkt ist grün, gelb oder rot |
+| **Etage** bzw. **Räume** | Die Räume als Kacheln mit Temperatur, Lichtern, offenen Fenstern und Musik. Ein Haus mit zwei Etagen hat für jede einen Platz, sonst teilen sich alle den Platz **Räume** | Eingeschaltete Lichter |
+| **Rollläden** | Alle Rollläden nach Etage, mit **Alle auf**, **Alle zu** und ▲ ■ ▼ je Rollladen | Geschlossene Rollläden |
+| **Mehr** | Haus-Check, Ganzes Haus, Raum einzeln, in der Integration außerdem Anzeige, Zeitreise und das Menü von Home Assistant | – |
+
+Braucht etwas einen Blick, steht es zusätzlich in einer Zeile über der Leiste („2 Fenster und Türen offen · 4 Lichter an“).
+
+**In einen Raum springen:** Ein Tipp auf eine Kachel fliegt im Haus in den Raum und öffnet sein Raumfenster ([5.4](#54-das-raumfenster)) mit Licht, Rollläden, Klima und Medien. **Ganze Etage** zeigt die Etage. Mit **Mehr → Raum einzeln** steht ein Raum, in den du springst, allein im Bild, ohne den Rest des Hauses.
+
+**Die Liste „Was ist los?“** zeigt das Dringende zuerst:
 
 | Zeile | Was sie zeigt |
 | --- | --- |
@@ -990,13 +1009,11 @@ NeonPlan ist für Wandtablet und PC gebaut. Am Handy stellt man meist nur eine F
 | 💡 Licht | Wie viele Lichter in welchen Räumen an sind, mit dem Knopf **Alle aus** |
 | 🚗 Auto, ⚡ Energie | Ladestand und Laden, Verbrauch, Solar, Netz und Akku (mit den passenden Erweiterungen) |
 
-Ist nichts zu tun, steht oben **Alles in Ordnung**. Bist du selbst nicht zu Hause, rückt „Wer ist da“ direkt hinter die Warnungen.
+Oben auf der Liste stehen die **Favoriten** des Hauses als Knöpfe. Ist nichts zu tun, steht dort **Alles in Ordnung**. Bist du selbst nicht zu Hause, rückt „Wer ist da“ direkt hinter die Warnungen. Ein Tipp auf eine Zeile schließt die Liste und zeigt die Stelle im Haus; hat eine Zeile mehrere Stellen (sechs offene Fenster), klappt sie auf, und du wählst eine.
 
-**Hinfliegen:** Ein Tipp auf eine Zeile schließt die Liste und zeigt die Stelle im Haus. Hat eine Zeile mehrere Stellen (sechs offene Fenster), klappt sie auf, und du wählst eine.
+**Haus-Check:** Der Knopf unten in der Liste (auch unter **Mehr**) geht vor dem Gehen oder Schlafen alles durch, was offen oder an ist: erst die Fenster und Türen (die schließt du von Hand), dann die Schlösser, dann Raum für Raum die Lichter. Das Haus zeigt jede Stelle, darunter steht **Alle aus** bzw. **Abschließen** und **Weiter**. Ab dem ersten Raum mit Licht gibt es **Alle Lichter aus** für den Rest.
 
-**Haus-Check:** Der Knopf unten in der Liste geht vor dem Gehen oder Schlafen alles durch, was offen oder an ist: erst die Fenster und Türen (die schließt du von Hand), dann die Schlösser, dann Raum für Raum die Lichter. Das Haus zeigt jede Stelle, darunter steht **Licht aus** bzw. **Abschließen** und **Weiter**. Ab dem ersten Raum mit Licht gibt es **Alle Lichter aus** für den Rest.
-
-**Aus einer Benachrichtigung direkt an die Stelle:** NeonPlan öffnet sich mit diesen Adressen am richtigen Ort:
+**Aus einer Benachrichtigung direkt an die Stelle:** Die Integration öffnet sich mit diesen Adressen am richtigen Ort:
 
 | Adresse | Öffnet |
 | --- | --- |
