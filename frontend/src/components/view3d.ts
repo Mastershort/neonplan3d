@@ -40,6 +40,8 @@ import { carState, type CarState, heatSensorOn, roomClimateValue,
   entityAreaId,
   chargerStatus,
 } from "../devices.ts";
+import type { NowInput, NowTarget } from "../now.ts";
+import { roomTiles } from "../room-bar.ts";
 import { alertColor, alertEntities, alertSources, alertText, findAlerts, isOutage, type Alert, type AlertSources } from "../alerts.ts";
 import { iconPath, iconSvg, mdiIcon } from "../icons.ts";
 import { neonSignPicture, signLight, signLines } from "../neon-sign.ts";
@@ -1765,6 +1767,8 @@ export class Fp3dView3d extends LitElement {
     this.lastPersons = persons.map((p) => ({ id: p.id, floorId: p.floorId, roomId: p.roomId }));
     const counts = floorCounts(hass, b, this.openingLinks!, persons);
     v.setFloorInfo(new Map([...counts].map(([id, c]) => [id, floorInfoText(hass, c)])));
+    // the phone's "What is going on?" list reads what was just worked out (see nowInput)
+    this.fire("status-change", {});
     // daylight: sun through the windows and a lighter sky
     const sun = hass.states["sun.sun"]?.attributes;
     const elevation = typeof sun?.elevation === "number" ? sun.elevation : null;
@@ -1838,6 +1842,47 @@ export class Fp3dView3d extends LitElement {
    * Time travel: shows where an entity is (an event was tapped, or the camera follows the events) – its
    * device, else the room of its window or its area – flying there on its floor.
    */
+  /**
+   * What the house knows right now, for the phone's "What is going on?" list (see now.ts): everything here is
+   * already worked out for the 3D view, the card of the household or the voice answers.
+   */
+  nowInput(): NowInput | null {
+    const hass = this.hass;
+    const b = this.building;
+    if (!hass || !b || !this.openingLinks) return null;
+    const located = new Map(this.lastPersons.map((p) => [p.id, p] as const));
+    const rooms = new Map(b.floors.flatMap((f) => zonesOf(f).map((r) => [r.id, r.name] as const)));
+    const people = Object.values(hass.states)
+      .filter((st) => st.entity_id.startsWith("person."))
+      .map((st) => {
+        const at = located.get(st.entity_id);
+        return { name: entityName(hass, st.entity_id), home: st.state === "home", room: at ? (rooms.get(at.roomId) ?? null) : null, floorId: at?.floorId ?? null, roomId: at?.roomId ?? null };
+      });
+    const me = Object.values(hass.states).find((st) => st.entity_id.startsWith("person.") && !!hass.user?.id && st.attributes.user_id === hass.user.id);
+    return {
+      alerts: this._alerts.map((a) => ({ text: alertText(hass, b, a), entity: a.entity, floorId: a.floorId, roomId: a.roomId })),
+      openings: this.spokenOpenings(hass, b),
+      unlocked: this.lockMarkers(hass, b).filter((m) => m.active).map((m) => ({ name: entityName(hass, m.id), entity: m.id, floorId: m.floorId, roomId: m.roomId })),
+      people,
+      household: this._household.map((it) => ({ text: it.text, entity: it.entity, hot: !!it.hot })),
+      lights: roomTiles(hass, b, null).map((r) => ({ room: r.name, count: r.lightsOn.length, floorId: r.floorId, roomId: r.roomId })),
+      energy: this._energy ? { consumption: this._energy.consumption, solar: this._energy.solar, grid: this._energy.grid, soc: this._energy.soc } : null,
+      cars: this.spokenCars(hass, b).map((c) => ({ name: c.name, present: c.present, charging: c.charging, soc: c.soc, floorId: c.floorId })),
+      away: !!me && me.state !== "home",
+    };
+  }
+
+  /** A line of that list was tapped: fly to the device, else open its room. */
+  showNow(target: NowTarget): void {
+    if (target.entity) {
+      const before = this.floorId;
+      this.showEntity(target.entity);
+      // an entity the plan does not know: fall through to its room
+      if (this.findIndex?.some((it) => it.entity === target.entity) || this.floorId !== before) return;
+    }
+    if (target.floorId) this.jumpTo({ kind: "now", entity: target.entity ?? "", floorId: target.floorId, roomId: target.roomId ?? null });
+  }
+
   private showEntity(entity: string): void {
     const hass = this.hass;
     const b = this.building;
@@ -9133,7 +9178,7 @@ export function waterHeaterText(hass: HomeAssistant, st: HassEntity): { text: st
   return { text: [stateText(hass, st), temp].filter(Boolean).join(" · "), on };
 }
 
-function formatPower(hass: HomeAssistant | undefined, w: number): string {
+export function formatPower(hass: HomeAssistant | undefined, w: number): string {
   return Math.abs(w) >= 1000 ? `${formatNumber(hass, w / 1000, 1)} kW` : `${Math.round(w)} W`;
 }
 
