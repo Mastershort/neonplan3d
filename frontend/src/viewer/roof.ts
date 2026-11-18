@@ -68,6 +68,8 @@ export interface RoofGeometry {
    * floor) they stay like the windows; in the house view they lift and fade with the roof (#1167).
    */
   cheeks?: GeoBuffer;
+  /** The floor's rooms reach up under these slopes (an attic): only then are the dormer's cheeks its rooms' walls. */
+  attic?: boolean;
   /** The roof windows that only show in the roof: they fade out with it (the default). */
   winRoof?: { solid: GeoBuffer; lines: LineBuffer; glass: GeoBuffer };
   /**
@@ -296,8 +298,9 @@ function buildSections(b: Building, sections: readonly RoofSection[], overhang: 
   );
   for (const sec of usable) {
     const plan = plans.get(sec)!;
-    // the floor the section sits on: the highest one that starts below its walls' top
-    const floor = sectionFloor(b, sec) ?? floors[0];
+    // the floor the section sits on: the highest one that starts below its walls' top – a dormer's is the floor of the
+    // roof it sits on, also when its front reaches down lower (#1167)
+    const floor = sectionFloor(b, plan.parent ?? sec) ?? floors[0];
     // canopies get a part of their own: it rides with the floor but never lifts off like a roof
     const key = sec.open ? `${floor.id}:open` : floor.id;
     let part = parts.get(key);
@@ -308,6 +311,7 @@ function buildSections(b: Building, sections: readonly RoofSection[], overhang: 
     // a dormer or a cross gable (a smaller section on a bigger one) keeps its cheeks and front gable
     const parent = plan.parent;
     const attic = floor.elevation + floor.height > sec.base + 0.05 && !sec.dormer && !parent;
+    if (attic) part.attic = true;
     // the slope opens under every dormer and cross gable sitting on this section, and under its roof windows
     // (a turned one, or one as high as this roof, cuts the slope by its planes instead, see sectionsCut)
     const holes = sections.filter((d) => d !== sec && dormerParent(sections, d) === sec && !crossAsWing(sections, d)).flatMap((d) => dormerHoles(sec, d));

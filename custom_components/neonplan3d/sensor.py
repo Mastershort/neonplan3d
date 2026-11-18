@@ -47,6 +47,8 @@ class LocateSensor(SensorEntity):
     _attr_has_entity_name = False
     _attr_should_poll = False
     _attr_icon = "mdi:map-marker-radius"
+    # they change with every estimate: the room is what the history keeps, not each new probability
+    _unrecorded_attributes = frozenset({"probability", "last_seen"})
 
     def __init__(self, service: LocateService, device_id: str) -> None:
         self.service = service

@@ -100,10 +100,13 @@ export class SkyLayer {
 
   private camera: PerspectiveCamera;
   private still: () => boolean;
+  private ground: () => number | null;
 
-  constructor(camera: PerspectiveCamera, still: () => boolean) {
+  /** `ground`: how far down the picture (0 top … 1 bottom) the far edge of a drawn neighbourhood lies, or null. */
+  constructor(camera: PerspectiveCamera, still: () => boolean, ground: () => number | null = () => null) {
     this.camera = camera;
     this.still = still;
+    this.ground = ground;
     this.canvas = document.createElement("canvas");
     this.canvas.className = "fp3d-sky";
     this.canvas.setAttribute("aria-hidden", "true");
@@ -152,7 +155,10 @@ export class SkyLayer {
     const lookAz = Math.atan2(d.x, -d.z) / DEG;
     const down = Math.asin(Math.min(1, Math.max(-1, -d.y)));
     const k = Math.min(1, Math.max(0, down / (Math.PI / 2)));
-    const horizonY = h * (overlay ? 0.42 + 0.2 * k : 0.6 + 0.3 * k);
+    // the neighbourhood from the map reaches further than the house: the horizon lies beyond its far edge, so sun,
+    // moon and clouds stand over it rather than between its streets (#1203)
+    const edge = this.ground();
+    const horizonY = Math.min(h * (overlay ? 0.42 + 0.2 * k : 0.6 + 0.3 * k), edge === null ? Infinity : edge * h);
     return { lookAz, horizonY };
   }
 
@@ -215,7 +221,7 @@ export class SkyLayer {
     // the sun by day: a bright core with a wide halo where it really stands (dimmed behind clouds)
     if (input.sun && el !== null && el > -1 && input.cloud < 0.9) {
       const p = this.onScreen(input.sun.azimuth, Math.max(1, el), w, fr, input.north);
-      if (p) {
+      if (p && p[1] < horizonY) {
         const a = Math.min(1, day * 1.4) * (1 - input.cloud * 0.8);
         const halo = Math.max(w, h) * 0.3;
         const g = ctx.createRadialGradient(p[0], p[1], 0, p[0], p[1], halo);
@@ -274,7 +280,7 @@ export class SkyLayer {
     if (input.sun && day < 0.5 && input.cloud < 0.97) {
       const phase = moonPhase(input.date);
       const p = this.onScreen((input.sun.azimuth + phase * 360) % 360, 40 + 0.3 * Math.min(40, Math.max(0, -input.sun.elevation)), w, fr, input.north);
-      if (p) this.drawMoon(ctx, p[0], p[1], 11 * dpr, phase, (1 - day * 1.8) * (1 - input.cloud * 0.6));
+      if (p && p[1] < horizonY) this.drawMoon(ctx, p[0], p[1], 11 * dpr, phase, (1 - day * 1.8) * (1 - input.cloud * 0.6));
     }
     // clouds: soft banks that drift with the wind (only with the weather outside)
     if (input.cloud > 0.04) {

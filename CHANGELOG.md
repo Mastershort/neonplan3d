@@ -4,6 +4,20 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 [releases page](https://github.com/Mastershort/neonplan3d/releases). Ideas and votes:
 [Discussions → Ideas](https://github.com/Mastershort/neonplan3d/discussions/categories/ideas).
 
+## 3.5.1
+
+### Fixed
+- **Fly in from space** can be switched on in the editor too: **Settings → Weather & warnings**, right below **Real sky** – it was only in the ⚙ menu of the 3D view (☆ → ⚙ Settings), where nobody found it (#1193, thanks PetrMa).
+- **Real sky with the surroundings from the map:** the horizon lies beyond the map's far edge, so sun, moon and clouds stand over the neighbourhood instead of between its streets and under its roads (#1203, thanks twynne and daene85).
+- **Sun arc and house shadow gone after the update:** when NeonPlan switched a slow device to the tablet level by itself in the first seconds, dropping the old graphics on purpose counted as lost graphics, and the safety net switched sun arc, house shadow and window glow off for the whole version (#1196, thanks netrunnercs). With 3.5.1 they come back.
+- **Ceiling lamps from packs** hang 5 mm under the ceiling: flush with it, a basement lamp's top lay in the floor above, shimmered through it and could be switched from there (#1191, thanks daene85).
+- **Turned outer walls** turn to glass at their own angle: walls were grouped in eight directions, so a wall up to 22.5° off its group stayed solid while it faced the camera, or turned to glass too early (#1189, thanks ManuelHecht).
+- **Dormers:** a dormer belongs to the floor of the roof it sits on – one with its front reaching down lower stood as a box over the floor below in that floor's view; in a floor view the dormer's walls only stay over an attic, not over a floor with its own ceiling (#1167, thanks 1970lexi).
+- **Camera view cones** of a camera right at a step (a terrace edge) no longer run down it in their first half metre; for a camera on an outer wall the step is measured from the ground in front of the wall (#1167).
+- **Swiping a blind in the 3D view** sends one position when the finger lifts instead of a new one every third of a second – a blind motor cannot follow, queued every step and kept moving for a long while. A pan that only started on a blind sends nothing; lamps still follow the finger.
+- **Wallbox status:** read by whole words – "not_charging", "ready_to_charge" and "charger_free" no longer show as charging, "disconnected" and "unplugged" no longer as plugged in.
+- **Live Presence:** the room sensors keep the room in Home Assistant's history, no longer every new probability and "last seen" time.
+
 ## 3.5.0
 
 ### New (free)

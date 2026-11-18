@@ -661,7 +661,7 @@ export class FloorplanViewer {
   private roof: {
     group: Group;
     /** low: the lowest point of the part's roof body above its base (the eaves). */
-    parts: { group: Group; floorId: string; rideId: string; base: number; low: number; lift: boolean; win: Group | null; cheeks: Mesh | null }[];
+    parts: { group: Group; floorId: string; rideId: string; base: number; low: number; lift: boolean; win: Group | null; cheeks: Mesh | null; attic: boolean }[];
     /** Roof windows over rooms of a lower floor: they follow that floor (#482). */
     below: { floorId: string; win: Group }[];
     solid: MeshBasicMaterial;
@@ -824,9 +824,6 @@ export class FloorplanViewer {
     this.options = options;
     this.explode = options.explode ?? true;
     this.renderer = this.makeRenderer(options.quality ?? "auto");
-    this.renderer.domElement.addEventListener("webglcontextlost", () => {
-      if (!this.disposed) this.options.onContextLost?.();
-    });
     this.labels = document.createElement("div");
     this.labels.className = "fp3d-labels";
     host.append(this.labels);
@@ -851,7 +848,7 @@ export class FloorplanViewer {
     this.scene.add(this.rain, this.snow, this.mist, this.skyDisc, this.sunFx.group);
     this.controls = this.makeControls();
     // the real sky: a 2D canvas behind the 3D one (first in the host, so the look's own layers stay above it)
-    this.sky = new SkyLayer(this.camera, () => this.lowQuality);
+    this.sky = new SkyLayer(this.camera, () => this.lowQuality, () => this.mapEdge());
     host.prepend(this.sky.canvas);
     this.resizeObserver = new ResizeObserver(() => this.resize());
     this.resizeObserver.observe(host);
@@ -942,14 +939,15 @@ export class FloorplanViewer {
   }
 
   setQuality(quality: Quality): void {
-    const canvas = this.renderer.domElement;
+    const old = this.renderer;
     const next = this.makeRenderer(quality);
     this.rebuildTier();
     this.applyTierFlags();
-    canvas.replaceWith(next.domElement);
-    this.renderer.dispose();
-    this.renderer.forceContextLoss();
+    old.domElement.replaceWith(next.domElement);
+    // the new renderer first: dropping the old context on purpose is no lost context (#1196)
     this.renderer = next;
+    old.dispose();
+    old.forceContextLoss();
     const view = this.controls.view;
     this.controls.dispose();
     this.controls = this.makeControls();
@@ -2059,6 +2057,46 @@ export class FloorplanViewer {
   }
 
   /** The middle of the sky dome over the plot and its radius (the sun, the moon and the sun's arc lie on it). */
+  private mapBox: { key: string; box: number[] | null } = { key: "", box: null };
+
+  /**
+   * How far down the picture (0 top … 1 bottom) the far edge of the neighbourhood from the map lies: the highest
+   * point of its outline in front of the camera, or null without a neighbourhood (#1203).
+   */
+  private mapEdge(): number | null {
+    const b = this.building;
+    const key = b ? surroundKey(b) : "";
+    if (key !== this.mapBox.key) {
+      const s = placedSurroundings(b);
+      const pts = s ? [...s.buildings, ...s.ways, ...s.areas].flatMap((f) => f.p) : [];
+      let box: number[] | null = null;
+      if (pts.length) {
+        box = [Infinity, Infinity, -Infinity, -Infinity];
+        for (const [x, z] of pts) box = [Math.min(box[0], x), Math.min(box[1], z), Math.max(box[2], x), Math.max(box[3], z)];
+      }
+      this.mapBox = { key, box };
+    }
+    const box = this.mapBox.box;
+    if (!box) return null;
+    const gf = b ? groundFloor(b) : null;
+    const y = (gf?.elevation ?? 0) + (this.floorMap.get(gf?.id ?? "")?.y ?? 0);
+    const cam = this.camera;
+    const v = new Vector3();
+    let top = Infinity;
+    for (let i = 0; i < 64; i++) {
+      // round the outline of the box, 16 points a side
+      const side = i >> 4;
+      const t = (i & 15) / 16;
+      const x = side === 0 ? box[0] + t * (box[2] - box[0]) : side === 1 ? box[2] : side === 2 ? box[2] - t * (box[2] - box[0]) : box[0];
+      const z = side === 0 ? box[1] : side === 1 ? box[1] + t * (box[3] - box[1]) : side === 2 ? box[3] : box[3] - t * (box[3] - box[1]);
+      v.set(x, y, z).applyMatrix4(cam.matrixWorldInverse);
+      if (v.z > -cam.near) continue;
+      v.applyMatrix4(cam.projectionMatrix);
+      top = Math.min(top, (1 - v.y) / 2);
+    }
+    return Number.isFinite(top) ? top : null;
+  }
+
   private skyFrame(): { center: Vector3; r: number } {
     const b = this.weatherBox;
     return { center: new Vector3((b.x0 + b.x1) / 2, b.y0, (b.z0 + b.z1) / 2), r: Math.min(300, Math.max(80, this.houseRadius * 5)) };
@@ -2661,6 +2699,10 @@ export class FloorplanViewer {
     renderer.setClearColor(0x000000, 0);
     renderer.outputColorSpace = SRGBColorSpace;
     renderer.domElement.className = "fp3d-canvas";
+    // only the context in use counts: a quality change drops the old one on purpose (#1196)
+    renderer.domElement.addEventListener("webglcontextlost", () => {
+      if (!this.disposed && this.renderer === renderer) this.options.onContextLost?.();
+    });
     this.host.prepend(renderer.domElement);
     return renderer;
   }
@@ -3529,7 +3571,7 @@ export class FloorplanViewer {
         const y = c.geometry.boundingBox?.min.y;
         if (y !== undefined && Number.isFinite(y)) low = Math.min(low, y);
       }
-      return { group: part, floorId: geo.floor.id, rideId: roofRider(this.building!, geo.floor, geo.sections ?? []), base: geo.base, low: Number.isFinite(low) ? low : 0, lift: geo.lift !== false, win, cheeks };
+      return { group: part, floorId: geo.floor.id, rideId: roofRider(this.building!, geo.floor, geo.sections ?? []), base: geo.base, low: Number.isFinite(low) ? low : 0, lift: geo.lift !== false, win, cheeks, attic: !!geo.attic };
     });
     group.renderOrder = 8;
     this.scene.add(group);
@@ -3580,7 +3622,8 @@ export class FloorplanViewer {
       // the room below while the roof was lifted, #1167); in the floor view they stay as the room's walls
       if (part.cheeks) {
         part.cheeks.position.y = house ? part.group.position.y : fv.floor.elevation + ride.y + part.base + gap;
-        part.cheeks.visible = fv.group.visible && fv.o > 0.5 && this.wallMode !== "cut" && (!house || this.roofO > ROOF_OPACITY * 0.6);
+        // (only an attic's: over a floor with its own ceiling they stood in its rooms or floated over it, #1167)
+        part.cheeks.visible = fv.group.visible && fv.o > 0.5 && this.wallMode !== "cut" && (house ? this.roofO > ROOF_OPACITY * 0.6 : part.attic);
       }
     }
     // windows in a slope over a lower floor: with that floor, wherever it glides
@@ -4115,10 +4158,13 @@ export class FloorplanViewer {
         const baseY = Math.max(groundAt(d.x, d.z), dome ? -Infinity : groundAt(d.x + dir[0] * 0.3, d.z + dir[1] * 0.3));
         // the wedge ends at the edge of the ground the camera looks along: where the ground drops away more than 40 cm
         // (a terrace above the drive), it no longer runs down the step and on across the lower ground (#1167)
+        // measured from the ground right in front of the wall a camera hangs on (a raised floor over its lawn is no
+        // step), and from 10 cm out: a camera right at the edge looked down the step from its first half metre (#1167)
+        const edgeY = mount && !dome ? groundAt(d.x + dir[0] * 0.5, d.z + dir[1] * 0.5) : baseY;
         const edgeAt = (t: number, limit: number): number => {
           const rx = dir[0] * Math.cos(t) - dir[1] * Math.sin(t);
           const rz = dir[1] * Math.cos(t) + dir[0] * Math.sin(t);
-          for (let r = 0.5; r < limit; r += 0.25) if (groundAt(d.x + rx * r, d.z + rz * r) < baseY - 0.4) return r;
+          for (let r = 0.1; r < limit; r += r < 0.5 ? 0.1 : 0.25) if (groundAt(d.x + rx * r, d.z + rz * r) < edgeY - 0.4) return r;
           return limit;
         };
         const reaches = Array.from({ length: n + 1 }, (_, i) => {
