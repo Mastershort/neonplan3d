@@ -970,6 +970,52 @@ data:
 
 **Was gewinnt?** Die neueste Einstellung. Ein Stil per Sprache oder Aktion gilt, bis du ihn zurücksetzt, die Minuten ablaufen oder du für den Bildschirm (Gerät, Karte oder Vorlage) einen Stil neu wählst. Danach kommen die Helfer-Entität und dann der eingestellte Stil.
 
+### 5.13 Am Handy: „Was ist los?“ (neu)
+
+NeonPlan ist für Wandtablet und PC gebaut. Am Handy stellt man meist nur eine Frage: **Ist zu Hause alles in Ordnung?** Dafür gibt es die Handy-Ansicht.
+
+**Einschalten:** Am Handy fragt NeonPlan einmal, ob du sie ausprobieren willst. Jederzeit umschalten kannst du oben unter **⚙ → 📱 Handy-Ansicht**. Die Wahl gilt nur für dieses Gerät; Tablet, PC und die Dashboard-Karte bleiben, wie sie sind.
+
+**Die Zeile unter dem Haus:** Das Haus bleibt frei, darunter steht in einer Zeile, was los ist – „Alles in Ordnung“, „2 Fenster und Türen offen · 4 Lichter an“ oder eine Warnung. Der Punkt davor ist grün, gelb oder rot.
+
+**Die Liste:** Ein Tipp auf die Zeile öffnet die Liste auf einer eigenen Seite, das Dringende zuerst:
+
+| Zeile | Was sie zeigt |
+| --- | --- |
+| ⚠️ Warnungen | Rauch, Wasser, Alarm, Regen bei offenem Fenster – alles aus [5.8](#58-warnungen) |
+| 🪟 Offen | Fenster, Türen und Garagentore mit Kontakt, die offen oder gekippt sind |
+| 🔓 Nicht abgeschlossen | Türen mit Schloss, mit dem Knopf **Abschließen** |
+| 👤 Wer ist da | Die Personen aus Home Assistant: zu Hause (mit Raum, wenn NeonPlan ihn kennt) und unterwegs |
+| 🧺 Haushalt | Die Zeilen der Karte „Heute im Haushalt“: fertige Waschmaschine, Tonne, Post, Pflanzen |
+| 💡 Licht | Wie viele Lichter in welchen Räumen an sind, mit dem Knopf **Alle aus** |
+| 🚗 Auto, ⚡ Energie | Ladestand und Laden, Verbrauch, Solar, Netz und Akku (mit den passenden Erweiterungen) |
+
+Ist nichts zu tun, steht oben **Alles in Ordnung**. Bist du selbst nicht zu Hause, rückt „Wer ist da“ direkt hinter die Warnungen.
+
+**Hinfliegen:** Ein Tipp auf eine Zeile schließt die Liste und zeigt die Stelle im Haus. Hat eine Zeile mehrere Stellen (sechs offene Fenster), klappt sie auf, und du wählst eine.
+
+**Haus-Check:** Der Knopf unten in der Liste geht vor dem Gehen oder Schlafen alles durch, was offen oder an ist: erst die Fenster und Türen (die schließt du von Hand), dann die Schlösser, dann Raum für Raum die Lichter. Das Haus zeigt jede Stelle, darunter steht **Licht aus** bzw. **Abschließen** und **Weiter**. Ab dem ersten Raum mit Licht gibt es **Alle Lichter aus** für den Rest.
+
+**Aus einer Benachrichtigung direkt an die Stelle:** NeonPlan öffnet sich mit diesen Adressen am richtigen Ort:
+
+| Adresse | Öffnet |
+| --- | --- |
+| `/neonplan3d?view=now` | die Liste „Was ist los?“ |
+| `/neonplan3d?room=Bad` | den Raum (Name oder ID) |
+| `/neonplan3d?show=binary_sensor.fenster_bad` | fliegt zu diesem Gerät, Fenster oder dieser Tür |
+
+So sieht das in einer Automation für die Companion-App aus – ein Tipp auf die Meldung zeigt das Fenster im Haus:
+
+```yaml
+action: notify.mobile_app_mein_handy
+data:
+  title: Fenster offen
+  message: Das Fenster im Bad ist seit 30 Minuten offen.
+  data:
+    clickAction: /neonplan3d?show=binary_sensor.fenster_bad   # Android
+    url: /neonplan3d?show=binary_sensor.fenster_bad           # iPhone
+```
+
 ## 6. Pro-Erweiterungen
 
 Pro-Erweiterungen sind kostenpflichtige Zusatzfunktionen, einzeln im Shop erhältlich. Ohne Erweiterung zeigen die Schalter ein 🔒, und ein Hinweis führt zum Shop. Wie du sie installierst, steht in [Kapitel 7](#7-erweiterungen-shop-und-möbel-packs).

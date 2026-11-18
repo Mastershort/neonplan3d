@@ -4,8 +4,9 @@ import { formatImperial, lengthUnit, parseLength } from "./units.ts";
 import { css, html, LitElement, nothing, type PropertyValues } from "lit";
 import { BuildingController } from "./building-controller.ts";
 import { countView, deviceClass } from "./diagnostics.ts";
-import { nowItems, type NowInput, type NowTarget, type NowWords } from "./now.ts";
+import { nowItems, nowStops, nowSummary, type NowAction, type NowInput, type NowItem, type NowStop, type NowTarget, type NowWords } from "./now.ts";
 import "./components/now-list.ts";
+import type { NowLabels, NowMode } from "./components/now-list.ts";
 import { loadEditor } from "./load-editor.ts";
 import "./components/plan-overview.ts";
 import "./components/plan-picker.ts";
@@ -113,7 +114,7 @@ export class Floorplan3dPanel extends LitElement {
     _clean: { state: true },
     _phone: { state: true },
     _phoneAsk: { state: true },
-    _nowFolded: { state: true },
+    _nowMode: { state: true },
     _navWrap: { state: true },
     _optsOpen: { state: true },
     _pinHover: { state: true },
@@ -200,7 +201,13 @@ export class Floorplan3dPanel extends LitElement {
   /** The phone view "What is going on?": chosen per device; a phone is asked once whether to try it. */
   private declare _phone: boolean;
   private declare _phoneAsk: boolean;
-  private declare _nowFolded: boolean;
+  /** bar: one line under the house; page: the whole list; check: the house check steps through the house. */
+  private declare _nowMode: NowMode;
+  private nowStopList: NowStop[] = [];
+  /** A link asked for the list (?view=now), also on a device that has not switched the phone view on. */
+  private nowLinked = false;
+  /** ?room= / ?show= from a notification: opened once the plan is there. */
+  private pendingLink: { room: string | null; show: string | null } | null = null;
   /** The floor and room bar wraps onto several lines instead of scrolling sideways (remembered on this device). */
   private declare _navWrap: boolean;
   /** Phones: the view options (quality, look, markers, FPS) folded behind ⚙ (#131). */
@@ -284,7 +291,14 @@ export class Floorplan3dPanel extends LitElement {
     this._cameraWall = false;
     this._clean = prefs.get("clean") === "1";
     this._phone = prefs.get("phone") === "1";
-    this._nowFolded = prefs.get("now_folded") === "1";
+    this._nowMode = "bar";
+    // links from a notification: ?view=now opens the list, ?room=<name or id> a room, ?show=<entity> flies to a device
+    const link = new URLSearchParams(location.search);
+    if (link.get("view") === "now") {
+      this.nowLinked = true;
+      this._nowMode = "page";
+    }
+    if (link.get("room") || link.get("show")) this.pendingLink = { room: link.get("room"), show: link.get("show") };
     // nothing changes by itself: a phone that has not chosen yet gets one question
     this._phoneAsk = prefs.get("phone") === null && deviceClass(navigator.userAgent, Math.min(screen.width, screen.height), navigator.maxTouchPoints) === "phone";
     this._navWrap = prefs.get("nav_wrap") === "1";
@@ -375,19 +389,36 @@ export class Floorplan3dPanel extends LitElement {
     prefs.set("explode", explode ? "1" : "0");
   }
 
+  /** ?room= / ?show= (a notification's link): into the room, or to the device, once the plan and the view are there. */
+  private followLink(): void {
+    const link = this.pendingLink;
+    const b = this.data.building;
+    if (!link || !b || !this.view3d()) return;
+    this.pendingLink = null;
+    if (link.room) {
+      const want = link.room.trim().toLowerCase();
+      for (const floor of b.floors) {
+        const room = zonesOf(floor).find((r) => r.id === link.room || r.name.trim().toLowerCase() === want);
+        if (!room) continue;
+        this._floorId = floor.id;
+        this._roomId = room.id;
+        break;
+      }
+    }
+    // the device's place is known once the view has gone through its devices
+    if (link.show) setTimeout(() => this.view3d()?.showNow({ entity: link.show }), 1200);
+  }
+
   private setPhone(on: boolean): void {
     this._phone = on;
     this._phoneAsk = false;
     prefs.set("phone", on ? "1" : "0");
   }
 
-  /** The lines of "What is going on?" from what the 3D view knows right now. */
-  private nowList() {
+  private nowWords(): NowWords {
     const hass = this.hass;
-    const input = this.view3d()?.nowInput();
-    if (!hass || !input) return [];
     const n = (one: I18nKey, many: I18nKey) => (count: number) => this.t(count === 1 ? one : many).replace("{n}", String(count));
-    const words: NowWords = {
+    return {
       open: n("now_open_one", "now_open"),
       tilted: this.t("now_tilted"),
       unlocked: n("now_unlocked_one", "now_unlocked"),
@@ -402,12 +433,61 @@ export class Floorplan3dPanel extends LitElement {
       battery: this.t("now_battery"),
       charging: this.t("wallbox_charging"),
       carAway: this.t("now_car_away"),
-      calm: input.away ? this.t("now_calm_away") : this.t("now_calm"),
+      calm: this.t("now_calm"),
       calmDetail: this.t("now_calm_detail"),
-      household: "",
       watts: (w) => formatPower(hass, w),
     };
-    return nowItems(input, words);
+  }
+
+  /** "What is going on?" from what the 3D view knows right now: the lines and the one line under the house. */
+  private nowData(): { input: NowInput | null; items: NowItem[]; summary: { text: string; level: 0 | 1 | 2 } } {
+    const input = this.view3d()?.nowInput() ?? null;
+    if (!this.hass || !input) return { input: null, items: [], summary: { text: this.t("now_title"), level: 0 } };
+    const words = this.nowWords();
+    if (input.away) words.calm = this.t("now_calm_away");
+    const items = nowItems(input, words);
+    return { input, items, summary: nowSummary(items) };
+  }
+
+  private nowLabels(): NowLabels {
+    return {
+      title: this.t("now_title"),
+      close: this.t("close"),
+      lightsOff: this.t("now_lights_off"),
+      lock: this.t("now_lock"),
+      check: this.t("now_check"),
+      checkHint: this.t("now_check_hint"),
+      next: this.t("now_next"),
+      done: this.t("now_done"),
+      checkDone: this.t("now_check_done"),
+      checkNothing: this.t("now_check_nothing"),
+      windowHint: this.t("now_window_hint"),
+      allLightsOff: this.t("now_all_lights_off"),
+    };
+  }
+
+  private setNowMode(mode: NowMode): void {
+    if (mode === "check") {
+      // the stops as they are now: switching things off on the way must not reshuffle them
+      const input = this.view3d()?.nowInput();
+      this.nowStopList = input ? nowStops(input, this.nowWords()) : [];
+    }
+    // the check went through the rooms: back to the house as it was before
+    if (this._nowMode === "check" && mode !== "check") this._roomId = null;
+    this._nowMode = mode;
+  }
+
+  /** A place of the list: the page makes way and the house flies there. */
+  private nowGo(target: NowTarget): void {
+    if (this._nowMode === "page") this._nowMode = "bar";
+    this.view3d()?.showNow(target);
+  }
+
+  /** The button beside a line: all its lights off, all its locks locked. */
+  private nowAct(action: NowAction): void {
+    if (!this.hass || !action.entities.length) return;
+    if (action.kind === "lock") void this.hass.callService("lock", "lock", { entity_id: action.entities });
+    else void this.hass.callService("homeassistant", "turn_off", { entity_id: action.entities });
   }
 
   private setQuality(quality: Quality): void {
@@ -705,6 +785,7 @@ export class Floorplan3dPanel extends LitElement {
 
   protected updated(): void {
     if (this.data.plans.length > 1) this.watch.watch(this.hass, this.data);
+    this.followLink();
     // a warning's plan has loaded: into its room
     const pending = this.pendingRoom;
     if (pending && this.data.planId === pending.plan && this.data.building) {
@@ -1231,7 +1312,10 @@ export class Floorplan3dPanel extends LitElement {
     const barMode = released("room_bar") ? this._roomBar : "off";
     const roomBar = barMode !== "off" && !tt;
     // the phone's list: while no room is open, nobody walks and the clean view is off
-    const now = this._phone && !tt && !this._roomId && !this._walking && !this._clean;
+    const nowOn = (this._phone || this.nowLinked) && !tt && !this._walking && !this._clean;
+    // the line makes way for an open room's panel; the page and the check stay
+    const now = nowOn && (this._nowMode !== "bar" || !this._roomId);
+    const nowData = now ? this.nowData() : null;
     // with the room bar the rooms live at the bottom: the top keeps only the floors (nothing at all with one floor)
     const roomChips = barMode === "off";
     return html`
@@ -1291,7 +1375,7 @@ export class Floorplan3dPanel extends LitElement {
           ${this._navWrap ? "\u2194" : "\u2261"}
         </button>
       </nav>`}
-      <div class="fp3d-stage-wrap ${this._roomId ? "fp3d-room-open" : ""} ${this._controlsRight ? "fp3d-side-right" : ""} ${tt ? "fp3d-tt" : ""} ${roomBar ? "fp3d-has-bar" : ""} ${now ? (this._nowFolded ? "fp3d-now-folded" : "fp3d-now-open") : ""}">
+      <div class="fp3d-stage-wrap ${this._roomId ? "fp3d-room-open" : ""} ${this._controlsRight ? "fp3d-side-right" : ""} ${tt ? "fp3d-tt" : ""} ${roomBar ? "fp3d-has-bar" : ""} ${now ? `fp3d-now-${this._nowMode}` : ""}">
         <fp3d-view3d
           class="fp3d-body"
           @walk-change=${(e: CustomEvent<{ walking: boolean }>) => (this._walking = e.detail.walking)}
@@ -1345,7 +1429,9 @@ export class Floorplan3dPanel extends LitElement {
           @device-move=${this.moveDevice}
           .quality=${this._quality}
           ?showStats=${this._stats}
-          @status-change=${() => this._phone && setTimeout(() => this.requestUpdate(), 0)}
+          .floorThumbs=${!this._phone}
+          .householdCard=${!this._phone}
+          @status-change=${() => (this._phone || this.nowLinked) && setTimeout(() => this.requestUpdate(), 0)}
           @room-tap=${this.onRoomTap}
           @open-extensions=${() => this.setMode("extensions")}
           @floor-tap=${(e: CustomEvent<{ floorId: string | null }>) => {
@@ -1354,7 +1440,7 @@ export class Floorplan3dPanel extends LitElement {
           }}
           @back=${() => this.back()}
         ></fp3d-view3d>
-        ${this._roomId && !this._walking
+        ${this._roomId && !this._walking && !(now && this._nowMode === "check")
           ? html`<fp3d-room-panel
               ?walk=${true}
               @walk-here=${() => this.view3d()?.walkHere()}
@@ -1371,17 +1457,17 @@ export class Floorplan3dPanel extends LitElement {
               @close=${() => (this._roomId = null)}
             ></fp3d-room-panel>`
           : nothing}
-        ${now
+        ${now && nowData
           ? html`<fp3d-now-list
               class="fp3d-now"
-              .items=${this.nowList()}
-              .heading=${this.t("now_title")}
-              ?folded=${this._nowFolded}
-              @now-fold=${(e: CustomEvent<{ folded: boolean }>) => {
-                this._nowFolded = e.detail.folded;
-                prefs.set("now_folded", this._nowFolded ? "1" : "0");
-              }}
-              @now-go=${(e: CustomEvent<NowTarget>) => this.view3d()?.showNow(e.detail)}
+              .items=${nowData.items}
+              .summary=${nowData.summary}
+              .stops=${this.nowStopList}
+              .labels=${this.nowLabels()}
+              .mode=${this._nowMode}
+              @now-mode=${(e: CustomEvent<NowMode>) => this.setNowMode(e.detail)}
+              @now-go=${(e: CustomEvent<NowTarget>) => this.nowGo(e.detail)}
+              @now-act=${(e: CustomEvent<NowAction>) => this.nowAct(e.detail)}
             ></fp3d-now-list>`
           : nothing}
         ${this._phoneAsk && !tt
@@ -2000,24 +2086,31 @@ export class Floorplan3dPanel extends LitElement {
           --fp3d-bottom-inset: var(--fp3d-tt-h);
         }
       }
-      /* the phone's "What is going on?" sheet: over the lower part of the view, folded down to one line */
+      /* the phone's "What is going on?": a line under the house, the list as a page of its own, the house check as a
+         small card – the house and the list never share the screen */
       .fp3d-now {
         position: absolute;
         left: 8px;
         right: 8px;
         bottom: 8px;
-        max-height: 46%;
         z-index: 4;
       }
-      .fp3d-now-open .fp3d-overlay,
-      .fp3d-now-folded .fp3d-overlay {
+      .fp3d-now[mode="page"] {
+        inset: 0;
+        z-index: 8;
+      }
+      /* the switches and the view's own buttons step up above the line or the card */
+      .fp3d-now-bar .fp3d-overlay {
+        bottom: 60px;
+      }
+      .fp3d-now-bar fp3d-view3d {
+        --fp3d-bottom-inset: 108px;
+      }
+      .fp3d-now-check .fp3d-overlay {
         display: none;
       }
-      .fp3d-now-open fp3d-view3d {
-        --fp3d-bottom-inset: calc(46% + 8px);
-      }
-      .fp3d-now-folded fp3d-view3d {
-        --fp3d-bottom-inset: 118px;
+      .fp3d-now-check fp3d-view3d {
+        --fp3d-bottom-inset: 190px;
       }
       .fp3d-now-ask {
         position: absolute;

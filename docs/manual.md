@@ -970,6 +970,52 @@ data:
 
 **What wins?** The newest setting. A style set by voice or an action applies until you reset it, its minutes run out, or you choose a style anew for the screen (device, card or template). After that comes the helper entity, then the style set.
 
+### 5.13 On the phone: "What's going on?" (new)
+
+NeonPlan is made for wall tablets and PCs. On a phone there is mostly one question: **is everything all right at home?** That is what the phone view is for.
+
+**Switching it on:** on a phone NeonPlan asks once whether you want to try it. You can switch at any time at the top under **⚙ → 📱 Phone view**. The choice counts for this device only; tablets, PCs and the dashboard card stay as they are.
+
+**The line below the house:** the house stays free, and one line below it says what is going on – "All is well", "2 windows and doors open · 4 lights on" or a warning. The dot in front is green, yellow or red.
+
+**The list:** a tap on the line opens the list on a page of its own, the urgent first:
+
+| Line | What it shows |
+| --- | --- |
+| ⚠️ Warnings | smoke, water, alarm, rain on an open window – everything from [5.8](#58-warnings) |
+| 🪟 Open | windows, doors and garage doors with a contact that stand open or are tilted |
+| 🔓 Not locked | doors with a lock, with the button **Lock** |
+| 👤 Who is in | Home Assistant's persons: at home (with the room when NeonPlan knows it) and away |
+| 🧺 Household | the lines of the card "Today in the household": a finished washing machine, bins, post, plants |
+| 💡 Lights | how many lights are on in which rooms, with the button **All off** |
+| 🚗 Car, ⚡ Energy | charge and charging, consumption, solar, grid and battery (with the matching add-ons) |
+
+With nothing to do, the top line says **All is well**. When you are not at home yourself, "Who is in" comes right after the warnings.
+
+**Flying there:** a tap on a line closes the list and shows the place in the house. A line with several places (six open windows) unfolds, and you pick one.
+
+**House check:** the button at the bottom of the list goes through everything open or switched on before you leave or go to bed: first the windows and doors (you shut those by hand), then the locks, then the lights room by room. The house shows each place, with **All off** or **Lock** and **Next** below it. From the first lit room on there is **All lights off** for the rest.
+
+**From a notification straight to the place:** these addresses open NeonPlan in the right spot:
+
+| Address | Opens |
+| --- | --- |
+| `/neonplan3d?view=now` | the list "What's going on?" |
+| `/neonplan3d?room=Bath` | the room (name or id) |
+| `/neonplan3d?show=binary_sensor.window_bath` | flies to this device, window or door |
+
+In an automation for the Companion app it looks like this – a tap on the message shows the window in the house:
+
+```yaml
+action: notify.mobile_app_my_phone
+data:
+  title: Window open
+  message: The bathroom window has been open for 30 minutes.
+  data:
+    clickAction: /neonplan3d?show=binary_sensor.window_bath   # Android
+    url: /neonplan3d?show=binary_sensor.window_bath           # iPhone
+```
+
 ## 6. Pro add-ons
 
 Pro add-ons are paid extra features, sold singly in the shop. Without an add-on, the switches show a 🔒 and a hint leads to the shop. How to install them is in [chapter 7](#7-extensions-shop-and-furniture-packs).

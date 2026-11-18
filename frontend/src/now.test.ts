@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { nowItems, type NowInput, type NowWords } from "./now.ts";
+import { nowItems, nowStops, nowSummary, type NowInput, type NowWords } from "./now.ts";
 
 const words: NowWords = {
   open: (n) => `${n} open`,
@@ -19,7 +19,6 @@ const words: NowWords = {
   carAway: "away",
   calm: "All fine",
   calmDetail: "nothing open",
-  household: "Household",
   watts: (w) => `${Math.round(w)} W`,
 };
 
@@ -39,7 +38,7 @@ test("warnings lead, then what stands open or unlocked, then the rest – and no
       alerts: [{ text: "Kitchen · smoke", entity: "binary_sensor.smoke", floorId: "eg", roomId: "kitchen" }],
       openings: [win("w1", "Bath", true), win("w2", "Kitchen", false, true), win("w3", "Office", false)],
       unlocked: [{ name: "Front door", entity: "lock.front" }],
-      lights: [{ room: "Bath", count: 2, floorId: "eg", roomId: "bath" }, { room: "Hall", count: 0 }],
+      lights: [{ room: "Bath", count: 2, floorId: "eg", roomId: "bath", on: ["light.a", "light.b"] }, { room: "Hall", count: 0 }],
       people: [{ name: "Anna", home: true, room: "Office", floorId: "eg", roomId: "office" }, { name: "Ben", home: false, room: null }],
     },
     words,
@@ -81,4 +80,45 @@ test("the household: what is due now stands on its own, the rest shares a line; 
   assert.equal(items[2].detail, "charging · 64 %");
   assert.equal(items[3].title, "Use 1700 W");
   assert.equal(items[3].detail, "Solar 1500 W · Feed-in 200 W · Battery 64 %");
+});
+
+test("the obvious thing to do comes with the line: lights off, lock the door – a window has none", () => {
+  const input: NowInput = {
+    ...empty,
+    openings: [win("w1", "Bath", true)],
+    unlocked: [{ name: "Front door", entity: "lock.front", floorId: "eg", roomId: null }],
+    lights: [{ room: "Bath", count: 2, floorId: "eg", roomId: "bath", on: ["light.a", "light.b"] }, { room: "Hall", count: 1, floorId: "eg", roomId: "hall", on: ["switch.c"] }],
+  };
+  const items = nowItems(input, words);
+  assert.equal(items.find((i) => i.kind === "open")!.action, undefined);
+  assert.deepEqual(items.find((i) => i.kind === "unlocked")!.action, { kind: "lock", entities: ["lock.front"] });
+  assert.deepEqual(items.find((i) => i.kind === "lights")!.action, { kind: "lights_off", entities: ["light.a", "light.b", "switch.c"] });
+  // each place of a line has its own name for the list
+  assert.deepEqual(items.find((i) => i.kind === "lights")!.targets.map((t) => t.label), ["Bath (2)", "Hall"]);
+});
+
+test("the line under the house: a warning first, else what needs a look, else that all is well", () => {
+  assert.deepEqual(nowSummary(nowItems(empty, words)), { text: "All fine", level: 0 });
+  const lit: NowInput = { ...empty, lights: [{ room: "Bath", count: 3, on: ["light.a"] }] };
+  assert.deepEqual(nowSummary(nowItems(lit, words)), { text: "All fine · 3 lights on", level: 0 });
+  assert.deepEqual(nowSummary(nowItems({ ...lit, openings: [win("w1", "Bath", true)] }, words)), { text: "1 open · 3 lights on", level: 1 });
+  const alarm = { ...lit, alerts: [{ text: "Smoke", entity: "x" }, { text: "Water", entity: "y" }] };
+  assert.deepEqual(nowSummary(nowItems(alarm, words)), { text: "Smoke (+1)", level: 2 });
+});
+
+test("the house check stops at every open window, unlocked door and lit room, in that order", () => {
+  const stops = nowStops(
+    {
+      ...empty,
+      lights: [{ room: "Bath", count: 2, floorId: "eg", roomId: "bath", on: ["light.a", "light.b"] }, { room: "Hall", count: 0 }],
+      unlocked: [{ name: "Front door", entity: "lock.front" }],
+      openings: [win("w1", "Bath", false, true), win("w2", "Office", false)],
+    },
+    words,
+  );
+  assert.deepEqual(stops.map((s) => s.kind), ["open", "unlocked", "lights"]);
+  assert.equal(stops[0].title, "Bath · (tilted)");
+  assert.equal(stops[0].action, undefined);
+  assert.deepEqual(stops[2].action, { kind: "lights_off", entities: ["light.a", "light.b"] });
+  assert.deepEqual(nowStops(empty, words), []);
 });

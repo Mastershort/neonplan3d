@@ -1865,7 +1865,7 @@ export class Fp3dView3d extends LitElement {
       unlocked: this.lockMarkers(hass, b).filter((m) => m.active).map((m) => ({ name: entityName(hass, m.id), entity: m.id, floorId: m.floorId, roomId: m.roomId })),
       people,
       household: this._household.map((it) => ({ text: it.text, entity: it.entity, hot: !!it.hot })),
-      lights: roomTiles(hass, b, null).map((r) => ({ room: r.name, count: r.lightsOn.length, floorId: r.floorId, roomId: r.roomId })),
+      lights: roomTiles(hass, b, null).map((r) => ({ room: r.name, count: r.lightsOn.length, on: r.lightsOn, floorId: r.floorId, roomId: r.roomId })),
       energy: this._energy ? { consumption: this._energy.consumption, solar: this._energy.solar, grid: this._energy.grid, soc: this._energy.soc } : null,
       cars: this.spokenCars(hass, b).map((c) => ({ name: c.name, present: c.present, charging: c.charging, soc: c.soc, floorId: c.floorId })),
       away: !!me && me.state !== "home",
@@ -1874,6 +1874,14 @@ export class Fp3dView3d extends LitElement {
 
   /** A line of that list was tapped: fly to the device, else open its room. */
   showNow(target: NowTarget): void {
+    const b = this.building;
+    // a window or door: seen from inside its room, at its own height
+    const spot = target.opening && b ? this.openingSpot(b, target.opening) : null;
+    if (spot) {
+      if (this.floorId !== spot.floorId || this.roomId) this.fire("floor-tap", { floorId: spot.floorId });
+      setTimeout(() => this.viewer?.focus(spot.floorId, spot.x, spot.z, spot.y, target.entity ?? null, { radius: 4.6, phi: 1.0, theta: spot.theta }), 120);
+      return;
+    }
     if (target.entity) {
       const before = this.floorId;
       this.showEntity(target.entity);
