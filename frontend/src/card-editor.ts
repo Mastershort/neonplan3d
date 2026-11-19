@@ -399,6 +399,59 @@ export class Floorplan3dCardEditor extends LitElement {
     </div>`;
   }
 
+  /**
+   * What the card is for: a tablet or a large screen, or a phone – the phone view with its bar at the bottom, and the
+   * bar's own options right below (which places it has, what it opens with).
+   */
+  private renderPurpose() {
+    const v = this.value;
+    const phone = v.phone === true;
+    const hidden = new Set(this._config.phone_hide ?? this.templateOptions.phone_hide ?? []);
+    const part = (id: "rooms" | "covers" | "favorites", label: I18nKey, hint: I18nKey) =>
+      html`<label class="toggle">
+        <input
+          type="checkbox"
+          .checked=${!hidden.has(id)}
+          @change=${(e: Event) => {
+            const next = new Set(hidden);
+            if ((e.target as HTMLInputElement).checked) next.delete(id);
+            else next.add(id);
+            this.set("phone_hide", next.size ? (["rooms", "covers", "favorites"] as const).filter((x) => next.has(x)) : undefined);
+          }}
+        />
+        <span>${this.t(label)}<small>${this.t(hint)}</small></span>
+      </label>`;
+    return html`<h3>${this.t("card_for")}</h3>
+      <div class="purpose">
+        <button type="button" aria-pressed=${!phone} @click=${() => this.set("phone", undefined)}>🖥 ${this.t("card_for_large")}</button>
+        <button
+          type="button"
+          aria-pressed=${phone}
+          @click=${() => {
+            this.set("phone", true);
+            // a phone's card fills the screen
+            this.set("fill", true);
+          }}
+        >
+          📱 ${this.t("card_for_phone")}
+        </button>
+      </div>
+      <p class="hint">${this.t(phone ? "card_for_phone_hint" : "card_for_large_hint")}</p>
+      ${phone
+        ? html`<h3>${this.t("card_section_phone")}</h3>
+            ${part("rooms", "card_phone_rooms", "card_phone_rooms_hint")} ${part("covers", "card_phone_covers", "card_phone_covers_hint")}
+            ${part("favorites", "card_phone_favorites", "card_phone_favorites_hint")}
+            <label class="toggle">
+              <input type="checkbox" .checked=${v.phone_solo === true} @change=${(e: Event) => this.set("phone_solo", (e.target as HTMLInputElement).checked || undefined)} />
+              <span>${this.t("nav_solo")}<small>${this.t("card_phone_solo_hint")}</small></span>
+            </label>
+            <label class="toggle">
+              <input type="checkbox" .checked=${v.phone_start === "now"} @change=${(e: Event) => this.set("phone_start", (e.target as HTMLInputElement).checked ? "now" : undefined)} />
+              <span>${this.t("card_phone_start_now")}<small>${this.t("card_phone_start_now_hint")}</small></span>
+            </label>`
+        : nothing}`;
+  }
+
   /** Floor pictures: on by default without a start floor, off with one (but can be switched on). */
   private renderThumbsToggle() {
     const auto = !this._config.floor;
@@ -585,6 +638,7 @@ export class Floorplan3dCardEditor extends LitElement {
     if (!this.embedded && v.template) return html`${this.renderPlan()}${this.renderTemplate()}`;
     return html`
       ${this.embedded ? nothing : html`${this.renderPlan()}${this.renderTemplate()}`}
+      ${this.renderPurpose()}
       <h3>${this.t("card_section_view")}</h3>
       <div class="grid">
         <label class="field wide"
@@ -693,11 +747,14 @@ export class Floorplan3dCardEditor extends LitElement {
           </select>
         </label>
       </div>
-      ${this.renderControls()}
+      ${v.phone ? nothing : this.renderControls()}
       ${this.toggle("angle_lock", "angle_lock", "angle_lock_hint")} ${this.toggle("keep_view", "keep_view", "keep_view_hint")}
-      ${this.toggle("walk", "card_walk", "card_walk_hint")}
-      <div class="grid">${this.select("controls_side", "controls_side", [["left", "controls_left"], ["right", "controls_right"]], v.controls_side)}</div>
-      ${this.renderThumbsToggle()} ${this.toggle("room_names", "card_room_names")}
+      ${v.phone
+        ? nothing
+        : html`${this.toggle("walk", "card_walk", "card_walk_hint")}
+            <div class="grid">${this.select("controls_side", "controls_side", [["left", "controls_left"], ["right", "controls_right"]], v.controls_side)}</div>
+            ${this.renderThumbsToggle()}`}
+      ${this.toggle("room_names", "card_room_names")}
       ${this.toggle("energy", "card_energy")} ${this.toggle("room_panel", "card_room_panel", "card_room_panel_hint")}
       ${this.toggle("fullscreen_button", "card_fullscreen_button", "card_fullscreen_button_hint")}
       ${this.toggle("explode", "card_explode")} ${this.toggle("roof", "card_roof", "card_roof_hint")} ${this.toggle("roof_fade", "card_roof_fade", "card_roof_fade_hint")} ${this.toggle("plain", "card_plain", "plain_hint")}
@@ -891,6 +948,27 @@ export class Floorplan3dCardEditor extends LitElement {
       padding: 8px 0;
       font-size: 14px;
       cursor: pointer;
+    }
+    .purpose {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .purpose button {
+      flex: 1 1 160px;
+      padding: 12px 10px;
+      border: 1px solid var(--divider-color, #8884);
+      border-radius: 10px;
+      background: none;
+      color: inherit;
+      font: inherit;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    .purpose button[aria-pressed="true"] {
+      border-color: var(--primary-color);
+      box-shadow: inset 0 0 0 1px var(--primary-color);
+      font-weight: 600;
     }
     .toggle input {
       flex: none;

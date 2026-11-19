@@ -30,6 +30,8 @@ export class Fp3dPhoneShell extends LitElement {
     roomId: { attribute: false },
     extras: { attribute: false },
     solo: { type: Boolean },
+    hide: { attribute: false },
+    start: { attribute: false },
     watts: { attribute: false },
     mode: { reflect: true },
     _sheet: { state: true },
@@ -46,6 +48,11 @@ export class Fp3dPhoneShell extends LitElement {
   declare extras: NavMoreItem[];
   /** A room jumped into stands alone. */
   declare solo: boolean;
+  /** Parts left out: "rooms" and "covers" in the bar, "favorites" on top of the list. */
+  declare hide: string[];
+  /** "now": opens with the list. */
+  declare start: string | undefined;
+  private started = false;
   declare watts: (w: number) => string;
   /** bar: only the bar; page: the list; check: the house check steps through the house. */
   declare mode: NowMode;
@@ -61,6 +68,8 @@ export class Fp3dPhoneShell extends LitElement {
     this.roomId = null;
     this.extras = [];
     this.solo = false;
+    this.hide = [];
+    this.start = undefined;
     this.watts = (w) => `${Math.round(w)} W`;
     this.mode = "bar";
     this._sheet = null;
@@ -109,6 +118,13 @@ export class Fp3dPhoneShell extends LitElement {
     this._sheet = null;
     this.mode = mode;
     this.fire<NowMode>("phone-mode", mode);
+  }
+
+  protected updated(): void {
+    // a card set to open with the list: once, as soon as the house is there
+    if (this.started || !this.hass || !this.building) return;
+    this.started = true;
+    if (this.start === "now" && this.mode === "bar") this.setMode("page");
   }
 
   /** The host opens the list (a link asked for it). */
@@ -166,7 +182,8 @@ export class Fp3dPhoneShell extends LitElement {
       .map((f) => ({ id: f.id, name: f.name, items: floorControls(hass, f).covers.map((id): NavCover => navCover(id, entityName(hass, id), hass.states[id]?.state, hass.states[id]?.attributes.current_position)) }))
       .filter((f) => f.items.length);
     const shut = covers.reduce((n, f) => n + f.items.filter((c) => c.shut).length, 0);
-    const slots = navSlots(floors, items.filter((it) => it.level > 0).length, shut, covers.length > 0);
+    const out = new Set(this.hide ?? []);
+    const slots = navSlots(out.has("rooms") ? [] : floors, items.filter((it) => it.level > 0).length, shut, covers.length > 0 && !out.has("covers"));
     const active = this.mode === "page" ? "now" : this._sheet === "rooms" ? (slots.some((sl) => sl.id === "rooms") ? "rooms" : `floor:${this._navFloor}`) : this._sheet;
 
     const nowLabels: NowLabels = {
@@ -199,7 +216,7 @@ export class Fp3dPhoneShell extends LitElement {
       { id: "solo", icon: "🔎", label: this.t("nav_solo"), hint: this.t("nav_solo_hint"), pressed: this.solo },
       ...this.extras,
     ];
-    const favorites = (b.settings.favorites ?? []).filter((id) => !!hass.states[id]).map((id) => ({ entity: id, name: entityName(hass, id) }));
+    const favorites = out.has("favorites") ? [] : (b.settings.favorites ?? []).filter((id) => !!hass.states[id]).map((id) => ({ entity: id, name: entityName(hass, id) }));
 
     return html`${this.mode !== "bar"
         ? html`<fp3d-now-list

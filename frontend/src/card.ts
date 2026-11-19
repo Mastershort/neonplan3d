@@ -84,7 +84,7 @@ export class Floorplan3dCard extends LitElement {
   private declare _walking: boolean;
   /** The phone view (card option `phone`): what it shows, and whether a room jumped into stands alone (per device). */
   private declare _phoneMode: NowMode;
-  private declare _solo: boolean;
+  private declare _solo: boolean | null;
   /** The configured start room was applied once the building arrived. */
   private roomApplied = false;
   /** Floor chosen in the card (null: the house; undefined: none chosen, the configured floor applies). */
@@ -125,7 +125,9 @@ export class Floorplan3dCard extends LitElement {
     this._roomId = null;
     this._walking = false;
     this._phoneMode = "bar";
-    this._solo = localStorage.getItem("neonplan3d.phone_solo") === "1";
+    // null: this device has not chosen – the card's own default counts (`phone_solo`)
+    const solo = localStorage.getItem("neonplan3d.phone_solo");
+    this._solo = solo === null ? null : solo === "1";
     this._floorId = undefined;
     this._walls = savedWalls();
     this._heat = null;
@@ -518,7 +520,7 @@ clearTimeout(this.cleanTimer);
               .building=${b}
               .planId=${this.isSite ? null : this.data.planId}
               .noSave=${this.isSite}
-              .rooms=${c?.phone === true && this._solo && this._roomId ? [this._roomId] : rooms.length ? rooms : null}
+              .rooms=${c?.phone === true && (this._solo ?? c.phone_solo === true) && this._roomId ? [this._roomId] : rooms.length ? rooms : null}
               .packs=${this.data.packs}
               .floorId=${floorId}
               .roomId=${this._roomId}
@@ -654,7 +656,9 @@ clearTimeout(this.cleanTimer);
               .view=${() => this.view3d() as unknown as PhoneView | null}
               .floorId=${this._floorId ?? null}
               .roomId=${this._roomId}
-              .solo=${this._solo}
+              .solo=${this._solo ?? c?.phone_solo === true}
+              .hide=${c?.phone_hide ?? []}
+              .start=${c?.phone_start}
               .extras=${c?.dashboard ? [{ id: "dash", icon: "⌂", label: c.dashboard_label || c.dashboard }] : []}
               .watts=${(w: number) => formatPower(this.hass, w)}
               @phone-mode=${(e: CustomEvent<NowMode>) => (this._phoneMode = e.detail)}

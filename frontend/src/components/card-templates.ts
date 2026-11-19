@@ -131,8 +131,13 @@ export class Fp3dCardTemplates extends LitElement {
   }
 
   /** The height the card has on the screen: its own, or the screen below the header with "fill". */
+  /** The screen the preview is laid out for: a card for a phone always on a phone. */
+  private screenOf(tpl: CardTemplate): ScreenSize {
+    return workingConfig(tpl).phone ? "phone" : this._screen;
+  }
+
   private previewHeight(tpl: CardTemplate): number {
-    const s = SCREENS[this._screen];
+    const s = SCREENS[this.screenOf(tpl)];
     const c = workingConfig(tpl);
     return c.fill ? s.h - HEADER : Math.min(s.h - HEADER, Math.max(150, c.height ?? 420));
   }
@@ -158,7 +163,7 @@ export class Fp3dCardTemplates extends LitElement {
     const cfg = workingConfig(tpl);
     // the template's floor plan: the preview shows that plan, not the first one
     const plan = this.planLine ? { plan: this.plan! } : {};
-    const key = JSON.stringify([cfg, plan]);
+    const key = JSON.stringify([cfg, plan, this.screenOf(tpl)]);
     if (key !== this.previewKey) {
       this.previewKey = key;
       try {
@@ -171,7 +176,7 @@ export class Fp3dCardTemplates extends LitElement {
     // laid out as on that screen (on a tablet the room panel beside the house, on a phone over it), then shrunk; only
     // to look at: a tap here must not switch the house's lights
     const h = this.previewHeight(tpl);
-    const w = SCREENS[this._screen].w;
+    const w = SCREENS[this.screenOf(tpl)].w;
     return html`<div class="fp3d-tpl-stage" style="height:${Math.round(h * this._scale)}px;max-width:${Math.round(w * this._scale)}px">
         <div class="fp3d-tpl-screen" style="width:${w}px;height:${h}px;transform:scale(${this._scale})">${this.previewCard}</div>
       </div>
@@ -238,10 +243,11 @@ export class Fp3dCardTemplates extends LitElement {
     });
   }
 
-  private add(from?: CardTemplate): void {
-    const name = from ? this.t("card_template_copy_name", { name: from.name }) : this.t("card_template_new_name");
+  /** A new template: a copy of one, or an empty one for a tablet or large screen, or one for a phone. */
+  private add(from?: CardTemplate, phone = false): void {
+    const name = from ? this.t("card_template_copy_name", { name: from.name }) : this.t(phone ? "card_template_new_name_phone" : "card_template_new_name");
     const id = templateId(name, this.templates.flatMap((x) => this.idsOf(x)));
-    this.editTemplates((list) => list.push({ id, name, config: from ? structuredClone(from.config) : {} }));
+    this.editTemplates((list) => list.push({ id, name, config: from ? structuredClone(from.config) : phone ? { phone: true, fill: true } : {} }));
     this._selected = id;
   }
 
@@ -390,9 +396,14 @@ export class Fp3dCardTemplates extends LitElement {
       <p class="fp3d-sub">${this.t("card_templates_intro")}</p>
       <div class="fp3d-tpl-list">
         ${list.map(
-          (x) => html`<button class="fp3d-chip" aria-pressed=${x.id === tpl?.id} @click=${() => (this._selected = x.id)}>${x.name || x.id}</button>`,
+          (x) => html`<button class="fp3d-chip" aria-pressed=${x.id === tpl?.id} @click=${() => (this._selected = x.id)}>${workingConfig(x).phone ? "📱" : "🖥"} ${x.name || x.id}</button>`,
         )}
-        ${admin ? html`<button class="fp3d-btn" @click=${() => this.add()}>+ ${this.t("card_template_new")}</button>` : nothing}
+      </div>
+      <div class="fp3d-tpl-list">
+        ${admin
+          ? html`<button class="fp3d-btn" @click=${() => this.add()}>+ 🖥 ${this.t("card_template_new_large")}</button>
+              <button class="fp3d-btn" @click=${() => this.add(undefined, true)}>+ 📱 ${this.t("card_template_new_phone")}</button>`
+          : nothing}
       </div>
       ${!list.length ? html`<p class="fp3d-sub">${this.t("card_templates_empty")}</p>` : nothing}
       ${tpl ? this.renderTemplate(tpl, admin) : nothing}
@@ -522,7 +533,7 @@ export class Fp3dCardTemplates extends LitElement {
         <div class="fp3d-tpl-preview">
           <div class="fp3d-tpl-row">
             <b>${this.t("card_template_preview")}</b>
-            ${this._preview
+            ${this._preview && !workingConfig(tpl).phone
               ? html`<select class="fp3d-tpl-size" aria-label=${this.t("card_template_screen")} @change=${(e: Event) => this.setScreen((e.target as HTMLSelectElement).value as ScreenSize)}>
                   ${(Object.keys(SCREENS) as ScreenSize[]).map((k) => html`<option value=${k} ?selected=${k === this._screen}>${this.t(SCREENS[k].label)}</option>`)}
                 </select>`
