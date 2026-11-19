@@ -14,7 +14,7 @@ import "./components/view3d.ts";
 import { languageReady, loadLanguage, translate, type I18nKey } from "./i18n.ts";
 import { controls, tokens } from "./styles.ts";
 import type { HomeAssistant } from "./types.ts";
-import { cardTemplate, effectiveConfig, startViewFor, type CardConfig, type CardControl } from "./card-config.ts";
+import { cardTemplate, effectiveConfig, isUpright, startViewFor, type CardConfig, type CardControl } from "./card-config.ts";
 import { nightActive } from "./kiosk.ts";
 import { loadCardEditor } from "./load-card-editor.ts";
 import type { WallMode } from "./viewer/viewer3d.ts";
@@ -100,7 +100,7 @@ export class Floorplan3dCard extends LitElement {
   private declare _orbit: boolean;
   /** The dashboard gives the card more room than its height (a sections grid cell: rows of 56 px plus their gaps). */
   private declare _stretch: boolean;
-  /** The card is taller than wide (a tablet held upright): start_view_portrait applies. */
+  /** The screen is held upright (a tablet or phone in portrait): start_view_portrait applies. */
   private declare _portrait: boolean;
   private cellObserver: ResizeObserver | null = null;
   private idleTimer: ReturnType<typeof setTimeout> | undefined;
@@ -219,6 +219,14 @@ export class Floorplan3dCard extends LitElement {
       const top = Math.round(this.getBoundingClientRect().top + window.scrollY);
       if (this._top === null || Math.abs(top - this._top) > 1) this._top = top;
     }
+    // browsers without the screen's orientation: the window's shape decides
+    this.onTurn();
+  };
+
+  /** The screen turned over: the start view that fits (start_view_portrait). */
+  private readonly onTurn = () => {
+    const upright = isUpright(screen.orientation?.type, window.innerWidth, window.innerHeight);
+    if (upright !== this._portrait) this._portrait = upright;
   };
 
   /** A preview (the editor's card templates): not counted as a card in use. */
@@ -230,6 +238,8 @@ export class Floorplan3dCard extends LitElement {
     document.addEventListener("fullscreenchange", this.onFullscreen);
     window.addEventListener("resize", this.onViewport);
     window.visualViewport?.addEventListener("resize", this.onViewport);
+    screen.orientation?.addEventListener("change", this.onTurn);
+    this.onTurn();
     requestAnimationFrame(this.onViewport);
     // the dashboard may still be laying out: measure once more a moment later
     setTimeout(this.onViewport, 600);
@@ -238,9 +248,6 @@ export class Floorplan3dCard extends LitElement {
       const want = this._config?.height ?? 420;
       const stretch = !this._config?.fill && this.clientHeight > want + 4 && inSectionsGrid(this);
       if (stretch !== this._stretch) this._stretch = stretch;
-      // upright or lying: the start view that fits (start_view_portrait)
-      const portrait = this.clientWidth > 0 && this.clientHeight > this.clientWidth;
-      if (portrait !== this._portrait) this._portrait = portrait;
     });
     this.cellObserver.observe(this);
     this.armIdle();
@@ -253,6 +260,7 @@ export class Floorplan3dCard extends LitElement {
     document.removeEventListener("fullscreenchange", this.onFullscreen);
     window.removeEventListener("resize", this.onViewport);
     window.visualViewport?.removeEventListener("resize", this.onViewport);
+    screen.orientation?.removeEventListener("change", this.onTurn);
     this.cellObserver?.disconnect();
     this.cellObserver = null;
     this.tt.stop();

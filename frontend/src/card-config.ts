@@ -23,9 +23,9 @@ export interface CardConfig {
   /** A start view of this card's own (theta, phi, radius and target as the editor shows them); default: the plan's. */
   start_view?: StartView;
   /**
-   * The start view while the card is taller than wide (a tablet or phone held upright): a plan that is long one way
-   * fills the screen turned another way. Turning the screen over moves the house view to the start view that fits;
-   * left out, start_view applies in both.
+   * The start view while the screen is held upright (a tablet or phone in portrait): a plan that is long one way fills
+   * the screen turned another way. Turning the screen over moves the house view to the start view that fits; left out,
+   * start_view applies in both. Read from the screen's orientation, so a keyboard or a split screen does not switch it.
    */
   start_view_portrait?: StartView;
   height?: number;
@@ -157,9 +157,17 @@ export interface CardConfig {
 export const CARD_CONTROLS = ["walls", "floors", "temperature", "humidity", "co2"] as const;
 export type CardControl = (typeof CARD_CONTROLS)[number];
 
-/** The card's own start view for its shape: start_view_portrait while it is taller than wide (if set), else start_view. */
+/** The card's own start view: start_view_portrait while the screen is held upright (if set), else start_view. */
 export function startViewFor(c: Pick<CardConfig, "start_view" | "start_view_portrait"> | null | undefined, portrait: boolean): StartView | null {
   return (portrait ? c?.start_view_portrait : undefined) ?? c?.start_view ?? null;
+}
+
+/**
+ * Whether the screen is held upright: by the screen's own orientation where the browser tells it (a keyboard that
+ * pushes the page up, or a split screen, does not turn it), else by the shape of the window.
+ */
+export function isUpright(orientationType: string | null | undefined, width: number, height: number): boolean {
+  return orientationType ? orientationType.startsWith("portrait") : height > width;
 }
 
 /** The template a card names, if the plan has it. */
