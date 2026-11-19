@@ -1442,6 +1442,21 @@ export function floorControls(hass: HomeAssistant, floor: Floor): { lights: stri
   return { lights: [...lights], covers: [...covers] };
 }
 
+/** The thermostats of a floor (a page of the phone bar): from its rooms' areas, placed devices and linked furniture. */
+export function floorClimates(hass: HomeAssistant, floor: Floor): string[] {
+  const out = new Set<string>();
+  const add = (id: string | null | undefined) => {
+    if (id && id.startsWith("climate.") && hass.states[id]) out.add(id);
+  };
+  for (const room of floor.rooms) {
+    const hidden = new Set(room.hidden ?? []);
+    for (const id of areaEntities(hass, room.area_id)) if (!hidden.has(id)) add(id);
+  }
+  for (const pl of floor.placements) add(pl.entity_id);
+  for (const f of floor.furniture) add(f.entity);
+  return [...out];
+}
+
 /** The service a favourite runs when tapped: scenes and scripts start, buttons are pressed, the rest toggles. */
 export function favoriteCall(entityId: string): [domain: string, service: string] {
   const domain = entityId.split(".")[0];

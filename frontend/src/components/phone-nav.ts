@@ -2,7 +2,7 @@
 // and "More". The list "What is going on?" and the house check are the now-list element's; the bar only opens them.
 // The element shows and asks – jumping into a room and switching are the host's (events nav-*).
 import { LitElement, css, html, nothing } from "lit";
-import type { NavCover, NavFloor, NavSlot } from "../phone.ts";
+import type { NavCover, NavDevice, NavFloor, NavSlot } from "../phone.ts";
 
 export interface NavLabels {
   now: string;
@@ -12,6 +12,10 @@ export interface NavLabels {
   wholeFloor: string;
   allUp: string;
   allDown: string;
+  allOn: string;
+  allOff: string;
+  on: string;
+  off: string;
   close: string;
 }
 
@@ -24,7 +28,15 @@ export interface NavMoreItem {
   pressed?: boolean;
 }
 
-export type NavSheet = "rooms" | "covers" | "more" | null;
+export type NavSheet = "rooms" | "covers" | "more" | "group" | null;
+
+/** An own place's page: its devices by floor. */
+export interface NavGroup {
+  title: string;
+  /** Lights can all be switched on as well; thermostats only off. */
+  allOn: boolean;
+  floors: { id: string; name: string; items: NavDevice[] }[];
+}
 
 const SLOT_ICON: Record<string, string> = { now: "●", rooms: "▦", covers: "▤", more: "⋯" };
 
@@ -34,6 +46,7 @@ export class Fp3dPhoneNav extends LitElement {
     floors: { attribute: false },
     covers: { attribute: false },
     more: { attribute: false },
+    group: { attribute: false },
     labels: { attribute: false },
     sheet: {},
     floorId: {},
@@ -48,6 +61,7 @@ export class Fp3dPhoneNav extends LitElement {
   /** The blinds by floor. */
   declare covers: { id: string; name: string; items: NavCover[] }[];
   declare more: NavMoreItem[];
+  declare group: NavGroup | null;
   declare labels: NavLabels;
   declare sheet: NavSheet;
   /** The floor whose rooms the menu shows. */
@@ -66,6 +80,7 @@ export class Fp3dPhoneNav extends LitElement {
     this.floors = [];
     this.covers = [];
     this.more = [];
+    this.group = null;
     this.sheet = null;
     this.floorId = null;
     this.active = null;
@@ -125,6 +140,28 @@ export class Fp3dPhoneNav extends LitElement {
     )}`;
   }
 
+  private renderGroup() {
+    const g = this.group;
+    if (!g) return nothing;
+    const act = (entities: string[], on: boolean) => this.fire("nav-group", { entities, on });
+    return html`${g.floors.map(
+      (f) => html`<section>
+        <header>
+          <b>${f.name}</b>
+          ${g.allOn ? html`<button @click=${() => act(f.items.map((c) => c.entity), true)}>${this.labels.allOn}</button>` : nothing}
+          <button @click=${() => act(f.items.filter((c) => c.on).map((c) => c.entity), false)}>${this.labels.allOff}</button>
+        </header>
+        ${f.items.map(
+          (c) => html`<div class="cover">
+            <span class="name">${c.name}</span>
+            <span class="pos">${c.detail}</span>
+            <button class="power" aria-pressed=${c.on} @click=${() => act([c.entity], !c.on)}>${c.on ? this.labels.on : this.labels.off}</button>
+          </div>`,
+        )}
+      </section>`,
+    )}`;
+  }
+
   private renderMore() {
     return html`<div class="more">
       ${this.more.map(
@@ -138,11 +175,11 @@ export class Fp3dPhoneNav extends LitElement {
   }
 
   render() {
-    const title = this.sheet === "rooms" ? "" : this.sheet === "covers" ? this.labels.covers : this.sheet === "more" ? this.labels.more : "";
+    const title = this.sheet === "rooms" ? "" : this.sheet === "covers" ? this.labels.covers : this.sheet === "more" ? this.labels.more : this.sheet === "group" ? (this.group?.title ?? "") : "";
     return html`${this.sheet
         ? html`<div class="veil" @click=${() => this.fire("nav-close")}></div>
             <div class="sheet" role="dialog">
-              ${title ? html`<h3>${title}</h3>` : nothing} ${this.sheet === "rooms" ? this.renderRooms() : this.sheet === "covers" ? this.renderCovers() : this.renderMore()}
+              ${title ? html`<h3>${title}</h3>` : nothing} ${this.sheet === "rooms" ? this.renderRooms() : this.sheet === "covers" ? this.renderCovers() : this.sheet === "group" ? this.renderGroup() : this.renderMore()}
             </div>`
         : nothing}
       ${this.attention && !this.sheet && this.active !== "now"
@@ -151,7 +188,7 @@ export class Fp3dPhoneNav extends LitElement {
       <nav>
         ${this.slots.map(
           (s) => html`<button class="slot" aria-pressed=${this.active === s.id} @click=${() => this.fire("nav-slot", s.id)}>
-            <span class="glyph ${s.id === "now" ? `dot level${this.level}` : ""}" aria-hidden="true">${s.id === "now" ? "" : s.id.startsWith("floor:") ? "▦" : SLOT_ICON[s.id]}</span>
+            <span class="glyph ${s.id === "now" ? `dot level${this.level}` : ""}" aria-hidden="true">${s.id === "now" ? "" : s.icon ? s.icon : s.id.startsWith("floor:") ? "▦" : SLOT_ICON[s.id]}</span>
             <span class="label">${this.slotLabel(s)}</span>
             ${s.badge ? html`<span class="badge">${s.badge}</span>` : nothing}
           </button>`,
@@ -379,6 +416,15 @@ export class Fp3dPhoneNav extends LitElement {
       border-radius: 999px;
       border: 1px solid rgba(120, 160, 255, 0.3);
       background: #16233c;
+    }
+    .cover .power {
+      min-width: 60px;
+    }
+    .cover .power[aria-pressed="true"] {
+      background: #ffb02e;
+      border-color: #ffb02e;
+      color: #1a1205;
+      font-weight: 600;
     }
     .cover {
       display: flex;

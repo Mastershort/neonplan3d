@@ -661,6 +661,8 @@ clearTimeout(this.cleanTimer);
               .solo=${this._solo ?? c?.phone_solo === true}
               .hide=${c?.phone_hide ?? []}
               .start=${c?.phone_start}
+              .places=${c?.phone_places}
+              @phone-link=${(e: CustomEvent<string>) => haNavigate(e.detail)}
               .extras=${c?.dashboard ? [{ id: "dash", icon: "⌂", label: c.dashboard_label || c.dashboard }] : []}
               .watts=${(w: number) => formatPower(this.hass, w)}
               @phone-mode=${(e: CustomEvent<NowMode>) => (this._phoneMode = e.detail)}

@@ -1,6 +1,7 @@
 // Visual editor of the dashboard card: Home Assistant shows it in the card dialog, so nobody has to
 // write YAML. It follows Home Assistant's colours (the dialog is light or dark with the user's theme).
 
+import type { PhonePlace } from "./phone.ts";
 import { styleOptions } from "./style-select.ts";
 import { setCustomStyles } from "./looks.ts";
 import { css, html, LitElement, nothing, svg } from "lit";
@@ -442,6 +443,8 @@ export class Floorplan3dCardEditor extends LitElement {
         ? html`<h3>${this.t("card_section_phone")}</h3>
             ${part("rooms", "card_phone_rooms", "card_phone_rooms_hint")} ${part("covers", "card_phone_covers", "card_phone_covers_hint")}
             ${part("favorites", "card_phone_favorites", "card_phone_favorites_hint")}
+            ${[0, 1].map((i) => this.renderPlace(i))}
+            <p class="hint">${this.t("card_phone_place_hint")}</p>
             <label class="toggle">
               <input type="checkbox" .checked=${v.phone_solo === true} @change=${(e: Event) => this.set("phone_solo", (e.target as HTMLInputElement).checked || undefined)} />
               <span>${this.t("nav_solo")}<small>${this.t("card_phone_solo_hint")}</small></span>
@@ -451,6 +454,68 @@ export class Floorplan3dCardEditor extends LitElement {
               <span>${this.t("card_phone_start_now")}<small>${this.t("card_phone_start_now_hint")}</small></span>
             </label>`
         : nothing}`;
+  }
+
+  /** One of the two places of one's own in the phone bar: what it is, its word and sign, and its scene or page. */
+  private renderPlace(index: number) {
+    const list = [...(this._config.phone_places ?? this.templateOptions.phone_places ?? [])];
+    const place = list[index] as PhonePlace | undefined;
+    // the second place only after the first
+    if (index > 0 && !list[index - 1]) return nothing;
+    const save = (next: PhonePlace | null) => {
+      if (next) list[index] = next;
+      else list.splice(index, 1);
+      this.set("phone_places", list.length ? list : undefined);
+    };
+    const runnable = Object.keys(this.hass?.states ?? {})
+      .filter((id) => /^(scene|script)\./.test(id))
+      .sort();
+    return html`<div class="grid place">
+      <label class="field"
+        >${this.t("card_phone_place", { n: index + 1 })}
+        <select
+          @change=${(e: Event) => {
+            const kind = (e.target as HTMLSelectElement).value as PhonePlace["kind"] | "";
+            save(kind ? { kind, name: place?.name, icon: place?.icon, ...(kind === "action" ? { entity: runnable[0] } : kind === "link" ? { path: "/lovelace/0" } : {}) } : null);
+          }}
+        >
+          <option value="" ?selected=${!place}>${this.t("card_phone_place_none")}</option>
+          ${(["lights", "climate", "action", "link"] as const).map((k) => html`<option value=${k} ?selected=${place?.kind === k}>${this.t(`card_phone_place_${k}`)}</option>`)}
+        </select>
+      </label>
+      ${place
+        ? html`<label class="field"
+              >${this.t("card_phone_place_name")}
+              <input type="text" maxlength="24" .value=${place.name ?? ""} @change=${(e: Event) => save({ ...place, name: (e.target as HTMLInputElement).value.trim() || undefined })} />
+            </label>
+            <label class="field"
+              >${this.t("card_phone_place_icon")}
+              <input type="text" maxlength="4" placeholder="💡" .value=${place.icon ?? ""} @change=${(e: Event) => save({ ...place, icon: (e.target as HTMLInputElement).value.trim() || undefined })} />
+            </label>
+            ${place.kind === "action"
+              ? html`<label class="field"
+                  >${this.t("card_phone_place_entity")}
+                  <select @change=${(e: Event) => save({ ...place, entity: (e.target as HTMLSelectElement).value })}>
+                    ${place.entity && !runnable.includes(place.entity) ? html`<option value=${place.entity} selected>${place.entity}</option>` : nothing}
+                    ${runnable.map((id) => html`<option value=${id} ?selected=${id === place.entity}>${(this.hass?.states[id]?.attributes.friendly_name as string | undefined) ?? id}</option>`)}
+                  </select>
+                </label>`
+              : place.kind === "link"
+                ? html`<label class="field"
+                    >${this.t("card_phone_place_path")}
+                    <input
+                      type="text"
+                      placeholder="/lovelace/energie"
+                      .value=${place.path ?? ""}
+                      @change=${(e: Event) => {
+                        const path = (e.target as HTMLInputElement).value.trim();
+                        if (/^\/[^/]/.test(path)) save({ ...place, path });
+                      }}
+                    />
+                  </label>`
+                : nothing}`
+        : nothing}
+    </div>`;
   }
 
   /** Floor pictures: on by default without a start floor, off with one (but can be switched on). */
@@ -950,6 +1015,12 @@ export class Floorplan3dCardEditor extends LitElement {
       padding: 8px 0;
       font-size: 14px;
       cursor: pointer;
+    }
+    .place {
+      margin: 8px 0;
+      padding: 10px;
+      border: 1px dashed var(--divider-color, #8884);
+      border-radius: 10px;
     }
     .purpose {
       display: flex;

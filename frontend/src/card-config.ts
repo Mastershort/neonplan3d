@@ -1,5 +1,6 @@
 // Configuration of the dashboard card, shared by the card and its visual editor (a bundle of its own).
 
+import type { PhonePlace } from "./phone.ts";
 import type { Building, CardTemplate, StartView } from "./model.ts";
 import type { Quality, WallMode } from "./viewer/viewer3d.ts";
 
@@ -106,6 +107,8 @@ export interface CardConfig {
   phone_solo?: boolean;
   /** Phone view: "now" opens with the list "What is going on?" instead of the house. */
   phone_start?: "house" | "now";
+  /** Phone view: up to two places of one's own in the bar – a group of devices, a scene or script, a dashboard page. */
+  phone_places?: PhonePlace[];
   /** Switches in the card: all (true) or a list of walls, floors, temperature, humidity, co2. */
   controls?: boolean | CardControl[];
   /** Start with every bar and overlay hidden (the eye button brings them back); false shows the eye, hidden by default. */

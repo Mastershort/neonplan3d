@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { navCover, navFloors, navSlots } from "./phone.ts";
+import { navCover, navFloors, navSlots, phonePlaces } from "./phone.ts";
 import type { RoomTile } from "./room-bar.ts";
 
 const tile = (floorId: string, roomId: string, on = 0): RoomTile => ({ floorId, roomId, name: roomId, temp: null, lights: [], lightsOn: Array.from({ length: on }, (_, i) => `light.${roomId}${i}`), humidity: null, open: 0, playing: false, active: on > 0 });
@@ -26,4 +26,22 @@ test("a cover is shut when it says so or stands at 0", () => {
   assert.deepEqual(navCover("cover.a", "A", "closed", undefined), { entity: "cover.a", name: "A", position: null, shut: true });
   assert.equal(navCover("cover.a", "A", "open", 0).shut, true);
   assert.deepEqual(navCover("cover.a", "A", "open", 62.4), { entity: "cover.a", name: "A", position: 62, shut: false });
+});
+
+test("own places: at most two, known kinds, an action with its entity, a link inside Home Assistant", () => {
+  const p = phonePlaces([
+    { kind: "lights" },
+    { kind: "action" },
+    { kind: "link", path: "https://example.com" },
+    { kind: "nonsense" },
+    { kind: "action", entity: "scene.good_night", name: "Night" },
+    { kind: "climate" },
+  ]);
+  assert.deepEqual(p.map((x) => x.kind), ["lights", "action"]);
+  assert.equal(p[1].entity, "scene.good_night");
+  assert.deepEqual(phonePlaces("x"), []);
+  assert.equal(phonePlaces([{ kind: "link", path: "/lovelace/energy" }])[0].path, "/lovelace/energy");
+  // they stand before "More"
+  const slots = navSlots([], 0, 0, false, [{ id: "own:0", label: "Night", badge: 0 }]);
+  assert.deepEqual(slots.map((x) => x.id), ["now", "own:0", "more"]);
 });

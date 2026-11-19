@@ -17,6 +17,49 @@ export interface NavSlot {
   label: string;
   /** The number on the place (lights on, shut blinds, things that need a look); 0 shows none. */
   badge: number;
+  /** An own place's symbol. */
+  icon?: string;
+}
+
+/**
+ * A place of one's own in the bar (card option `phone_places`, at most two): a group of devices with a page of its
+ * own, a scene or script that runs at a tap, or a page of a Home Assistant dashboard.
+ */
+export interface PhonePlace {
+  kind: "lights" | "climate" | "action" | "link";
+  /** The word under the symbol (empty: the kind's own, or the scene's name). */
+  name?: string;
+  /** An emoji or a short sign (empty: the kind's own). */
+  icon?: string;
+  /** action: the scene, script, button or automation. */
+  entity?: string;
+  /** link: the path inside Home Assistant ("/lovelace/energie"). */
+  path?: string;
+}
+
+export const MAX_PLACES = 2;
+const KINDS = new Set(["lights", "climate", "action", "link"]);
+
+/** The places as the bar can use them: known kinds only, an action with its entity, a link with a path inside HA. */
+export function phonePlaces(raw: unknown): PhonePlace[] {
+  if (!Array.isArray(raw)) return [];
+  const out: PhonePlace[] = [];
+  for (const r of raw as Partial<PhonePlace>[]) {
+    if (!r || typeof r !== "object" || !KINDS.has(String(r.kind))) continue;
+    if (r.kind === "action" && !/^[a-z_]+\.[a-z0-9_]+$/.test(String(r.entity ?? ""))) continue;
+    if (r.kind === "link" && !/^\/[^/]/.test(String(r.path ?? ""))) continue;
+    out.push({ kind: r.kind!, name: typeof r.name === "string" ? r.name.slice(0, 24) : undefined, icon: typeof r.icon === "string" ? r.icon.slice(0, 4) : undefined, entity: r.entity, path: r.path });
+    if (out.length === MAX_PLACES) break;
+  }
+  return out;
+}
+
+/** A device on a group's page: a lamp with its brightness, a thermostat with what it has and what it wants. */
+export interface NavDevice {
+  entity: string;
+  name: string;
+  on: boolean;
+  detail: string;
 }
 
 /** The floors that have rooms, the lowest first, with their room tiles. */
@@ -35,14 +78,14 @@ export function navFloors(floors: { id: string; name: string; elevation: number 
  * room); one floor or more than two share one place "Rooms", whose menu switches between the floors. Without blinds
  * their place is left out.
  */
-export function navSlots(floors: NavFloor[], attention: number, coversShut: number, hasCovers: boolean): NavSlot[] {
+export function navSlots(floors: NavFloor[], attention: number, coversShut: number, hasCovers: boolean, own: NavSlot[] = []): NavSlot[] {
   const rooms: NavSlot[] =
     floors.length === 2
       ? floors.map((f) => ({ id: `floor:${f.id}`, label: f.name, badge: f.lightsOn }))
       : floors.length
         ? [{ id: "rooms", label: "", badge: floors.reduce((n, f) => n + f.lightsOn, 0) }]
         : [];
-  return [{ id: "now", label: "", badge: attention }, ...rooms, ...(hasCovers ? [{ id: "covers", label: "", badge: coversShut }] : []), { id: "more", label: "", badge: 0 }];
+  return [{ id: "now", label: "", badge: attention }, ...rooms, ...(hasCovers ? [{ id: "covers", label: "", badge: coversShut }] : []), ...own, { id: "more", label: "", badge: 0 }];
 }
 
 export interface NavCover {
