@@ -1,5 +1,5 @@
 // The neighbourhood from OpenStreetMap in 3D (see ../surroundings.ts): the neighbours' buildings as blocks of their
-// height with neon edges, streets, paths, railways and water as flat ribbons on the ground, parks, woods and water as
+// height (or, when asked for, as houses with a gable roof) with neon edges, streets, paths, railways and water as flat ribbons on the ground, parks, woods and water as
 // flat areas, single trees as small stacked crowns. All of it goes into the ground floor's geometry once – nothing
 // moves, nothing is drawn per frame.
 
@@ -7,6 +7,7 @@ import { Color } from "three";
 import type { Vec2 } from "../model.ts";
 import { signedArea } from "../model.ts";
 import type { PlacedSurroundings } from "../surroundings.ts";
+import { gableHouse } from "../surround-roof.ts";
 import { ALWAYS, type GeoBuffer, type LineBuffer, pushPrism, shade, triangulate } from "./geo.ts";
 import { palette } from "./palette.ts";
 
@@ -112,6 +113,21 @@ export function pushSurroundings(buf: GeoBuffer, lines: LineBuffer, s: PlacedSur
     if (b.p.length < 3) continue;
     const poly = ccw(b.p);
     const top = ground + Math.max(1, b.h);
+    const gable = s.roofs ? gableHouse(poly, b.h) : null;
+    if (gable) {
+      // one piece per slope: walls up to the eaves and into the gables, the slope as its top
+      const roofY = (x: number, z: number) => ground + gable.height(x, z);
+      for (const half of gable.halves) {
+        pushPrism(buf, half, ground, roofY, L.side, L.top, { aoFrom: ground, skipSide: (p, q) => gable.onRidge(p) && gable.onRidge(q) });
+        for (let i = 0; i < half.length; i++) {
+          const p = half[i];
+          const q = half[(i + 1) % half.length];
+          lines.seg([p[0], roofY(p[0], p[1]), p[1]], [q[0], roofY(q[0], q[1]), q[1]], edge, ALWAYS);
+          if (!gable.onRidge(p)) lines.seg([p[0], ground, p[1]], [p[0], roofY(p[0], p[1]), p[1]], edge, ALWAYS);
+        }
+      }
+      continue;
+    }
     pushPrism(buf, poly, ground, top, L.side, L.top, { aoFrom: ground });
     // neon edges: the outline at the top and the corners down to the ground
     for (let i = 0; i < poly.length; i++) {

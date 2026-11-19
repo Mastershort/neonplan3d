@@ -88,3 +88,14 @@ test("a duplicated floor gets new ids, keeps its references and loses its links 
   // the original is untouched
   assert.equal(b.floors[0].furniture[0].entity, "light.decke");
 });
+
+test("a copy without links drops what is nothing without its entity (#1217)", () => {
+  const b = building();
+  const m = b.floors[0].furniture[0] as unknown as Record<string, unknown>;
+  m.show_if = { entity: "input_boolean.christmas", state: "on" };
+  m.pictures = [{ entity: "media_player.tv", state: "playing", image: "abc" }];
+  const copy = copyFloor(b, "eg", (p) => `${p}_x`, "OG", 3)!;
+  const c = copy.furniture[0] as unknown as Record<string, unknown>;
+  assert.equal(c.show_if, null);
+  assert.deepEqual(c.pictures, []);
+});

@@ -2495,6 +2495,7 @@
  "surround_north": "Norr: {deg}°",
  "surround_credit": "Kartdata © OpenStreetMap-bidragsgivare",
  "surround_flat": "Grannarnas hus bara som kontur (platta i stället för block)",
+ "surround_roofs": "Grannarnas hus med sadeltak (stora byggnader förblir block)",
  "surround_y": "Omgivningens höjd (m)",
  "surround_y_hint": "Ligger gatan högre eller lägre än bottenvåningen (slänt, sluttande uppfart) flyttar detta hela kartan uppåt (+) eller nedåt (−).",
  "surround_pick": "Visa och dölj hus",

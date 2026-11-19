@@ -2495,6 +2495,7 @@
  "surround_north": "Nord : {deg}°",
  "surround_credit": "Données cartographiques © les contributeurs d'OpenStreetMap",
  "surround_flat": "Maisons voisines en simple contour (à plat au lieu de blocs)",
+ "surround_roofs": "Maisons voisines avec toit à deux pans (les grands bâtiments restent des blocs)",
  "surround_y": "Hauteur des alentours (m)",
  "surround_y_hint": "Si la rue est plus haute ou plus basse que le rez-de-chaussée (pente, allée inclinée), cela monte (+) ou descend (−) toute la carte.",
  "surround_pick": "Afficher et masquer des maisons",

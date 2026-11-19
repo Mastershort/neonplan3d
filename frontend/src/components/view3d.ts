@@ -261,6 +261,9 @@ function roomScale(b: Building | null | undefined): number {
   return typeof v === "number" && Number.isFinite(v) ? Math.min(2, Math.max(0.5, v)) : 1;
 }
 
+/** A swipe on a lamp or blind moves nothing within these pixels of where it began; let go there, it is a tap. */
+const SWIPE_SLACK = 18;
+
 export class Fp3dView3d extends LitElement {
   static properties = {
     hass: { attribute: false },
@@ -696,6 +699,8 @@ export class Fp3dView3d extends LitElement {
   /** Own buttons from the card's YAML (replace the house's buttons when set). */
   declare buttons: CustomButton[] | null;
   private swipeSent = 0;
+  /** The farthest the finger went in the running swipe, in pixels. */
+  private swipeFar = 0;
   private swipeTimer: ReturnType<typeof setTimeout> | undefined;
   /** Energy cables from the meter to the consumers (off unless switched on; kept per browser). */
   private declare _flows: boolean;
@@ -3066,7 +3071,10 @@ export class Fp3dView3d extends LitElement {
         const runW = typeof f.run_w === "number" && f.run_w > 0 ? f.run_w : 10;
         // below its own threshold the pin shows only the state, not the standby watts (#645)
         const standby = typeof f.run_w === "number" && f.run_w > 0 && power !== null && power <= f.run_w;
-        const running = (power ?? 0) > runW || st?.state === "on" || st?.state === "running" || (isStatusSensor(st) && isActive(st));
+        // a smart plug with a power sensor: the plug is on all day, so the watts say whether the thing behind it runs –
+        // by the plug alone it glowed and counted as running on standby, against what "running from (watts)" says
+        const metered = !!link.entity && /^(switch|input_boolean)\./.test(link.entity) && power !== null;
+        const running = (power ?? 0) > runW || (!metered && (st?.state === "on" || st?.state === "running" || (isStatusSensor(st) && isActive(st))));
         // the live director notices a program ending (a washer done) from the same reading
         if (appliance) this.appliances.set(f.id, { floorId: floor.id, x: f.x, z: f.z, entity: link.entity ?? link.power ?? f.id, running });
         // Haushalt Pro: a washer, dryer or dishwasher tells the time left while it runs and "finished" afterwards –
@@ -3180,14 +3188,14 @@ export class Fp3dView3d extends LitElement {
                   ? this.meterText(hass, power)
                   : boiler
                     ? boiler.text
-                    : st
+                    : st && !metered
                     ? stateText(hass, st)
                     : standby
                       ? translate(hass, "pin_standby")
                       : power !== null
                         ? formatPower(hass, Math.max(0, power))
                         : "")),
-          active: hhText ? true : car ? car.charging : boiler ? boiler.on : st ? isActive(st) : (power ?? 0) > (typeof f.run_w === "number" && f.run_w > 0 ? f.run_w : 5),
+          active: hhText ? true : car ? car.charging : boiler ? boiler.on : st && !metered ? isActive(st) : (power ?? 0) > (typeof f.run_w === "number" && f.run_w > 0 ? f.run_w : 5),
           unavailable: st ? isUnavailable(st) : false,
           glow: null,
           // its pin grabs the item when furnishing
@@ -4061,11 +4069,13 @@ export class Fp3dView3d extends LitElement {
       if (kind === "light" && lightAbilities(st).dim) {
         const pct = st.state === "on" ? (typeof st.attributes.brightness === "number" ? Math.round((st.attributes.brightness as number) / 2.55) : 100) : 0;
         this._swipe = { entity: entityId, kind: "light", start: pct, value: pct, x, y };
+        this.swipeFar = 0;
         return true;
       }
       if (kind === "cover" && coverPositionable(st)) {
         const pos = st.attributes.current_position as number;
         this._swipe = { entity: entityId, kind: "cover", start: pos, value: pos, x, y };
+        this.swipeFar = 0;
         return true;
       }
       return false;
@@ -4073,20 +4083,30 @@ export class Fp3dView3d extends LitElement {
     const s = this._swipe;
     if (!s || s.entity !== entityId) return false;
     if (phase === "move") {
+      // a tap with a shaky finger is no swipe: the first pixels move nothing, or a blind tapped on a phone started
+      // to run instead of showing its menu (#1208)
+      this.swipeFar = Math.max(this.swipeFar, Math.abs(dy));
+      const past = Math.abs(dy) <= SWIPE_SLACK ? 0 : dy - Math.sign(dy) * SWIPE_SLACK;
       // the whole range over about 220 pixels; up = brighter / blind up
-      const value = Math.round(Math.min(100, Math.max(0, s.start - (dy / 220) * 100)));
+      const value = Math.round(Math.min(100, Math.max(0, s.start - (past / 220) * 100)));
       if (value !== s.value) this._swipe = { ...s, value };
       // a lamp follows the finger, at most a few calls per second; a blind gets one position when the finger lifts –
       // its motor cannot follow, every step in between was queued and it kept moving for a long while
       const now = performance.now();
-      if (s.kind === "light" && now - this.swipeSent > 350) {
+      if (s.kind === "light" && value !== s.start && now - this.swipeSent > 350) {
         this.swipeSent = now;
         this.applySwipe();
       }
     } else {
-      // a pan that only started on a blind (back where it began) sends nothing
-      if (this._swipe && (this._swipe.kind === "light" || this._swipe.value !== this._swipe.start)) this.applySwipe();
       clearTimeout(this.swipeTimer);
+      if (this.swipeFar <= SWIPE_SLACK) {
+        // it never left the spot: that was a tap
+        this._swipe = null;
+        this.onDeviceTap(entityId, x, y);
+        return true;
+      }
+      // a swipe back to where it began sends nothing
+      if (s.value !== s.start) this.applySwipe();
       this.swipeTimer = setTimeout(() => (this._swipe = null), 700);
     }
     return true;
