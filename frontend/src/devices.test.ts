@@ -1050,6 +1050,8 @@ test("an own action per device that cannot run leaves the device its default (de
     "media_player.b": { tap: { action: "service", target: "  " } },
     "media_player.c": { tap: { action: "toggle" } },
     "media_player.d": { tap: "navigate" },
+    // runButton runs a service only as "domain.service": without the dot the tap would be swallowed with no effect
+    "media_player.e": { tap: { action: "service", target: "toggle" } },
   };
   for (const id of Object.keys(actions)) assert.equal(deviceAction(actions as never, id, "tap"), null, id);
 });

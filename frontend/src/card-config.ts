@@ -65,7 +65,9 @@ export interface CardConfig {
   buttons?: { label: string; icon?: string; action: "navigate" | "more_info" | "service" | "fire_dom_event"; target?: string; data?: Record<string, unknown> }[];
   /**
    * An own tap and long press per device, by entity id, instead of the default: `{ tap: { action, target, data }, hold: … }`
-   * with the own buttons' actions, or "none" to leave the device alone. A gesture or device left out keeps its default.
+   * with the own buttons' actions, or "none" for a tap or long press that does nothing (a swipe on a lamp or blind still
+   * works). A gesture or device left out keeps its default; a device marked to ask before switching asks before its own
+   * service or DOM event too.
    */
   device_actions?: Record<string, DeviceActions>;
   /** Heatmap of the rooms: none | temperature | humidity | co2 | values (the numbers at the room names). */

@@ -1442,7 +1442,7 @@ buttons:                # own buttons for this card only (replace the ones from 
 device_actions:         # an own tap / long press per device instead of its default (devices and gestures left out keep theirs)
   media_player.living_room_tv:
     tap: { action: navigate, target: /lovelace/tv-remote }   # navigate | more_info | service | fire_dom_event | none
-    hold: { action: more_info }   # more_info without a target: the device itself; none: the gesture does nothing
+    hold: { action: more_info }   # more_info without a target: the device itself; none: the tap / long press does nothing (a swipe still dims or moves)
 heatmap: none           # none | temperature | humidity | co2 | values (numbers at the room names)
 room_panel: true        # tapping a room opens the room panel
 room_names: true

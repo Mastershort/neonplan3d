@@ -716,7 +716,8 @@ export interface CustomButton {
 
 /**
  * What a tap or a long press on one device does instead of its default, set per device in a card's YAML
- * (`device_actions`): the own buttons' actions, or "none" to leave the device alone.
+ * (`device_actions`): the own buttons' actions, or "none" for a tap or long press that does nothing (a swipe on a lamp
+ * or blind still dims or moves it).
  */
 export interface DeviceAction {
   action: ButtonAction | "none";

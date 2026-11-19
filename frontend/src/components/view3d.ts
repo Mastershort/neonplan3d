@@ -6194,12 +6194,15 @@ export class Fp3dView3d extends LitElement {
 
   /**
    * The card's own action for a device and gesture (device_actions): true when it took the gesture, "none" included.
-   * While time travel replays the past nothing may be switched, so a service or DOM event then leaves the default.
+   * While time travel replays the past nothing may be switched, so a service or DOM event then leaves the default. A
+   * device marked to ask before switching (confirm) asks before its own service or DOM event too.
    */
   private ownDeviceAction(entityId: string, gesture: "tap" | "hold"): boolean {
     const own = deviceAction(this.deviceActions, entityId, gesture);
     if (!own || !this.hass) return false;
-    if (this.ro && (own.action === "service" || own.action === "fire_dom_event")) return false;
+    const switches = own.action === "service" || own.action === "fire_dom_event";
+    if (this.ro && switches) return false;
+    if (switches && this.confirmSet.has(entityId) && !confirm(translate(this.hass, "confirm_switch", { name: entityName(this.hass, entityId) }))) return true;
     if (own.action !== "none") runButton(this.hass, this, own);
     return true;
   }
