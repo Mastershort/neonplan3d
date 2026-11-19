@@ -481,7 +481,6 @@ export class Fp3dEditor extends LitElement {
     _rectSize: { state: true },
     _tool: { state: true },
     _toolMenu: { state: true },
-    _settingsMenu: { state: true },
     _sideWidth: { state: true },
     _moduleMsg: { state: true },
     _settingsDialog: { state: true },
@@ -730,7 +729,6 @@ export class Fp3dEditor extends LitElement {
   /** The toolbar menu open (its group), and which tool's choices are unfolded in it. */
   private declare _toolMenu: string | null;
   /** The ⚙ menu in the toolbar is open; the global settings dialog shown (its topic). */
-  private declare _settingsMenu: boolean;
   /** Width of the side bar (px), dragged at its left edge and remembered per browser (#620). */
   private declare _sideWidth: number;
   /** What the last module import said (the ⚙ Module dialog). */
@@ -902,7 +900,6 @@ export class Fp3dEditor extends LitElement {
     this._rectSize = [4, 3];
     this._tool = "select";
     this._toolMenu = null;
-    this._settingsMenu = false;
     let width = 320;
     try {
       width = Number(localStorage.getItem("neonplan3d.sideWidth")) || 320;
@@ -6013,73 +6010,62 @@ export class Fp3dEditor extends LitElement {
   }
 
   /**
-   * ⚙ Settings: everything that belongs to the whole plan, not to a floor, a room or an item – the house, weather
-   * and warnings, the live director, voice control, favourites, the background, the ground, the backup and the
-   * modules. One button in the toolbar opens the list; a topic opens as a dialog over the plan.
+   * ⚙ Settings: everything that belongs to the whole plan, not to a floor, a room or an item. One button in the
+   * toolbar opens the settings page: the topics in five groups on the left, the chosen topic on the right.
    */
   private renderSettingsMenu(closeTools: () => void) {
-    const admin = this.isAdmin;
-    const open = this._settingsMenu;
-    const all: { key: SettingsTopic; icon: string; label: string; admin: boolean }[] = [
-      { key: "plans", icon: "🏘", label: this.t("plans_title"), admin: true },
-      { key: "house", icon: "🏠", label: this.t("settings_house"), admin: true },
-      { key: "weather", icon: "🌦", label: this.t("settings_weather"), admin: true },
-      { key: "director", icon: "🎬", label: this.t("card_director"), admin: true },
-      { key: "voice", icon: "🎙", label: this.t("voice"), admin: false },
-      ...(released("locate") ? [{ key: "locate" as const, icon: "📡", label: this.t("locate"), admin: true }] : []),
-      { key: "favorites", icon: "⭐", label: this.t("favorites"), admin: true },
-      { key: "styles", icon: "🎨", label: this.t("styles_title"), admin: true },
-      { key: "backdrop", icon: "🖼", label: this.t("backdrop"), admin: true },
-      { key: "terrain", icon: "⛰", label: this.t("terrain"), admin: true },
-      { key: "surroundings", icon: "🗺", label: this.t("surround"), admin: true },
-      { key: "backup", icon: "💾", label: this.t("backup"), admin: true },
-      { key: "modules", icon: "🧩", label: this.t("settings_modules"), admin: true },
-      { key: "fun", icon: "🎈", label: this.t("fun_title"), admin: true },
-      { key: "cards", icon: "🖥", label: this.t("card_templates"), admin: true },
-      ...(released("diagnostics") ? [{ key: "diagnostics" as const, icon: "🛟", label: this.t("diag_menu"), admin: true }] : []),
-    ];
-    const topics = all.filter((t) => admin || !t.admin);
-    const toggle = () => {
+    const open = () => {
       closeTools();
-      this._settingsMenu = !open;
+      const topics = this.settingsGroups().flatMap((g) => g.topics);
+      // the topic looked at last, else the first one; never the assistant of Live Presence
+      const last = topics.find((t) => t.key === this.settingsLast && t.key !== "locate") ?? topics.find((t) => t.key !== "locate");
+      if (last) this.pickTopic(last.key);
     };
     return html`<div class="fp3d-seg fp3d-seg-menu fp3d-seg-settings">
-      <div class="fp3d-menu-wrap">
-        <button aria-haspopup="menu" aria-expanded=${open} title=${this.t("settings")} @click=${toggle}>
-          ⚙ <span class="fp3d-settings-word">${this.t("settings")}</span> <span class="fp3d-caret">▾</span>
-        </button>
-        ${open
-          ? html`<div class="fp3d-menu-veil" @click=${() => (this._settingsMenu = false)}></div>
-              <div class="fp3d-menu fp3d-menu-right" role="menu">
-                ${topics.map(
-                  (t) => html`<button
-                    role="menuitem"
-                    class="fp3d-menu-item"
-                    @click=${() => {
-                      this._settingsMenu = false;
-                      // locating has its own assistant (a bundle of its own), not a dialog
-                      if (t.key === "locate") {
-                        // Live Presence works on one plan: its rooms, doors and scanners
-                        if ((this.locatePlan ?? MAIN_PLAN) !== (this.planId ?? MAIN_PLAN)) {
-                          alert(this.t("plan_locate_other", { name: planLabel(this.hass, this.plans ?? [], this.locatePlan ?? MAIN_PLAN) }));
-                          return;
-                        }
-                        if (this.hass) void loadLocate().then((m) => m.openLocateSetup(this.hass!, this._doc, () => this.hass, (look) => this.setSettings({ person_look: look === "figure" ? null : look })));
-                        return;
-                      }
-                      this._settingsDialog = t.key;
-                      if (t.key === "diagnostics") void this.loadDiagnostics();
-                      // the modules' sentences for the voice list: loaded here as well (the editor is its own bundle), once per opening
-                      if (t.key === "voice" && this.hass) void syncModules(this.hass, this.packs ?? []).then(() => this.requestUpdate());
-                    }}
-                  >
-                    ${t.icon} ${t.label}
-                  </button>`,
-                )}
-              </div>`
-          : nothing}
-      </div>
+      <button aria-pressed=${!!this._settingsDialog} title=${this.t("settings")} @click=${open}>⚙ <span class="fp3d-settings-word">${this.t("settings")}</span></button>
     </div>`;
+  }
+
+  /** The topic the settings page showed last (it opens there again). */
+  private settingsLast: SettingsTopic | null = null;
+
+  /** The settings' topics by group, as the page's navigation lists them. */
+  private settingsGroups(): { label: string; topics: { key: SettingsTopic; icon: string; label: string }[] }[] {
+    const admin = this.isAdmin;
+    const topic = (key: SettingsTopic, icon: string, label: string, needsAdmin = true) => ({ key, icon, label, needsAdmin });
+    const groups = [
+      {
+        label: this.t("settings_group_house"),
+        topics: [topic("plans", "🏘", this.t("plans_title")), topic("house", "🏠", this.t("settings_house")), topic("terrain", "⛰", this.t("terrain")), topic("surroundings", "🗺", this.t("surround")), topic("backdrop", "🖼", this.t("backdrop"))],
+      },
+      { label: this.t("settings_group_look"), topics: [topic("styles", "🎨", this.t("styles_title")), topic("weather", "🌦", this.t("settings_weather")), topic("favorites", "⭐", this.t("favorites"))] },
+      { label: this.t("settings_group_screens"), topics: [topic("cards", "🖥", this.t("card_templates")), topic("director", "🎬", this.t("card_director"))] },
+      {
+        label: this.t("settings_group_extensions"),
+        topics: [topic("modules", "🧩", this.t("settings_modules")), topic("fun", "🎈", this.t("fun_title")), topic("voice", "🎙", this.t("voice"), false), ...(released("locate") ? [topic("locate", "📡", this.t("locate"))] : [])],
+      },
+      { label: this.t("settings_group_system"), topics: [topic("backup", "💾", this.t("backup")), ...(released("diagnostics") ? [topic("diagnostics", "🛟", this.t("diag_menu"))] : [])] },
+    ];
+    return groups.map((g) => ({ label: g.label, topics: g.topics.filter((t) => admin || !t.needsAdmin) })).filter((g) => g.topics.length);
+  }
+
+  /** A topic was chosen, in the page's navigation or by the toolbar's button. */
+  private pickTopic(key: SettingsTopic): void {
+    // locating has its own assistant (a bundle of its own), not a page
+    if (key === "locate") {
+      // Live Presence works on one plan: its rooms, doors and scanners
+      if ((this.locatePlan ?? MAIN_PLAN) !== (this.planId ?? MAIN_PLAN)) {
+        alert(this.t("plan_locate_other", { name: planLabel(this.hass, this.plans ?? [], this.locatePlan ?? MAIN_PLAN) }));
+        return;
+      }
+      if (this.hass) void loadLocate().then((m) => m.openLocateSetup(this.hass!, this._doc, () => this.hass, (look) => this.setSettings({ person_look: look === "figure" ? null : look })));
+      return;
+    }
+    this._settingsDialog = key;
+    this.settingsLast = key;
+    if (key === "diagnostics") void this.loadDiagnostics();
+    // the modules' sentences for the voice list: loaded here as well (the editor is its own bundle), once per opening
+    if (key === "voice" && this.hass) void syncModules(this.hass, this.packs ?? []).then(() => this.requestUpdate());
   }
 
   /** Opens a topic of ⚙ Settings as its dialog (the extensions page sends people to the fun packs). */
@@ -6151,13 +6137,35 @@ export class Fp3dEditor extends LitElement {
                           : topic === "cards"
                             ? html`<fp3d-card-templates .hass=${this.hass} .building=${this._doc} .plan=${this.planId ?? null} .initial=${this.openTemplate} ?admin=${this.isAdmin} .edit=${(fn: (b: Building) => void) => this.change((d) => fn(d))}></fp3d-card-templates>`
                             : this.renderModuleSettings();
-    return html`<div class="fp3d-dialog-veil" @click=${(e: Event) => onVeil(e) && close()}>
-      <div class="fp3d-dialog ${topic === "cards" ? "fp3d-dialog-wide" : ""}" role="dialog" aria-label=${titles[topic]} tabindex="-1" @keydown=${(e: KeyboardEvent) => e.key === "Escape" && close()}>
-        <div class="fp3d-dialog-head">
-          <h3>${titles[topic]}</h3>
-          <button class="fp3d-btn" aria-label=${this.t("close")} @click=${close}>✕</button>
+    // a page of its own over the editor, not a dialog: nothing closes it by a click beside it
+    const groups = this.settingsGroups();
+    return html`<div class="fp3d-dialog-veil fp3d-set-page">
+      <div class="fp3d-dialog fp3d-set ${topic === "cards" ? "fp3d-set-slim" : ""}" role="dialog" aria-label=${this.t("settings")} tabindex="-1" @keydown=${(e: KeyboardEvent) => e.key === "Escape" && close()}>
+        <div class="fp3d-dialog-head fp3d-set-head">
+          <button class="fp3d-btn" @click=${close}>← ${this.t("settings_back")}</button>
+          <h3>⚙ ${this.t("settings")}</h3>
         </div>
-        <div class="fp3d-dialog-body">${body}</div>
+        <div class="fp3d-set-layout">
+          <nav class="fp3d-set-nav" aria-label=${this.t("settings")}>
+            ${groups.map(
+              (g) => html`<div class="fp3d-set-group">
+                <h4>${g.label}</h4>
+                ${g.topics.map(
+                  (t) => html`<button class="fp3d-set-item" aria-current=${t.key === topic} title=${t.label} @click=${() => this.pickTopic(t.key)}>
+                    <span class="fp3d-set-icon">${t.icon}</span><span class="fp3d-set-word">${t.label}</span>
+                  </button>`,
+                )}
+              </div>`,
+            )}
+          </nav>
+          <select class="fp3d-set-pick" aria-label=${this.t("settings")} @change=${(e: Event) => this.pickTopic((e.target as HTMLSelectElement).value as SettingsTopic)}>
+            ${groups.map((g) => html`<optgroup label=${g.label}>${g.topics.map((t) => html`<option value=${t.key} ?selected=${t.key === topic}>${t.icon} ${t.label}</option>`)}</optgroup>`)}
+          </select>
+          <div class="fp3d-set-main ${topic === "cards" ? "fp3d-set-wide" : ""}">
+            <h3 class="fp3d-set-title">${titles[topic]}</h3>
+            <div class="fp3d-dialog-body">${body}</div>
+          </div>
+        </div>
       </div>
     </div>`;
   }
@@ -16806,6 +16814,143 @@ export class Fp3dEditor extends LitElement {
         width: 100%;
         max-height: 100%;
         border-radius: 0;
+      }
+      /* ⚙ Settings: a page of its own over the editor – the topics by group on the left, the topic on the right */
+      .fp3d-dialog-veil.fp3d-set-page {
+        padding: 0;
+        place-items: stretch;
+        background: var(--fp3d-panel, #0d1628);
+      }
+      .fp3d-dialog.fp3d-set {
+        display: grid;
+        box-sizing: border-box;
+        grid-template-rows: auto minmax(0, 1fr);
+        width: 100%;
+        height: 100%;
+        max-height: none;
+        overflow: hidden;
+        padding: 14px 20px 0;
+        border: 0;
+        border-radius: 0;
+        box-shadow: none;
+      }
+      .fp3d-set-head {
+        justify-content: flex-start;
+        gap: 16px;
+        margin-bottom: 14px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid var(--fp3d-line);
+      }
+      .fp3d-set-layout {
+        display: grid;
+        grid-template-columns: 230px minmax(0, 1fr);
+        gap: 22px;
+        min-height: 0;
+      }
+      .fp3d-set-nav {
+        display: grid;
+        align-content: start;
+        gap: 16px;
+        margin-bottom: 16px;
+        padding: 10px;
+        overflow: auto;
+        border: 1px solid var(--fp3d-line);
+        border-radius: 12px;
+        background: rgba(8, 14, 28, 0.6);
+      }
+      .fp3d-set-group {
+        display: grid;
+        gap: 2px;
+      }
+      .fp3d-set-group h4 {
+        margin: 0 0 4px;
+        padding: 0 10px;
+        font-size: 12px;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--fp3d-soft);
+      }
+      .fp3d-set-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 10px;
+        border: 1px solid transparent;
+        border-radius: 8px;
+        background: none;
+        color: var(--fp3d-text);
+        font: inherit;
+        font-size: 14px;
+        text-align: left;
+        cursor: pointer;
+      }
+      .fp3d-set-item:hover {
+        background: rgba(55, 224, 255, 0.08);
+      }
+      .fp3d-set-item[aria-current="true"] {
+        background: rgba(55, 224, 255, 0.14);
+        border-color: var(--fp3d-accent);
+        font-weight: 600;
+      }
+      .fp3d-set-main {
+        min-width: 0;
+        overflow: auto;
+        padding: 0 6px 24px 0;
+      }
+      .fp3d-set-main > .fp3d-dialog-body {
+        max-width: 760px;
+      }
+      .fp3d-set-main.fp3d-set-wide > .fp3d-dialog-body {
+        max-width: none;
+      }
+      h3.fp3d-set-title {
+        margin: 0 0 14px;
+        font-size: 20px;
+        letter-spacing: 0;
+        text-transform: none;
+        color: var(--fp3d-text);
+      }
+      .fp3d-set-pick {
+        display: none;
+        padding: 10px 12px;
+        border-radius: 10px;
+        border: 1px solid var(--fp3d-line);
+        background: #0a1324;
+        color: var(--fp3d-text);
+        font: inherit;
+      }
+      /* card templates bring a list of their own: the topics make way as a strip of symbols */
+      .fp3d-set-slim .fp3d-set-layout {
+        grid-template-columns: 54px minmax(0, 1fr);
+        gap: 16px;
+      }
+      .fp3d-set-slim .fp3d-set-nav {
+        gap: 8px;
+        padding: 6px;
+      }
+      .fp3d-set-slim :is(.fp3d-set-word, .fp3d-set-group h4, .fp3d-set-title) {
+        display: none;
+      }
+      .fp3d-set-slim .fp3d-set-item {
+        justify-content: center;
+        padding: 8px 0;
+      }
+      @media (max-width: 800px) {
+        .fp3d-set-layout,
+        .fp3d-set-slim .fp3d-set-layout {
+          grid-template-columns: 1fr;
+          grid-template-rows: auto minmax(0, 1fr);
+          gap: 12px;
+        }
+        .fp3d-set-nav {
+          display: none;
+        }
+        .fp3d-set-pick {
+          display: block;
+        }
+        .fp3d-dialog.fp3d-set {
+          padding: 10px 12px 0;
+        }
       }
       .fp3d-menu-veil {
         position: fixed;
