@@ -1227,6 +1227,8 @@ export class Fp3dView3d extends LitElement {
     if (changed.has("hass") || changed.has("director")) this.direct();
     if (changed.has("autoOrbit")) v.setAutoOrbit(this.autoOrbit ? 0.06 : 0);
     if (changed.has("_thumbs") || changed.has("_narrowStage")) v.setLabelInset(this._thumbs.length ? (this.narrowThumbs ? 136 : 184) : 0);
+    // a phone shows no floor pictures: none are drawn and the floors' labels keep the whole width
+    if (changed.has("clean") || changed.has("_narrowStage")) this.scheduleThumbs();
     if (changed.has("floorId")) v.setFloor(this.floorId);
     if (changed.has("roomId") && (this.roomId || changed.get("roomId"))) v.selectRoom(this.roomId);
     if (changed.has("wallMode")) v.setWallMode(this.wallMode);
@@ -4054,7 +4056,7 @@ export class Fp3dView3d extends LitElement {
   private scheduleThumbs(delay = 600): void {
     clearTimeout(this.thumbTimer);
     const floors = this.building?.floors.filter((f) => f.rooms.length).length ?? 0;
-    if (!this.floorThumbs || floors < 2) {
+    if (!this.floorThumbs || floors < 2 || (this.clean && this._narrowStage)) {
       this._thumbs = [];
       return;
     }
