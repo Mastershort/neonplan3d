@@ -6030,21 +6030,21 @@ export class Fp3dEditor extends LitElement {
   private settingsLast: SettingsTopic | null = null;
 
   /** The settings' topics by group, as the page's navigation lists them. */
-  private settingsGroups(): { label: string; topics: { key: SettingsTopic; icon: string; label: string }[] }[] {
+  private settingsGroups(): { label: string; topics: { key: SettingsTopic; label: string }[] }[] {
     const admin = this.isAdmin;
-    const topic = (key: SettingsTopic, icon: string, label: string, needsAdmin = true) => ({ key, icon, label, needsAdmin });
+    const topic = (key: SettingsTopic, label: string, needsAdmin = true) => ({ key, label, needsAdmin });
     const groups = [
       {
         label: this.t("settings_group_house"),
-        topics: [topic("plans", "🏘", this.t("plans_title")), topic("house", "🏠", this.t("settings_house")), topic("terrain", "⛰", this.t("terrain")), topic("surroundings", "🗺", this.t("surround")), topic("backdrop", "🖼", this.t("backdrop"))],
+        topics: [topic("plans", this.t("plans_title")), topic("house", this.t("settings_house")), topic("terrain", this.t("terrain")), topic("surroundings", this.t("surround")), topic("backdrop", this.t("backdrop"))],
       },
-      { label: this.t("settings_group_look"), topics: [topic("styles", "🎨", this.t("styles_title")), topic("weather", "🌦", this.t("settings_weather")), topic("favorites", "⭐", this.t("favorites"))] },
-      { label: this.t("settings_group_screens"), topics: [topic("cards", "🖥", this.t("card_templates")), topic("director", "🎬", this.t("card_director"))] },
+      { label: this.t("settings_group_look"), topics: [topic("styles", this.t("styles_title")), topic("weather", this.t("settings_weather")), topic("favorites", this.t("favorites"))] },
+      { label: this.t("settings_group_screens"), topics: [topic("cards", this.t("card_templates")), topic("director", this.t("card_director"))] },
       {
         label: this.t("settings_group_extensions"),
-        topics: [topic("modules", "🧩", this.t("settings_modules")), topic("fun", "🎈", this.t("fun_title")), topic("voice", "🎙", this.t("voice"), false), ...(released("locate") ? [topic("locate", "📡", this.t("locate"))] : [])],
+        topics: [topic("modules", this.t("settings_modules")), topic("fun", this.t("fun_title")), topic("voice", this.t("voice"), false), ...(released("locate") ? [topic("locate", this.t("locate"))] : [])],
       },
-      { label: this.t("settings_group_system"), topics: [topic("backup", "💾", this.t("backup")), ...(released("diagnostics") ? [topic("diagnostics", "🛟", this.t("diag_menu"))] : [])] },
+      { label: this.t("settings_group_system"), topics: [topic("backup", this.t("backup")), ...(released("diagnostics") ? [topic("diagnostics", this.t("diag_menu"))] : [])] },
     ];
     return groups.map((g) => ({ label: g.label, topics: g.topics.filter((t) => admin || !t.needsAdmin) })).filter((g) => g.topics.length);
   }
@@ -6137,13 +6137,13 @@ export class Fp3dEditor extends LitElement {
                           : topic === "cards"
                             ? html`<fp3d-card-templates .hass=${this.hass} .building=${this._doc} .plan=${this.planId ?? null} .initial=${this.openTemplate} ?admin=${this.isAdmin} .edit=${(fn: (b: Building) => void) => this.change((d) => fn(d))}></fp3d-card-templates>`
                             : this.renderModuleSettings();
-    // a page of its own over the editor, not a dialog: nothing closes it by a click beside it
+    // one dialog for all topics: they stand in groups on the left, the chosen one on the right
     const groups = this.settingsGroups();
-    return html`<div class="fp3d-dialog-veil fp3d-set-page">
+    return html`<div class="fp3d-dialog-veil" @click=${(e: Event) => onVeil(e) && close()}>
       <div class="fp3d-dialog fp3d-set ${topic === "cards" ? "fp3d-set-slim" : ""}" role="dialog" aria-label=${this.t("settings")} tabindex="-1" @keydown=${(e: KeyboardEvent) => e.key === "Escape" && close()}>
         <div class="fp3d-dialog-head fp3d-set-head">
-          <button class="fp3d-btn" @click=${close}>← ${this.t("settings_back")}</button>
-          <h3>⚙ ${this.t("settings")}</h3>
+          <h3>${this.t("settings")}</h3>
+          <button class="fp3d-btn" aria-label=${this.t("close")} @click=${close}>✕</button>
         </div>
         <div class="fp3d-set-layout">
           <nav class="fp3d-set-nav" aria-label=${this.t("settings")}>
@@ -6151,15 +6151,13 @@ export class Fp3dEditor extends LitElement {
               (g) => html`<div class="fp3d-set-group">
                 <h4>${g.label}</h4>
                 ${g.topics.map(
-                  (t) => html`<button class="fp3d-set-item" aria-current=${t.key === topic} title=${t.label} @click=${() => this.pickTopic(t.key)}>
-                    <span class="fp3d-set-icon">${t.icon}</span><span class="fp3d-set-word">${t.label}</span>
-                  </button>`,
+                  (t) => html`<button class="fp3d-set-item" aria-current=${t.key === topic} @click=${() => this.pickTopic(t.key)}>${t.label}</button>`,
                 )}
               </div>`,
             )}
           </nav>
           <select class="fp3d-set-pick" aria-label=${this.t("settings")} @change=${(e: Event) => this.pickTopic((e.target as HTMLSelectElement).value as SettingsTopic)}>
-            ${groups.map((g) => html`<optgroup label=${g.label}>${g.topics.map((t) => html`<option value=${t.key} ?selected=${t.key === topic}>${t.icon} ${t.label}</option>`)}</optgroup>`)}
+            ${groups.map((g) => html`<optgroup label=${g.label}>${g.topics.map((t) => html`<option value=${t.key} ?selected=${t.key === topic}>${t.label}</option>`)}</optgroup>`)}
           </select>
           <div class="fp3d-set-main ${topic === "cards" ? "fp3d-set-wide" : ""}">
             <h3 class="fp3d-set-title">${titles[topic]}</h3>
@@ -16815,48 +16813,39 @@ export class Fp3dEditor extends LitElement {
         max-height: 100%;
         border-radius: 0;
       }
-      /* ⚙ Settings: a page of its own over the editor – the topics by group on the left, the topic on the right */
-      .fp3d-dialog-veil.fp3d-set-page {
-        padding: 0;
-        place-items: stretch;
-        background: var(--fp3d-panel, #0d1628);
-      }
+      /* ⚙ Settings: one dialog for all topics – they stand in groups on the left, the chosen one on the right. It keeps
+         its size from topic to topic, so nothing jumps */
       .fp3d-dialog.fp3d-set {
         display: grid;
         box-sizing: border-box;
         grid-template-rows: auto minmax(0, 1fr);
-        width: 100%;
-        height: 100%;
-        max-height: none;
+        width: min(1020px, 100%);
+        height: min(780px, 100% - 16px);
         overflow: hidden;
-        padding: 14px 20px 0;
-        border: 0;
-        border-radius: 0;
-        box-shadow: none;
+        padding: 14px 18px 0;
+      }
+      .fp3d-dialog.fp3d-set.fp3d-set-slim {
+        width: min(1560px, 100%);
+        height: min(940px, 100% - 16px);
       }
       .fp3d-set-head {
-        justify-content: flex-start;
-        gap: 16px;
-        margin-bottom: 14px;
-        padding-bottom: 12px;
+        margin-bottom: 12px;
+        padding-bottom: 10px;
         border-bottom: 1px solid var(--fp3d-line);
       }
       .fp3d-set-layout {
         display: grid;
-        grid-template-columns: 230px minmax(0, 1fr);
-        gap: 22px;
+        grid-template-columns: 200px minmax(0, 1fr);
+        gap: 20px;
         min-height: 0;
       }
       .fp3d-set-nav {
         display: grid;
         align-content: start;
-        gap: 16px;
-        margin-bottom: 16px;
-        padding: 10px;
+        gap: 14px;
+        padding: 0 12px 16px 0;
         overflow: auto;
-        border: 1px solid var(--fp3d-line);
-        border-radius: 12px;
-        background: rgba(8, 14, 28, 0.6);
+        border-right: 1px solid var(--fp3d-line);
       }
       .fp3d-set-group {
         display: grid;
@@ -16871,10 +16860,7 @@ export class Fp3dEditor extends LitElement {
         color: var(--fp3d-soft);
       }
       .fp3d-set-item {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        padding: 8px 10px;
+        padding: 7px 10px;
         border: 1px solid transparent;
         border-radius: 8px;
         background: none;
@@ -16895,17 +16881,11 @@ export class Fp3dEditor extends LitElement {
       .fp3d-set-main {
         min-width: 0;
         overflow: auto;
-        padding: 0 6px 24px 0;
-      }
-      .fp3d-set-main > .fp3d-dialog-body {
-        max-width: 760px;
-      }
-      .fp3d-set-main.fp3d-set-wide > .fp3d-dialog-body {
-        max-width: none;
+        padding: 0 6px 20px 0;
       }
       h3.fp3d-set-title {
-        margin: 0 0 14px;
-        font-size: 20px;
+        margin: 0 0 12px;
+        font-size: 18px;
         letter-spacing: 0;
         text-transform: none;
         color: var(--fp3d-text);
@@ -16919,25 +16899,22 @@ export class Fp3dEditor extends LitElement {
         color: var(--fp3d-text);
         font: inherit;
       }
-      /* card templates bring a list of their own: the topics make way as a strip of symbols */
-      .fp3d-set-slim .fp3d-set-layout {
-        grid-template-columns: 54px minmax(0, 1fr);
-        gap: 16px;
-      }
-      .fp3d-set-slim .fp3d-set-nav {
-        gap: 8px;
-        padding: 6px;
-      }
-      .fp3d-set-slim :is(.fp3d-set-word, .fp3d-set-group h4, .fp3d-set-title) {
-        display: none;
-      }
-      .fp3d-set-slim .fp3d-set-item {
-        justify-content: center;
-        padding: 8px 0;
+      /* card templates bring a list of their own: in a window too narrow for both, the topics become the choice on top */
+      @media (max-width: 1350px) {
+        .fp3d-set-slim .fp3d-set-layout {
+          grid-template-columns: 1fr;
+          grid-template-rows: auto minmax(0, 1fr);
+          gap: 12px;
+        }
+        .fp3d-set-slim .fp3d-set-nav {
+          display: none;
+        }
+        .fp3d-set-slim .fp3d-set-pick {
+          display: block;
+        }
       }
       @media (max-width: 800px) {
-        .fp3d-set-layout,
-        .fp3d-set-slim .fp3d-set-layout {
+        .fp3d-set-layout {
           grid-template-columns: 1fr;
           grid-template-rows: auto minmax(0, 1fr);
           gap: 12px;
@@ -16949,6 +16926,7 @@ export class Fp3dEditor extends LitElement {
           display: block;
         }
         .fp3d-dialog.fp3d-set {
+          height: 100%;
           padding: 10px 12px 0;
         }
       }

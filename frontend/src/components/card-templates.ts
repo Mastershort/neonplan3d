@@ -399,7 +399,7 @@ export class Fp3dCardTemplates extends LitElement {
           ${[false, true].map((phone) => {
             const own = list.filter((x) => !!workingConfig(x).phone === phone);
             return html`<div class="fp3d-tpl-group">
-              <h4>${phone ? "📱" : "🖥"} ${this.t(phone ? "card_templates_phones" : "card_templates_screens")}</h4>
+              <h4>${this.t(phone ? "card_templates_phones" : "card_templates_screens")}</h4>
               ${own.map((x) => html`<button class="fp3d-tpl-item" aria-current=${x.id === tpl?.id} @click=${() => (this._selected = x.id)}>${x.name || x.id}</button>`)}
               ${!own.length ? html`<span class="fp3d-sub">${this.t("card_templates_none")}</span>` : nothing}
               ${admin ? html`<button class="fp3d-tpl-item fp3d-tpl-add" @click=${() => this.add(undefined, phone)}>+ ${this.t("card_template_new")}</button>` : nothing}
