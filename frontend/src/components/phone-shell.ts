@@ -20,6 +20,7 @@ export interface PhoneView {
   nowInput(): NowInput | null;
   showNow(target: NowTarget): void;
   openFind?(): void;
+  quietCards?(on: boolean): void;
 }
 
 export class Fp3dPhoneShell extends LitElement {
@@ -125,6 +126,7 @@ export class Fp3dPhoneShell extends LitElement {
     }
     // the check went through the rooms: back to the house as it was before
     if (this.mode === "check" && mode !== "check") this.fire("phone-room", { floorId: this.floorId, roomId: null });
+    if ((mode === "check") !== (this.mode === "check")) this.view()?.quietCards?.(mode === "check");
     this._sheet = null;
     this.mode = mode;
     this.fire<NowMode>("phone-mode", mode);

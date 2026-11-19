@@ -352,6 +352,7 @@ export class Fp3dView3d extends LitElement {
     central: { attribute: false },
     buttons: { attribute: false },
     _thumbs: { state: true },
+    _cardsQuiet: { state: true },
     floorThumbs: { attribute: false },
     clean: { attribute: false },
     cleanButton: { attribute: false },
@@ -583,6 +584,8 @@ export class Fp3dView3d extends LitElement {
   /** Floors below an opened floor: dimmed, stacked (the house up to it) or hidden. */
   declare floorStack: FloorStack;
   private declare _thumbs: { floorId: string; url: string }[];
+  /** The phone's house check is under way: no glass card may lie over the window it shows. */
+  private declare _cardsQuiet: boolean;
   /** The viewer runs at the tablet level: heavy CSS effects are left out as well. */
   private declare _low: boolean;
   private declare _flyIn: { lat: number; lon: number } | null;
@@ -845,6 +848,7 @@ export class Fp3dView3d extends LitElement {
     this._walk = false;
     this.buttons = null;
     this._thumbs = [];
+    this._cardsQuiet = false;
     this.floorThumbs = true;
     this.clean = false;
     this.cleanButton = false;
@@ -1801,7 +1805,8 @@ export class Fp3dView3d extends LitElement {
     v.setPersons([...persons, ...this.moduleFigures(b)]);
     this.lastPersons = persons.map((p) => ({ id: p.id, floorId: p.floorId, roomId: p.roomId }));
     const counts = floorCounts(hass, b, this.openingLinks!, persons);
-    v.setFloorInfo(new Map([...counts].map(([id, c]) => [id, floorInfoText(hass, c)])));
+    // a phone's labels carry the floor's name alone: the counts stand in the bar's rooms menu
+    v.setFloorInfo(new Map([...counts].map(([id, c]) => [id, this.clean && this._narrowStage ? "" : floorInfoText(hass, c)])));
     // the phone's "What is going on?" list reads what was just worked out (see nowInput)
     this.fire("status-change", {});
     // daylight: sun through the windows and a lighter sky
@@ -1905,6 +1910,11 @@ export class Fp3dView3d extends LitElement {
       cars: this.spokenCars(hass, b).map((c) => ({ name: c.name, present: c.present, charging: c.charging, soc: c.soc, floorId: c.floorId })),
       away: !!me && me.state !== "home",
     };
+  }
+
+  /** The phone's house check begins or ends: the glass cards rest meanwhile. */
+  quietCards(on: boolean): void {
+    this._cardsQuiet = on;
   }
 
   /** A line of that list was tapped: fly to the device, else open its room. */
@@ -6474,7 +6484,7 @@ export class Fp3dView3d extends LitElement {
 
   /** Whether the glass cards show at all (the card's options and the holograms switch). */
   private cardsOn(): boolean {
-    return (this.showEnergy || !!this.holograms) && this.holoVisible();
+    return (this.showEnergy || !!this.holograms) && this.holoVisible() && !this._cardsQuiet;
   }
 
   private toggleFlows(): void {
