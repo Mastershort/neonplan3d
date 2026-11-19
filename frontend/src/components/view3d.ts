@@ -4518,6 +4518,11 @@ export class Fp3dView3d extends LitElement {
       </div>`;
   }
 
+  /** Opens the search (the phone view's "More": its own button is put away there). */
+  openFind(): void {
+    this._find = "";
+  }
+
   private renderFind() {
     const b = this.building;
     if (!b || !this.hass) return nothing;
@@ -4527,7 +4532,7 @@ export class Fp3dView3d extends LitElement {
       </button>`;
     }
     const results = searchItems((this.findIndex ??= searchIndex(this.hass, b)), this._find);
-    return html`<div class="fp3d-find">
+    return html`<div class="fp3d-find ${this.clean ? "fp3d-find-up" : ""}">
       <input
         type="search"
         placeholder=${translate(this.hass, "find_placeholder")}
@@ -6574,6 +6579,7 @@ export class Fp3dView3d extends LitElement {
     >
       ${this.renderZoomBackground()}
       ${this._error ? html`<p class="fp3d-error">${this._error}</p>` : nothing} ${this.clean ? nothing : this.renderEnergy()} ${this.renderHologram()} ${this.clean ? nothing : this.renderLegend()}
+      ${this.clean && this._find !== null && !this._walk ? this.renderFind() : nothing}
       ${this.renderClock()} ${this.renderAlerts()} ${this.clean || this._walk ? nothing : html`${this.renderHousehold()} ${this.renderThumbs()} ${this.renderScenes()} ${this.renderFind()} ${this.renderCentral()}`} ${this.clean ? nothing : this.renderWalk()} ${this.renderSwipe()} ${this.renderInfo()} ${this.renderBinInfo()} ${this.renderGangMenu()} ${this.renderThrough()} ${this.renderCamPop()} ${this.renderCameraWall()} ${this.renderSheet()} ${this.renderModulePopup()} ${this.renderSettings()} ${this.renderNote()}
       ${this.clean ? nothing : this.renderProHint()} ${this.renderMenu()} ${this.renderEye()} ${this.building?.settings.surroundings?.on && this.surroundings ? html`<a class="fp3d-osm-credit" href=${OSM_COPYRIGHT} target="_blank" rel="noopener">© OpenStreetMap</a>` : nothing}
       ${this.renderMic()} ${this.renderFlyIn()}
@@ -7619,6 +7625,10 @@ export class Fp3dView3d extends LitElement {
         flex-direction: column-reverse;
         gap: 6px;
         z-index: 3;
+      }
+      /* opened from the phone view's "More": above the line that says what needs a look */
+      .fp3d-find-up {
+        bottom: calc(66px + var(--fp3d-bottom-inset, 0px));
       }
       .fp3d-find input {
         box-sizing: border-box;

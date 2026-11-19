@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { navCover, navFloors, navSlots, phonePlaces } from "./phone.ts";
+import { fitSlots, navCover, navFloors, navSlots, phonePlaces } from "./phone.ts";
 import type { RoomTile } from "./room-bar.ts";
 
 const tile = (floorId: string, roomId: string, on = 0): RoomTile => ({ floorId, roomId, name: roomId, temp: null, lights: [], lightsOn: Array.from({ length: on }, (_, i) => `light.${roomId}${i}`), humidity: null, open: 0, playing: false, active: on > 0 });
@@ -44,4 +44,16 @@ test("own places: at most two, known kinds, an action with its entity, a link in
   // they stand before "More"
   const slots = navSlots([], 0, 0, false, [{ id: "own:0", label: "Night", badge: 0 }]);
   assert.deepEqual(slots.map((x) => x.id), ["now", "own:0", "more"]);
+});
+
+test("a bar of at most five places: two floors share one place, own places and the blinds move under More", () => {
+  const slot = (id: string, badge = 0) => ({ id, label: "", badge });
+  const seven = [slot("now"), slot("floor:eg", 3), slot("floor:og", 2), slot("covers"), slot("own:0"), slot("own:1"), slot("more")];
+  const { bar, over } = fitSlots(seven);
+  assert.deepEqual(bar.map((s) => s.id), ["now", "rooms", "covers", "own:0", "more"]);
+  assert.equal(bar[1].badge, 5);
+  assert.deepEqual(over.map((s) => s.id), ["own:1"]);
+  // five fit as they are
+  const five = [slot("now"), slot("floor:eg"), slot("floor:og"), slot("covers"), slot("more")];
+  assert.deepEqual(fitSlots(five).bar, five);
 });

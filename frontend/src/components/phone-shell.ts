@@ -9,7 +9,7 @@ import { translate, type I18nKey } from "../i18n.ts";
 import { entityName, favoriteCall, floorClimates, floorControls } from "../devices.ts";
 import { roomTiles } from "../room-bar.ts";
 import { nowItems, nowStops, nowSummary, type NowAction, type NowInput, type NowStop, type NowTarget, type NowWords } from "../now.ts";
-import { navCover, navFloors, navSlots, phonePlaces, type NavCover, type NavDevice, type NavFloor, type NavSlot, type PhonePlace } from "../phone.ts";
+import { fitSlots, navCover, navFloors, navSlots, phonePlaces, type NavCover, type NavDevice, type NavFloor, type NavSlot, type PhonePlace } from "../phone.ts";
 import "./now-list.ts";
 import type { NowLabels, NowMode } from "./now-list.ts";
 import "./phone-nav.ts";
@@ -19,6 +19,7 @@ import type { NavGroup, NavLabels, NavMoreItem, NavSheet } from "./phone-nav.ts"
 export interface PhoneView {
   nowInput(): NowInput | null;
   showNow(target: NowTarget): void;
+  openFind?(): void;
 }
 
 export class Fp3dPhoneShell extends LitElement {
@@ -65,6 +66,7 @@ export class Fp3dPhoneShell extends LitElement {
   private declare _sheet: NavSheet;
   private declare _navFloor: string | null;
   private stops: NowStop[] = [];
+  private lastFloors: NavFloor[] = [];
 
   constructor() {
     super();
@@ -224,6 +226,9 @@ export class Fp3dPhoneShell extends LitElement {
     if (id === "check") this.setMode("check");
     else if (id === "house") this.fire("phone-room", { floorId: null, roomId: null });
     else if (id === "solo") this.fire<boolean>("phone-solo", !this.solo);
+    else if (id === "find") this.view()?.openFind?.();
+    // a place that found no room in the bar
+    else if (id.startsWith("slot:")) this.tapSlot(id.slice(5), this.lastFloors);
     else this.fire<string>("phone-more", id);
   }
 
@@ -256,7 +261,8 @@ export class Fp3dPhoneShell extends LitElement {
       }))
       // a group without devices in this house, a scene that is gone: no place
       .filter((_, i) => (groups[i] ? groups[i]!.floors.length > 0 : places[i].kind === "link" || !!hass.states[places[i].entity ?? ""]));
-    const slots = navSlots(out.has("rooms") ? [] : floors, items.filter((it) => it.level > 0).length, shut, covers.length > 0 && !out.has("covers"), own);
+    const { bar: slots, over } = fitSlots(navSlots(out.has("rooms") ? [] : floors, items.filter((it) => it.level > 0).length, shut, covers.length > 0 && !out.has("covers"), own));
+    this.lastFloors = floors;
     const active = this.mode === "page" ? "now" : this._sheet === "rooms" ? (slots.some((sl) => sl.id === "rooms") ? "rooms" : `floor:${this._navFloor}`) : this._sheet === "group" ? `own:${this._own}` : this._sheet;
 
     const nowLabels: NowLabels = {
@@ -288,6 +294,8 @@ export class Fp3dPhoneShell extends LitElement {
       close: this.t("close"),
     };
     const more: NavMoreItem[] = [
+      ...over.map((s): NavMoreItem => ({ id: `slot:${s.id}`, icon: s.icon ?? (s.id === "covers" ? "▤" : "▦"), label: s.label || this.t(s.id === "covers" ? "nav_covers" : "nav_rooms"), hint: s.badge ? String(s.badge) : undefined })),
+      { id: "find", icon: "🔍", label: this.t("find") },
       { id: "check", icon: "🚪", label: this.t("now_check"), hint: this.t("now_check_hint") },
       { id: "house", icon: "🏠", label: this.t("nav_house") },
       { id: "solo", icon: "🔎", label: this.t("nav_solo"), hint: this.t("nav_solo_hint"), pressed: this.solo },

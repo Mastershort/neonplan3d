@@ -492,7 +492,7 @@ export class Fp3dCardTemplates extends LitElement {
           : nothing}
       </div>
       ${this.renderMode(tpl, admin)}
-      <label class="fp3d-field"
+      <label class="fp3d-field" style=${workingConfig(tpl).phone ? "display:none" : ""}
         >${this.t("card_template_where")}
         <select
           ?disabled=${!admin}

@@ -88,6 +88,33 @@ export function navSlots(floors: NavFloor[], attention: number, coversShut: numb
   return [{ id: "now", label: "", badge: attention }, ...rooms, ...(hasCovers ? [{ id: "covers", label: "", badge: coversShut }] : []), ...own, { id: "more", label: "", badge: 0 }];
 }
 
+/** A phone's bar holds this many places legibly; the rest waits under "More". */
+export const MAX_SLOTS = 5;
+
+/**
+ * The bar with at most MAX_SLOTS places: two floors share one place "Rooms" first, then the places before "More" move
+ * under it from the right (own places, the blinds). Returns the bar and what moved, in the bar's order.
+ */
+export function fitSlots(slots: NavSlot[], max = MAX_SLOTS): { bar: NavSlot[]; over: NavSlot[] } {
+  let bar = [...slots];
+  if (bar.length > max) {
+    const floors = bar.filter((s) => s.id.startsWith("floor:"));
+    if (floors.length > 1) {
+      const at = bar.indexOf(floors[0]);
+      bar = bar.filter((s) => !s.id.startsWith("floor:"));
+      bar.splice(at, 0, { id: "rooms", label: "", badge: floors.reduce((n, f) => n + f.badge, 0) });
+    }
+  }
+  const over: NavSlot[] = [];
+  while (bar.length > max) {
+    // the last place before "More"; "Now" and the rooms stay
+    const i = bar.length - 2;
+    if (i < 1 || bar[i].id === "rooms" || bar[i].id.startsWith("floor:")) break;
+    over.unshift(...bar.splice(i, 1));
+  }
+  return { bar, over };
+}
+
 export interface NavCover {
   entity: string;
   name: string;
