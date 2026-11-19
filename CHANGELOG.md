@@ -4,6 +4,22 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 [releases page](https://github.com/Mastershort/neonplan3d/releases). Ideas and votes:
 [Discussions → Ideas](https://github.com/Mastershort/neonplan3d/discussions/categories/ideas).
 
+## 3.5.2
+
+### New (free)
+- **Neighbours' houses with a gable roof (option):** ⚙ Settings → Surroundings → **Neighbours' houses with a gable roof** gives the houses from the map a simple roof with the ridge along their longer side instead of a flat top; halls, blocks of flats and winding buildings stay blocks. Off by default (idea: frops83, #1109).
+
+### Fixed
+- **Duplicate floor** failed to save when a piece of furniture on the floor had "Only show while …" set ("expected str at … show_if.entity"): a copy without links to Home Assistant kept the condition with an empty entity. The condition, a screen picture or a pop-up trigger now goes with its entity – in a shared template too; plans that already hold such an empty condition are healed when loaded (#1217, thanks Sepp70).
+- **A tap on a blind on a phone** could move it instead of opening its menu: a tap with a shaky finger counted as a swipe. A swipe on a blind or a lamp now moves nothing within its first 18 pixels, and let go there it is a tap (#1208, thanks Atomiiik).
+- **House shadow on a dashboard card** of a house with one floor: the card always shows that floor, and the shadow was only drawn for "all floors" (#1196, thanks michaelbell1981).
+- **A roof that begins at a floor's own level** (wall top = the floor's height above ground, no knee wall) sits on that floor: on the floor below, the roof drew gables of its own in front of the attic's outer walls, windows and doors (#1199, thanks maecius2).
+- **Camera view cones at a step:** a cone ending at an edge (a terrace above the drive) ended on the first spot below it and hung down the step as a curtain along the whole edge – it now ends on the upper ground. A camera standing right at such an edge and looking out lays its cone flat on the ground below (#1167, #1115, thanks 1970lexi and RobertSorgenfrei).
+- **Zooming with two fingers in the house view:** fingers on a floor's label, a pin or a glass card count for zooming and panning too – they never reached the picture, so on a phone or a small tablet the house could often be turned but not zoomed. What lies under a finger that zoomed is not tapped.
+- **Glass cards all over the picture** after a module's card went away (the speaker's after an announcement): the cards wait hidden until the next frame places the ones in view.
+- **Editor dialogs** no longer close when you mark a text with the mouse and let go outside the dialog.
+- **A smart plug with a power sensor** on a piece of furniture: the watts decide whether it glows and counts as running, as "Running from (watts)" says – by the plug alone it glowed on standby all day. Without a power sensor nothing changes.
+
 ## 3.5.1
 
 ### Fixed

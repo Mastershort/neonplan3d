@@ -30,7 +30,14 @@ function scrub(v: unknown): unknown {
   for (const key of Object.keys(o)) {
     if (isEntity(key)) delete o[key];
     else if (/(^|_)(area|area_id|areas|device|device_id|devices)$/.test(key) && o[key] !== null && typeof o[key] !== "boolean" && typeof o[key] !== "number") o[key] = Array.isArray(o[key]) ? [] : null;
-    else o[key] = scrub(o[key]);
+    else {
+      o[key] = scrub(o[key]);
+      // a thing that is nothing without its entity goes with it: saving refuses a condition, a screen picture or a
+      // pop-up trigger whose entity is empty (#1217)
+      const x = o[key];
+      if (key === "show_if" && x && typeof x === "object" && (x as { entity?: unknown }).entity == null) o[key] = null;
+      else if ((key === "pictures" || key === "triggers") && Array.isArray(x)) o[key] = x.filter((e) => !e || typeof e !== "object" || (e as { entity?: unknown }).entity != null);
+    }
   }
   return o;
 }

@@ -2495,6 +2495,7 @@
  "surround_north": "Noorden: {deg}°",
  "surround_credit": "Kaartgegevens © OpenStreetMap-bijdragers",
  "surround_flat": "Huizen van de buren alleen als plattegrond (plat in plaats van blokken)",
+ "surround_roofs": "Huizen van de buren met zadeldak (grote gebouwen blijven blokken)",
  "surround_y": "Hoogte van de omgeving (m)",
  "surround_y_hint": "Ligt de straat hoger of lager dan de begane grond (helling, schuine oprit), dan schuift dit de hele kaart omhoog (+) of omlaag (−).",
  "surround_pick": "Huizen tonen en verbergen",

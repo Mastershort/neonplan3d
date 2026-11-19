@@ -4150,12 +4150,18 @@ export class FloorplanViewer {
         // outside – a camera of a sunken floor (a basement half in the ground) no longer reaches down to that floor's
         // level outdoors (#802); a camera just inside an outer wall starts on the ground in front of it
         // (outside on the surface seen from above: a terrace drawn on the lawn, not the lawn under it, #1115)
-        const groundAt = (x: number, z: number) => y + (inRoom(x, z) ? 0 : outdoorSurface(fv.floor, x, z));
+        const surfaceAt = (x: number, z: number) => y + (inRoom(x, z) ? 0 : outdoorSurface(fv.floor, x, z));
+        // a camera at the edge of a floor that stands high above the ground it looks at (on the wall or railing of a
+        // terrace over the drive): its wedge lies on that ground from the foot of the edge on – from the floor's level
+        // it fell down the edge as a curtain (#1167, #1115)
+        const ahead = dome ? null : surfaceAt(d.x + dir[0] * 0.5, d.z + dir[1] * 0.5);
+        const dropped = ahead !== null && ahead < surfaceAt(d.x, d.z) - 0.4;
+        const groundAt = dropped ? (x: number, z: number) => (inRoom(x, z) ? ahead : surfaceAt(x, z)) : surfaceAt;
         // in rings about half a metre apart, each point on the ground beneath it: from the camera to its far edge in
         // one piece, the wedge ran under a terrace higher than the lawn and only a patch of it showed (#1115)
         const rings = Math.min(10, Math.max(1, Math.ceil(reach / 0.5)));
         const fade = (k: number) => (k < rings ? new Color(near.r * (1 - k / rings), near.g * (1 - k / rings), near.b * (1 - k / rings)) : far);
-        const baseY = Math.max(groundAt(d.x, d.z), dome ? -Infinity : groundAt(d.x + dir[0] * 0.3, d.z + dir[1] * 0.3));
+        const baseY = dropped ? ahead : Math.max(groundAt(d.x, d.z), dome ? -Infinity : groundAt(d.x + dir[0] * 0.3, d.z + dir[1] * 0.3));
         // the wedge ends at the edge of the ground the camera looks along: where the ground drops away more than 40 cm
         // (a terrace above the drive), it no longer runs down the step and on across the lower ground (#1167)
         // measured from the ground right in front of the wall a camera hangs on (a raised floor over its lawn is no
@@ -4164,7 +4170,20 @@ export class FloorplanViewer {
         const edgeAt = (t: number, limit: number): number => {
           const rx = dir[0] * Math.cos(t) - dir[1] * Math.sin(t);
           const rz = dir[1] * Math.cos(t) + dir[0] * Math.sin(t);
-          for (let r = 0.1; r < limit; r += r < 0.5 ? 0.1 : 0.25) if (groundAt(d.x + rx * r, d.z + rz * r) < edgeY - 0.4) return r;
+          const low = (r: number) => groundAt(d.x + rx * r, d.z + rz * r) < edgeY - 0.4;
+          let last = 0;
+          for (let r = 0.1; r < limit; last = r, r += r < 0.5 ? 0.1 : 0.25) {
+            if (!low(r)) continue;
+            // the last spot still on the upper ground: ending on the first one below it, the wedge's rim hung down
+            // the step as a curtain along the whole edge (#1167)
+            let [hi, lo] = [last, r];
+            for (let i = 0; i < 6; i++) {
+              const mid = (hi + lo) / 2;
+              if (low(mid)) lo = mid;
+              else hi = mid;
+            }
+            return Math.max(0, hi - 0.01);
+          }
           return limit;
         };
         const reaches = Array.from({ length: n + 1 }, (_, i) => {
@@ -6134,8 +6153,9 @@ export class FloorplanViewer {
     if (this.soundActive) this.animateSound(now);
     this.updateWalls();
     if (this.projections.active) this.updateProjections();
-    // the house's shadow belongs to the whole house
-    this.sunFx.showShadow(this.floorId === null && this.shadowSig !== "");
+    // the house's shadow belongs to the whole house – a house of one floor is whole with that floor shown, which is
+    // how a dashboard card always shows it (#1196)
+    this.sunFx.showShadow((this.floorId === null || this.building?.floors.length === 1) && this.shadowSig !== "");
     this.placeFog();
     if (this.firework) {
       this.firework.step((now - this.fireworkAt) / 1000);

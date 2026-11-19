@@ -2495,6 +2495,7 @@
  "surround_north": "Nord: {deg}°",
  "surround_credit": "Kartdata © OpenStreetMap-bidragsytarar",
  "surround_flat": "Naboane sine hus berre som omriss (flate i staden for blokker)",
+ "surround_roofs": "Husa til naboane med saltak (store bygningar blir verande blokker)",
  "surround_y": "Høgd på omgjevnadene (m)",
  "surround_y_hint": "Ligg gata høgare eller lågare enn første etasje (skråning, skrå innkøyrsle), flyttar dette heile kartet opp (+) eller ned (−).",
  "surround_pick": "Vis og gøym hus",

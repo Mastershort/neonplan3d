@@ -667,3 +667,17 @@ test("the single flat roof opens under its roof windows too (#1078)", () => {
   // the slab gains the opening's sides and is triangulated round it
   assert.ok(solid() > closed);
 });
+
+test("a roof that begins at a floor's own level sits on that floor: its rooms are the attic (#1199)", async () => {
+  const { sectionFloor } = await import("./roof-sections.ts");
+  const { emptyBuilding, newFloor } = await import("./model.ts");
+  const b = emptyBuilding();
+  const room = (id: string, x0: number, z0: number, x1: number, z1: number) => ({ id, name: id, area_id: null, points: [[x0, z0], [x1, z0], [x1, z1], [x0, z1]] as [number, number][], floor_material: "wood" as const });
+  b.floors = [
+    { ...newFloor("eg", "EG", 0), height: 2.4, rooms: [room("a", 0, 0, 13, 9), room("g", 13, 0, 20, 6)] },
+    { ...newFloor("og", "OG", 2.6), height: 2.4, rooms: [room("b", 0, 0, 13, 9)] },
+  ];
+  assert.equal(sectionFloor(b, { base: 2.6, x0: -0.5, z0: -0.5, x1: 13.5, z1: 9.5 })?.id, "og");
+  // the garage roof beside it at the same height has no room of the upper floor under it
+  assert.equal(sectionFloor(b, { base: 2.6, x0: 13, z0: 0, x1: 20, z1: 6 })?.id, "eg");
+});
