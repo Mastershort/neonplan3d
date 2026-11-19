@@ -15,6 +15,9 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 - **House shadow on a dashboard card** of a house with one floor: the card always shows that floor, and the shadow was only drawn for "all floors" (#1196, thanks michaelbell1981).
 - **A roof that begins at a floor's own level** (wall top = the floor's height above ground, no knee wall) sits on that floor: on the floor below, the roof drew gables of its own in front of the attic's outer walls, windows and doors (#1199, thanks maecius2).
 - **Camera view cones at a step:** a cone ending at an edge (a terrace above the drive) ended on the first spot below it and hung down the step as a curtain along the whole edge – it now ends on the upper ground. A camera standing right at such an edge and looking out lays its cone flat on the ground below (#1167, #1115, thanks 1970lexi and RobertSorgenfrei).
+- **Zooming with two fingers in the house view:** fingers on a floor's label, a pin or a glass card count for zooming and panning too – they never reached the picture, so on a phone or a small tablet the house could often be turned but not zoomed. What lies under a finger that zoomed is not tapped.
+- **Glass cards all over the picture** after a module's card went away (the speaker's after an announcement): the cards wait hidden until the next frame places the ones in view.
+- **Editor dialogs** no longer close when you mark a text with the mouse and let go outside the dialog.
 - **A smart plug with a power sensor** on a piece of furniture: the watts decide whether it glows and counts as running, as "Running from (watts)" says – by the plug alone it glowed on standby all day. Without a power sensor nothing changes.
 
 ## 3.5.1

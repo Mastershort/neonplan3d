@@ -83,6 +83,10 @@ export class OrbitControls {
   private readonly camera: PerspectiveCamera;
   private readonly events: ControlEvents;
   private readonly listeners: [string, EventListener][] = [];
+  private readonly guestListeners: [EventTarget, string, EventListener][] = [];
+  /** Fingers down on an element over the picture (see watchGuests), and when one of them last zoomed. */
+  private guests = new Map<number, { x: number; y: number }>();
+  private guestPinchAt = -1e9;
 
   constructor(el: HTMLElement, camera: PerspectiveCamera, events: ControlEvents) {
     this.el = el;
@@ -98,11 +102,74 @@ export class OrbitControls {
     on("pointercancel", (e) => this.onUp(e));
     on("wheel", (e) => this.onWheel(e), { passive: false });
     on("contextmenu", (e) => e.preventDefault());
+    this.watchGuests();
+  }
+
+  /**
+   * Fingers on what lies over the picture – a floor's label, a pin, a glass card – count for a pinch as well. They
+   * never reached the canvas, so with the house full of labels and pins two fingers rarely both met free picture and
+   * the house could be turned but not zoomed. Such a finger is a guest: alone it does what its element does; with a
+   * second finger down, both zoom and pan, and the element's own click is left out.
+   */
+  private watchGuests(): void {
+    const host = this.el.parentElement;
+    if (!host || typeof window === "undefined") return;
+    const add = (target: EventTarget, type: string, fn: (e: PointerEvent) => void) => {
+      target.addEventListener(type, fn as EventListener, true);
+      this.guestListeners.push([target, type, fn as EventListener]);
+    };
+    add(host, "pointerdown", (e) => {
+      if (e.pointerType !== "touch" || e.target === this.el || this.grabbing || this.swiping) return;
+      // not on what is used with a finger of its own: a field, a slider, a list that scrolls
+      for (let n = e.target as HTMLElement | null; n && n !== host; n = n.parentElement) {
+        if (/^(INPUT|SELECT|TEXTAREA)$/.test(n.tagName)) return;
+        if (n.scrollHeight > n.clientHeight + 1 && /auto|scroll/.test(getComputedStyle(n).overflowY)) return;
+      }
+      this.guests.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      this.joinGuests();
+    });
+    add(window, "pointermove", (e) => {
+      const g = this.guests.get(e.pointerId);
+      if (!g) return;
+      g.x = e.clientX;
+      g.y = e.clientY;
+      if (this.pointers.has(e.pointerId)) this.onMove(e);
+    });
+    const up = (e: PointerEvent) => {
+      if (!this.guests.delete(e.pointerId) || !this.pointers.delete(e.pointerId)) return;
+      if (this.pointers.size < 2) this.pinch = null;
+      this.guestPinchAt = performance.now();
+      this.events.change();
+    };
+    add(window, "pointerup", up);
+    add(window, "pointercancel", up);
+    // the element under a finger that zoomed is not tapped
+    add(host, "click", ((e: Event) => {
+      if (performance.now() - this.guestPinchAt > 500) return;
+      e.stopPropagation();
+      e.preventDefault();
+    }) as unknown as (e: PointerEvent) => void);
+  }
+
+  /** Two fingers down, at least one of them a guest: the guests join the pinch. */
+  private joinGuests(): void {
+    if (!this.guests.size || this.grabbing || this.swiping) return;
+    const waiting = [...this.guests].filter(([id]) => !this.pointers.has(id));
+    if (!waiting.length || this.pointers.size + waiting.length < 2) return;
+    for (const [id, g] of waiting) this.pointers.set(id, { x: g.x, y: g.y, button: 0, type: "touch" });
+    this.flight = null;
+    this.velocity = { theta: 0, phi: 0 };
+    clearTimeout(this.holdTimer);
+    this.held = false;
+    this.down = null;
+    this.pinch = this.pinchState();
+    this.guestPinchAt = performance.now();
   }
 
   dispose(): void {
     clearTimeout(this.holdTimer);
     for (const [type, fn] of this.listeners) this.el.removeEventListener(type, fn);
+    for (const [target, type, fn] of this.guestListeners) target.removeEventListener(type, fn, true);
   }
 
   /** A finger or the mouse holds the view, or a flight runs (an automatic orbit waits meanwhile). */
@@ -198,6 +265,8 @@ export class OrbitControls {
       this.down = null;
       this.pinch = this.pinchState();
     }
+    // a finger already resting on a label or a pin makes this a pinch
+    this.joinGuests();
   }
 
   private onMove(e: PointerEvent): void {

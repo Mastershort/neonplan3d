@@ -1129,6 +1129,18 @@ export class Fp3dView3d extends LitElement {
 
   protected updated(changed: PropertyValues): void {
     if (changed.has("hass") && this.live?.el) this.live.el.hass = this.hass;
+    if (changed.has("_holos")) {
+      // other cards than before (a module's card came or went – the speaker's after an announcement): the elements
+      // are new and know neither their place nor whether they show; without a new frame every card of the house
+      // lay over the picture. They wait hidden for the next frame, which places the ones in view
+      const shape = this._holos.map((c) => c.kind).join(",");
+      if (shape !== this.holoShape) {
+        this.holoShape = shape;
+        for (const el of this.renderRoot.querySelectorAll<HTMLElement>(".fp3d-holo")) el.hidden = true;
+        for (const el of this.renderRoot.querySelectorAll(".fp3d-holo-link")) el.toggleAttribute("hidden", true);
+        this.viewer?.invalidate();
+      }
+    }
     // a view that now shows another screen name or template tells the overview again
     if ((changed.has("screen") || changed.has("template") || changed.has("viewKind") || changed.has("planId")) && this.unsubAsk && this.hasUpdated) {
       this.unwatchAsk();
@@ -2152,6 +2164,8 @@ export class Fp3dView3d extends LitElement {
    * behind the field, shows its back (mirrored) or, switched off, hangs readable on the other side.
    */
   /** Cards placed in this frame (screen boxes), so the next one can step aside (D178). */
+  /** The kinds of the cards drawn, in order: when it changes, their elements are new. */
+  private holoShape = "";
   private holoBoxes: { i: number; x0: number; x1: number; y0: number; y1: number }[] = [];
   private holoSizes = new Map<number, { w: number; h: number; at: number }>();
   /** The 3D area's size for keeping cards inside it, read now and then (not every frame). */
