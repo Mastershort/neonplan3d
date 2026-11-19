@@ -1,9 +1,9 @@
 // What a room does in one go: "everything off" (from its panel or by voice) and the robot vacuum sent to clean it
 // (the room's own script or button for that, set in the editor).
 
-import { favoriteCall, isUnavailable, roomPanelEntities } from "./devices.ts";
+import { entityAreaId, favoriteCall, isUnavailable, roomPanelEntities } from "./devices.ts";
 import { isLamp, pointInPolygon, type Floor, type Room } from "./model.ts";
-import type { HomeAssistant } from "./types.ts";
+import type { HassEntity, HomeAssistant } from "./types.ts";
 
 export interface ServiceCall {
   domain: string;
@@ -53,12 +53,51 @@ export function callCount(calls: readonly ServiceCall[]): number {
   return calls.reduce((n, c) => n + (c.data.entity_id as string[]).length, 0);
 }
 
-/** The call that sends the robot vacuum to clean this room (its script, button, scene …), null without one. */
+const VACUUM_CLEAN_AREA = 16384;
+
+/** A vacuum that cleans by Home Assistant area (its integration offers segments to map). */
+export function canCleanArea(st: HassEntity | undefined): boolean {
+  return !!st && st.entity_id.startsWith("vacuum.") && ((Number(st.attributes.supported_features) || 0) & VACUUM_CLEAN_AREA) !== 0;
+}
+
+/** The call that sends the robot vacuum to clean this room: its script, button or scene …, or a vacuum that cleans by area. Null without one. */
 export function cleaningCall(hass: HomeAssistant, room: Room): ServiceCall | null {
   const id = room.cleaning;
   if (!id || !hass.states[id]) return null;
+  if (id.startsWith("vacuum.")) {
+    return room.area_id && canCleanArea(hass.states[id]) ? { domain: "vacuum", service: "clean_area", data: { entity_id: id, cleaning_area_id: [room.area_id] } } : null;
+  }
   const [domain, service] = favoriteCall(id);
   return { domain, service, data: { entity_id: id } };
+}
+
+/** The Home Assistant areas of a vacuum that have segments mapped (needs the admin's registry access), empty when unknown. */
+async function mappedAreas(hass: HomeAssistant, vacuum: string): Promise<Set<string>> {
+  try {
+    const entry = await hass.callWS<{ options?: { vacuum?: { area_mapping?: Record<string, string[]> } } }>({ type: "config/entity_registry/get", entity_id: vacuum });
+    return new Set(Object.entries(entry.options?.vacuum?.area_mapping ?? {}).filter(([, segments]) => segments.length).map(([area]) => area));
+  } catch {
+    return new Set();
+  }
+}
+
+/** Whether this vacuum has segments mapped to the area. */
+export async function vacuumMapsArea(hass: HomeAssistant, vacuum: string, areaId: string): Promise<boolean> {
+  return canCleanArea(hass.states[vacuum]) && (await mappedAreas(hass, vacuum)).has(areaId);
+}
+
+/** The vacuum with segments mapped to this area. With several, the one on the area's floor wins, else the first. */
+export async function vacuumForArea(hass: HomeAssistant, areaId: string): Promise<string | null> {
+  const mapped: string[] = [];
+  const candidates = Object.values(hass.states).filter(canCleanArea);
+  const has = await Promise.all(candidates.map((st) => mappedAreas(hass, st.entity_id)));
+  candidates.forEach((st, i) => has[i].has(areaId) && mapped.push(st.entity_id));
+  const floor = hass.areas?.[areaId]?.floor_id;
+  if (mapped.length > 1 && floor) {
+    const same = mapped.find((id) => hass.areas?.[entityAreaId(hass, id) ?? ""]?.floor_id === floor);
+    if (same) return same;
+  }
+  return mapped[0] ?? null;
 }
 
 /** The plan room of a Home Assistant area (where a tablet hangs): the first indoor room linked to it. */
