@@ -2537,6 +2537,7 @@
  "surround_north": "Nord: {deg}°",
  "surround_credit": "Kortdata © OpenStreetMap-bidragydere",
  "surround_flat": "Naboernes huse kun som omrids (flade i stedet for blokke)",
+ "surround_roofs": "Naboernes huse med sadeltag (store bygninger forbliver blokke)",
  "surround_y": "Omgivelsernes højde (m)",
  "surround_y_hint": "Ligger gaden højere eller lavere end stueetagen (skråning, skrå indkørsel), flytter dette hele kortet op (+) eller ned (−).",
  "surround_pick": "Vis og skjul huse",

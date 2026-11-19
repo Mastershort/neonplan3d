@@ -898,6 +898,8 @@ export interface Surroundings {
   show?: number[];
   /** The neighbours' houses only as their outline on the ground instead of blocks. */
   flat?: boolean;
+  /** The neighbours' houses with a simple gable roof instead of a flat top (large buildings stay blocks). */
+  roofs?: boolean;
   /** The whole map shifted up or down (m), where the street lies higher or lower than the ground floor (#1148). */
   y?: number;
   buildings: SurroundBuilding[];
@@ -2051,7 +2053,7 @@ export function normalizeBuilding(b: Building): Building {
     f.rooms = f.rooms.map((r) => ({ ...r, panel: r.panel ?? [] }));
     f.ha_floor = f.ha_floor ?? null;
     f.placements = f.placements.map((p) => ({ ...p, mount: p.mount ?? null, rotation: p.rotation ?? 0 }));
-    f.furniture = f.furniture.map((m) => ({ ...m, entity: m.entity ?? null, power: m.power ?? null }));
+    f.furniture = f.furniture.map((m) => ({ ...m, entity: m.entity ?? null, power: m.power ?? null, ...(m.show_if && !m.show_if.entity ? { show_if: null } : {}) }));
     // lights placed as devices (before lamps existed) become lamps of their mount type
     // (a light turned back into a pin on purpose stays a pin)
     const lights = f.placements.filter((p) => p.entity_id.startsWith("light.") && !p.pin);

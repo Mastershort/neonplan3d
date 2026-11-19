@@ -2537,6 +2537,7 @@
  "surround_north": "北向：{deg}°",
  "surround_credit": "地图数据 © OpenStreetMap 贡献者",
  "surround_flat": "邻居的房子只显示轮廓（平面而非方块）",
+ "surround_roofs": "邻居的房屋带双坡屋顶（大型建筑仍为方块）",
  "surround_y": "周边高度（米）",
  "surround_y_hint": "如果街道比底层高或低（坡地、倾斜车道），此项将整张地图向上（+）或向下（−）移动。",
  "surround_pick": "显示和隐藏房屋",

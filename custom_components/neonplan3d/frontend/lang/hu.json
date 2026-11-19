@@ -2537,6 +2537,7 @@
  "surround_north": "Észak: {deg}°",
  "surround_credit": "Térképadatok © OpenStreetMap közreműködők",
  "surround_flat": "Szomszéd házak csak alaprajzként (laposan, tömbök helyett)",
+ "surround_roofs": "Szomszéd házak nyeregtetővel (a nagy épületek tömbök maradnak)",
  "surround_y": "A környezet magassága (m)",
  "surround_y_hint": "Ha az utca magasabban vagy mélyebben fekszik, mint a földszint (lejtő, ferde behajtó), ez feljebb (+) vagy lejjebb (−) tolja az egész térképet.",
  "surround_pick": "Házak megjelenítése és elrejtése",

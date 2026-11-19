@@ -2537,6 +2537,7 @@
  "surround_north": "Sever: {deg}°",
  "surround_credit": "Mapová data © přispěvatelé OpenStreetMap",
  "surround_flat": "Sousední domy jen jako půdorys (ploché místo bloků)",
+ "surround_roofs": "Sousední domy se sedlovou střechou (velké budovy zůstávají bloky)",
  "surround_y": "Výška okolí (m)",
  "surround_y_hint": "Leží-li ulice výš nebo níž než přízemí (svah, šikmý vjezd), posune to celou mapu nahoru (+) nebo dolů (−).",
  "surround_pick": "Zobrazit a skrýt domy",

@@ -2536,6 +2536,7 @@
  "surround_north": "Kuzey: {deg}°",
  "surround_credit": "Harita verileri © OpenStreetMap katkıda bulunanları",
  "surround_flat": "Komşu evler yalnızca taban planı olarak (blok yerine düz)",
+ "surround_roofs": "Komşu evler beşik çatılı (büyük binalar blok olarak kalır)",
  "surround_y": "Çevrenin yüksekliği (m)",
  "surround_y_hint": "Sokak zemin kattan daha yüksek veya alçaksa (yamaç, eğimli giriş), bu tüm haritayı yukarı (+) veya aşağı (−) kaydırır.",
  "surround_pick": "Evleri göster ve gizle",

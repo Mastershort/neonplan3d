@@ -2537,6 +2537,7 @@
  "surround_north": "Nord: {deg}°",
  "surround_credit": "Date hartă © contribuitorii OpenStreetMap",
  "surround_flat": "Casele vecinilor doar ca plan (plate în loc de blocuri)",
+ "surround_roofs": "Casele vecinilor cu acoperiș în două ape (clădirile mari rămân blocuri)",
  "surround_y": "Înălțimea împrejurimilor (m)",
  "surround_y_hint": "Dacă strada este mai sus sau mai jos decât parterul (pantă, alee înclinată), aceasta mută toată harta în sus (+) sau în jos (−).",
  "surround_pick": "Arată și ascunde case",

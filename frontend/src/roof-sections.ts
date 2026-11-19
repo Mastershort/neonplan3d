@@ -801,7 +801,7 @@ export function wallTopUnder(b: Building, x0: number, z0: number, x1: number, z1
 
 /**
  * The floor a roof section sits on: the highest one with rooms that starts below the section's base – of those, the
- * highest with rooms under the section. In a split-level house a floor beside it at another level carries the roof
+ * highest with rooms under the section; a floor that starts at the base itself with rooms under the section is it. In a split-level house a floor beside it at another level carries the roof
  * next door, not this one (#1097).
  */
 export function sectionFloor(
@@ -810,13 +810,18 @@ export function sectionFloor(
 ): Building["floors"][number] | undefined {
   const floors = b.floors.filter((f) => f.rooms.length > 0).sort((p, q) => p.elevation - q.elevation);
   const below = [...floors].reverse().filter((f) => f.elevation < sec.base - 0.05);
-  if (sec.x0 !== undefined && sec.z0 !== undefined && sec.x1 !== undefined && sec.z1 !== undefined && below.length > 1) {
+  if (sec.x0 !== undefined && sec.z0 !== undefined && sec.x1 !== undefined && sec.z1 !== undefined) {
     // probes well inside the section: its middle and points most of the way to its corners
     const poly = sectionPolygon({ x0: sec.x0, z0: sec.z0, x1: sec.x1, z1: sec.z1, points: sec.points, rotation: sec.rotation, pivot: sec.pivot }, 0);
     const mx = poly.reduce((a, p) => a + p[0], 0) / poly.length;
     const mz = poly.reduce((a, p) => a + p[1], 0) / poly.length;
     const probes: Vec2[] = [[mx, mz], ...poly.map((p) => [mx + (p[0] - mx) * 0.6, mz + (p[1] - mz) * 0.6] as Vec2)];
-    const under = below.find((f) => f.rooms.some((r) => r.points.length >= 3 && probes.some((p) => pointInPolygon(p, r.points))));
+    const roomsUnder = (f: Building["floors"][number]) => f.rooms.some((r) => r.points.length >= 3 && probes.some((p) => pointInPolygon(p, r.points)));
+    // a roof that begins at a floor's own level (no knee wall) with that floor's rooms under it: they are its attic –
+    // on the floor below, the roof drew gables of its own in front of the attic's outer walls (#1199)
+    const level = floors.find((f) => Math.abs(f.elevation - sec.base) <= 0.05 && roomsUnder(f));
+    if (level) return level;
+    const under = below.length > 1 ? below.find(roomsUnder) : undefined;
     if (under) return under;
   }
   return below[0] ?? floors[0];

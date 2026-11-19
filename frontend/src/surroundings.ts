@@ -217,6 +217,8 @@ export interface PlacedSurroundings {
   trees: Vec2[];
   /** The neighbours' houses only as outlines on the ground. */
   flat: boolean;
+  /** The neighbours' houses with a gable roof. */
+  roofs: boolean;
   /** Up or down from the ground floor's ground (m). */
   y: number;
 }
@@ -233,6 +235,7 @@ export function placedSurroundings(b: Building | null | undefined): PlacedSurrou
     areas: s.areas.map((a) => ({ p: a.p.map(at), k: a.k })),
     trees: s.trees.map(at),
     flat: s.flat === true,
+    roofs: s.roofs === true,
     y: Number.isFinite(s.y) ? (s.y as number) : 0,
   };
 }
@@ -269,7 +272,7 @@ export function mapCorners(b: Building): Vec2[] {
 /** A short key that changes whenever what is drawn of the neighbourhood changes (for redrawing shadows). */
 export function surroundKey(b: Building | null | undefined): string {
   const s = b?.settings.surroundings;
-  return s?.on ? `${s.at},${s.x},${s.z},${s.own ?? ""},${s.buildings.length},${s.hide?.join(".") ?? ""},${s.show?.join(".") ?? ""},${s.flat ? 1 : 0}` : "";
+  return s?.on ? `${s.at},${s.x},${s.z},${s.own ?? ""},${s.buildings.length},${s.hide?.join(".") ?? ""},${s.show?.join(".") ?? ""},${s.flat ? 1 : 0}${s.roofs ? "r" : ""}` : "";
 }
 
 /**

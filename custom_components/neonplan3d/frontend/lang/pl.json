@@ -2537,6 +2537,7 @@
  "surround_north": "Północ: {deg}°",
  "surround_credit": "Dane mapy © współtwórcy OpenStreetMap",
  "surround_flat": "Domy sąsiadów tylko jako obrys (płasko zamiast brył)",
+ "surround_roofs": "Domy sąsiadów z dachem dwuspadowym (duże budynki pozostają blokami)",
  "surround_y": "Wysokość otoczenia (m)",
  "surround_y_hint": "Jeśli ulica leży wyżej lub niżej niż parter (zbocze, pochyły podjazd), przesuwa to całą mapę w górę (+) lub w dół (−).",
  "surround_pick": "Pokaż i ukryj domy",

@@ -2537,6 +2537,7 @@
  "surround_north": "Norte: {deg}°",
  "surround_credit": "Dados do mapa © contribuidores do OpenStreetMap",
  "surround_flat": "Casas vizinhas só como planta (planas em vez de blocos)",
+ "surround_roofs": "Casas vizinhas com telhado de duas águas (os edifícios grandes continuam como blocos)",
  "surround_y": "Altura dos arredores (m)",
  "surround_y_hint": "Se a rua estiver mais alta ou mais baixa que o rés-do-chão (encosta, entrada inclinada), isto sobe (+) ou desce (−) todo o mapa.",
  "surround_pick": "Mostrar e ocultar casas",
