@@ -187,22 +187,28 @@ Wände entstehen automatisch: Jede gemeinsame Kante zweier Räume wird eine Inne
 
 ### 4.5 Das ⚙ Einstellungen-Menü
 
-Alles, was zum ganzen Plan gehört und nicht zu einer Etage, einem Raum oder einem Möbel, steht in einem Menü: **⚙ Einstellungen ▾** rechts in der Werkzeugleiste (auf schmalen Bildschirmen nur das Zahnrad). Jeder Punkt öffnet ein Fenster über dem Plan, auch während etwas ausgewählt ist; **✕** oder **Esc** schließt es. Die Seitenleiste ohne Auswahl zeigt nur noch die Räume der Etage, das Grundriss-Bild und die Hilfe.
+Alles, was zum ganzen Plan gehört und nicht zu einer Etage, einem Raum oder einem Möbel, steht an einem Ort: **⚙ Einstellungen** rechts in der Werkzeugleiste (auf schmalen Bildschirmen nur das Zahnrad). Der Knopf öffnet ein Fenster über dem Plan, auch während etwas ausgewählt ist: links die Themen in fünf Gruppen, rechts das gewählte Thema. Das Fenster öffnet dort, wo du zuletzt warst; **✕**, **Esc** oder ein Klick daneben schließt es. In einem schmalen Fenster stehen die Themen als Auswahl oben.
 
-| Menüpunkt | Inhalt |
-|---|---|
-| **🏠 Haus** | Wandstärken, Raster, Längen, Nordrichtung (die Zeilen darunter) |
-| **🌦 Wetter & Warnungen** | Wetter-Entität und -Effekte, Regenwarnung, Warnungsnamen, Stromausfall-Sensor, Sonnenflecken |
-| **🎬 Live-Regie** | siehe [6.1](#61-kamera-cockpit) |
-| **🎙 Sprachsteuerung** | siehe [5.10](#510-sprachsteuerung-neu) |
-| **⭐ Favoriten** | das Zentral-Menü der 3D-Ansicht (unten) |
-| **🎨 Stile** | Stile, eigene Stile, Tageszeiten und Fassade, siehe [5.12](#512-stile-neu-in-31) |
-| **🖼 Hintergrund** | was hinter dem 3D-Haus liegt (unten) |
-| **⛰ Gelände** | siehe [4.21](#421-keller-und-gelände) |
-| **🗺 Umgebung** | die Nachbarschaft aus der Karte, siehe [4.26](#426-die-umgebung-aus-der-karte-neu) |
-| **💾 Sicherung** | Export, Import, Wiederherstellen, siehe Kapitel 9 |
-| **🧩 Module** | die eingespielten Module (Code aus dem Shop, etwa „Das Haus antwortet“) und **Modul einspielen …** für die .fp3dpack-Datei |
-| **🖥 Karten-Vorlagen** | fertige Dashboard-Karten für die Wandtablets, siehe [8.1](#81-karten-vorlagen) |
+![Einstellungen](images/settings.jpg)
+
+| Gruppe | Thema | Inhalt |
+|---|---|---|
+| **Haus & Plan** | **Grundrisse** | mehrere Grundrisse, siehe [4.25](#425-mehrere-grundrisse-und-das-grundstück-neu-in-30) |
+| | **Haus** | Wandstärken, Raster, Längen, Nordrichtung (die Zeilen darunter) |
+| | **Gelände** | siehe [4.21](#421-keller-und-gelände) |
+| | **Umgebung** | die Nachbarschaft aus der Karte, siehe [4.26](#426-die-umgebung-aus-der-karte-neu) |
+| | **Hintergrund** | was hinter dem 3D-Haus liegt (unten) |
+| **Aussehen** | **Stile** | Stile, eigene Stile, Tageszeiten und Fassade, siehe [5.12](#512-stile-neu-in-31) |
+| | **Wetter & Warnungen** | Wetter-Entität und -Effekte, Regenwarnung, Warnungsnamen, Stromausfall-Sensor, Sonnenflecken |
+| | **Favoriten** | das Zentral-Menü der 3D-Ansicht (unten) |
+| **Bildschirme** | **Karten-Vorlagen** | fertige Dashboard-Karten für Wandtablets und Handys, siehe [8.1](#81-karten-vorlagen) |
+| | **Live-Regie** | siehe [6.1](#61-kamera-cockpit) |
+| **Erweiterungen** | **Module** | die eingespielten Module (Code aus dem Shop, etwa „Das Haus antwortet“) und **Modul einspielen …** für die .fp3dpack-Datei |
+| | **Fun-Packs** | Haustiere und die Packs der Jahreszeiten |
+| | **Sprachsteuerung** | siehe [5.10](#510-sprachsteuerung-neu) |
+| | **Ortung** | siehe [5.11](#511-ortung-neu) |
+| **System** | **Sicherung** | Export, Import, Wiederherstellen, siehe Kapitel 9 |
+| | **Hilf mit** | Diagnose-Berichte |
 
 Die **Dachform** (kein Dach, Flachdach, Satteldach, First, Neigung, Überstand) steht beim Dach-Werkzeug, siehe [4.19](#419-dach). Die **Startansicht** merkst du dir in der 3D-Ansicht: Haus drehen und zoomen, dann in den Ansicht-Einstellungen (Zahnrad oben rechts) **📌** antippen; **📌✕** setzt sie zurück. 3D-Ansicht, Karte und Kiosk öffnen das Haus dann so, und eine geöffnete Etage wird von derselben Seite gezeigt.
 
@@ -975,6 +981,10 @@ data:
 
 NeonPlan ist für Wandtablet und PC gebaut. Am Handy will man zwei Dinge: schnell sehen, ob zu Hause alles in Ordnung ist, und mit dem Daumen in jeden Raum kommen. Dafür gibt es die Handy-Ansicht: das Haus ohne Kopfzeile und lose Knöpfe, unten eine Leiste.
 
+| Das Haus | Die Räume | „Was ist los?“ |
+| --- | --- | --- |
+| ![Handy-Ansicht](images/phone-start.jpg) | ![Räume](images/phone-rooms.jpg) | ![Was ist los?](images/phone-now.jpg) |
+
 **Einschalten:** Am Handy fragt NeonPlan einmal, ob du sie ausprobieren willst. Am PC oder Tablet schaltest du sie oben unter **⚙ → 📱 Handy-Ansicht** ein, zurück geht es mit **Mehr → Handy-Ansicht aus**. Die Wahl gilt nur für dieses Gerät.
 
 **In der Dashboard-Karte:** Mit `phone: true` läuft die Karte in der Handy-Ansicht – am besten zusammen mit `fill: true` auf einer eigenen Ansicht des Dashboards:
@@ -992,7 +1002,7 @@ fill: true
 | **Jetzt** | Die Liste „Was ist los?“ | Was einen Blick braucht; der Punkt ist grün, gelb oder rot |
 | **Etage** bzw. **Räume** | Die Räume als Kacheln mit Temperatur, Lichtern, offenen Fenstern und Musik. Ein Haus mit zwei Etagen hat für jede einen Platz, sonst teilen sich alle den Platz **Räume** | Eingeschaltete Lichter |
 | **Rollläden** | Alle Rollläden nach Etage, mit **Alle auf**, **Alle zu** und ▲ ■ ▼ je Rollladen | Geschlossene Rollläden |
-| **Mehr** | Haus-Check, Ganzes Haus, Raum einzeln, in der Integration außerdem Anzeige, Zeitreise und das Menü von Home Assistant | – |
+| **Mehr** | Suchen, Haus-Check, Ganzes Haus, Raum einzeln, in der Integration außerdem Anzeige, Zeitreise und das Menü von Home Assistant | – |
 
 Braucht etwas einen Blick, steht es zusätzlich in einer Zeile über der Leiste („2 Fenster und Türen offen · 4 Lichter an“).
 
@@ -1013,6 +1023,41 @@ Braucht etwas einen Blick, steht es zusätzlich in einer Zeile über der Leiste 
 Oben auf der Liste stehen die **Favoriten** des Hauses als Knöpfe. Ist nichts zu tun, steht dort **Alles in Ordnung**. Bist du selbst nicht zu Hause, rückt „Wer ist da“ direkt hinter die Warnungen. Ein Tipp auf eine Zeile schließt die Liste und zeigt die Stelle im Haus; hat eine Zeile mehrere Stellen (sechs offene Fenster), klappt sie auf, und du wählst eine.
 
 **Haus-Check:** Der Knopf unten in der Liste (auch unter **Mehr**) geht vor dem Gehen oder Schlafen alles durch, was offen oder an ist: erst die Fenster und Türen (die schließt du von Hand), dann die Schlösser, dann Raum für Raum die Lichter. Das Haus zeigt jede Stelle, darunter steht **Alle aus** bzw. **Abschließen** und **Weiter**. Ab dem ersten Raum mit Licht gibt es **Alle Lichter aus** für den Rest.
+
+**Das Raumfenster am Handy:** Es öffnet eingeklappt – Name, Temperatur und seine Knöpfe –, damit der Raum zu sehen bleibt und du seine Geräte im Haus antippen kannst. **Geräte zeigen** klappt die Liste auf, höchstens bis etwa 60 % der Höhe.
+
+**Die Leiste selbst gestalten (Dashboard-Karte):** Im Kartenformular wählst du oben **Handy** statt **Tablet oder großer Bildschirm**. Dann stehen dort die Optionen der Leiste:
+
+| Option | YAML | Bedeutung |
+| --- | --- | --- |
+| Räume / Rollläden in der Leiste, Favoriten auf der Liste | `phone_hide: [rooms, covers, favorites]` | lässt den Platz bzw. die Favoriten weg, etwa in einem Haus ohne Rollläden |
+| Raum einzeln | `phone_solo: true` | ein Raum, in den du springst, steht allein im Bild |
+| Mit der Liste öffnen | `phone_start: now` | die Karte öffnet mit „Was ist los?“ statt mit dem Haus |
+| Eigener Platz 1 und 2 | `phone_places` | bis zu zwei eigene Plätze, siehe unten |
+| Umgebung aus der Karte zeigen | `surroundings: false` | diese Karte zeichnet das Haus ohne die Umgebung (der Plan behält sie) |
+
+Ein **eigener Platz** ist eines von vier Dingen, jeweils mit eigenem Wort (`name`) und Symbol (`icon`):
+
+| `kind` | Was der Platz tut | Braucht |
+| --- | --- | --- |
+| `lights` | öffnet alle Lampen nach Etage, mit **Alle an** / **Alle aus**; am Platz steht die Zahl der Lichter, die an sind | – |
+| `climate` | öffnet alle Thermostate nach Etage | – |
+| `action` | führt eine Szene oder ein Skript aus | `entity` |
+| `link` | öffnet eine Seite eines Dashboards | `path` |
+
+```yaml
+type: custom:neonplan3d-card
+phone: true
+fill: true
+phone_hide: [covers]        # ein Haus ohne Rollläden
+phone_places:
+  - kind: lights
+  - kind: action
+    name: Gute Nacht
+    entity: script.gute_nacht
+```
+
+Die Leiste hat höchstens fünf Plätze. Wird es mehr, teilen sich zuerst zwei Etagen den Platz **Räume**, danach wandern eigene Plätze und die Rollläden unter **Mehr**. Ein Platz ohne passende Geräte bleibt weg.
 
 **Aus einer Benachrichtigung direkt an die Stelle:** Die Integration öffnet sich mit diesen Adressen am richtigen Ort:
 
@@ -1449,7 +1494,11 @@ Die Karte `custom:neonplan3d-card` bringt die 3D-Ansicht in jedes Dashboard. Sie
 
 ### 8.1 Karten-Vorlagen
 
-Statt jede Karte auf jedem Tablet einzeln einzustellen, baust du sie einmal im Editor: **⚙ Einstellungen → 🖥 Karten-Vorlagen → + Neue Vorlage**. Gib ihr einen Namen (etwa „Küche Fire-Tablet“) und stell darunter alles ein, mit demselben Formular wie im Kartendialog von Home Assistant. **Duplizieren** macht eine Kopie als Ausgangspunkt für das nächste Tablet.
+Statt jede Karte auf jedem Tablet einzeln einzustellen, baust du sie einmal im Editor: **⚙ Einstellungen → Karten-Vorlagen**. Links stehen die Vorlagen, getrennt nach **Bildschirme** und **Handys**, jeweils mit **+ Neue Vorlage**. Gib der Vorlage einen Namen (etwa „Küche Fire-Tablet“) und stell sie in den Reitern **Allgemein**, **Ansicht**, **Anzeigen**, **Funktionen** und **Wandtablet (Kiosk)** ein – dieselben Optionen wie im Kartendialog von Home Assistant. **Duplizieren** macht eine Kopie als Ausgangspunkt für das nächste Gerät.
+
+Rechts steht die **Vorschau** auf dem gewählten Bildschirm (eine Handy-Vorlage auf einem Handy). Du kannst darin drehen, zoomen und Räume öffnen wie auf der Karte; geschaltet wird in der Vorschau nichts. Damit Formular und Vorschau Platz haben, klappen die Themen der Einstellungen hier weg – **Alle Einstellungen** oben holt sie zurück. Eine Vorlage **für ein Handy** hat die Optionen der Leiste, siehe [5.13](#513-am-handy-die-handy-ansicht-neu).
+
+![Karten-Vorlagen](images/card-templates.jpg)
 
 **Auf dem Tablet:** Karte hinzufügen, nach „NeonPlan“ suchen und ganz oben unter **Vorlage** die Vorlage wählen, fertig. Das Formular darunter fällt weg. Im YAML stehen nur zwei Zeilen:
 

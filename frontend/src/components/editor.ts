@@ -16827,7 +16827,7 @@ export class Fp3dEditor extends LitElement {
         box-sizing: border-box;
         grid-template-rows: auto minmax(0, 1fr);
         width: min(1020px, 100%);
-        height: min(780px, 100% - 16px);
+        height: min(840px, 100% - 16px);
         overflow: hidden;
         padding: 14px 18px 0;
       }
@@ -16858,8 +16858,8 @@ export class Fp3dEditor extends LitElement {
       .fp3d-set-nav {
         display: grid;
         align-content: start;
-        gap: 14px;
-        padding: 0 12px 16px 0;
+        gap: 10px;
+        padding: 0 12px 12px 0;
         overflow: auto;
         border-right: 1px solid var(--fp3d-line);
       }
@@ -16876,7 +16876,7 @@ export class Fp3dEditor extends LitElement {
         color: var(--fp3d-soft);
       }
       .fp3d-set-item {
-        padding: 7px 10px;
+        padding: 6px 10px;
         border: 1px solid transparent;
         border-radius: 8px;
         background: none;

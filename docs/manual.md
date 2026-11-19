@@ -187,22 +187,28 @@ Walls are created automatically: every shared edge of two rooms becomes an inter
 
 ### 4.5 The ⚙ settings menu
 
-Everything that belongs to the whole plan rather than to a floor, a room or an item sits in one menu: **⚙ Settings ▾** on the right of the toolbar (only the gear on narrow screens). Each entry opens a dialog over the plan, also while something is selected; **✕** or **Esc** closes it. The side bar without a selection only keeps the floor's rooms, the floor-plan picture and the help.
+Everything that belongs to the whole plan rather than to a floor, a room or an item sits in one place: **⚙ Settings** on the right of the toolbar (only the gear on narrow screens). The button opens a dialog over the plan, also while something is selected: the topics in five groups on the left, the chosen topic on the right. The dialog opens where you left it; **✕**, **Esc** or a click beside it closes it. In a narrow window the topics are a choice on top.
 
-| Entry | Content |
-|---|---|
-| **🏠 House** | wall thicknesses, grid, lengths, north (the rows below) |
-| **🌦 Weather & warnings** | weather entity and effects, rain warning, warning names, outage sensor, sun patches |
-| **🎬 Live director** | see [6.1](#61-camera-cockpit) |
-| **🎙 Voice control** | see [5.10](#510-voice-control-new) |
-| **⭐ Favourites** | the central menu of the 3D view (below) |
-| **🎨 Styles** | styles, own styles, times of day and facade, see [5.12](#512-styles-new-in-31) |
-| **🖼 Background** | what lies behind the 3D house (below) |
-| **⛰ Ground** | see [4.21](#421-cellar-and-ground) |
-| **🗺 Surroundings** | the neighbourhood from the map, see [4.26](#426-the-surroundings-from-the-map-new) |
-| **💾 Backup** | export, import, restore, see chapter 9 |
-| **🧩 Modules** | the modules installed (code from the shop, e.g. "The house answers") and **Import a module …** for the .fp3dpack file |
-| **🖥 Card templates** | ready-made dashboard cards for the wall tablets, see [8.1](#81-card-templates) |
+![Settings](images/settings.jpg)
+
+| Group | Topic | Content |
+|---|---|---|
+| **House & plan** | **Floor plans** | several floor plans, see [4.25](#425-several-floor-plans-and-the-property-new-in-30) |
+| | **House** | wall thicknesses, grid, lengths, north (the rows below) |
+| | **Ground** | see [4.21](#421-cellar-and-ground) |
+| | **Surroundings** | the neighbourhood from the map, see [4.26](#426-the-surroundings-from-the-map-new) |
+| | **Background** | what lies behind the 3D house (below) |
+| **Look** | **Styles** | styles, own styles, times of day and facade, see [5.12](#512-styles-new-in-31) |
+| | **Weather & warnings** | weather entity and effects, rain warning, warning names, outage sensor, sun patches |
+| | **Favourites** | the central menu of the 3D view (below) |
+| **Screens** | **Card templates** | ready-made dashboard cards for wall tablets and phones, see [8.1](#81-card-templates) |
+| | **Live director** | see [6.1](#61-camera-cockpit) |
+| **Extensions** | **Modules** | the modules installed (code from the shop, e.g. "The house answers") and **Import a module …** for the .fp3dpack file |
+| | **Fun packs** | pets and the packs of the seasons |
+| | **Voice control** | see [5.10](#510-voice-control-new) |
+| | **Locating** | see [5.11](#511-locating-new) |
+| **System** | **Backup** | export, import, restore, see chapter 9 |
+| | **Help improve** | diagnostic reports |
 
 The **roof shape** (none, flat, gable, ridge, pitch, overhang) sits with the roof tool, see [4.19](#419-roof). The **start view** is remembered in the 3D view: turn and zoom the house, then tap **📌** in the view settings (gear at the top right); **📌✕** resets it. The 3D view, the card and the kiosk then open the house like that, and an opened floor is shown from the same side.
 
@@ -975,6 +981,10 @@ data:
 
 NeonPlan is made for wall tablets and PCs. On a phone you want two things: see at a glance whether all is well at home, and reach every room with your thumb. That is what the phone view is for: the house without the header and loose buttons, and a bar at the bottom.
 
+| The house | The rooms | "What is going on?" |
+| --- | --- | --- |
+| ![Phone view](images/phone-start.jpg) | ![Rooms](images/phone-rooms.jpg) | ![What is going on?](images/phone-now.jpg) |
+
 **Switching it on:** on a phone NeonPlan asks once whether you want to try it. On a PC or tablet you switch it on at the top under **⚙ → 📱 Phone view**; **More → Phone view off** takes you back. The choice counts for this device only.
 
 **In the dashboard card:** with `phone: true` the card runs in the phone view – best together with `fill: true` on a dashboard view of its own:
@@ -992,7 +1002,7 @@ fill: true
 | **Now** | the list "What's going on?" | what needs a look; the dot is green, yellow or red |
 | **Floor** or **Rooms** | the rooms as tiles with temperature, lights, open windows and music. A house with two floors has a place for each, otherwise all share the place **Rooms** | lights that are on |
 | **Blinds** | all blinds by floor, with **All up**, **All down** and ▲ ■ ▼ per blind | blinds that are shut |
-| **More** | house check, whole house, room on its own; in the integration also the show menu, time travel and Home Assistant's menu | – |
+| **More** | search, house check, whole house, room on its own; in the integration also the show menu, time travel and Home Assistant's menu | – |
 
 When something needs a look, it also stands in a line above the bar ("2 windows and doors open · 4 lights on").
 
@@ -1013,6 +1023,41 @@ When something needs a look, it also stands in a line above the bar ("2 windows 
 The house's **favourites** stand as buttons on top of the list. With nothing to do, it says **All is well**. When you are not at home yourself, "Who is in" comes right after the warnings. A tap on a line closes the list and shows the place in the house; a line with several places (six open windows) unfolds, and you pick one.
 
 **House check:** the button at the bottom of the list (also under **More**) goes through everything open or switched on before you leave or go to bed: first the windows and doors (you shut those by hand), then the locks, then the lights room by room. The house shows each place, with **All off** or **Lock** and **Next** below it. From the first lit room on there is **All lights off** for the rest.
+
+**The room panel on a phone:** it opens folded – the name, the temperature and its buttons – so the room stays in sight and you can tap its devices in the house. **Show devices** unfolds the list, up to about 60 % of the height.
+
+**Designing the bar yourself (dashboard card):** in the card form choose **Phone** instead of **Tablet or large screen** at the top. The bar's options then stand there:
+
+| Option | YAML | Meaning |
+| --- | --- | --- |
+| Rooms / blinds in the bar, favourites on the list | `phone_hide: [rooms, covers, favorites]` | leaves the place or the favourites out, e.g. in a house without blinds |
+| Room on its own | `phone_solo: true` | a room you jump into stands alone in the picture |
+| Open with the list | `phone_start: now` | the card opens with "What is going on?" instead of the house |
+| Own place 1 and 2 | `phone_places` | up to two places of your own, see below |
+| Show the surroundings from the map | `surroundings: false` | this card draws the house without the surroundings (the plan keeps them) |
+
+An **own place** is one of four things, each with a word (`name`) and a symbol (`icon`) of its own:
+
+| `kind` | What the place does | Needs |
+| --- | --- | --- |
+| `lights` | opens all lamps by floor, with **All on** / **All off**; the place shows the number of lights that are on | – |
+| `climate` | opens all thermostats by floor | – |
+| `action` | runs a scene or a script | `entity` |
+| `link` | opens a page of a dashboard | `path` |
+
+```yaml
+type: custom:neonplan3d-card
+phone: true
+fill: true
+phone_hide: [covers]        # a house without blinds
+phone_places:
+  - kind: lights
+  - kind: action
+    name: Good night
+    entity: script.good_night
+```
+
+The bar holds at most five places. With more, two floors first share the place **Rooms**, then own places and the blinds move under **More**. A place with no matching devices stays away.
 
 **From a notification straight to the place:** these addresses open the integration in the right spot:
 
@@ -1449,7 +1494,11 @@ The card `custom:neonplan3d-card` brings the 3D view into any dashboard. It load
 
 ### 8.1 Card templates
 
-Instead of setting up every card on every tablet, you build it once in the editor: **⚙ Settings → 🖥 Card templates → + New template**. Give it a name (e.g. "Kitchen Fire tablet") and set everything below, with the same form as in Home Assistant's card dialog. **Duplicate** makes a copy to start the next tablet from.
+Instead of setting up every card on every tablet, you build it once in the editor: **⚙ Settings → Card templates**. The templates stand on the left, by **Screens** and **Phones**, each with **+ New template**. Give the template a name (e.g. "Kitchen Fire tablet") and set it up in the tabs **General**, **View**, **Show**, **Features** and **Wall tablet (kiosk)** – the same options as in Home Assistant's card dialog. **Duplicate** makes a copy to start the next device from.
+
+On the right stands the **preview** on the chosen screen (a phone template on a phone). You can turn, zoom and open rooms in it as on the card; the preview switches nothing. So that the form and the preview have room, the settings' topics fold away here – **All settings** at the top brings them back. A template **for a phone** has the bar's options, see [5.13](#513-on-the-phone-the-phone-view-new).
+
+![Card templates](images/card-templates.jpg)
 
 **On the tablet:** add a card, search for "NeonPlan" and pick the template under **Template** at the very top, done. The form below goes away. The YAML has two lines only:
 

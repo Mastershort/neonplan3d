@@ -4,6 +4,29 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 [releases page](https://github.com/Mastershort/neonplan3d/releases). Ideas and votes:
 [Discussions → Ideas](https://github.com/Mastershort/neonplan3d/discussions/categories/ideas).
 
+## 4.0.0
+
+NeonPlan on the phone: a view made for the thumb, with a bar at the bottom, a list of what needs a look, and a card editor of its own for phones.
+
+### New (free)
+- **Phone view:** the house without header and loose buttons, and a bar at the bottom – **Now** (what needs a look, with a green, yellow or red dot), the **rooms** by floor as tiles with temperature, lights, open windows and music, the **blinds** of the house, and **More** (search, house check, whole house, room on its own). A phone is asked once whether to try it; on any device it is switched on under ⚙ → Phone view. The choice is kept per device, tablets and PCs stay as they are.
+- **"What is going on?":** warnings, open windows and doors, unlocked doors, who is at home, the household, lights on, cars and energy – the urgent first, "All is well" when nothing needs a look. A tap on a line shows the place in the house; "All off" and "Lock" stand beside their lines.
+- **House check:** before leaving or going to bed NeonPlan steps through every open window, unlocked door and lit room, each shown in the house.
+- **The room panel on a phone** opens folded (name, temperature, its buttons), so the room stays in sight; "Show devices" unfolds it.
+- **Phone view in the dashboard card:** `phone: true`. The card form asks what the card is for – a tablet / large screen or a phone – and shows the options that fit.
+- **Design the bar yourself:** leave the rooms, the blinds or the favourites out (`phone_hide`), open with the list (`phone_start: now`), a room on its own (`phone_solo`), and up to two **places of your own** (`phone_places`): all lamps or all thermostats by floor, a scene or script, or a page of a dashboard.
+- **From a notification straight to the place:** `/neonplan3d?view=now`, `?room=…` and `?show=<entity>` open NeonPlan at the list, a room or a device.
+- **Card option `surroundings: false`:** this card draws the house without the surroundings from the map.
+- **Card templates as a management page:** the templates on the left by screens and phones, the form in tabs, the preview on the right – on a phone for a phone template. The preview turns, zooms and opens rooms like the card and switches nothing.
+- **⚙ Settings tidied up:** one dialog instead of a list of sixteen entries – the topics in five groups on the left (house & plan, look, screens, extensions, system), the chosen topic on the right. Every topic's content is unchanged.
+
+### Fixed
+- **Restoring a full backup with many packs** failed ("not a plan"): a backup too large for one message is now restored in pieces, the plans first and every pack on its own; a dropped connection is named as such (#1213).
+- **Furniture and stairs from packs disappearing** from the view: when loading the packs failed once, the library stayed empty and was never asked for again. The loaded packs now stay, and loading is retried (#1229).
+- **An LED strip without a height of its own** hangs under its room's ceiling instead of the floor's default height (#1226, thanks ManuelHecht).
+- **"Rooms overlap"** names the rooms and selects the first one (#1195).
+- **A tap on a blind on an Android phone** could still move it: a quick menu that has just opened takes no touch for a moment (#1208).
+
 ## 3.5.2
 
 ### New (free)
