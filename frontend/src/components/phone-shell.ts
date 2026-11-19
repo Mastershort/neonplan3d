@@ -281,7 +281,7 @@ export class Fp3dPhoneShell extends LitElement {
     }
     .list[mode="page"] {
       top: 0;
-      bottom: 64px;
+      bottom: calc(64px + env(safe-area-inset-bottom, 0px));
       z-index: 1;
     }
     .list[mode="check"] {

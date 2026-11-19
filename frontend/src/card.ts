@@ -892,10 +892,11 @@ clearTimeout(this.cleanTimer);
       }
       /* the phone view: the view's own things and an open room's panel stand above its bar */
       .fp3d-phone fp3d-view3d {
-        --fp3d-bottom-inset: 72px;
+        --fp3d-bottom-inset: calc(72px + env(safe-area-inset-bottom, 0px));
       }
+      /* above the bar, which is taller on a phone with a home indicator */
       .fp3d-phone .fp3d-card-panel {
-        bottom: 70px;
+        bottom: calc(70px + env(safe-area-inset-bottom, 0px));
         height: auto;
         max-height: calc(62% - 62px);
       }

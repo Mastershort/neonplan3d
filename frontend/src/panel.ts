@@ -2061,13 +2061,13 @@ export class Floorplan3dPanel extends LitElement {
          own above the bar, the house check a small card – the house and the list never share the screen */
       /* the view's own things step up above the bar; an open room's panel stands on it */
       .fp3d-phone fp3d-view3d {
-        --fp3d-bottom-inset: 72px;
+        --fp3d-bottom-inset: calc(72px + env(safe-area-inset-bottom, 0px));
       }
       .fp3d-phone .fp3d-overlay {
-        bottom: 76px;
+        bottom: calc(76px + env(safe-area-inset-bottom, 0px));
       }
       .fp3d-phone .fp3d-room-panel {
-        bottom: 70px;
+        bottom: calc(70px + env(safe-area-inset-bottom, 0px));
         height: auto;
         max-height: calc(62% - 62px);
       }
