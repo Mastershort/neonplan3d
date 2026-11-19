@@ -11390,7 +11390,7 @@ export class Fp3dEditor extends LitElement {
           this.t("room_cleaning"),
           room.cleaning ?? null,
           undefined,
-          this.entityOptions((id) => /^(script|button|input_button|scene|automation|vacuum)\./.test(id)),
+          this.entityOptions((id) => /^(script|button|input_button|scene|automation|vacuum)\./.test(id)).map((o) => (o.id.startsWith("vacuum.") ? { ...o, label: entityName(this.hass, o.id) } : o)),
           (v) => this.updateRoom({ cleaning: v === "none" ? null : v }),
         )}
         <p class="fp3d-sub fp3d-wide">${this.t("room_cleaning_hint")}</p>
