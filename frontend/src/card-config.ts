@@ -114,6 +114,8 @@ export interface CardConfig {
   controls_hide_after?: number;
   /** Room names in 3D (default true). */
   room_names?: boolean;
+  /** Draw the surroundings from the map (default true); false leaves them out on this card. */
+  surroundings?: boolean;
   /** An opened floor with the floors below it dimmed (default), stacked, or on its own. */
   floor_stack?: "dim" | "stacked" | "single";
   /** A button for full screen (hides the dashboard around the card). */

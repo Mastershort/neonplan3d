@@ -33,6 +33,7 @@ const DEFAULTS: Partial<CardConfig> = {
   controls: false,
   fullscreen_button: false,
   room_names: true,
+  surroundings: true,
   floor_stack: "dim",
   alerts: true,
   alert_jump: false,
@@ -265,7 +266,7 @@ export class Floorplan3dCardEditor extends LitElement {
   }
 
   private toggle(
-    key: "explode" | "roof_fade" | "roof" | "camera_wall" | "energy" | "room_panel" | "stats" | "fullscreen_button" | "room_names" | "alerts" | "alert_jump" | "director" | "voice" | "scenes" | "idle_orbit" | "motion_trail" | "time_travel" | "household_card" | "weather" | "angle_lock" | "keep_view" | "walk" | "plain" | "room_bar" | "room_bar_favorites",
+    key: "explode" | "roof_fade" | "roof" | "camera_wall" | "energy" | "room_panel" | "stats" | "fullscreen_button" | "room_names" | "surroundings" | "alerts" | "alert_jump" | "director" | "voice" | "scenes" | "idle_orbit" | "motion_trail" | "time_travel" | "household_card" | "weather" | "angle_lock" | "keep_view" | "walk" | "plain" | "room_bar" | "room_bar_favorites",
     label: I18nKey,
     hint?: I18nKey,
   ) {
@@ -755,6 +756,7 @@ export class Floorplan3dCardEditor extends LitElement {
             <div class="grid">${this.select("controls_side", "controls_side", [["left", "controls_left"], ["right", "controls_right"]], v.controls_side)}</div>
             ${this.renderThumbsToggle()}`}
       ${this.toggle("room_names", "card_room_names")}
+      ${(this.building ?? this.plan)?.settings.surroundings ? this.toggle("surroundings", "card_surroundings", "card_surroundings_hint") : nothing}
       ${this.toggle("energy", "card_energy")} ${this.toggle("room_panel", "card_room_panel", "card_room_panel_hint")}
       ${this.toggle("fullscreen_button", "card_fullscreen_button", "card_fullscreen_button_hint")}
       ${this.toggle("explode", "card_explode")} ${this.toggle("roof", "card_roof", "card_roof_hint")} ${this.toggle("roof_fade", "card_roof_fade", "card_roof_fade_hint")} ${this.toggle("plain", "card_plain", "plain_hint")}

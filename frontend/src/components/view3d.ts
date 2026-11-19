@@ -279,6 +279,7 @@ export class Fp3dView3d extends LitElement {
     wallMode: { attribute: false },
     explode: { type: Boolean },
     keepRoof: { attribute: false },
+    surroundings: { attribute: false },
     plain: { attribute: false },
     markerMode: { attribute: false },
     pinSize: { attribute: false },
@@ -422,6 +423,8 @@ export class Fp3dView3d extends LitElement {
   declare explode: boolean;
   /** The roof stays while zooming in (no lift, no fade). */
   declare keepRoof: boolean;
+  /** Draw the surroundings from the map; false: this view leaves them out (a card option). */
+  declare surroundings: boolean;
   /** A plain floor plan: walls, doors and stairs, no furniture (the devices stay). */
   declare plain: boolean;
   declare markerMode: MarkerMode;
@@ -778,6 +781,7 @@ export class Fp3dView3d extends LitElement {
     this.wallMode = "auto";
     this.explode = true;
     this.keepRoof = false;
+    this.surroundings = true;
     this.plain = false;
     this.markerMode = "important";
     this.pinSize = "normal";
@@ -1182,7 +1186,7 @@ export class Fp3dView3d extends LitElement {
       v.setBuilding(this.shownBuilding()!);
       if (startChanged && this.floorId === null) v.resetView();
       this.maybeFlyIn();
-    } else if (((changed.has("plain") && changed.get("plain") !== undefined) || (changed.has("rooms") && changed.get("rooms") !== undefined)) && this.building) {
+    } else if (((changed.has("plain") && changed.get("plain") !== undefined) || (changed.has("rooms") && changed.get("rooms") !== undefined) || (changed.has("surroundings") && changed.get("surroundings") !== undefined)) && this.building) {
       v.setBuilding(this.shownBuilding()!);
       if (changed.has("rooms")) {
         this.syncDevices(true);
@@ -5499,11 +5503,13 @@ export class Fp3dView3d extends LitElement {
     this.shownSig = sig;
     // a card for some rooms: only they are drawn (the building itself stays whole – settings saved from here keep it)
     const rooms = shownRoomIds(b, this.rooms);
-    const key = `${sig}|${rooms.join(",")}`;
-    if (!b || (!sig && !rooms.length)) return b;
+    const bare = !this.surroundings && !!b?.settings.surroundings;
+    const key = `${sig}|${rooms.join(",")}|${bare}`;
+    if (!b || (!sig && !rooms.length && !bare)) return b;
     if (this.condOf?.from === b && this.condOf.sig === key) return this.condOf.to;
     let to: Building = sig ? { ...b, floors: b.floors.map((f) => ({ ...f, furniture: f.furniture.filter((x) => furnitureShown(this.hass, x)) })) } : b;
     if (rooms.length) to = roomsOnly(to, rooms);
+    if (bare && to.settings.surroundings) to = { ...to, settings: { ...to.settings, surroundings: null } };
     this.condOf = { from: b, sig: key, to };
     return to;
   }
@@ -6569,7 +6575,7 @@ export class Fp3dView3d extends LitElement {
       ${this.renderZoomBackground()}
       ${this._error ? html`<p class="fp3d-error">${this._error}</p>` : nothing} ${this.clean ? nothing : this.renderEnergy()} ${this.renderHologram()} ${this.clean ? nothing : this.renderLegend()}
       ${this.renderClock()} ${this.renderAlerts()} ${this.clean || this._walk ? nothing : html`${this.renderHousehold()} ${this.renderThumbs()} ${this.renderScenes()} ${this.renderFind()} ${this.renderCentral()}`} ${this.clean ? nothing : this.renderWalk()} ${this.renderSwipe()} ${this.renderInfo()} ${this.renderBinInfo()} ${this.renderGangMenu()} ${this.renderThrough()} ${this.renderCamPop()} ${this.renderCameraWall()} ${this.renderSheet()} ${this.renderModulePopup()} ${this.renderSettings()} ${this.renderNote()}
-      ${this.clean ? nothing : this.renderProHint()} ${this.renderMenu()} ${this.renderEye()} ${this.building?.settings.surroundings?.on ? html`<a class="fp3d-osm-credit" href=${OSM_COPYRIGHT} target="_blank" rel="noopener">© OpenStreetMap</a>` : nothing}
+      ${this.clean ? nothing : this.renderProHint()} ${this.renderMenu()} ${this.renderEye()} ${this.building?.settings.surroundings?.on && this.surroundings ? html`<a class="fp3d-osm-credit" href=${OSM_COPYRIGHT} target="_blank" rel="noopener">© OpenStreetMap</a>` : nothing}
       ${this.renderMic()} ${this.renderFlyIn()}
       ${this._spotHint ? html`<button class="fp3d-spot-hint" @click=${() => this.viewer?.pickSpot(null)}>📍 ${this._spotHint} <span aria-hidden="true">✕</span></button>` : nothing}
       ${this._announce ? html`<div class="fp3d-announce" role="status" @click=${() => (this._announce = null)}>📢 ${this._announce}</div>` : nothing}

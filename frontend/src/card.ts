@@ -528,6 +528,7 @@ clearTimeout(this.cleanTimer);
               .explode=${explode}
               .keepRoof=${c?.roof_fade === false}
               .plain=${c?.plain === true}
+              .surroundings=${c?.surroundings !== false}
               .hideRoof=${c?.roof === false || rooms.length > 0}
               .quality=${this._config?.quality ?? "auto"}
               ?showStats=${this._config?.stats ?? false}
