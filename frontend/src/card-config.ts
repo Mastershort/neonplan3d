@@ -1,6 +1,6 @@
 // Configuration of the dashboard card, shared by the card and its visual editor (a bundle of its own).
 
-import type { Building, CardTemplate, StartView } from "./model.ts";
+import type { Building, CardTemplate, DeviceActions, StartView } from "./model.ts";
 import type { Quality, WallMode } from "./viewer/viewer3d.ts";
 
 /** Where the clock sits: a corner, or none. */
@@ -63,6 +63,11 @@ export interface CardConfig {
   ghost?: boolean;
   /** Own buttons in the central menu (replace the ones set in the editor): label, icon, action, target, data (D143). */
   buttons?: { label: string; icon?: string; action: "navigate" | "more_info" | "service" | "fire_dom_event"; target?: string; data?: Record<string, unknown> }[];
+  /**
+   * An own tap and long press per device, by entity id, instead of the default: `{ tap: { action, target, data }, hold: … }`
+   * with the own buttons' actions, or "none" to leave the device alone. A gesture or device left out keeps its default.
+   */
+  device_actions?: Record<string, DeviceActions>;
   /** Heatmap of the rooms: none | temperature | humidity | co2 | values (the numbers at the room names). */
   heatmap?: "none" | "temperature" | "humidity" | "co2" | "values";
   /**

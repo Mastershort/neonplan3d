@@ -1018,3 +1018,38 @@ test("a charger's status: whole words, so not_charging or charger_free is no cha
   assert.deepEqual(c("SuspendedEV"), { charging: false, plugged: true });
   assert.deepEqual(c("charge complete"), { charging: false, plugged: true });
 });
+
+test("an own action per device from the card's YAML comes before its default tap and long press (device_actions)", async () => {
+  const { deviceAction } = await import("./devices.ts");
+  const actions = {
+    "media_player.tv": { tap: { action: "navigate", target: " /lovelace/tv-remote " }, hold: { action: "more_info" } },
+    "light.hall": { tap: { action: "none" } },
+    "switch.pump": { tap: { action: "service", target: "script.pump_once", data: { minutes: 5 } } },
+    "cover.blind": { tap: { action: "more_info", target: "cover.all_blinds" } },
+  };
+  // navigate with its path (trimmed)
+  assert.deepEqual(deviceAction(actions as never, "media_player.tv", "tap"), { action: "navigate", target: "/lovelace/tv-remote" });
+  // more_info without a target opens the device itself, with one that entity
+  assert.deepEqual(deviceAction(actions as never, "media_player.tv", "hold"), { action: "more_info", target: "media_player.tv" });
+  assert.deepEqual(deviceAction(actions as never, "cover.blind", "tap"), { action: "more_info", target: "cover.all_blinds" });
+  // "none" leaves the device alone
+  assert.deepEqual(deviceAction(actions as never, "light.hall", "tap"), { action: "none" });
+  // a service keeps its data
+  assert.deepEqual(deviceAction(actions as never, "switch.pump", "tap"), { action: "service", target: "script.pump_once", data: { minutes: 5 } });
+  // a gesture or a device left out, or no own actions at all: the default
+  assert.equal(deviceAction(actions as never, "light.hall", "hold"), null);
+  assert.equal(deviceAction(actions as never, "light.kitchen", "tap"), null);
+  assert.equal(deviceAction(null, "light.hall", "tap"), null);
+  assert.equal(deviceAction(undefined, "light.hall", "tap"), null);
+});
+
+test("an own action per device that cannot run leaves the device its default (device_actions)", async () => {
+  const { deviceAction } = await import("./devices.ts");
+  const actions = {
+    "media_player.a": { tap: { action: "navigate" } },
+    "media_player.b": { tap: { action: "service", target: "  " } },
+    "media_player.c": { tap: { action: "toggle" } },
+    "media_player.d": { tap: "navigate" },
+  };
+  for (const id of Object.keys(actions)) assert.equal(deviceAction(actions as never, id, "tap"), null, id);
+});

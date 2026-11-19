@@ -1439,6 +1439,10 @@ buttons:                # eigene Knöpfe nur für diese Karte (ersetzen die aus 
     icon: window-shutter
     action: fire_dom_event   # navigate | more_info | service | fire_dom_event
     data: { browser_mod: { service: browser_mod.popup, data: { title: Rollos, content: { type: "custom:meine-rollo-karte" } } } }
+device_actions:         # eigenes Antippen / langes Drücken pro Gerät statt des üblichen (nicht genannte Geräte und Gesten bleiben wie sie sind)
+  media_player.wohnzimmer_tv:
+    tap: { action: navigate, target: /lovelace/fernbedienung }   # navigate | more_info | service | fire_dom_event | none
+    hold: { action: more_info }   # more_info ohne target: das Gerät selbst; none: die Geste tut nichts
 heatmap: none           # none | temperature | humidity | co2 | values (Zahlen an den Raumnamen)
 room_panel: true        # Raum antippen öffnet das Raumfenster
 room_names: true

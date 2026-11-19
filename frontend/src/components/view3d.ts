@@ -29,6 +29,7 @@ import { carState, type CarState, heatSensorOn, roomClimateValue,
   floorControls,
   favoriteCall,
   runButton,
+  deviceAction,
   climateModeGlow,
   cooktopLevel,
   onlyColor,
@@ -46,7 +47,7 @@ import { neonSignPicture, signLight, signLines } from "../neon-sign.ts";
 import { applianceIdle, applianceOf, type ApplianceKind, binColors, calendarItems, type DayEvent, fetchDayEvents, binDue, binNext, binOut, binOutToggleable, binTagsShown, doorsOf, fetchPickups, FinishedMemory, fridgeOpenTooLong, groupTags, hassCountry, isFinishedState, mailboxPost, nextFridgeCheck, plantThirsty, remainingMinutes, remainingText, servicesDue, setHouseholdCountry, wasteCalendars, isPackPlant, type HouseholdItem, type HouseholdTag, type Pickup } from "../household.ts";
 import { deviceSensors, energySummary, pvWithStrings, stringsPower, fetchSolarRows, fetchTodayChange, fieldLevels, fieldPowers, findConsumers, flowColor, flowSegments, gridPoint, powerSensorFor, readPower, solarCurvePath, solarDayFromStats, type Consumer, type EnergySummary, type StatRow } from "../energy.ts";
 import { fieldFace, fieldSize, roofFaces, roofWindowRoom } from "../solar.ts";
-import { type CustomButton, type EntityRef, DEFAULT_HOLOGRAM, lockAlong, type PoolPipe, type RoofWindow, type SolarField, uid } from "../model.ts";
+import { type CustomButton, type DeviceActions, type EntityRef, DEFAULT_HOLOGRAM, lockAlong, type PoolPipe, type RoofWindow, type SolarField, uid } from "../model.ts";
 
 /** A hologram card: the house's balance on the main plant, one plant (a balcony plant) on its own, or a device. */
 /** The unit a meter counts in (m³ when it does not say). */
@@ -347,6 +348,7 @@ export class Fp3dView3d extends LitElement {
     _armed: { state: true },
     central: { attribute: false },
     buttons: { attribute: false },
+    deviceActions: { attribute: false },
     _thumbs: { state: true },
     floorThumbs: { attribute: false },
     clean: { attribute: false },
@@ -698,6 +700,8 @@ export class Fp3dView3d extends LitElement {
   private walkRoomPts: [number, number][] | null = null;
   /** Own buttons from the card's YAML (replace the house's buttons when set). */
   declare buttons: CustomButton[] | null;
+  /** Own tap and long-press actions per device from the card's YAML (`device_actions`, by entity id). */
+  declare deviceActions: Record<string, DeviceActions> | null;
   private swipeSent = 0;
   /** The farthest the finger went in the running swipe, in pixels. */
   private swipeFar = 0;
@@ -833,6 +837,7 @@ export class Fp3dView3d extends LitElement {
     this.ghostOn = true;
     this._walk = false;
     this.buttons = null;
+    this.deviceActions = null;
     this._thumbs = [];
     this.floorThumbs = true;
     this.clean = false;
@@ -4050,6 +4055,8 @@ export class Fp3dView3d extends LitElement {
       else this.onDeviceTap(entityId, x, y);
       return;
     }
+    // an own long press for this device from the card's YAML (device_actions) comes before the default
+    if (this.ownDeviceAction(entityId, "hold")) return;
     if (this.ro) {
       this.onDeviceTap(entityId, x, y);
       return;
@@ -6185,6 +6192,18 @@ export class Fp3dView3d extends LitElement {
     if (floor && f) this.viewer?.focus(floor.id, f.x, f.z, mountBase(floor, f) + f.h * 0.6, `module:${m.id}`);
   }
 
+  /**
+   * The card's own action for a device and gesture (device_actions): true when it took the gesture, "none" included.
+   * While time travel replays the past nothing may be switched, so a service or DOM event then leaves the default.
+   */
+  private ownDeviceAction(entityId: string, gesture: "tap" | "hold"): boolean {
+    const own = deviceAction(this.deviceActions, entityId, gesture);
+    if (!own || !this.hass) return false;
+    if (this.ro && (own.action === "service" || own.action === "fire_dom_event")) return false;
+    if (own.action !== "none") runButton(this.hass, this, own);
+    return true;
+  }
+
   private onDeviceTap(entityId: string, x = 0, y = 0): void {
     // trail pins and lamps without a light are drawn, but nothing of Home Assistant stands behind them
     if (entityId.startsWith("trail:") || entityId.startsWith("lamp:")) return;
@@ -6222,6 +6241,8 @@ export class Fp3dView3d extends LitElement {
       else openMoreInfo(this, id);
       return;
     }
+    // an own tap for this device from the card's YAML (device_actions) comes before the default
+    if (this.ownDeviceAction(entityId, "tap")) return;
     if (this.ro) {
       const b = this.building;
       const grid = b ? (b.energy.grid ?? deviceSensors(b, (f) => this.furnitureLinks?.get(f.id)?.power ?? null).grid) : null;
