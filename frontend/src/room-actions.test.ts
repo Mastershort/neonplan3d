@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { callCount, cleaningCall, everythingOff, roomOfArea, vacuumForArea } from "./room-actions.ts";
+import { callCount, cleaningCall, everythingOff, roomOfArea, vacuumForArea, vacuumMapsArea } from "./room-actions.ts";
 import { newFloor, type Floor, type Room } from "./model.ts";
 import type { HomeAssistant } from "./types.ts";
 
@@ -50,26 +50,52 @@ test("room actions: the room's cleaning runs its script; a tablet's area finds i
   assert.equal(roomOfArea([floor()], "kueche"), null);
 });
 
-test("room actions: a vacuum as the room's cleaning cleans the room's area; the vacuum mapped to an area is found", async () => {
+const vac = (id: string, features: number) => ({ entity_id: id, state: "docked", attributes: { supported_features: features } });
+const registry = (maps: Record<string, Record<string, string[]>>) =>
+  (async (msg: { entity_id: string }) => {
+    if (!maps[msg.entity_id]) throw new Error("unauthorized");
+    return { options: { vacuum: { area_mapping: maps[msg.entity_id] } } };
+  }) as never;
+
+test("room actions: a vacuum cleans the room's area only when it can clean by area", () => {
   const h = hass();
-  h.states["vacuum.robbi"] = { entity_id: "vacuum.robbi", state: "docked", attributes: { supported_features: 16384 | 8192 } };
-  h.states["vacuum.alt"] = { entity_id: "vacuum.alt", state: "docked", attributes: { supported_features: 8192 } };
+  h.states["vacuum.robbi"] = vac("vacuum.robbi", 16384 | 8192);
+  h.states["vacuum.alt"] = vac("vacuum.alt", 8192);
   assert.deepEqual(cleaningCall(h, { ...room, cleaning: "vacuum.robbi" }), {
     domain: "vacuum",
     service: "clean_area",
     data: { entity_id: "vacuum.robbi", cleaning_area_id: ["wohnzimmer"] },
   });
   assert.equal(cleaningCall(h, { ...room, cleaning: "vacuum.robbi", area_id: null }), null);
-  const asked: unknown[] = [];
-  h.callWS = (async (msg: { entity_id: string }) => {
-    asked.push(msg.entity_id);
-    return { options: { vacuum: { area_mapping: { wohnzimmer: ["16"], kueche: [] } } } };
-  }) as never;
+  assert.equal(cleaningCall(h, { ...room, cleaning: "vacuum.alt" }), null);
+});
+
+test("room actions: the vacuum mapped to an area is found; one without the feature or the registry is not", async () => {
+  const h = hass();
+  h.states["vacuum.robbi"] = vac("vacuum.robbi", 16384);
+  h.states["vacuum.alt"] = vac("vacuum.alt", 8192);
+  h.callWS = registry({ "vacuum.robbi": { wohnzimmer: ["16"], kueche: [] }, "vacuum.alt": { wohnzimmer: ["1"] } });
   assert.equal(await vacuumForArea(h, "wohnzimmer"), "vacuum.robbi");
   assert.equal(await vacuumForArea(h, "kueche"), null);
-  assert.deepEqual([...new Set(asked)], ["vacuum.robbi"]);
-  h.callWS = (async () => {
-    throw new Error("unauthorized");
-  }) as never;
+  assert.equal(await vacuumMapsArea(h, "vacuum.robbi", "wohnzimmer"), true);
+  assert.equal(await vacuumMapsArea(h, "vacuum.robbi", "kueche"), false);
+  assert.equal(await vacuumMapsArea(h, "vacuum.alt", "wohnzimmer"), false);
+  h.callWS = registry({});
   assert.equal(await vacuumForArea(h, "wohnzimmer"), null);
+});
+
+test("room actions: with several vacuums mapped to an area, the one on the area's floor wins, else the first", async () => {
+  const h = hass();
+  h.states["vacuum.oben"] = vac("vacuum.oben", 16384);
+  h.states["vacuum.unten"] = vac("vacuum.unten", 16384);
+  h.callWS = registry({ "vacuum.oben": { wohnzimmer: ["1"] }, "vacuum.unten": { wohnzimmer: ["2"] } });
+  h.areas = {
+    wohnzimmer: { area_id: "wohnzimmer", name: "Wohnzimmer", floor_id: "eg" },
+    dock_eg: { area_id: "dock_eg", name: "Dock EG", floor_id: "eg" },
+    dock_og: { area_id: "dock_og", name: "Dock OG", floor_id: "og" },
+  };
+  h.entities = { "vacuum.oben": { entity_id: "vacuum.oben", area_id: "dock_og" }, "vacuum.unten": { entity_id: "vacuum.unten", area_id: "dock_eg" } } as never;
+  assert.equal(await vacuumForArea(h, "wohnzimmer"), "vacuum.unten");
+  h.areas.wohnzimmer.floor_id = null;
+  assert.equal(await vacuumForArea(h, "wohnzimmer"), "vacuum.oben");
 });

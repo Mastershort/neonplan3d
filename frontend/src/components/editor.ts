@@ -39,7 +39,7 @@ import { screenName, setScreenName, setVoiceArea, setVoiceHere, setVoicePipeline
 import { doorbellCamera, doorbellEntities, directorOnHere, HOLD_DEFAULT, HOLD_MAX, HOLD_MIN, setDirectorHere, type DirectorSettings } from "../director.ts";
 import { deviceSensors, energySummary, flowSegments, gridPoint, hubPoint, inverterToGrid, powerSensorFor, proposeEnergySensors, type EnergyPrefs, type FlowSegment, proposeMeters } from "../energy.ts";
 import { CLIMATE_ATTRS, isPulseDrive, isStatusSensor, robotRoomSensor, slatTilt, TOGGLE_KINDS } from "../devices.ts";
-import { vacuumForArea } from "../room-actions.ts";
+import { canCleanArea, vacuumForArea, vacuumMapsArea } from "../room-actions.ts";
 import { homeBuilding, OSM_COPYRIGHT, planMiddle, mapToPlan, SURROUND_RADII, turnMap, hiddenBuildings, mapCorners, ownOutline, surroundFloorId, atGroundLevel, ownUnderPlan } from "../surroundings.ts";
 import { loadOsm } from "../load-osm.ts";
 import { activeSections, sectionFloor, sectionOverhang, dormerParent, effectiveDormer, proposeDormer, sectionGeometry, floorOutline, polygonBox, headroomLines, ridgeHeight, sectionAbove, sectionCutsBelow, roofSectionsFromRooms, sectionFrame, sectionTurn, turnPoint, turnSectionAbout, wallTopUnder, mansardUpperPitch, MANSARD_UPPER_MIN, MANSARD_UPPER_MAX } from "../roof-sections.ts";
@@ -5687,11 +5687,16 @@ export class Fp3dEditor extends LitElement {
     const generic = !room.name || /^(Raum|Room) \d+$/.test(room.name) || Object.values(this.hass?.areas ?? {}).some((a) => a.name === room.name);
     this.updateRoom({ area_id: areaId || null, ...(area && generic ? { name: area.name } : {}) });
     const hass = this.hass;
-    if (!areaId || room.cleaning || !hass) return;
-    void vacuumForArea(hass, areaId).then((vacuum) => {
+    const current = room.cleaning ?? null;
+    // a script, button or scene stays as chosen; a vacuum follows the area
+    if (!hass || (current && !current.startsWith("vacuum."))) return;
+    void (async () => {
+      if (current && areaId && (await vacuumMapsArea(hass, current, areaId))) return;
+      const vacuum = areaId ? await vacuumForArea(hass, areaId) : null;
       const now = this.room;
-      if (vacuum && now?.id === room.id && now.area_id === areaId && !now.cleaning) this.updateRoom({ cleaning: vacuum });
-    });
+      if (now?.id !== room.id || (now.area_id ?? null) !== (areaId || null) || (now.cleaning ?? null) !== current) return;
+      if (vacuum !== current) this.updateRoom({ cleaning: vacuum });
+    })();
   }
 
   private setRect(field: "x" | "z" | "w" | "d", value: number): void {
@@ -11390,7 +11395,7 @@ export class Fp3dEditor extends LitElement {
           this.t("room_cleaning"),
           room.cleaning ?? null,
           undefined,
-          this.entityOptions((id) => /^(script|button|input_button|scene|automation|vacuum)\./.test(id)).map((o) => (o.id.startsWith("vacuum.") ? { ...o, label: entityName(this.hass, o.id) } : o)),
+          this.entityOptions((id) => /^(script|button|input_button|scene|automation)\./.test(id) || canCleanArea(this.hass?.states[id])).map((o) => (o.id.startsWith("vacuum.") ? { ...o, label: entityName(this.hass, o.id) } : o)),
           (v) => this.updateRoom({ cleaning: v === "none" ? null : v }),
         )}
         <p class="fp3d-sub fp3d-wide">${this.t("room_cleaning_hint")}</p>
