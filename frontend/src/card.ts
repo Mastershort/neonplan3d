@@ -14,7 +14,7 @@ import "./components/view3d.ts";
 import { languageReady, loadLanguage, translate, type I18nKey } from "./i18n.ts";
 import { controls, tokens } from "./styles.ts";
 import type { HomeAssistant } from "./types.ts";
-import { cardTemplate, effectiveConfig, type CardConfig, type CardControl } from "./card-config.ts";
+import { cardTemplate, effectiveConfig, isUpright, startViewFor, type CardConfig, type CardControl } from "./card-config.ts";
 import { nightActive } from "./kiosk.ts";
 import { loadCardEditor } from "./load-card-editor.ts";
 import type { WallMode } from "./viewer/viewer3d.ts";
@@ -65,6 +65,7 @@ export class Floorplan3dCard extends LitElement {
     _night: { state: true },
     _orbit: { state: true },
     _stretch: { state: true },
+    _portrait: { state: true },
   };
 
   declare hass: HomeAssistant;
@@ -99,6 +100,8 @@ export class Floorplan3dCard extends LitElement {
   private declare _orbit: boolean;
   /** The dashboard gives the card more room than its height (a sections grid cell: rows of 56 px plus their gaps). */
   private declare _stretch: boolean;
+  /** The screen is held upright (a tablet or phone in portrait): start_view_portrait applies. */
+  private declare _portrait: boolean;
   private cellObserver: ResizeObserver | null = null;
   private idleTimer: ReturnType<typeof setTimeout> | undefined;
   private nightTimer: ReturnType<typeof setInterval> | undefined;
@@ -128,6 +131,7 @@ export class Floorplan3dCard extends LitElement {
     this._night = false;
     this._orbit = false;
     this._stretch = false;
+    this._portrait = false;
   }
 
   /** Any touch ends the screensaver and restarts the idle clock. */
@@ -215,6 +219,14 @@ export class Floorplan3dCard extends LitElement {
       const top = Math.round(this.getBoundingClientRect().top + window.scrollY);
       if (this._top === null || Math.abs(top - this._top) > 1) this._top = top;
     }
+    // browsers without the screen's orientation: the window's shape decides
+    this.onTurn();
+  };
+
+  /** The screen turned over: the start view that fits (start_view_portrait). */
+  private readonly onTurn = () => {
+    const upright = isUpright(screen.orientation?.type, window.innerWidth, window.innerHeight);
+    if (upright !== this._portrait) this._portrait = upright;
   };
 
   /** A preview (the editor's card templates): not counted as a card in use. */
@@ -226,6 +238,8 @@ export class Floorplan3dCard extends LitElement {
     document.addEventListener("fullscreenchange", this.onFullscreen);
     window.addEventListener("resize", this.onViewport);
     window.visualViewport?.addEventListener("resize", this.onViewport);
+    screen.orientation?.addEventListener("change", this.onTurn);
+    this.onTurn();
     requestAnimationFrame(this.onViewport);
     // the dashboard may still be laying out: measure once more a moment later
     setTimeout(this.onViewport, 600);
@@ -246,6 +260,7 @@ export class Floorplan3dCard extends LitElement {
     document.removeEventListener("fullscreenchange", this.onFullscreen);
     window.removeEventListener("resize", this.onViewport);
     window.visualViewport?.removeEventListener("resize", this.onViewport);
+    screen.orientation?.removeEventListener("change", this.onTurn);
     this.cellObserver?.disconnect();
     this.cellObserver = null;
     this.tt.stop();
@@ -571,7 +586,7 @@ clearTimeout(this.cleanTimer);
               .weatherEntityId=${c?.weather_entity ?? null}
               .dimmed=${this._night}
               .autoOrbit=${this._orbit}
-              .startView=${c?.start_view ?? null}
+              .startView=${startViewFor(c, this._portrait)}
               style=${tt ? `--fp3d-bottom-inset: ${bar ? "calc(52px + var(--fp3d-tt-h))" : "var(--fp3d-tt-h)"}` : bar ? "--fp3d-bottom-inset: 52px" : ""}
               @room-tap=${(e: CustomEvent<{ floorId: string; roomId: string | null }>) => {
                 // in the house view (or on another floor) a tap first opens the whole floor; the floor as it is now,
