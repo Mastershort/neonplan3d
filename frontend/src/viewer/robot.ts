@@ -92,6 +92,13 @@ export function cleaningPath(room: Vec2[], lane = 0.32, inset = 0.22, obstacles:
   return out;
 }
 
+/** A straight drive from a to b stays inside the room (a U-shaped room's notch or a wall in between makes it false). */
+export function driveInside(room: Vec2[], a: Vec2, b: Vec2): boolean {
+  const n = Math.ceil(Math.hypot(b[0] - a[0], b[1] - a[1]) / 0.05);
+  for (let i = 0; i <= n; i++) if (!pointInPolygon([a[0] + ((b[0] - a[0]) * i) / (n || 1), a[1] + ((b[1] - a[1]) * i) / (n || 1)], room)) return false;
+  return true;
+}
+
 /** A small circle in front of the dock, for robots outside any room. */
 export function circlePath(center: Vec2, radius = 0.7, n = 12): Vec2[] {
   return Array.from({ length: n }, (_, i) => {
