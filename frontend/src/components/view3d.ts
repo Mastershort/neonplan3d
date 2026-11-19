@@ -320,6 +320,7 @@ export class Fp3dView3d extends LitElement {
     _error: { state: true },
     _energy: { state: true },
     _holos: { state: true },
+    _menuFresh: { state: true },
     _rows: { state: true },
     _meters: { state: true },
     _holoOpen: { state: true },
@@ -512,6 +513,9 @@ export class Fp3dView3d extends LitElement {
   /** Energie Pro: today's solar statistics for the hologram (kWh, peak and the day curve). */
   /** The hologram cards (main plant first) and today's statistics rows of their sensors. */
   private declare _holos: HoloCard[];
+  /** The quick menu has just opened and takes no touch yet. */
+  private declare _menuFresh: boolean;
+  private menuFreshTimer: ReturnType<typeof setTimeout> | undefined;
   private declare _rows: Record<string, StatRow[]> | null;
   private declare _holoOpen: boolean;
   /** Power of the wallboxes in the plan (W), for the hologram. */
@@ -809,6 +813,7 @@ export class Fp3dView3d extends LitElement {
     this._error = null;
     this._energy = null;
     this._holos = [];
+    this._menuFresh = false;
     this._rows = null;
     this._holoOpen = true;
     this._wallboxW = null;
@@ -1135,6 +1140,13 @@ export class Fp3dView3d extends LitElement {
 
   protected updated(changed: PropertyValues): void {
     if (changed.has("hass") && this.live?.el) this.live.el.hass = this.hass;
+    if (changed.has("_menu") && this._menu && !changed.get("_menu")) {
+      // the menu opens under the finger that tapped: on Android the tap's own click arrives a moment later and would
+      // land on the menu – on "up" or on its position slider, and the blind ran (#1208). It takes no touch at first
+      this._menuFresh = true;
+      clearTimeout(this.menuFreshTimer);
+      this.menuFreshTimer = setTimeout(() => (this._menuFresh = false), 400);
+    }
     if (changed.has("_holos")) {
       // other cards than before (a module's card came or went – the speaker's after an announcement): the elements
       // are new and know neither their place nor whether they show; without a new frame every card of the house
@@ -6173,9 +6185,9 @@ export class Fp3dView3d extends LitElement {
     const h = stage?.clientHeight ?? 600;
     const left = Math.max(8, Math.min(w - 240, m.x - 116));
     const top = Math.max(8, Math.min(h - 360, m.y - 170));
-    return html`<div class="fp3d-menu-backdrop" @click=${() => (this._menu = null)}></div>
+    return html`<div class="fp3d-menu-backdrop" @click=${() => !this._menuFresh && (this._menu = null)}></div>
       <fp3d-quick-menu
-        style="left:${left}px;top:${top}px"
+        style="left:${left}px;top:${top}px;${this._menuFresh ? "pointer-events:none" : ""}"
         ?low=${this._low}
         .hass=${this.hass}
         .entity=${m.entity}

@@ -358,7 +358,13 @@ export function mountBase(floor: Floor, f: Pick<Furniture, "type" | "x" | "z" | 
   // wall lights at the usual height, LED strips just under the ceiling
   if (f.type === "lamp_wall") return WALL_LAMP_Y;
   if (LIFT_SPOTS.has(f.type)) return Math.max(0, floor.height - spotDepth(f.type, f.h));
-  if (f.type === "led_strip") return Math.max(0, floor.height - 0.04 - Math.max(0.02, f.h));
+  if (f.type === "led_strip") {
+    // under the ceiling of the room it lies in: in a room with a ceiling of its own, lower than the floor's height,
+    // it hung under the storey's height and floated above that ceiling (#1226)
+    const room = floor.rooms.find((r) => r.points.length >= 3 && pointInPolygon([f.x, f.z], r.points));
+    const ceiling = typeof room?.ceiling_height === "number" && room.ceiling_height > 0 ? room.ceiling_height : floor.height;
+    return Math.max(0, ceiling - 0.04 - Math.max(0.02, f.h));
+  }
   switch (item?.mount) {
     case "surface":
       return groundUnder(floor, f) + surfaceHeight(floor, f.x, f.z, f.h);

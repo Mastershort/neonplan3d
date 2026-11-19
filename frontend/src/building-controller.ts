@@ -312,14 +312,25 @@ export class BuildingController implements ReactiveController {
     this.host.requestUpdate();
   }
 
+  private packTries = 0;
+  private packTimer: ReturnType<typeof setTimeout> | undefined;
+
   /** Load the furniture packs again (after an import or removal). */
   async reloadPacks(): Promise<void> {
     if (!this.hass) return;
     try {
       this.packs = await listPacks(this.hass);
-    } catch {
-      // backend without packs (before a restart): no pack furniture
-      this.packs = [];
+      this.packTries = 0;
+    } catch (err) {
+      // a backend without packs (before a restart) has none; any other failure – the list is large, the connection
+      // was busy or just coming back – must not empty the library: what was loaded stays, and it is asked again
+      // (the stairs and every other pack were gone until a lucky reload, #1229)
+      if ((err as { code?: string } | null)?.code === "unknown_command") this.packs = [];
+      else if (this.packTries < 4) {
+        const wait = [1500, 4000, 10000, 30000][this.packTries++];
+        clearTimeout(this.packTimer);
+        this.packTimer = setTimeout(() => void this.reloadPacks(), wait);
+      }
     }
     setPacks(this.packs);
     this.packsLoaded = true;

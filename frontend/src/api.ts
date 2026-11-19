@@ -463,13 +463,42 @@ export function fetchBackup(hass: HomeAssistant): Promise<Pick<BackupFile, "form
   return hass.callWS({ type: "neonplan3d/backup/export" });
 }
 
-/** Replace plans and packs from a backup (pictures follow one by one); packs that fail their check are skipped. */
-export function restoreBackup(
+/** Home Assistant takes 4 MiB in one message; a restore larger than this goes in pieces (characters, with room to spare). */
+export const RESTORE_WHOLE_MAX = 2_500_000;
+
+/**
+ * Replace plans and packs from a backup (pictures follow one by one); packs that fail their check are skipped.
+ * A backup with many packs is larger than Home Assistant takes in one message – the connection dropped and the
+ * restore failed (#1213): then the plans go first, without packs, and every pack follows on its own through the
+ * ordinary import, which checks its signature and its installation as the restore does.
+ */
+export async function restoreBackup(
   hass: HomeAssistant,
   backup: Pick<BackupFile, "building" | "packs" | "main" | "plans">,
 ): Promise<{ revision: number; building: Building; packs: number; skipped: { id: string; reason: string }[] }> {
+  type Result = { revision: number; building: Building; packs: number; skipped: { id: string; reason: string }[] };
   const { building, packs = [], main, plans } = backup;
-  return hass.callWS({ type: "neonplan3d/backup/import", building, packs, ...(plans ? { plans, ...(main ? { main } : {}) } : {}) });
+  const rest = plans ? { plans, ...(main ? { main } : {}) } : {};
+  const whole = { type: "neonplan3d/backup/import", building, packs, ...rest };
+  if (!packs.length || JSON.stringify(whole).length <= RESTORE_WHOLE_MAX) return hass.callWS<Result>(whole);
+  const res = await hass.callWS<Result>({ ...whole, packs: [] });
+  const skipped = [...res.skipped];
+  let count = 0;
+  for (const pack of packs) {
+    const { source, signature } = pack as FurniturePack & { source?: unknown; signature?: unknown };
+    if (!source || !signature) {
+      skipped.push({ id: pack.id, reason: "unsigned" });
+      continue;
+    }
+    try {
+      await importPack(hass, JSON.stringify({ payload: source, signature }));
+      count++;
+    } catch (err) {
+      const e = (err ?? {}) as { code?: string | number; error?: { code?: string | number } };
+      skipped.push({ id: pack.id, reason: String(e.code ?? e.error?.code ?? "failed") });
+    }
+  }
+  return { ...res, packs: count, skipped };
 }
 
 /** Fetch a bought pack from the shop, signed for this installation (also updates it). */

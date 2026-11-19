@@ -133,3 +133,12 @@ test("a pack's sensor models follow any sensor, other pack items and built-ins d
   assert.equal(isPackSensor("pack:mastershort.smarthome:smart_plug"), false);
   assert.equal(isPackSensor("motion_sensor"), false);
 });
+
+test("an LED strip without a height of its own hangs under its room's ceiling (#1226)", () => {
+  const room = (id: string, x0: number, x1: number, ceiling_height: number | null) => ({ id, name: id, area_id: null, points: [[x0, 0], [x1, 0], [x1, 4], [x0, 4]] as [number, number][], floor_material: "wood" as const, ceiling_height });
+  const floor = { height: 4, rooms: [room("hall", 0, 4, 2.91), room("high", 4, 8, null)], furniture: [], outdoor: [] } as unknown as Parameters<typeof mountBase>[0];
+  const strip = { type: "led_strip", h: 0.03, z: 2 };
+  assert.ok(Math.abs(mountBase(floor, { ...strip, x: 2 }) - 2.84) < 1e-9, "under the room's own ceiling");
+  assert.ok(Math.abs(mountBase(floor, { ...strip, x: 6 }) - 3.93) < 1e-9, "under the storey's height as before");
+  assert.equal(mountBase(floor, { ...strip, x: 2, mount_y: 1.5 }), 1.5, "a height set by hand counts");
+});

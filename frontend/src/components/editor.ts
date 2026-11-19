@@ -6216,6 +6216,27 @@ export class Fp3dEditor extends LitElement {
     this._moduleMsg = { ok: failed.length === 0, text: [...done, ...failed].join(" · ") };
   }
 
+  /**
+   * "Rooms overlap" with the rooms it means: the pairs by name (the first two, then how many more); a tap selects
+   * the first room. In a plan of thirty rooms the bare sentence left one guessing which ones (#1195).
+   */
+  private renderOverlap(floor: Floor | null | undefined, warnings: string[]) {
+    const name = (id: string) => floor?.rooms.find((r) => r.id === id)?.name || "?";
+    const pairs = warnings.filter((w) => w.startsWith("overlap:")).map((w) => w.split(":").slice(1, 3));
+    const shown = pairs.slice(0, 2).map(([p, q]) => `${name(p)} / ${name(q)}`);
+    const more = pairs.length - shown.length;
+    const first = pairs[0]?.[0];
+    return html`<button
+      class="fp3d-warn fp3d-warn-btn"
+      title=${pairs.map(([p, q]) => `${name(p)} / ${name(q)}`).join(", ")}
+      @click=${() => {
+        if (first && floor?.rooms.some((r) => r.id === first)) this._roomId = first;
+      }}
+    >
+      ${this.t("overlap_warning")}${shown.length ? ` ${shown.join(", ")}${more > 0 ? ` +${more}` : ""}` : ""}
+    </button>`;
+  }
+
   protected render(): TemplateResult {
     const floor = this.floor;
     const walls = floor ? generateWalls(floor.rooms, { exterior: this._doc.settings.wall_exterior, interior: this._doc.settings.wall_interior }, floor.walls ?? []) : null;
@@ -6226,7 +6247,7 @@ export class Fp3dEditor extends LitElement {
           <div class="fp3d-toolbar">
             ${this._wallPick ? html`<div class="fp3d-pick-tip" style=${`left:${this.wallPickTip[0]}px;top:${this.wallPickTip[1]}px`} @click=${() => (this._wallPick = false)}>${this.t("hint_wall_pick")}</div>` : nothing}
             ${this.renderFloorMenu()} ${this.renderToolBar(floor)}
-            ${walls?.warnings.length ? html`<span class="fp3d-warn">${this.t("overlap_warning")}</span>` : nothing}
+            ${walls?.warnings.length ? this.renderOverlap(floor, walls.warnings) : nothing}
           </div>
           <div class="fp3d-stage-pair ${this._split ? "fp3d-split" : ""}" style=${this._split && !this.narrow ? `--fp3d-split:${Math.round(this._splitRatio * 100)}%` : ""}>
           <div class="fp3d-canvas-wrap">
@@ -14237,7 +14258,9 @@ export class Fp3dEditor extends LitElement {
       // a lost connection comes as the whole result message ({ error: { code, message } }), e.g. when the backup is
       // larger than Home Assistant takes in one message
       const e = (err ?? {}) as { code?: string | number; message?: string; error?: { code?: string | number; message?: string } };
-      alert(this.t("backup_import_error", { error: String(e.message ?? e.error?.message ?? e.code ?? e.error?.code ?? err) }));
+      const text = String(e.message ?? e.error?.message ?? e.code ?? e.error?.code ?? err);
+      // the connection dropped: the file is not at fault
+      alert(/connection lost|not_connected|^3$/i.test(text) ? this.t("backup_connection_error") : this.t("backup_import_error", { error: text }));
     } finally {
       this._backupBusy = false;
     }
@@ -15129,6 +15152,16 @@ export class Fp3dEditor extends LitElement {
       .fp3d-warn {
         color: var(--fp3d-warm);
         font-size: 12.5px;
+      }
+      .fp3d-warn-btn {
+        border: none;
+        background: none;
+        padding: 0;
+        font: inherit;
+        font-size: 12.5px;
+        text-align: left;
+        cursor: pointer;
+        text-decoration: underline dotted;
       }
       .fp3d-picture-group {
         display: grid;
