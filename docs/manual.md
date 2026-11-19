@@ -1465,6 +1465,7 @@ roof: true              # false: show the house without its roof
 roof_fade: true         # false: the roof stays on the house while zooming in
 plain: false            # true: floor plan only – walls, doors, windows and stairs without furniture
 start_view: { theta: 0.8, phi: 1.0, radius: 20 }   # a start view of this card's own; the line is shown in the editor under Start view (leave out = the plan's)
+start_view_portrait: { theta: 2.4, phi: 1.0, radius: 24 }   # optional: the start view while the card stands upright (taller than wide); turning the screen switches between the two
 idle_return: 0          # seconds without a touch until the start view
 night: "off"            # off | sun | "22:00-06:00"
 idle_orbit: false

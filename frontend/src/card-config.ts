@@ -22,6 +22,12 @@ export interface CardConfig {
   rooms_lock?: boolean;
   /** A start view of this card's own (theta, phi, radius and target as the editor shows them); default: the plan's. */
   start_view?: StartView;
+  /**
+   * The start view while the card is taller than wide (a tablet or phone held upright): a plan that is long one way
+   * fills the screen turned another way. Turning the screen over moves the house view to the start view that fits;
+   * left out, start_view applies in both.
+   */
+  start_view_portrait?: StartView;
   height?: number;
   walls?: WallMode;
   /** The floor pictures, star, search and eye on the right instead of the left (#285). */
@@ -150,6 +156,11 @@ export interface CardConfig {
 
 export const CARD_CONTROLS = ["walls", "floors", "temperature", "humidity", "co2"] as const;
 export type CardControl = (typeof CARD_CONTROLS)[number];
+
+/** The card's own start view for its shape: start_view_portrait while it is taller than wide (if set), else start_view. */
+export function startViewFor(c: Pick<CardConfig, "start_view" | "start_view_portrait"> | null | undefined, portrait: boolean): StartView | null {
+  return (portrait ? c?.start_view_portrait : undefined) ?? c?.start_view ?? null;
+}
 
 /** The template a card names, if the plan has it. */
 export function cardTemplate(b: Building | null | undefined, id: string | undefined): CardTemplate | undefined {

@@ -14,7 +14,7 @@ import "./components/view3d.ts";
 import { languageReady, loadLanguage, translate, type I18nKey } from "./i18n.ts";
 import { controls, tokens } from "./styles.ts";
 import type { HomeAssistant } from "./types.ts";
-import { cardTemplate, effectiveConfig, type CardConfig, type CardControl } from "./card-config.ts";
+import { cardTemplate, effectiveConfig, startViewFor, type CardConfig, type CardControl } from "./card-config.ts";
 import { nightActive } from "./kiosk.ts";
 import { loadCardEditor } from "./load-card-editor.ts";
 import type { WallMode } from "./viewer/viewer3d.ts";
@@ -65,6 +65,7 @@ export class Floorplan3dCard extends LitElement {
     _night: { state: true },
     _orbit: { state: true },
     _stretch: { state: true },
+    _portrait: { state: true },
   };
 
   declare hass: HomeAssistant;
@@ -99,6 +100,8 @@ export class Floorplan3dCard extends LitElement {
   private declare _orbit: boolean;
   /** The dashboard gives the card more room than its height (a sections grid cell: rows of 56 px plus their gaps). */
   private declare _stretch: boolean;
+  /** The card is taller than wide (a tablet held upright): start_view_portrait applies. */
+  private declare _portrait: boolean;
   private cellObserver: ResizeObserver | null = null;
   private idleTimer: ReturnType<typeof setTimeout> | undefined;
   private nightTimer: ReturnType<typeof setInterval> | undefined;
@@ -128,6 +131,7 @@ export class Floorplan3dCard extends LitElement {
     this._night = false;
     this._orbit = false;
     this._stretch = false;
+    this._portrait = false;
   }
 
   /** Any touch ends the screensaver and restarts the idle clock. */
@@ -234,6 +238,9 @@ export class Floorplan3dCard extends LitElement {
       const want = this._config?.height ?? 420;
       const stretch = !this._config?.fill && this.clientHeight > want + 4 && inSectionsGrid(this);
       if (stretch !== this._stretch) this._stretch = stretch;
+      // upright or lying: the start view that fits (start_view_portrait)
+      const portrait = this.clientWidth > 0 && this.clientHeight > this.clientWidth;
+      if (portrait !== this._portrait) this._portrait = portrait;
     });
     this.cellObserver.observe(this);
     this.armIdle();
@@ -571,7 +578,7 @@ clearTimeout(this.cleanTimer);
               .weatherEntityId=${c?.weather_entity ?? null}
               .dimmed=${this._night}
               .autoOrbit=${this._orbit}
-              .startView=${c?.start_view ?? null}
+              .startView=${startViewFor(c, this._portrait)}
               style=${tt ? `--fp3d-bottom-inset: ${bar ? "calc(52px + var(--fp3d-tt-h))" : "var(--fp3d-tt-h)"}` : bar ? "--fp3d-bottom-inset: 52px" : ""}
               @room-tap=${(e: CustomEvent<{ floorId: string; roomId: string | null }>) => {
                 // in the house view (or on another floor) a tap first opens the whole floor; the floor as it is now,
