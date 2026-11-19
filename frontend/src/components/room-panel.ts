@@ -53,6 +53,8 @@ export class Fp3dRoomPanel extends LitElement {
     sheets: { attribute: false },
     readOnly: { type: Boolean },
     walk: { type: Boolean },
+    collapsible: { type: Boolean },
+    compact: { type: Boolean, reflect: true },
     _showAll: { state: true },
     _tick: { state: true },
   };
@@ -69,6 +71,9 @@ export class Fp3dRoomPanel extends LitElement {
   declare readOnly: boolean;
   /** Offer the walk starting in this room (#950): a tap fires "walk-here". */
   declare walk: boolean;
+  /** The phone view: the panel opens folded – the room's name and its buttons, the house stays in sight – and unfolds its devices on a tap. */
+  declare collapsible: boolean;
+  declare compact: boolean;
   /** What modules offer in this room (📢 an announcement …): a button each, a tap fires "sheet-open" with its id. */
   declare sheets: { id: string; icon: string; title: string }[] | null;
   /** Show the other devices of the area as well (their main entities). */
@@ -170,6 +175,11 @@ export class Fp3dRoomPanel extends LitElement {
     </p>`;
   }
 
+  protected willUpdate(changed: Map<string, unknown>): void {
+    if (this.collapsible && (changed.has("room") || changed.has("collapsible")) && (changed.get("room") as Room | null | undefined)?.id !== this.room?.id) this.compact = true;
+    if (!this.collapsible && this.compact) this.compact = false;
+  }
+
   protected render() {
     const room = this.room;
     if (!room || !this.hass) return nothing;
@@ -234,6 +244,12 @@ export class Fp3dRoomPanel extends LitElement {
           <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>
         </button>
       </header>
+      ${this.collapsible && room.area_id && ids.length
+        ? html`<button class="fp3d-rp-fold" aria-expanded=${!this.compact} @click=${() => (this.compact = !this.compact)}>
+            <span aria-hidden="true">${this.compact ? "▴" : "▾"}</span>
+            ${this.compact ? `${this.t("panel_fold_open")}${lightsOn.length ? ` · ${this.t("panel_fold_lights", { n: lightsOn.length })}` : ""}` : this.t("panel_fold_close")}
+          </button>`
+        : nothing}
       <div class="fp3d-rp-body">
         ${!room.area_id
           ? html`<p class="fp3d-rp-note">${this.t("panel_no_area")}</p>`
@@ -600,6 +616,7 @@ export class Fp3dRoomPanel extends LitElement {
         display: flex;
         flex-direction: column;
         max-height: 100%;
+        min-height: 0;
         background: var(--fp3d-chrome-solid);
         border: 1px solid var(--fp3d-line);
         border-radius: 18px;
@@ -681,6 +698,28 @@ export class Fp3dRoomPanel extends LitElement {
         background: rgba(255, 255, 255, 0.06);
         color: var(--fp3d-text);
         cursor: pointer;
+      }
+      .fp3d-rp-fold {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        min-height: 40px;
+        padding: 6px 14px;
+        border: none;
+        border-bottom: 1px solid var(--fp3d-line);
+        background: rgba(255, 255, 255, 0.04);
+        color: var(--fp3d-text);
+        font: inherit;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      :host([compact]) .fp3d-rp-fold {
+        border-bottom: none;
+      }
+      :host([compact]) .fp3d-rp-body {
+        display: none;
       }
       .fp3d-rp-walk {
         margin-right: 6px;

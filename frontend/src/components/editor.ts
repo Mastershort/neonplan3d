@@ -376,6 +376,12 @@ function volumeMeter(type: string): boolean {
 /** Any entity (the condition of "only show while …" may watch anything). */
 const ANY_ENTITY = (_id: string) => true;
 
+// Where the pointer last went down: a dialog closes by a click on its veil only when the press began there too.
+// Marking a name with the mouse and letting go outside the dialog is a click on the veil as well, and closed it.
+let pressedOn: EventTarget | null = null;
+if (typeof document !== "undefined") document.addEventListener("pointerdown", (e) => (pressedOn = e.composedPath()[0] ?? null), true);
+const onVeil = (e: Event): boolean => e.target === e.currentTarget && (pressedOn === null || pressedOn === e.currentTarget);
+
 export class Fp3dEditor extends LitElement {
   static properties = {
     _shiftX: { state: true },
@@ -5771,7 +5777,7 @@ export class Fp3dEditor extends LitElement {
       this.newsLater = true;
       this.requestUpdate();
     };
-    return html`<div class="fp3d-news-veil" @click=${(e: Event) => e.target === e.currentTarget && ((this.newsLater = true), this.requestUpdate())}>
+    return html`<div class="fp3d-news-veil" @click=${(e: Event) => onVeil(e) && ((this.newsLater = true), this.requestUpdate())}>
       <div class="fp3d-news" role="dialog" aria-label=${this.t("news_pets_title")}>
         <div class="fp3d-news-pic">🐱 🐶 🐰 🐟</div>
         <h3>${this.t("news_pets_title")}</h3>
@@ -6145,7 +6151,7 @@ export class Fp3dEditor extends LitElement {
                           : topic === "cards"
                             ? html`<fp3d-card-templates .hass=${this.hass} .building=${this._doc} .plan=${this.planId ?? null} .initial=${this.openTemplate} ?admin=${this.isAdmin} .edit=${(fn: (b: Building) => void) => this.change((d) => fn(d))}></fp3d-card-templates>`
                             : this.renderModuleSettings();
-    return html`<div class="fp3d-dialog-veil" @click=${(e: Event) => e.target === e.currentTarget && close()}>
+    return html`<div class="fp3d-dialog-veil" @click=${(e: Event) => onVeil(e) && close()}>
       <div class="fp3d-dialog ${topic === "cards" ? "fp3d-dialog-wide" : ""}" role="dialog" aria-label=${titles[topic]} tabindex="-1" @keydown=${(e: KeyboardEvent) => e.key === "Escape" && close()}>
         <div class="fp3d-dialog-head">
           <h3>${titles[topic]}</h3>
@@ -7866,7 +7872,7 @@ export class Fp3dEditor extends LitElement {
           },
         }
       : null);
-    return html`<div class="fp3d-wv-veil" @click=${(e: Event) => e.target === e.currentTarget && (this._wallView = null)}>
+    return html`<div class="fp3d-wv-veil" @click=${(e: Event) => onVeil(e) && (this._wallView = null)}>
       <div class="fp3d-wv" role="dialog" aria-label=${this.t("wall_view")} tabindex="0" @keydown=${key}>
         <div class="fp3d-wv-head">
           <button class="fp3d-btn" title=${`${this.t("wall_prev")}: ${wallName(leftEdge)}`} @click=${() => go(leftEdge)}>‹</button>
@@ -9918,7 +9924,7 @@ export class Fp3dEditor extends LitElement {
     });
     const [done, all] = this.partStatus(a, card.part);
     const at = where();
-    return html`<div class="fp3d-wv-veil fp3d-pc-veil" @click=${(e: Event) => e.target === e.currentTarget && close()}>
+    return html`<div class="fp3d-wv-veil fp3d-pc-veil" @click=${(e: Event) => onVeil(e) && close()}>
       <div class="fp3d-pc" role="dialog" tabindex="0" @keydown=${(e: KeyboardEvent) => e.key === "Escape" && close()}>
         <div class="fp3d-wv-head">
           ${joint && admin
@@ -14131,7 +14137,7 @@ export class Fp3dEditor extends LitElement {
     const d = this._diag;
     if (!this._diagView || !d || d === "error") return nothing;
     const on = d.enabled;
-    return html`<div class="fp3d-wv-veil" @click=${(e: Event) => e.target === e.currentTarget && (this._diagView = false)}>
+    return html`<div class="fp3d-wv-veil" @click=${(e: Event) => onVeil(e) && (this._diagView = false)}>
       <div class="fp3d-wv fp3d-diag" role="dialog" aria-label=${this.t("diag_view")}>
         <h4 class="fp3d-lib-head">${this.t("diag_view_head")}</h4>
         <pre class="fp3d-diag-json">${JSON.stringify(d.preview, null, 2)}</pre>

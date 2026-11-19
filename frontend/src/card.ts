@@ -638,6 +638,7 @@ clearTimeout(this.cleanTimer);
               @walk-here=${() => this.view3d()?.walkHere()}
               @camera-look=${(e: CustomEvent<{ entity: string }>) => this.view3d()?.lookThrough(e.detail.entity)}
               class="fp3d-card-panel"
+              ?collapsible=${phone}
               .hass=${this.tt.hass(this.hass)}
               ?readOnly=${tt}
               .room=${b.floors.flatMap((f) => zonesOf(f)).find((r) => r.id === this._roomId) ?? null}
@@ -895,7 +896,8 @@ clearTimeout(this.cleanTimer);
       }
       .fp3d-phone .fp3d-card-panel {
         bottom: 70px;
-        height: calc(55% - 62px);
+        height: auto;
+        max-height: calc(62% - 62px);
       }
     `,
   ];

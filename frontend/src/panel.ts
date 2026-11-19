@@ -1405,6 +1405,7 @@ export class Floorplan3dPanel extends LitElement {
               ?walk=${true}
               @walk-here=${() => this.view3d()?.walkHere()}
               class="fp3d-room-panel"
+              ?collapsible=${this.phoneOn}
               @camera-look=${(e: CustomEvent<{ entity: string }>) => this.view3d()?.lookThrough(e.detail.entity)}
               .hass=${this.tt.hass(this.hass)}
               ?readOnly=${tt}
@@ -2067,7 +2068,8 @@ export class Floorplan3dPanel extends LitElement {
       }
       .fp3d-phone .fp3d-room-panel {
         bottom: 70px;
-        height: calc(55% - 62px);
+        height: auto;
+        max-height: calc(62% - 62px);
       }
       .fp3d-now-check fp3d-view3d {
         --fp3d-bottom-inset: 190px;
