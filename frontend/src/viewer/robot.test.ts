@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { pointInPolygon, type Vec2 } from "../model.ts";
-import { cleaningPath, stepRobot, type RobotInfo, type RobotMotion } from "./robot.ts";
+import { cleaningPath, driveInside, stepRobot, type RobotInfo, type RobotMotion } from "./robot.ts";
 
 const room: Vec2[] = [[0, 0], [4, 0], [4, 3], [0, 3]];
 
@@ -46,4 +46,11 @@ test("the lanes keep clear of furniture and never cross it between lanes", () =>
     const [a, b] = [path[i - 1], path[i]];
     for (let t = 0; t <= 1; t += 0.02) assert.ok(!inAny([a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t]), `segment ${i} crosses furniture`);
   }
+});
+
+test("a drive across the notch of a U-shaped room is not inside the room; one along an arm is", () => {
+  const u: Vec2[] = [[0, 0], [2, 0], [2, 3], [4, 3], [4, 0], [6, 0], [6, 4], [0, 4]];
+  assert.equal(driveInside(u, [1, 1], [1, 3.5]), true);
+  assert.equal(driveInside(u, [1, 1], [5, 1]), false);
+  assert.equal(driveInside(u, [1, 3.5], [5, 3.5]), true);
 });
