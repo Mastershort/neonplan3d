@@ -484,6 +484,7 @@ export class Fp3dEditor extends LitElement {
     _sideWidth: { state: true },
     _moduleMsg: { state: true },
     _settingsDialog: { state: true },
+    _settingsNav: { state: true },
     _toolOpen: { state: true },
     _viewMenu: { state: true },
     _draft: { state: true },
@@ -735,6 +736,8 @@ export class Fp3dEditor extends LitElement {
   private declare _moduleMsg: { ok: boolean; text: string } | null;
   private sideDrag: { x: number; width: number } | null = null;
   private declare _settingsDialog: SettingsTopic | null;
+  /** Card templates need the dialog's whole width: the topics fold away there until asked for. */
+  private declare _settingsNav: boolean;
   private declare _toolOpen: Tool | null;
   /** The view menu of the toolbar (fit, 3D beside, wall view, lock) is open. */
   private declare _viewMenu: boolean;
@@ -909,6 +912,7 @@ export class Fp3dEditor extends LitElement {
     this._sideWidth = Math.min(640, Math.max(280, width));
     this._moduleMsg = null;
     this._settingsDialog = null;
+    this._settingsNav = false;
     this._toolOpen = null;
     this._viewMenu = false;
     this._draft = [];
@@ -6062,6 +6066,7 @@ export class Fp3dEditor extends LitElement {
       return;
     }
     this._settingsDialog = key;
+    this._settingsNav = false;
     this.settingsLast = key;
     if (key === "diagnostics") void this.loadDiagnostics();
     // the modules' sentences for the voice list: loaded here as well (the editor is its own bundle), once per opening
@@ -6139,10 +6144,12 @@ export class Fp3dEditor extends LitElement {
                             : this.renderModuleSettings();
     // one dialog for all topics: they stand in groups on the left, the chosen one on the right
     const groups = this.settingsGroups();
+    const folded = topic === "cards" && !this._settingsNav;
     return html`<div class="fp3d-dialog-veil" @click=${(e: Event) => onVeil(e) && close()}>
-      <div class="fp3d-dialog fp3d-set ${topic === "cards" ? "fp3d-set-slim" : ""}" role="dialog" aria-label=${this.t("settings")} tabindex="-1" @keydown=${(e: KeyboardEvent) => e.key === "Escape" && close()}>
+      <div class="fp3d-dialog fp3d-set ${topic === "cards" ? "fp3d-set-slim" : ""} ${folded ? "fp3d-set-folded" : ""}" role="dialog" aria-label=${this.t("settings")} tabindex="-1" @keydown=${(e: KeyboardEvent) => e.key === "Escape" && close()}>
         <div class="fp3d-dialog-head fp3d-set-head">
           <h3>${this.t("settings")}</h3>
+          ${topic === "cards" ? html`<button class="fp3d-btn fp3d-set-fold" aria-expanded=${!folded} @click=${() => (this._settingsNav = folded)}>${folded ? "▸" : "◂"} ${this.t("settings_topics")}</button>` : nothing}
           <button class="fp3d-btn" aria-label=${this.t("close")} @click=${close}>✕</button>
         </div>
         <div class="fp3d-set-layout">
@@ -16825,8 +16832,17 @@ export class Fp3dEditor extends LitElement {
         padding: 14px 18px 0;
       }
       .fp3d-dialog.fp3d-set.fp3d-set-slim {
-        width: min(1560px, 100%);
-        height: min(940px, 100% - 16px);
+        width: min(1800px, 100%);
+        height: min(1000px, 100% - 16px);
+      }
+      .fp3d-set-fold {
+        margin-right: auto;
+      }
+      .fp3d-set-folded .fp3d-set-layout {
+        grid-template-columns: minmax(0, 1fr);
+      }
+      .fp3d-set-folded .fp3d-set-nav {
+        display: none;
       }
       .fp3d-set-head {
         margin-bottom: 12px;
@@ -16911,6 +16927,9 @@ export class Fp3dEditor extends LitElement {
         }
         .fp3d-set-slim .fp3d-set-pick {
           display: block;
+        }
+        .fp3d-set-fold {
+          display: none;
         }
       }
       @media (max-width: 800px) {
