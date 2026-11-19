@@ -53,12 +53,29 @@ export function callCount(calls: readonly ServiceCall[]): number {
   return calls.reduce((n, c) => n + (c.data.entity_id as string[]).length, 0);
 }
 
-/** The call that sends the robot vacuum to clean this room (its script, button, scene …), null without one. */
+/** The call that sends the robot vacuum to clean this room: its script, button or scene …, or a vacuum entity mapped to the room's area. Null without one. */
 export function cleaningCall(hass: HomeAssistant, room: Room): ServiceCall | null {
   const id = room.cleaning;
   if (!id || !hass.states[id]) return null;
+  if (id.startsWith("vacuum.")) return room.area_id ? { domain: "vacuum", service: "clean_area", data: { entity_id: id, cleaning_area_id: [room.area_id] } } : null;
   const [domain, service] = favoriteCall(id);
   return { domain, service, data: { entity_id: id } };
+}
+
+const VACUUM_CLEAN_AREA = 16384;
+
+/** The vacuum whose segments are mapped to this Home Assistant area (needs the admin's registry access), null when none is. */
+export async function vacuumForArea(hass: HomeAssistant, areaId: string): Promise<string | null> {
+  for (const [id, st] of Object.entries(hass.states)) {
+    if (!id.startsWith("vacuum.") || !((Number(st.attributes.supported_features) || 0) & VACUUM_CLEAN_AREA)) continue;
+    try {
+      const entry = await hass.callWS<{ options?: { vacuum?: { area_mapping?: Record<string, string[]> } } }>({ type: "config/entity_registry/get", entity_id: id });
+      if (entry.options?.vacuum?.area_mapping?.[areaId]?.length) return id;
+    } catch {
+      // not an admin, or the entity has no registry entry
+    }
+  }
+  return null;
 }
 
 /** The plan room of a Home Assistant area (where a tablet hangs): the first indoor room linked to it. */

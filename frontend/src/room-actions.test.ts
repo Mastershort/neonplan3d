@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { callCount, cleaningCall, everythingOff, roomOfArea } from "./room-actions.ts";
+import { callCount, cleaningCall, everythingOff, roomOfArea, vacuumForArea } from "./room-actions.ts";
 import { newFloor, type Floor, type Room } from "./model.ts";
 import type { HomeAssistant } from "./types.ts";
 
@@ -48,4 +48,28 @@ test("room actions: the room's cleaning runs its script; a tablet's area finds i
   assert.equal(cleaningCall(hass(), { ...room, cleaning: null }), null);
   assert.equal(roomOfArea([floor()], "wohnzimmer")?.room.id, "wohnen");
   assert.equal(roomOfArea([floor()], "kueche"), null);
+});
+
+test("room actions: a vacuum as the room's cleaning cleans the room's area; the vacuum mapped to an area is found", async () => {
+  const h = hass();
+  h.states["vacuum.robbi"] = { entity_id: "vacuum.robbi", state: "docked", attributes: { supported_features: 16384 | 8192 } };
+  h.states["vacuum.alt"] = { entity_id: "vacuum.alt", state: "docked", attributes: { supported_features: 8192 } };
+  assert.deepEqual(cleaningCall(h, { ...room, cleaning: "vacuum.robbi" }), {
+    domain: "vacuum",
+    service: "clean_area",
+    data: { entity_id: "vacuum.robbi", cleaning_area_id: ["wohnzimmer"] },
+  });
+  assert.equal(cleaningCall(h, { ...room, cleaning: "vacuum.robbi", area_id: null }), null);
+  const asked: unknown[] = [];
+  h.callWS = (async (msg: { entity_id: string }) => {
+    asked.push(msg.entity_id);
+    return { options: { vacuum: { area_mapping: { wohnzimmer: ["16"], kueche: [] } } } };
+  }) as never;
+  assert.equal(await vacuumForArea(h, "wohnzimmer"), "vacuum.robbi");
+  assert.equal(await vacuumForArea(h, "kueche"), null);
+  assert.deepEqual([...new Set(asked)], ["vacuum.robbi"]);
+  h.callWS = (async () => {
+    throw new Error("unauthorized");
+  }) as never;
+  assert.equal(await vacuumForArea(h, "wohnzimmer"), null);
 });
