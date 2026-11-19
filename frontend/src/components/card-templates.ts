@@ -394,19 +394,23 @@ export class Fp3dCardTemplates extends LitElement {
     const admin = this.admin;
     return html`<div class="fp3d-tpl">
       <p class="fp3d-sub">${this.t("card_templates_intro")}</p>
-      <div class="fp3d-tpl-list">
-        ${list.map(
-          (x) => html`<button class="fp3d-chip" aria-pressed=${x.id === tpl?.id} @click=${() => (this._selected = x.id)}>${workingConfig(x).phone ? "📱" : "🖥"} ${x.name || x.id}</button>`,
-        )}
+      <div class="fp3d-tpl-layout">
+        <nav class="fp3d-tpl-side" aria-label=${this.t("card_templates_screens")}>
+          ${[false, true].map((phone) => {
+            const own = list.filter((x) => !!workingConfig(x).phone === phone);
+            return html`<div class="fp3d-tpl-group">
+              <h4>${phone ? "📱" : "🖥"} ${this.t(phone ? "card_templates_phones" : "card_templates_screens")}</h4>
+              ${own.map((x) => html`<button class="fp3d-tpl-item" aria-current=${x.id === tpl?.id} @click=${() => (this._selected = x.id)}>${x.name || x.id}</button>`)}
+              ${!own.length ? html`<span class="fp3d-sub">${this.t("card_templates_none")}</span>` : nothing}
+              ${admin ? html`<button class="fp3d-tpl-item fp3d-tpl-add" @click=${() => this.add(undefined, phone)}>+ ${this.t("card_template_new")}</button>` : nothing}
+            </div>`;
+          })}
+        </nav>
+        <div class="fp3d-tpl-main">
+          ${!list.length ? html`<p class="fp3d-sub">${this.t("card_templates_empty")}</p>` : nothing}
+          ${tpl ? this.renderTemplate(tpl, admin) : nothing}
+        </div>
       </div>
-      <div class="fp3d-tpl-list">
-        ${admin
-          ? html`<button class="fp3d-btn" @click=${() => this.add()}>+ 🖥 ${this.t("card_template_new_large")}</button>
-              <button class="fp3d-btn" @click=${() => this.add(undefined, true)}>+ 📱 ${this.t("card_template_new_phone")}</button>`
-          : nothing}
-      </div>
-      ${!list.length ? html`<p class="fp3d-sub">${this.t("card_templates_empty")}</p>` : nothing}
-      ${tpl ? this.renderTemplate(tpl, admin) : nothing}
       ${admin
         ? html`<div class="fp3d-tpl-reload">
             <button class="fp3d-btn" ?disabled=${this._reloading} @click=${() => void this.reload([])}>
@@ -517,7 +521,8 @@ export class Fp3dCardTemplates extends LitElement {
             >`
           : nothing}
       </label>
-      <div class="fp3d-tpl-use">
+      <details class="fp3d-tpl-use">
+        <summary>${this.t("card_template_use_title")}</summary>
         <span class="fp3d-sub">${this.t("card_template_use")}</span>
         <pre>${yaml}</pre>
         <div class="fp3d-tpl-row">
@@ -528,7 +533,7 @@ export class Fp3dCardTemplates extends LitElement {
               </button>`
             : nothing}
         </div>
-      </div>
+      </details>
       <div class="fp3d-tpl-split ${this._preview ? "" : "fp3d-tpl-nopreview"} ${this._preview && this._big ? "fp3d-tpl-big" : ""}">
         <div class="fp3d-tpl-preview">
           <div class="fp3d-tpl-row">
@@ -611,14 +616,94 @@ export class Fp3dCardTemplates extends LitElement {
         user-select: all;
       }
       /* the preview on the left (it stays in sight while the form scrolls), the form on the right */
+      .fp3d-tpl-layout {
+        display: grid;
+        grid-template-columns: 210px minmax(0, 1fr);
+        gap: 16px;
+        align-items: start;
+      }
+      .fp3d-tpl-side {
+        position: sticky;
+        top: 0;
+        display: grid;
+        gap: 16px;
+        padding: 10px;
+        border: 1px solid var(--fp3d-line);
+        border-radius: 12px;
+        background: rgba(8, 14, 28, 0.6);
+      }
+      .fp3d-tpl-group {
+        display: grid;
+        gap: 4px;
+      }
+      .fp3d-tpl-group h4 {
+        margin: 0 0 4px;
+        font-size: 12px;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--fp3d-soft);
+      }
+      .fp3d-tpl-item {
+        padding: 8px 10px;
+        border: 1px solid transparent;
+        border-radius: 8px;
+        background: none;
+        color: var(--fp3d-text);
+        font: inherit;
+        font-size: 14px;
+        text-align: left;
+        cursor: pointer;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .fp3d-tpl-item:hover {
+        background: rgba(55, 224, 255, 0.08);
+      }
+      .fp3d-tpl-item[aria-current="true"] {
+        background: rgba(55, 224, 255, 0.14);
+        border-color: var(--fp3d-accent);
+        font-weight: 600;
+      }
+      .fp3d-tpl-add {
+        color: var(--fp3d-accent);
+      }
+      .fp3d-tpl-main {
+        min-width: 0;
+        display: grid;
+        gap: 12px;
+      }
+      details.fp3d-tpl-use > summary {
+        cursor: pointer;
+        font-weight: 600;
+      }
+      details.fp3d-tpl-use[open] > summary {
+        margin-bottom: 4px;
+      }
+      @media (max-width: 1000px) {
+        .fp3d-tpl-layout {
+          grid-template-columns: 1fr;
+        }
+        .fp3d-tpl-side {
+          position: static;
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+      /* the form on the left, the preview on the right (it stays in sight while the form scrolls) */
       .fp3d-tpl-split {
         display: grid;
-        grid-template-columns: minmax(0, 1.6fr) minmax(340px, 1fr);
+        grid-template-columns: minmax(340px, 1fr) minmax(0, 1.3fr);
         gap: 16px;
         align-items: start;
       }
       .fp3d-tpl-split.fp3d-tpl-nopreview {
-        grid-template-columns: auto minmax(0, 1fr);
+        grid-template-columns: minmax(0, 1fr) auto;
+      }
+      .fp3d-tpl-split > .fp3d-tpl-preview {
+        order: 2;
+      }
+      .fp3d-tpl-split.fp3d-tpl-big > .fp3d-tpl-preview {
+        order: 0;
       }
       /* large: the preview over the whole width, the form below it */
       .fp3d-tpl-split.fp3d-tpl-big {

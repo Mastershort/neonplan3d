@@ -75,12 +75,15 @@ export class Floorplan3dCardEditor extends LitElement {
     _showForm: { state: true },
     building: { attribute: false },
     embedded: { type: Boolean },
+    _tab: { state: true },
   };
 
   declare hass: HomeAssistant | undefined;
   /** Inside NeonPlan's editor (a card template): the plan being edited, and no template choice of its own. */
   declare building: Building | null;
   declare embedded: boolean;
+  /** Inside NeonPlan's editor the form stands in tabs; on a dashboard it is one page as before. */
+  private declare _tab: "for" | "view" | "show" | "features" | "kiosk";
   private declare _config: CardConfig;
   private declare _floors: { id: string; name: string; rooms: { id: string; name: string; points: [number, number][]; outdoor: boolean }[] }[];
   /** The floor plans (more than one: the card picks its plan first). */
@@ -106,6 +109,7 @@ export class Floorplan3dCardEditor extends LitElement {
     this._showForm = false;
     this.building = null;
     this.embedded = false;
+    this._tab = "for";
   }
 
   setConfig(config: CardConfig): void {
@@ -702,9 +706,19 @@ export class Floorplan3dCardEditor extends LitElement {
     const flows = v.flows === undefined ? "switch" : v.flows ? "on" : "off";
     const holos = v.holograms === undefined ? "switch" : v.holograms ? "on" : "off";
     if (!this.embedded && v.template) return html`${this.renderPlan()}${this.renderTemplate()}`;
+    // the wall tablet's tab is not a phone's
+    const tabs = ([["for", "card_tab_for"], ["view", "card_section_view"], ["show", "card_section_show"], ["features", "card_section_features"], ["kiosk", "card_section_kiosk"]] as const).filter(([id]) => id !== "kiosk" || !v.phone);
+    const tab = tabs.some(([id]) => id === this._tab) ? this._tab : "for";
+    const on = (id: string) => !this.embedded || tab === id;
     return html`
       ${this.embedded ? nothing : html`${this.renderPlan()}${this.renderTemplate()}`}
-      ${this.renderPurpose()}
+      ${this.embedded
+        ? html`<div class="tabs" role="tablist">
+            ${tabs.map(([id, label]) => html`<button type="button" role="tab" aria-selected=${tab === id} @click=${() => (this._tab = id)}>${this.t(label)}</button>`)}
+          </div>`
+        : nothing}
+      <section ?hidden=${!on("for")}>${this.renderPurpose()}</section>
+      <section ?hidden=${!on("view")}>
       <h3>${this.t("card_section_view")}</h3>
       <div class="grid">
         <label class="field wide"
@@ -784,7 +798,8 @@ export class Floorplan3dCardEditor extends LitElement {
       </div>
       ${v.fill ? html`<p class="hint">${this.t("card_fill_hint")}</p>` : nothing}
       <p class="hint">${this.t("card_quality_hint")}</p>
-
+      </section>
+      <section ?hidden=${!on("show")}>
       <h3>${this.t("card_section_show")}</h3>
       <div class="grid">
         ${this.select("markers", "markers", [["none", "markers_none"], ["room", "markers_room"], ["important", "markers_important"], ["all", "markers_all"]], v.markers)}
@@ -827,8 +842,9 @@ export class Floorplan3dCardEditor extends LitElement {
       ${this.toggle("explode", "card_explode")} ${this.toggle("roof", "card_roof", "card_roof_hint")} ${this.toggle("roof_fade", "card_roof_fade", "card_roof_fade_hint")} ${this.toggle("plain", "card_plain", "plain_hint")}
       ${!UNRELEASED.includes("room_bar") || labOn() ? this.toggle("room_bar", "card_room_bar", "room_bar_hint") : nothing}
       ${this.value.room_bar && (!UNRELEASED.includes("room_bar") || labOn()) ? this.toggle("room_bar_favorites", "card_room_bar_favorites", "card_room_bar_favorites_hint") : nothing} ${this.toggle("stats", "card_stats", "card_stats_hint")}
-      ${this.renderFeatures()}
-      ${this.renderKiosk()}
+      </section>
+      <section ?hidden=${!on("features")}>${this.renderFeatures()}</section>
+      <section ?hidden=${!on("kiosk")}>${this.renderKiosk()}</section>
     `;
   }
 
@@ -1021,6 +1037,32 @@ export class Floorplan3dCardEditor extends LitElement {
       padding: 10px;
       border: 1px dashed var(--divider-color, #8884);
       border-radius: 10px;
+    }
+    .tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      margin-bottom: 14px;
+      border-bottom: 1px solid var(--divider-color, #8884);
+    }
+    .tabs button {
+      padding: 10px 14px;
+      border: none;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+      background: none;
+      color: var(--secondary-text-color);
+      font: inherit;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    .tabs button[aria-selected="true"] {
+      color: var(--primary-text-color);
+      border-bottom-color: var(--primary-color);
+      font-weight: 600;
+    }
+    :host([embedded]) section > h3:first-child {
+      display: none;
     }
     .purpose {
       display: flex;
