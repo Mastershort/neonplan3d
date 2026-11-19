@@ -525,6 +525,7 @@ clearTimeout(this.cleanTimer);
               .petsOn=${this._config?.pets !== false}
               .ghostOn=${this._config?.ghost !== false}
               .buttons=${this._config?.buttons?.map((b, i) => ({ id: `card_${i}`, ...b })) ?? null}
+              .deviceActions=${this._config?.device_actions ?? null}
               .heatMode=${heat}
               .theme=${this._config?.theme ?? "neon"}
               .zoomStyle=${this._config?.zoom_style ?? null}

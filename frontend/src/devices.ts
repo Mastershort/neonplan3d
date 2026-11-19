@@ -1,8 +1,8 @@
 // Devices of a room: which entities belong to an area, what kind they are, how they are placed and
 // what their state looks like. Pure functions (no Lit, no three.js) so they can be tested directly.
 
-import type { Building, Furniture, EntityRef, FenceGate, Floor, LampMount, Opening, Placement, RoofWindow, Room, Vec2 } from "./model.ts";
-import { centroid, outdoorZones, pointInPolygon } from "./model.ts";
+import type { Building, DeviceAction, DeviceActions, Furniture, EntityRef, FenceGate, Floor, LampMount, Opening, Placement, RoofWindow, Room, Vec2 } from "./model.ts";
+import { BUTTON_ACTIONS, centroid, outdoorZones, pointInPolygon } from "./model.ts";
 import { isRobotVacuum, packMotion, packScreen } from "./packs.ts";
 import type { HassEntity, HomeAssistant } from "./types.ts";
 
@@ -1459,6 +1459,25 @@ export function haNavigate(path: string): void {
   if (path === location.pathname + location.search) return;
   history.pushState({ from: location.pathname }, "", path);
   window.dispatchEvent(new CustomEvent("location-changed", { bubbles: true, composed: true, detail: { replace: false } }));
+}
+
+/**
+ * The own action a card's YAML sets for a device and a gesture (`device_actions`), or null for the default. A more_info
+ * without a target opens the device itself; a navigate without a target, a service without "domain.service", or an
+ * unknown action counts as not set, so the device keeps its default. "none" is returned as it is: the tap or long
+ * press then does nothing (a swipe on a lamp or blind still dims or moves it).
+ */
+export function deviceAction(actions: Record<string, DeviceActions> | null | undefined, entityId: string, gesture: "tap" | "hold"): DeviceAction | null {
+  const a = actions?.[entityId]?.[gesture];
+  if (!a || typeof a !== "object") return null;
+  if (a.action === "none") return { action: "none" };
+  if (!(BUTTON_ACTIONS as readonly string[]).includes(a.action)) return null;
+  const target = typeof a.target === "string" ? a.target.trim() : "";
+  if (a.action === "more_info") return { ...a, target: target || entityId };
+  if (a.action === "navigate" && !target) return null;
+  // runButton runs a service only as "domain.service": anything else would swallow the gesture without effect
+  if (a.action === "service" && !target.includes(".")) return null;
+  return { ...a, target: target || null };
 }
 
 /**

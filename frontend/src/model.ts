@@ -715,6 +715,25 @@ export interface CustomButton {
 }
 
 /**
+ * What a tap or a long press on one device does instead of its default, set per device in a card's YAML
+ * (`device_actions`): the own buttons' actions, or "none" for a tap or long press that does nothing (a swipe on a lamp
+ * or blind still dims or moves it).
+ */
+export interface DeviceAction {
+  action: ButtonAction | "none";
+  /** navigate: the path; more_info: another entity (left out: the device itself); service: "domain.service". */
+  target?: string | null;
+  /** service: its data; fire_dom_event: the event's detail. */
+  data?: Record<string, unknown> | null;
+}
+
+/** The own actions of one device: for a tap and for a long press; a gesture left out keeps its default. */
+export interface DeviceActions {
+  tap?: DeviceAction;
+  hold?: DeviceAction;
+}
+
+/**
  * Something to play on a speaker from its quick menu (Klang & Kino): media_player.play_media with this
  * content type and id – a radio stream URL, a Music Assistant or Sonos URI, or for an Echo (Alexa Media
  * Player) the type SPOTIFY / AMAZON_MUSIC / TUNEIN with what you would say ("Rock Antenne").
