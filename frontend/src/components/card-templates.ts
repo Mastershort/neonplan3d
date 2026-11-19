@@ -172,9 +172,9 @@ export class Fp3dCardTemplates extends LitElement {
         // an option the card refuses: the form shows it, the preview keeps the last good one
       }
     }
-    if (this.hass) this.previewCard.hass = this.hass;
-    // laid out as on that screen (on a tablet the room panel beside the house, on a phone over it), then shrunk; only
-    // to look at: a tap here must not switch the house's lights
+    // the preview turns and zooms like the card, but it switches nothing: its service calls go nowhere
+    if (this.hass) this.previewCard.hass = { ...this.hass, callService: async () => undefined } as unknown as HomeAssistant;
+    // laid out as on that screen (on a tablet the room panel beside the house, on a phone over it), then shrunk
     const h = this.previewHeight(tpl);
     const w = SCREENS[this.screenOf(tpl)].w;
     return html`<div class="fp3d-tpl-stage" style="height:${Math.round(h * this._scale)}px;max-width:${Math.round(w * this._scale)}px">
@@ -733,7 +733,6 @@ export class Fp3dCardTemplates extends LitElement {
         top: 0;
         left: 0;
         transform-origin: 0 0;
-        pointer-events: none;
       }
       .fp3d-tpl-size {
         margin-left: auto;
