@@ -100,19 +100,25 @@ const WAY_WIDTH: Record<string, number> = {
 };
 const PATHS = new Set(["footway", "path", "cycleway", "bridleway", "steps", "corridor", "pedestrian", "track"]);
 
+/** A way's mapped width in metres, kept within what a plan stores (a wide river, or a width mapped in centimetres). */
+const wayWidth = (raw: string | undefined): number | null => {
+  const w = parseHeight(raw);
+  return w === null ? null : Math.min(60, w);
+};
+
 /** A street, path, railway or stream from its tags, or null for anything else (an area, a proposed road …). */
 export function wayKind(tags: Record<string, string>): { k: SurroundWay["k"]; w: number } | null {
   const hw = tags.highway;
   if (hw) {
     if (["proposed", "construction", "platform", "elevator", "raceway"].includes(hw) || tags.area === "yes") return null;
     if (tags.tunnel && tags.tunnel !== "no") return null;
-    const width = parseHeight(tags.width);
+    const width = wayWidth(tags.width);
     if (PATHS.has(hw) && hw !== "pedestrian" && hw !== "track") return { k: "path", w: width ?? 1.8 };
     return { k: hw === "track" ? "path" : "road", w: width ?? WAY_WIDTH[hw] ?? 5 };
   }
   if (tags.railway) return tags.tunnel && tags.tunnel !== "no" ? null : { k: "rail", w: 3 };
   const ww = tags.waterway;
-  if (ww) return { k: "water", w: parseHeight(tags.width) ?? (ww === "river" ? 10 : ww === "canal" ? 8 : ww === "stream" ? 2 : 1.2) };
+  if (ww) return { k: "water", w: wayWidth(tags.width) ?? (ww === "river" ? 10 : ww === "canal" ? 8 : ww === "stream" ? 2 : 1.2) };
   return null;
 }
 

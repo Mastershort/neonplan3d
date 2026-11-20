@@ -43,6 +43,9 @@ test("streets, paths, railways and streams get their kind and width; tunnels and
   assert.deepEqual(wayKind({ highway: "residential" }), { k: "road", w: 6 });
   assert.deepEqual(wayKind({ highway: "footway" }), { k: "path", w: 1.8 });
   assert.deepEqual(wayKind({ highway: "primary", width: "12" }), { k: "road", w: 12 });
+  // a plan stores at most 60 m: a wider river (or a width mapped in centimetres) must not stop the saving
+  assert.deepEqual(wayKind({ highway: "residential", width: "120" }), { k: "road", w: 60 });
+  assert.deepEqual(wayKind({ waterway: "river", width: "120" }), { k: "water", w: 60 });
   assert.deepEqual(wayKind({ railway: "rail" }), { k: "rail", w: 3 });
   assert.deepEqual(wayKind({ waterway: "stream" }), { k: "water", w: 2 });
   assert.equal(wayKind({ highway: "proposed" }), null);

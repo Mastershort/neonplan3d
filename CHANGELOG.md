@@ -26,6 +26,7 @@ NeonPlan on the phone: a view made for the thumb, with a bar at the bottom, a li
 - **An LED strip without a height of its own** hangs under its room's ceiling instead of the floor's default height (#1226, thanks ManuelHecht).
 - **"Rooms overlap"** names the rooms and selects the first one (#1195).
 - **A tap on a blind on an Android phone** could still move it: a quick menu that has just opened takes no touch for a moment (#1208).
+- **Surroundings from the map with a radius of 150 m or more** could fail to save ("value must be at most 60 … ways … w"): a way mapped wider than 60 m – a broad river, or a width entered in centimetres – is now kept at 60 m (#1234).
 
 ## 3.5.2
 
