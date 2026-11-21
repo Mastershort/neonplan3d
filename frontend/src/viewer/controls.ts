@@ -87,7 +87,7 @@ export class OrbitControls {
   private readonly listeners: [string, EventListener][] = [];
   private readonly guestListeners: [EventTarget, string, EventListener][] = [];
   /** Fingers down on an element over the picture (see watchGuests), and when one of them last zoomed. */
-  private guests = new Map<number, { x: number; y: number; x0: number; y0: number }>();
+  private guests = new Map<number, { x: number; y: number; x0: number; y0: number; type: string; button: number }>();
   private guestPinchAt = -1e9;
 
   constructor(el: HTMLElement, camera: PerspectiveCamera, events: ControlEvents) {
@@ -120,16 +120,26 @@ export class OrbitControls {
       target.addEventListener(type, fn as EventListener, true);
       this.guestListeners.push([target, type, fn as EventListener]);
     };
-    add(host, "pointerdown", (e) => {
-      if (e.pointerType !== "touch" || e.target === this.el || this.grabbing || this.swiping) return;
-      // not on what is used with a finger of its own: a field, a slider, a list that scrolls
-      for (let n = e.target as HTMLElement | null; n && n !== host; n = n.parentElement) {
-        if (/^(INPUT|SELECT|TEXTAREA)$/.test(n.tagName)) return;
-        if (n.scrollHeight > n.clientHeight + 1 && /auto|scroll/.test(getComputedStyle(n).overflowY)) return;
+    // what is used with a pointer of its own: a field, a slider, a list that scrolls
+    const ownUse = (target: EventTarget | null): boolean => {
+      for (let n = target as HTMLElement | null; n && n !== host; n = n.parentElement) {
+        if (/^(INPUT|SELECT|TEXTAREA)$/.test(n.tagName)) return true;
+        if (n.scrollHeight > n.clientHeight + 1 && /auto|scroll/.test(getComputedStyle(n).overflowY)) return true;
       }
-      this.guests.set(e.pointerId, { x: e.clientX, y: e.clientY, x0: e.clientX, y0: e.clientY });
+      return false;
+    };
+    add(host, "pointerdown", (e) => {
+      if ((e.pointerType !== "touch" && e.pointerType !== "mouse") || e.target === this.el || this.grabbing || this.swiping) return;
+      if (ownUse(e.target)) return;
+      this.guests.set(e.pointerId, { x: e.clientX, y: e.clientY, x0: e.clientX, y0: e.clientY, type: e.pointerType, button: e.button });
       this.joinGuests();
     });
+    // the wheel over a pin, a name or a glass card zooms the house: it never reached the picture, so zooming stopped
+    // wherever the pointer happened to rest (#1271)
+    add(host, "wheel", ((e: WheelEvent) => {
+      if (e.target === this.el || this.grabbing || this.swiping || ownUse(e.target)) return;
+      this.onWheel(e);
+    }) as unknown as (e: PointerEvent) => void);
     add(window, "pointermove", (e) => {
       const g = this.guests.get(e.pointerId);
       if (!g) return;
@@ -160,10 +170,12 @@ export class OrbitControls {
    * – a small sideways move over a pin and the dashboard was back instead of the house turning (#1248). The
    * element's own click is left out once the finger has travelled.
    */
-  private dragGuest(e: PointerEvent, g: { x0: number; y0: number }): void {
+  private dragGuest(e: PointerEvent, g: { x0: number; y0: number; type: string; button: number }): void {
     if (this.grabbing || this.swiping || this.pointers.size || this.guests.size !== 1) return;
+    // the mouse only drags while a button is held; a finger is always down
+    if (g.type === "mouse" && e.buttons === 0) return;
     if (Math.hypot(e.clientX - g.x0, e.clientY - g.y0) < GUEST_DRAG) return;
-    this.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY, button: 0, type: "touch" });
+    this.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY, button: g.button, type: g.type });
     this.flight = null;
     this.velocity = { theta: 0, phi: 0 };
     clearTimeout(this.holdTimer);

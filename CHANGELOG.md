@@ -17,6 +17,7 @@ A fix round after 4.0: the phone's list no longer calls a closed garage door ope
 - **Cupboard fronts stayed dark blue under a zoom style** while the house around them was already homely: doors and drawers that open are drawn outside the look's shader, and they now take the near look (#1259, reported by daene85).
 - **The house's shadow was missing on a dashboard card with a heatmap** – the shadow lies outside on the ground, so coloured floors leave it alone (#1196, reported by netrunnercs and michaelbell1981).
 - **A finger on a label, a pin or a glass card turns the house** like a finger on free picture. Such a drag belonged to nobody, and on an Android phone the browser took a sideways move for its "back" swipe: the dashboard came up instead (#1248, reported by RiotEd).
+- **The mouse turns and zooms over markers too**: the wheel over a pin, a room name or a glass card zooms the house, and a drag that begins there turns it, instead of getting stuck wherever the pointer happened to rest (#1271, reported by snurre0).
 - **The way out of full screen stays**: the ✕ no longer disappears with the card's other buttons, so a card in full screen cannot trap you (#1261, reported by 1970lexi).
 - **The plan list says why the main plan has no bin** instead of leaving the row empty (#1258, reported by K3ngur).
 
