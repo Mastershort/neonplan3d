@@ -13,7 +13,7 @@ test("a lamp switched by a relay takes colour and brightness from its colour ent
   // the bulb unavailable: the relay's own (plain) glow
   assert.deepEqual(lightGlow(relay as never, { ...bulb, state: "unavailable" } as never)!.color, [1, 0.71, 0.28]);
 });
-import { chargerStatus, slatTilt, slatsInverted, coverTiltButtons, isPulseDrive, isRelevant, apOnline, fanSpeed, climateModeGlow, cooktopLevel, onlyColor, fixedGlowColor, colorCapable, appColor, carLocked, areaEntities, otherAreaEntities, roomClimateSensors, roomClimateValue, unassignedEntities, autoPlace, entityName, fridgeDoors, furnitureEntities, groupByDevice, isActive, kindOf, lightGlow, openingEntities, openingState, powerSensorsOf, primaryEntities, roomPanelEntities, windowPosition, confirmEntities, robotRoom, robotRoomSensor, roomKey, vacuumCleaning } from "./devices.ts";
+import { chargerStatus, slatTilt, slatsInverted, coverTiltButtons, isPulseDrive, isRelevant, apOnline, fanSpeed, climateModeGlow, cooktopLevel, onlyColor, fixedGlowColor, colorCapable, appColor, carLocked, areaEntities, otherAreaEntities, roomClimateSensors, roomClimateValue, unassignedEntities, autoPlace, entityName, fridgeDoors, furnitureEntities, groupByDevice, isActive, kindOf, lightGlow, openingEntities, openingOpen, openingState, powerSensorsOf, primaryEntities, roomPanelEntities, windowPosition, confirmEntities, robotRoom, robotRoomSensor, roomKey, vacuumCleaning } from "./devices.ts";
 import type { Floor, Opening, Room } from "./model.ts";
 import { centroid, newFloor, pointInPolygon } from "./model.ts";
 import type { HomeAssistant } from "./types.ts";
@@ -178,6 +178,37 @@ test("opening states: open, tilted and blind position", () => {
   assert.deepEqual(stateOf(hass, { cover: null, contact: "binary_sensor.k", tilt: null }), { open: 1, open2: 0, tilt: 0, tilt2: 0, cover: null });
   assert.deepEqual(stateOf(hass, { cover: "cover.p", contact: "binary_sensor.k", tilt: "binary_sensor.t" }), { open: 0, open2: 0, tilt: 1, tilt2: 0, cover: 0.75 });
   assert.deepEqual(stateOf(hass, { cover: "cover.rollo", contact: null, tilt: null }), { open: 0, open2: 0, tilt: 0, tilt2: 0, cover: 0 });
+});
+
+test("a garage door counts as open when its cover is up, not when it is down (#1261)", () => {
+  const hass = hassWith();
+  const add = (id: string, state: string, attributes: Record<string, unknown>) => {
+    hass.entities![id] = { entity_id: id, area_id: "wohnen" };
+    hass.states[id] = { entity_id: id, state, attributes };
+  };
+  add("cover.tor", "closed", { device_class: "garage" });
+  const e = { cover: "cover.tor", contact: null, tilt: null };
+  // a closed garage door: "cover" is fully down, so it is NOT one of the open doors
+  assert.equal(openingState(hass, e, "garage").cover, 1);
+  assert.equal(openingOpen(openingState(hass, e, "garage"), "garage"), false);
+  hass.states["cover.tor"] = { entity_id: "cover.tor", state: "open", attributes: { device_class: "garage" } };
+  assert.equal(openingOpen(openingState(hass, e, "garage"), "garage"), true);
+  hass.states["cover.tor"] = { entity_id: "cover.tor", state: "open", attributes: { device_class: "garage", current_position: 40 } };
+  assert.equal(openingOpen(openingState(hass, e, "garage"), "garage"), true);
+  // a contact instead of a cover: "off" (closed) is not open, "on" is
+  add("binary_sensor.tor", "off", { device_class: "garage_door" });
+  const c = { cover: null, contact: "binary_sensor.tor", tilt: null };
+  assert.equal(openingOpen(openingState(hass, c, "garage"), "garage"), false);
+  hass.states["binary_sensor.tor"] = { entity_id: "binary_sensor.tor", state: "on", attributes: { device_class: "garage_door" } };
+  assert.equal(openingOpen(openingState(hass, c, "garage"), "garage"), true);
+  // without any sensor a garage door counts as closed, as the 3D view draws it
+  assert.equal(openingOpen(openingState(hass, { cover: null, contact: null, tilt: null }, "garage"), "garage"), false);
+  // a window keeps its own reading: open by its contact, a tilted one is not "open"
+  add("binary_sensor.fenster", "on", { device_class: "window" });
+  const w = { cover: null, contact: "binary_sensor.fenster", tilt: null };
+  assert.equal(openingOpen(openingState(hass, w, "window"), "window"), true);
+  hass.states["binary_sensor.fenster"] = { entity_id: "binary_sensor.fenster", state: "off", attributes: { device_class: "window" } };
+  assert.equal(openingOpen(openingState(hass, w, "window"), "window"), false);
 });
 
 test("garage doors use garage covers and contacts; door leaves follow their contact or stand half open", () => {

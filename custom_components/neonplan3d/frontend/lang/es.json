@@ -2465,6 +2465,8 @@
  "plan_open": "Abrir",
  "plan_shown": "visible",
  "plan_delete": "Mover a la papelera",
+ "plan_main_keeps": "Plano principal",
+ "plan_main_keeps_hint": "El plano principal siempre está – no se puede borrar. Puedes renombrarlo, borrar sus plantas en el editor y seguir dibujando ahí.",
  "plan_delete_confirm": "¿Mover «{name}» a la papelera? Se puede restaurar durante {days} días.",
  "plan_new_name": "Plano {n}",
  "plan_new_placeholder": "Nombre, p. ej. Caseta del jardín",

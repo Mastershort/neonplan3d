@@ -2465,6 +2465,8 @@
  "plan_open": "Apri",
  "plan_shown": "mostrata",
  "plan_delete": "Sposta nel cestino",
+ "plan_main_keeps": "Planimetria principale",
+ "plan_main_keeps_hint": "La planimetria principale c'è sempre – non si può eliminare. Puoi rinominarla, cancellarne i piani nell'editor e continuare a disegnare lì.",
  "plan_delete_confirm": "Spostare «{name}» nel cestino? Si può ripristinare per {days} giorni.",
  "plan_new_name": "Planimetria {n}",
  "plan_new_placeholder": "Nome, ad es. Casetta da giardino",

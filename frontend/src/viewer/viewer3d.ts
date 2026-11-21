@@ -20,7 +20,7 @@ import { makeFoldable, type FoldMasks } from "./fold.ts";
 import { CameraProjections, PROJECTION_LAYER, type ProjectionSurface, type ProjectorPose } from "./projection.ts";
 import { pushPackLive } from "./furniture.ts";
 import { bindValue, hasLiveParts, liveGroups, slotEntity, type PartBind } from "../live-parts.ts";
-import { packGlowCentre, packGlowCentres, pushAwning, pushCameraModel, pushPackGlow, pushPackRobot, pushPackLamp, pushPackMotion, pushPackSpin, screenRect, screenPictureSize, pushFridgeDoors, setLightLook, hasFixedColors } from "./furniture.ts";
+import { MIN_SIZE, packGlowCentre, packGlowCentres, pushAwning, pushCameraModel, pushPackGlow, pushPackRobot, pushPackLamp, pushPackMotion, pushPackSpin, screenRect, screenPictureSize, pushFridgeDoors, setLightLook, hasFixedColors } from "./furniture.ts";
 import { pushPipeTube, type PipeTube } from "./pipes.ts";
 import { pushGate } from "./outdoor.ts";
 import { pinKey } from "./pin-key.ts";
@@ -1788,6 +1788,22 @@ export class FloorplanViewer {
     this.invalidate();
   }
 
+  /**
+   * The palette for the live parts of furniture (a cupboard door, a drawer). They are drawn with plain vertex colours,
+   * outside the look's shader, so the homely styles' navy-to-grey rule never reaches them: built in the far neon
+   * palette under a zoom style, kitchen fronts stayed dark blue while the house around them was homely (#1259).
+   * A door is looked at from close up, so it takes the near look there.
+   */
+  private useLivePalette(): void {
+    const near = this.zoomStyle;
+    if (!near?.natural) {
+      this.usePalette();
+      return;
+    }
+    setNaturalPalette(true, { cutTop: near.cutDark ? 0x34373d : null, facade: hexColor(this.building?.settings.facade_color) });
+    setLightLook(true);
+  }
+
   /** Puts this view's palette and light look in place: several views on a page share the palette module. */
   private usePalette(): void {
     setNaturalPalette(this.palette.natural, { cutTop: this.palette.cutTop, facade: this.palette.facade });
@@ -2113,7 +2129,9 @@ export class FloorplanViewer {
     const on = !!b && !!sun && b.settings.sun_shadow !== false && !this.options.safeFx;
     const north = (b?.settings.north ?? 0) * DEG;
     const cloud = this.weather?.cloud ?? 0;
-    const shade = on && !this.lowQuality && sun.elevation > 1 && cloud < 0.9 && !this.roomTint;
+    // the house's shadow lies outside on the ground, so coloured floors (a heatmap, a warning) leave it alone:
+    // a card with `heatmap:` showed no shadow at all while the panel beside it did (#1196)
+    const shade = on && !this.lowQuality && sun.elevation > 1 && cloud < 0.9;
     const sig = shade ? `${sun.elevation.toFixed(1)},${sun.azimuth.toFixed(1)},${north},${cloud.toFixed(1)},${this.theme},${this.roofGeos.length},${surroundKey(b)}` : "";
     if (sig !== this.shadowSig) {
       this.shadowSig = sig;
@@ -4316,8 +4334,8 @@ export class FloorplanViewer {
       const P = (x: number, y: number, z: number) => [f.x + x * c - z * s, y, f.z + x * s + z * c];
       if (st.faces) {
         // a state on the item itself: a glowing plate on its top (a half of it for a bed's side or a bunk)
-        const w = Math.max(0.05, f.w) * (f.mirror ? -1 : 1);
-        const d = Math.max(0.05, f.d);
+        const w = Math.max(MIN_SIZE, f.w) * (f.mirror ? -1 : 1);
+        const d = Math.max(MIN_SIZE, f.d);
         const h = Math.max(0.005, f.h);
         const base = mountBase(fv.floor, f);
         for (const face of st.faces) {
@@ -5714,7 +5732,7 @@ export class FloorplanViewer {
         for (const key of liveGroups(item.parts).keys()) {
           const id = `${f.id}|${key}`;
           seen.add(id);
-          const sig = [f.x, f.z, f.rotation, f.w, f.d, f.h, f.mirror ? 1 : 0, base, fv.floor.id, this.style.id, f.finish ? JSON.stringify(f.finish) : ""].join("|");
+          const sig = [f.x, f.z, f.rotation, f.w, f.d, f.h, f.mirror ? 1 : 0, base, fv.floor.id, this.style.id, this.zoomStyle?.id ?? "", f.finish ? JSON.stringify(f.finish) : ""].join("|");
           let live = this.packLive.get(id);
           if (live && live.sig !== sig) {
             live.group.removeFromParent();
@@ -5725,10 +5743,11 @@ export class FloorplanViewer {
             live = undefined;
           }
           if (!live) {
-            this.usePalette();
+            this.useLivePalette();
             const buf = new GeoBuffer();
             const lines = new LineBuffer();
             const made = pushPackLive(buf, item, f.w, f.d, f.h, key, f, lines);
+            this.usePalette();
             if (!made) continue;
             const tinted = made.bind.kind === "blink" || made.bind.kind === "glow";
             this.spinMat ??= new MeshBasicMaterial({ vertexColors: true, side: DoubleSide });

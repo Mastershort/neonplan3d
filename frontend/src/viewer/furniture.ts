@@ -78,6 +78,13 @@ export function finishSafe(hex: number | null): number | null {
   return new Color(c.r, Math.min(1, (c.b / 1.5) * 1.02), c.b).getHex();
 }
 
+/**
+ * The smallest width or depth a model is drawn at. It used to be 5 cm, so a socket (1.4 cm deep), a switch (1.2 cm)
+ * or a sensor made thinner by hand stood far out of the wall, while the plan and the selection showed them thin
+ * (#1236). Only a size of zero needs catching, the same floor the height has.
+ */
+export const MIN_SIZE = 0.005;
+
 const EDGE_FURN = shade(0x5b7cff, 0.3);
 const EDGE_FAINT = shade(0x5b7cff, 0.17);
 const EDGE_GLOW = shade(0x37e0ff, 0.45);
@@ -1499,8 +1506,8 @@ export function screenRect(f: Furniture, floor?: Floor): { x0: number; x1: numbe
 }
 
 function screenRectUnmirrored(f: Furniture, floor?: Floor): { x0: number; x1: number; y0: number; y1: number; z: number } | null {
-  const w = Math.max(0.05, f.w);
-  const d = Math.max(0.05, f.d);
+  const w = Math.max(MIN_SIZE, f.w);
+  const d = Math.max(MIN_SIZE, f.d);
   const h = Math.max(0.005, f.h);
   const part = packScreen(f.type);
   if (part) {
@@ -1675,8 +1682,8 @@ function buildModel(buf: GeoBuffer, lines: LineBuffer, shadow: GeoBuffer, f: Fur
   const mx = f.mirror ? -1 : 1;
   const tf: Tf = (x, z) => [f.x + mx * x * c - z * s, f.z + mx * x * s + z * c];
   const b = new Builder(buf, lines, tf);
-  const w = Math.max(0.05, f.w);
-  const d = Math.max(0.05, f.d);
+  const w = Math.max(MIN_SIZE, f.w);
+  const d = Math.max(MIN_SIZE, f.d);
   const h = Math.max(0.005, f.h);
   switch (f.type) {
     case "sofa":
@@ -2052,7 +2059,7 @@ export function pushCameraModel(buf: GeoBuffer, model: "camera_wall" | "camera_c
 export function pushPackRobot(buf: GeoBuffer, item: PackItem, w: number, d: number, h: number): { radius: number; top: number } {
   const cz = packRobotCentre(item) * d;
   const b = new Builder(buf, new LineBuffer(), (x, z) => [x, z - cz]);
-  packModel(b, item, Math.max(0.05, w), Math.max(0.05, d), Math.max(0.005, h), 0, null, packRobotPart);
+  packModel(b, item, Math.max(MIN_SIZE, w), Math.max(MIN_SIZE, d), Math.max(0.005, h), 0, null, packRobotPart);
   let radius = 0;
   let top = 0;
   for (const p of fitParts(item, w, d, h)) {
@@ -2071,7 +2078,7 @@ export function pushPackGlow(buf: GeoBuffer, item: PackItem, f: Pick<Furniture, 
   const s = Math.sin(a);
   const mx = f.mirror ? -1 : 1;
   const tf: Tf = (x, z) => [f.x + mx * x * c - z * s, f.z + mx * x * s + z * c];
-  packModel(new Builder(buf, new LineBuffer(), tf), item, Math.max(0.05, f.w), Math.max(0.05, f.d), Math.max(0.005, f.h), base, color, pick);
+  packModel(new Builder(buf, new LineBuffer(), tf), item, Math.max(MIN_SIZE, f.w), Math.max(MIN_SIZE, f.d), Math.max(0.005, f.h), base, color, pick);
 }
 
 /**
@@ -2086,7 +2093,7 @@ export function pushPackMotion(buf: GeoBuffer, item: PackItem, kind: PackMotion,
   const s = Math.sin(a);
   const mx = f.mirror ? -1 : 1;
   const tf: Tf = (x, z) => [f.x + mx * x * c - z * s, f.z + mx * x * s + z * c];
-  packModel(new Builder(buf, new LineBuffer(), tf), { ...item, parts }, Math.max(0.05, f.w), Math.max(0.05, f.d), Math.max(0.005, f.h), base, null);
+  packModel(new Builder(buf, new LineBuffer(), tf), { ...item, parts }, Math.max(MIN_SIZE, f.w), Math.max(MIN_SIZE, f.d), Math.max(0.005, f.h), base, null);
 }
 
 /** The moving parts of such an item where they are at `open` (in the item's fractions of its size). */
@@ -2118,8 +2125,8 @@ export function packMotionParts(item: PackItem, kind: PackMotion, open: number, 
  * height y. Null for an item without glowing parts.
  */
 export function packGlowCentre(item: PackItem, f: Pick<Furniture, "x" | "z" | "rotation" | "w" | "d" | "h" | "mirror">, base: number): [number, number, number] | null {
-  const w = Math.max(0.05, f.w);
-  const d = Math.max(0.05, f.d);
+  const w = Math.max(MIN_SIZE, f.w);
+  const d = Math.max(MIN_SIZE, f.d);
   const h = Math.max(0.005, f.h);
   let weight = 0;
   let sx = 0;
@@ -2154,8 +2161,8 @@ export function packGlowCentre(item: PackItem, f: Pick<Furniture, "x" | "z" | "r
  * built from several pieces) count as one.
  */
 export function packGlowCentres(item: PackItem, f: Pick<Furniture, "x" | "z" | "rotation" | "w" | "d" | "h" | "mirror">, base: number): [number, number, number][] {
-  const w = Math.max(0.05, f.w);
-  const d = Math.max(0.05, f.d);
+  const w = Math.max(MIN_SIZE, f.w);
+  const d = Math.max(MIN_SIZE, f.d);
   const h = Math.max(0.005, f.h);
   const pts: { x: number; y: number; z: number; r: number }[] = [];
   for (const p of fitParts(item, w, d, h)) {
@@ -2189,7 +2196,7 @@ export function pushPackLamp(buf: GeoBuffer, item: PackItem, f: Pick<Furniture, 
   const before = finish;
   finish = finishColors(f);
   try {
-    packModel(new Builder(buf, new LineBuffer(), tf), item, Math.max(0.05, f.w), Math.max(0.05, f.d), Math.max(0.005, f.h), base, glow, null, skip);
+    packModel(new Builder(buf, new LineBuffer(), tf), item, Math.max(MIN_SIZE, f.w), Math.max(MIN_SIZE, f.d), Math.max(0.005, f.h), base, glow, null, skip);
   } finally {
     finish = before;
   }
@@ -2203,8 +2210,8 @@ export function pushPackLamp(buf: GeoBuffer, item: PackItem, f: Pick<Furniture, 
  * and fronts like the rest of it; their edges go to `lines`.
  */
 export function pushPackLive(buf: GeoBuffer, item: PackItem, w: number, d: number, h: number, key: string, placed: Pick<Furniture, "finish"> = {}, lines: LineBuffer = new LineBuffer()): { pivot: [number, number, number]; bind: PartBind; depth: number; rest: number } | null {
-  const W = Math.max(0.05, w);
-  const D = Math.max(0.05, d);
+  const W = Math.max(MIN_SIZE, w);
+  const D = Math.max(MIN_SIZE, d);
   const H = Math.max(0.005, h);
   const parts = fitParts(item, W, D, H).filter((p) => p.bind && liveKey(p.bind) === key);
   if (!parts.length) return null;
@@ -2243,8 +2250,8 @@ export function pushPackLive(buf: GeoBuffer, item: PackItem, w: number, d: numbe
  * the pivot and turns it about `axis`. Null for an item without such parts.
  */
 export function pushPackSpin(buf: GeoBuffer, item: PackItem, w: number, d: number, h: number): { pivot: [number, number, number]; axis: "y" | "z" } | null {
-  const W = Math.max(0.05, w);
-  const D = Math.max(0.05, d);
+  const W = Math.max(MIN_SIZE, w);
+  const D = Math.max(MIN_SIZE, d);
   const H = Math.max(0.005, h);
   const parts = fitParts(item, W, D, H).filter((p) => p.spin === "y" || p.spin === "z");
   if (!parts.length) return null;

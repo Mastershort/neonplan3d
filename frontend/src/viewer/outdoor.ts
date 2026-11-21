@@ -6,7 +6,7 @@
 
 import { Color } from "three";
 import type { Floor, GateSpan, OutdoorArea, OutdoorType, Vec2 } from "../model.ts";
-import { areaGround, bounds, centroid, gateSpans, groundDrop, isAxisRect, OUTDOOR_TOP, outdoorStanding, pointInPolygon, poolFloorY, poolRimY, poolSunken, poolWaterY, signedArea } from "../model.ts";
+import { areaGround, bounds, centroid, gateSpans, groundDrop, isAxisRect, OUTDOOR_TOP, outdoorGround, outdoorStanding, pointInPolygon, poolFloorY, poolRimY, poolSunken, poolWaterY, signedArea } from "../model.ts";
 import { ALWAYS, type GeoBuffer, type LineBuffer, pushPrism, shade, triangulate } from "./geo.ts";
 import { palette } from "./palette.ts";
 
@@ -397,7 +397,12 @@ export function pushOutdoor(buf: GeoBuffer, lines: LineBuffer, floor: Floor, wat
         // the block reaches down to the lowest point; patches marked "cut" inside it become holes
         const topAt = (x: number, z: number) => groundAt(x, z) + look.top;
         const holes = outdoorHoles(areas, index);
-        pushPrism(buf, poly, lowest, a.slope ? topAt : g + look.top, look.side, look.color, { aoFrom: lowest, holes });
+        // a hedge, fence or pergola on falling ground: its block reaches down to the lowest ground under it (the lawn's
+        // slope, a bed below), two centimetres into it – standing on its own level alone, its underside showed (#1262)
+        const foot = outdoorStanding(a.type)
+          ? Math.min(lowest, ...poly.map(([x, z]) => outdoorGround(floor, x, z) - 0.02))
+          : lowest;
+        pushPrism(buf, poly, foot, a.slope ? topAt : g + look.top, look.side, look.color, { aoFrom: lowest, holes });
         outline((x, z) => topAt(x, z) + 0.004);
         if (a.type === "hedge") outline((x, z) => groundAt(x, z) + 0.004);
         if (a.outline !== false) {

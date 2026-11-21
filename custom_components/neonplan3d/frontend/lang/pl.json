@@ -2465,6 +2465,8 @@
  "plan_open": "Otwórz",
  "plan_shown": "pokazany",
  "plan_delete": "Przenieś do kosza",
+ "plan_main_keeps": "Plan główny",
+ "plan_main_keeps_hint": "Plan główny jest zawsze – nie można go usunąć. Możesz zmienić jego nazwę, usunąć jego kondygnacje w edytorze i rysować dalej.",
  "plan_delete_confirm": "Przenieść „{name}” do kosza? Można go przywrócić przez {days} dni.",
  "plan_new_name": "Plan {n}",
  "plan_new_placeholder": "Nazwa, np. Domek ogrodowy",

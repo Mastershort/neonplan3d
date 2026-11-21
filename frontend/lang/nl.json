@@ -2465,6 +2465,8 @@
  "plan_open": "Openen",
  "plan_shown": "wordt getoond",
  "plan_delete": "Naar de prullenbak",
+ "plan_main_keeps": "Hoofdplattegrond",
+ "plan_main_keeps_hint": "De hoofdplattegrond is er altijd – die kan niet worden verwijderd. Je kunt hem hernoemen, zijn verdiepingen in de editor verwijderen en daar verder tekenen.",
  "plan_delete_confirm": "„{name}“ naar de prullenbak verplaatsen? Hij blijft {days} dagen herstelbaar.",
  "plan_new_name": "Plattegrond {n}",
  "plan_new_placeholder": "Naam, bijv. Tuinhuis",

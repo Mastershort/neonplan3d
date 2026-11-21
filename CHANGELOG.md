@@ -4,6 +4,22 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 [releases page](https://github.com/Mastershort/neonplan3d/releases). Ideas and votes:
 [Discussions → Ideas](https://github.com/Mastershort/neonplan3d/discussions/categories/ideas).
 
+## 4.0.1
+
+A fix round after 4.0: the phone's list no longer calls a closed garage door open, a second plan stops flooding the log, and thin things on the wall are as thin as the plan says.
+
+### Fixed
+- **A closed garage door counted as open** in the phone's list "What is going on?" – its reading says how far the door is *down*, and it was read the other way round, so every closed garage door stood in the list and an open one did not (#1261, reported by Atomiiik, beta-j and Skeletitor).
+- **A view of a second plan flooded the Home Assistant log**: the view tells which plan it shows, the subscription did not know that field and turned it away ("invalid_format" at `view.plan`) – thousands of lines a day, and no announcements or voice answers on that screen (#1242, reported by Habi01H).
+- **Socket, light switch and sensors on the wall stood 5 cm out of it** in 3D while the plan and the selection showed them thin: models are no longer widened to 5 cm, so a socket is its 1.4 cm and a sensor can be made thinner by hand (#1236, reported by daene85).
+- **The content of a standing digital frame sat on its back**, beside the strut, instead of on the front (#1264, reported by blitzwurst) – in the pack "Digitale Bilderrahmen".
+- **A hedge, fence or pergola on falling ground** showed its underside: the block now reaches down into the lawn below it (#1262, reported by erwinsnl).
+- **Cupboard fronts stayed dark blue under a zoom style** while the house around them was already homely: doors and drawers that open are drawn outside the look's shader, and they now take the near look (#1259, reported by daene85).
+- **The house's shadow was missing on a dashboard card with a heatmap** – the shadow lies outside on the ground, so coloured floors leave it alone (#1196, reported by netrunnercs and michaelbell1981).
+- **A finger on a label, a pin or a glass card turns the house** like a finger on free picture. Such a drag belonged to nobody, and on an Android phone the browser took a sideways move for its "back" swipe: the dashboard came up instead (#1248, reported by RiotEd).
+- **The way out of full screen stays**: the ✕ no longer disappears with the card's other buttons, so a card in full screen cannot trap you (#1261, reported by 1970lexi).
+- **The plan list says why the main plan has no bin** instead of leaving the row empty (#1258, reported by K3ngur).
+
 ## 4.0.0
 
 NeonPlan on the phone: a view made for the thumb, with a bar at the bottom, a list of what needs a look, and a card editor of its own for phones.

@@ -2465,6 +2465,8 @@
  "plan_open": "Öppna",
  "plan_shown": "visas",
  "plan_delete": "Flytta till papperskorgen",
+ "plan_main_keeps": "Huvudplan",
+ "plan_main_keeps_hint": "Huvudplanen finns alltid – den går inte att ta bort. Du kan byta namn på den, ta bort dess våningar i redigeraren och rita vidare där.",
  "plan_delete_confirm": "Flytta ”{name}” till papperskorgen? Den kan återställas i {days} dagar.",
  "plan_new_name": "Planritning {n}",
  "plan_new_placeholder": "Namn, t.ex. Trädgårdsstuga",

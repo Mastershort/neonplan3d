@@ -2465,6 +2465,8 @@
  "plan_open": "Ouvrir",
  "plan_shown": "affiché",
  "plan_delete": "Mettre à la corbeille",
+ "plan_main_keeps": "Plan principal",
+ "plan_main_keeps_hint": "Le plan principal existe toujours – il ne peut pas être supprimé. Tu peux le renommer, supprimer ses étages dans l'éditeur et continuer à dessiner dedans.",
  "plan_delete_confirm": "Mettre « {name} » à la corbeille ? Il reste restaurable pendant {days} jours.",
  "plan_new_name": "Plan {n}",
  "plan_new_placeholder": "Nom, p. ex. Abri de jardin",

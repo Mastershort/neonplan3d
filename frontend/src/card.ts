@@ -716,7 +716,8 @@ clearTimeout(this.cleanTimer);
             </div>`
           : nothing}
         ${this.tt.session ? html`<fp3d-time-bar .session=${this.tt.session}></fp3d-time-bar>` : nothing}
-        ${c?.fullscreen_button && !this._clean && !phone && !(this._roomId && c.room_panel !== false)
+        ${/* in full screen the button stays, whatever the card hides by itself: it is the way back (#1261) */ ""}
+        ${c?.fullscreen_button && (!this._clean || this._fullscreen) && !phone && !(this._roomId && c.room_panel !== false)
           ? html`<button class="fp3d-card-full" title=${t(this._fullscreen ? "fullscreen_exit" : "fullscreen")} aria-label=${t(this._fullscreen ? "fullscreen_exit" : "fullscreen")} @click=${() => this.toggleFullscreen()}>
               ${this._fullscreen ? "✕" : "⛶"}
             </button>`

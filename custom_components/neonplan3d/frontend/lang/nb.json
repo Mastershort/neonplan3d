@@ -2465,6 +2465,8 @@
  "plan_open": "Åpne",
  "plan_shown": "vises",
  "plan_delete": "Flytt til papirkurven",
+ "plan_main_keeps": "Hovedplan",
+ "plan_main_keeps_hint": "Hovedplanen finnes alltid – den kan ikke slettes. Du kan gi den nytt navn, slette etasjene i editoren og tegne videre der.",
  "plan_delete_confirm": "Flytte «{name}» til papirkurven? Den kan gjenopprettes i {days} dager.",
  "plan_new_name": "Plantegning {n}",
  "plan_new_placeholder": "Navn, f.eks. Hagestue",

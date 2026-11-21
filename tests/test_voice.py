@@ -282,6 +282,31 @@ async def test_a_sentence_said_in_a_room_goes_to_assist_with_a_device_of_that_ro
     assert converse.await_args.kwargs == {"language": "de", "device_id": lamp.id}
 
 
+async def test_a_view_of_a_second_plan_may_say_which_plan_it_shows(hass: HomeAssistant, hass_ws_client) -> None:
+    """A view of a plan other than the main one sends its plan id. Without it in the schema the subscription was
+    turned away with "invalid_format" and tried again on every update, flooding the log (#1242)."""
+    await _setup(hass)
+    view = await hass_ws_client(hass)
+    await view.send_json(
+        {
+            "id": 1,
+            "type": "neonplan3d/voice/subscribe",
+            "view": {"kind": "card", "plan": "gartenhaus", "screen": "Gartenhaus", "version": "4.0.1"},
+        }
+    )
+    assert (await view.receive_json())["success"]
+
+    admin = await hass_ws_client(hass)
+    await admin.send_json({"id": 1, "type": "neonplan3d/screens/list"})
+    screens = (await admin.receive_json())["result"]["screens"]
+    assert [(x["plan"], x["screen"]) for x in screens] == [("gartenhaus", "Gartenhaus")]
+
+    # a plan id is still checked: no spaces, no path, nothing long
+    bad = await hass_ws_client(hass)
+    await bad.send_json({"id": 1, "type": "neonplan3d/voice/subscribe", "view": {"kind": "card", "plan": "../etc"}})
+    assert (await bad.receive_json())["error"]["code"] == "invalid_format"
+
+
 async def test_reload_screens_reaches_the_views_that_ask_for_it(hass: HomeAssistant, hass_ws_client) -> None:
     """Card templates: the service lets the open views that ask for it load their page again."""
     await _setup(hass)

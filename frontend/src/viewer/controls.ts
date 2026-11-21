@@ -35,6 +35,8 @@ export interface ControlEvents {
 }
 
 const HOLD_MS = 500;
+/** How far a finger on a label, a pin or a glass card travels before it turns the house instead (px, #1248). */
+const GUEST_DRAG = 8;
 /**
  * A move or wheel event this old when it is handled waited out a freeze (building the house just after
  * opening, a slow tablet): it is dropped, not replayed – replayed, the view caught up seconds later and landed
@@ -85,7 +87,7 @@ export class OrbitControls {
   private readonly listeners: [string, EventListener][] = [];
   private readonly guestListeners: [EventTarget, string, EventListener][] = [];
   /** Fingers down on an element over the picture (see watchGuests), and when one of them last zoomed. */
-  private guests = new Map<number, { x: number; y: number }>();
+  private guests = new Map<number, { x: number; y: number; x0: number; y0: number }>();
   private guestPinchAt = -1e9;
 
   constructor(el: HTMLElement, camera: PerspectiveCamera, events: ControlEvents) {
@@ -125,7 +127,7 @@ export class OrbitControls {
         if (/^(INPUT|SELECT|TEXTAREA)$/.test(n.tagName)) return;
         if (n.scrollHeight > n.clientHeight + 1 && /auto|scroll/.test(getComputedStyle(n).overflowY)) return;
       }
-      this.guests.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      this.guests.set(e.pointerId, { x: e.clientX, y: e.clientY, x0: e.clientX, y0: e.clientY });
       this.joinGuests();
     });
     add(window, "pointermove", (e) => {
@@ -134,6 +136,7 @@ export class OrbitControls {
       g.x = e.clientX;
       g.y = e.clientY;
       if (this.pointers.has(e.pointerId)) this.onMove(e);
+      else this.dragGuest(e, g);
     });
     const up = (e: PointerEvent) => {
       if (!this.guests.delete(e.pointerId) || !this.pointers.delete(e.pointerId)) return;
@@ -149,6 +152,25 @@ export class OrbitControls {
       e.stopPropagation();
       e.preventDefault();
     }) as unknown as (e: PointerEvent) => void);
+  }
+
+  /**
+   * One finger that began on a label, a pin or a glass card and then travels: it turns the house, like a finger on
+   * free picture. Such a drag belonged to nobody before, and on a phone the browser took it for its own "back" swipe
+   * – a small sideways move over a pin and the dashboard was back instead of the house turning (#1248). The
+   * element's own click is left out once the finger has travelled.
+   */
+  private dragGuest(e: PointerEvent, g: { x0: number; y0: number }): void {
+    if (this.grabbing || this.swiping || this.pointers.size || this.guests.size !== 1) return;
+    if (Math.hypot(e.clientX - g.x0, e.clientY - g.y0) < GUEST_DRAG) return;
+    this.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY, button: 0, type: "touch" });
+    this.flight = null;
+    this.velocity = { theta: 0, phi: 0 };
+    clearTimeout(this.holdTimer);
+    this.held = false;
+    this.down = null;
+    this.guestPinchAt = performance.now();
+    this.events.change();
   }
 
   /** Two fingers down, at least one of them a guest: the guests join the pinch. */

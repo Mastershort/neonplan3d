@@ -2465,6 +2465,8 @@
  "plan_open": "Abrir",
  "plan_shown": "mostrada",
  "plan_delete": "Mover para o lixo",
+ "plan_main_keeps": "Planta principal",
+ "plan_main_keeps_hint": "A planta principal existe sempre – não pode ser apagada. Podes mudar-lhe o nome, apagar os pisos no editor e continuar a desenhar aí.",
  "plan_delete_confirm": "Mover «{name}» para o lixo? Pode ser restaurada durante {days} dias.",
  "plan_new_name": "Planta {n}",
  "plan_new_placeholder": "Nome, p. ex. Casa do jardim",

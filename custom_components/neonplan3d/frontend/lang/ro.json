@@ -2465,6 +2465,8 @@
  "plan_open": "Deschide",
  "plan_shown": "afișat",
  "plan_delete": "Mută în coșul de gunoi",
+ "plan_main_keeps": "Plan principal",
+ "plan_main_keeps_hint": "Planul principal există întotdeauna – nu poate fi șters. Îl poți redenumi, poți șterge etajele în editor și desena mai departe acolo.",
  "plan_delete_confirm": "Muți „{name}” în coșul de gunoi? Poate fi restaurat timp de {days} zile.",
  "plan_new_name": "Plan {n}",
  "plan_new_placeholder": "Nume, de ex. Căsuța din grădină",

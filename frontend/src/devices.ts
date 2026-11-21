@@ -891,6 +891,16 @@ export function openingState(
 }
 
 /**
+ * Whether an opening stands open, as the 3D view draws it: a sash or leaf turned, a garage door up. A garage door's
+ * `cover` says how far it is DOWN (1 = closed), so it stands open below 0.98 – read the other way round it counted
+ * every closed garage door as open (#1261). Without a sensor a garage door is closed. A tilted window is not "open".
+ */
+export function openingOpen(s: ReturnType<typeof openingState>, type: Opening["type"]): boolean {
+  if (type === "garage") return (s.cover ?? 1) < 0.98;
+  return s.open > 0.02 || s.open2 > 0.02;
+}
+
+/**
  * How far the slats of a cover stand open (0–100, 100 = level), as it reports them – or turned round for an
  * integration that reports 0 for open slats. Null for a cover without slats.
  */

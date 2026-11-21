@@ -2465,6 +2465,8 @@
  "plan_open": "打开",
  "plan_shown": "正在显示",
  "plan_delete": "移到回收站",
+ "plan_main_keeps": "主平面图",
+ "plan_main_keeps_hint": "主平面图始终存在，无法删除。你可以重命名它，在编辑器中删除它的楼层，然后继续在那里绘制。",
  "plan_delete_confirm": "将“{name}”移到回收站？可在 {days} 天内还原。",
  "plan_new_name": "平面图 {n}",
  "plan_new_placeholder": "名称，例如 花园小屋",

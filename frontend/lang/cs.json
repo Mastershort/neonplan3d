@@ -2465,6 +2465,8 @@
  "plan_open": "Otevřít",
  "plan_shown": "zobrazen",
  "plan_delete": "Přesunout do koše",
+ "plan_main_keeps": "Hlavní plán",
+ "plan_main_keeps_hint": "Hlavní plán tu je vždy – nelze jej smazat. Můžeš jej přejmenovat, v editoru smazat jeho podlaží a kreslit dál.",
  "plan_delete_confirm": "Přesunout „{name}“ do koše? Půjde obnovit ještě {days} dní.",
  "plan_new_name": "Půdorys {n}",
  "plan_new_placeholder": "Název, např. Zahradní domek",

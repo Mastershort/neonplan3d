@@ -550,3 +550,19 @@ test("a built-in worktop takes the wood finish, without one it stays as it was (
   }
   assert.deepEqual(draw("worktop", { wood: "#6b4a32" }), draw("worktop", null));
 });
+
+test("a socket is drawn as thin as the plan says, not 5 cm deep (#1236)", () => {
+  const socket = (d: number): Furniture => ({ id: "s", type: "wall_socket", x: 2, z: 0, rotation: 0, w: 0.085, d, h: 0.085, mount: 1.1, variant: null }) as Furniture;
+  const depthOf = (f: Furniture) => {
+    const buf = new GeoBuffer();
+    pushFurniture(buf, new LineBuffer(), new GeoBuffer(), f);
+    const zs: number[] = [];
+    for (let i = 2; i < buf.p.length; i += 3) zs.push(buf.p[i]);
+    return Math.max(...zs) - Math.min(...zs);
+  };
+  // the plate is 1.4 cm deep; with the recess and its holes a few millimetres stand in front of it
+  const thin = depthOf(socket(0.014));
+  assert.ok(thin < 0.03, `a 1.4 cm socket may not be ${thin.toFixed(3)} m deep`);
+  // a socket made deeper by hand still gets its depth
+  assert.ok(depthOf(socket(0.2)) > 0.19);
+});

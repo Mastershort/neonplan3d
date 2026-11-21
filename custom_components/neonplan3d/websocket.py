@@ -801,6 +801,9 @@ def ws_diagnostics_client(hass: HomeAssistant, connection: websocket_api.ActiveC
         # what the view shows, for the card templates' overview of the open screens
         vol.Optional("view"): {
             vol.Optional("kind", default="panel"): vol.In(KINDS),
+            # the plan this view shows; a view of the main plan leaves it out. Without it here, a view of a second
+            # plan was turned away with "invalid_format" and tried again on every update, flooding the log (#1242)
+            vol.Optional("plan"): vol.Any(None, _PLAN_ID),
             vol.Optional("screen"): vol.Any(None, vol.All(str, vol.Length(max=60))),
             vol.Optional("template"): vol.Any(None, vol.All(str, vol.Length(max=60))),
             vol.Optional("device"): vol.Any(None, vol.All(str, vol.Length(max=80))),

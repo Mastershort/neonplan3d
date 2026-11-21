@@ -333,6 +333,8 @@
  "plan_open": "Aç",
  "plan_shown": "gösteriliyor",
  "plan_delete": "Çöp kutusuna taşı",
+ "plan_main_keeps": "Ana plan",
+ "plan_main_keeps_hint": "Ana plan her zaman vardır – silinemez. Adını değiştirebilir, katlarını düzenleyicide silebilir ve orada çizmeye devam edebilirsin.",
  "plan_delete_confirm": "“{name}” çöp kutusuna taşınsın mı? {days} gün boyunca geri yüklenebilir.",
  "plan_new_name": "Kat planı {n}",
  "plan_new_placeholder": "Ad, örn. Bahçe evi",

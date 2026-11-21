@@ -147,7 +147,7 @@ export class Fp3dPlanManager extends LitElement {
                 ? html`<span class="fp3d-pm-open">${this.t("plan_shown")}</span>`
                 : html`<button class="fp3d-btn" @click=${() => this.fire("plan-pick", { plan: p.id })}>${this.t("plan_open")}</button>`}
               ${p.id === MAIN_PLAN
-                ? nothing
+                ? html`<span class="fp3d-pm-main" title=${this.t("plan_main_keeps_hint")}>${this.t("plan_main_keeps")}</span>`
                 : html`<button class="fp3d-btn fp3d-pm-del" title=${this.t("plan_delete")} ?disabled=${this._busy} @click=${() => this.trashPlan(p)}>🗑</button>`}
             </span>
             ${this._iconFor === p.id
@@ -316,6 +316,13 @@ export class Fp3dPlanManager extends LitElement {
         padding: 0 6px;
         color: var(--fp3d-accent);
         font-size: 12.5px;
+      }
+      .fp3d-pm-main {
+        align-self: center;
+        padding: 0 6px;
+        color: var(--secondary-text-color, #8aa);
+        font-size: 12.5px;
+        cursor: help;
       }
       .fp3d-pm-icons {
         display: flex;

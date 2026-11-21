@@ -2465,6 +2465,8 @@
  "plan_open": "Opna",
  "plan_shown": "blir vist",
  "plan_delete": "Flytt til papirkorga",
+ "plan_main_keeps": "Hovudplan",
+ "plan_main_keeps_hint": "Hovudplanen finst alltid – han kan ikkje slettast. Du kan gje han nytt namn, slette etasjane i editoren og teikne vidare der.",
  "plan_delete_confirm": "Flytte «{name}» til papirkorga? Ho kan gjenopprettast i {days} dagar.",
  "plan_new_name": "Planteikning {n}",
  "plan_new_placeholder": "Namn, t.d. Hagestove",
