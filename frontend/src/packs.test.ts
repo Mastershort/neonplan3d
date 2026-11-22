@@ -60,6 +60,9 @@ test("pack items stand on the floor, on furniture, on a wall or hang from the ce
 test("our packs show an English name outside German, others keep theirs (#224)", () => {
   assert.equal(packName({ id: "mastershort.office", name: "Büro & Gaming" }, "en"), "Office & Gaming");
   assert.equal(packName({ id: "mastershort.office", name: "Büro & Gaming" }, "de-DE"), "Büro & Gaming");
+  assert.equal(packName({ id: "mastershort.office", name: "Büro & Gaming" }, "zh-Hant"), "辦公與電競");
+  assert.equal(packName({ id: "mastershort.living_sample", name: "Wohnzimmer – Schnupper-Pack" }, "zh-TW"), "客廳（試用包）");
+  assert.equal(packName({ id: "mastershort.office", name: "Büro & Gaming" }, "zh-Hans"), "Office & Gaming");
   assert.equal(packName({ id: "mastershort.living_sample", name: "Wohnzimmer – Schnupper-Pack" }, "fr"), "Living Room – Sampler");
   assert.equal(packName({ id: "pro_weather", name: "Wetter draußen" }, "en"), "Pro: Weather Outside");
   // #825: the newer packs, Pro add-ons and modules have English names too

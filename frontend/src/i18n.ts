@@ -1,6 +1,7 @@
 // UI strings. German first, English as fallback.
 
 import type { EditorKey } from "./i18n-editor.ts";
+import { isTraditionalChinese } from "./locales.ts";
 import type { HomeAssistant } from "./types.ts";
 
 const de = {
@@ -2938,14 +2939,15 @@ declare const __FP3D_LANG_HASH__: string;
  * load texts they do not need) and are fetched once when Home Assistant runs in that language. Missing
  * keys fall back to English.
  */
-// "zh" is Simplified Chinese (zh-Hans; zh-Hant reads it too until it has its own), "pt" Portuguese for Portugal and Brazil
-export const EXTRA_LANGUAGES = ["fr", "es", "nl", "it", "hu", "da", "sv", "nb", "nn", "fi", "cs", "pl", "ro", "sl", "sk", "zh", "pt", "tr"] as const;
+// "zh" is Simplified Chinese (zh-Hans), "pt" Portuguese for Portugal and Brazil
+export const EXTRA_LANGUAGES = ["fr", "es", "nl", "it", "hu", "da", "sv", "nb", "nn", "fi", "cs", "pl", "ro", "sl", "sk", "zh", "zh-hant", "pt", "tr"] as const;
 const extra = new Map<string, Record<string, string>>();
 const pending = new Map<string, Promise<void>>();
 
 /** The language file a Home Assistant language needs (null: German or English, built in). */
 export function languageCode(lang: string | undefined): string | null {
   const raw = (lang ?? navigator.language).toLowerCase();
+  if (isTraditionalChinese(raw)) return "zh-hant";
   // plain "no" (Norwegian) reads as Bokmål
   const code = raw.startsWith("no") ? "nb" : raw.slice(0, 2);
   return (EXTRA_LANGUAGES as readonly string[]).includes(code) ? code : null;

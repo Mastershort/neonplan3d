@@ -5803,7 +5803,7 @@ export class Fp3dView3d extends LitElement {
         const fields = moduleSettings(id, host);
         if (!fields.length || fields[0].kind === "heading") return fields;
         const pack = packs.find((p) => p.id === id);
-        const name = pack ? packName(pack, hass.language ?? "en").replace(/^(Modul|Module):\s*/i, "") : id;
+        const name = pack ? packName(pack, hass.language ?? "en").replace(/^(?:(?:Modul|Module):|模組：)\s*/i, "") : id;
         return [{ kind: "heading", text: name }, ...fields];
       })
       .filter((f) => f.length);

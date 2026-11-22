@@ -22,7 +22,7 @@ const common = {
 const viewerConfig = { ...common, entryPoints: ["src/viewer/viewer3d.ts"], outfile: `${out}/neonplan3d-3d.js` };
 // the card's visual editor only loads in the dashboard's card dialog
 // the language files (lang/*.json) are fetched with a hash of their content, so a new text is never stale
-const LANGS = ["fr", "es", "nl", "it", "hu", "da", "sv", "nb", "nn", "fi", "cs", "pl", "ro", "sl", "sk", "zh", "pt", "tr"];
+const LANGS = ["fr", "es", "nl", "it", "hu", "da", "sv", "nb", "nn", "fi", "cs", "pl", "ro", "sl", "sk", "zh", "zh-hant", "pt", "tr"];
 const langHash = createHash("sha256")
   // line endings normalised: a file written with CRLF on Windows must give the same hash as the LF copy CI checks out
   .update(LANGS.map((l) => (existsSync(`lang/${l}.json`) ? readFileSync(`lang/${l}.json`, "utf8").replace(/\r\n/g, "\n") : "")).join("\n"))
@@ -178,7 +178,8 @@ function copyFonts() {
 // main 709.8 KB on 2026-11-15 (was 870.0): the 1130 texts only the editor needs moved to i18n-editor.ts in the editor bundle; card editor 179 KB
 // 3D 926 KB on 2026-11-18: walls facing their own way (#1189), the sky's horizon beyond the map's far edge (#1203)
 // editor 1160 KB on 2026-11-19: the card form asks what a card is for (tablet / phone) and holds the phone bar's options and own places
-const BUDGET = { "neonplan3d.js": 870 * 1024, "neonplan3d-fun.js": 40 * 1024, "neonplan3d-voice.js": 60 * 1024, "neonplan3d-locate.js": 160 * 1024, "neonplan3d-osm.js": 20 * 1024, "neonplan3d-timetravel.js": 120 * 1024, "neonplan3d-3d.js": 926 * 1024, "neonplan3d-editor.js": 1160 * 1024, "neonplan3d-card-editor.js": 340 * 1024 };
+// locate 170 KB: Traditional Chinese for its setup dialog, which is loaded only when opened.
+const BUDGET = { "neonplan3d.js": 870 * 1024, "neonplan3d-fun.js": 40 * 1024, "neonplan3d-voice.js": 60 * 1024, "neonplan3d-locate.js": 170 * 1024, "neonplan3d-osm.js": 20 * 1024, "neonplan3d-timetravel.js": 120 * 1024, "neonplan3d-3d.js": 926 * 1024, "neonplan3d-editor.js": 1160 * 1024, "neonplan3d-card-editor.js": 340 * 1024 };
 
 copyFonts();
 if (watch) {

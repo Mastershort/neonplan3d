@@ -3,11 +3,97 @@
     "step": {
       "user": {
         "title": "NeonPlan 3D",
-        "description": "在側邊欄新增一個頁面，用於繪製你的家並以 3D 檢視。"
+        "description": "在側邊欄新增 NeonPlan 3D 頁面，讓你繪製住家平面圖並以 3D 檢視。"
       }
     },
     "abort": {
-      "single_instance_allowed": "NeonPlan 3D 已經設定好了。"
+      "single_instance_allowed": "NeonPlan 3D 已完成設定。"
+    }
+  },
+  "services": {
+    "ask": {
+      "name": "詢問住家狀態",
+      "description": "將語句傳送給開啟中的 NeonPlan 3D 檢視。例如「Show the living room」會開啟客廳畫面。已安裝的模組可回答「有哪些門窗開著？」之類的問題。第一個能辨識語句的檢視會回覆。",
+      "fields": {
+        "text": {
+          "name": "語句",
+          "description": "用口語描述想查看的地方，或輸入想問的問題。"
+        },
+        "screen": {
+          "name": "螢幕",
+          "description": "只傳送給具有此螢幕名稱的檢視。可在檢視設定或卡片的 screen 選項設定名稱。留空時會傳送至所有開啟中的檢視。"
+        },
+        "speak": {
+          "name": "朗讀",
+          "description": "使用 Assist 的文字轉語音朗讀回答。關閉時只會在畫面上顯示回答。"
+        }
+      }
+    },
+    "announce": {
+      "name": "廣播通知",
+      "description": "透過平面圖各房間的喇叭播放通知，需要廣播通知模組。依序使用為該房間指定的喇叭、放在房間裡的喇叭、分區的喇叭，或模組設定的預設喇叭。",
+      "fields": {
+        "message": {
+          "name": "訊息",
+          "description": "喇叭要播報的內容。"
+        },
+        "rooms": {
+          "name": "房間",
+          "description": "填寫平面圖上的房間名稱或 Home Assistant 分區名稱。留空時會在所有房間播報，若有指定樓層則只播報該樓層。"
+        },
+        "floor": {
+          "name": "樓層",
+          "description": "填寫平面圖上的樓層名稱，即可只在該樓層的房間播報。"
+        },
+        "plan": {
+          "name": "平面圖",
+          "description": "填寫指定平面圖的名稱。留空時會搜尋所有平面圖。若也未指定房間，會向同一基地內的平面圖廣播。"
+        },
+        "ignore_quiet": {
+          "name": "忽略安靜時段",
+          "description": "允許在目前處於安靜時段的房間播報。若只指定一個房間名稱，該房間一律會播報。"
+        },
+        "on_screens": {
+          "name": "在 NeonPlan 螢幕播報",
+          "description": "每個開啟中的 NeonPlan 螢幕（含壁掛平板）都會顯示並朗讀訊息。若未指定房間或樓層，只有螢幕會播報。"
+        },
+        "screens": {
+          "name": "螢幕",
+          "description": "只在指定名稱的 NeonPlan 螢幕播報。可在檢視設定或卡片的 screen 選項設定螢幕名稱。"
+        }
+      }
+    },
+    "reload_screens": {
+      "name": "重新載入螢幕",
+      "description": "重新載入使用指定卡片範本的 NeonPlan 檢視，例如更新後讓壁掛平板載入新版。未指定範本時，會重新載入所有開啟中的檢視。",
+      "fields": {
+        "templates": {
+          "name": "卡片範本",
+          "description": "填寫卡片範本 ID，可在編輯器的「設定 → 卡片範本」查看。留空時適用於所有開啟中的檢視。"
+        },
+        "plan": {
+          "name": "平面圖",
+          "description": "填寫平面圖 ID，即可只重新載入該平面圖的檢視。第一張平面圖的 ID 為 main。"
+        }
+      }
+    },
+    "set_style": {
+      "name": "設定風格",
+      "description": "將開啟中的 NeonPlan 螢幕切換為霓虹、溫馨、溫馨傍晚等風格。若未指定螢幕，會套用至所有開啟中的檢視。使用 reset 可還原各螢幕原本的設定。",
+      "fields": {
+        "style": {
+          "name": "風格",
+          "description": "填寫風格 ID（neon、blueprint、day、focus、synth、cozy、evening、winter、model、pastel、warm）或風格名稱。填入 reset 可還原原本的設定。"
+        },
+        "screens": {
+          "name": "螢幕",
+          "description": "只套用至指定名稱的 NeonPlan 螢幕。可在檢視設定或卡片的 screen 選項設定名稱。留空時適用於所有開啟中的檢視。"
+        },
+        "minutes": {
+          "name": "分鐘",
+          "description": "經過指定時間後還原原本的設定。留空時會保留此風格，直到下次變更。"
+        }
+      }
     }
   }
 }

@@ -4,6 +4,7 @@
 // switched: the pipeline ends after speech to text.
 
 import { LitElement, css, html, nothing } from "lit";
+import { isTraditionalChinese } from "../locales.ts";
 import type { Building } from "../model.ts";
 import type { HomeAssistant } from "../types.ts";
 import { findPlace } from "./commands.ts";
@@ -67,6 +68,33 @@ const TEXT = {
   },
 };
 
+const ZH_HANT: typeof TEXT.en = {
+  title: "麥克風測試",
+  intro: "檢查這台裝置能否使用 NeonPlan 語音控制。測試期間不會控制任何裝置。",
+  secure_ok: "安全連線（HTTPS）",
+  secure_no: "瀏覽器不允許透過 HTTP 使用麥克風。請透過 HTTPS 開啟 Home Assistant，例如使用 Nabu Casa、自備憑證或反向代理伺服器。",
+  api_ok: "瀏覽器支援使用麥克風",
+  api_no: "此瀏覽器無法存取麥克風。請確認 WebView 版本和頁面的安全連線。",
+  start: "允許使用麥克風",
+  mic_ok: "已允許使用麥克風",
+  mic_denied: "麥克風權限遭拒。若使用 Fully Kiosk，請在「設定 → Web Content Settings」開啟麥克風存取（需要 Plus 授權），並在 Android 中允許 Fully Kiosk 使用麥克風。",
+  mic_none: "找不到麥克風。",
+  mic_other: "無法使用麥克風",
+  level: "請說幾句話，確認音量指示條會動。",
+  pipe_ok: "Assist 流程",
+  pipe_no: "找不到已設定語音轉文字的 Assist 流程。請到「設定 → 語音助理」，選擇 Home Assistant Cloud、Whisper 或 Speech-to-Phrase 等語音轉文字引擎。",
+  talk: "開始說話（例如說出房間名稱）",
+  listening: "正在聆聽…",
+  heard: "辨識結果",
+  nothing: "沒有辨識到語音",
+  took: "耗時",
+  would: "NeonPlan 將顯示",
+  would_none: "語句中找不到房間或樓層名稱。",
+  house: "整個家",
+  close: "關閉",
+  silent: "麥克風沒有收到聲音，可能正被其他 App 使用。若使用 Fully Kiosk，請關閉「Motion Detection → Acoustic Detection」，再重新載入頁面。",
+};
+
 export class MicProbe extends LitElement {
   static properties = {
     hass: { attribute: false },
@@ -100,7 +128,9 @@ export class MicProbe extends LitElement {
   }
 
   private get t() {
-    return (this.hass?.language ?? navigator.language).toLowerCase().startsWith("de") ? TEXT.de : TEXT.en;
+    const language = this.hass?.language ?? navigator.language;
+    if (isTraditionalChinese(language)) return ZH_HANT;
+    return language.toLowerCase().startsWith("de") ? TEXT.de : TEXT.en;
   }
 
   connectedCallback(): void {

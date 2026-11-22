@@ -30,6 +30,7 @@ import { fitText, type HintKey } from "../fit-hints.ts";
 import { FINISH_ROLES, FINISH_SWATCHES, finishHex, finishRolesOf, type FinishRole } from "../finishes.ts";
 import { hasLiveParts, type PackSlot } from "../live-parts.ts";
 import { loadLocate } from "../load-locate.ts";
+import { isTraditionalChinese } from "../locales.ts";
 import { isBeta, supporterUrl } from "../beta.ts";
 import { openPrint } from "../print.ts";
 import { applianceOf, BIN_SHAPES, BIN_SIZE, binColors, binShape, householdCountry, isPackPlant, MAILBOX_SHAPES, MAILBOX_SIZE, mailboxShape, WASTE_KINDS, wasteColors } from "../household.ts";
@@ -6788,6 +6789,7 @@ export class Fp3dEditor extends LitElement {
       this.updateRoom({ wall_colors: list.some(Boolean) ? list : null });
       if (hex) this.showWallColours();
     };
+    const zhHant = isTraditionalChinese(this.hass?.language ?? navigator.language);
     return html`<div class="fp3d-edge-box">
       <h4>${this.t("wall_settings")}</h4>
       <div class="fp3d-wall-all">
@@ -6796,7 +6798,10 @@ export class Fp3dEditor extends LitElement {
         ${this.isAdmin && room.wall_color ? html`<button class="fp3d-btn" title=${this.t("color_reset")} @click=${() => setAllColours(null)}>↺</button>` : nothing}
       </div>
       <div class="fp3d-swatches">
-        ${WALL_SWATCHES.map(([name, hex]) => html`<button class="fp3d-swatch" title=${name} style="background:${hex}" ?disabled=${!this.isAdmin} @click=${() => setAllColours(hex)}></button>`)}
+        ${WALL_SWATCHES.map(([name, hex, id]) => {
+          const label = zhHant ? (SWATCH_NAMES_ZH_HANT[id] ?? name) : name;
+          return html`<button class="fp3d-swatch" title=${label} aria-label=${label} style="background:${hex}" ?disabled=${!this.isAdmin} @click=${() => setAllColours(hex)}></button>`;
+        })}
       </div>
       <p class="fp3d-sub">${this.t("wall_colors_hint")}</p>
       ${room.points.flatMap((a, i) => {
@@ -11992,6 +11997,7 @@ export class Fp3dEditor extends LitElement {
     if (!roles.length) return nothing;
     const admin = this.isAdmin;
     const lang = this.hass?.language;
+    const zhHant = isTraditionalChinese(lang ?? navigator.language);
     const set = (role: FinishRole, hex: string | null) => {
       const next = { ...(f.finish ?? {}), [role]: hex };
       for (const k of FINISH_ROLES) if (!next[k]) delete next[k];
@@ -12010,9 +12016,10 @@ export class Fp3dEditor extends LitElement {
         return html`<div class="fp3d-finish-row">
           <span class="fp3d-finish-label">${fitText(lang, `finish_${role}` as HintKey)}</span>
           <button class="fp3d-swatch fp3d-swatch-own ${cur ? "" : "on"}" title=${fitText(lang, "finish_own")} aria-label=${fitText(lang, "finish_own")} ?disabled=${!admin} @click=${() => set(role, null)}></button>
-          ${FINISH_SWATCHES[role].map(
-            (sw) => html`<button class="fp3d-swatch ${cur?.toLowerCase() === sw.hex ? "on" : ""}" style="background:${sw.hex}" title=${sw.hex} aria-label=${sw.id} ?disabled=${!admin} @click=${() => set(role, sw.hex)}></button>`,
-          )}
+          ${FINISH_SWATCHES[role].map((sw) => {
+            const name = zhHant ? SWATCH_NAMES_ZH_HANT[sw.id] : undefined;
+            return html`<button class="fp3d-swatch ${cur?.toLowerCase() === sw.hex ? "on" : ""}" style="background:${sw.hex}" title=${name ? `${name} (${sw.hex})` : sw.hex} aria-label=${name ?? sw.id} ?disabled=${!admin} @click=${() => set(role, sw.hex)}></button>`;
+          })}
           <input class="fp3d-swatch-pick" type="color" .value=${cur ?? FINISH_SWATCHES[role][0].hex} ?disabled=${!admin} title="#" @change=${(e: Event) => set(role, (e.target as HTMLInputElement).value)} />
         </div>`;
       })}
@@ -18422,16 +18429,39 @@ function binaryish(id: string): boolean {
   return /^(binary_sensor|input_boolean)\./.test(id);
 }
 
-/** Ready wall colours (names in German and English are plain enough for both). */
-const WALL_SWATCHES: [string, string][] = [
-  ["Weiß / White", "#f0ede8"],
-  ["Sand", "#e3d6bf"],
-  ["Salbei / Sage", "#a9b9a0"],
-  ["Taupe", "#a99c8e"],
-  ["Petrol", "#3f6b72"],
-  ["Terrakotta / Terracotta", "#c27b5a"],
-  ["Rauchblau / Smoke blue", "#8fa3b8"],
-  ["Anthrazit / Anthracite", "#4a4e55"],
+const SWATCH_NAMES_ZH_HANT: Partial<Record<string, string>> = {
+  oak_light: "淺橡木色",
+  oak: "橡木色",
+  walnut: "胡桃木色",
+  white: "白色",
+  grey: "灰色",
+  black: "黑色",
+  anthracite: "炭灰色",
+  beige: "米色",
+  blue: "藍色",
+  green: "綠色",
+  rust: "鐵鏽色",
+  mustard: "芥末黃",
+  rose: "玫瑰粉",
+  cream: "奶油色",
+  sage: "鼠尾草綠",
+  sand: "沙色",
+  taupe: "灰褐色",
+  petrol: "深藍綠",
+  terracotta: "陶土色",
+  smoke_blue: "煙灰藍",
+};
+
+/** Ready wall colours with labels for use outside Traditional Chinese. */
+const WALL_SWATCHES: [string, string, string][] = [
+  ["Weiß / White", "#f0ede8", "white"],
+  ["Sand", "#e3d6bf", "sand"],
+  ["Salbei / Sage", "#a9b9a0", "sage"],
+  ["Taupe", "#a99c8e", "taupe"],
+  ["Petrol", "#3f6b72", "petrol"],
+  ["Terrakotta / Terracotta", "#c27b5a", "terracotta"],
+  ["Rauchblau / Smoke blue", "#8fa3b8", "smoke_blue"],
+  ["Anthrazit / Anthracite", "#4a4e55", "anthracite"],
 ];
 
 /** The classic looks as a palette, the start of an own style made from one of them. */
