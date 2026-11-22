@@ -3,6 +3,7 @@
 // registry, filled with setPacks() from the packs the backend returns.
 
 import type { PackSlot, PartBind } from "./live-parts.ts";
+import { isTraditionalChinese } from "./locales.ts";
 import { builtinBase, techBase, ELECTRIC_FURNITURE, FURNITURE_SIZE, LIFT_SPOTS, outdoorGround, pointInPolygon, spotDepth, surfaceHeight, WALL_LAMP_Y, type Floor, type Furniture } from "./model.ts";
 import type { LampModel } from "./viewer/viewer3d.ts";
 
@@ -292,7 +293,7 @@ export function packItemName(item: PackItem, language: string): string {
 
 
 // English names of our own packs: a pack file carries one (German) name, the furniture inside both (#224)
-const PACK_NAMES_EN: Record<string, string> = {
+const PACK_NAMES_EN = {
   architecture: "Architecture & Fit-out",
   balcony: "Balcony & Small Spaces",
   bath: "Bathroom",
@@ -335,13 +336,58 @@ const PACK_NAMES_EN: Record<string, string> = {
   window_watch: "Module: Window watch",
 };
 
-/** A pack's name in the user's language: our own packs in English outside German, others as they come. */
+const PACK_NAMES_ZH_HANT: Record<keyof typeof PACK_NAMES_EN, string> = {
+  architecture: "建築與室內裝修",
+  balcony: "陽台與小空間",
+  bath: "浴室",
+  cabinet_kit: "收納櫃與層架組",
+  deco: "裝飾與植栽",
+  dining_hall: "餐廳與玄關",
+  fun_halloween: "趣味包：萬聖節",
+  fun_winter: "趣味包：冬季與聖誕",
+  fun_pets: "趣味包：寵物",
+  bedroom: "臥室",
+  cinema: "家庭劇院與音響",
+  exclusive: "獨家：智慧冰箱",
+  fitness: "健身",
+  garage: "車庫與工作間",
+  garden: "花園與露台",
+  kids: "兒童房",
+  kitchen: "廚房",
+  living: "客廳",
+  office: "辦公與電競",
+  pets: "寵物",
+  smarthome: "智慧家庭與科技",
+  stairs: "樓梯與欄杆",
+  utility: "家務與機電設備",
+  vehicles: "車輛",
+  starter: "入門家具包",
+  pro_auto: "汽車 Pro",
+  pro_timetravel: "時光回溯",
+  pro_pool: "泳池 Pro",
+  pro_camera: "攝影機駕駛艙",
+  pro_energy: "能源 Pro",
+  pro_screens: "即時螢幕",
+  pro_sound: "音響與劇院",
+  pro_weather: "戶外天氣",
+  pro_heat: "暖氣 Pro",
+  pro_household: "家務 Pro",
+  frames: "數位相框",
+  homelab: "家用伺服器與工作間",
+  announce: "模組：廣播通知",
+  voice_answers: "模組：住家回覆",
+  window_watch: "模組：開窗提醒",
+};
+
+/** Display localized names for the known packs. Unknown packs supply their own name. */
 export function packName(pack: { id: string; name: string }, language: string): string {
   if (language.split("-")[0] === "de") return pack.name;
   const key = pack.id.replace(/^mastershort\./, "");
   const sample = key.endsWith("_sample");
-  const en = PACK_NAMES_EN[sample ? key.slice(0, -"_sample".length) : key];
-  if (en) return sample ? `${en} – Sampler` : en;
+  const zhHant = isTraditionalChinese(language);
+  const labels: Partial<Record<string, string>> = zhHant ? PACK_NAMES_ZH_HANT : PACK_NAMES_EN;
+  const label = labels[sample ? key.slice(0, -"_sample".length) : key];
+  if (label) return sample ? `${label}${zhHant ? "（試用包）" : " – Sampler"}` : label;
   // one of ours newer than this table: at least its kind in English (#825)
   return pack.name.replace(/^Modul:/, "Module:").replace(/^Fun-Pack:/, "Fun Pack:");
 }
