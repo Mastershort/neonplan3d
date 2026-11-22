@@ -9,7 +9,7 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 A fix round after 4.0: the phone's list no longer calls a closed garage door open, a second plan stops flooding the log, and thin things on the wall are as thin as the plan says.
 
 ### Fixed
-- **A closed garage door counted as open** in the phone's list "What is going on?" – its reading says how far the door is *down*, and it was read the other way round, so every closed garage door stood in the list and an open one did not (#1261, reported by Atomiiik, beta-j and Skeletitor).
+- **A closed garage door counted as open** in the phone's list "What is going on?" – its reading says how far the door is *down*, and it was read the other way round, so every closed garage door stood in the list and an open one did not (#1261, #1276, reported by Atomiiik, beta-j, Skeletitor and murilokasper).
 - **A view of a second plan flooded the Home Assistant log**: the view tells which plan it shows, the subscription did not know that field and turned it away ("invalid_format" at `view.plan`) – thousands of lines a day, and no announcements or voice answers on that screen (#1242, reported by Habi01H).
 - **Socket, light switch and sensors on the wall stood 5 cm out of it** in 3D while the plan and the selection showed them thin: models are no longer widened to 5 cm, so a socket is its 1.4 cm and a sensor can be made thinner by hand (#1236, reported by daene85).
 - **The content of a standing digital frame sat on its back**, beside the strut, instead of on the front (#1264, reported by blitzwurst) – in the pack "Digitale Bilderrahmen".
