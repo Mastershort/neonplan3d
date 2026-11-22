@@ -3,6 +3,7 @@
 
 import { css, html, LitElement, nothing } from "lit";
 import type { Building } from "../model.ts";
+import { isTraditionalChinese } from "../locales.ts";
 import { deviceAreaId } from "../devices.ts";
 import type { HomeAssistant } from "../types.ts";
 import { doorPairs, locateRooms, roomAt, type LocateRoom } from "./graph.ts";
@@ -1748,6 +1749,96 @@ const ZH: typeof DE = {
   fly_hint: "打开的 NeonPlan 视图会飞进答案所在的房间；问“谁在家？”时依次飞过所有房间。轻点即可停止。若人员仅对管理员显示，则不会飞向人员。",
 };
 
+const ZH_HANT: typeof DE = {
+  title: "設定定位",
+  lab: "實驗功能",
+  close: "關閉",
+  s_scanners: "1 · 掃描器",
+  s_devices: "2 · 裝置",
+  s_walk: "3 · 學習",
+  s_live: "4 · 即時定位",
+  no_bt: "Home Assistant 尚未設定藍牙。可使用 Shelly（第 2 或 3 代，啟用被動藍牙掃描）、ESPHome 藍牙代理或 USB 藍牙配接器。",
+  scanners_intro: "這裡列出 Home Assistant 找到的藍牙掃描器。請指定每個掃描器所在的房間。",
+  not_placed: "– 選擇房間 –",
+  hint_room: "訊號顯示位於 {room}，點選即可採用",
+  coverage: "以下房間沒有自己的掃描器，仍可透過學習辨識：",
+  devices_intro: "要定位哪些裝置？建議選擇隨身攜帶的裝置，例如戴在手腕上的手錶。",
+  known_keys: "有金鑰的 iPhone 和 Apple Watch（來自 Home Assistant 的 Private BLE Device 整合）：",
+  add: "新增",
+  added: "✓ 已新增",
+  remove: "移除",
+  person: "人員",
+  none: "無",
+  irk_help: "找不到 iPhone 或 Apple Watch？請先在 Home Assistant 的 Private BLE Device 整合中新增裝置的金鑰（IRK）。操作方式請見手冊。",
+  manual: "操作手冊",
+  voice_hint: "也可以用語音詢問，例如「我的 iPhone 在哪裡？」、「Torsten 在哪裡？」、「誰在家？」或「讓我的 iPhone 響鈴」。",
+  look_hint: "3D 檢視預設會以人物模型顯示所在位置。可在「⚙ → 人員」切換為人物、圖釘或關閉。",
+  ring: "響鈴",
+  ring_hint: "選擇這支手機上的 Home Assistant App，即可使用「讓我的 iPhone 響鈴」。",
+  near_title: "尋找附近的裝置",
+  key_title: "貼上金鑰",
+  key_name: "名稱（例如 Torsten 的 iPhone）",
+  key_value: "金鑰（IRK，32 個字元）",
+  key_bad: "金鑰格式無效。請輸入 32 個十六進位字元或 Base64 格式的金鑰。",
+  helper_title: "🔑 金鑰工具",
+  helper_build: "設定金鑰工具",
+  helper_found: "已找到金鑰工具：{name}",
+  helper_watch: "用於 Apple Watch",
+  helper_phone: "用於 iPhone",
+  helper_watch_steps: "在 Apple Watch 上開啟「設定 → 藍牙」，從健康裝置清單選擇「NeonPlan Key」並配對。",
+  helper_phone_steps: "在 iPhone 上開啟「設定 → 藍牙」，選擇「NeonPlan Key」進行配對。它會顯示為鍵盤。",
+  helper_key: "讀取到的金鑰：",
+  helper_wait: "等待配對中…",
+  helper_after: "完成後，請從藍牙設定中移除「NeonPlan Key」。",
+  helper_next: "🔄 下一台裝置",
+  helper_next_hint: "每次配對新裝置前先點選此按鈕，讓工具換用新的藍牙識別資訊，以免之前配對的裝置搶先連線。",
+  helper_name: "此裝置的名稱",
+  helper_irk: "剛配對裝置的金鑰（IRK）：",
+  helper_belongs: "屬於：{name}",
+  helper_add_as: "新增為「{name}」",
+  helper_added: "✓「{name}」已加入上方清單。",
+  pbd_rename: "你可在 Home Assistant 的「裝置與服務 → Private BLE Device」重新命名裝置，這裡就會顯示新名稱。",
+  carry: "我目前隨身攜帶：",
+  offline: "目前無法連線",
+  pbd_summary: "從 Bermuda 移轉？可匯入 Home Assistant 中已有的金鑰",
+  worn: "隨身配戴",
+  worn_hint: "手錶或手環通常戴在身上，較能反映人員的位置。手機可能會留在其他地方。",
+  look_title: "在 3D 檢視顯示人員",
+  look_figure: "人物",
+  look_pin: "圖釘",
+  look_off: "關閉",
+  near_summary: "新增 Android 手機或鑰匙圈",
+  android_label: "Android 手機（Home Assistant App）",
+  paste_summary: "貼上已有的金鑰",
+  helper_install: "安裝至 ESP32",
+  helper_pitch: "要為 iPhone 或 Apple Watch 讀取金鑰？約 5 歐元的 ESP32 就能當金鑰工具。直接在瀏覽器安裝約需 3 分鐘，無需 Mac。安裝後請在這裡配對。",
+  near_intro: "將裝置靠近掃描器。Android 手機請在 Home Assistant App 開啟 BLE Transmitter。鑰匙圈請按一下按鈕。",
+  near_empty: "附近尚未偵測到夠強的訊號…",
+  walk_intro: "帶著所有裝置進入每間房間，點選房間名稱並慢慢走動 90 秒，包含各個角落。",
+  learning: "正在學習 {room}，還剩 {left} 秒",
+  stop: "取消",
+  samples: "{n} 筆樣本",
+  quality: "檢查準確率",
+  quality_result: "準確率：{p}",
+  relearn_all: "重新學習所有房間",
+  live_intro: "這是 NeonPlan 目前偵測到的位置。試著走動，確認定位是否準確。",
+  enabled: "已開啟定位",
+  admins_only: "只向管理員顯示人員位置",
+  not_heard: "未偵測到",
+  next: "下一步",
+  need_device: "請先新增一台裝置。",
+  app_title: "使用 Home Assistant App 的 Android 裝置",
+  app_none: "在 Android 的 Home Assistant App 前往「設定 → Companion app → 管理感測器」，開啟 BLE Transmitter。啟用後，裝置會自動出現在這裡。",
+  app_off: "發射器已關閉。請到 App 開啟。",
+  app_power: "發射功率過低。請到 App 設為「High」。",
+  app_mode: "請到 App 將廣播模式設為「Low latency」。",
+  helper_android: "請使用下方的 Home Assistant App BLE Transmitter 新增 Android 手機或平板。這類裝置在背景不會傳送配對金鑰。",
+  unheard: "⚠ 未偵測到",
+  unheard_hint: "目前沒有掃描器收到此裝置的訊號。請確認裝置已開機並持續傳送訊號。Android 裝置請確認 Home Assistant App 的 BLE Transmitter 已開啟。",
+  fly: "詢問「…在哪裡？」或「誰在家？」時飛入房間",
+  fly_hint: "開啟中的 NeonPlan 檢視會飛到答案所指的房間。問「誰在家？」時會依序飛入各房間，點一下即可停止。如果只向管理員顯示人員位置，就不會飛到人員所在的房間。",
+};
+
 /** An IRK as 32 hex characters: pasted as hex (with or without separators) or as Base64 (as the Mac keychain shows it). */
 export function irkHex(raw: string): string | null {
   const text = raw.trim().replace(/^irk:/i, "");
@@ -1856,7 +1947,8 @@ export class LocateSetup extends LitElement {
   private unsub: (() => void) | null = null;
 
   private get t(): typeof DE {
-    return TEXTS[(this.hass?.language ?? "en").split("-")[0].toLowerCase()] ?? EN;
+    const language = this.hass?.language ?? "en";
+    return isTraditionalChinese(language) ? ZH_HANT : (TEXTS[language.split("-")[0].toLowerCase()] ?? EN);
   }
 
   /** The voice sentences exist in German and English only. */

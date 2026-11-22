@@ -9,6 +9,7 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 NeonPlan on the phone: a view made for the thumb, with a bar at the bottom, a list of what needs a look, and a card editor of its own for phones.
 
 ### New (free)
+- **Traditional Chinese:** the app follows the Home Assistant user’s Traditional Chinese language setting.
 - **Phone view:** the house without header and loose buttons, and a bar at the bottom – **Now** (what needs a look, with a green, yellow or red dot), the **rooms** by floor as tiles with temperature, lights, open windows and music, the **blinds** of the house, and **More** (search, house check, whole house, room on its own). A phone is asked once whether to try it; on any device it is switched on under ⚙ → Phone view. The choice is kept per device, tablets and PCs stay as they are.
 - **"What is going on?":** warnings, open windows and doors, unlocked doors, who is at home, the household, lights on, cars and energy – the urgent first, "All is well" when nothing needs a look. A tap on a line shows the place in the house; "All off" and "Lock" stand beside their lines.
 - **House check:** before leaving or going to bed NeonPlan steps through every open window, unlocked door and lit room, each shown in the house.
