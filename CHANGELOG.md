@@ -4,6 +4,11 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 [releases page](https://github.com/Mastershort/neonplan3d/releases). Ideas and votes:
 [Discussions → Ideas](https://github.com/Mastershort/neonplan3d/discussions/categories/ideas).
 
+## 4.0.2
+
+### Fixed
+- **A camera's view cone over a small step in the ground** – a terrace a few centimetres above the lawn, a path beside a bed – showed a jagged pale strip along that edge: the cone ran slanting through the step. It is now cut along the edge and lies flat on each side (#1115, reported by RobertSorgenfrei).
+
 ## 4.0.1
 
 A fix round after 4.0: the phone's list no longer calls a closed garage door open, a second plan stops flooding the log, and thin things on the wall are as thin as the plan says.
