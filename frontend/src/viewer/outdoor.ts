@@ -399,7 +399,9 @@ export function pushOutdoor(buf: GeoBuffer, lines: LineBuffer, floor: Floor, wat
         const holes = outdoorHoles(areas, index);
         // a hedge, fence or pergola on falling ground: its block reaches down to the lowest ground under it (the lawn's
         // slope, a bed below), two centimetres into it – standing on its own level alone, its underside showed (#1262)
-        const foot = outdoorStanding(a.type)
+        // one lifted by hand (a height offset above the ground: a screen on posts, a hedge in a raised trough) keeps
+        // its underside where it was put instead of growing into a solid block down to the ground (#1303)
+        const foot = outdoorStanding(a.type) && !((a.offset ?? 0) > 0)
           ? Math.min(lowest, ...poly.map(([x, z]) => outdoorGround(floor, x, z) - 0.02))
           : lowest;
         pushPrism(buf, poly, foot, a.slope ? topAt : g + look.top, look.side, look.color, { aoFrom: lowest, holes });

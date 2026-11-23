@@ -65,7 +65,7 @@ import { type CarLinks, type Background, OUTDOOR_TOP, sidelightLayout, DEFAULT_W
   zonesOf,
 } from "../model.ts";
 import { furnishRoom, PACKAGES, type PackageId } from "../packages.ts";
-import { edgeReach, generateWalls, locateOpening, openingHost, pointOnRoomEdge, type Wall, type WallSource } from "../geometry/walls.ts";
+import { edgeReach, freeOpeningTurned, generateWalls, locateOpening, openingHost, pointOnRoomEdge, type Wall, type WallSource } from "../geometry/walls.ts";
 import { formatNumber, languageReady, loadLanguage, translate, type I18nKey } from "../i18n.ts";
 import { iconPath } from "../icons.ts";
 import { moduleAreaFields, moduleFurnitureFields, moduleHelp, moduleRoomFields, modulePipeRules, moduleSettings, moduleWaits, syncModules, type ModuleField, type ModuleHost, type PipeRules } from "../modules.ts";
@@ -10789,8 +10789,9 @@ export class Fp3dEditor extends LitElement {
       const p1 = pointOnRoomEdge(room, edge, o.offset + o.width / 2);
       const ux = (p1[0] - p0[0]) / (o.width || 1);
       const uz = (p1[1] - p0[1]) / (o.width || 1);
-      // normal into the room (room outlines may run either way round)
-      const sgn = signedArea(room.points) >= 0 ? 1 : -1;
+      // normal into the room (room outlines may run either way round); in a free wall along the house's outside the
+      // room side is the side with the rooms, as in 3D (#1225)
+      const sgn = (signedArea(room.points) >= 0 ? 1 : -1) * (freeOpeningTurned(o, floor.rooms, floor.walls ?? [], this._doc.settings.wall_interior) ? -1 : 1);
       const n: Vec2 = [-uz * sgn, ux * sgn];
       // gap across the whole wall thickness
       let across: [number, number] = [0.06, 0.06];

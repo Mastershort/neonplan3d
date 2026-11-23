@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { Room, Vec2 } from "../model.ts";
 import { polygonArea, signedArea } from "../model.ts";
-import { edgeReach, freeWallRoomLeft, generateWalls, locateOnWalls, locateOpening, openingHost, placeWallPlate } from "./walls.ts";
+import { edgeReach, freeOpeningTurned, freeWallRoomLeft, generateWalls, locateOnWalls, locateOpening, openingHost, placeWallPlate } from "./walls.ts";
 
 const EXT = 0.24;
 const INT = 0.12;
@@ -326,6 +326,23 @@ test("a free wall drawn as an outer wall knows its room side, whichever way it w
   // standing in the room, or out in the open: no outer side
   assert.equal(freeWallRoomLeft(wall([2, 0.5], [2, 2.5]), rooms), null);
   assert.equal(freeWallRoomLeft(wall([10, 0], [12, 0]), rooms), null);
+});
+
+test("a door in a free wall along the house's outside has its room side where the rooms are, as in 3D (#1225)", () => {
+  const rooms = [rect("hall", 0, 0, 4, 3)];
+  const free = [
+    { id: "w_left", a: [0, 0] as Vec2, b: [4, 0] as Vec2 },
+    { id: "w_right", a: [4, 0] as Vec2, b: [0, 0] as Vec2 },
+    { id: "w_inside", a: [2, 0.5] as Vec2, b: [2, 2.5] as Vec2 },
+  ];
+  // drawn so that the rooms lie on its left: the plan's side as drawn is the room side already
+  assert.equal(freeOpeningTurned({ wall: "w_left" }, rooms, free, 0.115), false);
+  // drawn the other way: the room side is the other one than drawn
+  assert.equal(freeOpeningTurned({ wall: "w_right" }, rooms, free, 0.115), true);
+  // rooms on both sides, a room's own edge, an unknown wall: as drawn
+  assert.equal(freeOpeningTurned({ wall: "w_inside" }, rooms, free, 0.115), false);
+  assert.equal(freeOpeningTurned({ wall: null }, rooms, free, 0.115), false);
+  assert.equal(freeOpeningTurned({ wall: "gone" }, rooms, free, 0.115), false);
 });
 
 test("a door on an inner wall piece left by an extra corner on a straight line reaches into the next piece", () => {

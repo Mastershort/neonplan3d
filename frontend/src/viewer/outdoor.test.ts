@@ -95,4 +95,11 @@ test("a hedge on falling ground reaches down to the lawn under it, so no undersi
   assert.ok(Math.min(...ys) <= ground, `hedge foot ${Math.min(...ys)} should reach ${ground}`);
   // and the hedge still stands its full height over its own ground (nothing was pulled down with the foot)
   assert.ok(Math.max(...ys) - Math.min(...ys) > 1.2);
+
+  // lifted by hand it keeps its own height and floats where it was put, instead of filling down to the lawn (#1303)
+  const lifted = new GeoBuffer();
+  pushOutdoor(lifted, new LineBuffer(), { ...floor, outdoor: [lawn, { ...hedge, offset: 1 }] });
+  const up: number[] = [];
+  for (let i = 0; i < lifted.p.length; i += 3) if (lifted.p[i] >= 0.9 && lifted.p[i] <= 9.1 && lifted.p[i + 2] >= 3.9 && lifted.p[i + 2] <= 4.6) up.push(lifted.p[i + 1]);
+  assert.ok(Math.max(...up) - Math.min(...up) < 1.35, `a lifted hedge is ${Math.max(...up) - Math.min(...up)} m high`);
 });

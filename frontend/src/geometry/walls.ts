@@ -544,6 +544,18 @@ export function freeWallRoomLeft(wall: Pick<Wall, "a" | "b" | "left" | "right">,
 }
 
 /**
+ * An opening in a free wall drawn as an outer wall: whether its room side is the other one than the wall's left as
+ * drawn. 3D takes the side with the rooms as "inside" (#542); the plan and the camera spot must agree with it, or a
+ * door in a wall drawn from left to right along the house's front swings and hangs the other way round (#1225).
+ */
+export function freeOpeningTurned(o: Pick<Opening, "wall">, rooms: readonly Room[], free: readonly FreeWall[], interior: number): boolean {
+  const w = o.wall ? free.find((x) => x.id === o.wall) : undefined;
+  if (!w || Math.hypot(w.b[0] - w.a[0], w.b[1] - w.a[1]) < 0.05) return false;
+  const half = (w.thickness ?? interior) / 2;
+  return freeWallRoomLeft({ a: w.a, b: w.b, left: half, right: half }, rooms) === false;
+}
+
+/**
  * The line an opening sits on, as a room and an edge: the edge of its room, or for an opening in a
  * free wall a virtual triangle room whose edge 0 is the free wall (the room side is its left).
  */

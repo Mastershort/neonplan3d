@@ -128,7 +128,7 @@ import { searchIndex, searchItems, type SearchItem } from "../search.ts";
 import type { Shown } from "../voice/targets.ts";
 import { anyModule, moduleAlerts, moduleCards, moduleMenuSheets, modulePools, moduleRoomSheets, moduleScene, moduleSettings, modulesWithSettings, moduleVoice, moduleWatched, modulePopups, syncModules, type ModuleCard, type ModuleField, type ModuleHost, type ModuleSheet, type PlanCamera, type PopupSection, type ScenePiece, type SpokenAlert, type SpokenCar, type SpokenDevice, type SpokenOpening, type VoiceAnswer } from "../modules.ts";
 import { lineFlows, majorOnly, markerEmoji, markerPath, sparkPoints } from "../module-scene.ts";
-import { generateWalls, openingHost, placeWallPlate, pointOnRoomEdge, type Wall } from "../geometry/walls.ts";
+import { freeOpeningTurned, generateWalls, openingHost, placeWallPlate, pointOnRoomEdge, type Wall } from "../geometry/walls.ts";
 import { signedArea } from "../model.ts";
 import { OSM_COPYRIGHT } from "../surroundings.ts";
 import { coverPositionable, lightAbilities } from "./quick-menu.ts";
@@ -5156,7 +5156,7 @@ export class Fp3dView3d extends LitElement {
       const len = Math.hypot(q[0] - p[0], q[1] - p[1]) || 1;
       const d = [(q[0] - p[0]) / len, (q[1] - p[1]) / len];
       // the room lies to the left of the edge when its outline runs counter-clockwise, else to the right
-      const left = signedArea(pts) > 0;
+      const left = signedArea(pts) > 0 !== freeOpeningTurned(o, floor.rooms, floor.walls ?? [], b.settings.wall_interior);
       const n = left ? [-d[1], d[0]] : [d[1], -d[0]];
       // the offset is the opening's centre; a lock sits on its leaf (on a double door the main leaf), seen from the
       // room "right" is (n.z, -n.x) like in the 3D build, so the hinge side follows the outline's direction
