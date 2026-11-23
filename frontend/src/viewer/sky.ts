@@ -190,7 +190,9 @@ export class SkyLayer {
     const day = dayLight(el);
     const glow = sunsetGlow(el);
     const fr = this.frame(h, input.mode === "overlay");
-    const horizonY = fr.horizonY;
+    // on a whole pixel: the sky above and the haze below are two fills that meet here, and between two pixels each
+    // covered its part of the row only – the background showed through as a thin line across the picture (#1305)
+    const horizonY = Math.round(fr.horizonY);
     if (input.mode === "full") {
       const { zenith, horizon } = skyColors(el, input.cloud);
       const g = ctx.createLinearGradient(0, 0, 0, Math.max(1, horizonY));
