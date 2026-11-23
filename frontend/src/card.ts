@@ -14,7 +14,7 @@ import "./components/view3d.ts";
 import { languageReady, loadLanguage, translate, type I18nKey } from "./i18n.ts";
 import { controls, tokens } from "./styles.ts";
 import type { HomeAssistant } from "./types.ts";
-import { cardTemplate, effectiveConfig, type CardConfig, type CardControl } from "./card-config.ts";
+import { cardStartView, cardTemplate, effectiveConfig, screenUpright, type CardConfig, type CardControl } from "./card-config.ts";
 import { nightActive } from "./kiosk.ts";
 import { loadCardEditor } from "./load-card-editor.ts";
 import type { WallMode } from "./viewer/viewer3d.ts";
@@ -54,6 +54,7 @@ export class Floorplan3dCard extends LitElement {
   static properties = {
     hass: { attribute: false },
     _config: { state: true },
+    _upright: { state: true },
     _roomId: { state: true },
     _walking: { state: true },
     _phoneMode: { state: true },
@@ -135,6 +136,7 @@ export class Floorplan3dCard extends LitElement {
     this._fullscreen = false;
     this._pseudoFull = false;
     this._vh = window.innerHeight;
+    this._upright = screenUpright(globalThis.screen);
     this._top = null;
     this._cameraWall = false;
     this._clean = false;
@@ -221,7 +223,17 @@ export class Floorplan3dCard extends LitElement {
    * Full screen and "fill the screen" follow the screen that is really visible: 100vh misses on some Android
    * tablets (the HA app in landscape), and the dashboard header may be hidden (kiosk mode) – a black bar stayed (#344).
    */
+  /** The screen is held upright: a card with `start_view_portrait` then starts from that view (#1228). */
+  private declare _upright: boolean;
+
+  /** The start view the card gives the 3D view: its own (the upright one while the screen is held upright), else none. */
+  private startView(c: CardConfig | null | undefined) {
+    return cardStartView(c, this._upright);
+  }
+
   private readonly onViewport = () => {
+    const upright = screenUpright(globalThis.screen);
+    if (upright !== this._upright) this._upright = upright;
     const vh = Math.round(window.visualViewport?.height ?? window.innerHeight);
     if (Math.abs(vh - this._vh) > 1) this._vh = vh;
     if (this._config?.fill && !this._fullscreen) {
@@ -239,6 +251,7 @@ export class Floorplan3dCard extends LitElement {
     document.addEventListener("fullscreenchange", this.onFullscreen);
     window.addEventListener("resize", this.onViewport);
     window.visualViewport?.addEventListener("resize", this.onViewport);
+    globalThis.screen?.orientation?.addEventListener?.("change", this.onViewport);
     requestAnimationFrame(this.onViewport);
     // the dashboard may still be laying out: measure once more a moment later
     setTimeout(this.onViewport, 600);
@@ -259,6 +272,7 @@ export class Floorplan3dCard extends LitElement {
     document.removeEventListener("fullscreenchange", this.onFullscreen);
     window.removeEventListener("resize", this.onViewport);
     window.visualViewport?.removeEventListener("resize", this.onViewport);
+    globalThis.screen?.orientation?.removeEventListener?.("change", this.onViewport);
     this.cellObserver?.disconnect();
     this.cellObserver = null;
     this.tt.stop();
@@ -588,7 +602,7 @@ clearTimeout(this.cleanTimer);
               .weatherEntityId=${c?.weather_entity ?? null}
               .dimmed=${this._night}
               .autoOrbit=${this._orbit}
-              .startView=${c?.start_view ?? null}
+              .startView=${this.startView(c)}
               style=${tt ? `--fp3d-bottom-inset: ${bar ? "calc(52px + var(--fp3d-tt-h))" : "var(--fp3d-tt-h)"}` : bar ? "--fp3d-bottom-inset: 52px" : ""}
               @room-tap=${(e: CustomEvent<{ floorId: string; roomId: string | null }>) => {
                 // in the house view (or on another floor) a tap first opens the whole floor; the floor as it is now,

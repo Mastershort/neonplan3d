@@ -92,6 +92,23 @@ export function cleaningPath(room: Vec2[], lane = 0.32, inset = 0.22, obstacles:
   return out;
 }
 
+/**
+ * Whether the straight way from a to b crosses the room's outline: in a U- or L-shaped room the nearest lane may lie
+ * across the notch, behind a wall. Only real crossings count, so a robot standing at a wall (its dock) may drive off.
+ */
+export function crossesOutline(room: readonly Vec2[], a: Vec2, b: Vec2): boolean {
+  const side = (p: Vec2, q: Vec2, r: Vec2) => (q[0] - p[0]) * (r[1] - p[1]) - (q[1] - p[1]) * (r[0] - p[0]);
+  const eps = 1e-9;
+  return room.some((p, i) => {
+    const q = room[(i + 1) % room.length];
+    const d1 = side(p, q, a);
+    const d2 = side(p, q, b);
+    const d3 = side(a, b, p);
+    const d4 = side(a, b, q);
+    return ((d1 > eps && d2 < -eps) || (d1 < -eps && d2 > eps)) && ((d3 > eps && d4 < -eps) || (d3 < -eps && d4 > eps));
+  });
+}
+
 /** A small circle in front of the dock, for robots outside any room. */
 export function circlePath(center: Vec2, radius = 0.7, n = 12): Vec2[] {
   return Array.from({ length: n }, (_, i) => {

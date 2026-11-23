@@ -1417,13 +1417,47 @@ export function robotRoom<R extends { name: string; area_id?: string | null }>(h
   return null;
 }
 
-/** The room a robot's name for it means ("Küche", "kitchen", the area's id). */
-export function roomNamed<R extends { name: string; area_id?: string | null }>(hass: HomeAssistant, rooms: readonly R[], raw: unknown): R | null {
+/**
+ * The room a robot's name for it means ("Küche", "kitchen", the area's id): the room named exactly so, else one whose
+ * name holds it or is held by it. `match` asks for one of the two only.
+ */
+export function roomNamed<R extends { name: string; area_id?: string | null }>(hass: HomeAssistant, rooms: readonly R[], raw: unknown, match?: "exact" | "loose"): R | null {
   if (typeof raw !== "string" || !raw || raw === "unknown" || raw === "unavailable") return null;
   const want = roomKey(raw);
   if (!want) return null;
   const names = (r: R) => [r.name, r.area_id ?? "", (r.area_id && hass.areas?.[r.area_id]?.name) || ""].map(roomKey).filter(Boolean);
-  return rooms.find((r) => names(r).includes(want)) ?? rooms.find((r) => names(r).some((n) => n.length >= 3 && (n.includes(want) || want.includes(n)))) ?? null;
+  return (
+    (match !== "loose" ? rooms.find((r) => names(r).includes(want)) : undefined) ??
+    (match !== "exact" ? rooms.find((r) => names(r).some((n) => n.length >= 3 && (n.includes(want) || want.includes(n)))) : undefined) ??
+    null
+  );
+}
+
+/**
+ * The room a robot with maps of several floors reports, on whichever floor it lies (idea: akobza, #1132): one dock,
+ * and the robot is carried to another floor. The dock's floor comes first, then the others in the order given – a
+ * room named exactly so anywhere before a room merely named alike, so "Bad" upstairs does not catch "Bad unten".
+ * Floors in `skip` are left out: they have a dock of their own for this vacuum, which shows the robot there.
+ */
+export function robotRoomAcross<F extends { id: string; rooms: readonly { name: string; area_id?: string | null }[] }>(
+  hass: HomeAssistant,
+  floors: readonly F[],
+  dockFloor: string,
+  vacuum: string | null,
+  sensor: string | null,
+  skip: ReadonlySet<string> = new Set(),
+): { floor: F; room: F["rooms"][number] } | null {
+  const attrs = vacuum ? hass.states[vacuum]?.attributes : undefined;
+  const order = [...floors.filter((f) => f.id === dockFloor), ...floors.filter((f) => f.id !== dockFloor && !skip.has(f.id))];
+  for (const raw of [sensor ? hass.states[sensor]?.state : undefined, attrs?.current_room, attrs?.room, attrs?.current_segment]) {
+    for (const match of ["exact", "loose"] as const) {
+      for (const floor of order) {
+        const room = roomNamed<F["rooms"][number]>(hass, floor.rooms, raw, match);
+        if (room) return { floor, room };
+      }
+    }
+  }
+  return null;
 }
 
 /** Covers that are doors rather than blinds: a central "close all" leaves them alone. */

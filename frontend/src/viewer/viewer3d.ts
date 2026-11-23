@@ -52,7 +52,7 @@ export type { Theme } from "./theme.ts";
 import { ALWAYS, DEG, GeoBuffer, LineBuffer, pushPrism, triangulate } from "./geo.ts";
 import { buildLightSurface, lightColors, roomIndexAt, shadowed, spillLength, windowCast, type LightKind, type LightSource, type LightSurface, zoneOf } from "./lighting.ts";
 import { buildOpeningParts, CLOSED, lightCover, type OpeningState } from "./openings.ts";
-import { circlePath, cleaningPath, stepRobot, type RobotInfo, type RobotMotion } from "./robot.ts";
+import { circlePath, cleaningPath, crossesOutline, stepRobot, type RobotInfo, type RobotMotion } from "./robot.ts";
 import { decorDelay, lowEndDevice, petDelay, SLOW_KEY, SLOW_SAMPLES, SLOW_WARMUP_MS, slowFrames } from "./pace.ts";
 import { SkyLayer } from "./sky.ts";
 
@@ -5615,8 +5615,9 @@ export class FloorplanViewer {
         });
         r.motion.path = path2;
         r.motion.next = best;
-        // a robot reported in another room appears there instead of driving through the walls
-        if (info.room && !pointInPolygon(r.motion.pos, info.room)) r.motion.pos = [path2[best][0], path2[best][1]];
+        // a robot reported in another room appears there instead of driving through the walls – and so does one whose
+        // straight way to the first lane would cross a wall of its own room (a U- or L-shaped room; idea: bscholer, #1210)
+        if (info.room && (!pointInPolygon(r.motion.pos, info.room) || crossesOutline(info.room, r.motion.pos, path2[best]))) r.motion.pos = [path2[best][0], path2[best][1]];
       }
       r.led.color.setHex(ROBOT_LED[info.mode]);
     }

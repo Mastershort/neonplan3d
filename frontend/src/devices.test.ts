@@ -13,7 +13,7 @@ test("a lamp switched by a relay takes colour and brightness from its colour ent
   // the bulb unavailable: the relay's own (plain) glow
   assert.deepEqual(lightGlow(relay as never, { ...bulb, state: "unavailable" } as never)!.color, [1, 0.71, 0.28]);
 });
-import { chargerStatus, slatTilt, slatsInverted, coverTiltButtons, isPulseDrive, isRelevant, apOnline, fanSpeed, climateModeGlow, cooktopLevel, onlyColor, fixedGlowColor, colorCapable, appColor, carLocked, areaEntities, otherAreaEntities, roomClimateSensors, roomClimateValue, unassignedEntities, autoPlace, entityName, fridgeDoors, furnitureEntities, groupByDevice, isActive, kindOf, lightGlow, openingEntities, openingOpen, openingState, powerSensorsOf, primaryEntities, roomPanelEntities, windowPosition, confirmEntities, robotRoom, robotRoomSensor, roomKey, vacuumCleaning } from "./devices.ts";
+import { chargerStatus, slatTilt, slatsInverted, coverTiltButtons, isPulseDrive, isRelevant, apOnline, fanSpeed, climateModeGlow, cooktopLevel, onlyColor, fixedGlowColor, colorCapable, appColor, carLocked, areaEntities, otherAreaEntities, roomClimateSensors, roomClimateValue, unassignedEntities, autoPlace, entityName, fridgeDoors, furnitureEntities, groupByDevice, isActive, kindOf, lightGlow, openingEntities, openingOpen, openingState, powerSensorsOf, primaryEntities, roomPanelEntities, windowPosition, confirmEntities, robotRoom, robotRoomAcross, robotRoomSensor, roomKey, vacuumCleaning } from "./devices.ts";
 import type { Floor, Opening, Room } from "./model.ts";
 import { centroid, newFloor, pointInPolygon } from "./model.ts";
 import type { HomeAssistant } from "./types.ts";
@@ -1048,4 +1048,21 @@ test("a charger's status: whole words, so not_charging or charger_free is no cha
   assert.deepEqual(c("Available"), { charging: false, plugged: false });
   assert.deepEqual(c("SuspendedEV"), { charging: false, plugged: true });
   assert.deepEqual(c("charge complete"), { charging: false, plugged: true });
+});
+
+test("a robot with maps of several floors cleans on the floor of the room it reports (#1132)", () => {
+  const up = { id: "up", rooms: [{ id: "u1", name: "Bad", area_id: null }, { id: "u2", name: "Schlafzimmer", area_id: null }] };
+  const down = { id: "down", rooms: [{ id: "d1", name: "Büro", area_id: null }, { id: "d2", name: "Bad unten", area_id: null }] };
+  const at = (room: string) => ({ states: { "sensor.r": { state: room, attributes: {} }, "vacuum.r": { state: "cleaning", attributes: {} } }, areas: {} }) as unknown as HomeAssistant;
+  const find = (room: string, skip?: Set<string>) => robotRoomAcross(at(room), [up, down], "up", "vacuum.r", "sensor.r", skip);
+  // a room of the other floor
+  assert.deepEqual([find("Büro")?.floor.id, find("Büro")?.room.id], ["down", "d1"]);
+  // the dock's floor first
+  assert.deepEqual([find("Schlafzimmer")?.floor.id, find("Schlafzimmer")?.room.id], ["up", "u2"]);
+  // the room named exactly so on the other floor wins over one merely named alike on the dock's floor
+  assert.deepEqual([find("Bad unten")?.floor.id, find("Bad unten")?.room.id], ["down", "d2"]);
+  assert.deepEqual([find("Bad")?.floor.id, find("Bad")?.room.id], ["up", "u1"]);
+  // a floor with a dock of its own for this vacuum is left to that dock; no such room: none
+  assert.equal(find("Büro", new Set(["down"])), null);
+  assert.equal(find("Garage"), null);
 });

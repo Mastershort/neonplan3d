@@ -21,7 +21,7 @@ import { carState, type CarState, heatSensorOn, roomClimateValue,
   type OpeningEntities, awningStates, confirmEntities, fridgeDoors, hasScreen, pictureRuleMatches,
   fromCelsius,
   tempUnit,
-  robotRoom,
+  robotRoomAcross,
   robotRoomSensor,
   vacuumCleaning,
   roomNamed,
@@ -3830,12 +3830,17 @@ export class Fp3dView3d extends LitElement {
         const pack = isPackType(f.type);
         const off = f.d * (pack ? packRobotCentre(packItem(f.type)) : 0.14);
         const rest: [number, number] = [f.x - Math.sin(a) * off, f.z + Math.cos(a) * off];
-        // the room the robot reports (a "current room" sensor), else the room of its dock
-        const rooms = floor.rooms.filter((r) => r.points.length >= 3);
-        const reported = mode === "cleaning" ? robotRoom(hass, rooms, entity, robotRoomSensor(hass, entity, f.room_sensor)) : null;
-        const room = reported ?? rooms.find((r) => pointInPolygon(rest, r.points));
-        const obstacles = mode === "cleaning" && room ? this.robotObstacles(floor, room.points) : [];
-        out.push({ id: f.id, floorId: floor.id, rest, restHeading: -a, mode, room: room?.points ?? null, roomId: room?.id ?? null, obstacles, ...(pack ? { model: { type: f.type, w: f.w, d: f.d, h: f.h } } : {}) });
+        // the room the robot reports (a "current room" sensor), else the room of its dock. A robot with maps of several
+        // floors reports rooms of a floor it was carried to: it cleans there, unless that floor has a dock of its own
+        // for the same vacuum (#1132)
+        const drawn = (fl: Building["floors"][number]) => ({ id: fl.id, rooms: fl.rooms.filter((r) => r.points.length >= 3) });
+        const rooms = drawn(floor).rooms;
+        const docked = new Set(b.floors.filter((fl) => fl !== floor && fl.furniture.some((m) => isRobotVacuum(m.type) && (this.furnitureLinks.get(m.id)?.entity ?? null) === entity)).map((fl) => fl.id));
+        const reported = mode === "cleaning" && entity ? robotRoomAcross(hass, b.floors.map(drawn), floor.id, entity, robotRoomSensor(hass, entity, f.room_sensor), docked) : null;
+        const on = (reported && b.floors.find((fl) => fl.id === reported.floor.id)) || floor;
+        const room = reported?.room ?? rooms.find((r) => pointInPolygon(rest, r.points));
+        const obstacles = mode === "cleaning" && room ? this.robotObstacles(on, room.points) : [];
+        out.push({ id: f.id, floorId: on.id, rest, restHeading: -a, mode, room: room?.points ?? null, roomId: room?.id ?? null, obstacles, ...(pack ? { model: { type: f.type, w: f.w, d: f.d, h: f.h } } : {}) });
       }
     }
     return out;

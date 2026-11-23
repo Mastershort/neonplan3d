@@ -1577,6 +1577,7 @@ roof: true              # false: Haus ganz ohne Dach zeigen
 roof_fade: true         # false: Dach bleibt beim Heranzoomen auf dem Haus
 plain: false            # true: nur Grundriss – Wände, Türen, Fenster und Treppen ohne Möbel
 start_view: { theta: 0.8, phi: 1.0, radius: 20 }   # eigene Startansicht dieser Karte; die Zeile steht im Editor unter Startansicht (weglassen = die des Plans)
+start_view_portrait: { theta: 2.4, phi: 1.0, radius: 24 }   # seit 4.0.2: zweite Startansicht für den hochkant gehaltenen Bildschirm; beim Drehen des Tablets geht die Hausansicht auf die passende (weglassen = start_view)
 idle_return: 0          # Sekunden ohne Berührung bis zur Startansicht
 night: "off"            # off | sun | "22:00-06:00"
 idle_orbit: false
