@@ -4581,6 +4581,25 @@ export class FloorplanViewer {
             }
             continue;
           }
+          if (face.part === "all" && packItem(f.type)?.mount === "wall" && h >= d * 3) {
+            // a flat pack item on the wall (a towel radiator, a mirror): its top is a narrow strip, so it glows on the
+            // wall behind it, all over, with a soft halo round it – like a radiator on the wall (#1311)
+            const col = new Color(...face.color.map((v) => Math.min(1, v * (0.3 + 0.5 * face.level))) as [number, number, number]);
+            const dark = new Color(0, 0, 0);
+            const hw = Math.abs(w) / 2;
+            const zb = -d / 2 + 0.004;
+            const g = 0.1 + 0.08 * face.level;
+            const inner = [P(-hw, base, zb), P(hw, base, zb), P(hw, base + h, zb), P(-hw, base + h, zb)];
+            const outer = [P(-hw - g, base - g, zb), P(hw + g, base - g, zb), P(hw + g, base + h + g, zb), P(-hw - g, base + h + g, zb)];
+            buf.tri(inner[0], inner[1], inner[2], col);
+            buf.tri(inner[0], inner[2], inner[3], col);
+            for (let i = 0; i < 4; i++) {
+              const j = (i + 1) % 4;
+              buf.tri(inner[i], outer[i], outer[j], col, dark, dark);
+              buf.tri(inner[i], outer[j], inner[j], col, dark, col);
+            }
+            continue;
+          }
           const x0 = face.part === "right" ? 0.03 : -Math.abs(w) / 2 + 0.03;
           const x1 = face.part === "left" ? -0.03 : Math.abs(w) / 2 - 0.03;
           const y = base + (face.part === "bottom" ? h * 0.45 : h) + 0.006;

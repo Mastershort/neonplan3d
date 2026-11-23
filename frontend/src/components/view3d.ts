@@ -3256,6 +3256,11 @@ export class Fp3dView3d extends LitElement {
           const picture = live && kindOf(st.entity_id) === "media" ? ((st.attributes.entity_picture as string | undefined) ?? null) : null;
           if (color) screens.set(f.id, { color, level: st.state === "playing" ? 1 : 0.6, picture, ring: ringed && hasFeature("sound") && st.state === "playing" });
         }
+        // a pack's towel radiator on a switch or thermostat alone (no "state from"): it glows warm on the wall behind
+        // it while that is on – it has no screen or lamp to light (#1311)
+        if (st && !faces.length && packed?.family === "towel_radiator" && isActive(st)) {
+          screens.set(f.id, { color: [1, 0.55, 0.25], level: 0.85, faces: [{ part: "all", color: [1, 0.55, 0.25], level: 0.85 }] });
+        }
         if (placed.has(id)) continue;
         taken.add(id);
         const kind = link.entity ? kindOf(link.entity) : null;
