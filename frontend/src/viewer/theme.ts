@@ -243,8 +243,13 @@ vec3 fp3dThemedAs(vec3 c, bool line, bool accent, int look) {
       // a lit lamp shines: no shading, no evening dimming – brighter than the walls it lights (#1071)
       if (vFp3dLit > 0.5) return c;
       #endif
-      // neon leftovers the natural palette does not reach (dark navy lamp bodies, small devices) turn neutral grey
+      // neon leftovers the natural palette does not reach (dark navy lamp bodies, small devices) turn neutral grey –
+      // not on the walls: they have no leftovers, and a wall painted dark blue turned grey, or grey where it is shaded (#1306)
+      #ifdef FP3D_WALL
+      vec3 cc = c;
+      #else
       vec3 cc = (mx < 0.2 && c.b > c.r * 2.0 && c.b > c.g * 1.5) ? vec3(0.32 + dot(c, vec3(0.3, 0.59, 0.11)) * 1.4) : c;
+      #endif
       cc *= fp3dStyleLight(n) * fp3dStyleFloor(cc, n);
       // evening: the house dims warm, lit lamps and screens keep their glow
       if (uStDim > 0.0 && !signal) cc *= mix(vec3(1.0), vec3(0.62, 0.52, 0.42), uStDim) * (1.0 - 0.75 * uStDim);
