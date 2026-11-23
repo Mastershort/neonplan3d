@@ -9,6 +9,7 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 ### Fixed
 - **A camera's view cone over a small step in the ground** – a terrace a few centimetres above the lawn, a path beside a bed – showed a jagged pale strip along that edge: the cone ran slanting through the step. It is now cut along the edge and lies flat on each side (#1115, reported by RobertSorgenfrei).
 - **A low roof beside a higher storey ran on through the house** – a garage's roof next to the upper floor, say: as soon as its width lay within the length of the roof above, it was taken for a wing of that roof, drawn on to its ridge line and lost its overhang. A roof whose ridge stays below the other roof's eave now ends at the wall under it (#1280, reported by TRusselo).
+- **A terraced house and the surroundings from the map:** the map often keeps the whole row as one building, which NeonPlan hides as your own house – so the row was missing, and shown by hand (⚙ Settings → Surroundings → Show and hide houses) it stood as a block through the house. Shown by hand, it now leaves out what the plan builds there: the neighbours' houses stand to the left and right of yours. Nothing changes unless you tap it.
 
 ## 4.0.1
 

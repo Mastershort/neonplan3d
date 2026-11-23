@@ -130,6 +130,24 @@ test("of the turns that fit, the one closest to the north set so far wins", () =
   assert.equal(placeUnderPlan(base([{ p: tilted, h: 7 }]), 0, house([[0, 0, 12, 8]], 0)).north, 350);
 });
 
+test("a terrace: the own map building shown by hand stands beside the house, not through it", () => {
+  // the map keeps the row of five houses (30 × 8 m) as one building; the plan is the middle one (6 × 8 m)
+  const b = house([[12, 0, 18, 8]]);
+  const s: Surroundings = { ...base([{ p: [[-15, -4], [15, -4], [15, 4], [-15, 4]], h: 7 }]), x: 15, z: 4, own: 0 };
+  assert.equal(placedSurroundings({ ...b, settings: { ...b.settings, surroundings: s } })!.buildings.length, 0, "hidden unless shown");
+  const shown = placedSurroundings({ ...b, settings: { ...b.settings, surroundings: { ...s, show: [0] } } })!.buildings;
+  assert.equal(shown.length, 2, "the neighbours on the left and on the right");
+  const ext = b.settings.wall_exterior ?? 0;
+  const xs = shown.map((q) => [Math.min(...q.p.map((v) => v[0])), Math.max(...q.p.map((v) => v[0]))]).sort((p, q) => p[0] - q[0]);
+  assert.ok(Math.abs(xs[0][0] - 0) < 1e-6 && Math.abs(xs[0][1] - (12 - ext)) < 1e-6);
+  assert.ok(Math.abs(xs[1][0] - (18 + ext)) < 1e-6 && Math.abs(xs[1][1] - 30) < 1e-6);
+  assert.ok(shown.every((q) => q.h === 7));
+  // a detached house whose outline on the map is a little bigger than the plan leaves no slivers standing
+  const lone = house([[0, 0, 12, 8]]);
+  const big: Surroundings = { ...base([{ p: [[-6.6, -4.5], [6.6, -4.5], [6.6, 4.5], [-6.6, 4.5]], h: 7 }]), x: 6, z: 4, own: 0, show: [0] };
+  assert.equal(placedSurroundings({ ...lone, settings: { ...lone.settings, surroundings: big } })!.buildings.length, 0);
+});
+
 test("the own building and buildings standing in the plan's rooms are not drawn", () => {
   const b = house([[0, 0, 12, 8]]);
   const s: Surroundings = {

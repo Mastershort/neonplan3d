@@ -7,7 +7,7 @@
 // clockwise from "up") and puts the origin at a plan point, so the sun and the map always agree.
 
 import type { Building, Floor, SurroundArea, Surroundings, SurroundWay, Vec2 } from "./model.ts";
-import { centroid, pointInPolygon } from "./model.ts";
+import { centroid, pointInPolygon, polygonArea } from "./model.ts";
 import { sectionPolygon } from "./roof-sections.ts";
 
 /** The radii offered (metres). */
@@ -209,6 +209,44 @@ export function ownUnderPlan(s: Surroundings, b: Building): number | null | unde
   return best;
 }
 
+/** The part of a polygon on one side of a line square to the grid (`axis` 0 = x, 1 = z; `below`: the lower side). */
+function keepSide(poly: readonly Vec2[], axis: 0 | 1, limit: number, below: boolean): Vec2[] {
+  const out: Vec2[] = [];
+  const inside = (q: Vec2) => (below ? q[axis] <= limit : q[axis] >= limit);
+  poly.forEach((a, i) => {
+    const c = poly[(i + 1) % poly.length];
+    if (inside(a)) out.push(a);
+    if (inside(a) !== inside(c)) {
+      const t = (limit - a[axis]) / (c[axis] - a[axis]);
+      out.push([a[0] + (c[0] - a[0]) * t, a[1] + (c[1] - a[1]) * t]);
+    }
+  });
+  return out;
+}
+
+/**
+ * The own map building shown by hand, without the plan's house: in a terrace the map keeps the whole row as one
+ * building, so the neighbours' part of it stands beside the house instead of a block through it. Cut along the box
+ * around what the plan builds on that building (out to the outer wall faces); slivers left by an outline that does
+ * not quite match are dropped.
+ */
+export function ownRest(poly: readonly Vec2[], b: Building): Vec2[][] {
+  const on = ownStructures(b).filter((r) => pointInPolygon(centroid(r), poly as Vec2[]));
+  if (!on.length) return [poly as Vec2[]];
+  const pts = on.flat();
+  const m = b.settings.wall_exterior ?? 0;
+  const [x0, x1] = [Math.min(...pts.map((q) => q[0])) - m, Math.max(...pts.map((q) => q[0])) + m];
+  const [z0, z1] = [Math.min(...pts.map((q) => q[1])) - m, Math.max(...pts.map((q) => q[1])) + m];
+  const strip = keepSide(keepSide(poly, 0, x0, false), 0, x1, true);
+  const parts = [keepSide(poly, 0, x0, true), keepSide(poly, 0, x1, false), keepSide(strip, 1, z0, true), keepSide(strip, 1, z1, false)];
+  return parts.filter((q) => {
+    if (q.length < 3) return false;
+    const long = Math.max(Math.max(...q.map((v) => v[0])) - Math.min(...q.map((v) => v[0])), Math.max(...q.map((v) => v[1])) - Math.min(...q.map((v) => v[1])));
+    const area = polygonArea(q);
+    return area >= 6 && area / long >= 1.5;
+  });
+}
+
 /** The neighbourhood in plan coordinates, ready to draw (nothing when it is switched off or empty). */
 export interface PlacedSurroundings {
   buildings: { p: Vec2[]; h: number }[];
@@ -230,7 +268,7 @@ export function placedSurroundings(b: Building | null | undefined): PlacedSurrou
   const at = (p: Vec2) => mapToPlan(s, north, p);
   const hidden = hiddenBuildings(s, b);
   return {
-    buildings: s.buildings.filter((_, i) => !hidden.has(i)).map((bd) => ({ p: bd.p.map(at), h: bd.h })),
+    buildings: s.buildings.flatMap((bd, i) => (hidden.has(i) ? [] : (i === s.own ? ownRest(bd.p.map(at), b) : [bd.p.map(at)]).map((p) => ({ p, h: bd.h })))),
     ways: s.ways.map((w) => ({ p: w.p.map(at), w: w.w, k: w.k })),
     areas: s.areas.map((a) => ({ p: a.p.map(at), k: a.k })),
     trees: s.trees.map(at),
