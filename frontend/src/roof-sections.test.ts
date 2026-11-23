@@ -538,6 +538,16 @@ test("a cross gable at an angle on a bigger roof is cut by that roof like a wing
   assert.equal(turnedDormer([tp, td], td), false);
 });
 
+test("a low roof beside a higher storey is no wing of the roof above it: it ends at the wall under that roof (#1280)", () => {
+  // the upper storey's roof begins at 5.2 m; the garage's roof beside it has its ridge at about 3.2 m
+  const upper = section({ id: "upper", x0: 1.2, z0: 0, x1: 12.7, z1: 7.4, axis: "z", eave_a: 5.2, eave_b: 5.2, pitch_a: 25, pitch_b: 25, base: 5.2 });
+  const garage = section({ id: "garage", x0: -0.2, z0: 1.2, x1: 1.2, z1: 7.4, axis: "x", eave_a: 1.66, eave_b: 1.66, pitch_a: 26.57, pitch_b: 26.57, base: 1.66 });
+  assert.equal(wingJunction([upper, garage], garage), null);
+  // as high as the roof's eave and above, it is a wing again
+  const high = { ...garage, eave_a: 4.5, eave_b: 4.5, base: 4.5 };
+  assert.ok(wingJunction([upper, high], high));
+});
+
 test("a turned wing is not joined at right angles: the other roof's planes cut it instead", () => {
   const main = section({ x1: 14, z1: 10 });
   const wing = section({ id: "w", x0: 4, z0: 8, x1: 10, z1: 16, axis: "z", eave_a: 3, eave_b: 3, rotation: 20 });

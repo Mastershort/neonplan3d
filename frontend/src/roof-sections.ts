@@ -1165,7 +1165,8 @@ export function crossAsWing(sections: readonly RoofSection[], d: RoofSection): b
 /**
  * A wing whose ridge runs at right angles into the slope of another section (an L- or T-shaped house, #605): that
  * section and the wing's end (0 = u0, 1 = u1) that meets it. The wing is not higher than that roof, its width lies
- * within that roof's length, and its end reaches the roof without passing its ridge. Null otherwise – a section on
+ * within that roof's length, its end reaches the roof without passing its ridge, and its ridge is higher than that roof's eave
+ * there. Null otherwise – a section on
  * its own, a dormer, a cross gable sitting on its parent's slope.
  */
 export function wingJunction(sections: readonly RoofSection[], s: RoofSection): { host: RoofSection; end: 0 | 1 } | null {
@@ -1191,6 +1192,14 @@ export function wingJunction(sections: readonly RoofSection[], s: RoofSection): 
     if (fr.u0 < hu0 - 0.05 && fr.u1 >= hu0 - 0.05 && fr.u1 <= ridgeU + 0.05) end = 1;
     else if (fr.u1 > hu1 + 0.05 && fr.u0 <= hu1 + 0.05 && fr.u0 >= ridgeU - 0.05) end = 0;
     if (end === null) continue;
+    // the wing must come up to the host's roof there: with its ridge below the host's eave on that side it ends at
+    // the wall under that roof (a garage's roof beside a higher storey) and would run on through the house (#1280)
+    const hfr = sectionFrame(h);
+    const hp = sectionProfile(h);
+    const along = (v: number) => hfr.at(hfr.u0, v)[s.axis === "x" ? 0 : 1];
+    const edge = end === 1 ? hu0 : hu1;
+    const eave = Math.abs(along(0) - edge) <= Math.abs(along(hfr.w) - edge) ? hp.y(0) : hp.y(hfr.w);
+    if (rh <= eave + 0.02) continue;
     if (!best || area(h) > area(best.host)) best = { host: h, end };
   }
   return best;
