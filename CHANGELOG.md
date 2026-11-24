@@ -6,6 +6,8 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 
 ## 4.0.2
 
+Another fix round: dormers no longer stand in the room below, a garage roof stops at the house wall, the surroundings from the map lie on solid ground, and a card can have its own start view for a screen held upright.
+
 ### New
 - **A start view for a screen held upright:** a card may have a second start view, `start_view_portrait`, beside `start_view`. Turning the tablet moves the house view to the one that fits; without the line nothing changes (idea and proposal: bpaludo, #1228).
 
@@ -21,7 +23,7 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 - **A robot vacuum with maps of several floors** drove its lanes on its dock's floor while it cleaned on another one. It now cleans on the floor of the room it reports – unless that floor has a dock of its own for the same vacuum (idea and proposal: akobza, #1132).
 - **A robot vacuum in a U- or L-shaped room** drove straight through the wall to its first lane when 3D opened while it cleaned. It now appears at the lane, as a robot reported in another room does (idea and proposal: bscholer, #1210).
 - **A dormer's side walls stood in the room below** as dark slabs, through the bed, when the dormer is wider or deeper than the room's bay under it: they were built from the roof's base up. They now stand on the slope, as on a real house (#1315, reported by Atomiiik).
-- **A room listed the power of another room's lamp** – "Licht DG Bad Decke power" in the office and the hallways: with several lamps on one device (an actuator with many channels) and PowerCalc meters named after the lamps' names, every lamp drawn as furniture took the device's first meter. Each lamp now takes the meter that carries its name, and none when it has none of its own (#743, reported by daene85).
+- **A room listed the power of another room's lamp** – the bathroom lamp's meter in the office and the hallways: with several lamps on one device (an actuator with many channels) and PowerCalc meters named after the lamps' names, every lamp drawn as furniture took the device's first meter. Each lamp now takes the meter that carries its name, and none when it has none of its own (#743, reported by daene85).
 - **A long press on an add-on's marker** (the heat pump's status, say) opened Home Assistant's details for `module:…`, an entity that does not exist. It now does what a tap does (#1314, reported by Atomiiik).
 - **The sky showed through the ground of the surroundings** in the homely styles, wherever the map knows no area between streets and lawns – blue by day, pink in the evening. A plain ground now lies under the whole map; it leaves out what the plan draws below the ground (a pool, a lowered drive, the floors below). The neon looks keep their grid (#1320, reported by MarkTu75).
 - **Slovak:** 25 texts corrected – grammar, typing errors and the informal address throughout (Bearstorm, #1100).
