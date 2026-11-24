@@ -310,3 +310,19 @@ test("cutting a line at a circle keeps the parts inside, each crossing cut at th
   assert.deepEqual(parts[0].map((p) => p.map((v) => Math.round(v))), [[-100, 0], [100, 0]]);
   assert.equal(Math.round(parts[1][0][0]), 99);
 });
+
+test("the ground under the map: one square around the home, with a hole only around what lies below the ground (#1320)", () => {
+  const b = house([[0, 0, 12, 8]]);
+  const s: Surroundings = { ...base([]), x: 6, z: 4, radius: 100 };
+  const flat = placedSurroundings({ ...b, settings: { ...b.settings, surroundings: s } })!.ground!;
+  // areas of the map are cut at 1.5 radii: the ground reaches as far
+  assert.deepEqual(flat.outer.map(([x, z]) => [Math.round(x), Math.round(z)]), [[-144, 154], [156, 154], [156, -146], [-144, -146]]);
+  assert.deepEqual(flat.holes, []);
+  // a pool in the lawn and a cut-out patch beside it share one hole; a pool standing on the ground needs none
+  const pool = (id: string, x: number, above = false) => ({ id, type: "pool" as const, points: [[x, 10], [x + 4, 10], [x + 4, 13], [x, 13]] as Vec2[], above });
+  const garden: Building = { ...b, floors: [{ ...b.floors[0], outdoor: [pool("p", 0), { id: "c", type: "lawn", points: [[4.1, 10], [6, 10], [6, 12], [4.1, 12]], cut: true }, pool("a", 30, true)] }] };
+  const holes = placedSurroundings({ ...garden, settings: { ...garden.settings, surroundings: s } })!.ground!.holes;
+  assert.equal(holes.length, 1);
+  const xs = holes[0].map((p) => p[0]);
+  assert.ok(Math.min(...xs) < 0 && Math.max(...xs) > 6 && Math.max(...xs) < 7, JSON.stringify(holes[0]));
+});
