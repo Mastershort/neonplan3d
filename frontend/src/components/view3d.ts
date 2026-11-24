@@ -4134,6 +4134,9 @@ export class Fp3dView3d extends LitElement {
   /** Long press: the quick menu at the device, or the details for devices without one. */
   private onDeviceHold(entityId: string, x: number, y: number): void {
     if (entityId.startsWith("opening:")) return this.onOpeningTap(entityId.slice(8), x, y, true);
+    // a module's marker, a trail pin or a lamp without a light is no entity of Home Assistant: a long press does what
+    // a tap does, instead of opening the details of "module:…" – an entity that does not exist (#1314)
+    if (/^(module|popup|trail|lamp):/.test(entityId)) return this.onDeviceTap(entityId, x, y);
     // a wall switch or socket: the quick menu of its one entity, else the frame's menu
     if (entityId.startsWith("gangs:")) {
       const f = this.building?.floors.flatMap((m) => m.furniture).find((m) => m.id === entityId.slice(6));

@@ -176,3 +176,28 @@ test("a dormer's front over a floor wall in its plane leaves that wall's height 
   const low = front(0, 0.7);
   assert.ok(low.n > 0 && Math.abs(low.low - 3.56) < 1e-6, JSON.stringify(low));
 });
+
+test("a dormer's cheeks stand on the slope: nothing of them hangs in the room below (#1315)", () => {
+  const section: RoofSection = { id: "s", x0: -0.24, z0: -0.24, x1: 8.24, z1: 6.24, shape: "gable", axis: "x", eave_a: 3.7, eave_b: 3.7, pitch_a: 40, pitch_b: 40, base: 3.7 };
+  const d = proposeDormer(section, "a", "d", 4);
+  const b = emptyBuilding();
+  b.settings.wall_exterior = 0.24;
+  b.floors = [{ ...newFloor("og", "OG", 2.75), rooms: [{ ...rect("a", 8, 6) }] }];
+  b.settings.roof = { type: "custom", pitch: 40, overhang: 0.4, sections: [section, d] };
+  const cheeks = buildRoof(b).find((p) => p.cheeks)?.cheeks;
+  assert.ok(cheeks);
+  const slope = (z: number) => 3.7 + (z + 0.24) * Math.tan((40 * Math.PI) / 180);
+  let n = 0;
+  for (const x of [d.x0, d.x1]) {
+    for (let i = 0; i < cheeks.p.length; i += 9) {
+      if (![0, 3, 6].every((k) => Math.abs(cheeks.p[i + k] - x) < 1e-6)) continue;
+      n++;
+      for (const k of [0, 3, 6]) {
+        const y: number = 2.75 + cheeks.p[i + k + 1];
+        const z: number = cheeks.p[i + k + 2];
+        assert.ok(y >= slope(z) - 0.14 - 1e-6, `cheek at z ${z} reaches down to ${y}, the slope is at ${slope(z)}`);
+      }
+    }
+  }
+  assert.ok(n > 0);
+});

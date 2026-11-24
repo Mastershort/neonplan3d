@@ -1136,12 +1136,53 @@ function isPower(hass: HomeAssistant, id: string): boolean {
   return id.startsWith("sensor.") && hass.states[id]?.attributes.device_class === "power";
 }
 
-/** Power sensor of an entity's device. */
-function devicePower(hass: HomeAssistant, id: string): string | null {
-  if (isPower(hass, id)) return id;
-  const device = hass.entities?.[id]?.device_id;
+/**
+ * Power sensor of an entity: the entity itself, or a power sensor of the same device. On a hub (one device for a
+ * whole house, its entities in several areas) only a power sensor in the entity's own area counts, else every light
+ * of the house would get the first meter of the hub (#243).
+ */
+export function powerSensorOf(hass: HomeAssistant, entityId: string): string | null {
+  if (isPower(hass, entityId)) return entityId;
+  // a motion, door or presence sensor uses no power worth a pin: the meter of its device (a wired presence sensor,
+  // a hub) belongs to something else, and the pin said "3 W" at a motion sensor (#337)
+  if (entityId.startsWith("binary_sensor.")) return null;
+  const device = hass.entities?.[entityId]?.device_id;
   if (!device) return null;
-  return powerSensorsOf(hass, device).find((e) => e !== id) ?? null;
+  const hub = isHubDevice(hass, device);
+  const area = entityAreaId(hass, entityId);
+  const list = powerSensorsOf(hass, device).filter((e) => e !== entityId);
+  if (!list.length) return null;
+  // the entity's own meter first: PowerCalc names it after the entity (sensor.<light>_power) …
+  const own = `sensor.${entityId.slice(entityId.indexOf(".") + 1)}_power`;
+  if (list.includes(own)) return own;
+  // … or after its name ("Licht Bad Decke power" for the light "Bad Decke"): each meter goes to the entity of the
+  // device whose name it carries – the longest one, so "Küche Insel power" is not the meter of "Küche" (#743)
+  const label = (id: string) => String(hass.states[id]?.attributes.friendly_name ?? "").trim().toLowerCase();
+  const named = (meter: string, id: string): number => {
+    const obj = id.slice(id.indexOf(".") + 1);
+    const name = label(id);
+    if (obj.length >= 4 && meter.slice(meter.indexOf(".") + 1).includes(obj)) return obj.length;
+    return name.length >= 4 && label(meter).includes(name) ? name.length : 0;
+  };
+  const siblings = list.length > 1 || hub ? Object.values(hass.entities ?? {}).filter((e) => e.device_id === device && !e.entity_id.startsWith("sensor.")).map((e) => e.entity_id) : [entityId];
+  const ownerOf = (meter: string): string | null => {
+    let best: string | null = null;
+    let score = 0;
+    for (const id of siblings) {
+      const n = named(meter, id);
+      if (n > score) [best, score] = [id, n];
+    }
+    return best;
+  };
+  const owners = new Map(list.map((m) => [m, ownerOf(m)]));
+  const mine = list.find((m) => owners.get(m) === entityId);
+  if (mine) return mine;
+  // then one in the same area; a meter filed under another room, or named after another entity of the device,
+  // belongs to that one (#743)
+  const free = list.filter((m) => owners.get(m) === null);
+  const same = free.find((e) => area !== null && entityAreaId(hass, e) === area);
+  if (same || hub) return same ?? null;
+  return free.find((e) => area === null || entityAreaId(hass, e) === null || entityAreaId(hass, e) === area) ?? null;
 }
 
 /**
@@ -1194,7 +1235,7 @@ export function furnitureEntities(hass: HomeAssistant, floors: readonly Floor[])
       }
       let power: string | null = f.power === "none" ? null : (f.power ?? null);
       if (f.power == null) {
-        power = entity ? devicePower(hass, entity) : null;
+        power = entity ? powerSensorOf(hass, entity) : null;
         if (!power && pattern && room && !lamp) {
           const all = areaEntities(hass, room.area_id);
           power = all.find((id) => isPower(hass, id) && !used.has(id) && pattern.test(name(id))) ?? null;

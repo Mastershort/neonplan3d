@@ -327,9 +327,15 @@ function buildSections(b: Building, sections: readonly RoofSection[], overhang: 
     const drawn = plan.drawn;
     // a wing has no gable where it runs into the other roof
     let frontEnd: 0 | 1 | null = plan.junction ? ((1 - plan.junction.end) as 0 | 1) : null;
+    // the slope a dormer sits on, over its roof's own outline: its cheeks stand on it (#1315)
+    let slope: ((x: number, z: number) => number | null) | null = null;
     if (parent) {
       const fr = sectionFrame(drawn);
       const pg = sectionGeometry(parent, { u0: 0, u1: 0, a: 0, b: 0 });
+      slope = (x, z) => {
+        const [pu, pv] = sectionUV(parent, x, z);
+        return sectionHeightAt(pg, pu, pv);
+      };
       const h = (u: number) => {
         const [x, z] = fr.at(u, fr.w / 2);
         const [pu, pv] = sectionUV(parent, x, z);
@@ -352,7 +358,7 @@ function buildSections(b: Building, sections: readonly RoofSection[], overhang: 
     const keep = sec.dormer || parent ? (part.cheeks ??= new GeoBuffer()) : part.solid;
     // … and where a floor wall stands in their plane (the room's wall right under the dormer's front), they leave that
     // wall's height to it: its windows and doors show through (#1185)
-    pushSection(part.solid, part.lines, drawn, plan.ov, floor.elevation, part.glass, attic, holes, frontEnd, cut, keep, sec.dormer || parent ? inWall : null);
+    pushSection(part.solid, part.lines, drawn, plan.ov, floor.elevation, part.glass, attic, holes, frontEnd, cut, keep, sec.dormer || parent ? inWall : null, slope);
   }
   // the closed roofs first: the first part is the one the main roof's solar fields belong to
   return [...parts.values()].sort((p, q) => Number(p.lift === false) - Number(q.lift === false));
@@ -387,6 +393,8 @@ export function pushSection(
   walls: GeoBuffer = solid,
   /** Floor walls in the plane of its walls: those end above them (a dormer's front and cheeks, #1185). */
   inWall: WallsAlong | null = null,
+  /** A dormer: the height of the slope it sits on at a point (null beyond that roof's outline). */
+  slope: ((x: number, z: number) => number | null) | null = null,
 ): void {
   const fr = sectionFrame(s);
   const pr = sectionProfile(s);
@@ -550,7 +558,26 @@ export function pushSection(
         if (y <= foot + 0.02) continue;
         const ua = wu0 + (wu1 - wu0) * t0;
         const ub = wu0 + (wu1 - wu0) * t1;
-        fan([P(ua, v, foot), P(ub, v, foot), P(ub, v, y), P(ua, v, y)], g, walls);
+        if (!slope) {
+          fan([P(ua, v, foot), P(ub, v, foot), P(ub, v, y), P(ua, v, y)], g, walls);
+          continue;
+        }
+        // a dormer's cheek stands on the slope: what lay under it stood as a slab in the room below (#1315)
+        const STEPS = 16;
+        const low = (i: number): [number, number] => {
+          const u = ua + ((ub - ua) * i) / STEPS;
+          const [x, z] = fr.at(u, v);
+          return [u, Math.max(foot, (slope(x, z) ?? -Infinity) - THICK)];
+        };
+        for (let i = 0; i < STEPS; i++) {
+          let [u0, f0] = low(i);
+          let [u1, f1] = low(i + 1);
+          if (f0 >= y && f1 >= y) continue;
+          // where the slope passes the cheek's top inside the step, the cheek ends in a point there
+          if (f0 > y) [u0, f0] = [u1 + ((u0 - u1) * (y - f1)) / (f0 - f1), y];
+          else if (f1 > y) [u1, f1] = [u0 + ((u1 - u0) * (y - f0)) / (f1 - f0), y];
+          fan([P(u0, v, f0), P(u1, v, f1), P(u1, v, y), P(u0, v, y)], g, walls);
+        }
       }
     }
   } else if (s.eave_a > base + 0.02) {

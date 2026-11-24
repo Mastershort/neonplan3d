@@ -9,7 +9,7 @@
 import { generateWalls } from "./geometry/walls.ts";
 import type { Building, CableRoute, EnergySettings, Floor, Furniture, Room, SolarField, Vec2 } from "./model.ts";
 import { fieldCenter, fieldFace, fieldSize, roofFaces, topFloor, wallFaces } from "./solar.ts";
-import { entityAreaId, isHubDevice, powerSensorsOf } from "./devices.ts";
+import { powerSensorOf } from "./devices.ts";
 import { pointInPolygon, signedArea } from "./model.ts";
 import type { HassEntity, HomeAssistant } from "./types.ts";
 
@@ -205,32 +205,9 @@ export function readPower(st: HassEntity | undefined, invert = false): number | 
   return invert ? -w : w;
 }
 
-function isPowerSensor(hass: HomeAssistant, id: string): boolean {
-  return id.startsWith("sensor.") && hass.states[id]?.attributes.device_class === "power";
-}
-
-/**
- * Power sensor of a placed entity: the entity itself, or a power sensor of the same device. On a hub (one
- * device for a whole house, its entities in several areas) only a power sensor in the entity's own area
- * counts, else every light of the house would get the first meter of the hub (#243).
- */
+/** Power sensor of a placed entity (see `powerSensorOf`). */
 export function powerSensorFor(hass: HomeAssistant, entityId: string): string | null {
-  if (isPowerSensor(hass, entityId)) return entityId;
-  // a motion, door or presence sensor uses no power worth a pin: the meter of its device (a wired presence sensor,
-  // a hub) belongs to something else, and the pin said "3 W" at a motion sensor (#337)
-  if (entityId.startsWith("binary_sensor.")) return null;
-  const device = hass.entities?.[entityId]?.device_id;
-  if (!device) return null;
-  const hub = isHubDevice(hass, device);
-  const area = entityAreaId(hass, entityId);
-  const list = powerSensorsOf(hass, device).filter((e) => e !== entityId);
-  // the entity's own meter first: PowerCalc names it after the entity (sensor.<light>_power); then one in the same
-  // area; a meter filed under another room belongs to another light of the device (#743)
-  const own = `sensor.${entityId.slice(entityId.indexOf(".") + 1)}_power`;
-  if (list.includes(own)) return own;
-  const same = list.find((e) => area !== null && entityAreaId(hass, e) === area);
-  if (same || hub) return same ?? null;
-  return list.find((e) => area === null || entityAreaId(hass, e) === null || entityAreaId(hass, e) === area) ?? null;
+  return powerSensorOf(hass, entityId);
 }
 
 /** Placed entities that report power, with their position and current power. */
