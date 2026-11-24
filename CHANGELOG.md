@@ -7,6 +7,7 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 ## 4.0.3
 
 ### Fixed
+- **Stairs from the stairs pack came 3.8 m tall** whatever the storey. Placed anew, they now reach exactly to the next floor, like the built-in stairs; stairs already in the plan keep the height they have (#1229, reported by skywalker0403).
 - **A card's start view for a screen held upright did nothing in a plan with one floor:** turning the tablet (or changing `start_view`) moved the camera only in the house view, and a plan with a single floor always shows that floor. It now applies there too, as long as no room is open (#1321, reported by bpaludo).
 
 ## 4.0.2

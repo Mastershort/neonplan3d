@@ -5258,7 +5258,9 @@ export class Fp3dEditor extends LitElement {
     const [w, d, h0] = furnitureSize(type);
     // stairs reach up to the next floor
     const above = this._doc.floors.filter((f) => f.elevation > floor.elevation).sort((p, q) => p.elevation - q.elevation)[0];
-    const h = STAIR_TYPES.has(type) ? round(above ? above.elevation - floor.elevation : floor.height + 0.25) : h0;
+    // … a pack's stairs too (the ones that open the floor above): they came 3.8 m tall whatever the storey (#1229)
+    const stairs = STAIR_TYPES.has(type) || !!packItem(type)?.hole;
+    const h = stairs ? round(above ? above.elevation - floor.elevation : floor.height + 0.25) : h0;
     const room = this.room;
     const [x, z] = room ? centroid(room.points) : this.toWorld(this._size.w / 2, this._size.h / 2);
     let rotation = 0;
