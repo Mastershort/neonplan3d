@@ -4,6 +4,11 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 [releases page](https://github.com/Mastershort/neonplan3d/releases). Ideas and votes:
 [Discussions → Ideas](https://github.com/Mastershort/neonplan3d/discussions/categories/ideas).
 
+## 4.0.3
+
+### Fixed
+- **A card's start view for a screen held upright did nothing in a plan with one floor:** turning the tablet (or changing `start_view`) moved the camera only in the house view, and a plan with a single floor always shows that floor. It now applies there too, as long as no room is open (#1321, reported by bpaludo).
+
 ## 4.0.2
 
 Another fix round: dormers no longer stand in the room below, a garage roof stops at the house wall, the surroundings from the map lie on solid ground, and a card can have its own start view for a screen held upright.

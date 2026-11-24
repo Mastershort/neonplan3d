@@ -1201,7 +1201,7 @@ export class Fp3dView3d extends LitElement {
       this.shownStartView = start;
       v.setStartView(this.startViewOf());
       v.setBuilding(this.shownBuilding()!);
-      if (startChanged && this.floorId === null) v.resetView();
+      if (startChanged && this.atStart()) v.resetView();
       this.maybeFlyIn();
     } else if (((changed.has("plain") && changed.get("plain") !== undefined) || (changed.has("rooms") && changed.get("rooms") !== undefined) || (changed.has("surroundings") && changed.get("surroundings") !== undefined)) && this.building) {
       v.setBuilding(this.shownBuilding()!);
@@ -1219,7 +1219,7 @@ export class Fp3dView3d extends LitElement {
     if (changed.has("building") || changed.has("packs") || changed.has("ghostOn")) void this.syncGhost();
     if (changed.has("startView") && changed.get("startView") !== undefined) {
       v.setStartView(this.startViewOf());
-      if (this.floorId === null) v.resetView();
+      if (this.atStart()) v.resetView();
     }
     if (changed.has("building") || changed.has("theme") || changed.has("floorThumbs") || changed.has("packs")) this.scheduleThumbs();
     // with symbols only in rooms, opening or closing a room changes which ones show
@@ -6464,6 +6464,14 @@ export class Fp3dView3d extends LitElement {
   }
 
   /** The start view: the card's own, else the one remembered in the editor. */
+  /**
+   * Whether the view stands where the start view applies: the house, or – in a plan with one floor, which is always
+   * the one shown – that floor with no room open. There a changed start view moved nothing (#1321).
+   */
+  private atStart(): boolean {
+    return this.floorId === null || (this.building?.floors.length === 1 && !this.roomId);
+  }
+
   private startViewOf(): StartView | null {
     return this.startView ?? this.building?.settings.start_view ?? null;
   }
