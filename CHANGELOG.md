@@ -6,6 +6,8 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 
 ## 4.0.3
 
+A fix round with one new switch: a garden around the house no longer takes the house's devices, picture frames keep their photos over a restart, dormers and snow stay out of the rooms, and a card can be set to only look.
+
 ### New
 - **View only, for wall tablets:** a card with `view_only: true` (card editor: *View only*) shows everything but switches nothing – a touch cannot turn a lamp on or off by accident, the room panel shows its controls locked. Off by default; Home Assistant's own details dialog is not part of the card and stays as it is.
 
