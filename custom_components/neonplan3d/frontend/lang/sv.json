@@ -1751,6 +1751,8 @@
  "show_name": "Visa namnet under markören i 3D",
  "card_marker_names": "Egna namn vid markörerna",
  "card_marker_names_hint": "Varje enhet med ett eget namn visar det litet under sin markör – tre termometrar i trädgården hålls isär.",
+ "card_view_only": "Endast visning",
+ "card_view_only_hint": "Kortet visar allt men slår inte på eller av något: en tryckning på väggplattan kan inte slå på eller av något av misstag.",
  "device_name_hint": "Ett namn bara för planen, t.ex. \"Accentljus köksö\" – entiteten i Home Assistant förblir som den är.",
  "floor_turn": "Vrid 90°",
  "floor_shift_all": "Ta med alla våningar (hela huset)",

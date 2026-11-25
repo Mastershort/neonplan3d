@@ -1751,6 +1751,8 @@
  "show_name": "Vis navnet under markøren i 3D",
  "card_marker_names": "Egne navn ved markørene",
  "card_marker_names_hint": "Hver enhet med eget navn viser det med liten skrift under markøren – så holder du tre termometre i hagen fra hverandre.",
+ "card_view_only": "Bare visning",
+ "card_view_only_hint": "Kortet viser alt, men slår ingenting av eller på: en berøring på veggnettbrettet kan ikke skru på eller av noe ved en feil.",
  "device_name_hint": "Et navn bare for planen, f.eks. «Aksentlys kjøkkenøy» – entiteten i Home Assistant forblir som den er.",
  "floor_turn": "Snu 90°",
  "floor_shift_all": "Ta med alle etasjer (hele huset)",

@@ -56,6 +56,8 @@ export interface CardConfig {
   marker_size?: "small" | "normal" | "large";
   /** Every device with an own name shows it under its marker (#156). */
   marker_names?: boolean;
+  /** Only look: the card shows everything but switches nothing – a touch on a wall tablet cannot turn things on or off by accident. */
+  view_only?: boolean;
   /** The star with the central menu: all lights / blinds of the floor or house and the favourites (default true, #145). */
   central?: boolean;
   /** The walk through the house at eye height (default on). */

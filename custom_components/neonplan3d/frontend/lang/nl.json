@@ -1751,6 +1751,8 @@
  "show_name": "Naam onder het symbool in 3D tonen",
  "card_marker_names": "Eigen namen bij de symbolen",
  "card_marker_names_hint": "Elk apparaat met een eigen naam toont die klein onder zijn symbool.",
+ "card_view_only": "Alleen bekijken",
+ "card_view_only_hint": "De kaart toont alles maar schakelt niets: een aanraking op de wandtablet kan niets per ongeluk aan- of uitzetten.",
  "device_name_hint": "Een naam alleen voor het plan, bijv. „Sfeerlicht kookeiland“ – de entiteit in Home Assistant blijft zoals hij is.",
  "floor_turn": "90° draaien",
  "floor_shift_all": "Alle verdiepingen meenemen (hele huis)",

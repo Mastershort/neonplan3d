@@ -2351,6 +2351,8 @@
  "show_name": "Adı 3D'de simgenin altında göster",
  "card_marker_names": "Simgelerin yanında kendi adların",
  "card_marker_names_hint": "Kendi adı olan her cihaz, adını simgesinin altında küçük gösterir.",
+ "card_view_only": "Yalnızca görüntüle",
+ "card_view_only_hint": "Kart her şeyi gösterir ama hiçbir şeyi açıp kapatmaz: duvar tabletine dokunmak yanlışlıkla bir şeyi açamaz veya kapatamaz.",
  "device_name_hint": "Yalnızca plana özel bir ad, ör. „Ada aydınlatması” – Home Assistant'taki varlık olduğu gibi kalır.",
  "floor_turn": "90° döndür",
  "floor_shift_all": "Tüm katları da taşı (tüm ev)",

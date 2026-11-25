@@ -1751,6 +1751,8 @@
  "show_name": "Mostrar el nombre bajo el símbolo en 3D",
  "card_marker_names": "Nombres propios en los símbolos",
  "card_marker_names_hint": "Cada dispositivo con nombre propio lo muestra pequeño bajo su símbolo.",
+ "card_view_only": "Solo ver",
+ "card_view_only_hint": "La tarjeta lo muestra todo pero no acciona nada: un toque en la tableta de pared no puede encender ni apagar nada por error.",
  "device_name_hint": "Un nombre solo para el plano, p. ej. «Luz deco isla» – la entidad en Home Assistant se queda como está.",
  "floor_turn": "Girar 90°",
  "floor_shift_all": "Llevar todas las plantas (casa entera)",

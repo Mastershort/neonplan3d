@@ -1751,6 +1751,8 @@
  "show_name": "Név megjelenítése a szimbólum alatt 3D-ben",
  "card_marker_names": "Saját nevek a szimbólumoknál",
  "card_marker_names_hint": "Minden saját nevű eszköz kicsiben a szimbóluma alatt mutatja.",
+ "card_view_only": "Csak megtekintés",
+ "card_view_only_hint": "A kártya mindent mutat, de semmit sem kapcsol: a fali táblagép érintése semmit sem kapcsolhat be vagy ki véletlenül.",
  "device_name_hint": "Csak a rajzhoz tartozó név, pl. „Sziget dekorfény” – az entitás a Home Assistantban marad, ahogy van.",
  "floor_turn": "Forgatás 90°",
  "floor_shift_all": "Minden szint együtt (egész ház)",

@@ -1751,6 +1751,8 @@
  "show_name": "Vis navnet under markøren i 3D",
  "card_marker_names": "Egne navne ved markørerne",
  "card_marker_names_hint": "Hver enhed med et eget navn viser det småt under sin markør – tre termometre i haven kan skelnes fra hinanden.",
+ "card_view_only": "Kun visning",
+ "card_view_only_hint": "Kortet viser alt, men tænder og slukker intet: en berøring på vægtabletten kan ikke skifte noget ved en fejl.",
  "device_name_hint": "Et navn kun til planen, f.eks. \"Accentlys køkkenø\" – entiteten i Home Assistant forbliver som den er.",
  "floor_turn": "Drej 90°",
  "floor_shift_all": "Tag alle etager med (hele huset)",

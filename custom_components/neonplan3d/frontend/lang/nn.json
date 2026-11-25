@@ -1751,6 +1751,8 @@
  "show_name": "Vis namnet under markøren i 3D",
  "card_marker_names": "Eigne namn ved markørane",
  "card_marker_names_hint": "Kvar eining med eige namn viser det med liten skrift under markøren – så held du tre termometer i hagen frå kvarandre.",
+ "card_view_only": "Berre vising",
+ "card_view_only_hint": "Kortet viser alt, men slår ingenting av eller på: ei berøring på veggnettbrettet kan ikkje skru på eller av noko ved ein feil.",
  "device_name_hint": "Eit namn berre for planen, t.d. «Aksentlys kjøkkenøy» – entiteten i Home Assistant blir verande som han er.",
  "floor_turn": "Snu 90°",
  "floor_shift_all": "Ta med alle etasjar (heile huset)",

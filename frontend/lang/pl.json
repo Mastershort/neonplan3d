@@ -1751,6 +1751,8 @@
  "show_name": "Pokazuj nazwę pod znacznikiem w 3D",
  "card_marker_names": "Własne nazwy przy znacznikach",
  "card_marker_names_hint": "Każde urządzenie z własną nazwą pokazuje ją małymi literami pod znacznikiem – trzy termometry w ogrodzie da się rozróżnić.",
+ "card_view_only": "Tylko podgląd",
+ "card_view_only_hint": "Karta pokazuje wszystko, ale niczego nie przełącza: dotknięcie tabletu ściennego nie włączy ani nie wyłączy niczego przez przypadek.",
  "device_name_hint": "Nazwa tylko dla planu, np. „Światło akcentowe wyspy” – encja w Home Assistant pozostaje bez zmian.",
  "floor_turn": "Obróć o 90°",
  "floor_shift_all": "Przenieś wszystkie piętra (cały dom)",

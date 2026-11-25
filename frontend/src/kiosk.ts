@@ -16,3 +16,20 @@ export function nightActive(night: string | undefined, hass: HomeAssistant | und
   const t = now.getHours() * 60 + now.getMinutes();
   return from <= to ? t >= from && t < to : t >= from || t < to;
 }
+
+const lookOnly = new WeakMap<HomeAssistant, HomeAssistant>();
+
+/**
+ * Home Assistant as a card that only looks sees it (card option view_only): everything can be read, but a service
+ * call goes nowhere – a tap on a lamp, a blind's buttons, "everything off" and a module's actions do nothing. Home
+ * Assistant's own details dialog is not part of the card and stays as it is. The same copy for the same hass, so
+ * nothing below draws again because of it.
+ */
+export function viewOnlyHass(hass: HomeAssistant): HomeAssistant {
+  let copy = lookOnly.get(hass);
+  if (!copy) {
+    copy = { ...hass, callService: async () => undefined } as HomeAssistant;
+    lookOnly.set(hass, copy);
+  }
+  return copy;
+}

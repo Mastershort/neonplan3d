@@ -1751,6 +1751,8 @@
  "show_name": "Mostra il nome sotto il simbolo in 3D",
  "card_marker_names": "Nomi propri ai simboli",
  "card_marker_names_hint": "Ogni dispositivo con un nome proprio lo mostra in piccolo sotto il suo simbolo.",
+ "card_view_only": "Solo visualizzazione",
+ "card_view_only_hint": "La scheda mostra tutto ma non comanda nulla: un tocco sul tablet a parete non può accendere o spegnere nulla per errore.",
  "device_name_hint": "Un nome solo per la pianta, ad es. «Luce deco isola» – l'entità in Home Assistant resta com'è.",
  "floor_turn": "Ruota di 90°",
  "floor_shift_all": "Porta tutti i piani (casa intera)",

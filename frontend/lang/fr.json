@@ -1751,6 +1751,8 @@
  "show_name": "Afficher le nom sous le symbole en 3D",
  "card_marker_names": "Noms propres sur les symboles",
  "card_marker_names_hint": "Chaque appareil avec un nom propre l'affiche en petit sous son symbole.",
+ "card_view_only": "Affichage seul",
+ "card_view_only_hint": "La carte montre tout mais ne commande rien : un appui sur la tablette murale ne peut rien allumer ni éteindre par erreur.",
  "device_name_hint": "Un nom pour le plan seulement, p. ex. « Éclairage déco îlot » – l'entité reste telle quelle dans Home Assistant.",
  "floor_turn": "Tourner de 90°",
  "floor_shift_all": "Emmener tous les étages (maison entière)",

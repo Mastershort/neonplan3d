@@ -1751,6 +1751,8 @@
  "show_name": "在 3D 中于标记下方显示名称",
  "card_marker_names": "标记处显示自定义名称",
  "card_marker_names_hint": "每个设置了自定义名称的设备都会在其标记下方以小字显示名称——花园里的三个温度计也能区分开。",
+ "card_view_only": "仅查看",
+ "card_view_only_hint": "卡片显示全部内容，但不执行任何开关操作：触碰墙面平板不会误开或误关任何设备。",
  "device_name_hint": "仅用于平面图的名称，例如“岛台氛围灯”——Home Assistant 中的实体保持不变。",
  "floor_turn": "旋转 90°",
  "floor_shift_all": "所有楼层一起（整栋房屋）",

@@ -1751,6 +1751,8 @@
  "show_name": "Näytä nimi merkin alla 3D:ssä",
  "card_marker_names": "Omat nimet merkeissä",
  "card_marker_names_hint": "Jokainen laite, jolla on oma nimi, näyttää sen pienellä merkkinsä alla – kolme lämpömittaria puutarhassa pysyy erillään.",
+ "card_view_only": "Vain katselu",
+ "card_view_only_hint": "Kortti näyttää kaiken mutta ei kytke mitään: kosketus seinätabletilla ei voi vahingossa kytkeä mitään päälle tai pois.",
  "device_name_hint": "Nimi vain pohjapiirrokseen, esim. \"Saarekkeen tehostevalo\" – kohde Home Assistantissa pysyy ennallaan.",
  "floor_turn": "Käännä 90°",
  "floor_shift_all": "Ota kaikki kerrokset mukaan (koko talo)",

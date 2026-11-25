@@ -15,7 +15,7 @@ import { languageReady, loadLanguage, translate, type I18nKey } from "./i18n.ts"
 import { controls, tokens } from "./styles.ts";
 import type { HomeAssistant } from "./types.ts";
 import { cardStartView, cardTemplate, effectiveConfig, screenUpright, type CardConfig, type CardControl } from "./card-config.ts";
-import { nightActive } from "./kiosk.ts";
+import { nightActive, viewOnlyHass } from "./kiosk.ts";
 import { loadCardEditor } from "./load-card-editor.ts";
 import type { WallMode } from "./viewer/viewer3d.ts";
 import { hasFeature, released, type Feature } from "./features.ts";
@@ -165,6 +165,11 @@ export class Floorplan3dCard extends LitElement {
     clearTimeout(this.idleTimer);
     const s = this._config?.idle_return ?? 0;
     if (s > 0) this.idleTimer = setTimeout(() => this.returnHome(), s * 1000);
+  }
+
+  /** Home Assistant as the card's parts get it: with view_only, one that switches nothing. */
+  private get shownHass(): HomeAssistant {
+    return this._config?.view_only === true && this.hass ? viewOnlyHass(this.hass) : this.hass;
   }
 
   private view3d() {
@@ -529,7 +534,7 @@ clearTimeout(this.cleanTimer);
       <div class="fp3d-card-body ${tt ? "fp3d-tt" : ""} ${phone ? "fp3d-phone" : ""}" style="height:${size}">
         ${b && b.floors.some((f) => f.rooms.length)
           ? html`<fp3d-view3d
-              .hass=${this.tt.hass(this.hass)}
+              .hass=${this.tt.hass(this.shownHass)}
               .replay=${this.tt.session?.replay ?? null}
               .building=${b}
               .planId=${this.isSite ? null : this.data.planId}
@@ -631,7 +636,7 @@ clearTimeout(this.cleanTimer);
           ? html`<fp3d-room-bar
               class="fp3d-card-room-bar"
               style="bottom:${bar ? 54 : 8}px"
-              .hass=${this.hass}
+              .hass=${this.shownHass}
               .building=${this.shownBuilding(b)}
               .floorId=${floorId}
               .roomId=${this._roomId}
@@ -654,8 +659,8 @@ clearTimeout(this.cleanTimer);
               @camera-look=${(e: CustomEvent<{ entity: string }>) => this.view3d()?.lookThrough(e.detail.entity)}
               class="fp3d-card-panel"
               ?collapsible=${phone}
-              .hass=${this.tt.hass(this.hass)}
-              ?readOnly=${tt}
+              .hass=${this.tt.hass(this.shownHass)}
+              ?readOnly=${tt || c?.view_only === true}
               .room=${b.floors.flatMap((f) => zonesOf(f)).find((r) => r.id === this._roomId) ?? null}
               .floor=${b.floors.find((f) => zonesOf(f).some((r) => r.id === this._roomId)) ?? null}
               .building=${b}
@@ -667,7 +672,7 @@ clearTimeout(this.cleanTimer);
           : nothing}
         ${phone && b
           ? html`<fp3d-phone-shell
-              .hass=${this.hass}
+              .hass=${this.shownHass}
               .building=${b}
               .view=${() => this.view3d() as unknown as PhoneView | null}
               .floorId=${this._floorId ?? null}

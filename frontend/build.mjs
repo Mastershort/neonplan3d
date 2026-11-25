@@ -180,7 +180,8 @@ function copyFonts() {
 // editor 1160 KB on 2026-11-19: the card form asks what a card is for (tablet / phone) and holds the phone bar's options and own places
 // 3D 928 KB on 2026-11-21: a finger or the mouse on a pin, a name or a glass card turns and zooms the house (#1248, #1271)
 // 3D 940 KB on 2026-11-23: the fixes of 4.0.2 (camera cones over steps, a terrace's row on the map, robots across floors)
-const BUDGET = { "neonplan3d.js": 870 * 1024, "neonplan3d-fun.js": 40 * 1024, "neonplan3d-voice.js": 60 * 1024, "neonplan3d-locate.js": 160 * 1024, "neonplan3d-osm.js": 20 * 1024, "neonplan3d-timetravel.js": 120 * 1024, "neonplan3d-3d.js": 940 * 1024, "neonplan3d-editor.js": 1160 * 1024, "neonplan3d-card-editor.js": 340 * 1024 };
+// locate 170 KB on 2026-11-25: it carries the wall maths of the plan, which grew by the rule for walls in line (#1326) – it had stood at 160.0
+const BUDGET = { "neonplan3d.js": 870 * 1024, "neonplan3d-fun.js": 40 * 1024, "neonplan3d-voice.js": 60 * 1024, "neonplan3d-locate.js": 170 * 1024, "neonplan3d-osm.js": 20 * 1024, "neonplan3d-timetravel.js": 120 * 1024, "neonplan3d-3d.js": 940 * 1024, "neonplan3d-editor.js": 1160 * 1024, "neonplan3d-card-editor.js": 340 * 1024 };
 
 copyFonts();
 if (watch) {

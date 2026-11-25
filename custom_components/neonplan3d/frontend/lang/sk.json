@@ -1751,6 +1751,8 @@
  "show_name": "Zobraziť názov pod značkou vo 3D",
  "card_marker_names": "Vlastné názvy u značiek",
  "card_marker_names_hint": "Každé zariadenie s vlastným názvom ho zobrazuje malým písmom pod svojou značkou – tri teplomery v záhrade si tak nepomýliš.",
+ "card_view_only": "Iba prezeranie",
+ "card_view_only_hint": "Karta zobrazuje všetko, ale nič nespína: dotyk na nástennom tablete nemôže nič omylom zapnúť ani vypnúť.",
  "device_name_hint": "Názov len pre plán, napr. „Akcentové svetlo ostrovčeka“ – entita v Home Assistante zostane, ako je.",
  "floor_turn": "Otočiť o 90°",
  "floor_shift_all": "Presunúť spolu všetky podlažia (celý dom)",

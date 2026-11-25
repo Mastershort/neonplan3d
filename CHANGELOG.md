@@ -6,6 +6,9 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 
 ## 4.0.3
 
+### New
+- **View only, for wall tablets:** a card with `view_only: true` (card editor: *View only*) shows everything but switches nothing – a touch cannot turn a lamp on or off by accident, the room panel shows its controls locked. Off by default; Home Assistant's own details dialog is not part of the card and stays as it is.
+
 ### Fixed
 - **Stairs from the stairs pack came 3.8 m tall** whatever the storey. Placed anew, they now reach exactly to the next floor, like the built-in stairs; stairs already in the plan keep the height they have (#1229, reported by skywalker0403).
 - **A card's start view for a screen held upright did nothing in a plan with one floor:** turning the tablet (or changing `start_view`) moved the camera only in the house view, and a plan with a single floor always shows that floor. It now applies there too, as long as no room is open (#1321, reported by bpaludo).

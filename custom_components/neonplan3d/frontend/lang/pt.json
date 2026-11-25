@@ -1751,6 +1751,8 @@
  "show_name": "Mostrar o nome sob o marcador em 3D",
  "card_marker_names": "Nomes próprios nos marcadores",
  "card_marker_names_hint": "Cada dispositivo com nome próprio mostra-o em pequeno sob o seu marcador – três termómetros no jardim continuam distinguíveis.",
+ "card_view_only": "Só ver",
+ "card_view_only_hint": "O cartão mostra tudo mas não comanda nada: um toque no tablet de parede não pode ligar nem desligar nada por engano.",
  "device_name_hint": "Um nome só para a planta, p. ex. \"Luz de destaque da ilha\" – a entidade no Home Assistant fica como está.",
  "floor_turn": "Rodar 90°",
  "floor_shift_all": "Levar todos os pisos (casa inteira)",

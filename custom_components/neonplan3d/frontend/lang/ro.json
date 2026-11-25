@@ -1751,6 +1751,8 @@
  "show_name": "Arată numele sub marcaj în 3D",
  "card_marker_names": "Nume proprii la marcaje",
  "card_marker_names_hint": "Fiecare dispozitiv cu nume propriu îl arată mic sub marcajul lui – trei termometre din grădină rămân ușor de deosebit.",
+ "card_view_only": "Doar vizualizare",
+ "card_view_only_hint": "Cardul arată totul, dar nu comandă nimic: o atingere pe tableta de perete nu poate porni sau opri nimic din greșeală.",
  "device_name_hint": "Un nume doar pentru plan, de ex. „Lumină decorativă insulă” – entitatea din Home Assistant rămâne neschimbată.",
  "floor_turn": "Rotește 90°",
  "floor_shift_all": "Ia toate etajele cu el (toată casa)",

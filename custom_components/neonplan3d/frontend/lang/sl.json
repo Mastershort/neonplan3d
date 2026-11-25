@@ -1751,6 +1751,8 @@
  "show_name": "Pokaži ime pod oznako v 3D",
  "card_marker_names": "Lastna imena ob oznakah",
  "card_marker_names_hint": "Vsaka naprava z lastnim imenom ga prikaže drobno pod svojo oznako – trije termometri na vrtu ostanejo ločljivi.",
+ "card_view_only": "Samo ogled",
+ "card_view_only_hint": "Kartica prikaže vse, a ničesar ne preklaplja: dotik na stenski tablici ne more ničesar pomotoma vklopiti ali izklopiti.",
  "device_name_hint": "Ime samo za tloris, npr. »Poudarjena luč otoka« – entiteta v Home Assistantu ostane, kot je.",
  "floor_turn": "Obrni za 90°",
  "floor_shift_all": "Vzemi s seboj vsa nadstropja (cela hiša)",
