@@ -261,6 +261,23 @@ test("an interior wall continuing an outer wall in line sits flush with it (#179
   near(inner.left + inner.right, INT);
 });
 
+test("the walls going on in line behind a flush one stand on the same side: no jump at the next junction (#1326)", () => {
+  // B (4..7 × 0..5) reaches out above A; below A lies C (0..4 × -3..0) and beside it D (4..7 × -3..0): the line x = 4
+  // runs on from the outer wall of B over A|B to C|D
+  const { walls } = generateWalls([rect("a", 0, 0, 4, 3), rect("b", 4, 0, 7, 5), rect("c", 0, -3, 4, 0), rect("d", 4, -3, 7, 0)], opts);
+  const onLine = walls.filter((w) => !w.exterior && Math.abs(w.a[0] - 4) < 1e-6 && Math.abs(w.b[0] - 4) < 1e-6);
+  assert.ok(onLine.length >= 1);
+  for (const w of onLine) {
+    // the face towards x > 4 (B and D) lies on the line everywhere, the body towards A and C
+    const east = w.b[1] > w.a[1] ? w.right : w.left;
+    const west = w.b[1] > w.a[1] ? w.left : w.right;
+    near(east, 0);
+    near(west, INT);
+  }
+  // the walls across the line (A|C, B|D) stay in the middle
+  for (const w of walls.filter((x) => !x.exterior && Math.abs(x.a[1] - x.b[1]) < 1e-6)) near(w.left, w.right);
+});
+
 test("rooms with a ceiling of their own: walls end at the taller room, a room without one keeps the floor height (#30)", () => {
   const room = (id: string, x0: number, x1: number, ceiling_height?: number) => ({ id, name: id, area_id: null, points: [[x0, 0], [x1, 0], [x1, 3], [x0, 3]] as [number, number][], floor_material: "wood", ceiling_height });
   const { walls } = generateWalls([room("wohnen", 0, 4, 2.5), room("flur", 4, 6, 2.6), room("garage", 6, 10)], { exterior: 0.24, interior: 0.12 }, []);

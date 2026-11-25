@@ -2,7 +2,7 @@
 // (the room's own script or button for that, set in the editor).
 
 import { favoriteCall, isUnavailable, roomPanelEntities } from "./devices.ts";
-import { isLamp, pointInPolygon, type Floor, type Room } from "./model.ts";
+import { inZone, isLamp, type Floor, type Room } from "./model.ts";
 import type { HomeAssistant } from "./types.ts";
 
 export interface ServiceCall {
@@ -18,7 +18,7 @@ export interface ServiceCall {
  */
 export function everythingOff(hass: HomeAssistant, floor: Floor, room: Room): ServiceCall[] {
   const { shown, more } = roomPanelEntities(hass, floor, room);
-  const inRoom = (x: number, z: number) => pointInPolygon([x, z], room.points);
+  const inRoom = inZone(floor, room);
   const lampSwitches = new Set(floor.furniture.filter((f) => inRoom(f.x, f.z) && isLamp(f.type) && f.entity?.startsWith("switch.")).map((f) => f.entity!));
   const lights: string[] = [];
   const fans: string[] = [];

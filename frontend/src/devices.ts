@@ -2,7 +2,7 @@
 // what their state looks like. Pure functions (no Lit, no three.js) so they can be tested directly.
 
 import type { Building, Furniture, EntityRef, FenceGate, Floor, LampMount, Opening, Placement, RoofWindow, Room, Vec2 } from "./model.ts";
-import { centroid, outdoorZones, pointInPolygon } from "./model.ts";
+import { centroid, inZone, outdoorZones, pointInPolygon } from "./model.ts";
 import { isRobotVacuum, packMotion, packScreen } from "./packs.ts";
 import type { HassEntity, HomeAssistant } from "./types.ts";
 
@@ -1284,7 +1284,7 @@ export function appColor(st: HassEntity | undefined): [number, number, number] |
  * panel. `more` are the other entities of the room's area, offered on request.
  */
 export function roomPanelEntities(hass: HomeAssistant, floor: Floor, room: Room, roofWindows: readonly RoofWindow[] = []): { shown: string[]; more: string[] } {
-  const inRoom = (x: number, z: number) => pointInPolygon([x, z], room.points);
+  const inRoom = inZone(floor, room);
   const furniture = furnitureEntities(hass, [floor]);
   const openings = openingEntities(hass, [floor]);
   const shown = [

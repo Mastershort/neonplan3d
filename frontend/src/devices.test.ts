@@ -15,7 +15,7 @@ test("a lamp switched by a relay takes colour and brightness from its colour ent
 });
 import { chargerStatus, slatTilt, slatsInverted, coverTiltButtons, isPulseDrive, isRelevant, apOnline, fanSpeed, climateModeGlow, cooktopLevel, onlyColor, fixedGlowColor, colorCapable, appColor, carLocked, areaEntities, otherAreaEntities, roomClimateSensors, roomClimateValue, unassignedEntities, autoPlace, entityName, fridgeDoors, furnitureEntities, groupByDevice, isActive, kindOf, lightGlow, openingEntities, openingOpen, openingState, powerSensorsOf, primaryEntities, roomPanelEntities, windowPosition, confirmEntities, robotRoom, robotRoomAcross, robotRoomSensor, roomKey, vacuumCleaning } from "./devices.ts";
 import type { Floor, Opening, Room } from "./model.ts";
-import { centroid, newFloor, pointInPolygon } from "./model.ts";
+import { centroid, newFloor, outdoorZones, pointInPolygon } from "./model.ts";
 import type { HomeAssistant } from "./types.ts";
 
 /** Opening state without the "sensed" flag (tested on its own below). */
@@ -355,6 +355,22 @@ test("the room panel shows what the plan shows in the room, plus picked entities
   // the rest of the area is offered, not shown
   assert.ok(more.includes("sensor.temp"));
   assert.ok(!more.includes("light.decke"));
+});
+
+test("a garden drawn around the house leaves the house's devices to its rooms (#1332)", () => {
+  const hass = hassWith();
+  const floor: Floor = {
+    ...newFloor("f", "F", 0),
+    rooms: [{ ...room, area_id: "wohnen" }],
+    outdoor: [{ id: "g", type: "lawn", name: "Garten", area_id: "garten", points: [[-20, -20], [30, -20], [30, 30], [-20, 30]] }] as Floor["outdoor"],
+    placements: [
+      { entity_id: "cover.rollo", x: 1, z: 1, y: null, mount: null },
+      { entity_id: "light.decke", x: -10, z: -10, y: null, mount: null },
+    ],
+  };
+  const garden = outdoorZones(floor)[0];
+  assert.deepEqual(roomPanelEntities(hass, floor, garden).shown, ["light.decke"]);
+  assert.deepEqual(roomPanelEntities(hass, floor, floor.rooms[0]).shown, ["cover.rollo"]);
 });
 
 test("window handles with three states, HomematicIP window_state and plain contacts", () => {

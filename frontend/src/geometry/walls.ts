@@ -313,6 +313,36 @@ export function generateWalls(rooms: readonly Room[], options: WallOptions, free
     }
   }
 
+  // … and the interior walls going on in the same line follow it to the same side: with only the first stretch moved,
+  // the wall jumped by half its thickness at the next junction – a corner that is not there, in plain view where the
+  // rooms beside it are open to each other (#1326). Where both ends ask for different sides a wall stays in the middle
+  const shifted = new Map<Draft, 1 | -1>();
+  for (const d of drafts) if (!d.exterior && !d.free && d.left + d.right > 0 && (d.left === 0 || d.right === 0)) shifted.set(d, d.left === 0 ? -1 : 1);
+  for (let again = true; again; ) {
+    again = false;
+    for (const d of drafts) {
+      if (d.exterior || d.free || shifted.has(d) || d.left !== d.right || d.left <= 0) continue;
+      const asked = new Set<1 | -1>();
+      for (const node of [d.a, d.b]) {
+        // the walls going on in line at this end: one of them moved, and none standing in the middle beside it
+        const inLine = drafts.filter((e) => e !== d && !e.free && (e.a === node || e.b === node) && Math.abs(cross(dir(d), dir(e))) <= 1e-6);
+        if (inLine.length !== 1 || inLine[0].exterior) continue;
+        const side = shifted.get(inLine[0]);
+        if (!side) continue;
+        // the same side in the plan: the other way round when the two run against each other
+        const along = dir(d)[0] * dir(inLine[0])[0] + dir(d)[1] * dir(inLine[0])[1];
+        asked.add(along > 0 ? side : (-side as 1 | -1));
+      }
+      if (asked.size !== 1) continue;
+      const t = d.left + d.right;
+      const side = [...asked][0];
+      d.left = side === 1 ? t : 0;
+      d.right = side === 1 ? 0 : t;
+      shifted.set(d, side);
+      again = true;
+    }
+  }
+
   // free walls: interior walls of the room they stand in (the same room on both sides)
   freeWalls.forEach((w, i) => {
     const [ia, ib] = freeIds[i];

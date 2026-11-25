@@ -14,6 +14,7 @@ from custom_components.neonplan3d.schema import (
     ROOM_SCHEMA,
     SETTINGS_SCHEMA,
     START_VIEW_SCHEMA,
+    image_ids,
 )
 
 ROOM = {"id": "r1", "name": "Bad", "area_id": None, "points": [[0, 0], [2, 0], [2, 2]], "floor_material": "tiles"}
@@ -443,3 +444,10 @@ def test_surroundings_from_the_map_are_kept_and_checked() -> None:
     assert picked["hide"] == [0] and picked["flat"] is True
     with pytest.raises(vol.Invalid):
         SETTINGS_SCHEMA({**base, "surroundings": {**surroundings, "hide": [-1]}})
+
+
+def test_frame_photos_count_as_used_images() -> None:
+    """A picture frame's stored photos are images of the plan; URLs among its sources are not (#1327)."""
+    frame = {"frame_kind": "photo", "frame_source": "pic_ab12cd34, https://x/y.jpg,pic_zz99zz99"}
+    building = {"floors": [{"background": None, "furniture": [frame, {"frame_source": None}, {}]}]}
+    assert image_ids(building) == {"pic_ab12cd34", "pic_zz99zz99"}

@@ -971,6 +971,17 @@ export function zonesOf(floor: Floor): Room[] {
   return [...floor.rooms, ...outdoorZones(floor)];
 }
 
+/**
+ * Whether a point of the floor belongs to a room: inside its outline, and not inside a smaller room or area lying in
+ * it. A garden drawn around the whole house took every device of the house for its own – its panel listed them and
+ * its "everything off" would have switched them (#1332); a room inside another keeps its devices to itself.
+ */
+export function inZone(floor: Floor, room: Room): (x: number, z: number) => boolean {
+  const size = Math.abs(polygonArea(room.points));
+  const inner = zonesOf(floor).filter((r) => r.id !== room.id && r.points.length >= 3 && (room.outdoor && !r.outdoor ? true : Math.abs(polygonArea(r.points)) < size - 0.01));
+  return (x, z) => pointInPolygon([x, z], room.points) && !inner.some((r) => pointInPolygon([x, z], r.points));
+}
+
 /** The directions an area can fall towards: +x (right in the plan), −x, +z (down in the plan), −z. */
 export const SLOPE_DIRS = ["x", "-x", "z", "-z"] as const;
 export type SlopeDir = (typeof SLOPE_DIRS)[number];

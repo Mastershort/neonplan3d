@@ -1206,7 +1206,7 @@ def empty_building() -> dict:
 
 
 def image_ids(building: dict) -> set[str]:
-    """Return the ids of all images a building refers to: floor backgrounds and screen pictures."""
+    """Return the ids of all images a building refers to: floor backgrounds, screen pictures, frame photos."""
     ids = {floor["background"]["image_id"] for floor in building.get("floors", []) if floor.get("background")}
     for floor in building.get("floors", []):
         for item in floor.get("furniture", []):
@@ -1214,4 +1214,9 @@ def image_ids(building: dict) -> set[str]:
                 # a URL or a camera ("camera:<entity>") is no stored image
                 if not rule["image"].startswith(("http://", "https://", "camera:")):
                     ids.add(rule["image"])
+            # a digital picture frame's stored photos (ids among its sources, next to URLs): left out here they
+            # were cleared away as unused at the next start and the frame stayed grey (#1327)
+            for source in (item.get("frame_source") or "").split(","):
+                if source.strip().startswith("pic_"):
+                    ids.add(source.strip())
     return ids

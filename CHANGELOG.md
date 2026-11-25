@@ -9,6 +9,9 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 ### Fixed
 - **Stairs from the stairs pack came 3.8 m tall** whatever the storey. Placed anew, they now reach exactly to the next floor, like the built-in stairs; stairs already in the plan keep the height they have (#1229, reported by skywalker0403).
 - **A card's start view for a screen held upright did nothing in a plan with one floor:** turning the tablet (or changing `start_view`) moved the camera only in the house view, and a plan with a single floor always shows that floor. It now applies there too, as long as no room is open (#1321, reported by bpaludo).
+- **A garden drawn around the whole house took the house's devices for its own:** its room panel listed lamps, thermostats and sensors of the rooms inside it, and its "everything off" would have switched them. A device now belongs to the innermost room or area it stands in; a room drawn inside another keeps its devices to itself in the same way (#1332).
+- **A digital picture frame lost its uploaded photos at the next restart of Home Assistant:** the frame stayed grey. Stored photos of a frame were not counted as used and were cleared away at start. They stay now; photos already lost have to be uploaded once more (#1327).
+- **An interior wall jumped by half its thickness at a junction** when it ran on in line with an outer wall: only its first stretch stood flush with the outer wall, the next one in the middle again – a corner that is not there, plain to see where the rooms beside it are open to each other. The whole run now stands on the same side (#1326).
 
 ## 4.0.2
 
