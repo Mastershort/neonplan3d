@@ -12,6 +12,8 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 - **A garden drawn around the whole house took the house's devices for its own:** its room panel listed lamps, thermostats and sensors of the rooms inside it, and its "everything off" would have switched them. A device now belongs to the innermost room or area it stands in; a room drawn inside another keeps its devices to itself in the same way (#1332).
 - **A digital picture frame lost its uploaded photos at the next restart of Home Assistant:** the frame stayed grey. Stored photos of a frame were not counted as used and were cleared away at start. They stay now; photos already lost have to be uploaded once more (#1327).
 - **An interior wall jumped by half its thickness at a junction** when it ran on in line with an outer wall: only its first stretch stood flush with the outer wall, the next one in the middle again – a corner that is not there, plain to see where the rooms beside it are open to each other. The whole run now stands on the same side (#1326).
+- **A dormer's side walls hung over the bed as slanting triangles** in the floor and room view, where the slope around them is gone. They now show there only where they stand on the floor like walls (a bay); a dormer high up on the slope keeps its window, and its cheeks come back with the roof (#1315).
+- **Snow on the roof showed inside the rooms under a dormer** as slanting white planes: it lay on the whole slope, also under the dormer, and on the part of the dormer's roof that runs on inside the main roof. No snow lies any more where another roof face is above the spot (#1324).
 
 ## 4.0.2
 

@@ -230,6 +230,9 @@ export interface FlowPiece {
   floor?: boolean;
 }
 
+/** A dormer's cheeks stay in the floor view when they start no higher than this above the floor (m). */
+const CHEEK_FOOT = 0.6;
+
 /** A see-through surface over an area of a floor (floor coordinates): a module's tint on a room, soil under a lawn. */
 export interface PatchPiece {
   floorId: string;
@@ -661,7 +664,7 @@ export class FloorplanViewer {
   private roof: {
     group: Group;
     /** low: the lowest point of the part's roof body above its base (the eaves). */
-    parts: { group: Group; floorId: string; rideId: string; base: number; low: number; lift: boolean; win: Group | null; cheeks: Mesh | null; attic: boolean }[];
+    parts: { group: Group; floorId: string; rideId: string; base: number; low: number; lift: boolean; win: Group | null; cheeks: Mesh | null; cheekFoot: number; attic: boolean }[];
     /** Roof windows over rooms of a lower floor: they follow that floor (#482). */
     below: { floorId: string; win: Group }[];
     solid: MeshBasicMaterial;
@@ -3526,8 +3529,10 @@ export class FloorplanViewer {
       }
       // winter: snow on the faces of this part
       if (this.roofSnow > 0) {
+        const sectionCount = new Set([...faces.values()].map((face) => face.section)).size;
         const mine = [...faces.values()].filter((face) => (face.section ? geo.sections?.includes(face.section) : geo === geos[0]));
-        const snow = roofSnowGeometry(mine, geo.floor.elevation + geo.base);
+        // (each face against all the roof's faces: nothing under a dormer, nothing inside the main roof)
+        const snow = roofSnowGeometry(mine, geo.floor.elevation + geo.base, sectionCount > 1 ? [...faces.values()] : []);
         if (snow) {
           this.snowMat ??= new MeshBasicMaterial({ color: 0xf1f5ff, transparent: true, side: DoubleSide, forceSinglePass: true, depthWrite: false });
           this.snowMat.opacity = 0.85 * this.roofSnow;
@@ -3570,9 +3575,13 @@ export class FloorplanViewer {
       }
       // a dormer's cheeks: their own mesh, so the house view can lift them with the roof and the floor view keep them
       let cheeks: Mesh | null = null;
+      let cheekFoot = 0;
       if (geo.cheeks?.count) {
         cheeks = new Mesh(geo.cheeks.geometry(), winSolid);
         wins.add(cheeks);
+        // how far above the floor they start: a bay's walls stand on it, a dormer's hang high up on the slope
+        cheeks.geometry.computeBoundingBox();
+        cheekFoot = geo.base + (cheeks.geometry.boundingBox?.min.y ?? 0);
       }
       for (const [floorId, w] of geo.winBelow ?? []) {
         if (!w.solid.count && !w.glass.count) continue;
@@ -3589,7 +3598,7 @@ export class FloorplanViewer {
         const y = c.geometry.boundingBox?.min.y;
         if (y !== undefined && Number.isFinite(y)) low = Math.min(low, y);
       }
-      return { group: part, floorId: geo.floor.id, rideId: roofRider(this.building!, geo.floor, geo.sections ?? []), base: geo.base, low: Number.isFinite(low) ? low : 0, lift: geo.lift !== false, win, cheeks, attic: !!geo.attic };
+      return { group: part, floorId: geo.floor.id, rideId: roofRider(this.building!, geo.floor, geo.sections ?? []), base: geo.base, low: Number.isFinite(low) ? low : 0, lift: geo.lift !== false, win, cheeks, cheekFoot, attic: !!geo.attic };
     });
     group.renderOrder = 8;
     this.scene.add(group);
@@ -3640,8 +3649,10 @@ export class FloorplanViewer {
       // the room below while the roof was lifted, #1167); in the floor view they stay as the room's walls
       if (part.cheeks) {
         part.cheeks.position.y = house ? part.group.position.y : fv.floor.elevation + ride.y + part.base + gap;
-        // (only an attic's: over a floor with its own ceiling they stood in its rooms or floated over it, #1167)
-        part.cheeks.visible = fv.group.visible && fv.o > 0.5 && this.wallMode !== "cut" && (house ? this.roofO > ROOF_OPACITY * 0.6 : part.attic);
+        // (only an attic's: over a floor with its own ceiling they stood in its rooms or floated over it, #1167 –
+        // and only where they stand on the floor like walls: a dormer high up on the slope left its cheeks hanging
+        // over the bed as slanting triangles once the slope around them was gone, #1315)
+        part.cheeks.visible = fv.group.visible && fv.o > 0.5 && this.wallMode !== "cut" && (house ? this.roofO > ROOF_OPACITY * 0.6 : part.attic && part.cheekFoot <= CHEEK_FOOT);
       }
     }
     // windows in a slope over a lower floor: with that floor, wherever it glides

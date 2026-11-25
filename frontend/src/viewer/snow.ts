@@ -68,11 +68,32 @@ export function roofLightPoints(faces: readonly RoofFace[], dy: number, colourfu
   return p.length ? { positions: new Float32Array(p), colors: new Float32Array(c) } : null;
 }
 
-/** The snow layer of these faces; heights are taken `dy` lower (the roof part's own origin). Null without faces. */
-export function roofSnowGeometry(faces: readonly RoofFace[], dy: number): BufferGeometry | null {
+/**
+ * The snow layer of these faces; heights are taken `dy` lower (the roof part's own origin). Null without faces.
+ * `others` are the faces of the other roof sections: no snow lies where one of them is above the spot – the slope
+ * under a dormer, and the rear of a dormer's own roof that runs on inside the main roof. Drawn there it showed in
+ * the room below as slanting white planes (#1324).
+ */
+export function roofSnowGeometry(faces: readonly RoofFace[], dy: number, others: readonly RoofFace[] = []): BufferGeometry | null {
   const p: number[] = [];
   const LIFT = 0.035;
   const STRIPS = 6;
+  const over = others.filter((f) => !f.unbounded && !f.wall && f.ls > 0).map((f) => {
+    const eu2 = f.eu[0] * f.eu[0] + f.eu[2] * f.eu[2];
+    const es2 = f.es[0] * f.es[0] + f.es[2] * f.es[2];
+    /** The face's height over a point of the ground; null beside it. */
+    return (x: number, z: number): number | null => {
+      if (eu2 < 1e-9 || es2 < 1e-9) return null;
+      const dx = x - f.o[0];
+      const dz = z - f.o[2];
+      const sl = (dx * f.es[0] + dz * f.es[2]) / es2;
+      if (sl < 0 || sl > f.ls) return null;
+      const u = (dx * f.eu[0] + dz * f.eu[2]) / eu2;
+      const [u0, u1] = f.span(sl);
+      return u < u0 || u > u1 ? null : f.o[1] + f.es[1] * sl + f.eu[1] * u;
+    };
+  });
+  const covered = (q: number[]) => over.some((h) => (h(q[0], q[2]) ?? -Infinity) > q[1] + dy + 0.02);
   for (const f of faces) {
     if (f.unbounded || f.wall || f.ls <= 0) continue;
     const at = (u: number, s: number) => [
@@ -80,14 +101,22 @@ export function roofSnowGeometry(faces: readonly RoofFace[], dy: number): Buffer
       f.o[1] + f.eu[1] * u + f.es[1] * s + f.n[1] * LIFT - dy,
       f.o[2] + f.eu[2] * u + f.es[2] * s + f.n[2] * LIFT,
     ];
-    for (let k = 0; k < STRIPS; k++) {
-      const s0 = (f.ls * k) / STRIPS;
-      const s1 = (f.ls * (k + 1)) / STRIPS;
+    // with other sections about, in small cells that can be left out one by one
+    const strips = over.length ? Math.max(STRIPS, Math.ceil(f.ls / 0.3)) : STRIPS;
+    for (let k = 0; k < strips; k++) {
+      const s0 = (f.ls * k) / strips;
+      const s1 = (f.ls * (k + 1)) / strips;
       const [a0, b0] = f.span(s0);
       const [a1, b1] = f.span(s1);
       if (b0 <= a0 && b1 <= a1) continue;
-      const q = [at(a0, s0), at(b0, s0), at(b1, s1), at(a1, s1)];
-      for (const i of [0, 1, 2, 0, 2, 3]) p.push(...q[i]);
+      const cells = over.length ? Math.max(1, Math.ceil(Math.max(b0 - a0, b1 - a1) / 0.3)) : 1;
+      for (let c = 0; c < cells; c++) {
+        const t0 = c / cells;
+        const t1 = (c + 1) / cells;
+        const q = [at(a0 + (b0 - a0) * t0, s0), at(a0 + (b0 - a0) * t1, s0), at(a1 + (b1 - a1) * t1, s1), at(a1 + (b1 - a1) * t0, s1)];
+        if (over.length && covered([(q[0][0] + q[2][0]) / 2, (q[0][1] + q[2][1]) / 2, (q[0][2] + q[2][2]) / 2])) continue;
+        for (const i of [0, 1, 2, 0, 2, 3]) p.push(...q[i]);
+      }
     }
   }
   if (!p.length) return null;
