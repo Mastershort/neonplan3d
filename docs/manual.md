@@ -1546,6 +1546,7 @@ accent: "#ff8a00"       # an accent colour of your own (neon lines, buttons, pin
 markers: important      # none | room | important | all
 marker_size: normal     # small | normal | large
 marker_names: false     # true: devices with an own name show it under their marker
+view_only: false        # since 4.0.3, true: view only – the card shows everything but switches nothing (against accidental taps on a wall tablet); the room panel shows its controls locked
 central: true           # the star with the central menu (all lights, blinds, favourites)
 buttons:                # own buttons for this card only (replace the ones from the editor)
   - label: Blinds

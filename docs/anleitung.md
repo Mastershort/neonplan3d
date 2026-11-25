@@ -1546,6 +1546,7 @@ accent: "#ff8a00"       # eigene Akzentfarbe (Linien im Neon-Look, Knöpfe, Pins
 markers: important      # none | room | important | all
 marker_size: normal     # small | normal | large
 marker_names: false     # true: Geräte mit eigenem Namen zeigen ihn unter dem Symbol
+view_only: false        # seit 4.0.3, true: nur ansehen – die Karte zeigt alles, schaltet aber nichts (gegen versehentliches Tippen am Wandtablet); das Raumfenster zeigt seine Bedienung gesperrt
 central: true           # der Stern mit dem Zentral-Menü (alle Lichter, Rollläden, Favoriten)
 buttons:                # eigene Knöpfe nur für diese Karte (ersetzen die aus dem Editor)
   - label: Rollos
