@@ -348,6 +348,7 @@ export class Fp3dView3d extends LitElement {
     popupValues: { state: true },
     _settingsOpen: { state: true },
     _note: { state: true },
+    _tourStop: { state: true },
     _thumbsCompact: { state: true },
     _armed: { state: true },
     central: { attribute: false },
@@ -680,6 +681,8 @@ export class Fp3dView3d extends LitElement {
   private declare _settingsOpen: boolean;
   /** A short note at the bottom (a module's "sent"), with its timer. */
   private declare _note: string | null;
+  /** What the tour is looking at now (a module's flight through the house): its words and "2 / 5". */
+  private declare _tourStop: { text: string; step: string } | null;
   private noteTimer: ReturnType<typeof setTimeout> | undefined;
   /** The people shown in the last sync (for the rooms someone is in). */
   private lastPersons: { id: string; floorId: string; roomId: string }[] = [];
@@ -833,6 +836,7 @@ export class Fp3dView3d extends LitElement {
     this._sheet = null;
     this._settingsOpen = false;
     this._note = null;
+    this._tourStop = null;
     this._popup = null;
     this.popupValues = {};
     try {
@@ -5157,7 +5161,7 @@ export class Fp3dView3d extends LitElement {
    * Where an opening of the plan is: the middle of its frame at the height of its middle, and from which side to
    * look at it – from inside its room (null: not drawn).
    */
-  private openingSpot(b: Building, openingId: string, lock = false): { floorId: string; x: number; z: number; y: number; theta: number } | null {
+  private openingSpot(b: Building, openingId: string, lock = false): { floorId: string; x: number; z: number; y: number; theta: number; depth: number } | null {
     for (const floor of b.floors) {
       const o = floor.openings.find((x) => x.id === openingId);
       if (!o) continue;
@@ -5179,8 +5183,20 @@ export class Fp3dView3d extends LitElement {
         along = o.offset - o.width / 2 + lockAlong(o, (o.hinge === "left") === startIsLeft);
       }
       const [x, z] = pointOnRoomEdge(host.room, host.edge, along);
+      // how far the room reaches in front of the opening: the nearest of its edges a ray along n meets
+      let depth = Infinity;
+      for (let i = 0; i < pts.length; i++) {
+        if (i === host.edge) continue;
+        const a = pts[i];
+        const e = [pts[(i + 1) % pts.length][0] - a[0], pts[(i + 1) % pts.length][1] - a[1]];
+        const det = e[0] * n[1] - e[1] * n[0];
+        if (Math.abs(det) < 1e-9) continue;
+        const along2 = (e[0] * (a[1] - z) - e[1] * (a[0] - x)) / det;
+        const on = (n[0] * (a[1] - z) - n[1] * (a[0] - x)) / det;
+        if (along2 > 0.05 && on >= 0 && on <= 1) depth = Math.min(depth, along2);
+      }
       // the camera stands on the room side: its horizontal offset from the target points along n
-      return { floorId: floor.id, x: x + n[0] * 0.2, z: z + n[1] * 0.2, y: Math.max(0.5, o.sill + o.height / 2), theta: Math.atan2(n[0], n[1]) };
+      return { floorId: floor.id, x: x + n[0] * 0.2, z: z + n[1] * 0.2, y: Math.max(0.5, o.sill + o.height / 2), theta: Math.atan2(n[0], n[1]), depth };
     }
     return null;
   }
@@ -5231,7 +5247,7 @@ export class Fp3dView3d extends LitElement {
           return spot ? { ...spot, entity: null as string | null, say: s.say, inside: true } : null;
         }
         const item = items.get(s.entity ?? `furniture:${s.furnitureId}`);
-        return item ? { floorId: item.floorId, x: item.x, z: item.z, y: item.y, theta: undefined as number | undefined, entity: item.entity, say: s.say, inside: false } : null;
+        return item ? { floorId: item.floorId, x: item.x, z: item.z, y: item.y, theta: undefined as number | undefined, depth: Infinity, entity: item.entity, say: s.say, inside: false } : null;
       })
       .filter((s): s is NonNullable<typeof s> => !!s)
       .slice(0, 8);
@@ -5240,18 +5256,23 @@ export class Fp3dView3d extends LitElement {
     const stop = () => {
       this.tourToken++;
       clearTimeout(this.tourTimer);
+      this._tourStop = null;
     };
     stage?.addEventListener("pointerdown", stop, { once: true });
     const wait = (ms: number) => new Promise<void>((r) => (this.tourTimer = setTimeout(r, ms)));
-    for (const s of spots) {
+    for (const [i, s] of spots.entries()) {
       if (token !== this.tourToken) break;
+      // what this stop is stands in the picture while the view is there (in a large house the flight alone does not tell)
+      this._tourStop = s.say ? { text: s.say, step: spots.length > 1 ? `${i + 1} / ${spots.length}` : "" } : null;
       if (this.floorId !== s.floorId) {
         this.fire("floor-tap", { floorId: s.floorId });
         await wait(150);
       }
       if (token !== this.tourToken) break;
-      // an opening is looked at from inside its room, closer and lower than a device
-      this.viewer?.focus(s.floorId, s.x, s.z, s.y, s.entity, s.inside ? { radius: 3.2, phi: 1.05, theta: s.theta } : undefined);
+      // an opening is looked at from inside its room, closer and lower than a device. In a room less deep than the
+      // camera stands back it would look at the back of the opposite wall: there it looks more from above instead
+      const flat = Math.min(1, Math.max(0.3, (s.depth - 0.4) / 3.2));
+      this.viewer?.focus(s.floorId, s.x, s.z, s.y, s.entity, s.inside ? { radius: 3.2, phi: Math.min(1.05, Math.asin(flat)), theta: s.theta } : undefined);
       await wait(900);
       if (token !== this.tourToken) break;
       // the words of this stop are spoken here, and the next stop waits for them
@@ -5259,6 +5280,7 @@ export class Fp3dView3d extends LitElement {
       if (token !== this.tourToken) break;
       await wait(spoken ? 1200 : 2600);
     }
+    if (token === this.tourToken) this._tourStop = null;
     stage?.removeEventListener("pointerdown", stop);
   }
 
@@ -5917,6 +5939,11 @@ export class Fp3dView3d extends LitElement {
 
   private renderNote() {
     return this._note ? html`<div class="fp3d-note" role="status">${this._note}</div>` : nothing;
+  }
+
+  private renderTourStop() {
+    const s = this._tourStop;
+    return s ? html`<div class="fp3d-tour-stop" role="status">${s.step ? html`<span class="fp3d-tour-step">${s.step}</span>` : nothing}${s.text}</div>` : nothing;
   }
 
   private spokenAlerts(hass: HomeAssistant, b: Building): SpokenAlert[] {
@@ -6626,7 +6653,7 @@ export class Fp3dView3d extends LitElement {
       ${this.renderZoomBackground()}
       ${this._error ? html`<p class="fp3d-error">${this._error}</p>` : nothing} ${this.clean ? nothing : this.renderEnergy()} ${this.renderHologram()} ${this.clean ? nothing : this.renderLegend()}
       ${this.clean && this._find !== null && !this._walk ? this.renderFind() : nothing}
-      ${this.renderClock()} ${this.renderAlerts()} ${this.clean || this._walk ? nothing : html`${this.renderHousehold()} ${this.renderThumbs()} ${this.renderScenes()} ${this.renderFind()} ${this.renderCentral()}`} ${this.clean ? nothing : this.renderWalk()} ${this.renderSwipe()} ${this.renderInfo()} ${this.renderBinInfo()} ${this.renderGangMenu()} ${this.renderThrough()} ${this.renderCamPop()} ${this.renderCameraWall()} ${this.renderSheet()} ${this.renderModulePopup()} ${this.renderSettings()} ${this.renderNote()}
+      ${this.renderClock()} ${this.renderAlerts()} ${this.clean || this._walk ? nothing : html`${this.renderHousehold()} ${this.renderThumbs()} ${this.renderScenes()} ${this.renderFind()} ${this.renderCentral()}`} ${this.clean ? nothing : this.renderWalk()} ${this.renderSwipe()} ${this.renderInfo()} ${this.renderBinInfo()} ${this.renderGangMenu()} ${this.renderThrough()} ${this.renderCamPop()} ${this.renderCameraWall()} ${this.renderSheet()} ${this.renderModulePopup()} ${this.renderSettings()} ${this.renderNote()} ${this.renderTourStop()}
       ${this.clean ? nothing : this.renderProHint()} ${this.renderMenu()} ${this.renderEye()} ${this.building?.settings.surroundings?.on && this.surroundings ? html`<a class="fp3d-osm-credit" href=${OSM_COPYRIGHT} target="_blank" rel="noopener">© OpenStreetMap</a>` : nothing}
       ${this.renderMic()} ${this.renderFlyIn()}
       ${this._spotHint ? html`<button class="fp3d-spot-hint" @click=${() => this.viewer?.pickSpot(null)}>📍 ${this._spotHint} <span aria-hidden="true">✕</span></button>` : nothing}
@@ -8241,6 +8268,31 @@ export class Fp3dView3d extends LitElement {
         box-shadow: var(--fp3d-shadow);
         z-index: 9;
         pointer-events: none;
+      }
+      /* a tour's stop: what the view is looking at, large enough to read from across the room */
+      .fp3d-tour-stop {
+        position: absolute;
+        left: 50%;
+        top: calc(64px + env(safe-area-inset-top, 0px));
+        transform: translateX(-50%);
+        max-width: calc(100% - 32px);
+        padding: 10px 18px;
+        border-radius: 14px;
+        background: rgba(6, 12, 24, 0.82);
+        border: 1px solid rgba(62, 232, 255, 0.6);
+        box-shadow: 0 0 22px rgba(62, 232, 255, 0.25);
+        color: #e6ecff;
+        font-size: 18px;
+        font-weight: 600;
+        text-align: center;
+        z-index: 9;
+        pointer-events: none;
+      }
+      .fp3d-tour-step {
+        margin-right: 10px;
+        font-size: 13px;
+        font-weight: 400;
+        opacity: 0.7;
       }
       /* a camera's new detection as a small picture (#442) */
       .fp3d-campop {
