@@ -154,6 +154,25 @@ test("doors and windows get blinds and contacts of their room's area, or the one
   assert.deepEqual(links.get("d"), { cover: null, contact: "binary_sensor.tuer", tilt: null, contact2: null, tilt2: null, position: null, positionInverted: false, tiltAngle: null, tiltMax: null, tiltOffset: null, tiltInvert: false, shut: false, lock: null });
 });
 
+test("a heating valve that reports \"opening\" is no window contact; a window sensor of that class still is (#1339)", () => {
+  const add = (hass: HomeAssistant, id: string, name: string) => {
+    hass.entities![id] = { entity_id: id, area_id: "wohnen" };
+    hass.states[id] = { entity_id: id, state: "on", attributes: { device_class: "opening", friendly_name: name } };
+  };
+  const hass = hassWith();
+  add(hass, "binary_sensor.wohnen_stellantrieb", "Wohnen Stellantrieb");
+  const win = (id: string): Opening => ({ id, room_id: "r", edge: 0, offset: 1, width: 1, type: "window", sill: 0.9, height: 1.3, hinge: "left", leaves: 1, swing: "in", cover: "none", contact: null, contact2: null, tilt: null });
+  const floor: Floor = { ...newFloor("f", "F", 0), rooms: [{ ...room, area_id: "wohnen" }], openings: [win("w")] };
+  assert.equal(openingEntities(hass, [floor]).get("w")?.contact, null);
+  // a real window sensor of the same class is taken, also one in a room named after the heating
+  const both = hassWith();
+  add(both, "binary_sensor.wohnen_stellantrieb", "Wohnen Stellantrieb");
+  add(both, "binary_sensor.heizungsraum_fenster", "Heizungsraum Fenster");
+  assert.equal(openingEntities(both, [floor]).get("w")?.contact, "binary_sensor.heizungsraum_fenster");
+  // chosen by hand, the actuator still works
+  assert.equal(openingEntities(hass, [{ ...floor, openings: [{ ...win("w"), contact: "binary_sensor.wohnen_stellantrieb" }] }]).get("w")?.contact, "binary_sensor.wohnen_stellantrieb");
+});
+
 test("a position sensor drives the blind live, as a percentage or a fraction", () => {
   const hass = hassWith();
   hass.states["cover.rollo"] = { entity_id: "cover.rollo", state: "closing", attributes: { current_position: 100 } };

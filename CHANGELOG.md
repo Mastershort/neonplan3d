@@ -19,6 +19,7 @@ A fix round with one new switch: a garden around the house no longer takes the h
 - **An interior wall jumped by half its thickness at a junction** when it ran on in line with an outer wall: only its first stretch stood flush with the outer wall, the next one in the middle again – a corner that is not there, plain to see where the rooms beside it are open to each other. The whole run now stands on the same side (#1326).
 - **A dormer's side walls hung over the bed as slanting triangles** in the floor and room view, where the slope around them is gone. They now show there only where they stand on the floor like walls (a bay); a dormer high up on the slope keeps its window, and its cheeks come back with the roof (#1315).
 - **Snow on the roof showed inside the rooms under a dormer** as slanting white planes: it lay on the whole slope, also under the dormer, and on the part of the dormer's roof that runs on inside the main roof. No snow lies any more where another roof face is above the spot (#1324).
+- **A heating valve was taken for a window sensor:** a window without a sensor of its own takes a contact of its room's area by itself, and a valve or actuator that reports "opening" was one of them – the window stood open in 3D whenever the room heated, and the window watch warned of heating with a window open in a house without a single window sensor. Valves and actuators are left out of that; chosen by hand they still work (#1339).
 
 ## 4.0.2
 

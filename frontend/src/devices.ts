@@ -686,6 +686,21 @@ export function autoPlace(room: Room, entityIds: readonly string[], taken: reado
 const COVER_CLASSES = new Set([undefined, "shutter", "blind", "awning", "shade", "curtain", "window"]);
 const GARAGE_COVERS = new Set(["garage", "gate"]);
 const WINDOW_CONTACTS = new Set(["window", "opening"]);
+/**
+ * An "opening" that is no window: a heating valve or its actuator reports open the same way. Matched to a window by
+ * itself, the window stood open in 3D whenever the room heated, and the window watch warned of heating with a
+ * window open in a house without a single window sensor (#1339). Told by its name; chosen by hand it still works.
+ */
+const NO_WINDOW = /valve|ventil|actuator|aktor|stellantrieb|klep/i;
+const A_WINDOW = /window|fenster|raam|fen[eê]tre|finestra|ventana/i;
+const isWindowContact = (hass: HomeAssistant, id: string): boolean => {
+  const st = hass.states[id];
+  const cls = st?.attributes.device_class as string | undefined;
+  if (!cls || !WINDOW_CONTACTS.has(cls)) return false;
+  if (cls === "window") return true;
+  const name = `${id} ${String(st?.attributes.friendly_name ?? "")}`;
+  return !NO_WINDOW.test(name) || A_WINDOW.test(name);
+};
 
 export interface OpeningEntities {
   cover: string | null;
@@ -766,7 +781,7 @@ export function openingEntities(hass: HomeAssistant, floors: readonly Floor[]): 
       const garages = own.filter((o) => o.type === "garage");
       // one blind for the whole room (e.g. a group) serves every window; a sensor belongs to one window
       const autoCover = pair(windows, covers, true);
-      const autoWindow = pair(windows, ids.filter((id) => kindOf(id) === "binary" && WINDOW_CONTACTS.has(cls(id)!)));
+      const autoWindow = pair(windows, ids.filter((id) => kindOf(id) === "binary" && isWindowContact(hass, id)));
       const autoDoor = pair(doors, ids.filter((id) => kindOf(id) === "binary" && cls(id) === "door"));
       const autoGarageCover = pair(garages, ids.filter((id) => kindOf(id) === "cover" && GARAGE_COVERS.has(cls(id) ?? "")));
       const autoGarageContact = pair(garages, ids.filter((id) => kindOf(id) === "binary" && cls(id) === "garage_door"));
