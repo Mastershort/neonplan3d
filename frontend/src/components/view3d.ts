@@ -5269,10 +5269,11 @@ export class Fp3dView3d extends LitElement {
         await wait(150);
       }
       if (token !== this.tourToken) break;
-      // an opening is looked at from inside its room, closer and lower than a device. In a room less deep than the
-      // camera stands back it would look at the back of the opposite wall: there it looks more from above instead
-      const flat = Math.min(1, Math.max(0.3, (s.depth - 0.4) / 3.2));
-      this.viewer?.focus(s.floorId, s.x, s.z, s.y, s.entity, s.inside ? { radius: 3.2, phi: Math.min(1.05, Math.asin(flat)), theta: s.theta } : undefined);
+      // an opening is looked at from inside its room, from above and far enough back that the room around it tells
+      // which one it is (a close-up of a window says little in a large house). In a room less deep than the camera
+      // stands back it would look at the back of the opposite wall: there it looks more from above instead
+      const flat = Math.min(1, Math.max(0.3, (s.depth - 0.4) / 6.5));
+      this.viewer?.focus(s.floorId, s.x, s.z, s.y, s.entity, s.inside ? { radius: 6.5, phi: Math.min(0.72, Math.asin(flat)), theta: s.theta } : undefined);
       await wait(900);
       if (token !== this.tourToken) break;
       // the words of this stop are spoken here, and the next stop waits for them

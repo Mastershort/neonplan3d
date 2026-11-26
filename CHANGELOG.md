@@ -10,7 +10,7 @@ A fix round with one new switch: a garden around the house no longer takes the h
 
 ### New
 - **View only, for wall tablets:** a card with `view_only: true` (card editor: *View only*) shows everything but switches nothing – a touch cannot turn a lamp on or off by accident, the room panel shows its controls locked. Off by default; Home Assistant's own details dialog is not part of the card and stays as it is.
-- **A flight through the house says what it is looking at:** when a module flies from one open window or lamp to the next, each stop's words now stand in the picture with its number ("2 / 5") – in a large house the flight alone does not tell which window it is. In a room too shallow for the camera to stand back, it looks from above instead of at the back of the opposite wall.
+- **A flight through the house says what it is looking at:** when a module flies from one open window or lamp to the next, each stop's words now stand in the picture with its number ("2 / 5") – in a large house the flight alone does not tell which window it is. The view also stands farther back and higher, so the room around a window shows which one it is, and in a shallow room it no longer looks at the back of the opposite wall.
 
 ### Fixed
 - **Stairs from the stairs pack came 3.8 m tall** whatever the storey. Placed anew, they now reach exactly to the next floor, like the built-in stairs; stairs already in the plan keep the height they have (#1229, reported by skywalker0403).
