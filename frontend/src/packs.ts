@@ -333,6 +333,7 @@ const PACK_NAMES_EN: Record<string, string> = {
   announce: "Module: Announcements",
   voice_answers: "Module: The house answers",
   window_watch: "Module: Window watch",
+  leave_check: "Module: Leave check",
 };
 
 /** A pack's name in the user's language: our own packs in English outside German, others as they come. */
