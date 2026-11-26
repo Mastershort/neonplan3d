@@ -5,7 +5,7 @@
   "codeowners": ["@Mastershort"],
   "config_flow": true,
   "dependencies": ["frontend", "http", "panel_custom", "websocket_api"],
-  "documentation": "https://mastershort.de/en/neonplan3d/manual/",
+  "documentation": "https://neonplan.app/manual/",
   "integration_type": "service",
   "iot_class": "calculated",
   "issue_tracker": "https://github.com/mastershort/neonplan3d/issues",

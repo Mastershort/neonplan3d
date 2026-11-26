@@ -15,7 +15,7 @@ Lights glow in their colours, blinds move, doors open, cameras watch, energy flo
 [![Runs locally](https://img.shields.io/badge/cloud-none%20needed-8a2be2)](#privacy)
 [![Discord](https://img.shields.io/badge/Discord-community-5865F2?logo=discord&logoColor=white)](https://discord.gg/SSdVVFsev7)
 
-**[▶️ Try the online demo](https://neonplan3d.mastershort.de/)** · **[📖 Manual](https://mastershort.de/en/neonplan3d/manual/?lang=en)** · **[📖 Anleitung](https://mastershort.de/neonplan3d/anleitung/?lang=de)** · **[💬 Discord](https://discord.gg/SSdVVFsev7)**
+**[▶️ Try the online demo](https://neonplan3d.mastershort.de/)** · **[📖 Manual](https://neonplan.app/manual/)** · **[📖 Anleitung](https://neonplan.app/de/anleitung/)** · **[💬 Discord](https://discord.gg/SSdVVFsev7)**
 
 ## Neon was just the beginning.
 

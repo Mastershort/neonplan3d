@@ -8,7 +8,7 @@ var ae=globalThis,se=ae.ShadowRoot&&(ae.ShadyCSS===void 0||ae.ShadyCSS.nativeSha
       <nav>${n.map(([i,o])=>g`<button class=${this._step===i?"on":""} @click=${()=>this._step=i}>${o}</button>`)}</nav>
       ${this._error?g`<pre class="err">${this._error}</pre>`:v}
       ${t?t.bluetooth?this.renderStep(t):g`<p>${e.no_bt}</p>`:g`<p>…</p>`}
-    </div>`}manualLink(){return this.hass?.language?.startsWith("de")?"https://mastershort.de/neonplan3d/anleitung/3d-ansicht/#511-ortung-neu":"https://mastershort.de/en/neonplan3d/manual/3d-view/#511-locating-new"}renderStep(e){switch(this._step){case"scanners":return this.renderScanners(e);case"devices":return this.renderDevices(e);case"walk":return this.renderWalk(e);default:return this.renderLive(e)}}roomSelect(e,t){let n=[...new Set(this.rooms.map(i=>i.floor))];return g`<select @change=${i=>t(i.target.value||null)}>
+    </div>`}manualLink(){return this.hass?.language?.startsWith("de")?"https://neonplan.app/de/anleitung/5-die-3d-ansicht/#511-ortung-neu":"https://neonplan.app/manual/5-the-3d-view/#511-locating-new"}renderStep(e){switch(this._step){case"scanners":return this.renderScanners(e);case"devices":return this.renderDevices(e);case"walk":return this.renderWalk(e);default:return this.renderLive(e)}}roomSelect(e,t){let n=[...new Set(this.rooms.map(i=>i.floor))];return g`<select @change=${i=>t(i.target.value||null)}>
       <option value="" ?selected=${!e}>${this.t.not_placed}</option>
       ${n.map(i=>g`<optgroup label=${i}>${this.rooms.filter(o=>o.floor===i).map(o=>g`<option value=${o.id} ?selected=${o.id===e}>${o.name}</option>`)}</optgroup>`)}
     </select>`}renderScanners(e){let t=this.t,n=new Set(Object.values(e.scanner_rooms)),i=this.rooms.filter(o=>!n.has(o.id));return g`<p>${t.scanners_intro}</p>

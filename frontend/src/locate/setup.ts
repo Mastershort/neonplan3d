@@ -2018,7 +2018,7 @@ export class LocateSetup extends LitElement {
 
   private manualLink(): string {
     const de = this.hass?.language?.startsWith("de");
-    return de ? "https://mastershort.de/neonplan3d/anleitung/3d-ansicht/#511-ortung-neu" : "https://mastershort.de/en/neonplan3d/manual/3d-view/#511-locating-new";
+    return de ? "https://neonplan.app/de/anleitung/5-die-3d-ansicht/#511-ortung-neu" : "https://neonplan.app/manual/5-the-3d-view/#511-locating-new";
   }
 
   private renderStep(cfg: Config) {

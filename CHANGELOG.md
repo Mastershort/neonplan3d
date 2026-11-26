@@ -6,6 +6,9 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 
 ## Unreleased
 
+### Changed
+- **The manual links lead to neonplan.app:** the links to the manual in NeonPlan (extensions page, Pro add-ons, locating), in the integration's entry and in the README now open the manual on neonplan.app, where it is built from the repository with every release.
+
 ### Fixed
 - **The live director stayed in a camera's seat instead of going back** (Camera Cockpit): when the next event came while the view was still flying back from a camera – a motion sensor that fires again – it remembered the camera's own seat as the place to return to, and the view ended there without the picture. The place to go back to is now kept until the view has arrived, and a look through a camera opened by hand returns to where it came from (#1348, reported by Kelthizar).
 

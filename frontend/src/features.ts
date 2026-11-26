@@ -92,26 +92,27 @@ export function shopUrl(lang: string | undefined): string {
 
 /** Where each Pro add-on is described in chapter 6 of the manual: German and English slug and anchor. */
 const MANUAL_FEATURE: Record<string, { de: string; en: string }> = {
-  camera_cockpit: { de: "pro-erweiterungen/#61-kamera-cockpit", en: "pro-add-ons/#61-camera-cockpit" },
-  weather: { de: "pro-erweiterungen/#62-wetter-drau%C3%9Fen", en: "pro-add-ons/#62-weather-outside" },
-  screens: { de: "pro-erweiterungen/#63-bildschirme-live", en: "pro-add-ons/#63-live-screens" },
-  energy_pro: { de: "pro-erweiterungen/#64-energie-pro", en: "pro-add-ons/#64-energy-pro" },
-  sound: { de: "pro-erweiterungen/#65-klang-kino", en: "pro-add-ons/#65-sound-cinema" },
-  auto_pro: { de: "pro-erweiterungen/#66-auto-pro", en: "pro-add-ons/#66-auto-pro" },
-  time_travel: { de: "pro-erweiterungen/#67-zeitreise", en: "pro-add-ons/#67-time-travel" },
-  pool: { de: "pro-erweiterungen/#68-pool-pro", en: "pro-add-ons/#68-pool-pro" },
-  household: { de: "pro-erweiterungen/#68-haushalt-pro", en: "pro-add-ons/#68-household-pro" },
-  extensions: { de: "erweiterungen-shop-moebel-packs/", en: "extensions-shop-furniture-packs/" },
+  camera_cockpit: { de: "6-pro-erweiterungen/#61-kamera-cockpit", en: "6-pro-add-ons/#61-camera-cockpit" },
+  weather: { de: "6-pro-erweiterungen/#62-wetter-drau%C3%9Fen", en: "6-pro-add-ons/#62-weather-outside" },
+  screens: { de: "6-pro-erweiterungen/#63-bildschirme-live", en: "6-pro-add-ons/#63-live-screens" },
+  energy_pro: { de: "6-pro-erweiterungen/#64-energie-pro", en: "6-pro-add-ons/#64-energy-pro" },
+  sound: { de: "6-pro-erweiterungen/#65-klang-kino", en: "6-pro-add-ons/#65-sound-cinema" },
+  auto_pro: { de: "6-pro-erweiterungen/#66-auto-pro", en: "6-pro-add-ons/#66-auto-pro" },
+  time_travel: { de: "6-pro-erweiterungen/#67-zeitreise", en: "6-pro-add-ons/#67-time-travel" },
+  pool: { de: "6-pro-erweiterungen/#68-pool-pro", en: "6-pro-add-ons/#68-pool-pro" },
+  household: { de: "6-pro-erweiterungen/#68-haushalt-pro", en: "6-pro-add-ons/#68-household-pro" },
+  extensions: { de: "7-erweiterungen-shop-und-moebel-packs/", en: "7-extensions-shop-and-furniture-packs/" },
 };
 
 /** The online manual in the user's language, optionally at a Pro add-on's section or the extensions chapter. */
 export function manualUrl(lang: string | undefined, topic?: Feature | "extensions"): string {
   const de = isGerman(lang);
-  const base = de ? "https://mastershort.de/neonplan3d/anleitung/" : "https://mastershort.de/en/neonplan3d/manual/";
+  // the manual lives on neonplan.app (built from the repo with every release); the old shop pages point there
+  const base = de ? "https://neonplan.app/de/anleitung/" : "https://neonplan.app/manual/";
   const target = topic ? MANUAL_FEATURE[topic] : undefined;
   const path = target ? (de ? target.de : target.en) : "";
   const [page, anchor] = path.split("#");
-  return `${base}${page}?lang=${de ? "de" : "en"}${anchor ? `#${anchor}` : ""}`;
+  return `${base}${page}${anchor ? `#${anchor}` : ""}`;
 }
 
 export function unlockedFeatures(packs: readonly { features?: string[] }[] = getPacks()): Set<Feature> {
