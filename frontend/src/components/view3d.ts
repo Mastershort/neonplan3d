@@ -2879,7 +2879,9 @@ export class Fp3dView3d extends LitElement {
   private directorShow(go: () => void): void {
     const v = this.viewer;
     if (!v) return;
-    if (!this.directorBack) this.directorBack = { floorId: this.floorId, roomId: this.roomId, view: v.getView() };
+    // where to go back to: where the view was before the first shot – and when someone is looking through a camera
+    // by hand, where that look came from (the camera's own seat is no place to return to, #1348)
+    if (!this.directorBack) this.directorBack = { floorId: this.floorId, roomId: this.roomId, view: this._through?.back ?? v.getView() };
     v.setAutoOrbit(0);
     go();
     clearTimeout(this.directorTimer);
@@ -2914,8 +2916,10 @@ export class Fp3dView3d extends LitElement {
     const due = this.directing.due(Date.now());
     const back = this.directorBack;
     if (!due) return;
-    this.directorBack = null;
-    if (!due.back || !back) return;
+    if (!due.back || !back) {
+      this.directorBack = null;
+      return;
+    }
     if (this._through) {
       this._through = null;
     }
@@ -2923,9 +2927,16 @@ export class Fp3dView3d extends LitElement {
     if (back.roomId) setTimeout(() => this.fire("room-tap", { floorId: back.floorId, roomId: back.roomId }), 60);
     else if (this.roomId && back.floorId) setTimeout(() => this.fire("room-tap", { floorId: back.floorId, roomId: null }), 60);
     setTimeout(() => {
+      // the next shot came before the flight back began: the view is its now
+      if (this.directing.current) return;
       this.viewer?.flyTo(back.view);
       this.viewer?.setAutoOrbit(this.autoOrbit ? 0.06 : 0);
     }, 400);
+    // the place to go back to is kept until the view has arrived there: a shot that comes while it still flies (a
+    // motion sensor fires again) would else remember the camera's seat as "where the view was" and return to it (#1348)
+    setTimeout(() => {
+      if (!this.directing.current && this.directorBack === back) this.directorBack = null;
+    }, 1400);
   }
 
   /** Show where a warning is: its floor and room, or the house for an alarm. */

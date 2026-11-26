@@ -4,6 +4,11 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 [releases page](https://github.com/Mastershort/neonplan3d/releases). Ideas and votes:
 [Discussions → Ideas](https://github.com/Mastershort/neonplan3d/discussions/categories/ideas).
 
+## Unreleased
+
+### Fixed
+- **The live director stayed in a camera's seat instead of going back** (Camera Cockpit): when the next event came while the view was still flying back from a camera – a motion sensor that fires again – it remembered the camera's own seat as the place to return to, and the view ended there without the picture. The place to go back to is now kept until the view has arrived, and a look through a camera opened by hand returns to where it came from (#1348, reported by Kelthizar).
+
 ## 4.0.3
 
 A fix round with one new switch: a garden around the house no longer takes the house's devices, picture frames keep their photos over a restart, dormers and snow stay out of the rooms, and a card can be set to only look.
