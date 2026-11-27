@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { emptyBuilding, lockAlong, gangEntities, gangPlateWidth, gangsOf, floorElevation, newFloor, outdoorZones, zonesOf, openingPreset, openingStyle, normalizeBuilding, outdoorDrop, outdoorGround, outdoorSurface, furnitureCorner, resizeFurniture, roomTiles, sidelightLayout, spotGrid, surfaceHeight, syncCameraLooks, type Furniture } from "./model.ts";
+import { emptyBuilding, lockAlong, gangEntities, gangPlateWidth, gangsOf, floorElevation, linkedFloorElevation, moveFloorInHouse, newFloor, outdoorZones, zonesOf, openingPreset, openingStyle, normalizeBuilding, outdoorDrop, outdoorGround, outdoorSurface, furnitureCorner, resizeFurniture, roomTiles, sidelightLayout, spotGrid, surfaceHeight, syncCameraLooks, type Furniture } from "./model.ts";
 
 test("a sidelight sits opposite the hinge, on the hinge side when asked, and keeps the leaf at least half a metre", () => {
   const none = {};
@@ -292,4 +292,39 @@ test("a camera's look hangs at the camera's height, not on the floor (#779)", ()
   const later = structuredClone(next);
   syncCameraLooks(later, next);
   assert.equal(later.floors[0].furniture[0].mount_y, 2.3);
+});
+
+test("a floor moves up and down the house by swapping heights with its neighbour (#1352)", () => {
+  const f = (id: string, elevation: number, height = 2.5) => ({ ...newFloor(id, id, elevation), height });
+  const house = [f("eg", 0), f("og", 2.75), f("dg", 5.5, 2.2)];
+  // the attic one place down: it takes the upper floor's place, the upper floor stands on it with the same gap
+  const down = moveFloorInHouse(house, "dg", -1)!;
+  assert.deepEqual(down.map((x) => [x.id, x.elevation]), [["eg", 0], ["dg", 2.75], ["og", 5.2]]);
+  // … and back up again: as it was
+  assert.deepEqual(moveFloorInHouse(down, "dg", 1)!.map((x) => [x.id, x.elevation]), [["eg", 0], ["og", 2.75], ["dg", 5.5]]);
+  // nothing above the top floor, nothing below the lowest
+  assert.equal(moveFloorInHouse(house, "dg", 1), null);
+  assert.equal(moveFloorInHouse(house, "eg", -1), null);
+  // the list given is not changed
+  assert.equal(house[2].elevation, 5.5);
+});
+
+test("a floor hanging in the air comes down onto the one below instead of swapping", () => {
+  const f = (id: string, elevation: number) => ({ ...newFloor(id, id, elevation), height: 2.5 });
+  // the upper floor was deleted: the attic floats a storey above the ground floor
+  const gap = [f("eg", 0), f("dg", 5.5)];
+  assert.deepEqual(moveFloorInHouse(gap, "dg", -1)!.map((x) => [x.id, x.elevation]), [["eg", 0], ["dg", 2.75]]);
+});
+
+test("a new floor whose Home Assistant level is above all others goes on top of the house", () => {
+  const f = (id: string, elevation: number, height: number) => ({ ...newFloor(id, id, elevation), height });
+  // high rooms: the upper floor stands at 3.4 m, a standard storey would put a level-2 floor at 5.5 m – fine here,
+  // but with level 1 and 2 swapped in Home Assistant, or lower storeys, the level alone put it between the two
+  const house = [f("eg", 0, 3.1), f("og", 3.4, 3.1)];
+  const levels: Record<string, number> = { eg: 0, og: 1 };
+  assert.equal(linkedFloorElevation(house, 2, (x) => levels[x.id]), 6.75);
+  // a level between the others keeps its place by the level
+  assert.equal(linkedFloorElevation(house, 0.5, (x) => levels[x.id]), 1.38);
+  // no linked floors yet: by the level, as before
+  assert.equal(linkedFloorElevation(house, 2, () => null), 5.5);
 });

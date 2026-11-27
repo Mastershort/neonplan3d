@@ -117,6 +117,8 @@ import {
   openingPreset,
   type OpeningPreset,
   floorElevation,
+  linkedFloorElevation,
+  moveFloorInHouse,
   furnitureCorner,
   resizeFurniture,
   roomTiles,
@@ -3346,7 +3348,8 @@ export class Fp3dEditor extends LitElement {
     const floors = this._doc.floors;
     const id = uid("floor");
     const name = ha?.name ?? (floors.length === 0 ? this.t("default_floor") : this.t("new_floor", { n: floors.length }));
-    const floor = { ...newFloor(id, name, floorElevation(floors, ha?.level)), ha_floor: ha?.floor_id ?? null };
+    const haLevel = (f: Floor) => (f.ha_floor ? this.hass?.floors?.[f.ha_floor]?.level : null);
+    const floor = { ...newFloor(id, name, linkedFloorElevation(floors, ha?.level, haLevel)), ha_floor: ha?.floor_id ?? null };
     const next = structuredClone(this._doc);
     // floors are kept from bottom to top
     const at = next.floors.findIndex((f) => f.elevation > floor.elevation);
@@ -3367,12 +3370,16 @@ export class Fp3dEditor extends LitElement {
     this.fit();
   }
 
+  /**
+   * The floor one place up or down the house: it swaps heights with its neighbour (only the order in the list was
+   * swapped before, which nobody saw – the house stands by the floors' elevations, #1352).
+   */
   private moveFloor(dir: -1 | 1): void {
-    const i = this._doc.floors.findIndex((f) => f.id === this._floorId);
-    const j = i + dir;
-    if (i < 0 || j < 0 || j >= this._doc.floors.length) return;
+    if (!this._floorId) return;
     const next = structuredClone(this._doc);
-    [next.floors[i], next.floors[j]] = [next.floors[j], next.floors[i]];
+    const moved = moveFloorInHouse(next.floors, this._floorId, dir);
+    if (!moved) return;
+    next.floors = moved;
     this.setDoc(next);
   }
 

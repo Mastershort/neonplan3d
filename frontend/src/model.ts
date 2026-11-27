@@ -1443,6 +1443,46 @@ export function floorElevation(floors: Floor[], level: number | null | undefined
 }
 
 /**
+ * A floor one place up (`dir` 1) or down (-1) the house. Where a floor stands is its elevation, so the two floors
+ * swap places in height – the one that goes down takes the lower one's elevation, the other stands on top of it with
+ * the gap the two had between them. A floor that hangs in the air (the floor under it was deleted) goes down onto the
+ * one below instead of swapping with it. The list comes back from bottom to top; null when there is nothing to do.
+ */
+export function moveFloorInHouse(floors: Floor[], id: string, dir: -1 | 1): Floor[] | null {
+  const order = floors.map((f) => ({ ...f })).sort((x, y) => x.elevation - y.elevation);
+  const i = order.findIndex((f) => f.id === id);
+  const j = i + dir;
+  if (i < 0 || j < 0 || j >= order.length) return null;
+  const lo = order[Math.min(i, j)];
+  const hi = order[Math.max(i, j)];
+  const round = (v: number) => Math.round(v * 100) / 100;
+  const gap = hi.elevation - (lo.elevation + lo.height);
+  // more air between the two than a ceiling is thick: the upper one only comes down (or, going up, the lower one
+  // has nowhere to swap to – the upper one comes down to it all the same, which closes the gap)
+  if (gap > 0.6) {
+    hi.elevation = round(lo.elevation + lo.height + 0.25);
+    return order.sort((x, y) => x.elevation - y.elevation);
+  }
+  const base = lo.elevation;
+  hi.elevation = base;
+  lo.elevation = round(base + hi.height + Math.max(0, gap));
+  return order.sort((x, y) => x.elevation - y.elevation);
+}
+
+/**
+ * Where a new floor linked to a floor of Home Assistant stands: by its level there – but a level above those of all
+ * the plan's linked floors means "on top of the house", whatever the heights of the floors below add up to (a new
+ * attic stood between the ground floor and the upper floor when those were higher or lower than a standard storey).
+ */
+export function linkedFloorElevation(floors: Floor[], level: number | null | undefined, levelOf: (f: Floor) => number | null | undefined): number {
+  if (level != null && Number.isFinite(level)) {
+    const levels = floors.map(levelOf).filter((l): l is number => l != null && Number.isFinite(l));
+    if (levels.length && levels.every((l) => l < level)) return floorElevation(floors, null);
+  }
+  return floorElevation(floors, level);
+}
+
+/**
  * Rooms for areas as 4 × 3 m tiles in rows beside a floor's existing rooms, to be dragged into place
  * and resized.
  */
