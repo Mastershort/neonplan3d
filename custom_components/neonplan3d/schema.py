@@ -7,6 +7,7 @@ so saving keeps working after a frontend update until Home Assistant restarts wi
 from __future__ import annotations
 
 import math
+import re
 from typing import Any
 
 import voluptuous as vol
@@ -1219,4 +1220,29 @@ def image_ids(building: dict) -> set[str]:
             for source in (item.get("frame_source") or "").split(","):
                 if source.strip().startswith("pic_"):
                     ids.add(source.strip())
+            # ... and what a module keeps with the item: the picture frames module holds its photos there, not in
+            # frame_source, so 4.0.3 still cleared them away
+            ids |= _stored_pictures(item.get("mods"))
+        for area in floor.get("outdoor", []):
+            ids |= _stored_pictures(area.get("mods"))
+    ids |= _stored_pictures((building.get("settings") or {}).get("mods"))
     return ids
+
+
+_PICTURE_ID = re.compile(r"^pic_[A-Za-z0-9]{4,40}$")
+
+
+def _stored_pictures(value: Any, depth: int = 0) -> set[str]:
+    """Return the ids of stored pictures ("pic_…") anywhere in what a module keeps (also in a list as text)."""
+    if depth > 6:
+        return set()
+    if isinstance(value, str):
+        return {part.strip() for part in value.split(",") if _PICTURE_ID.match(part.strip())}
+    if isinstance(value, dict):
+        value = list(value.values())
+    if isinstance(value, list):
+        found: set[str] = set()
+        for entry in value:
+            found |= _stored_pictures(entry, depth + 1)
+        return found
+    return set()

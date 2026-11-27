@@ -451,3 +451,13 @@ def test_frame_photos_count_as_used_images() -> None:
     frame = {"frame_kind": "photo", "frame_source": "pic_ab12cd34, https://x/y.jpg,pic_zz99zz99"}
     building = {"floors": [{"background": None, "furniture": [frame, {"frame_source": None}, {}]}]}
     assert image_ids(building) == {"pic_ab12cd34", "pic_zz99zz99"}
+
+
+def test_image_ids_include_what_a_module_keeps_with_an_item() -> None:
+    """The picture frames module holds its photos under the item's mods: they count as used too (#1327)."""
+    frames = {"kind": "photo", "source": "pic_ab12cd34,https://x/y.jpg, pic_zz99zz99", "interval": 30}
+    item = {"mods": {"mastershort.frames": frames}}
+    area = {"mods": {"some.module": {"pictures": ["pic_area0001", "no picture"]}}}
+    settings = {"mods": {"some.module": {"logo": "pic_house001"}}}
+    building = {"floors": [{"furniture": [item], "outdoor": [area]}], "settings": settings}
+    assert image_ids(building) == {"pic_ab12cd34", "pic_zz99zz99", "pic_area0001", "pic_house001"}
