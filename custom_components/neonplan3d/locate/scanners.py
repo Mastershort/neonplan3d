@@ -48,6 +48,14 @@ class ScanReader:
             source = scanner.source
             for address, (_device, adv) in scanner.discovered_devices_and_advertisement_data.items():
                 seen = stamps.get(address)
+                if seen is None:
+                    # Local Bleak scanners may expose advertisements without per-address timestamps.
+                    # Keep the manager record's payload and timestamp together and use its own source.
+                    info = bluetooth.async_last_service_info(hass, address, connectable=False)
+                    if info is None or info.source != source:
+                        continue
+                    seen = info.time
+                    adv = info.advertisement
                 if seen is None or adv.rssi is None or adv.rssi <= -127:
                     continue
                 key = (source, address)
