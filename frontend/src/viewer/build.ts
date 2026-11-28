@@ -701,7 +701,7 @@ export function buildFloorGeometry(
   // ---------------------------------------------------------------- furniture and shadows
   const shadow = buildShadow(outline.edges, floor.rooms, spans);
   const waterBuf = new GeoBuffer();
-  pushOutdoor(wallBuf, lines, floor, waterBuf);
+  pushOutdoor(wallBuf, lines, floor, waterBuf, floorBuf);
   if (surroundings) pushSurroundings(wallBuf, lines, surroundings, groundLevel(floor) + surroundings.y);
   for (const s of solar) pushModules(wallBuf, lines, s.face, s.field, floor.elevation);
 

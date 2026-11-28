@@ -31,6 +31,11 @@ const LOOKS: Record<OutdoorType, Look> = palette({
   balcony: { color: 0x1d2238, side: 0x161a2c, edge: 0x5b7cff, edgeAlpha: 0.5 },
 }, { lawn: { color: 0x86b26f, side: 0x6f9a5b, edge: 0x3de0a0, edgeAlpha: 0.08 }, terrace: { color: 0xcfc8bc, side: 0xb9b2a6, edge: 0x5b7cff, edgeAlpha: 0.1 }, path: { color: 0xc4bdb1, side: 0xaea79b, edge: 0x5b7cff, edgeAlpha: 0.08 }, driveway: { color: 0xadaaa5, side: 0x99968f, edge: 0x5b7cff, edgeAlpha: 0.08 }, pool: { color: 0x5fb3d9, side: 0xd9e2e8, edge: 0x37e0ff, edgeAlpha: 0.3 }, bed: { color: 0x6c5646, side: 0x5a4739, edge: 0x3de0a0, edgeAlpha: 0.1 }, wild: { color: 0x8ba86f, side: 0x77945c, edge: 0x9ad24f, edgeAlpha: 0.08 }, hedge: { color: 0x4d7d44, side: 0x3f6a38, edge: 0x3de0a0, edgeAlpha: 0.15 }, fence: { color: 0xd8d3cb, side: 0xc8c2b9, edge: 0x5b7cff, edgeAlpha: 0.2 }, pergola: { color: 0xb08a64, side: 0x9c7853, edge: 0x5b7cff, edgeAlpha: 0.2 }, balcony: { color: 0xd8d3cb, side: 0xc4beb5, edge: 0x5b7cff, edgeAlpha: 0.25 } });
 
+/** Whether an area lies on a room's floor somewhere: a corner of one inside the other. */
+function onRoom(floor: Floor, poly: Vec2[]): boolean {
+  return floor.rooms.some((r) => r.points.length >= 3 && (poly.some((p) => pointInPolygon(p, r.points)) || r.points.some((p) => pointInPolygon(p, poly))));
+}
+
 /** Whether an edge runs along a room's outline on this floor (a balcony needs no railing at the house wall). */
 function againstWall(floor: Floor, p: Vec2, q: Vec2): boolean {
   const mid: Vec2 = [(p[0] + q[0]) / 2, (p[1] + q[1]) / 2];
@@ -179,8 +184,14 @@ function pushBeam(buf: GeoBuffer, p: Vec2, q: Vec2, w: number, y0: number, y1: n
   quad([b(y0, 1), b(y0, -1), b(y1, -1), b(y1, 1)], sideC);
 }
 
-/** `water`: a pool's water surface goes there (drawn see-through, so the basin shows below it); without it into `buf`. */
-export function pushOutdoor(buf: GeoBuffer, lines: LineBuffer, floor: Floor, water?: GeoBuffer): void {
+/**
+ * `water`: a pool's water surface goes there (drawn see-through, so the basin shows below it); without it into `buf`.
+ * `floors`: the buffer of the rooms' floors. A flat area lying on a room's floor at about its level (a lawn in a
+ * garden that is also drawn as a room) puts its top there once more: the floors are drawn with a depth bias of their
+ * own, and from a distance that bias put the room's floor over a lawn lying only millimetres above it – the garden
+ * turned to paving in the house view and went green again close up (#1336).
+ */
+export function pushOutdoor(buf: GeoBuffer, lines: LineBuffer, floor: Floor, water?: GeoBuffer, floors?: GeoBuffer): void {
   const areas = floor.outdoor ?? [];
   areas.forEach((a, index) => {
     if (a.points.length < 3) return;
@@ -405,6 +416,17 @@ export function pushOutdoor(buf: GeoBuffer, lines: LineBuffer, floor: Floor, wat
           ? Math.min(lowest, ...poly.map(([x, z]) => outdoorGround(floor, x, z) - 0.02))
           : lowest;
         pushPrism(buf, poly, foot, a.slope ? topAt : g + look.top, look.side, look.color, { aoFrom: lowest, holes });
+        const top = g + look.top;
+        if (floors && !outdoorStanding(a.type) && !a.slope && top > -0.02 && top < 0.2 && onRoom(floor, poly)) {
+          const all = [...poly, ...holes.flat()];
+          const c = new Color(look.color);
+          for (const [i, j, k] of triangulate(poly, holes)) {
+            const p = all[i];
+            const q = all[j];
+            const r = all[k];
+            floors.tri([p[0], top + 0.0005, p[1]], [r[0], top + 0.0005, r[1]], [q[0], top + 0.0005, q[1]], c, c, c, undefined, ALWAYS);
+          }
+        }
         outline((x, z) => topAt(x, z) + 0.004);
         if (a.type === "hedge") outline((x, z) => groundAt(x, z) + 0.004);
         if (a.outline !== false) {

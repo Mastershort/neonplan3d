@@ -4,12 +4,15 @@ All notable changes to NeonPlan 3D. The full notes in German and English are on 
 [releases page](https://github.com/Mastershort/neonplan3d/releases). Ideas and votes:
 [Discussions → Ideas](https://github.com/Mastershort/neonplan3d/discussions/categories/ideas).
 
-## Unreleased
+## 4.0.4
+
+A fix round: picture frames keep their photos for good, floors move up and down the house, a lawn in a garden drawn as a room stays green, and the live director finds its way back.
 
 ### Changed
 - **The manual links lead to neonplan.app:** the links to the manual in NeonPlan (extensions page, Pro add-ons, locating), in the integration's entry and in the README now open the manual on neonplan.app, where it is built from the repository with every release.
 
 ### Fixed
+- **A lawn turned to paving from a distance** when the garden was also drawn as a room: the room's floor is drawn with a depth bias of its own, and in the house and floor view that bias put it over a lawn, a path or a terrace lying only millimetres above it – close up the lawn was green again. Flat outdoor areas lying on a room's floor are now drawn in the floors' own layer and stay on top at any distance (#1336, reported by chrisns).
 - **"Move up" and "Move down" did nothing to a floor:** they swapped the floors in the list only, while the house stands by the floors' heights above the ground – nothing moved in 3D or in the floor bar. A floor now swaps places in height with its neighbour, and a floor left hanging in the air after the one below was deleted comes down onto the next one. A new floor linked to a Home Assistant floor whose level is above all others goes on top of the house, whatever the storeys below measure (#1352, reported by phans1314).
 - **A digital picture frame still lost its photos at a restart:** 4.0.3 kept the photos of the built-in field, but the picture frames module holds its photos with the item in its own place, and those were still cleared away as unused. Pictures a module keeps with an item, an outdoor area or the house now count as used; photos already lost have to be uploaded once more (#1327, reported by digiart2307).
 - **The live director stayed in a camera's seat instead of going back** (Camera Cockpit): when the next event came while the view was still flying back from a camera – a motion sensor that fires again – it remembered the camera's own seat as the place to return to, and the view ended there without the picture. The place to go back to is now kept until the view has arrived, and a look through a camera opened by hand returns to where it came from (#1348, reported by Kelthizar).
